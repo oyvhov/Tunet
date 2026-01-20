@@ -451,8 +451,13 @@ export default function App() {
           no_attributes: true
         });
         
-        const historyData = res && res[COST_TODAY_ID];
-        if (historyData) {
+        // Handle both object (keyed by entity_id) and array response formats
+        let historyData = res && res[COST_TODAY_ID];
+        if (!historyData && Array.isArray(res) && res.length > 0) {
+            historyData = res[0];
+        }
+
+        if (historyData && Array.isArray(historyData)) {
            const daily = {};
            historyData.forEach(pt => {
               const val = parseFloat(pt.state);
@@ -533,10 +538,6 @@ export default function App() {
     const name = id === OYVIND_ID ? "Øyvind" : "Tuva";
     const baseUrl = config.url.replace(/\/$/, '');
     const picture = entity?.attributes?.entity_picture ? `${baseUrl}${entity.attributes.entity_picture}` : null;
-    
-    const batLevel = id === OYVIND_ID ? parseInt(entities[OYVIND_BAT_LEVEL]?.state) || 0 : null;
-    const batState = id === OYVIND_ID ? entities[OYVIND_BAT_STATE]?.state : null;
-    const isCharging = batState === 'charging' || batState === 'ac' || batState === 'wireless';
 
     return (
       <div key={id} className="group relative flex items-center gap-3 pl-1.5 pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-white/5" 
@@ -564,12 +565,6 @@ export default function App() {
         <div className="flex flex-col justify-center">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-white leading-none tracking-wide">{name}</span>
-            {id === OYVIND_ID && batLevel !== null && (
-               <div className={`flex items-center gap-0.5 transition-opacity ${isCharging ? 'opacity-100' : 'opacity-40'}`} title={`${batLevel}%`}>
-                  {isCharging ? <Zap className="w-3 h-3 text-yellow-400 fill-current" /> : <Battery className="w-3 h-3 text-white" />}
-                  <span className="text-[9px] font-bold text-white">{batLevel}%</span>
-               </div>
-            )}
           </div>
           <span className="text-[10px] font-bold uppercase tracking-widest leading-none mt-1 transition-colors duration-300" style={{color: isHome ? '#4ade80' : 'rgba(156, 163, 175, 0.5)'}}>
             {String(statusText)}
