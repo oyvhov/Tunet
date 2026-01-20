@@ -183,15 +183,23 @@ const M3Slider = ({ min, max, step, value, onChange, colorClass = "bg-blue-500",
 const BarGraph = ({ data }) => {
   if (!data || data.length === 0) return null;
   
+  const normalizedData = data.map(d => (typeof d === 'object' ? d : { value: d, label: '' }));
+  
   // Ensure we always show 7 bars to maintain layout
-  const paddedData = [...Array(Math.max(0, 7 - data.length)).fill(0), ...data];
-  const max = Math.max(...paddedData) * 1.1 || 1;
+  const paddedData = [...Array(Math.max(0, 7 - normalizedData.length)).fill({ value: 0, label: '' }), ...normalizedData];
+  const max = Math.max(...paddedData.map(d => d.value)) * 1.1 || 1;
 
   return (
     <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end gap-[2px] px-0 opacity-90 pointer-events-none">
-      {paddedData.map((v, i) => (
-        <div key={i} className="flex-1 flex items-end h-full group">
-           <div className={`w-full rounded-t-sm transition-all duration-1000 ${i === paddedData.length - 1 ? 'bg-emerald-400' : 'bg-emerald-500/30'}`} style={{ height: `${(v/max)*100}%` }}></div>
+      {paddedData.map((d, i) => (
+        <div key={i} className="flex-1 flex items-end h-full group relative pointer-events-auto">
+           <div className={`w-full rounded-t-sm transition-all duration-1000 ${i === paddedData.length - 1 ? 'bg-emerald-400' : 'bg-emerald-500/30 group-hover:bg-emerald-500/60'}`} style={{ height: `${(d.value/max)*100}%` }}></div>
+           {d.value > 0 && (
+             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#121214] border border-white/10 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 shadow-xl flex flex-col items-center pointer-events-none">
+               <span className="font-bold text-emerald-400 text-xs">{d.value.toFixed(0)} kr</span>
+               <span className="text-gray-500 font-medium uppercase tracking-wider">{d.label}</span>
+             </div>
+           )}
         </div>
       ))}
     </div>
@@ -351,6 +359,7 @@ const ModernDropdown = ({ label, icon: Icon, options, current, onChange, map }) 
 };
 
 export default function App() {
+  console.log("App starting...");
   const [entities, setEntities] = useState({});
   const [connected, setConnected] = useState(false);
   const [libLoaded, setLibLoaded] = useState(false);
@@ -439,7 +448,8 @@ export default function App() {
     const fetchHistory = async () => {
       const end = new Date();
       const start = new Date();
-      start.setDate(start.getDate() - 7);
+      start.setDate(start.getDate() - 10);
+      start.setHours(0, 0, 0, 0);
       
       try {
         const res = await conn.sendMessagePromise({
@@ -460,13 +470,33 @@ export default function App() {
         if (historyData && Array.isArray(historyData)) {
            const daily = {};
            historyData.forEach(pt => {
-              const val = parseFloat(pt.state);
+              const s = pt.s !== undefined ? pt.s : pt.state;
+              const lu = pt.lu !== undefined ? pt.lu : pt.last_updated;
+              const val = parseFloat(s);
               if (isNaN(val)) return;
-              const d = new Date(pt.last_updated).toLocaleDateString('en-CA');
+              const d = (typeof lu === 'number' ? new Date(lu * 1000) : new Date(lu)).toLocaleDateString('en-CA');
               if (!daily[d] || val > daily[d]) daily[d] = val;
            });
-           const sorted = Object.keys(daily).sort().map(k => daily[k]);
-           setCostHistory(sorted.slice(-7));
+           
+           // Ensure we have exactly the last 7 days filled
+           const result = [];
+           const today = new Date();
+           for (let i = 6; i >= 0; i--) {
+             const d = new Date(today);
+             d.setDate(d.getDate() - i);
+             const dateStr = d.toLocaleDateString('en-CA');
+             const dayName = d.toLocaleDateString('nn-NO', { weekday: 'short' });
+             const dayDate = d.toLocaleDateString('nn-NO', { day: 'numeric', month: 'numeric' });
+             result.push({
+                value: daily[dateStr] || 0,
+                label: `${dayName} ${dayDate}`,
+                date: dateStr
+             });
+           }
+           
+           setCostHistory(result);
+        } else {
+           console.warn("No history data found or unexpected format", res);
         }
       } catch (err) { console.error("History fetch error", err); }
     };
@@ -659,6 +689,7 @@ export default function App() {
             <div className="flex justify-between items-start">
               <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>
                 {isCooling ? <Snowflake className="w-5 h-5" style={{strokeWidth: 1.5}} /> : <AirVent className="w-5 h-5" style={{strokeWidth: 1.5}} />}
+                
               </div>
             </div>
             
@@ -996,6 +1027,7 @@ export default function App() {
               <div className="flex items-center gap-8 mb-12 font-sans">
                 <div className="p-6 rounded-3xl transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>
                   {isCooling ? <Snowflake className="w-12 h-12" /> : <AirVent className="w-12 h-12" />}
+                  
                 </div>
                 <div>
                   <h3 className="text-4xl font-light tracking-tight text-white uppercase italic leading-none">Varmepumpe</h3>
