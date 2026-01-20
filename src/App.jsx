@@ -113,7 +113,7 @@ const LEAF_UPDATE = "button.leaf_update_data";
 const LEAF_RANGE = "sensor.leaf_range_ac_off";
 const LEAF_LAST_UPDATED = "sensor.leaf_last_updated";
 const LEAF_INTERNAL_TEMP = "sensor.leaf_internal_temperature";
-const LEAF_BG_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Nissan_Leaf_ZE1_at_Geneva_Motor_Show_2018_02.jpg/800px-Nissan_Leaf_ZE1_at_Geneva_Motor_Show_2018_02.jpg";
+const LEAF_BG_IMAGE =  "/nissan-leaf.png";
 
 const formatRelativeTime = (timestamp) => {
   if (!timestamp || timestamp === "unavailable" || timestamp === "unknown" || timestamp === "--") return "--";
@@ -389,6 +389,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    document.title = "Midttunet";
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.type = 'image/svg+xml';
+    link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>";
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
@@ -465,6 +477,14 @@ export default function App() {
       return (nowTime - lastUpdated) < 120000;
     }
     return false;
+  };
+
+  const isMediaActive = (entity) => {
+    if (!entity || !entity.state) return false;
+    if (entity.state === 'playing') return true;
+    const lastUpdated = new Date(entity.last_updated).getTime();
+    const nowTime = now.getTime();
+    return (nowTime - lastUpdated) < 30000;
   };
 
   const getS = (id, fallback = "--") => {
@@ -725,14 +745,19 @@ export default function App() {
         );
       case 'media_player':
         const mediaEntities = MEDIA_PLAYER_IDS.map(id => entities[id]).filter(Boolean);
-        const playingEntities = mediaEntities.filter(e => e.state === 'playing');
+        const activeMediaEntities = mediaEntities.filter(isMediaActive);
+
+        if (!editMode && activeMediaEntities.length === 0) return null;
+
+        const pool = (editMode && activeMediaEntities.length === 0) ? mediaEntities : activeMediaEntities;
+        const playingEntities = pool.filter(e => e.state === 'playing');
         const playingCount = playingEntities.length;
         
-        let currentMp = mediaEntities.find(e => e.entity_id === activeMediaId);
+        let currentMp = pool.find(e => e.entity_id === activeMediaId);
         
         if (!currentMp) {
             if (playingCount > 0) currentMp = playingEntities[0];
-            else currentMp = mediaEntities[0];
+            else currentMp = pool[0];
         } else if (playingCount > 0 && currentMp.state !== 'playing' && !activeMediaId) {
              currentMp = playingEntities[0];
         }
@@ -762,7 +787,7 @@ export default function App() {
 
         const cyclePlayers = (e) => {
             e.stopPropagation();
-            const list = playingCount > 1 ? playingEntities : mediaEntities;
+            const list = playingCount > 1 ? playingEntities : pool;
             const idx = list.findIndex(e => e.entity_id === mpId);
             const next = list[(idx + 1) % list.length];
             setActiveMediaId(next.entity_id);
@@ -868,12 +893,16 @@ export default function App() {
           <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
             {visibilityBtn}
             {sIndicator}
-            {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className="w-full h-full object-cover blur-xl scale-150" /><div className="absolute inset-0 bg-black/20" /></div>)}
+            {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.7]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
+            {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/10 via-transparent to-transparent opacity-50 animate-pulse pointer-events-none" />}
+            {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/40 via-transparent to-transparent animate-pulse pointer-events-none" />}
+            {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.6]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
+            {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/20 via-transparent to-transparent pointer-events-none" />}
             <div className="relative z-10 flex gap-4 items-start">
               <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 bg-white/5 shadow-lg">{sPicture ? <img src={sPicture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isTV ? <Tv className="w-8 h-8 text-gray-500" /> : <Speaker className="w-8 h-8 text-gray-500" />}</div>}</div>
               <div className="flex flex-col overflow-hidden pt-1"><p className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-1 truncate">{getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '')}</p><h3 className="text-lg font-bold text-white leading-tight truncate mb-0.5">{sTitle || 'Ukjend'}</h3><p className="text-xs text-gray-400 truncate font-medium">{sArtist || ''}</p></div>
             </div>
-            <div className="relative z-10 flex items-center justify-between mt-4 bg-white/5 rounded-2xl p-1.5 border border-white/5 backdrop-blur-md"><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: sId }); }} className="p-3 hover:bg-white/10 rounded-xl transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-gray-300" /></button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: sId }); }} className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white active:scale-95 shadow-sm">{sIsPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}</button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: sId }); }} className="p-3 hover:bg-white/10 rounded-xl transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-gray-300" /></button></div>
+            <div className="relative z-10 flex items-center justify-center gap-8 mt-2"><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: sId }); }} className="text-gray-400 hover:text-white transition-colors p-2 active:scale-90"><SkipBack className="w-6 h-6" /></button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: sId }); }} className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95">{sIsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}</button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: sId }); }} className="text-gray-400 hover:text-white transition-colors p-2 active:scale-90"><SkipForward className="w-6 h-6" /></button></div>
           </div>
         );
       case 'car':
@@ -882,8 +911,8 @@ export default function App() {
           <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'rgba(15, 23, 42, 0.6)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.04)')}}>
             {visibilityBtn}
             <div className="absolute inset-0 z-0 pointer-events-none">
-               <img src={LEAF_BG_IMAGE} alt="" className="w-full h-full object-cover opacity-40 blur-[2px] scale-110 grayscale-[30%]" />
-               <div className="absolute inset-0 bg-gradient-to-t from-[#02040a] via-[#02040a]/50 to-transparent" />
+               <img src={LEAF_BG_IMAGE} alt="" className="w-3/4 h-auto mx-auto mt-12 object-cover opacity-50 grayscale-[20%]" />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#02040a] via-[#02040a]/40 to-transparent" />
             </div>
             <div className="flex justify-between items-start relative z-10"><div className="p-3 rounded-2xl transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(34, 197, 94, 0.1)', color: isHtg ? '#fb923c' : '#22c55e', animation: isHtg ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}}><Car className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.02)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255,255,255,0.05)', color: isHtg ? '#fb923c' : '#9ca3af'}}><span className="text-xs tracking-widest font-black uppercase">{isHtg ? 'Varmar' : getS(LEAF_LOCATION, 'Parkert')}</span></div></div>
             <div className="flex justify-between items-end relative z-10"><div><p className="text-gray-500 text-xs uppercase mb-1 font-bold opacity-60" style={{letterSpacing: '0.05em'}}>Nissan Leaf</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className="text-4xl font-medium text-white leading-none">{String(getS(LEAF_ID))}%</span><span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
@@ -1172,7 +1201,7 @@ export default function App() {
               {(() => {
                 const isSonos = activeMediaModal === 'sonos';
                 const mediaEntities = (isSonos ? SONOS_IDS : MEDIA_PLAYER_IDS).map(id => entities[id]).filter(Boolean);
-                const activePlayers = mediaEntities.filter(e => isSonos ? isSonosActive(e) : (e.state && ['playing', 'paused'].includes(e.state)));
+                const activePlayers = mediaEntities.filter(e => isSonos ? isSonosActive(e) : isMediaActive(e));
                 
                 let currentMp = mediaEntities.find(e => e.entity_id === activeMediaId);
                 if (!currentMp) {
