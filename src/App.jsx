@@ -438,43 +438,64 @@ export default function App() {
       case 'climate':
         const curT = getA(CLIMATE_ID, "current_temperature", "--");
         const tarT = getA(CLIMATE_ID, "temperature", 21);
+        const fanMode = getA(CLIMATE_ID, "fan_mode", "Auto");
         const clTheme = isCooling ? 'blue' : (isHeating ? 'orange' : 'gray');
         const statusLabel = isHeating ? 'VARMAR' : isCooling ? 'KJØLER' : hvacAction === 'idle' ? 'VENTAR' : hvacState === 'off' ? 'AV' : 'KLIMA';
+        const fanSpeedLevel = ['Low', 'LowMid', 'Mid', 'HighMid', 'High'].indexOf(fanMode) + 1;
         return (
           <div key="climate" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowClimateModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
             <div className="flex justify-between items-start">
               <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>
                 {isCooling ? <Snowflake className="w-5 h-5" style={{strokeWidth: 1.5}} /> : <Wind className="w-5 h-5" style={{strokeWidth: 1.5}} />}
               </div>
-              <div className="flex flex-col items-end">
-                 <span className="text-xs uppercase font-bold opacity-60 mb-1" style={{letterSpacing: '0.05em', color: '#9ca3af'}}>Inne</span>
-                 <div className="flex items-baseline gap-0.5">
-                    <span className="text-2xl font-medium text-white leading-none">{String(curT)}</span>
-                    <span className="text-sm text-gray-500 font-medium">°</span>
-                 </div>
-              </div>
             </div>
             
-            <div className="mt-4">
-               <div className="flex items-center justify-between rounded-2xl p-1.5 border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
+            <div className="absolute top-7 right-7 flex flex-col items-end">
+               <span className="text-xs uppercase font-bold opacity-60 mb-1" style={{letterSpacing: '0.05em', color: '#9ca3af'}}>Inne</span>
+               <div className="flex items-baseline gap-0.5">
+                  <span className="text-2xl font-medium text-white leading-none">{String(curT)}</span>
+                  <span className="text-sm text-gray-500 font-medium">°</span>
+               </div>
+            </div>
+            
+            <div className="mt-2">
+               <p className="text-gray-500 text-xs uppercase mb-3 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>Varmepumpe</p>
+               <div className="flex items-stretch gap-3">
+                  <div className="flex items-center justify-between rounded-2xl p-1 border flex-1" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
                   <button 
                     onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) - 0.5 }); }}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
                   >
-                    <Minus className="w-5 h-5" />
+                    <Minus className="w-4 h-4" />
                   </button>
                   
                   <div className="flex flex-col items-center">
-                    <span className="text-xl font-bold text-white leading-none">{String(tarT)}°</span>
-                    <span className="text-[8px] uppercase font-bold tracking-widest opacity-60 mt-0.5" style={{color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>{statusLabel}</span>
+                    <span className="text-lg font-bold text-white leading-none">{String(tarT)}°</span>
                   </div>
 
                   <button 
                     onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) + 0.5 }); }}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
+                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4" />
                   </button>
+               </div>
+
+                  <div className="flex items-center justify-center rounded-2xl border w-14" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                  {fanSpeedLevel === 0 ? (
+                    <span className="text-[10px] font-bold text-gray-500 tracking-wider">AUTO</span>
+                  ) : (
+                    <div className="flex items-end gap-[2px] h-4">
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <div 
+                          key={level} 
+                          className={`w-1 rounded-sm transition-all duration-300 ${level <= fanSpeedLevel ? (clTheme === 'blue' ? 'bg-blue-400' : clTheme === 'orange' ? 'bg-orange-400' : 'bg-white') : 'bg-white/10'}`}
+                          style={{height: `${30 + (level * 14)}%`}}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  </div>
                </div>
             </div>
           </div>
