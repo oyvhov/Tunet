@@ -31,7 +31,24 @@ import {
   Battery, 
   AlertCircle,
   TrendingDown,
-  BarChart3
+  BarChart3,
+  Eye,
+  EyeOff,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Music,
+  Clapperboard,
+  Server,
+  HardDrive,
+  Tv,
+  Coins,
+  Speaker,
+  Sofa,
+  Utensils,
+  AirVent,
+  LampDesk
 } from 'lucide-react';
 
 const CLIMATE_ID = "climate.varmepumpe";
@@ -49,6 +66,46 @@ const OLVE_DOOR_ID = "binary_sensor.kleven_dor_sensor_contact";
 const OYVIND_BAT_LEVEL = "sensor.pixel_9_pro_xl_battery_level";
 const OYVIND_BAT_STATE = "sensor.pixel_9_pro_xl_battery_state";
 const LEAF_CLIMATE = "climate.leaf_climate";
+const COST_TODAY_ID = "sensor.tibber_forbruk_kroner";
+const COST_MONTH_ID = "sensor.monthly_cost_midttunet";
+const MEDIA_PLAYER_IDS = [
+  "media_player.bibliotek_sander_tv_65",
+  "media_player.bibliotek_hilde_tv",
+  "media_player.bibliotek_stue",
+  "media_player.bibliotek_gaute_tv",
+  "media_player.bibliotek_shield_tv",
+  "media_player.bibliotek_google_chrome_windows_3",
+  "media_player.midttunet_shield_tv_2",
+  "media_player.midttunet_pixel_9_pro_xl",
+  "media_player.bibliotek_oyvind_sin_tab_a9",
+  "media_player.bibliotek_galaxy_tab_s7",
+  "media_player.bibliotek_desktop_9ubckf5",
+  "media_player.bibliotek_oneplus_nord2_5g",
+  "media_player.bibliotek_chromecast",
+  "media_player.bibliotek_chromecast_2",
+  "media_player.bibliotek_google_tv_3",
+  "media_player.bibliotek_google_chrome_windows",
+  "media_player.bibliotek_google_chrome_windows_2",
+  "media_player.bibliotek_telia_box",
+  "media_player.bibliotek_bibliotek",
+  "media_player.bibliotek_samsung_tv_vindheim",
+  "media_player.bibliotek_pixel_9a",
+  "media_player.bibliotek_chromecast_3",
+  "media_player.bibliotek_familiestue",
+  "media_player.bibliotek_get_box_asbjorn",
+  "media_player.bibliotek_chromecast_4",
+  "media_player.bibliotek_chromecast_5",
+  "media_player.midttunet_android",
+  "media_player.bibliotek_eple",
+  "media_player.midttunet_pixel_9_pro_xl_2",
+  "media_player.bibliotek_android_2"
+];
+const SONOS_IDS = [
+  "media_player.sonos_play_1",
+  "media_player.sonos_lydplanke",
+  "media_player.sonos_kjokken",
+  "media_player.sonos_platespelar"
+];
 const LEAF_LOCATION = "device_tracker.leaf_location";
 const LEAF_PLUGGED = "binary_sensor.leaf_plugged_in";
 const LEAF_CHARGING = "binary_sensor.leaf_charging";
@@ -56,6 +113,7 @@ const LEAF_UPDATE = "button.leaf_update_data";
 const LEAF_RANGE = "sensor.leaf_range_ac_off";
 const LEAF_LAST_UPDATED = "sensor.leaf_last_updated";
 const LEAF_INTERNAL_TEMP = "sensor.leaf_internal_temperature";
+const LEAF_BG_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Nissan_Leaf_ZE1_at_Geneva_Motor_Show_2018_02.jpg/800px-Nissan_Leaf_ZE1_at_Geneva_Motor_Show_2018_02.jpg";
 
 const formatRelativeTime = (timestamp) => {
   if (!timestamp || timestamp === "unavailable" || timestamp === "unknown" || timestamp === "--") return "--";
@@ -73,6 +131,20 @@ const formatRelativeTime = (timestamp) => {
   } catch (e) {
     return "ukjend tid";
   }
+};
+
+const formatDuration = (seconds) => {
+  if (typeof seconds !== 'number' || isNaN(seconds)) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
+const getServerInfo = (id) => {
+  if (!id || typeof id !== 'string') return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
+  if (id.includes('midttunet')) return { name: 'Jellyfin', icon: Clapperboard, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
+  if (id.includes('bibliotek')) return { name: 'Emby', icon: Server, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' };
+  return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
 };
 
 const M3Slider = ({ min, max, step, value, onChange, colorClass = "bg-blue-500", disabled = false }) => {
@@ -104,6 +176,24 @@ const M3Slider = ({ min, max, step, value, onChange, colorClass = "bg-blue-500",
         className="absolute w-full h-10 opacity-0 cursor-pointer z-10"
       />
       <div className="absolute w-1 h-8 bg-white rounded-full transition-transform duration-200 pointer-events-none group-active:scale-y-110" style={{ left: `calc(${percentage}% - 2px)`, boxShadow: '0_0_15px_rgba(255,255,255,0.4)' }} />
+    </div>
+  );
+};
+
+const BarGraph = ({ data }) => {
+  if (!data || data.length === 0) return null;
+  
+  // Ensure we always show 7 bars to maintain layout
+  const paddedData = [...Array(Math.max(0, 7 - data.length)).fill(0), ...data];
+  const max = Math.max(...paddedData) * 1.1 || 1;
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end gap-[2px] px-0 opacity-90 pointer-events-none">
+      {paddedData.map((v, i) => (
+        <div key={i} className="flex-1 flex items-end h-full group">
+           <div className={`w-full rounded-t-sm transition-all duration-1000 ${i === paddedData.length - 1 ? 'bg-emerald-400' : 'bg-emerald-500/30'}`} style={{ height: `${(v/max)*100}%` }}></div>
+        </div>
+      ))}
     </div>
   );
 };
@@ -271,8 +361,12 @@ export default function App() {
   const [showLightModal, setShowLightModal] = useState(null);
   const [showLeafModal, setShowLeafModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [activeMediaModal, setActiveMediaModal] = useState(null);
   const [editMode, setEditMode] = useState(false);
-  const [cardOrder, setCardOrder] = useState(['power', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car']);
+  const [cardOrder, setCardOrder] = useState(['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos']);
+  const [hiddenCards, setHiddenCards] = useState([]);
+  const [activeMediaId, setActiveMediaId] = useState(null);
+  const [costHistory, setCostHistory] = useState([]);
   
   const [config, setConfig] = useState({
     url: typeof window !== 'undefined' ? localStorage.getItem('ha_url') || '' : '',
@@ -281,7 +375,17 @@ export default function App() {
 
   useEffect(() => {
     const savedOrder = localStorage.getItem('midttunet_card_order');
-    if (savedOrder) { try { setCardOrder(JSON.parse(savedOrder).filter(id => id !== 'people')); } catch (e) {} }
+    if (savedOrder) { 
+      try { 
+        const parsed = JSON.parse(savedOrder).filter(id => id !== 'people');
+        const defaults = ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos'];
+        const missing = defaults.filter(id => !parsed.includes(id));
+        setCardOrder([...parsed, ...missing]);
+      } catch (e) {} 
+    }
+    
+    const savedHidden = localStorage.getItem('midttunet_hidden_cards');
+    if (savedHidden) { try { setHiddenCards(JSON.parse(savedHidden)); } catch (e) {} }
   }, []);
 
   useEffect(() => {
@@ -316,6 +420,52 @@ export default function App() {
     connect();
     return () => { if (connection) connection.close(); };
   }, [libLoaded, config.url, config.token]);
+
+  useEffect(() => {
+    if (!conn) return;
+    
+    const fetchHistory = async () => {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 7);
+      
+      try {
+        const res = await conn.sendMessagePromise({
+          type: 'history/history_during_period',
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
+          entity_ids: [COST_TODAY_ID],
+          minimal_response: false,
+          no_attributes: true
+        });
+        
+        const historyData = res && res[COST_TODAY_ID];
+        if (historyData) {
+           const daily = {};
+           historyData.forEach(pt => {
+              const val = parseFloat(pt.state);
+              if (isNaN(val)) return;
+              const d = new Date(pt.last_updated).toLocaleDateString('en-CA');
+              if (!daily[d] || val > daily[d]) daily[d] = val;
+           });
+           const sorted = Object.keys(daily).sort().map(k => daily[k]);
+           setCostHistory(sorted.slice(-7));
+        }
+      } catch (err) { console.error("History fetch error", err); }
+    };
+    fetchHistory();
+  }, [conn]);
+
+  const isSonosActive = (entity) => {
+    if (!entity || !entity.state) return false;
+    if (entity.state === 'playing') return true;
+    if (entity.state === 'paused') {
+      const lastUpdated = new Date(entity.last_updated).getTime();
+      const nowTime = now.getTime();
+      return (nowTime - lastUpdated) < 120000;
+    }
+    return false;
+  };
 
   const getS = (id, fallback = "--") => {
     const state = entities[id]?.state;
@@ -409,7 +559,18 @@ export default function App() {
     );
   };
 
+  const toggleCardVisibility = (cardId) => {
+    const newHidden = hiddenCards.includes(cardId) 
+      ? hiddenCards.filter(id => id !== cardId)
+      : [...hiddenCards, cardId];
+    setHiddenCards(newHidden);
+    localStorage.setItem('midttunet_hidden_cards', JSON.stringify(newHidden));
+  };
+
   const renderCard = (cardId, index) => {
+    const isHidden = hiddenCards.includes(cardId);
+    if (isHidden && !editMode) return null;
+
     const dragProps = { draggable: editMode, onDragStart: (e) => e.dataTransfer.setData('cardIndex', index), onDragOver: (e) => e.preventDefault(), onDrop: (e) => {
         const sourceIndex = parseInt(e.dataTransfer.getData('cardIndex'));
         const newOrder = [...cardOrder];
@@ -421,18 +582,53 @@ export default function App() {
 
     const cardStyle = {
       backgroundColor: 'rgba(15, 23, 42, 0.6)',
-      borderColor: editMode ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.04)',
+      borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)',
       backdropFilter: 'blur(16px)',
+      borderStyle: editMode ? 'dashed' : 'solid',
+      borderWidth: editMode ? '2px' : '1px',
       minHeight: '220px',
-      maxHeight: '220px'
+      maxHeight: '220px',
+      opacity: isHidden && editMode ? 0.4 : 1,
+      filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
     };
+
+    const visibilityBtn = editMode ? (
+      <button 
+        onClick={(e) => { e.stopPropagation(); toggleCardVisibility(cardId); }}
+        className="absolute top-2 right-2 z-50 p-2 rounded-full transition-colors hover:bg-white/20 text-white border border-white/20 shadow-lg"
+        style={{backgroundColor: isHidden ? 'rgba(239, 68, 68, 0.8)' : 'rgba(0, 0, 0, 0.6)'}}
+        title={isHidden ? "Vis kort" : "Skjul kort"}
+      >
+        {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    ) : null;
 
     switch(cardId) {
       case 'power':
         return (
           <div key="power" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowPowerModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+            {visibilityBtn}
             <div className="flex justify-between items-start"><div className="p-3 rounded-2xl text-amber-400 group-hover:scale-110 transition-transform duration-500" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)'}}><Zap className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><span className="text-xs tracking-widest text-gray-400 uppercase font-bold">Billig</span></div></div>
             <div className="mt-2"><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>Straumpris</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-white leading-none">{String(getS(TIBBER_ID))}</span><span className="text-gray-600 font-medium text-base ml-1">øre</span></div><SparkLine data={fullPriceData} currentIndex={currentPriceIndex} /></div>
+          </div>
+        );
+      case 'energy_cost':
+        return (
+          <div key="energy_cost" {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+            {visibilityBtn}
+            <BarGraph data={costHistory.length > 0 ? costHistory : [parseFloat(getS(COST_TODAY_ID)) || 0]} />
+            <div className="flex justify-between items-start">
+              <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399'}}>
+                <Coins className="w-5 h-5" style={{strokeWidth: 1.5}} />
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', color: '#9ca3af'}}>
+                <span className="text-[10px] tracking-[0.2em] font-bold uppercase">Kostnad</span>
+              </div>
+            </div>
+            <div className="mt-2 flex flex-col gap-2 relative z-10">
+              <div><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>I dag</p><div className="flex items-baseline gap-1 leading-none"><span className="text-3xl font-medium text-white leading-none">{String(getS(COST_TODAY_ID))}</span><span className="text-gray-600 font-medium text-sm ml-1">kr</span></div></div>
+              <div><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>Denne månaden</p><div className="flex items-baseline gap-1 leading-none"><span className="text-3xl font-medium text-white leading-none">{String(getS(COST_MONTH_ID))}</span><span className="text-gray-600 font-medium text-sm ml-1">kr</span></div></div>
+            </div>
           </div>
         );
       case 'climate':
@@ -444,9 +640,10 @@ export default function App() {
         const fanSpeedLevel = ['Low', 'LowMid', 'Mid', 'HighMid', 'High'].indexOf(fanMode) + 1;
         return (
           <div key="climate" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowClimateModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+            {visibilityBtn}
             <div className="flex justify-between items-start">
               <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>
-                {isCooling ? <Snowflake className="w-5 h-5" style={{strokeWidth: 1.5}} /> : <Wind className="w-5 h-5" style={{strokeWidth: 1.5}} />}
+                {isCooling ? <Snowflake className="w-5 h-5" style={{strokeWidth: 1.5}} /> : <AirVent className="w-5 h-5" style={{strokeWidth: 1.5}} />}
               </div>
             </div>
             
@@ -509,10 +706,16 @@ export default function App() {
         const br = getA(currentLId, "brightness") || 0;
         const subEntities = getA(currentLId, "entity_id", []);
         const activeCount = subEntities.filter(id => entities[id]?.state === 'on').length;
+        
+        let LightIcon = Lightbulb;
+        if (cardId === 'light_kjokken') LightIcon = Utensils;
+        if (cardId === 'light_stova') LightIcon = Sofa;
+        if (cardId === 'light_studio') LightIcon = LampDesk;
 
         return (
           <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
-            <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)', color: isOn ? '#fbbf24' : '#4b5563'}}><Lightbulb className="w-5 h-5" style={{strokeWidth: 1.5, fill: isOn ? 'rgba(251, 191, 36, 0.2)' : 'none'}} /></button><div className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.1)' : 'rgba(255,255,255,0.05)', borderColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.1)', color: isOn ? '#f59e0b' : '#9ca3af'}}>{subEntities.length > 0 ? `${activeCount}/${subEntities.length}` : (isOn ? 'PÅ' : 'AV')}</div></div>
+            {visibilityBtn}
+            <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)', color: isOn ? '#fbbf24' : '#4b5563'}}><LightIcon className="w-5 h-5" style={{strokeWidth: 1.5, fill: isOn ? 'rgba(251, 191, 36, 0.2)' : 'none'}} /></button><div className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.1)' : 'rgba(255,255,255,0.05)', borderColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.1)', color: isOn ? '#f59e0b' : '#9ca3af'}}>{subEntities.length > 0 ? `${activeCount}/${subEntities.length}` : (isOn ? 'PÅ' : 'AV')}</div></div>
             <div className="mt-2">
               <div className="flex justify-between items-end mb-0.5"><p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{String(getA(currentLId, "friendly_name"))}</p></div>
               <div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-medium text-white leading-none">{isOn ? Math.round((br / 255) * 100) : "0"}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div>
@@ -520,12 +723,170 @@ export default function App() {
             </div>
           </div>
         );
+      case 'media_player':
+        const mediaEntities = MEDIA_PLAYER_IDS.map(id => entities[id]).filter(Boolean);
+        const playingEntities = mediaEntities.filter(e => e.state === 'playing');
+        const playingCount = playingEntities.length;
+        
+        let currentMp = mediaEntities.find(e => e.entity_id === activeMediaId);
+        
+        if (!currentMp) {
+            if (playingCount > 0) currentMp = playingEntities[0];
+            else currentMp = mediaEntities[0];
+        } else if (playingCount > 0 && currentMp.state !== 'playing' && !activeMediaId) {
+             currentMp = playingEntities[0];
+        }
+        
+        if (!currentMp) return null;
+
+        const mpId = currentMp.entity_id;
+        const mpState = currentMp.state;
+        const contentType = getA(mpId, 'media_content_type');
+        const isChannel = contentType === 'channel';
+        const isPlaying = mpState === 'playing';
+        const isIdle = mpState === 'idle' || mpState === 'off' || mpState === 'unavailable' || !mpState || mpState === 'standby';
+        const mpTitle = getA(mpId, 'media_title');
+        
+        let mpSeries = getA(mpId, 'media_series_title');
+        if (contentType === 'episode') {
+             const season = getA(mpId, 'media_season');
+             if (mpSeries && season) mpSeries = `${mpSeries} • ${season}`;
+             else if (!mpSeries && season) mpSeries = season;
+        }
+        if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
+
+        const mpApp = getA(mpId, 'app_name');
+        const mpPicture = currentMp.attributes?.entity_picture 
+          ? `${config.url.replace(/\/$/, '')}${currentMp.attributes.entity_picture}`
+          : null;
+
+        const cyclePlayers = (e) => {
+            e.stopPropagation();
+            const list = playingCount > 1 ? playingEntities : mediaEntities;
+            const idx = list.findIndex(e => e.entity_id === mpId);
+            const next = list[(idx + 1) % list.length];
+            setActiveMediaId(next.entity_id);
+        };
+
+        const indicator = (!editMode && playingCount >= 2) ? (<button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-[10px] font-bold">{playingCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
+
+        if (isIdle) {
+          return (
+            <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+              {visibilityBtn}
+              {indicator}
+              <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
+                <Music className="w-8 h-8 text-gray-600" />
+              </div>
+              <div className="text-center w-full px-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500 opacity-60">Ingen media</p>
+                <p className="text-[10px] uppercase tracking-widest text-gray-600 mt-1 opacity-40 truncate">{getA(mpId, 'friendly_name', 'Media Player').replace(/^(Midttunet|Bibliotek)\s*/i, '')}</p>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-center transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+            {visibilityBtn}
+            {indicator}
+            {mpPicture && (
+              <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+                <img src={mpPicture} alt="" className="w-full h-full object-cover blur-xl scale-150" />
+                <div className="absolute inset-0 bg-black/20" />
+              </div>
+            )}
+            
+            <div className="relative z-10 flex gap-6 items-center">
+              <div className="w-32 h-32 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 bg-white/5 shadow-lg relative group/image">
+                {mpPicture ? <img src={mpPicture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-12 h-12 text-gray-500" /> : <Music className="w-12 h-12 text-gray-500" />}</div>}
+                <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: mpId }); }} className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/30 transition-colors">
+                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-full shadow-lg hover:scale-110 transition-transform">
+                    {isPlaying ? <Pause className="w-8 h-8 text-white fill-current" /> : <Play className="w-8 h-8 text-white fill-current ml-1" />}
+                  </div>
+                </button>
+              </div>
+              <div className="flex flex-col overflow-hidden justify-center min-w-0">
+                <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2 truncate">{mpApp || 'Media'}</p>
+                <h3 className="text-2xl font-bold text-white leading-tight truncate mb-1">{mpTitle || 'Ukjend tittel'}</h3>
+                <p className="text-sm text-gray-400 truncate font-medium">{mpSeries || ''}</p>
+              </div>
+            </div>
+          </div>
+        );
+      case 'sonos':
+        const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
+        const activeSonos = sonosEntities.filter(isSonosActive);
+        const sonosCount = activeSonos.length;
+        
+        let currentSonos = sonosEntities.find(e => e.entity_id === activeMediaId);
+        
+        if (!currentSonos) {
+            if (sonosCount > 0) currentSonos = activeSonos[0];
+            else currentSonos = sonosEntities[0];
+        } else if (sonosCount > 0 && !isSonosActive(currentSonos) && !activeMediaId) {
+             currentSonos = activeSonos[0];
+        }
+        
+        if (!currentSonos) return null;
+
+        const sId = currentSonos.entity_id;
+        const sIsActive = isSonosActive(currentSonos);
+        const sIsPlaying = currentSonos.state === 'playing';
+        
+        const isLydplanke = sId === 'media_player.sonos_lydplanke';
+        const isTV = isLydplanke && (currentSonos.attributes.source === 'TV' || currentSonos.attributes.media_title === 'TV');
+
+        const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
+        const sArtist = isTV ? 'Stue' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
+        const sPicture = !isTV && currentSonos.attributes?.entity_picture 
+          ? `${config.url.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}`
+          : null;
+
+        const cycleSonos = (e) => {
+            e.stopPropagation();
+            const list = sonosCount > 1 ? activeSonos : sonosEntities;
+            const idx = list.findIndex(e => e.entity_id === sId);
+            const next = list[(idx + 1) % list.length];
+            setActiveMediaId(next.entity_id);
+        };
+
+        const sIndicator = (!editMode && sonosCount >= 2) ? (<button onClick={cycleSonos} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-[10px] font-bold">{sonosCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
+
+        if (!sIsActive) {
+          return (
+            <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+              {visibilityBtn}
+              {sIndicator}
+              <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}><Speaker className="w-8 h-8 text-gray-600" /></div>
+              <div className="text-center w-full px-4"><p className="text-xs font-bold uppercase tracking-widest text-gray-500 opacity-60">Ingen musikk</p><p className="text-[10px] uppercase tracking-widest text-gray-600 mt-1 opacity-40 truncate">{getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '')}</p></div>
+            </div>
+          );
+        }
+
+        return (
+          <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+            {visibilityBtn}
+            {sIndicator}
+            {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className="w-full h-full object-cover blur-xl scale-150" /><div className="absolute inset-0 bg-black/20" /></div>)}
+            <div className="relative z-10 flex gap-4 items-start">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 bg-white/5 shadow-lg">{sPicture ? <img src={sPicture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isTV ? <Tv className="w-8 h-8 text-gray-500" /> : <Speaker className="w-8 h-8 text-gray-500" />}</div>}</div>
+              <div className="flex flex-col overflow-hidden pt-1"><p className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-1 truncate">{getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '')}</p><h3 className="text-lg font-bold text-white leading-tight truncate mb-0.5">{sTitle || 'Ukjend'}</h3><p className="text-xs text-gray-400 truncate font-medium">{sArtist || ''}</p></div>
+            </div>
+            <div className="relative z-10 flex items-center justify-between mt-4 bg-white/5 rounded-2xl p-1.5 border border-white/5 backdrop-blur-md"><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: sId }); }} className="p-3 hover:bg-white/10 rounded-xl transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-gray-300" /></button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: sId }); }} className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white active:scale-95 shadow-sm">{sIsPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}</button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: sId }); }} className="p-3 hover:bg-white/10 rounded-xl transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-gray-300" /></button></div>
+          </div>
+        );
       case 'car':
         const isHtg = getA(LEAF_CLIMATE, "hvac_action") !== 'off';
         return (
-          <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'rgba(15, 23, 42, 0.6)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.04)'}}>
-            <div className="flex justify-between items-start"><div className="p-3 rounded-2xl transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(34, 197, 94, 0.1)', color: isHtg ? '#fb923c' : '#22c55e', animation: isHtg ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}}><Car className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.02)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255,255,255,0.05)', color: isHtg ? '#fb923c' : '#9ca3af'}}><span className="text-xs tracking-widest font-black uppercase">{isHtg ? 'Varmar' : 'Parkert'}</span></div></div>
-            <div className="flex justify-between items-end"><div><p className="text-gray-500 text-xs uppercase mb-1 font-bold opacity-60" style={{letterSpacing: '0.05em'}}>Nissan Leaf</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className="text-4xl font-medium text-white leading-none">{String(getS(LEAF_ID))}%</span><span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
+          <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'rgba(15, 23, 42, 0.6)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.04)')}}>
+            {visibilityBtn}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+               <img src={LEAF_BG_IMAGE} alt="" className="w-full h-full object-cover opacity-40 blur-[2px] scale-110 grayscale-[30%]" />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#02040a] via-[#02040a]/50 to-transparent" />
+            </div>
+            <div className="flex justify-between items-start relative z-10"><div className="p-3 rounded-2xl transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(34, 197, 94, 0.1)', color: isHtg ? '#fb923c' : '#22c55e', animation: isHtg ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}}><Car className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.02)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255,255,255,0.05)', color: isHtg ? '#fb923c' : '#9ca3af'}}><span className="text-xs tracking-widest font-black uppercase">{isHtg ? 'Varmar' : getS(LEAF_LOCATION, 'Parkert')}</span></div></div>
+            <div className="flex justify-between items-end relative z-10"><div><p className="text-gray-500 text-xs uppercase mb-1 font-bold opacity-60" style={{letterSpacing: '0.05em'}}>Nissan Leaf</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className="text-4xl font-medium text-white leading-none">{String(getS(LEAF_ID))}%</span><span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
           </div>
         );
       default: return null;
@@ -555,9 +916,9 @@ export default function App() {
             <div><h1 className="text-5xl md:text-6xl font-light uppercase leading-none select-none" style={{letterSpacing: '0.8em', color: 'rgba(255,255,255,0.6)'}}>Midttunet</h1><p className="text-gray-500 font-medium uppercase text-xs leading-none mt-4 opacity-50" style={{letterSpacing: '0.6em'}}>{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div>
             <div className="flex flex-wrap gap-2.5 mt-2 font-sans">{personStatus(OYVIND_ID)}{personStatus(TUVA_ID)}{reStatus()}{drStatus(EILEV_DOOR_ID, "Eilev si dør")}{drStatus(OLVE_DOOR_ID, "Olve si dør")}</div>
           </div>
-          <div className="flex flex-col items-end gap-5 leading-none">
+          <div className="flex items-center gap-6 leading-none font-sans">
             <div className="flex items-center justify-center h-8 w-8 rounded-full transition-all border" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: connected ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: connected ? '#22c55e' : '#ef4444', boxShadow: connected ? '0_0_10px_rgba(34,197,94,0.6)' : 'none', animation: connected ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}} /></div>
-            <div className="flex items-center gap-6 font-sans"><button onClick={() => setEditMode(!editMode)} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}>{editMode ? 'Ferdig' : 'Rediger'}</button><button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all"><Settings className="w-4 h-4" /> System</button></div>
+            <button onClick={() => setEditMode(!editMode)} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}>{editMode ? 'Ferdig' : 'Rediger'}</button><button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all"><Settings className="w-4 h-4" /> System</button>
           </div>
         </header>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16 font-sans">
@@ -610,7 +971,7 @@ export default function App() {
               <button onClick={() => setShowClimateModal(false)} className="absolute top-10 right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
               <div className="flex items-center gap-8 mb-12 font-sans">
                 <div className="p-6 rounded-3xl transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>
-                  {isCooling ? <Snowflake className="w-12 h-12" /> : <Wind className="w-12 h-12" />}
+                  {isCooling ? <Snowflake className="w-12 h-12" /> : <AirVent className="w-12 h-12" />}
                 </div>
                 <div>
                   <h3 className="text-4xl font-light tracking-tight text-white uppercase italic leading-none">Varmepumpe</h3>
@@ -661,7 +1022,15 @@ export default function App() {
               
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-5">
-                  <div className="p-4 rounded-2xl" style={{backgroundColor: 'rgba(217, 119, 6, 0.15)', color: '#fbbf24'}}><Lightbulb className="w-8 h-8" /></div>
+                  <div className="p-4 rounded-2xl" style={{backgroundColor: 'rgba(217, 119, 6, 0.15)', color: '#fbbf24'}}>
+                    {(() => {
+                      let Icon = Lightbulb;
+                      if (showLightModal === LIGHT_KJOKKEN) Icon = Utensils;
+                      if (showLightModal === LIGHT_STOVA) Icon = Sofa;
+                      if (showLightModal === LIGHT_STUDIO) Icon = LampDesk;
+                      return <Icon className="w-8 h-8" />;
+                    })()}
+                  </div>
                   <div>
                     <h3 className="text-2xl font-light tracking-tight text-white uppercase italic leading-none">{String(getA(showLightModal, "friendly_name", "Lys"))}</h3>
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1.5 opacity-60">Lysstyring</p>
@@ -791,6 +1160,117 @@ export default function App() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeMediaModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/70 font-sans" onClick={() => setActiveMediaModal(null)}>
+            <div className="bg-[#0d0d0f] border border-white/10 w-full max-w-6xl rounded-[4rem] p-12 shadow-2xl relative max-h-[95vh] overflow-hidden flex flex-col md:flex-row gap-12" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setActiveMediaModal(null)} className="absolute top-10 right-10 p-5 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white z-20 shadow-lg"><X className="w-8 h-8" /></button>
+              
+              {(() => {
+                const isSonos = activeMediaModal === 'sonos';
+                const mediaEntities = (isSonos ? SONOS_IDS : MEDIA_PLAYER_IDS).map(id => entities[id]).filter(Boolean);
+                const activePlayers = mediaEntities.filter(e => isSonos ? isSonosActive(e) : (e.state && ['playing', 'paused'].includes(e.state)));
+                
+                let currentMp = mediaEntities.find(e => e.entity_id === activeMediaId);
+                if (!currentMp) {
+                    if (activePlayers.length > 0) currentMp = activePlayers[0];
+                    else currentMp = mediaEntities[0];
+                }
+                
+                if (!currentMp) return <div className="text-white">Ingen mediaspelar funnen</div>;
+
+                const mpId = currentMp.entity_id;
+                const mpState = currentMp.state;
+                const isLydplanke = mpId === 'media_player.sonos_lydplanke';
+                const isTV = isLydplanke && (currentMp.attributes.source === 'TV' || currentMp.attributes.media_title === 'TV');
+                const contentType = getA(mpId, 'media_content_type');
+                const isChannel = contentType === 'channel' || isTV;
+                const isPlaying = mpState === 'playing';
+                
+                let mpTitle = getA(mpId, 'media_title');
+                if (isTV) mpTitle = 'TV-lyd';
+                
+                let mpSeries = getA(mpId, 'media_series_title');
+                if (contentType === 'episode') {
+                     const season = getA(mpId, 'media_season');
+                     if (mpSeries && season) mpSeries = `${mpSeries} • ${season}`;
+                     else if (!mpSeries && season) mpSeries = season;
+                }
+                if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
+                if (isTV) mpSeries = 'Stue';
+
+                const mpApp = getA(mpId, 'app_name');
+                const mpPicture = !isTV && currentMp.attributes?.entity_picture ? `${config.url.replace(/\/$/, '')}${currentMp.attributes.entity_picture}` : null;
+                const duration = getA(mpId, 'media_duration');
+                const position = getA(mpId, 'media_position');
+                const serverInfo = getServerInfo(mpId);
+                const ServerIcon = serverInfo.icon;
+
+                return (
+                  <>
+                    <div className="flex-1 flex flex-col justify-center relative z-10">
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start mb-8 ${serverInfo.bg} ${serverInfo.border}`}>
+                        <ServerIcon className={`w-4 h-4 ${serverInfo.color}`} />
+                        <span className={`text-xs font-bold uppercase tracking-widest ${serverInfo.color}`}>{serverInfo.name}</span>
+                      </div>
+
+                      <div className="flex flex-col gap-8">
+                        <div className="aspect-video w-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-white/5 relative group">
+                          {mpPicture ? <img src={mpPicture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                          <div className="absolute bottom-0 left-0 w-full p-8">
+                             <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-2">{mpApp}</p>
+                             <h2 className="text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || 'Ukjend'}</h2>
+                             <p className="text-xl text-gray-300 font-medium">{mpSeries}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 bg-white/5 p-6 rounded-3xl border border-white/5">
+                          <div className="flex items-center justify-between text-xs font-bold text-gray-500 tracking-widest px-1">
+                            <span>{formatDuration(position)}</span>
+                            <span>{formatDuration(duration)}</span>
+                          </div>
+                          <M3Slider min={0} max={duration || 100} step={1} value={position || 0} disabled={!duration} onChange={(e) => callService("media_player", "media_seek", { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
+                          
+                          <div className="flex items-center justify-center gap-8 pt-2">
+                            <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-gray-300" /></button>
+                            <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 bg-white text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95 shadow-lg shadow-white/10">
+                              {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
+                            </button>
+                            <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-gray-300" /></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="w-full md:w-80 border-l border-white/10 pl-0 md:pl-12 md:pt-24 flex flex-col gap-6 overflow-y-auto">
+                      <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">Aktive spelarar</h3>
+                      <div className="flex flex-col gap-4">
+                        {activePlayers.length === 0 && <p className="text-gray-600 italic text-sm">Ingen andre aktive spelarar</p>}
+                        {activePlayers.map(p => {
+                           const pPic = p.attributes?.entity_picture ? `${config.url.replace(/\/$/, '')}${p.attributes.entity_picture}` : null;
+                           const isSelected = p.entity_id === mpId;
+                           return (
+                             <button key={p.entity_id || Math.random()} onClick={() => setActiveMediaId(p.entity_id)} className={`flex items-center gap-4 p-3 rounded-2xl transition-all text-left group ${isSelected ? 'bg-white/10 border-white/20' : 'hover:bg-white/5 border-transparent'} border`}>
+                               <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 relative">
+                                 {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isSonos ? <Speaker className="w-5 h-5 text-gray-600" /> : <Music className="w-5 h-5 text-gray-600" />}</div>}
+                                 {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
+                               </div>
+                               <div className="overflow-hidden">
+                                 <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
+                                 <p className="text-[10px] text-gray-600 truncate mt-0.5">{getA(p.entity_id, 'media_title', 'Ukjend')}</p>
+                               </div>
+                             </button>
+                           );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}
