@@ -201,7 +201,35 @@ const InteractivePowerGraph = ({ data, currentIndex }) => {
   );
 };
 
-const ModernDropdown = ({ label, icon: Icon, options, current, onChange }) => {
+const HVAC_MAP = {
+  'off': 'Av',
+  'heat_cool': 'Auto',
+  'cool': 'Kjøling',
+  'dry': 'Tørking',
+  'fan_only': 'Vifte',
+  'heat': 'Varme'
+};
+
+const FAN_MAP = {
+  'Auto': 'Auto',
+  'Low': 'Låg',
+  'LowMid': 'Låg-Middels',
+  'Mid': 'Middels',
+  'HighMid': 'Høg-Middels',
+  'High': 'Høg'
+};
+
+const SWING_MAP = {
+  'Auto': 'Auto',
+  'Up': 'Opp',
+  'UpMid': 'Opp-Middels',
+  'Mid': 'Middels',
+  'DownMid': 'Ned-Middels',
+  'Down': 'Ned',
+  'Swing': 'Sving'
+};
+
+const ModernDropdown = ({ label, icon: Icon, options, current, onChange, map }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   useEffect(() => {
@@ -210,18 +238,20 @@ const ModernDropdown = ({ label, icon: Icon, options, current, onChange }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const getLabel = (val) => (map && map[val]) ? map[val] : val;
+
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <p className="text-xs uppercase font-bold mb-3 ml-1" style={{color: 'rgba(107, 114, 128, 1)', letterSpacing: '0.2em'}}>{label}</p>
       <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between px-6 py-4 rounded-2xl hover:transition-all group border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)'}}>
-        <div className="flex items-center gap-3"><Icon className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" /><span className="text-xs font-bold uppercase tracking-widest text-gray-300 italic">{String(current || "Ikkje valt")}</span></div>
+        <div className="flex items-center gap-3"><Icon className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" /><span className="text-xs font-bold uppercase tracking-widest text-gray-300 italic">{String(getLabel(current) || "Ikkje valt")}</span></div>
         <ChevronDown className={`w-3.5 h-3.5 text-gray-600 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
         <div className="absolute top-full left-0 w-full mt-2 z-50 border rounded-2xl overflow-hidden shadow-2xl" style={{backgroundColor: '#121214', borderColor: 'rgba(255,255,255,0.1)'}}>
           <div className="max-h-48 overflow-y-auto">
             {(options || []).map((option) => (
-              <button key={option} onClick={() => { onChange(option); setIsOpen(false); }} className={`w-full text-left px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all ${current === option ? 'text-blue-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`} style={{backgroundColor: current === option ? 'rgba(59, 130, 246, 0.1)' : 'transparent'}}>{String(option)}</button>
+              <button key={option} onClick={() => { onChange(option); setIsOpen(false); }} className={`w-full text-left px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all ${current === option ? 'text-blue-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`} style={{backgroundColor: current === option ? 'rgba(59, 130, 246, 0.1)' : 'transparent'}}>{String(getLabel(option))}</button>
             ))}
           </div>
         </div>
@@ -390,7 +420,7 @@ export default function App() {
     }};
 
     const cardStyle = {
-      backgroundColor: 'rgba(13, 13, 15, 0.6)',
+      backgroundColor: 'rgba(15, 23, 42, 0.6)',
       borderColor: editMode ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.04)',
       backdropFilter: 'blur(16px)',
       minHeight: '220px',
@@ -471,7 +501,7 @@ export default function App() {
       case 'car':
         const isHtg = getA(LEAF_CLIMATE, "hvac_action") !== 'off';
         return (
-          <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'rgba(13, 13, 15, 0.6)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.04)'}}>
+          <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'rgba(15, 23, 42, 0.6)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.04)'}}>
             <div className="flex justify-between items-start"><div className="p-3 rounded-2xl transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(34, 197, 94, 0.1)', color: isHtg ? '#fb923c' : '#22c55e', animation: isHtg ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}}><Car className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.02)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255,255,255,0.05)', color: isHtg ? '#fb923c' : '#9ca3af'}}><span className="text-xs tracking-widest font-black uppercase">{isHtg ? 'Varmar' : 'Parkert'}</span></div></div>
             <div className="flex justify-between items-end"><div><p className="text-gray-500 text-xs uppercase mb-1 font-bold opacity-60" style={{letterSpacing: '0.05em'}}>Nissan Leaf</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className="text-4xl font-medium text-white leading-none">{String(getS(LEAF_ID))}%</span><span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
           </div>
@@ -482,17 +512,21 @@ export default function App() {
 
   const reStatus = () => {
     if (entities[REFRIGERATOR_ID]?.state !== 'on') return null;
-    return <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border animate-pulse" style={{backgroundColor: 'rgba(249, 115, 22, 0.02)', borderColor: 'rgba(249, 115, 22, 0.01)'}}><div className="p-1.5 rounded-xl text-orange-400" style={{backgroundColor: 'rgba(249, 115, 22, 0.1)'}}><AlertCircle className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">VARSAL</span><span className="text-xs font-medium uppercase tracking-widest text-orange-200/50 italic">Kjøleskap ope</span></div></div>;
+    return (
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border animate-pulse" style={{backgroundColor: 'rgba(249, 115, 22, 0.02)', borderColor: 'rgba(249, 115, 22, 0.01)'}}><div className="p-1.5 rounded-xl text-orange-400" style={{backgroundColor: 'rgba(249, 115, 22, 0.1)'}}><AlertCircle className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">VARSAL</span><span className="text-xs font-medium uppercase tracking-widest text-orange-200/50 italic">Kjøleskap ope</span></div></div>
+    );
   };
 
   const drStatus = (id, label) => {
     if (entities[id]?.state !== 'on') return null;
-    return <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)'}}><div className="p-1.5 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}><DoorOpen className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">{label}</span><span className="text-xs font-medium uppercase tracking-widest text-gray-300/50 italic">Ope</span></div></div>;
+    return (
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)'}}><div className="p-1.5 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}><DoorOpen className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">{label}</span><span className="text-xs font-medium uppercase tracking-widest text-gray-300/50 italic">Ope</span></div></div>
+    );
   };
 
   return (
-    <div className="min-h-screen text-white font-sans selection:bg-blue-500/30 overflow-x-hidden" style={{backgroundColor: '#050505'}}>
-      <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, #0a0a0c, #050505, #0d0d0f)'}} /><div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} /><div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(88, 28, 135, 0.05)', filter: 'blur(150px)'}} /></div>
+    <div className="min-h-screen text-white font-sans selection:bg-blue-500/30 overflow-x-hidden" style={{backgroundColor: '#02040a'}}>
+      <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, #0f172a, #02040a, #0a0a0c)'}} /><div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)'}} /><div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} /></div>
       <div className="relative z-10 max-w-7xl mx-auto px-8 py-16">
         <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-10 leading-none">
           <div className="flex flex-col gap-6 font-sans">
@@ -590,8 +624,9 @@ export default function App() {
                   </div>
                 </div>
                 <div className="lg:col-span-2 space-y-10 py-4 italic font-sans">
-                  <ModernDropdown label="Viftestyrke" icon={Fan} options={getA(CLIMATE_ID, "fan_modes", [])} current={getA(CLIMATE_ID, "fan_mode")} onChange={(m) => callService("climate", "set_fan_mode", { entity_id: CLIMATE_ID, fan_mode: m })} />
-                  <ModernDropdown label="Sving" icon={ArrowUpDown} options={getA(CLIMATE_ID, "swing_modes", [])} current={getA(CLIMATE_ID, "swing_mode")} onChange={(m) => callService("climate", "set_swing_mode", { entity_id: CLIMATE_ID, swing_mode: m })} />
+                  <ModernDropdown label="Modus" icon={Flame} options={getA(CLIMATE_ID, "hvac_modes", [])} current={entities[CLIMATE_ID]?.state} onChange={(m) => callService("climate", "set_hvac_mode", { entity_id: CLIMATE_ID, hvac_mode: m })} map={HVAC_MAP} />
+                  <ModernDropdown label="Viftestyrke" icon={Fan} options={getA(CLIMATE_ID, "fan_modes", [])} current={getA(CLIMATE_ID, "fan_mode")} onChange={(m) => callService("climate", "set_fan_mode", { entity_id: CLIMATE_ID, fan_mode: m })} map={FAN_MAP} />
+                  <ModernDropdown label="Sving" icon={ArrowUpDown} options={getA(CLIMATE_ID, "swing_modes", [])} current={getA(CLIMATE_ID, "swing_mode")} onChange={(m) => callService("climate", "set_swing_mode", { entity_id: CLIMATE_ID, swing_mode: m })} map={SWING_MAP} />
                 </div>
               </div>
             </div>
