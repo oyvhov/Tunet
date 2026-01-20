@@ -630,7 +630,7 @@ export default function App() {
         {showLeafModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLeafModal(false)}>
             <div className="border w-full max-w-4xl rounded-[3rem] p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowLeafModal(false)} className="absolute top-10 right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
+              <button onClick={() => setShowLeafModal(false)} className="absolute top-10 right-10 p-5 rounded-full z-10" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
               
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
                 <div className="flex items-center gap-6">
