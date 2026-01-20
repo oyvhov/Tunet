@@ -464,7 +464,7 @@ export default function App() {
                   <div className="flex items-center justify-between rounded-2xl p-1 border flex-1" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
                   <button 
                     onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) - 0.5 }); }}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
+                    className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
@@ -475,13 +475,14 @@ export default function App() {
 
                   <button 
                     onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) + 0.5 }); }}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
+                    className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                </div>
 
-                  <div className="flex items-center justify-center rounded-2xl border w-14" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                  <div className="flex items-center justify-center rounded-2xl border w-20 gap-2 pr-2" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                  <Fan className="w-4 h-4 text-gray-500" />
                   {fanSpeedLevel === 0 ? (
                     <span className="text-[10px] font-bold text-gray-500 tracking-wider">AUTO</span>
                   ) : (
@@ -496,8 +497,8 @@ export default function App() {
                     </div>
                   )}
                   </div>
-               </div>
             </div>
+          </div>
           </div>
         );
       case 'light_kjokken':
