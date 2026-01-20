@@ -393,11 +393,37 @@ export default function App() {
               <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>
                 {isCooling ? <Snowflake className="w-5 h-5" style={{strokeWidth: 1.5}} /> : <Wind className="w-5 h-5" style={{strokeWidth: 1.5}} />}
               </div>
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full border transition-all duration-500" style={{backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', borderColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.2)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255,255,255,0.1)', color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>
-                <span className="text-xs uppercase font-bold" style={{letterSpacing: '0.3em'}}>{statusLabel}</span>
+              <div className="flex flex-col items-end">
+                 <span className="text-[10px] uppercase font-bold opacity-60 mb-1" style={{letterSpacing: '0.2em', color: '#9ca3af'}}>Inne</span>
+                 <div className="flex items-baseline gap-0.5">
+                    <span className="text-2xl font-light italic text-white leading-none">{String(curT)}</span>
+                    <span className="text-sm text-gray-500 font-medium">°</span>
+                 </div>
               </div>
             </div>
-            <div className="mt-2"><p className="text-gray-500 text-xs uppercase mb-1 font-bold opacity-60 leading-none" style={{letterSpacing: '0.2em'}}>Varmepumpe</p><div className="flex items-center justify-between mb-3"><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-normal tracking-tighter text-white italic leading-none">{String(curT)}</span><span className="text-gray-600 font-medium text-base ml-0.5">°C</span></div><span className="text-xs font-black uppercase tracking-widest italic opacity-70 mb-1" style={{color: isCooling ? 'rgba(96, 165, 250, 0.6)' : isHeating ? 'rgba(251, 146, 60, 0.6)' : '#9ca3af'}}>Mål: {String(tarT)}°</span></div><M3Slider min={16} max={30} step={0.5} value={tarT} onChange={(e) => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: parseFloat(e.target.value) })} colorClass={isCooling ? 'bg-blue-500' : (isHeating ? 'bg-orange-500' : 'bg-white/20')} /></div>
+            
+            <div className="mt-4">
+               <div className="flex items-center justify-between rounded-2xl p-1.5 border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) - 0.5 }); }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
+                  >
+                    <Minus className="w-5 h-5" />
+                  </button>
+                  
+                  <div className="flex flex-col items-center">
+                    <span className="text-xl font-bold italic text-white leading-none">{String(tarT)}°</span>
+                    <span className="text-[8px] uppercase font-bold tracking-widest opacity-60 mt-0.5" style={{color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>{statusLabel}</span>
+                  </div>
+
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) + 0.5 }); }}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+               </div>
+            </div>
           </div>
         );
       case 'light_kjokken':
@@ -643,16 +669,24 @@ export default function App() {
                   <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Temp inne</p>
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-white">{String(getS(LEAF_INTERNAL_TEMP))}</span><span className="text-gray-500 font-medium">°C</span></div>
                 </div>
-                <div className="p-8 rounded-3xl border cursor-pointer hover:bg-white/5 transition-colors" 
+                <div className="p-6 rounded-3xl border flex flex-col justify-between" 
                      style={{backgroundColor: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(0,0,0,0.3)', borderColor: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255,255,255,0.05)'}}
-                     onClick={() => callService("climate", getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? "turn_off" : "turn_on", { entity_id: LEAF_CLIMATE })}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? '#fb923c' : '#9ca3af'}}>Klima</p>
-                    <Fan className={`w-4 h-4 ${getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'text-orange-400 animate-spin' : 'text-gray-600'}`} />
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? '#fb923c' : '#9ca3af'}}>Klima</p>
+                      <p className="text-2xl font-light italic text-white mt-1">{getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'PÅ' : 'AV'}</p>
+                    </div>
+                    <button onClick={() => callService("climate", getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? "turn_off" : "turn_on", { entity_id: LEAF_CLIMATE })} className="w-12 h-7 rounded-full relative transition-all" style={{backgroundColor: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'rgba(249, 115, 22, 0.4)' : 'rgba(255,255,255,0.1)'}}>
+                      <div className="absolute top-1 w-5 h-5 rounded-full bg-white transition-all" style={{left: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'calc(100% - 5px - 20px)' : '4px', backgroundColor: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? '#fbbf24' : '#9ca3af'}} />
+                    </button>
                   </div>
-                  <p className="text-2xl font-light italic text-white">{getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'PÅ' : 'AV'}</p>
-                  <p className="text-xs mt-2 opacity-60">{getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'Trykk for å stoppe' : 'Trykk for å starte'}</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-end">
+                       <p className="text-[10px] uppercase font-bold opacity-60">Mål: {getA(LEAF_CLIMATE, "temperature", 20)}°C</p>
+                    </div>
+                    <M3Slider min={16} max={30} step={0.5} value={getA(LEAF_CLIMATE, "temperature") || 20} onChange={(e) => callService("climate", "set_temperature", { entity_id: LEAF_CLIMATE, temperature: parseFloat(e.target.value) })} colorClass={getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'bg-orange-500' : 'bg-white/20'} />
+                  </div>
                 </div>
               </div>
 
