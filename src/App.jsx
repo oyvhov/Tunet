@@ -327,30 +327,53 @@ export default function App() {
   const isCooling = hvacAction === 'cooling' || hvacAction === 'cool' || hvacState === 'cool';
 
   const personStatus = (id) => {
-    const isHome = entities[id]?.state === 'home';
+    const entity = entities[id];
+    const isHome = entity?.state === 'home';
     const statusText = getS(id);
     const name = id === OYVIND_ID ? "Øyvind" : "Tuva";
-    const Icon = id === OYVIND_ID ? User : UserCheck;
+    const baseUrl = config.url.replace(/\/$/, '');
+    const picture = entity?.attributes?.entity_picture ? `${baseUrl}${entity.attributes.entity_picture}` : null;
     
     const batLevel = id === OYVIND_ID ? parseInt(entities[OYVIND_BAT_LEVEL]?.state) || 0 : null;
     const batState = id === OYVIND_ID ? entities[OYVIND_BAT_STATE]?.state : null;
     const isCharging = batState === 'charging' || batState === 'ac' || batState === 'wireless';
-    const batLow = batLevel !== null && batLevel < 20;
 
     return (
-      <div key={id} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all duration-300 border" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)', color: isHome ? '#60a5fa' : '#9ca3af'}}>
-        <div className="p-1.5 rounded-xl transition-colors" style={{backgroundColor: isHome ? 'rgba(59, 130, 246, 0.1)' : 'rgba(168, 85, 247, 0.05)', color: isHome ? '#60a5fa' : 'rgba(192, 132, 250, 0.2)'}}><Icon className="w-4 h-4" style={{strokeWidth: 1.8}} /></div>
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 leading-none mb-0.5">
-            <span className="text-xs uppercase font-bold text-gray-400 leading-tight" style={{letterSpacing: '0.2em'}}>{name}</span>
-            {id === OYVIND_ID && batLevel !== null && (
-              <div className={`flex items-center gap-1 px-1 rounded-md border ${batLow ? 'text-red-500' : 'text-gray-500'}`} style={{backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.05)'}}>
-                {isCharging ? <Zap className="w-2 h-2 fill-current" /> : <Battery className="w-2 h-2" />}
-                <span className="text-xs font-black">{batLevel}%</span>
+      <div key={id} className="group relative flex items-center gap-3 pl-1.5 pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-white/5" 
+           style={{
+             backgroundColor: 'rgba(255,255,255,0.02)', 
+             boxShadow: isHome ? '0 0 20px rgba(34, 197, 94, 0.05)' : 'none'
+           }}>
+        
+        <div className="relative">
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 transition-all duration-500" 
+               style={{borderColor: isHome ? '#22c55e' : 'rgba(255,255,255,0.1)', filter: isHome ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.7)'}}>
+            {picture ? (
+              <img src={picture} alt={name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-500">
+                {name.substring(0, 1)}
               </div>
             )}
           </div>
-          <span className="text-xs font-medium uppercase tracking-widest leading-tight" style={{color: isHome ? '#e5e7eb' : 'rgba(107, 114, 128, 0.3)'}}>{String(statusText)}</span>
+          
+          <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#050505] transition-colors duration-500" 
+               style={{backgroundColor: isHome ? '#22c55e' : '#52525b'}}></div>
+        </div>
+
+        <div className="flex flex-col justify-center">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-white leading-none tracking-wide">{name}</span>
+            {id === OYVIND_ID && batLevel !== null && (
+               <div className={`flex items-center gap-0.5 transition-opacity ${isCharging ? 'opacity-100' : 'opacity-40'}`} title={`${batLevel}%`}>
+                  {isCharging ? <Zap className="w-3 h-3 text-yellow-400 fill-current" /> : <Battery className="w-3 h-3 text-white" />}
+                  <span className="text-[9px] font-bold text-white">{batLevel}%</span>
+               </div>
+            )}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest leading-none mt-1 transition-colors duration-300" style={{color: isHome ? '#4ade80' : 'rgba(156, 163, 175, 0.5)'}}>
+            {String(statusText)}
+          </span>
         </div>
       </div>
     );
@@ -379,7 +402,7 @@ export default function App() {
         return (
           <div key="power" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowPowerModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
             <div className="flex justify-between items-start"><div className="p-3 rounded-2xl text-amber-400 group-hover:scale-110 transition-transform duration-500" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)'}}><Zap className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><span className="text-xs tracking-widest text-gray-400 uppercase font-bold">Billig</span></div></div>
-            <div className="mt-2"><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.2em'}}>Straumpris</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-normal tracking-tighter text-white italic leading-none">{String(getS(TIBBER_ID))}</span><span className="text-gray-600 font-medium text-base ml-1">øre</span></div><SparkLine data={fullPriceData} currentIndex={currentPriceIndex} /></div>
+            <div className="mt-2"><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>Straumpris</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-white leading-none">{String(getS(TIBBER_ID))}</span><span className="text-gray-600 font-medium text-base ml-1">øre</span></div><SparkLine data={fullPriceData} currentIndex={currentPriceIndex} /></div>
           </div>
         );
       case 'climate':
@@ -394,9 +417,9 @@ export default function App() {
                 {isCooling ? <Snowflake className="w-5 h-5" style={{strokeWidth: 1.5}} /> : <Wind className="w-5 h-5" style={{strokeWidth: 1.5}} />}
               </div>
               <div className="flex flex-col items-end">
-                 <span className="text-[10px] uppercase font-bold opacity-60 mb-1" style={{letterSpacing: '0.2em', color: '#9ca3af'}}>Inne</span>
+                 <span className="text-xs uppercase font-bold opacity-60 mb-1" style={{letterSpacing: '0.05em', color: '#9ca3af'}}>Inne</span>
                  <div className="flex items-baseline gap-0.5">
-                    <span className="text-2xl font-light italic text-white leading-none">{String(curT)}</span>
+                    <span className="text-2xl font-medium text-white leading-none">{String(curT)}</span>
                     <span className="text-sm text-gray-500 font-medium">°</span>
                  </div>
               </div>
@@ -412,7 +435,7 @@ export default function App() {
                   </button>
                   
                   <div className="flex flex-col items-center">
-                    <span className="text-xl font-bold italic text-white leading-none">{String(tarT)}°</span>
+                    <span className="text-xl font-bold text-white leading-none">{String(tarT)}°</span>
                     <span className="text-[8px] uppercase font-bold tracking-widest opacity-60 mt-0.5" style={{color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>{statusLabel}</span>
                   </div>
 
@@ -439,8 +462,8 @@ export default function App() {
           <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
             <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)', color: isOn ? '#fbbf24' : '#4b5563'}}><Lightbulb className="w-5 h-5" style={{strokeWidth: 1.5, fill: isOn ? 'rgba(251, 191, 36, 0.2)' : 'none'}} /></button><div className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.1)' : 'rgba(255,255,255,0.05)', borderColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.1)', color: isOn ? '#f59e0b' : '#9ca3af'}}>{subEntities.length > 0 ? `${activeCount}/${subEntities.length}` : (isOn ? 'PÅ' : 'AV')}</div></div>
             <div className="mt-2">
-              <div className="flex justify-between items-end mb-0.5"><p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.2em'}}>{String(getA(currentLId, "friendly_name"))}</p></div>
-              <div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-normal tracking-tighter text-white italic leading-none">{isOn ? Math.round((br / 255) * 100) : "0"}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div>
+              <div className="flex justify-between items-end mb-0.5"><p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{String(getA(currentLId, "friendly_name"))}</p></div>
+              <div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-medium text-white leading-none">{isOn ? Math.round((br / 255) * 100) : "0"}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div>
               <M3Slider min={0} max={255} step={1} value={br} disabled={!isOn} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
             </div>
           </div>
@@ -450,7 +473,7 @@ export default function App() {
         return (
           <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'rgba(13, 13, 15, 0.6)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.04)'}}>
             <div className="flex justify-between items-start"><div className="p-3 rounded-2xl transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(34, 197, 94, 0.1)', color: isHtg ? '#fb923c' : '#22c55e', animation: isHtg ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}}><Car className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.02)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255,255,255,0.05)', color: isHtg ? '#fb923c' : '#9ca3af'}}><span className="text-xs tracking-widest font-black uppercase">{isHtg ? 'Varmar' : 'Parkert'}</span></div></div>
-            <div className="flex justify-between items-end"><div><p className="text-gray-500 text-xs uppercase mb-1 font-bold opacity-60" style={{letterSpacing: '0.3em'}}>Nissan Leaf</p><div className="flex items-baseline gap-2 leading-none"><span className="text-4xl font-normal tracking-tighter text-white italic leading-none">{String(getS(LEAF_ID))}%</span><span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
+            <div className="flex justify-between items-end"><div><p className="text-gray-500 text-xs uppercase mb-1 font-bold opacity-60" style={{letterSpacing: '0.05em'}}>Nissan Leaf</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className="text-4xl font-medium text-white leading-none">{String(getS(LEAF_ID))}%</span><span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
           </div>
         );
       default: return null;
@@ -630,7 +653,6 @@ export default function App() {
         {showLeafModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLeafModal(false)}>
             <div className="border w-full max-w-4xl rounded-[3rem] p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowLeafModal(false)} className="absolute top-10 right-10 p-5 rounded-full z-10" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
               
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
                 <div className="flex items-center gap-6">
@@ -643,13 +665,16 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                <button 
-                  onClick={() => callService("button", "press", { entity_id: LEAF_UPDATE })}
-                  className="flex items-center gap-3 px-6 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all hover:bg-white/5 active:scale-95" 
-                  style={{backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff'}}
-                >
-                  <RefreshCw className="w-4 h-4" /> Oppdater
-                </button>
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => callService("button", "press", { entity_id: LEAF_UPDATE })}
+                    className="flex items-center gap-3 px-6 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all hover:bg-white/5 active:scale-95" 
+                    style={{backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff'}}
+                  >
+                    <RefreshCw className="w-4 h-4" /> Oppdater
+                  </button>
+                  <button onClick={() => setShowLeafModal(false)} className="p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
