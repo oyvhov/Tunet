@@ -48,7 +48,8 @@ import {
   Sofa,
   Utensils,
   AirVent,
-  LampDesk
+  LampDesk,
+  LayoutGrid
 } from 'lucide-react';
 
 const CLIMATE_ID = "climate.varmepumpe";
@@ -372,6 +373,7 @@ export default function App() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [activeMediaModal, setActiveMediaModal] = useState(null);
   const [editMode, setEditMode] = useState(false);
+  const [activePage, setActivePage] = useState('home');
   const [cardOrder, setCardOrder] = useState(['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos']);
   const [hiddenCards, setHiddenCards] = useState([]);
   const [activeMediaId, setActiveMediaId] = useState(null);
@@ -604,6 +606,11 @@ export default function App() {
     );
   };
 
+  const pages = [
+    { id: 'home', label: 'HEIM', icon: LayoutGrid },
+    { id: 'lights', label: 'Lys', icon: Lightbulb },
+  ];
+
   const toggleCardVisibility = (cardId) => {
     const newHidden = hiddenCards.includes(cardId) 
       ? hiddenCards.filter(id => id !== cardId)
@@ -616,7 +623,7 @@ export default function App() {
     const isHidden = hiddenCards.includes(cardId);
     if (isHidden && !editMode) return null;
 
-    const dragProps = { draggable: editMode, onDragStart: (e) => e.dataTransfer.setData('cardIndex', index), onDragOver: (e) => e.preventDefault(), onDrop: (e) => {
+    const dragProps = { draggable: editMode && activePage === 'home', onDragStart: (e) => e.dataTransfer.setData('cardIndex', index), onDragOver: (e) => e.preventDefault(), onDrop: (e) => {
         const sourceIndex = parseInt(e.dataTransfer.getData('cardIndex'));
         const newOrder = [...cardOrder];
         const movedItem = newOrder.splice(sourceIndex, 1)[0];
@@ -647,6 +654,39 @@ export default function App() {
         {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
     ) : null;
+
+    // Handle lights (both legacy IDs and entity IDs)
+    if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
+        let currentLId = cardId;
+        let LightIcon = Lightbulb;
+        
+        // Map legacy IDs
+        if (cardId === 'light_kjokken') currentLId = LIGHT_KJOKKEN;
+        else if (cardId === 'light_stova') currentLId = LIGHT_STOVA;
+        else if (cardId === 'light_studio') currentLId = LIGHT_STUDIO;
+        
+        // Map icons based on Entity ID (so it works for both legacy and direct)
+        if (currentLId === LIGHT_KJOKKEN) LightIcon = Utensils;
+        else if (currentLId === LIGHT_STOVA) LightIcon = Sofa;
+        else if (currentLId === LIGHT_STUDIO) LightIcon = LampDesk;
+        
+        const isOn = entities[currentLId]?.state === "on";
+        const br = getA(currentLId, "brightness") || 0;
+        const subEntities = getA(currentLId, "entity_id", []);
+        const activeCount = subEntities.filter(id => entities[id]?.state === 'on').length;
+
+        return (
+          <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+            {visibilityBtn}
+            <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)', color: isOn ? '#fbbf24' : '#4b5563'}}><LightIcon className="w-5 h-5" style={{strokeWidth: 1.5, fill: isOn ? 'rgba(251, 191, 36, 0.2)' : 'none'}} /></button><div className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.1)' : 'rgba(255,255,255,0.05)', borderColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.1)', color: isOn ? '#f59e0b' : '#9ca3af'}}>{subEntities.length > 0 ? `${activeCount}/${subEntities.length}` : (isOn ? 'PÅ' : 'AV')}</div></div>
+            <div className="mt-2">
+              <div className="flex justify-between items-end mb-0.5"><p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{String(getA(currentLId, "friendly_name"))}</p></div>
+              <div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-medium text-white leading-none">{isOn ? Math.round((br / 255) * 100) : "0"}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div>
+              <M3Slider min={0} max={255} step={1} value={br} disabled={!isOn} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+            </div>
+          </div>
+        );
+    }
 
     switch(cardId) {
       case 'power':
@@ -757,31 +797,6 @@ export default function App() {
                   </div>
             </div>
           </div>
-          </div>
-        );
-      case 'light_kjokken':
-      case 'light_stova':
-      case 'light_studio':
-        let currentLId = cardId === 'light_kjokken' ? LIGHT_KJOKKEN : cardId === 'light_stova' ? LIGHT_STOVA : LIGHT_STUDIO;
-        const isOn = entities[currentLId]?.state === "on";
-        const br = getA(currentLId, "brightness") || 0;
-        const subEntities = getA(currentLId, "entity_id", []);
-        const activeCount = subEntities.filter(id => entities[id]?.state === 'on').length;
-        
-        let LightIcon = Lightbulb;
-        if (cardId === 'light_kjokken') LightIcon = Utensils;
-        if (cardId === 'light_stova') LightIcon = Sofa;
-        if (cardId === 'light_studio') LightIcon = LampDesk;
-
-        return (
-          <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
-            {visibilityBtn}
-            <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)', color: isOn ? '#fbbf24' : '#4b5563'}}><LightIcon className="w-5 h-5" style={{strokeWidth: 1.5, fill: isOn ? 'rgba(251, 191, 36, 0.2)' : 'none'}} /></button><div className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.1)' : 'rgba(255,255,255,0.05)', borderColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.1)', color: isOn ? '#f59e0b' : '#9ca3af'}}>{subEntities.length > 0 ? `${activeCount}/${subEntities.length}` : (isOn ? 'PÅ' : 'AV')}</div></div>
-            <div className="mt-2">
-              <div className="flex justify-between items-end mb-0.5"><p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{String(getA(currentLId, "friendly_name"))}</p></div>
-              <div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-medium text-white leading-none">{isOn ? Math.round((br / 255) * 100) : "0"}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div>
-              <M3Slider min={0} max={255} step={1} value={br} disabled={!isOn} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
-            </div>
           </div>
         );
       case 'media_player':
@@ -947,7 +962,7 @@ export default function App() {
           </div>
         );
       case 'car':
-        const isHtg = getA(LEAF_CLIMATE, "hvac_action") !== 'off';
+        const isHtg = entities[LEAF_CLIMATE]?.state === 'heat_cool';
         const isCharging = entities[LEAF_CHARGING]?.state === 'on';
         
         return (
@@ -985,18 +1000,33 @@ export default function App() {
     <div className="min-h-screen text-white font-sans selection:bg-blue-500/30 overflow-x-hidden" style={{backgroundColor: '#02040a'}}>
       <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, #0f172a, #02040a, #0a0a0c)'}} /><div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)'}} /><div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} /></div>
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-8 md:px-8 md:py-16">
-        <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-10 leading-none">
-          <div className="flex flex-col gap-6 font-sans">
-            <div><h1 className="text-3xl md:text-6xl font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" style={{color: 'rgba(255,255,255,0.6)'}}>Midttunet</h1><p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none mt-4 opacity-50 tracking-[0.2em] md:tracking-[0.6em]">{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div>
-            <div className="flex flex-wrap gap-2.5 mt-2 font-sans">{personStatus(OYVIND_ID)}{personStatus(TUVA_ID)}{reStatus()}{drStatus(EILEV_DOOR_ID, "Eilev si dør")}{drStatus(OLVE_DOOR_ID, "Olve si dør")}</div>
+        <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10 leading-none">
+          <div className="flex flex-col gap-3 font-sans">
+            <div><h1 className="text-3xl md:text-6xl font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" style={{color: 'rgba(255,255,255,0.6)'}}>Midttunet</h1><p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none mt-2 opacity-50 tracking-[0.2em] md:tracking-[0.6em]">{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div>
+            <div className="flex flex-wrap gap-2.5 mt-0 font-sans">{personStatus(OYVIND_ID)}{personStatus(TUVA_ID)}{reStatus()}{drStatus(EILEV_DOOR_ID, "Eilev si dør")}{drStatus(OLVE_DOOR_ID, "Olve si dør")}</div>
           </div>
           <div className="flex items-center gap-6 leading-none font-sans">
             <div className="flex items-center justify-center h-8 w-8 rounded-full transition-all border" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: connected ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: connected ? '#22c55e' : '#ef4444', boxShadow: connected ? '0_0_10px_rgba(34,197,94,0.6)' : 'none', animation: connected ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}} /></div>
             <button onClick={() => setEditMode(!editMode)} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}>{editMode ? 'Ferdig' : 'Rediger'}</button><button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all"><Settings className="w-4 h-4" /> System</button>
           </div>
         </header>
+        
+        <div className="flex items-center gap-4 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+          {pages.map(page => (
+            <button
+              key={page.id}
+              onClick={() => setActivePage(page.id)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-white/10 text-white border-white/10' : 'bg-white/5 text-gray-400 border-transparent hover:bg-white/10 hover:text-white'}`}
+            >
+              <page.icon className="w-4 h-4" />
+              {page.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16 font-sans">
-          {cardOrder.map((id, index) => renderCard(id, index))}
+          {activePage === 'home' && cardOrder.map((id, index) => renderCard(id, index))}
+          {activePage === 'lights' && ['light_kjokken', 'light_stova', 'light_studio'].map((id, index) => renderCard(id, index))}
         </div>
         
         {showConfigModal && (
@@ -1196,22 +1226,22 @@ export default function App() {
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-white">{String(getS(LEAF_INTERNAL_TEMP))}</span><span className="text-gray-500 font-medium">°C</span></div>
                 </div>
                 <div className="p-6 rounded-3xl border flex flex-col justify-between" 
-                     style={{backgroundColor: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(0,0,0,0.3)', borderColor: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255,255,255,0.05)'}}
+                     style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(0,0,0,0.3)', borderColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255,255,255,0.05)'}}
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? '#fb923c' : '#9ca3af'}}>Klima</p>
-                      <p className="text-2xl font-light italic text-white mt-1">{getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'PÅ' : 'AV'}</p>
+                      <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fb923c' : '#9ca3af'}}>Klima</p>
+                      <p className="text-2xl font-light italic text-white mt-1">{entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'PÅ' : 'AV'}</p>
                     </div>
-                    <button onClick={() => callService("climate", getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? "turn_off" : "turn_on", { entity_id: LEAF_CLIMATE })} className="w-12 h-7 rounded-full relative transition-all" style={{backgroundColor: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'rgba(249, 115, 22, 0.4)' : 'rgba(255,255,255,0.1)'}}>
-                      <div className="absolute top-1 w-5 h-5 rounded-full bg-white transition-all" style={{left: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'calc(100% - 5px - 20px)' : '4px', backgroundColor: getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? '#fbbf24' : '#9ca3af'}} />
+                    <button onClick={() => callService("climate", entities[LEAF_CLIMATE]?.state === 'heat_cool' ? "turn_off" : "turn_on", { entity_id: LEAF_CLIMATE })} className="w-12 h-7 rounded-full relative transition-all" style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.4)' : 'rgba(255,255,255,0.1)'}}>
+                      <div className="absolute top-1 w-5 h-5 rounded-full bg-white transition-all" style={{left: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'calc(100% - 5px - 20px)' : '4px', backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fbbf24' : '#9ca3af'}} />
                     </button>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
                        <p className="text-[10px] uppercase font-bold opacity-60">Mål: {getA(LEAF_CLIMATE, "temperature", 20)}°C</p>
                     </div>
-                    <M3Slider min={16} max={30} step={0.5} value={getA(LEAF_CLIMATE, "temperature") || 20} onChange={(e) => callService("climate", "set_temperature", { entity_id: LEAF_CLIMATE, temperature: parseFloat(e.target.value) })} colorClass={getA(LEAF_CLIMATE, "hvac_action") !== 'off' ? 'bg-orange-500' : 'bg-white/20'} />
+                    <M3Slider min={16} max={30} step={0.5} value={getA(LEAF_CLIMATE, "temperature") || 20} onChange={(e) => callService("climate", "set_temperature", { entity_id: LEAF_CLIMATE, temperature: parseFloat(e.target.value) })} colorClass={entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'bg-orange-500' : 'bg-white/20'} />
                   </div>
                 </div>
               </div>
