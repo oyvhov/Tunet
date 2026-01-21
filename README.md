@@ -14,6 +14,38 @@ Midttunet is a feature-rich home automation dashboard that integrates with smart
 - 📊 Data visualization and analytics
 
 ## 🚀 Quick Start
+# 🏠 Midttunet Dashboard
+
+A modern, responsive React dashboard application for home automation and energy monitoring, built with Vite and styled for optimal performance.
+
+## 📋 Overview
+
+Midttunet is a feature-rich home automation dashboard that integrates with smart home systems to provide real-time monitoring and control of:
+
+- 🌡️ Climate and heating systems
+- ⚡ Energy consumption and pricing
+- 🚗 Vehicle status and battery levels
+- 💡 Lighting control
+- 🚪 Door sensors and presence detection
+- 📊 Data visualization and analytics
+
+## 📝 Summary
+
+Midttunet consolidates household telemetry and control into a single, easy-to-use dashboard. It aggregates data from smart meters, thermostats, EV chargers, and sensors to visualize consumption trends, optimize energy usage based on price signals, and provide quick access to device controls. The UI focuses on clarity and real-time updates so users can make informed decisions about energy and comfort.
+
+## 🖼️ Screenshots
+
+Below are example screenshots from the app. Add more images to the `public/` folder and reference them here to include them in the README.
+
+![Dashboard screenshot](public/nissan-leaf.png)
+
+_Add additional screenshots by copying files into `public/` and inserting Markdown image links:_
+
+```markdown
+![Another view](public/your-screenshot.png)
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+ (or Docker Desktop for containerized setup)
