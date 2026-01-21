@@ -89,6 +89,7 @@ import {
   Maximize,
   Minimize,
   Columns,
+  Bot,
   Shuffle,
   Repeat,
   Repeat1,
@@ -111,6 +112,8 @@ const REFRIGERATOR_ID = "binary_sensor.kjoleskap";
 const EILEV_DOOR_ID = "binary_sensor.dorsensor_eilev_opening_2";
 const OLVE_DOOR_ID = "binary_sensor.kleven_dor_sensor_contact";
 const STUDIO_PRESENCE_ID = "binary_sensor.studioet_opphld_presence";
+const ROCKY_ID = "vacuum.rocky";
+const ROCKY_ROOM_ID = "sensor.rocky_rom";
 const PORTEN_MOTION_ID = "binary_sensor.bevegelsessensor_porten";
 const GARAGE_DOOR_ID = "binary_sensor.garasjeport_contact";
 const CAMERA_PORTEN_ID = "camera.porten";
@@ -175,7 +178,7 @@ const ICON_MAP = {
   Speaker, Sofa, Utensils, AirVent, LampDesk, LayoutGrid, Trash2, Workflow,
   Home, Bed, Bath, ShowerHead, Droplets, Sun, Moon, Cloud, CloudRain, Power,
   Wifi, Lock, Unlock, Shield, Video, Camera, Bell, Volume2, Mic, Radio, Warehouse,
-  Gamepad2, Laptop, Smartphone, Watch, Coffee, Beer, Armchair, ShoppingCart,
+  Gamepad2, Laptop, Smartphone, Watch, Coffee, Beer, Armchair, ShoppingCart, Bot,
   Calendar, Activity, Heart, Star, AlertTriangle
 };
 
@@ -475,6 +478,7 @@ export default function App() {
   const [showClimateModal, setShowClimateModal] = useState(false);
   const [showLightModal, setShowLightModal] = useState(null);
   const [showLeafModal, setShowLeafModal] = useState(false);
+  const [showRockyModal, setShowRockyModal] = useState(false);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -486,7 +490,7 @@ export default function App() {
   const [draggingId, setDraggingId] = useState(null);
   const [activePage, setActivePage] = useState('home');
   const [pagesConfig, setPagesConfig] = useState({
-    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos'],
+    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky'],
     lights: ['light_kjokken', 'light_stova', 'light_studio'],
     automations: [
       { id: 'col0', title: 'Kolonne 1', cards: [] },
@@ -502,6 +506,7 @@ export default function App() {
   const [gridColumns, setGridColumns] = useState(3);
   const [headerScale, setHeaderScale] = useState(1);
   const dragSourceRef = useRef(null);
+  const [showMenu, setShowMenu] = useState(false);
   
   const [config, setConfig] = useState({
     url: typeof window !== 'undefined' ? localStorage.getItem('ha_url') || '' : '',
@@ -528,6 +533,12 @@ export default function App() {
             });
             parsed.automations = cols;
         }
+        
+        // Ensure rocky is in home if missing
+        if (parsed.home && !parsed.home.includes('rocky')) {
+            parsed.home.push('rocky');
+        }
+
         setPagesConfig(parsed);
       } catch (e) {} 
     } else {
@@ -535,7 +546,8 @@ export default function App() {
       const savedOrder = localStorage.getItem('midttunet_card_order');
       if (savedOrder) {
         try {
-           const parsed = JSON.parse(savedOrder).filter(id => id !== 'people');
+           const raw = JSON.parse(savedOrder).filter(id => id !== 'people');
+           const parsed = raw.includes('rocky') ? raw : [...raw, 'rocky'];
            setPagesConfig(prev => ({ ...prev, home: parsed }));
         } catch (e) {}
       }
@@ -979,6 +991,46 @@ export default function App() {
     );
   };
 
+  const renderRockyCard = (dragProps, getControls, cardStyle) => {
+    const state = entities[ROCKY_ID]?.state;
+    const battery = getA(ROCKY_ID, "battery_level");
+    const room = entities[ROCKY_ROOM_ID]?.state;
+    const isCleaning = state === "cleaning";
+    const isReturning = state === "returning";
+    const isDocked = state === "docked";
+    const statusText = isCleaning ? "Støvsuger" : isReturning ? "Returnerer" : isDocked ? "Ladar" : state;
+    const name = customNames['rocky'] || 'Rocky';
+    const Icon = customIcons['rocky'] ? ICON_MAP[customIcons['rocky']] : Bot;
+    
+    return (
+      <div key="rocky" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.08)' : 'rgba(15, 23, 42, 0.6)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isCleaning ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.04)')}}>
+        {getControls('rocky')}
+        <div className="flex justify-between items-start font-sans">
+           <div className={`p-3 rounded-2xl transition-all ${isCleaning ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-white/5 text-gray-500'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
+           <div className="flex flex-col items-end gap-2">
+             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white/[0.02] border-white/[0.05] text-gray-500"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{room || "Ukjend"}</span></div>
+             {battery && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white/[0.02] border-white/[0.05] text-gray-500"><Battery className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{battery}%</span></div>}
+           </div>
+        </div>
+        
+        <div className="flex justify-between items-end">
+           <div>
+             <p className="text-gray-500 text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
+             <h3 className="text-2xl font-light text-white italic leading-none tracking-tight">{statusText}</h3>
+           </div>
+           <div className="flex gap-2">
+             <button onClick={(e) => { e.stopPropagation(); callService("vacuum", isCleaning ? "pause" : "start", { entity_id: ROCKY_ID }); }} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors text-white active:scale-95">
+               {isCleaning ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+             </button>
+             <button onClick={(e) => { e.stopPropagation(); callService("vacuum", "return_to_base", { entity_id: ROCKY_ID }); }} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors text-gray-400 hover:text-white active:scale-95">
+               <Home className="w-5 h-5" />
+             </button>
+           </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderCard = (cardId, index, colIndex) => {
     const isHidden = hiddenCards.includes(cardId);
     if (isHidden && !editMode) return null;
@@ -1112,7 +1164,7 @@ export default function App() {
         >
           {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
-        {!['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos'].includes(cardId) && (
+        {!['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky'].includes(cardId) && (
           <button 
             onClick={(e) => { e.stopPropagation(); removeCard(cardId); }}
             className="p-2 rounded-full transition-colors hover:bg-red-500/80 text-white border border-white/20 shadow-lg bg-black/60"
@@ -1141,6 +1193,8 @@ export default function App() {
         return renderEnergyCostCard(dragProps, getControls, cardStyle);
       case 'climate':
         return renderClimateCard(dragProps, getControls, cardStyle);
+      case 'rocky':
+        return renderRockyCard(dragProps, getControls, cardStyle);
       case 'media_player':
         const mediaEntities = MEDIA_PLAYER_IDS.map(id => entities[id]).filter(Boolean);
         const activeMediaEntities = mediaEntities.filter(isMediaActive);
@@ -1441,9 +1495,13 @@ export default function App() {
           <div className="flex items-center gap-6 flex-shrink-0 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto justify-end">
             {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> Legg til</button>}
             {editMode && <button onClick={() => { const newCols = gridColumns === 3 ? 4 : 3; setGridColumns(newCols); localStorage.setItem('midttunet_grid_columns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {gridColumns === 3 ? '4' : '3'} Kolonner</button>}
-            <button onClick={() => setEditMode(!editMode)} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}><Edit2 className="w-4 h-4" /> {editMode ? 'Ferdig' : 'Rediger'}</button>
-            <button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>
-            <button onClick={toggleFullScreen} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap">{isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />} Fullskjerm</button>
+            
+            <div className={`flex items-center gap-6 transition-all duration-500 ease-in-out overflow-hidden ${showMenu ? 'max-w-[500px] opacity-100' : 'max-w-0 opacity-0'}`}>
+              <button onClick={() => setEditMode(!editMode)} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}><Edit2 className="w-4 h-4" /> {editMode ? 'Ferdig' : 'Rediger'}</button>
+              <button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>
+              <button onClick={toggleFullScreen} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap">{isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />} Fullskjerm</button>
+            </div>
+            <button onClick={() => setShowMenu(!showMenu)} className="p-2 rounded-full hover:bg-white/5 transition-colors"><Settings className={`w-5 h-5 text-gray-500 hover:text-white transition-transform duration-500 ${showMenu ? 'rotate-90 text-white' : ''}`} /></button>
             <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: connected ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: connected ? '#22c55e' : '#ef4444', boxShadow: connected ? '0_0_10px_rgba(34,197,94,0.6)' : 'none', animation: connected ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}} /></div>
           </div>
         </div>
@@ -1626,6 +1684,44 @@ export default function App() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showRockyModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowRockyModal(false)}>
+            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowRockyModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
+              
+              <div className="flex items-center gap-6 mb-10">
+                <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa'}}><Bot className="w-10 h-10" /></div>
+                <div>
+                  <h3 className="text-4xl font-light tracking-tight text-white uppercase italic">Rocky</h3>
+                  <p className="text-xs text-gray-500 uppercase font-bold mt-2" style={{letterSpacing: '0.1em'}}>Status: {entities[ROCKY_ID]?.state}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Sist vaska</p>
+                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-white">{getA(ROCKY_ID, "squareMeterCleanArea", 0)}</span><span className="text-gray-500 font-medium">m²</span></div>
+                  <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">Tid: {Math.round(getA(ROCKY_ID, "cleanTime", 0) / 60)} min</p>
+                </div>
+                <div className="p-8 rounded-3xl border flex flex-col justify-center gap-4" style={{backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                   <button onClick={() => callService("vacuum", entities[ROCKY_ID]?.state === "cleaning" ? "pause" : "start", { entity_id: ROCKY_ID })} className="w-full py-4 rounded-2xl bg-blue-500/20 text-blue-400 font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-2">{entities[ROCKY_ID]?.state === "cleaning" ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Start</>}</button>
+                   <div className="flex gap-4">
+                     <button onClick={() => callService("vacuum", "return_to_base", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold uppercase tracking-widest hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><Home className="w-4 h-4" /> Heim</button>
+                     <button onClick={() => callService("vacuum", "locate", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold uppercase tracking-widest hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> Finn</button>
+                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                 <ModernDropdown label="Sugekraft" icon={Fan} options={getA(ROCKY_ID, "fan_speed_list", [])} current={getA(ROCKY_ID, "fan_speed")} onChange={(val) => callService("vacuum", "set_fan_speed", { entity_id: ROCKY_ID, fan_speed: val })} />
+                 {getA(ROCKY_ID, "mop_intensity_list") && (
+                   <ModernDropdown label="Mopp Intensitet" icon={Droplets} options={getA(ROCKY_ID, "mop_intensity_list", [])} current={getA(ROCKY_ID, "mop_intensity")} onChange={(val) => callService("vacuum", "send_command", { entity_id: ROCKY_ID, command: "set_mop_mode", params: { mop_mode: val } })} />
+                 )}
               </div>
             </div>
           </div>
