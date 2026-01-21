@@ -596,7 +596,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-white leading-none tracking-wide">{name}</span>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest leading-none mt-1 transition-colors duration-300" style={{color: isHome ? '#4ade80' : 'rgba(156, 163, 175, 0.5)'}}>
+          <span className="text-xs font-bold uppercase tracking-widest leading-none mt-1 transition-colors duration-300" style={{color: isHome ? '#4ade80' : 'rgba(156, 163, 175, 0.5)'}}>
             {String(statusText)}
           </span>
         </div>
@@ -661,18 +661,33 @@ export default function App() {
         return (
           <div key="energy_cost" {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
             {visibilityBtn}
-            <BarGraph data={costHistory.length > 0 ? costHistory : [parseFloat(getS(COST_TODAY_ID)) || 0]} />
-            <div className="flex justify-between items-start">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50 pointer-events-none" />
+            
+            <div className="flex justify-between items-start relative z-10">
               <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399'}}>
                 <Coins className="w-5 h-5" style={{strokeWidth: 1.5}} />
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', color: '#9ca3af'}}>
-                <span className="text-[10px] tracking-[0.2em] font-bold uppercase">Kostnad</span>
+                <span className="text-xs tracking-widest font-bold uppercase">Kostnad</span>
               </div>
             </div>
-            <div className="mt-2 flex flex-col gap-2 relative z-10">
-              <div><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>I dag</p><div className="flex items-baseline gap-1 leading-none"><span className="text-3xl font-medium text-white leading-none">{String(getS(COST_TODAY_ID))}</span><span className="text-gray-600 font-medium text-sm ml-1">kr</span></div></div>
-              <div><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>Denne månaden</p><div className="flex items-baseline gap-1 leading-none"><span className="text-3xl font-medium text-white leading-none">{String(getS(COST_MONTH_ID))}</span><span className="text-gray-600 font-medium text-sm ml-1">kr</span></div></div>
+            
+            <div className="flex flex-col gap-1 relative z-10 mt-2">
+               <p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none tracking-widest">I dag</p>
+               <div className="flex items-baseline gap-1 leading-none">
+                 <span className="text-5xl font-light text-white tracking-tight">{String(getS(COST_TODAY_ID))}</span>
+                 <span className="text-gray-500 font-medium text-lg">kr</span>
+               </div>
+            </div>
+
+            <div className="relative z-10 mt-auto pt-4 border-t border-white/5">
+               <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500 font-bold uppercase tracking-widest opacity-80">Denne månaden</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-medium text-white">{String(getS(COST_MONTH_ID))}</span>
+                    <span className="text-xs text-gray-500">kr</span>
+                  </div>
+               </div>
             </div>
           </div>
         );
@@ -819,7 +834,7 @@ export default function App() {
             setActiveMediaId(next.entity_id);
         };
 
-        const indicator = (!editMode && playingCount >= 2) ? (<button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-[10px] font-bold">{playingCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
+        const indicator = (!editMode && playingCount >= 2) ? (<button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-xs font-bold">{playingCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
 
         if (isIdle) {
           return (
@@ -831,7 +846,7 @@ export default function App() {
               </div>
               <div className="text-center w-full px-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-gray-500 opacity-60">Ingen media</p>
-                <p className="text-[10px] uppercase tracking-widest text-gray-600 mt-1 opacity-40 truncate">{getA(mpId, 'friendly_name', 'Media Player').replace(/^(Midttunet|Bibliotek)\s*/i, '')}</p>
+                <p className="text-xs uppercase tracking-widest text-gray-600 mt-1 opacity-40 truncate">{getA(mpId, 'friendly_name', 'Media Player').replace(/^(Midttunet|Bibliotek)\s*/i, '')}</p>
               </div>
             </div>
           );
@@ -902,7 +917,7 @@ export default function App() {
             setActiveMediaId(next.entity_id);
         };
 
-        const sIndicator = (!editMode && sonosCount >= 2) ? (<button onClick={cycleSonos} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-[10px] font-bold">{sonosCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
+        const sIndicator = (!editMode && sonosCount >= 2) ? (<button onClick={cycleSonos} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-xs font-bold">{sonosCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
 
         if (!sIsActive) {
           return (
@@ -910,7 +925,7 @@ export default function App() {
               {visibilityBtn}
               {sIndicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}><Speaker className="w-8 h-8 text-gray-600" /></div>
-              <div className="text-center w-full px-4"><p className="text-xs font-bold uppercase tracking-widest text-gray-500 opacity-60">Ingen musikk</p><p className="text-[10px] uppercase tracking-widest text-gray-600 mt-1 opacity-40 truncate">{getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '')}</p></div>
+              <div className="text-center w-full px-4"><p className="text-xs font-bold uppercase tracking-widest text-gray-500 opacity-60">Ingen musikk</p><p className="text-xs uppercase tracking-widest text-gray-600 mt-1 opacity-40 truncate">{getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '')}</p></div>
             </div>
           );
         }
@@ -926,22 +941,26 @@ export default function App() {
             {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/20 via-transparent to-transparent pointer-events-none" />}
             <div className="relative z-10 flex gap-4 items-start">
               <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 bg-white/5 shadow-lg">{sPicture ? <img src={sPicture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isTV ? <Tv className="w-8 h-8 text-gray-500" /> : <Speaker className="w-8 h-8 text-gray-500" />}</div>}</div>
-              <div className="flex flex-col overflow-hidden pt-1"><p className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-1 truncate">{getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '')}</p><h3 className="text-lg font-bold text-white leading-tight truncate mb-0.5">{sTitle || 'Ukjend'}</h3><p className="text-xs text-gray-400 truncate font-medium">{sArtist || ''}</p></div>
+              <div className="flex flex-col overflow-hidden pt-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-1 truncate">{getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '')}</p><h3 className="text-lg font-bold text-white leading-tight truncate mb-0.5">{sTitle || 'Ukjend'}</h3><p className="text-xs text-gray-400 truncate font-medium">{sArtist || ''}</p></div>
             </div>
             <div className="relative z-10 flex items-center justify-center gap-8 mt-2"><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: sId }); }} className="text-gray-400 hover:text-white transition-colors p-2 active:scale-90"><SkipBack className="w-6 h-6" /></button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: sId }); }} className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95">{sIsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}</button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: sId }); }} className="text-gray-400 hover:text-white transition-colors p-2 active:scale-90"><SkipForward className="w-6 h-6" /></button></div>
           </div>
         );
       case 'car':
         const isHtg = getA(LEAF_CLIMATE, "hvac_action") !== 'off';
+        const isCharging = entities[LEAF_CHARGING]?.state === 'on';
+        
         return (
           <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'rgba(15, 23, 42, 0.6)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.04)')}}>
             {visibilityBtn}
-            <div className="absolute inset-0 z-0 pointer-events-none">
-               <img src={LEAF_BG_IMAGE} alt="" className="w-3/4 h-auto mx-auto mt-12 object-cover opacity-50 grayscale-[20%]" />
-               <div className="absolute inset-0 bg-gradient-to-t from-[#02040a] via-[#02040a]/40 to-transparent" />
+            <div className="flex justify-between items-start font-sans">
+              <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-green-500/10 text-green-400'}`}><Car className="w-5 h-5 stroke-[1.5px]" /></div>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white/[0.02] border-white/[0.05] text-gray-500"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
+                {isHtg && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">Varmar</span></div>}
+              </div>
             </div>
-            <div className="flex justify-between items-start relative z-10"><div className="p-3 rounded-2xl transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(34, 197, 94, 0.1)', color: isHtg ? '#fb923c' : '#22c55e', animation: isHtg ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}}><Car className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.02)', borderColor: isHtg ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255,255,255,0.05)', color: isHtg ? '#fb923c' : '#9ca3af'}}><span className="text-xs tracking-widest font-black uppercase">{isHtg ? 'Varmar' : getS(LEAF_LOCATION, 'Parkert')}</span></div></div>
-            <div className="flex justify-between items-end relative z-10"><div><p className="text-gray-500 text-xs uppercase mb-1 font-bold opacity-60" style={{letterSpacing: '0.05em'}}>Nissan Leaf</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className="text-4xl font-medium text-white leading-none">{String(getS(LEAF_ID))}%</span><span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 px-3 py-1.5 rounded-xl border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
+            <div className="flex justify-between items-end"><div><p className="text-gray-500 text-xs tracking-widest uppercase mb-1 font-bold opacity-60">Nissan Leaf</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className={`text-4xl font-normal tracking-tighter italic leading-none ${isCharging ? 'text-green-400' : 'text-white'}`}>{String(getS(LEAF_ID))}%</span>{isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}<span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 bg-white/[0.02] px-3 py-1.5 rounded-xl border border-white/5 font-sans"><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
           </div>
         );
       default: return null;
@@ -965,10 +984,10 @@ export default function App() {
   return (
     <div className="min-h-screen text-white font-sans selection:bg-blue-500/30 overflow-x-hidden" style={{backgroundColor: '#02040a'}}>
       <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, #0f172a, #02040a, #0a0a0c)'}} /><div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)'}} /><div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} /></div>
-      <div className="relative z-10 max-w-7xl mx-auto px-8 py-16">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-8 md:px-8 md:py-16">
         <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-10 leading-none">
           <div className="flex flex-col gap-6 font-sans">
-            <div><h1 className="text-5xl md:text-6xl font-light uppercase leading-none select-none" style={{letterSpacing: '0.8em', color: 'rgba(255,255,255,0.6)'}}>Midttunet</h1><p className="text-gray-500 font-medium uppercase text-xs leading-none mt-4 opacity-50" style={{letterSpacing: '0.6em'}}>{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div>
+            <div><h1 className="text-3xl md:text-6xl font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" style={{color: 'rgba(255,255,255,0.6)'}}>Midttunet</h1><p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none mt-4 opacity-50 tracking-[0.2em] md:tracking-[0.6em]">{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div>
             <div className="flex flex-wrap gap-2.5 mt-2 font-sans">{personStatus(OYVIND_ID)}{personStatus(TUVA_ID)}{reStatus()}{drStatus(EILEV_DOOR_ID, "Eilev si dør")}{drStatus(OLVE_DOOR_ID, "Olve si dør")}</div>
           </div>
           <div className="flex items-center gap-6 leading-none font-sans">
@@ -1021,9 +1040,9 @@ export default function App() {
         )}
 
         {showClimateModal && entities[CLIMATE_ID] && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowClimateModal(false)}>
-            <div className="border w-full max-w-5xl rounded-[3rem] p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: isHeating ? 'rgba(249, 115, 22, 0.01)' : isCooling ? 'rgba(59, 130, 246, 0.01)' : '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowClimateModal(false)} className="absolute top-10 right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowClimateModal(false)}>
+            <div className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: isHeating ? 'rgba(249, 115, 22, 0.01)' : isCooling ? 'rgba(59, 130, 246, 0.01)' : '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowClimateModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-3 md:p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-6 h-6 md:w-8 md:h-8" /></button>
               <div className="flex items-center gap-8 mb-12 font-sans">
                 <div className="p-6 rounded-3xl transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>
                   {isCooling ? <Snowflake className="w-12 h-12" /> : <AirVent className="w-12 h-12" />}
@@ -1037,14 +1056,14 @@ export default function App() {
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start font-sans">
-                <div className="lg:col-span-3 space-y-10 p-10 rounded-3xl border shadow-inner" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                <div className="lg:col-span-3 space-y-10 p-6 md:p-10 rounded-3xl border shadow-inner" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)'}}>
                   <div className="text-center font-sans">
                     <div className="flex justify-between items-center mb-6 px-4 italic">
                       <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.5em'}}>Innetemperatur</p>
                       <span className="text-xs uppercase font-bold" style={{letterSpacing: '0.3em', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>{String(getA(CLIMATE_ID, "current_temperature"))}°C</span>
                     </div>
                     <div className="flex items-center justify-center gap-4 mb-10">
-                      <span className="text-9xl font-light italic text-white tracking-tighter leading-none select-none" style={{textShadow: '0 10px 25px rgba(0,0,0,0.8)', color: isHeating ? '#fef2f2' : isCooling ? '#f0f9ff' : '#ffffff'}}>
+                      <span className="text-6xl md:text-9xl font-light italic text-white tracking-tighter leading-none select-none" style={{textShadow: '0 10px 25px rgba(0,0,0,0.8)', color: isHeating ? '#fef2f2' : isCooling ? '#f0f9ff' : '#ffffff'}}>
                         {String(getA(CLIMATE_ID, "temperature"))}
                       </span>
                       <span className="text-5xl font-medium leading-none mt-10 italic text-gray-700">°C</span>
@@ -1073,8 +1092,8 @@ export default function App() {
         )}
 
         {showLightModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLightModal(null)}>
-            <div className="border w-full max-w-xl rounded-[2.5rem] p-8 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLightModal(null)}>
+            <div className="border w-full max-w-xl rounded-3xl md:rounded-[2.5rem] p-6 md:p-8 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
               
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-5">
@@ -1133,8 +1152,8 @@ export default function App() {
         )}
 
         {showLeafModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLeafModal(false)}>
-            <div className="border w-full max-w-4xl rounded-[3rem] p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLeafModal(false)}>
+            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
               
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
                 <div className="flex items-center gap-6">
@@ -1221,9 +1240,9 @@ export default function App() {
         )}
 
         {activeMediaModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/70 font-sans" onClick={() => setActiveMediaModal(null)}>
-            <div className="bg-[#0d0d0f] border border-white/10 w-full max-w-6xl rounded-[4rem] p-12 shadow-2xl relative max-h-[95vh] overflow-hidden flex flex-col md:flex-row gap-12" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setActiveMediaModal(null)} className="absolute top-10 right-10 p-5 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white z-20 shadow-lg"><X className="w-8 h-8" /></button>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 backdrop-blur-3xl bg-black/70 font-sans" onClick={() => setActiveMediaModal(null)}>
+            <div className="bg-[#0d0d0f] border border-white/10 w-full max-w-6xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative max-h-[95vh] overflow-y-auto md:overflow-hidden flex flex-col md:flex-row gap-6 md:gap-12" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setActiveMediaModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-3 md:p-5 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white z-20 shadow-lg"><X className="w-6 h-6 md:w-8 md:h-8" /></button>
               
               {(() => {
                 const isSonos = activeMediaModal === 'sonos';
@@ -1274,12 +1293,12 @@ export default function App() {
                       </div>
 
                       <div className="flex flex-col gap-8">
-                        <div className="aspect-video w-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-white/5 relative group">
+                        <div className={`${isSonos ? 'aspect-square' : 'aspect-video'} w-full rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-white/5 relative group`}>
                           {mpPicture ? <img src={mpPicture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
                           <div className="absolute bottom-0 left-0 w-full p-8">
                              <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-2">{mpApp}</p>
-                             <h2 className="text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || 'Ukjend'}</h2>
+                             <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || 'Ukjend'}</h2>
                              <p className="text-xl text-gray-300 font-medium">{mpSeries}</p>
                           </div>
                         </div>
@@ -1291,18 +1310,28 @@ export default function App() {
                           </div>
                           <M3Slider min={0} max={duration || 100} step={1} value={position || 0} disabled={!duration} onChange={(e) => callService("media_player", "media_seek", { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
                           
-                          <div className="flex items-center justify-center gap-8 pt-2">
-                            <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-gray-300" /></button>
-                            <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 bg-white text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95 shadow-lg shadow-white/10">
-                              {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
-                            </button>
-                            <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-gray-300" /></button>
-                          </div>
+                          {isSonos ? (
+                            <div className="flex items-center justify-center gap-6 pt-2">
+                              <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-3 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipBack className="w-6 h-6 text-gray-300" /></button>
+                              <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-4 bg-white text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95 shadow-lg shadow-white/10">
+                                {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
+                              </button>
+                              <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-3 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipForward className="w-6 h-6 text-gray-300" /></button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-8 pt-2">
+                              <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-gray-300" /></button>
+                              <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 bg-white text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95 shadow-lg shadow-white/10">
+                                {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
+                              </button>
+                              <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-gray-300" /></button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="w-full md:w-80 border-l border-white/10 pl-0 md:pl-12 md:pt-24 flex flex-col gap-6 overflow-y-auto">
+                    <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-white/10 pt-6 md:pt-24 pl-0 md:pl-12 flex flex-col gap-6 overflow-y-auto">
                       <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">Aktive spelarar</h3>
                       <div className="flex flex-col gap-4">
                         {activePlayers.length === 0 && <p className="text-gray-600 italic text-sm">Ingen andre aktive spelarar</p>}
@@ -1334,3 +1363,4 @@ export default function App() {
     </div>
   );
 }
+         
