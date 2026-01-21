@@ -207,10 +207,29 @@ const formatDuration = (seconds) => {
   return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
+const EmbyLogo = (props) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M11,2L6,7L7,8L2,13L7,18L8,17L13,22L18,17L17,16L22,11L17,6L16,7L11,2M10,8.5L16,12L10,15.5V8.5Z" />
+  </svg>
+);
+
+const JellyfinLogo = (props) => (
+  <svg viewBox="0 0 512 512" {...props}>
+    <defs>
+      <linearGradient id="jellyfin-grad" x1="126.15" y1="219.32" x2="457.68" y2="410.73" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#aa5cc3" />
+        <stop offset="100%" stopColor="#00a4dc" />
+      </linearGradient>
+    </defs>
+    <path d="M190.56 329.07c8.63 17.3 122.4 17.12 130.93 0 8.52-17.1-47.9-119.78-65.46-119.8-17.57 0-74.1 102.5-65.47 119.8z" fill="url(#jellyfin-grad)" />
+    <path d="M58.75 417.03c25.97 52.15 368.86 51.55 394.55 0S308.93 56.08 256.03 56.08c-52.92 0-223.25 308.8-197.28 360.95zm68.04-45.25c-17.02-34.17 94.6-236.5 129.26-236.5 34.67 0 146.1 202.7 129.26 236.5-16.83 33.8-241.5 34.17-258.52 0z" fill="url(#jellyfin-grad)" />
+  </svg>
+);
+
 const getServerInfo = (id) => {
   if (!id || typeof id !== 'string') return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
-  if (id.includes('midttunet')) return { name: 'Jellyfin', icon: Clapperboard, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
-  if (id.includes('bibliotek')) return { name: 'Emby', icon: Server, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' };
+  if (id.includes('midttunet')) return { name: 'Jellyfin', icon: JellyfinLogo, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
+  if (id.includes('bibliotek')) return { name: 'Emby', icon: EmbyLogo, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' };
   return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
 };
 
@@ -924,7 +943,7 @@ export default function App() {
            <div className="flex items-baseline gap-1 leading-none"><span className="text-5xl font-light text-white tracking-tight">{String(getS(COST_TODAY_ID))}</span><span className="text-gray-500 font-medium text-lg">kr</span></div>
         </div>
         <div className="relative z-10 mt-auto pt-4 border-t border-white/5">
-           <div className="flex justify-between items-center"><span className="text-xs text-gray-500 font-bold uppercase tracking-widest opacity-80">Denne månaden</span><div className="flex items-baseline gap-1"><span className="text-xl font-medium text-white">{String(getS(COST_MONTH_ID))}</span><span className="text-xs text-gray-500">kr</span></div></div>
+           <div className="flex justify-between items-center"><span className="text-xs text-gray-500 font-bold uppercase tracking-widest opacity-80">Denne månaden</span><div className="flex items-baseline gap-1"><span className="text-xl font-medium text-white">{!isNaN(parseFloat(entities[COST_MONTH_ID]?.state)) ? Math.round(parseFloat(entities[COST_MONTH_ID]?.state)) : String(getS(COST_MONTH_ID))}</span><span className="text-xs text-gray-500">kr</span></div></div>
         </div>
       </div>
     );
@@ -1259,7 +1278,7 @@ export default function App() {
               {getControls(mpId)}
               {indicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
-                <Music className="w-8 h-8 text-gray-600" />
+                <Tv className="w-8 h-8 text-gray-600" />
               </div>
               <div className="text-center w-full px-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-gray-500 opacity-60">Ingen media</p>
@@ -2158,4 +2177,3 @@ export default function App() {
     </div>
   );
 }
-         
