@@ -24,13 +24,13 @@ The central hub displays all key information at a glance with real-time updates.
 
 ![Main Dashboard](public/1.Main.jpg)
 
-### Climate Control
+### Light page
 Monitor and control your heating systems and heat pump settings for optimal comfort.
 
 ![Heating Systems](public/2.lights.jpg)
 
-### Automation Center
-View and manage automated routines and schedules for your smart home devices.
+### Automation page
+View and manage automations
 
 ![Automations](public/3.automations.jpg)
 
@@ -44,17 +44,17 @@ Personalize your dashboard layout by arranging and editing dashboard elements.
 
 ![Edit Dashboard](public/5.edit_main.jpg)
 
-### Heat Pump Control
+### Heat Pump popup
 Detailed heat pump monitoring with popup interface for advanced settings.
 
 ![Heat Pump Popup](public/6.Popu_heatpump.jpg)
 
-### Lighting Control
+### Light Popup
 Quick access lighting controls with preset options and brightness adjustment.
 
 ![Lights Popup](public/7.Popup_lights.jpg)
 
-### Audio System Integration
+### Sonos 
 Control your Sonos audio system directly from the dashboard.
 
 ![Sonos Control](public/8.Popup_Sonos.jpg)
