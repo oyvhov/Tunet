@@ -6,6 +6,8 @@ import {
   Settings, 
   ChevronUp, 
   ChevronDown, 
+  ChevronLeft,
+  ChevronRight,
   Flame, 
   User, 
   UserCheck, 
@@ -94,7 +96,8 @@ import {
   VolumeX,
   Volume1,
   Link,
-  Unlink
+  Unlink,
+  Search
 } from 'lucide-react';
 
 const CLIMATE_ID = "climate.varmepumpe";
@@ -117,6 +120,8 @@ const GARAGE_DOOR_ID = "binary_sensor.garasjeport_contact";
 const CAMERA_PORTEN_ID = "camera.porten";
 const OYVIND_BAT_LEVEL = "sensor.pixel_9_pro_xl_battery_level";
 const OYVIND_BAT_STATE = "sensor.pixel_9_pro_xl_battery_state";
+const SHIELD_ID = "media_player.shieldtv";
+const SHIELD_REMOTE_ID = "remote.shield";
 const LEAF_CLIMATE = "climate.leaf_climate";
 const COST_TODAY_ID = "sensor.tibber_forbruk_kroner";
 const COST_MONTH_ID = "sensor.monthly_cost_midttunet";
@@ -495,6 +500,7 @@ export default function App() {
   const [showClimateModal, setShowClimateModal] = useState(false);
   const [showLightModal, setShowLightModal] = useState(null);
   const [showLeafModal, setShowLeafModal] = useState(false);
+  const [showShieldModal, setShowShieldModal] = useState(false);
   const [showRockyModal, setShowRockyModal] = useState(false);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
@@ -507,7 +513,7 @@ export default function App() {
   const [draggingId, setDraggingId] = useState(null);
   const [activePage, setActivePage] = useState('home');
   const [pagesConfig, setPagesConfig] = useState({
-    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky'],
+    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky', 'shield'],
     lights: ['light_kjokken', 'light_stova', 'light_studio'],
     automations: [
       { id: 'col0', title: 'Kolonne 1', cards: [] },
@@ -525,6 +531,9 @@ export default function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [pageSettings, setPageSettings] = useState({});
   const [editingPage, setEditingPage] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEntities, setSelectedEntities] = useState([]);
+  const [cardSettings, setCardSettings] = useState({});
   
   const [config, setConfig] = useState({
     url: typeof window !== 'undefined' ? localStorage.getItem('ha_url') || '' : '',
@@ -556,6 +565,10 @@ export default function App() {
         if (parsed.home && !parsed.home.includes('rocky')) {
             parsed.home.push('rocky');
         }
+        
+        if (parsed.home && !parsed.home.includes('shield')) {
+            parsed.home.push('shield');
+        }
 
         setPagesConfig(parsed);
       } catch (e) {} 
@@ -565,7 +578,7 @@ export default function App() {
       if (savedOrder) {
         try {
            const raw = JSON.parse(savedOrder).filter(id => id !== 'people');
-           const parsed = raw.includes('rocky') ? raw : [...raw, 'rocky'];
+           const parsed = [...new Set([...raw, 'rocky', 'shield'])];
            setPagesConfig(prev => ({ ...prev, home: parsed }));
         } catch (e) {}
       }
@@ -588,7 +601,14 @@ export default function App() {
 
     const savedPageSettings = localStorage.getItem('midttunet_page_settings');
     if (savedPageSettings) { try { setPageSettings(JSON.parse(savedPageSettings)); } catch (e) {} }
+
+    const savedCardSettings = localStorage.getItem('midttunet_card_settings');
+    if (savedCardSettings) { try { setCardSettings(JSON.parse(savedCardSettings)); } catch (e) {} }
   }, []);
+
+  useEffect(() => {
+    if (!showAddCardModal) setSearchTerm('');
+  }, [showAddCardModal]);
 
   useEffect(() => {
     document.title = "Midttunet";
@@ -810,6 +830,7 @@ export default function App() {
     { id: 'home', label: 'HEIM', icon: LayoutGrid },
     { id: 'lights', label: 'Lys', icon: Lightbulb },
     { id: 'automations', label: 'Automasjonar', icon: Workflow },
+    { id: 'settings', label: 'Innstillingar', icon: Settings },
   ];
 
   useEffect(() => {
@@ -834,6 +855,12 @@ export default function App() {
     const newIcons = { ...customIcons, [id]: iconName };
     setCustomIcons(newIcons);
     localStorage.setItem('midttunet_custom_icons', JSON.stringify(newIcons));
+  };
+
+  const saveCardSetting = (id, setting, value) => {
+    const newSettings = { ...cardSettings, [id]: { ...cardSettings[id], [setting]: value } };
+    setCardSettings(newSettings);
+    localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
   };
 
   const saveColumnTitle = (colIndex, title) => {
@@ -863,6 +890,49 @@ export default function App() {
     }
   };
 
+  const handleAddSelected = () => {
+    const newConfig = { ...pagesConfig };
+    if (addCardTargetPage === 'automations') {
+        newConfig.automations[0].cards.push(...selectedEntities);
+    } else {
+        newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...selectedEntities];
+    }
+    setPagesConfig(newConfig);
+    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+    setSelectedEntities([]);
+    setShowAddCardModal(false);
+  };
+
+  const renderEntityCard = (cardId, dragProps, getControls, cardStyle) => {
+    const entity = entities[cardId];
+    if (!entity) return null;
+    
+    const name = customNames[cardId] || entity.attributes.friendly_name || cardId;
+    const state = getS(cardId);
+    const lastChanged = entity.last_changed;
+    const domain = cardId.split('.')[0];
+    const settings = cardSettings[cardId] || {};
+    const showStatus = settings.showStatus !== false;
+    const showLastChanged = settings.showLastChanged !== false;
+    
+    let Icon = Activity;
+    if (customIcons[cardId]) Icon = ICON_MAP[customIcons[cardId]];
+    else if (domain === 'binary_sensor') Icon = Activity;
+    else if (domain === 'sensor') Icon = TrendingUp;
+    else if (domain === 'switch' || domain === 'input_boolean') Icon = Power;
+    
+    return (
+      <div key={cardId} {...dragProps} className={`p-5 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[140px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+        {getControls(cardId)}
+        <div className="flex justify-between items-start">
+            <div className="p-2.5 rounded-xl bg-white/5 text-gray-400"><Icon className="w-5 h-5" /></div>
+            {showLastChanged && <div className="flex flex-col items-end"><span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">{formatRelativeTime(lastChanged)}</span></div>}
+        </div>
+        <div><p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-0.5 truncate">{name}</p>{showStatus && <p className="text-xl font-light text-white truncate">{String(state)}</p>}</div>
+      </div>
+    );
+  };
+
   // --- CARD RENDERERS ---
   
   const renderLightCard = (cardId, dragProps, getControls, cardStyle) => {
@@ -890,7 +960,7 @@ export default function App() {
     return (
       <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
         {getControls(currentLId)}
-        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-600'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-white/5 border-white/10 text-gray-500')}`}>{isUnavailable ? 'UTILGJENGELIG' : (isOn ? 'PÅ' : 'AV')}</div></div>
+        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-600'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-white/5 border-white/10 text-gray-500')}`}>{isUnavailable ? 'UTILGJENGELIG' : (isOn ? 'PÅ' : 'AV')}</div></div>
         <div className="mt-2 font-sans"><p className="text-gray-500 text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || 'Lys')}</p><div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-normal tracking-tighter text-white italic leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
       </div>
     );
@@ -999,8 +1069,8 @@ export default function App() {
         <div className="flex justify-between items-start font-sans">
           <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-green-500/10 text-green-400'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
           <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white/[0.02] border-white/[0.05] text-gray-500"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
-            {isHtg && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">Varmar</span></div>}
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white/[0.02] border-white/[0.05] text-gray-500"><MapPin className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
+            {isHtg && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">Varmar</span></div>}
           </div>
         </div>
         <div className="flex justify-between items-end"><div><div className="flex items-center gap-2 mb-1"><p className="text-gray-500 text-xs tracking-widest uppercase font-bold opacity-60">{name}</p></div><div className="flex items-baseline gap-2 leading-none font-sans"><span className={`text-4xl font-normal tracking-tighter italic leading-none ${isCharging ? 'text-green-400' : 'text-white'}`}>{String(getS(LEAF_ID))}%</span>{isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}<span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 bg-white/[0.02] px-3 py-1.5 rounded-xl border border-white/5 font-sans"><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
@@ -1044,6 +1114,36 @@ export default function App() {
              </button>
            </div>
         </div>
+      </div>
+    );
+  };
+
+  const renderShieldCard = (dragProps, getControls, cardStyle) => {
+    const entity = entities[SHIELD_ID];
+    const state = entity?.state;
+    const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
+    const isOn = state !== 'off' && !isUnavailable;
+    const isPlaying = state === 'playing';
+    const appName = getA(SHIELD_ID, 'app_name');
+    const title = getA(SHIELD_ID, 'media_title');
+    const picture = entity?.attributes?.entity_picture ? `${config.url.replace(/\/$/, '')}${entity.attributes.entity_picture}` : null;
+
+    return (
+      <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+        {getControls('shield')}
+        
+        <div className="flex justify-between items-start relative z-10">
+           <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-500'}`}><Gamepad2 className="w-5 h-5" /></div>
+           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-white/5 border-white/10 text-gray-500'}`}><span className="text-[10px] font-bold uppercase tracking-widest">{isOn ? (isPlaying ? 'SPELAR' : 'PÅ') : 'AV'}</span></div>
+        </div>
+
+        <div className="relative z-10">
+           <p className="text-gray-500 text-[10px] tracking-[0.2em] uppercase mb-1 font-bold opacity-60 leading-none">Shield TV</p>
+           <h3 className="text-xl font-light text-white leading-tight line-clamp-2 mb-1">{appName || (isOn ? 'Heimskjerm' : 'Avslått')}</h3>
+           {title && <p className="text-xs text-gray-400 line-clamp-1 font-medium">{title}</p>}
+        </div>
+
+        {picture && (<div className="absolute inset-0 z-0 opacity-40"><img src={picture} alt="" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/50 to-transparent" /></div>)}
       </div>
     );
   };
@@ -1181,7 +1281,7 @@ export default function App() {
         >
           {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
-        {!['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky'].includes(cardId) && (
+        {!['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky', 'shield'].includes(cardId) && (
           <button 
             onClick={(e) => { e.stopPropagation(); removeCard(cardId); }}
             className="p-2 rounded-full transition-colors hover:bg-red-500/80 text-white border border-white/20 shadow-lg bg-black/60"
@@ -1203,6 +1303,10 @@ export default function App() {
         return renderAutomationCard(cardId, dragProps, getControls, cardStyle);
     }
 
+    if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+        return renderEntityCard(cardId, dragProps, getControls, cardStyle);
+    }
+
     switch(cardId) {
       case 'power':
         return renderPowerCard(dragProps, getControls, cardStyle);
@@ -1212,6 +1316,8 @@ export default function App() {
         return renderClimateCard(dragProps, getControls, cardStyle);
       case 'rocky':
         return renderRockyCard(dragProps, getControls, cardStyle);
+      case 'shield':
+        return renderShieldCard(dragProps, getControls, cardStyle);
       case 'media_player':
         const mediaEntities = MEDIA_PLAYER_IDS.map(id => entities[id]).filter(Boolean);
         const activeMediaEntities = mediaEntities.filter(isMediaActive);
@@ -1527,10 +1633,10 @@ export default function App() {
                   if (currentSettings?.hidden) setActivePage('home');
                 }
                 setEditMode(!editMode);
-              }} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}><Edit2 className="w-4 h-4" /> {editMode ? 'Ferdig' : 'Rediger'}</button>
+              }} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}>{editMode ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />} {editMode ? 'Ferdig' : 'Rediger'}</button>
               {!editMode && <button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>}
             </div>
-            <button onClick={() => setShowMenu(!showMenu)} className="p-2 rounded-full hover:bg-white/5 transition-colors"><Settings className={`w-5 h-5 text-gray-500 hover:text-white transition-transform duration-500 ${showMenu ? 'rotate-90 text-white' : ''}`} /></button>
+            <button onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-white/5 transition-colors group ${showMenu ? 'bg-white/10' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-white' : 'text-gray-500 group-hover:text-white'}`} /></button>
             <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: connected ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: connected ? '#22c55e' : '#ef4444', boxShadow: connected ? '0_0_10px_rgba(34,197,94,0.6)' : 'none', animation: connected ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}} /></div>
           </div>
         </div>
@@ -1730,6 +1836,42 @@ export default function App() {
           </div>
         )}
 
+        {showShieldModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowShieldModal(false)}>
+            <div className="border w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative font-sans bg-[#0d0d0f] border-white/10" onClick={(e) => e.stopPropagation()}>
+               <button onClick={() => setShowShieldModal(false)} className="absolute top-6 right-6 p-4 rounded-full bg-white/5 hover:bg-white/10"><X className="w-6 h-6" /></button>
+               
+               <div className="flex flex-col items-center gap-8 mt-4">
+                  <div className="flex items-center gap-4 mb-4">
+                     <div className={`p-4 rounded-2xl ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-500'}`}><Gamepad2 className="w-8 h-8" /></div>
+                     <div><h3 className="text-2xl font-light text-white uppercase italic tracking-widest">Shield</h3><p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{entities[SHIELD_ID]?.state === 'playing' ? 'Spelar no' : (entities[SHIELD_ID]?.state !== 'off' ? 'På' : 'Avslått')}</p></div>
+                  </div>
+
+                  <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/5 relative">
+                     <div className="grid grid-cols-3 gap-4 items-center justify-items-center">
+                        <div />
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_UP" })} className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all"><ChevronUp className="w-6 h-6" /></button>
+                        <div />
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_LEFT" })} className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all"><ChevronLeft className="w-6 h-6" /></button>
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_CENTER" })} className="p-6 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all border border-white/10"><div className="w-4 h-4 rounded-full bg-white/50" /></button>
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_RIGHT" })} className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all"><ChevronRight className="w-6 h-6" /></button>
+                        <div />
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_DOWN" })} className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all"><ChevronDown className="w-6 h-6" /></button>
+                        <div />
+                     </div>
+                  </div>
+
+                  <div className="flex gap-6 w-full justify-center"><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "BACK" })} className="flex-1 py-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">Tilbake</button><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "HOME" })} className="flex-1 py-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">Heim</button></div>
+
+                  <div className="flex gap-4 w-full pt-4 border-t border-white/5">
+                     <button onClick={() => callService("media_player", "toggle", { entity_id: SHIELD_ID })} className={`flex-1 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'}`}><Power className="w-4 h-4" /> {entities[SHIELD_ID]?.state !== 'off' ? 'Slå av' : 'Slå på'}</button>
+                     <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "MEDIA_PLAY_PAUSE" })} className="flex-1 py-4 rounded-2xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2"><Play className="w-4 h-4" /> Spel/Pause</button>
+                  </div>
+               </div>
+            </div>
+          </div>
+        )}
+
         {showRockyModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowRockyModal(false)}>
             <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
@@ -1877,6 +2019,13 @@ export default function App() {
               <button onClick={() => setShowAddCardModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
               <h3 className="text-3xl font-light mb-8 text-white text-center uppercase tracking-widest italic">Legg til kort</h3>
               
+              {addCardTargetPage === 'settings' && (
+                <div className="mb-6 relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input type="text" placeholder="Søk etter entitet..." className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-white outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} autoFocus />
+                </div>
+              )}
+              
               <div className="mb-8">
                 <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">Legg til på side</p>
                 <div className="flex gap-2">
@@ -1892,31 +2041,54 @@ export default function App() {
 
               <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 <div>
-                  <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : 'Tilgjengelege lys'}</p>
+                  <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : (addCardTargetPage === 'settings' ? 'Alle entitetar' : 'Tilgjengelege lys')}</p>
                   <div className="space-y-3">
                     {Object.keys(entities)
                       .filter(id => {
                         if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
+                        if (addCardTargetPage === 'settings') {
+                           const isNotAdded = !(pagesConfig.settings || []).includes(id);
+                           if (!isNotAdded) return false;
+                           if (searchTerm) {
+                             const lowerTerm = searchTerm.toLowerCase();
+                             const name = entities[id].attributes?.friendly_name || id;
+                             return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
+                           }
+                           return true;
+                        }
                         return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                       })
                       .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                      .slice(0, addCardTargetPage === 'settings' ? 100 : undefined) // Limit settings list for performance
                       .map(id => (
-                        <button key={id} onClick={() => { const newConfig = { ...pagesConfig }; if(addCardTargetPage === 'automations') newConfig.automations[0].cards.push(id); else newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), id]; setPagesConfig(newConfig); localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig)); setShowAddCardModal(false); }} className="w-full text-left p-4 rounded-2xl border transition-all hover:bg-white/5 flex items-center justify-between group" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}>
-                          <span className="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">{entities[id].attributes?.friendly_name || id}</span>
-                          <div className="p-2 rounded-full bg-white/5 group-hover:bg-green-500/20 transition-colors">
-                            <Plus className="w-4 h-4 text-gray-500 group-hover:text-green-400" />
+                        <button key={id} onClick={() => {
+                            if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
+                            else setSelectedEntities(prev => [...prev, id]);
+                        }} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${selectedEntities.includes(id) ? 'bg-blue-500/20 border-blue-500/50' : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/5'}`}>
+                          <span className={`text-sm font-bold transition-colors ${selectedEntities.includes(id) ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                          <div className={`p-2 rounded-full transition-colors ${selectedEntities.includes(id) ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                            {selectedEntities.includes(id) ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                           </div>
                         </button>
                       ))}
                       {Object.keys(entities).filter(id => {
                         if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
+                        if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
                         return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                       }).length === 0 && (
-                        <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'automations' ? 'automasjonar' : 'lys'} å legge til</p>
+                        <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'automations' ? 'automasjonar' : (addCardTargetPage === 'settings' ? 'entitetar' : 'lys')} å legge til</p>
                       )}
                   </div>
                 </div>
               </div>
+              
+              {selectedEntities.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-white/10">
+                    <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                        <Plus className="w-5 h-5" /> Legg til {selectedEntities.length} {selectedEntities.length === 1 ? 'kort' : 'kort'}
+                    </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1999,7 +2171,7 @@ export default function App() {
                 background: rgba(255, 255, 255, 0.25);
               }
             `}</style>
-            <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowEditCardModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
               <h3 className="text-3xl font-light mb-8 text-white text-center uppercase tracking-widest italic">Rediger kort</h3>
               
@@ -2026,6 +2198,26 @@ export default function App() {
                       );
                     })}
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between px-6 py-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis status</span>
+                    <button 
+                      onClick={() => saveCardSetting(showEditCardModal, 'showStatus', !(cardSettings[showEditCardModal]?.showStatus !== false))}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.showStatus !== false ? 'bg-blue-500' : 'bg-white/10'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${cardSettings[showEditCardModal]?.showStatus !== false ? 'left-7' : 'left-1'}`} />
+                    </button>
+                </div>
+
+                <div className="flex items-center justify-between px-6 py-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis sist endra</span>
+                    <button 
+                      onClick={() => saveCardSetting(showEditCardModal, 'showLastChanged', !(cardSettings[showEditCardModal]?.showLastChanged !== false))}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.showLastChanged !== false ? 'bg-blue-500' : 'bg-white/10'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${cardSettings[showEditCardModal]?.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
+                    </button>
                 </div>
               </div>
             </div>
