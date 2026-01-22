@@ -13,37 +13,66 @@ Midttunet is a feature-rich home automation dashboard that integrates with smart
 - 🚪 Door sensors and presence detection
 - 📊 Data visualization and analytics
 
-## 🚀 Quick Start
-# 🏠 Midttunet Dashboard
-
-A modern, responsive React dashboard application for home automation and energy monitoring, built with Vite and styled for optimal performance.
-
-## 📋 Overview
-
-Midttunet is a feature-rich home automation dashboard that integrates with smart home systems to provide real-time monitoring and control of:
-
-- 🌡️ Climate and heating systems
-- ⚡ Energy consumption and pricing
-- 🚗 Vehicle status and battery levels
-- 💡 Lighting control
-- 🚪 Door sensors and presence detection
-- 📊 Data visualization and analytics
-
-## 📝 Summary
+## � Summary
 
 Midttunet consolidates household telemetry and control into a single, easy-to-use dashboard. It aggregates data from smart meters, thermostats, EV chargers, and sensors to visualize consumption trends, optimize energy usage based on price signals, and provide quick access to device controls. The UI focuses on clarity and real-time updates so users can make informed decisions about energy and comfort.
 
-## 🖼️ Screenshots
+## 🖼️ Screenshots & Features
 
-Below are example screenshots from the app. Add more images to the `public/` folder and reference them here to include them in the README.
+### Main Dashboard
+The central hub displays all key information at a glance with real-time updates.
 
-![Dashboard screenshot](public/nissan-leaf.png)
+![Main Dashboard](public/1.Main.jpg)
 
-_Add additional screenshots by copying files into `public/` and inserting Markdown image links:_
+### Climate Control
+Monitor and control your heating systems and heat pump settings for optimal comfort.
 
-```markdown
-![Another view](public/your-screenshot.png)
-```
+![Heating Systems](public/2.lights.jpg)
+
+### Automation Center
+View and manage automated routines and schedules for your smart home devices.
+
+![Automations](public/3.automations.jpg)
+
+### Settings & Configuration
+Customize dashboard preferences and device integrations to suit your needs.
+
+![Settings](public/4.settings.jpg)
+
+### Edit Dashboard
+Personalize your dashboard layout by arranging and editing dashboard elements.
+
+![Edit Dashboard](public/5.edit_main.jpg)
+
+### Heat Pump Control
+Detailed heat pump monitoring with popup interface for advanced settings.
+
+![Heat Pump Popup](public/6.Popu_heatpump.jpg)
+
+### Lighting Control
+Quick access lighting controls with preset options and brightness adjustment.
+
+![Lights Popup](public/7.Popup_lights.jpg)
+
+### Audio System Integration
+Control your Sonos audio system directly from the dashboard.
+
+![Sonos Control](public/8.Popup_Sonos.jpg)
+
+### Grid View
+Alternative grid-based view layout for organizing smart home devices.
+
+![Grid View](public/9.GridView.jpg)
+
+### Add New Devices
+Simple interface to add new entities and devices to your smart home system.
+
+![Add Entity](public/10.Add_entity.jpg)
+
+### Add Lighting Zones
+Configure and add new lighting zones for advanced lighting automation.
+
+![Add Lighting](public/11.Add_light.jpg)
 
 ## 🚀 Quick Start
 
