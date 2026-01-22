@@ -1,10 +1,10 @@
-# 🏠 Midttunet Dashboard
+# 🏠 NoName Dashboard
 
 A modern, responsive React dashboard application for home automation and energy monitoring, built with Vite and styled for optimal performance.
 
 ## 📋 Overview
 
-Midttunet is a feature-rich home automation dashboard that integrates with smart home systems to provide real-time monitoring and control of:
+NoName is a feature-rich home automation dashboard that integrates with smart home systems to provide real-time monitoring and control of:
 
 - 🌡️ Climate and heating systems
 - ⚡ Energy consumption and pricing
@@ -15,7 +15,7 @@ Midttunet is a feature-rich home automation dashboard that integrates with smart
 
 ## � Summary
 
-Midttunet consolidates household telemetry and control into a single, easy-to-use dashboard. It aggregates data from smart meters, thermostats, EV chargers, and sensors to visualize consumption trends, optimize energy usage based on price signals, and provide quick access to device controls. The UI focuses on clarity and real-time updates so users can make informed decisions about energy and comfort.
+NoName consolidates household telemetry and control into a single, easy-to-use dashboard. It aggregates data from smart meters, thermostats, EV chargers, and sensors to visualize consumption trends, optimize energy usage based on price signals, and provide quick access to device controls. The UI focuses on clarity and real-time updates so users can make informed decisions about energy and comfort.
 
 ## 🖼️ Screenshots & Features
 
@@ -84,8 +84,8 @@ Configure and add new lighting zones for advanced lighting automation.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/oyvhov/midttunet.git
-cd midttunet
+git clone https://github.com/oyvhov/NoName.git
+cd NoName
 ```
 
 2. Install dependencies:
@@ -129,7 +129,7 @@ This will build and run the application in a Docker container.
 ## 📁 Project Structure
 
 ```
-midttunet/
+NoName/
 ├── src/
 │   ├── App.jsx          # Main application component
 │   ├── main.jsx         # React entry point
