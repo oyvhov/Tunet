@@ -537,8 +537,10 @@ export default function App() {
   
   const [config, setConfig] = useState({
     url: typeof window !== 'undefined' ? localStorage.getItem('ha_url') || '' : '',
+    fallbackUrl: typeof window !== 'undefined' ? localStorage.getItem('ha_fallback_url') || '' : '',
     token: typeof window !== 'undefined' ? localStorage.getItem('ha_token') || '' : ''
   });
+  const [activeUrl, setActiveUrl] = useState(config.url);
 
   useEffect(() => {
     const savedConfig = localStorage.getItem('midttunet_pages_config');
@@ -655,14 +657,32 @@ export default function App() {
         connection = await createConnection({ auth });
         setConn(connection);
         setConnected(true);
+        setActiveUrl(config.url);
         localStorage.setItem('ha_url', config.url);
         localStorage.setItem('ha_token', config.token);
+        if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl);
         subscribeEntities(connection, (updatedEntities) => setEntities(updatedEntities));
-      } catch (err) { setConnected(false); }
+      } catch (err) { 
+        if (config.fallbackUrl) {
+          try {
+            const auth = createLongLivedTokenAuth(config.fallbackUrl, config.token);
+            connection = await createConnection({ auth });
+            setConn(connection);
+            setConnected(true);
+            setActiveUrl(config.fallbackUrl);
+            localStorage.setItem('ha_url', config.url);
+            localStorage.setItem('ha_token', config.token);
+            localStorage.setItem('ha_fallback_url', config.fallbackUrl);
+            subscribeEntities(connection, (updatedEntities) => setEntities(updatedEntities));
+            return;
+          } catch (e) {}
+        }
+        setConnected(false); 
+      }
     }
     connect();
     return () => { if (connection) connection.close(); };
-  }, [libLoaded, config.url, config.token]);
+  }, [libLoaded, config.url, config.fallbackUrl, config.token]);
 
   useEffect(() => {
     if (!conn) return;
@@ -788,7 +808,7 @@ export default function App() {
     const isHome = entity?.state === 'home';
     const statusText = getS(id);
     const name = id === OYVIND_ID ? "Øyvind" : "Tuva";
-    const baseUrl = config.url.replace(/\/$/, '');
+    const baseUrl = activeUrl.replace(/\/$/, '');
     const picture = entity?.attributes?.entity_picture ? `${baseUrl}${entity.attributes.entity_picture}` : null;
 
     return (
@@ -972,13 +992,13 @@ export default function App() {
     const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : Workflow;
     
     return (
-      <div key={cardId} {...dragProps} className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isOn ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.6)', borderColor: isOn ? 'rgba(59, 130, 246, 0.3)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)')}} onClick={(e) => { if(!editMode) callService("automation", "toggle", { entity_id: cardId }); }}>
+      <div key={cardId} {...dragProps} className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isOn ? 'rgba(59, 130, 246, 0.03)' : 'rgba(15, 23, 42, 0.6)', borderColor: isOn ? 'rgba(59, 130, 246, 0.15)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)')}} onClick={(e) => { if(!editMode) callService("automation", "toggle", { entity_id: cardId }); }}>
         {getControls(cardId)}
         <div className="flex items-center gap-4">
-          <div className={`p-2.5 rounded-xl transition-all ${isOn ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-gray-500'}`}><Icon className="w-4 h-4" /></div>
+          <div className={`p-2.5 rounded-xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-gray-500'}`}><Icon className="w-4 h-4" /></div>
           <div className="flex flex-col"><div className="flex items-center gap-2"><span className="text-sm font-bold text-white leading-tight">{friendlyName}</span></div><span className="text-[10px] uppercase tracking-widest font-bold text-gray-500 mt-0.5">{isOn ? 'Aktiv' : 'Avslått'}</span></div>
         </div>
-        <div className={`w-10 h-6 rounded-full relative transition-all ${isOn ? 'bg-blue-500' : 'bg-white/10'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`} /></div>
+        <div className={`w-10 h-6 rounded-full relative transition-all ${isOn ? 'bg-blue-500/80' : 'bg-white/10'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`} /></div>
       </div>
     );
   };
@@ -986,10 +1006,28 @@ export default function App() {
   const renderPowerCard = (dragProps, getControls, cardStyle) => {
     const name = customNames['power'] || 'Straumpris';
     const Icon = customIcons['power'] ? ICON_MAP[customIcons['power']] : Zap;
+    
+    const currentPrice = parseFloat(entities[TIBBER_ID]?.state || 0);
+    let levelText = 'NORMAL';
+    let levelColor = 'text-blue-400';
+
+    if (!isNaN(currentPrice) && priceStats.avg > 0) {
+        if (currentPrice >= priceStats.avg * 1.4) {
+            levelText = 'VELDIG HØG';
+            levelColor = 'text-red-400';
+        } else if (currentPrice >= priceStats.avg * 1.15) {
+            levelText = 'HØG';
+            levelColor = 'text-orange-400';
+        } else if (currentPrice <= priceStats.avg * 0.9) {
+            levelText = 'LAV';
+            levelColor = 'text-green-400';
+        }
+    }
+
     return (
       <div key="power" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowPowerModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
         {getControls('power')}
-        <div className="flex justify-between items-start"><div className="p-3 rounded-2xl text-amber-400 group-hover:scale-110 transition-transform duration-500" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)'}}><Icon className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><span className="text-xs tracking-widest text-gray-400 uppercase font-bold">Billig</span></div></div>
+        <div className="flex justify-between items-start"><div className="p-3 rounded-2xl text-amber-400 group-hover:scale-110 transition-transform duration-500" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)'}}><Icon className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><span className={`text-xs tracking-widest uppercase font-bold ${levelColor}`}>{levelText}</span></div></div>
         <div className="mt-2"><div className="flex items-center gap-2"><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{name}</p></div><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-white leading-none">{String(getS(TIBBER_ID))}</span><span className="text-gray-600 font-medium text-base ml-1">øre</span></div><SparkLine data={fullPriceData} currentIndex={currentPriceIndex} /></div>
       </div>
     );
@@ -1126,7 +1164,7 @@ export default function App() {
     const isPlaying = state === 'playing';
     const appName = getA(SHIELD_ID, 'app_name');
     const title = getA(SHIELD_ID, 'media_title');
-    const picture = entity?.attributes?.entity_picture ? `${config.url.replace(/\/$/, '')}${entity.attributes.entity_picture}` : null;
+    const picture = entity?.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${entity.attributes.entity_picture}` : null;
 
     return (
       <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
@@ -1155,6 +1193,9 @@ export default function App() {
 
     const handleTouchStart = (e) => {
       if (!editMode) return;
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      if (e.cancelable) e.preventDefault();
+      if (navigator.vibrate) navigator.vibrate(50);
       dragSourceRef.current = { index, cardId, colIndex };
       setDraggingId(cardId);
     };
@@ -1168,8 +1209,26 @@ export default function App() {
       if (!editMode || !dragSourceRef.current) return;
       
       const touch = e.changedTouches[0];
-      const target = document.elementFromPoint(touch.clientX, touch.clientY);
-      const cardElement = target?.closest('[data-card-id]');
+      const x = touch.clientX;
+      const y = touch.clientY;
+      
+      // Magnetic drop: Find nearest card if dropped in gap
+      const cards = Array.from(document.querySelectorAll('[data-card-id]'));
+      let cardElement = cards.find(card => {
+          const rect = card.getBoundingClientRect();
+          return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+      });
+
+      if (!cardElement) {
+        let minDist = Infinity;
+        cards.forEach(card => {
+            const rect = card.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dist = Math.hypot(x - cx, y - cy);
+            if (dist < 150 && dist < minDist) { minDist = dist; cardElement = card; }
+        });
+      }
       
       if (cardElement) {
           const targetId = cardElement.getAttribute('data-card-id');
@@ -1197,6 +1256,7 @@ export default function App() {
 
               setPagesConfig(newConfig);
               localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+              if (navigator.vibrate) navigator.vibrate(20);
           }
       }
       
@@ -1248,15 +1308,20 @@ export default function App() {
     };
 
     const cardStyle = {
-      backgroundColor: 'rgba(15, 23, 42, 0.6)',
-      borderColor: isDragging ? 'rgba(59, 130, 246, 0.8)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)'),
+      backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'rgba(15, 23, 42, 0.6)',
+      borderColor: isDragging ? 'rgba(96, 165, 250, 1)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)'),
       backdropFilter: 'blur(16px)',
       borderStyle: editMode ? 'dashed' : 'solid',
       borderWidth: editMode ? '2px' : '1px',
       opacity: isHidden && editMode ? 0.4 : 1,
       filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
-      transform: isDragging ? 'scale(0.98)' : 'none',
+      transform: isDragging ? 'scale(1.08)' : 'none',
+      boxShadow: isDragging ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : 'none',
       touchAction: editMode ? 'none' : 'auto',
+      userSelect: editMode ? 'none' : 'auto',
+      WebkitUserSelect: editMode ? 'none' : 'auto',
+      zIndex: isDragging ? 50 : 1,
+      pointerEvents: isDragging ? 'none' : 'auto',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     };
 
@@ -1357,7 +1422,7 @@ export default function App() {
 
         const mpApp = getA(mpId, 'app_name');
         const mpPicture = currentMp.attributes?.entity_picture 
-          ? `${config.url.replace(/\/$/, '')}${currentMp.attributes.entity_picture}`
+          ? `${activeUrl.replace(/\/$/, '')}${currentMp.attributes.entity_picture}`
           : null;
         
         const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
@@ -1449,7 +1514,7 @@ export default function App() {
         const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
         const sArtist = isTV ? 'Stue' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
         const sPicture = !isTV && currentSonos.attributes?.entity_picture 
-          ? `${config.url.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}`
+          ? `${activeUrl.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}`
           : null;
         const sName = customNames[sId] || getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '');
 
@@ -1554,7 +1619,7 @@ export default function App() {
 
     const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
     const sArtist = isTV ? 'Stue' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
-    const sPicture = !isTV && currentSonos.attributes?.entity_picture ? `${config.url.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}` : null;
+    const sPicture = !isTV && currentSonos.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}` : null;
     const isPlaying = currentSonos.state === 'playing';
 
     return (
@@ -1680,7 +1745,7 @@ export default function App() {
         )}
         
         {showConfigModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}}><div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}}><button onClick={() => setShowConfigModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button><h3 className="text-3xl font-light mb-10 text-white text-center uppercase tracking-widest italic">System</h3><div className="space-y-8 font-sans"><div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4">HA URL</label><input type="text" className="w-full px-6 py-5 text-white rounded-2xl border" style={{backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.1)'}} value={config.url} onChange={(e) => setConfig({...config, url: e.target.value})} /></div><div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4">Token</label><textarea className="w-full px-6 py-5 text-white h-48 rounded-2xl border" style={{backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.1)'}} value={config.token} onChange={(e) => setConfig({...config, token: e.target.value})} /></div></div><button onClick={() => setShowConfigModal(false)} className="w-full mt-10 py-5 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>Lagre og kople til</button></div></div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}}><div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}}><button onClick={() => setShowConfigModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button><h3 className="text-3xl font-light mb-10 text-white text-center uppercase tracking-widest italic">System</h3><div className="space-y-8 font-sans"><div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4 flex items-center gap-2">HA URL (Primær){connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label><input type="text" className="w-full px-6 py-5 text-white rounded-2xl border" style={{backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.1)'}} value={config.url} onChange={(e) => setConfig({...config, url: e.target.value})} /></div><div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4 flex items-center gap-2">HA URL (Fallback/Lokal){connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label><input type="text" className="w-full px-6 py-5 text-white rounded-2xl border" style={{backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.1)'}} value={config.fallbackUrl} onChange={(e) => setConfig({...config, fallbackUrl: e.target.value})} placeholder="Valfritt" /></div><div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4">Token</label><textarea className="w-full px-6 py-5 text-white h-48 rounded-2xl border" style={{backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.1)'}} value={config.token} onChange={(e) => setConfig({...config, token: e.target.value})} /></div></div><button onClick={() => setShowConfigModal(false)} className="w-full mt-10 py-5 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>Lagre og kople til</button></div></div>
         )}
 
         {showPowerModal && (
@@ -2015,7 +2080,7 @@ export default function App() {
                 background: rgba(255, 255, 255, 0.25);
               }
             `}</style>
-            <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowAddCardModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
               <h3 className="text-3xl font-light mb-8 text-white text-center uppercase tracking-widest italic">Legg til kort</h3>
               
@@ -2028,14 +2093,21 @@ export default function App() {
               
               <div className="mb-8">
                 <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">Legg til på side</p>
-                <div className="flex gap-2">
-                  {pages.map(p => (
+                <div className="flex flex-wrap gap-2">
+                  {pages.map(p => {
+                    const settings = pageSettings[p.id] || {};
+                    const label = settings.label || p.label;
+                    const Icon = settings.icon ? ICON_MAP[settings.icon] : p.icon;
+                    return (
                     <button 
                       key={p.id} 
                       onClick={() => setAddCardTargetPage(p.id)}
-                      className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border transition-all ${addCardTargetPage === p.id ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`}
-                    >{p.label}</button>
-                  ))}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardTargetPage === p.id ? 'bg-white/10 text-white border-white/10' : 'bg-white/5 text-gray-400 border-transparent hover:bg-white/10 hover:text-white'}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {label}
+                    </button>
+                  );})}
                 </div>
               </div>
 
@@ -2065,8 +2137,11 @@ export default function App() {
                             if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
                             else setSelectedEntities(prev => [...prev, id]);
                         }} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${selectedEntities.includes(id) ? 'bg-blue-500/20 border-blue-500/50' : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/5'}`}>
-                          <span className={`text-sm font-bold transition-colors ${selectedEntities.includes(id) ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{entities[id].attributes?.friendly_name || id}</span>
-                          <div className={`p-2 rounded-full transition-colors ${selectedEntities.includes(id) ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                          <div className="flex flex-col overflow-hidden mr-4">
+                            <span className={`text-sm font-bold transition-colors truncate ${selectedEntities.includes(id) ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                            <span className={`text-[10px] font-mono truncate ${selectedEntities.includes(id) ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
+                          </div>
+                          <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${selectedEntities.includes(id) ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                             {selectedEntities.includes(id) ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                           </div>
                         </button>
@@ -2230,7 +2305,7 @@ export default function App() {
               <button onClick={() => setShowCameraModal(false)} className="absolute top-6 right-6 p-4 rounded-full z-10" style={{backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)'}}><X className="w-6 h-6 text-white" /></button>
               <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden bg-black relative">
                  {entities[CAMERA_PORTEN_ID] ? (
-                   <img src={`${config.url.replace(/\/$/, '')}${entities[CAMERA_PORTEN_ID].attributes.entity_picture}`} alt="Kamera Porten" className="w-full h-full object-cover" />
+                   <img src={`${activeUrl.replace(/\/$/, '')}${entities[CAMERA_PORTEN_ID].attributes.entity_picture}`} alt="Kamera Porten" className="w-full h-full object-cover" />
                  ) : (
                    <div className="w-full h-full flex items-center justify-center text-gray-500">Kamera ikkje tilgjengeleg</div>
                  )}
@@ -2291,7 +2366,7 @@ export default function App() {
                 if (isTV) mpSeries = 'Stue';
 
                 const mpApp = getA(mpId, 'app_name');
-                const mpPicture = !isTV && currentMp.attributes?.entity_picture ? `${config.url.replace(/\/$/, '')}${currentMp.attributes.entity_picture}` : null;
+                const mpPicture = !isTV && currentMp.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${currentMp.attributes.entity_picture}` : null;
                 const duration = getA(mpId, 'media_duration');
                 const position = getA(mpId, 'media_position');
                 const serverInfo = getServerInfo(mpId);
@@ -2399,7 +2474,7 @@ export default function App() {
                       <div className="flex flex-col gap-4">
                         {listPlayers.length === 0 && <p className="text-gray-600 italic text-sm">Ingen spelarar funnen</p>}
                         {listPlayers.map((p, idx) => {
-                           const pPic = p.attributes?.entity_picture ? `${config.url.replace(/\/$/, '')}${p.attributes.entity_picture}` : null;
+                           const pPic = p.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${p.attributes.entity_picture}` : null;
                            const isSelected = p.entity_id === mpId;
                            const isMember = groupMembers.includes(p.entity_id);
                            const isSelf = p.entity_id === mpId;
