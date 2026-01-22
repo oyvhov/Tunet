@@ -86,8 +86,6 @@ import {
   Star,
   AlertTriangle,
   Warehouse,
-  Maximize,
-  Minimize,
   Columns,
   Bot,
   Shuffle,
@@ -521,11 +519,12 @@ export default function App() {
   const [hiddenCards, setHiddenCards] = useState([]);
   const [activeMediaId, setActiveMediaId] = useState(null);
   const [costHistory, setCostHistory] = useState([]);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [gridColumns, setGridColumns] = useState(3);
   const [headerScale, setHeaderScale] = useState(1);
   const dragSourceRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [pageSettings, setPageSettings] = useState({});
+  const [editingPage, setEditingPage] = useState(null);
   
   const [config, setConfig] = useState({
     url: typeof window !== 'undefined' ? localStorage.getItem('ha_url') || '' : '',
@@ -586,6 +585,9 @@ export default function App() {
 
     const savedScale = localStorage.getItem('midttunet_header_scale');
     if (savedScale) setHeaderScale(parseFloat(savedScale));
+
+    const savedPageSettings = localStorage.getItem('midttunet_page_settings');
+    if (savedPageSettings) { try { setPageSettings(JSON.parse(savedPageSettings)); } catch (e) {} }
   }, []);
 
   useEffect(() => {
@@ -598,6 +600,15 @@ export default function App() {
     }
     link.type = 'image/svg+xml';
     link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>";
+
+    // Disable zoom
+    let meta = document.querySelector("meta[name='viewport']");
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'viewport';
+      document.head.appendChild(meta);
+    }
+    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
   }, []);
 
   useEffect(() => {
@@ -632,18 +643,6 @@ export default function App() {
     connect();
     return () => { if (connection) connection.close(); };
   }, [libLoaded, config.url, config.token]);
-
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((e) => console.error(e));
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    }
-  };
 
   useEffect(() => {
     if (!conn) return;
@@ -729,7 +728,7 @@ export default function App() {
     const state = entities[id]?.state;
     if (!state || state === "unavailable" || state === "unknown") return fallback;
     if (state === "home") return "Heime";
-    if (state === "not_home") return "Ikkje heime";
+    if (state === "not_home") return "Borte";
     return state.charAt(0).toUpperCase() + state.slice(1);
   };
   const getA = (id, attr, fallback = null) => entities[id]?.attributes?.[attr] ?? fallback;
@@ -879,21 +878,20 @@ export default function App() {
     else if (currentLId === LIGHT_STUDIO) DefaultIcon = LampDesk;
     
     const LightIcon = customIcons[currentLId] ? ICON_MAP[customIcons[currentLId]] : DefaultIcon;
-    const isOn = entities[currentLId]?.state === "on";
+    const entity = entities[currentLId];
+    const state = entity?.state;
+    const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
+    const isOn = state === "on";
     const br = getA(currentLId, "brightness") || 0;
     const subEntities = getA(currentLId, "entity_id", []);
     const activeCount = subEntities.filter(id => entities[id]?.state === 'on').length;
     const name = customNames[currentLId] || getA(currentLId, "friendly_name");
 
     return (
-      <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+      <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
         {getControls(currentLId)}
-        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)', color: isOn ? '#fbbf24' : '#4b5563'}}><LightIcon className="w-5 h-5" style={{strokeWidth: 1.5, fill: isOn ? 'rgba(251, 191, 36, 0.2)' : 'none'}} /></button><div className="text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full border transition-all" style={{backgroundColor: isOn ? 'rgba(217, 119, 6, 0.1)' : 'rgba(255,255,255,0.05)', borderColor: isOn ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.1)', color: isOn ? '#f59e0b' : '#9ca3af'}}>{subEntities.length > 0 ? `${activeCount}/${subEntities.length}` : (isOn ? 'PÅ' : 'AV')}</div></div>
-        <div className="mt-2">
-          <div className="flex justify-between items-end mb-0.5"><div className="flex items-center gap-2"><p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{String(name)}</p></div></div>
-          <div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-medium text-white leading-none">{isOn ? Math.round((br / 255) * 100) : "0"}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div>
-          <M3Slider min={0} max={255} step={1} value={br} disabled={!isOn} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
-        </div>
+        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-600'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-white/5 border-white/10 text-gray-500')}`}>{isUnavailable ? 'UTILGJENGELIG' : (isOn ? 'PÅ' : 'AV')}</div></div>
+        <div className="mt-2 font-sans"><p className="text-gray-500 text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || 'Lys')}</p><div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-normal tracking-tighter text-white italic leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
       </div>
     );
   };
@@ -1500,25 +1498,37 @@ export default function App() {
         
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto">
-            {pages.map(page => (
+            {pages.map(page => {
+              const settings = pageSettings[page.id] || {};
+              const label = settings.label || page.label;
+              const isHidden = settings.hidden;
+              const Icon = settings.icon ? ICON_MAP[settings.icon] : page.icon;
+              if (!editMode && isHidden) return null;
+              return (
               <button
                 key={page.id}
-                onClick={() => setActivePage(page.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-white/10 text-white border-white/10' : 'bg-white/5 text-gray-400 border-transparent hover:bg-white/10 hover:text-white'}`}
+                onClick={() => editMode ? setEditingPage(page.id) : setActivePage(page.id)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-white/10 text-white border-white/10' : 'bg-white/5 text-gray-400 border-transparent hover:bg-white/10 hover:text-white'} ${editMode && isHidden ? 'opacity-50 border-dashed border-gray-500' : ''}`}
               >
-                <page.icon className="w-4 h-4" />
-                {page.label}
+                <Icon className="w-4 h-4" />
+                {label}
+                {editMode && <Settings className="w-3 h-3 ml-1 opacity-50" />}
               </button>
-            ))}
+            )})}
           </div>
           <div className="flex items-center gap-6 flex-shrink-0 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto justify-end">
             {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> Legg til</button>}
             {editMode && <button onClick={() => { const newCols = gridColumns === 3 ? 4 : 3; setGridColumns(newCols); localStorage.setItem('midttunet_grid_columns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {gridColumns === 3 ? '4' : '3'} Kolonner</button>}
             
             <div className={`flex items-center gap-6 transition-all duration-500 ease-in-out overflow-hidden ${showMenu ? 'max-w-[500px] opacity-100' : 'max-w-0 opacity-0'}`}>
-              <button onClick={() => setEditMode(!editMode)} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}><Edit2 className="w-4 h-4" /> {editMode ? 'Ferdig' : 'Rediger'}</button>
-              <button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>
-              <button onClick={toggleFullScreen} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap">{isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />} Fullskjerm</button>
+              <button onClick={() => {
+                if (editMode) {
+                  const currentSettings = pageSettings[activePage];
+                  if (currentSettings?.hidden) setActivePage('home');
+                }
+                setEditMode(!editMode);
+              }} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}><Edit2 className="w-4 h-4" /> {editMode ? 'Ferdig' : 'Rediger'}</button>
+              {!editMode && <button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>}
             </div>
             <button onClick={() => setShowMenu(!showMenu)} className="p-2 rounded-full hover:bg-white/5 transition-colors"><Settings className={`w-5 h-5 text-gray-500 hover:text-white transition-transform duration-500 ${showMenu ? 'rotate-90 text-white' : ''}`} /></button>
             <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: connected ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: connected ? '#22c55e' : '#ef4444', boxShadow: connected ? '0_0_10px_rgba(34,197,94,0.6)' : 'none', animation: connected ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}} /></div>
@@ -1652,25 +1662,31 @@ export default function App() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLightModal(null)}>
             <div className="border w-full max-w-xl rounded-3xl md:rounded-[2.5rem] p-6 font-sans relative max-h-[80vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
               
+              {(() => {
+                const entity = entities[showLightModal];
+                const isUnavailable = entity?.state === 'unavailable' || entity?.state === 'unknown' || !entity;
+                
+                return (
+                  <>
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-5">
-                  <div className="p-4 rounded-2xl" style={{backgroundColor: 'rgba(217, 119, 6, 0.15)', color: '#fbbf24'}}>
+                  <div className="p-4 rounded-2xl" style={{backgroundColor: isUnavailable ? 'rgba(239, 68, 68, 0.1)' : 'rgba(217, 119, 6, 0.15)', color: isUnavailable ? '#ef4444' : '#fbbf24'}}>
                     {(() => {
                       let Icon = Lightbulb;
                       if (showLightModal === LIGHT_KJOKKEN) Icon = Utensils;
                       if (showLightModal === LIGHT_STOVA) Icon = Sofa;
                       if (showLightModal === LIGHT_STUDIO) Icon = LampDesk;
-                      return <Icon className="w-8 h-8" />;
+                      return isUnavailable ? <AlertTriangle className="w-8 h-8" /> : <Icon className="w-8 h-8" />;
                     })()}
                   </div>
                   <div>
                     <h3 className="text-2xl font-light tracking-tight text-white uppercase italic leading-none">{String(getA(showLightModal, "friendly_name", "Lys"))}</h3>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1.5 opacity-60">Lysstyring</p>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1.5 opacity-60">{isUnavailable ? 'Utilgjengelig' : 'Lysstyring'}</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
-                   <button onClick={() => callService("light", "toggle", { entity_id: showLightModal })} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border" style={{backgroundColor: entities[showLightModal]?.state === 'on' ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)', borderColor: entities[showLightModal]?.state === 'on' ? 'rgba(217, 119, 6, 0.3)' : 'rgba(255,255,255,0.1)', color: entities[showLightModal]?.state === 'on' ? '#fbbf24' : '#9ca3af'}}>
-                      <Zap className="w-5 h-5" fill={entities[showLightModal]?.state === 'on' ? "currentColor" : "none"} />
+                   <button onClick={() => !isUnavailable && callService("light", "toggle", { entity_id: showLightModal })} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border" style={{backgroundColor: isUnavailable ? 'rgba(255,255,255,0.05)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)'), borderColor: isUnavailable ? 'rgba(255,255,255,0.1)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.3)' : 'rgba(255,255,255,0.1)'), color: isUnavailable ? '#6b7280' : (entity?.state === 'on' ? '#fbbf24' : '#9ca3af'), cursor: isUnavailable ? 'not-allowed' : 'pointer'}}>
+                      {isUnavailable ? <AlertTriangle className="w-5 h-5" /> : <Zap className="w-5 h-5" fill={entity?.state === 'on' ? "currentColor" : "none"} />}
                    </button>
                    <button onClick={() => setShowLightModal(null)} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border hover:bg-white/10" style={{backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#9ca3af'}}><X className="w-5 h-5" /></button>
                 </div>
@@ -1680,30 +1696,36 @@ export default function App() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-end px-1">
                     <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Hovudstyrke</p>
-                    <p className="text-sm font-bold text-gray-300">{entities[showLightModal]?.state === 'on' ? Math.round(((getA(showLightModal, "brightness") || 0) / 255) * 100) : 0}%</p>
+                    <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : (entity?.state === 'on' ? Math.round(((getA(showLightModal, "brightness") || 0) / 255) * 100) : 0)}%</p>
                   </div>
-                  <M3Slider min={0} max={255} step={1} value={getA(showLightModal, "brightness") || 0} disabled={entities[showLightModal]?.state !== 'on'} onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+                  <M3Slider min={0} max={255} step={1} value={getA(showLightModal, "brightness") || 0} disabled={entity?.state !== 'on' || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
                 </div>
 
                 {getA(showLightModal, "entity_id", []).length > 0 && (
                   <div className="space-y-4 pt-6 border-t" style={{borderColor: 'rgba(255,255,255,0.1)'}}>
                     <p className="text-xs text-gray-400 uppercase font-bold ml-1 mb-2" style={{letterSpacing: '0.2em'}}>Lamper i rommet</p>
                     <div className="grid grid-cols-1 gap-3">
-                      {getA(showLightModal, "entity_id", []).map(cid => (
-                        <div key={cid} className="p-4 rounded-2xl border flex items-center gap-4 transition-all" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}>
-                          <span className="text-xs font-bold uppercase tracking-widest text-gray-300 w-1/3 truncate">{entities[cid]?.attributes?.friendly_name || cid.split('.')[1].replace(/_/g, ' ')}</span>
+                      {getA(showLightModal, "entity_id", []).map(cid => {
+                        const subEnt = entities[cid];
+                        const subUnavail = subEnt?.state === 'unavailable' || subEnt?.state === 'unknown' || !subEnt;
+                        return (
+                        <div key={cid} className={`p-4 rounded-2xl border flex items-center gap-4 transition-all ${subUnavail ? 'opacity-50' : ''}`} style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                          <span className="text-xs font-bold uppercase tracking-widest text-gray-300 w-1/3 truncate">{subEnt?.attributes?.friendly_name || cid.split('.')[1].replace(/_/g, ' ')}</span>
                           <div className="flex-grow">
-                            <M3Slider min={0} max={255} step={1} value={entities[cid]?.attributes?.brightness || 0} disabled={entities[cid]?.state !== 'on'} onChange={(e) => callService("light", "turn_on", { entity_id: cid, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+                            <M3Slider min={0} max={255} step={1} value={subEnt?.attributes?.brightness || 0} disabled={subEnt?.state !== 'on' || subUnavail} onChange={(e) => callService("light", "turn_on", { entity_id: cid, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
                           </div>
-                          <button onClick={() => callService("light", "toggle", { entity_id: cid })} className="w-10 h-6 rounded-full relative transition-all flex-shrink-0" style={{backgroundColor: entities[cid]?.state === 'on' ? 'rgba(217, 119, 6, 0.4)' : 'rgba(255,255,255,0.1)'}}>
-                            <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all" style={{left: entities[cid]?.state === 'on' ? 'calc(100% - 4px - 16px)' : '4px', backgroundColor: entities[cid]?.state === 'on' ? '#fbbf24' : '#9ca3af'}} />
+                          <button onClick={() => !subUnavail && callService("light", "toggle", { entity_id: cid })} className="w-10 h-6 rounded-full relative transition-all flex-shrink-0" style={{backgroundColor: subUnavail ? 'rgba(255,255,255,0.05)' : (subEnt?.state === 'on' ? 'rgba(217, 119, 6, 0.4)' : 'rgba(255,255,255,0.1)'), cursor: subUnavail ? 'not-allowed' : 'pointer'}}>
+                            <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all" style={{left: subEnt?.state === 'on' ? 'calc(100% - 4px - 16px)' : '4px', backgroundColor: subUnavail ? '#6b7280' : (subEnt?.state === 'on' ? '#fbbf24' : '#9ca3af')}} />
                           </button>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   </div>
                 )}
               </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -1895,6 +1917,67 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {editingPage && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setEditingPage(null)}>
+            <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+               <button onClick={() => setEditingPage(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
+               <h3 className="text-2xl font-light mb-6 text-white uppercase tracking-widest italic">Rediger side</h3>
+               
+               <div className="space-y-8">
+                 <div className="space-y-2">
+                   <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
+                   <input 
+                     type="text" 
+                     className="w-full px-6 py-4 text-white rounded-2xl border bg-black/40 border-white/10 focus:border-blue-500/50 outline-none transition-colors"
+                     value={pageSettings[editingPage]?.label || pages.find(p => p.id === editingPage)?.label}
+                     onChange={(e) => {
+                        const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], label: e.target.value } };
+                        setPageSettings(newSettings);
+                        localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+                     }}
+                   />
+                 </div>
+                 
+                 <div className="space-y-2">
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
+                  <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                    <button onClick={() => {
+                        const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: null } };
+                        setPageSettings(newSettings);
+                        localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+                    }} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!pageSettings[editingPage]?.icon ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                    {Object.keys(ICON_MAP).map(iconName => {
+                      const Icon = ICON_MAP[iconName];
+                      const isSelected = pageSettings[editingPage]?.icon === iconName;
+                      return (
+                        <button key={iconName} onClick={() => {
+                            const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: iconName } };
+                            setPageSettings(newSettings);
+                            localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+                        }} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`} title={iconName}><Icon className="w-5 h-5" /></button>
+                      );
+                    })}
+                  </div>
+                </div>
+                 
+                 <div className="flex items-center justify-between px-6 py-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Skjul side</span>
+                    <button 
+                      onClick={() => {
+                        const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], hidden: !pageSettings[editingPage]?.hidden } };
+                        setPageSettings(newSettings);
+                        localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+                      }}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${pageSettings[editingPage]?.hidden ? 'bg-blue-500' : 'bg-white/10'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${pageSettings[editingPage]?.hidden ? 'left-7' : 'left-1'}`} />
+                    </button>
+                 </div>
+               </div>
             </div>
           </div>
         )}
