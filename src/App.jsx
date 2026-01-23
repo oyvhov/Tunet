@@ -299,6 +299,7 @@ export default function App() {
   const [tempHistory, setTempHistory] = useState([]);
   const [weatherForecast, setWeatherForecast] = useState([]);
   const [gridColumns, setGridColumns] = useState(3);
+  const [gridColCount, setGridColCount] = useState(1);
   const [headerScale, setHeaderScale] = useState(1);
   const dragSourceRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
@@ -771,6 +772,19 @@ export default function App() {
     if (showAddCardModal) setAddCardTargetPage(activePage);
   }, [showAddCardModal, activePage]);
 
+  useEffect(() => {
+    const updateGridCols = () => {
+      const width = window.innerWidth;
+      if (width >= 1024) setGridColCount(gridColumns === 4 ? 4 : 3);
+      else if (width >= 768) setGridColCount(2);
+      else setGridColCount(1);
+    };
+
+    updateGridCols();
+    window.addEventListener('resize', updateGridCols);
+    return () => window.removeEventListener('resize', updateGridCols);
+  }, [gridColumns]);
+
   const toggleCardVisibility = (cardId) => {
     const newHidden = hiddenCards.includes(cardId) 
       ? hiddenCards.filter(id => id !== cardId)
@@ -862,7 +876,7 @@ export default function App() {
     else if (domain === 'switch' || domain === 'input_boolean') Icon = Power;
     
     return (
-      <div key={cardId} {...dragProps} className={`p-5 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[140px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+      <div key={cardId} {...dragProps} className={`p-5 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
         {getControls(cardId)}
         <div className="flex justify-between items-start">
             <div className="p-2.5 rounded-xl text-[var(--text-secondary)]" style={{backgroundColor: 'var(--glass-bg)'}}><Icon className="w-5 h-5" /></div>
@@ -897,8 +911,26 @@ export default function App() {
     const activeCount = subEntities.filter(id => entities[id]?.state === 'on').length;
     const name = customNames[currentLId] || getA(currentLId, "friendly_name");
 
+    const sizeSetting = (cardSettings[currentLId]?.size) || (cardSettings[cardId]?.size);
+    const isSmall = sizeSetting === 'small';
+
+    if (isSmall) {
+      return (
+        <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`py-4 pl-7 pr-4 rounded-3xl flex items-center gap-3 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+          {getControls(currentLId)}
+          <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 flex-shrink-0 ${isOn ? 'bg-amber-500/30 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button>
+          <div className="flex-1 flex flex-col justify-center gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] truncate">{String(name || 'Lys')}</p>
+            <div className="mt-1">
+              <M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+      <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
         {getControls(currentLId)}
         <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}>{isUnavailable ? 'UTILGJENGELIG' : (isOn ? 'PÅ' : 'AV')}</div></div>
         <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || 'Lys')}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
@@ -931,7 +963,7 @@ export default function App() {
     const Icon = customIcons['car'] ? ICON_MAP[customIcons['car']] : Car;
     
     return (
-      <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'var(--card-border)')}}>
+      <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'var(--card-border)')}}>
         {getControls('car')}
         <div className="flex justify-between items-start font-sans">
           <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-green-500/10 text-green-400'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
@@ -957,7 +989,7 @@ export default function App() {
     const Icon = customIcons['rocky'] ? ICON_MAP[customIcons['rocky']] : Bot;
     
     return (
-      <div key="rocky" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isCleaning ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
+      <div key="rocky" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isCleaning ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
         {getControls('rocky')}
         <div className="flex justify-between items-start font-sans">
            <div className={`p-3 rounded-2xl transition-all ${isCleaning ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
@@ -996,7 +1028,7 @@ export default function App() {
     const picture = entity?.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${entity.attributes.entity_picture}` : null;
 
     return (
-      <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
+      <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
         {getControls('shield')}
         
         <div className="flex justify-between items-start relative z-10">
@@ -1044,7 +1076,7 @@ export default function App() {
     const CustomIcon = customIcons['weather'] ? ICON_MAP[customIcons['weather']] : null;
     
     return (
-      <div key="weather" {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+      <div key="weather" {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
         {getControls('weather')}
         <div className="flex justify-between items-start relative z-10">
           <div className="w-24 h-24 -ml-4 -mt-4 filter drop-shadow-lg transition-transform duration-500 group-hover:scale-110">
@@ -1065,6 +1097,80 @@ export default function App() {
       </div>
     );
   };
+
+  const resolveLightId = (cardId) => {
+    if (cardId === 'light_kjokken') return LIGHT_KJOKKEN;
+    if (cardId === 'light_stova') return LIGHT_STOVA;
+    if (cardId === 'light_studio') return LIGHT_STUDIO;
+    return cardId;
+  };
+
+  const getCardGridSpan = (cardId) => {
+    if (cardId.startsWith('automation.')) return 1;
+
+    if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
+      const resolvedId = resolveLightId(cardId);
+      const sizeSetting = (cardSettings[resolvedId]?.size) || (cardSettings[cardId]?.size);
+      return sizeSetting === 'small' ? 1 : 2;
+    }
+
+    if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+      return 1;
+    }
+
+    return 2;
+  };
+
+  const buildGridLayout = (ids, columns) => {
+    if (!columns || columns < 1) return {};
+    const occupancy = [];
+    const positions = {};
+
+    const ensureRow = (row) => {
+      if (!occupancy[row]) occupancy[row] = Array(columns).fill(false);
+    };
+
+    const canPlace = (row, col, span) => {
+      for (let r = row; r < row + span; r += 1) {
+        ensureRow(r);
+        if (occupancy[r][col]) return false;
+      }
+      return true;
+    };
+
+    const place = (row, col, span) => {
+      for (let r = row; r < row + span; r += 1) {
+        ensureRow(r);
+        occupancy[r][col] = true;
+      }
+    };
+
+    ids.forEach((id) => {
+      const span = getCardGridSpan(id);
+      let placed = false;
+      let row = 0;
+
+      while (!placed) {
+        ensureRow(row);
+        for (let col = 0; col < columns; col += 1) {
+          if (canPlace(row, col, span)) {
+            place(row, col, span);
+            positions[id] = { row: row + 1, col: col + 1, span };
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) row += 1;
+      }
+    });
+
+    return positions;
+  };
+
+  const gridLayout = useMemo(() => {
+    const ids = pagesConfig[activePage] || [];
+    return buildGridLayout(ids, gridColCount);
+  }, [pagesConfig, activePage, gridColCount, cardSettings, hiddenCards]);
 
   const renderCard = (cardId, index, colIndex) => {
     const isHidden = hiddenCards.includes(cardId);
@@ -1365,9 +1471,9 @@ export default function App() {
 
         const indicator = (!editMode && playingCount >= 2) ? (<button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-xs font-bold">{playingCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
 
-        if (isIdle) {
+            if (isIdle) {
           return (
-            <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+            <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
               {getControls(mpId)}
               {indicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
@@ -1382,7 +1488,7 @@ export default function App() {
         }
 
         return (
-          <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: mpPicture ? 'white' : 'var(--text-primary)'}}>
+          <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: mpPicture ? 'white' : 'var(--text-primary)'}}>
             {getControls(mpId)}
             {indicator}
             
@@ -1454,7 +1560,7 @@ export default function App() {
 
         if (!sIsActive) {
           return (
-            <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+            <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
               {getControls(sId)}
               {sIndicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}><Speaker className="w-8 h-8 text-[var(--text-secondary)]" /></div>
@@ -1464,7 +1570,7 @@ export default function App() {
         }
 
         return (
-          <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: sPicture ? 'white' : 'var(--text-primary)'}}>
+          <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: sPicture ? 'white' : 'var(--text-primary)'}}>
             {getControls(sId)}
             {sIndicator}
             {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.7]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
@@ -1694,8 +1800,27 @@ export default function App() {
             ))}
           </div>
         ) : (
-          <div key={activePage} className={`grid grid-cols-1 md:grid-cols-2 ${gridColumns === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-8 font-sans fade-in-anim`}>
-            {(pagesConfig[activePage] || []).map((id, index) => renderCard(id, index))}
+          <div key={activePage} className="grid gap-8 font-sans fade-in-anim items-start" style={{ gridAutoRows: '100px', gridTemplateColumns: `repeat(${gridColCount}, minmax(0, 1fr))` }}>
+            {(pagesConfig[activePage] || []).map((id, index) => {
+              const placement = gridLayout[id];
+
+              if (!editMode && hiddenCards.includes(id)) return null;
+              if (!placement) return null;
+
+              return (
+                <div
+                  key={`${id}-${index}`}
+                  className="h-full"
+                  style={{
+                    gridRowStart: placement.row,
+                    gridColumnStart: placement.col,
+                    gridRowEnd: `span ${placement.span}`
+                  }}
+                >
+                  {renderCard(id, index)}
+                </div>
+              );
+            })}
           </div>
         )}
         
@@ -2318,6 +2443,18 @@ export default function App() {
                     })}
                   </div>
                 </div>
+
+                {(showEditCardModal && (showEditCardModal.startsWith('light_') || showEditCardModal.startsWith('light.'))) && (
+                  <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Liten versjon</span>
+                    <button
+                      onClick={() => saveCardSetting(showEditCardModal, 'size', (cardSettings[showEditCardModal]?.size === 'small') ? 'large' : 'small')}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.size === 'small' ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${cardSettings[showEditCardModal]?.size === 'small' ? 'left-7' : 'left-1'}`} />
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis status</span>
