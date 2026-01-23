@@ -1750,6 +1750,13 @@ export default function App() {
           .fade-in-anim {
             animation: fadeIn 0.4s ease-out forwards;
           }
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+          .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
         `}</style>
         <header className="relative mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10 leading-none">
           <div className="absolute top-0 right-0 hidden md:block">
@@ -1795,30 +1802,42 @@ export default function App() {
               </button>
             )})}
           </div>
-          <div className="flex items-center gap-6 flex-shrink-0 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto justify-end">
+          <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 w-full md:w-auto justify-end">
             {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> Legg til</button>}
             {editMode && <button onClick={() => { const newCols = gridColumns === 3 ? 4 : 3; setGridColumns(newCols); localStorage.setItem('midttunet_grid_columns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {gridColumns === 3 ? '4' : '3'} Kolonner</button>}
-            
-            <div className={`flex items-center gap-6 transition-all duration-500 ease-in-out overflow-hidden ${showMenu ? 'max-w-[500px] opacity-100' : 'max-w-0 opacity-0'}`}>
+            {editMode && (
               <button onClick={() => {
-                if (editMode) {
-                  const currentSettings = pageSettings[activePage];
-                  if (currentSettings?.hidden) setActivePage('home');
-                }
-                setEditMode(!editMode);
-              }} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{editMode ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />} {editMode ? 'Ferdig' : 'Rediger'}</button>
-              {!editMode && <button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>}
+                const currentSettings = pageSettings[activePage];
+                if (currentSettings?.hidden) setActivePage('home');
+                setEditMode(false);
+              }} className="group flex items-center gap-2 text-xs font-bold uppercase text-green-400 hover:text-white transition-all whitespace-nowrap">
+                <Check className="w-4 h-4" /> Ferdig
+              </button>
+            )}
+            
+            <div className={`absolute right-0 top-12 z-50 flex flex-col items-stretch gap-4 p-4 rounded-2xl bg-[var(--glass-bg)] backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] transition-all duration-500 ease-in-out ${showMenu ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+              {!editMode && (
+                <button onClick={() => {
+                  setEditMode(true);
+                  setShowMenu(false);
+                }} className="group flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap">
+                  <Edit2 className="w-4 h-4" /> Rediger
+                </button>
+              )}
+              {!editMode && <button onClick={() => { setShowConfigModal(true); setShowMenu(false); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>}
+              {!editMode && (
+                <button onClick={() => { toggleTheme(); setShowMenu(false); }} className="flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap" title="Bytt tema">
+                  {currentTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  Tema
+                </button>
+              )}
+              {!editMode && (
+                <button onClick={() => { toggleFullscreen(); setShowMenu(false); }} className="flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap" title="Fullskjerm">
+                  {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                  Fullskjerm
+                </button>
+              )}
             </div>
-            {!editMode && (
-              <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group" title="Bytt tema">
-                {currentTheme === 'dark' ? <Sun className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" /> : <Moon className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />}
-              </button>
-            )}
-            {!editMode && (
-              <button onClick={toggleFullscreen} className="p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group" title="Fullskjerm">
-                {isFullscreen ? <Minimize className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" /> : <Maximize className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />}
-              </button>
-            )}
             <button onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group ${showMenu ? 'bg-[var(--glass-bg)]' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`} /></button>
             {!connected && <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: '#ef4444'}} /></div>}
           </div>
