@@ -46,13 +46,10 @@ export default function ClimateCard({
         </div>
       </div>
       <div className="absolute top-7 right-7 flex flex-col items-end">
-        <span className="text-xs uppercase font-bold opacity-60 mb-1" style={{ letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
-          Inne
-        </span>
-        <div className="flex items-baseline gap-0.5">
-          <span className="text-2xl font-medium text-[var(--text-primary)] leading-none">{String(currentTemp)}</span>
-          <span className="text-sm text-[var(--text-secondary)] font-medium">°</span>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+          <span className="text-xs tracking-widest uppercase font-bold">Inne</span>
         </div>
+        <span className="text-4xl font-medium text-[var(--text-primary)] leading-none mt-2">{String(currentTemp)}°</span>
       </div>
       <div className="mt-2">
         <div className="flex items-center gap-2 mb-3">

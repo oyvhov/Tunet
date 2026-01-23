@@ -909,6 +909,7 @@ export default function App() {
     const br = getA(currentLId, "brightness") || 0;
     const subEntities = getA(currentLId, "entity_id", []);
     const activeCount = subEntities.filter(id => entities[id]?.state === 'on').length;
+    const totalCount = subEntities.length;
     const name = customNames[currentLId] || getA(currentLId, "friendly_name");
 
     const sizeSetting = (cardSettings[currentLId]?.size) || (cardSettings[cardId]?.size);
@@ -916,13 +917,24 @@ export default function App() {
 
     if (isSmall) {
       return (
-        <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`py-4 pl-7 pr-4 rounded-3xl flex items-center gap-3 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+        <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
           {getControls(currentLId)}
-          <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 flex-shrink-0 ${isOn ? 'bg-amber-500/30 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button>
-          <div className="flex-1 flex flex-col justify-center gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] truncate">{String(name || 'Lys')}</p>
-            <div className="mt-1">
-              <M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+          
+          <button 
+            onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} 
+            className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`} 
+            disabled={isUnavailable}
+          >
+            <LightIcon className={`w-6 h-6 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} />
+          </button>
+
+          <div className="flex-1 flex flex-col gap-3 min-w-0 justify-center h-full pt-1">
+            <div className="flex justify-between items-baseline pr-1">
+               <p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase font-bold opacity-60 truncate leading-none">{String(name || 'Lys')}</p>
+               <span className={`text-[10px] uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round((br / 255) * 100)}%` : 'AV'}</span>
+            </div>
+            <div className="w-full">
+               <M3Slider variant="thin" min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
             </div>
           </div>
         </div>
@@ -932,7 +944,7 @@ export default function App() {
     return (
       <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
         {getControls(currentLId)}
-        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}>{isUnavailable ? 'UTILGJENGELIG' : (isOn ? 'PÅ' : 'AV')}</div></div>
+        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}><span className="text-xs tracking-widest uppercase font-bold">{isUnavailable ? 'N/A' : (totalCount > 0 ? (activeCount > 0 ? `${activeCount}/${totalCount}` : 'AV') : (isOn ? 'PÅ' : 'AV'))}</span></div></div>
         <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || 'Lys')}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
       </div>
     );
@@ -1087,8 +1099,10 @@ export default function App() {
             )}
           </div>
           <div className="flex flex-col items-end">
-             <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{!isNaN(currentTemp) ? currentTemp : '--'}°</span>
-             <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1">{info.label}</span>
+             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+               <span className="text-xs tracking-widest uppercase font-bold">{info.label}</span>
+             </div>
+             <span className="text-4xl font-medium text-[var(--text-primary)] leading-none mt-2">{!isNaN(currentTemp) ? currentTemp : '--'}°</span>
           </div>
         </div>
         <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
