@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { 
   Zap, 
   Wind, 
@@ -97,13 +97,26 @@ import {
   Volume1,
   Link,
   Unlink,
-  Search
+  Search,
+  Palette,
+  Maximize,
+  Minimize,
+  Download,
+  ArrowRight
 } from 'lucide-react';
+import M3Slider from './components/M3Slider';
+import ModernDropdown from './components/ModernDropdown';
+import InteractivePowerGraph from './components/InteractivePowerGraph';
+import SparkLine from './components/SparkLine';
+import WeatherGraph from './components/WeatherGraph';
+import { themes } from './themes';
 
 const CLIMATE_ID = "climate.varmepumpe";
 const NORDPOOL_ID = "sensor.nordpool_kwh_no3_nok_1_10_025";
 const TIBBER_ID = "sensor.tibber_strom_pris";
 const LEAF_ID = "sensor.leaf_battery_level";
+const WEATHER_ENTITY = "weather.hjem";
+const OUTSIDE_TEMP_ID = "sensor.utetemperatur_midttunet_temperature";
 const OYVIND_ID = "person.oyvind";
 const TUVA_ID = "person.tuva";
 const LIGHT_KJOKKEN = "light.kjokken";
@@ -182,7 +195,7 @@ const ICON_MAP = {
   Home, Bed, Bath, ShowerHead, Droplets, Sun, Moon, Cloud, CloudRain, Power,
   Wifi, Lock, Unlock, Shield, Video, Camera, Bell, Volume2, Mic, Radio, Warehouse,
   Gamepad2, Laptop, Smartphone, Watch, Coffee, Beer, Armchair, ShoppingCart, Bot,
-  Calendar, Activity, Heart, Star, AlertTriangle
+  Calendar, Activity, Heart, Star, AlertTriangle, Cloud
 };
 
 const formatRelativeTime = (timestamp) => {
@@ -208,6 +221,14 @@ const formatDuration = (seconds) => {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
+const parseMarkdown = (text) => {
+  if (!text) return "";
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">$1</a>')
+    .replace(/\n/g, '<br />');
 };
 
 const EmbyLogo = (props) => (
@@ -236,82 +257,6 @@ const getServerInfo = (id) => {
   return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
 };
 
-const M3Slider = ({ min, max, step, value, onChange, colorClass = "bg-blue-500", disabled = false, variant = "default" }) => {
-  const [internalValue, setInternalValue] = useState(value);
-  const [isInteracting, setIsInteracting] = useState(false);
-  const timeoutRef = useRef(null);
-
-  useEffect(() => {
-    if (!isInteracting) setInternalValue(value);
-  }, [value, isInteracting]);
-
-  useEffect(() => {
-    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
-  }, []);
-
-  const percentage = max === min ? 0 : Math.min(100, Math.max(0, ((internalValue - min) / (max - min)) * 100));
-  
-  if (variant === "thin") {
-    return (
-      <div className={`relative w-full h-4 flex items-center group cursor-pointer ${disabled ? 'opacity-30 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
-        <div className="absolute w-full h-1 bg-white/10 rounded-full overflow-hidden group-hover:h-1.5 transition-all duration-300">
-          <div className={`h-full ${colorClass} transition-all duration-150 ease-out`} style={{ width: `${percentage}%` }} />
-        </div>
-        <input
-          type="range" min={min} max={max} step={step} value={internalValue} disabled={disabled}
-          onMouseDown={() => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); }}
-          onTouchStart={() => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); }}
-          onMouseUp={() => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); }}
-          onTouchEnd={() => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); }}
-          onChange={(e) => { setInternalValue(parseFloat(e.target.value)); onChange(e); }}
-          className="absolute w-full h-full opacity-0 cursor-pointer z-20"
-        />
-        <div className="absolute w-3 h-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10" style={{ left: `calc(${percentage}% - 6px)` }} />
-      </div>
-    );
-  }
-
-  if (variant === "volume") {
-    return (
-      <div className={`relative w-full h-10 flex items-center group ${disabled ? 'opacity-30 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
-        <div className="absolute w-full h-full bg-white/5 rounded-2xl overflow-hidden border border-white/5">
-          <div className={`h-full transition-all duration-150 ease-out ${colorClass} opacity-90`} style={{ width: `${percentage}%` }} />
-        </div>
-        <input
-          type="range" min={min} max={max} step={step} value={internalValue} disabled={disabled}
-          onMouseDown={() => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); }}
-          onTouchStart={() => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); }}
-          onMouseUp={() => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); }}
-          onTouchEnd={() => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); }}
-          onChange={(e) => { setInternalValue(parseFloat(e.target.value)); onChange(e); }}
-          className="absolute w-full h-full opacity-0 cursor-pointer z-10"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className={`relative w-full h-10 flex items-center group ${disabled ? 'opacity-30 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
-      <div className="absolute w-full h-5 rounded-full overflow-hidden border" style={{backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.05)'}}>
-        <div 
-          className={`h-full transition-all duration-150 ease-out ${colorClass}`}
-          style={{ width: `${percentage}%`, boxShadow: '0_0_15px_rgba(0,0,0,0.2)' }}
-        />
-      </div>
-      <input
-        type="range" min={min} max={max} step={step} value={internalValue} disabled={disabled}
-        onMouseDown={() => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); }}
-        onTouchStart={() => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); }}
-        onMouseUp={() => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); }}
-        onTouchEnd={() => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); }}
-        onChange={(e) => { setInternalValue(parseFloat(e.target.value)); onChange(e); }}
-        className="absolute w-full h-10 opacity-0 cursor-pointer z-10"
-      />
-      <div className="absolute w-1 h-8 bg-white rounded-full transition-transform duration-200 pointer-events-none group-active:scale-y-110" style={{ left: `calc(${percentage}% - 2px)`, boxShadow: '0_0_15px_rgba(255,255,255,0.4)' }} />
-    </div>
-  );
-};
-
 const BarGraph = ({ data }) => {
   if (!data || data.length === 0) return null;
   
@@ -334,99 +279,6 @@ const BarGraph = ({ data }) => {
            )}
         </div>
       ))}
-    </div>
-  );
-};
-
-const SparkLine = ({ data, currentIndex }) => {
-  if (!data || data.length === 0) return null;
-  const values = data.map(d => d.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const width = 300;
-  const height = 40;
-  const points = values.map((v, i) => ({
-    x: (i / (values.length - 1)) * width,
-    y: height - ((v - min) / range) * height
-  }));
-  const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
-  const areaData = `${pathData} L ${width},${height} L 0,${height} Z`;
-  const currentPoint = points[currentIndex] || points[0];
-
-  const getDotColor = (val) => {
-    const t = (val - min) / range;
-    if (t > 0.6) return "#ef4444";
-    if (t > 0.3) return "#eab308";
-    return "#3b82f6";
-  };
-
-  return (
-    <div className="mt-2 relative opacity-80 group-hover:opacity-100 transition-all duration-700">
-      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
-        <defs>
-          <linearGradient id="cardAreaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" /><stop offset="50%" stopColor="#eab308" stopOpacity="0.2" /><stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" /></linearGradient>
-          <linearGradient id="cardLineGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" /><stop offset="50%" stopColor="#eab308" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient>
-        </defs>
-        <path d={areaData} fill="url(#cardAreaGrad)" />
-        <path d={pathData} fill="none" stroke="url(#cardLineGrad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={currentPoint.x} cy={currentPoint.y} r="3" fill={getDotColor(values[currentIndex])} className="animate-pulse" />
-      </svg>
-    </div>
-  );
-};
-
-const InteractivePowerGraph = ({ data, currentIndex }) => {
-  const [hoverIndex, setHoverIndex] = useState(null);
-  const svgRef = useRef(null);
-  if (!data || data.length === 0) return null;
-  const values = data.map(d => d.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const width = 800;
-  const height = 300;
-  const points = values.map((v, i) => ({
-    x: (i / (values.length - 1)) * width,
-    y: height - ((v - min) / range) * height,
-    val: v,
-    time: new Date(data[i].start).toLocaleTimeString('nn-NO', { hour: '2-digit', minute: '2-digit' })
-  }));
-  const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
-  const areaData = `${pathData} L ${width},${height} L 0,${height} Z`;
-  const handleMouseMove = (e) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * width;
-    const idx = Math.round((x / width) * (values.length - 1));
-    if (idx >= 0 && idx < values.length) setHoverIndex(idx);
-  };
-  const activePoint = (hoverIndex !== null ? points[hoverIndex] : points[currentIndex]) || points[0];
-
-  const getDotColor = (val) => {
-    const t = (val - min) / range;
-    if (t > 0.6) return "#ef4444";
-    if (t > 0.3) return "#eab308";
-    return "#3b82f6";
-  };
-
-  return (
-    <div className="w-full">
-      <div className="flex justify-between items-end mb-4 px-2">
-        <div><p className="text-[10px] tracking-widest text-gray-500 uppercase font-bold mb-0.5">Tidspunkt</p><p className="text-xl font-medium text-white">{activePoint.time}</p></div>
-        <div className="text-right"><p className="text-[10px] tracking-widest uppercase font-bold mb-0.5" style={{color: getDotColor(activePoint.val)}}>Pris</p><p className="text-3xl font-light text-white italic leading-none tracking-tighter">{activePoint.val.toFixed(2)} <span className="text-sm text-gray-600 not-italic ml-1">øre</span></p></div>
-      </div>
-      <div className="relative h-60 w-full" onMouseLeave={() => setHoverIndex(null)}>
-        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-600 font-bold py-1 pointer-events-none"><span>{max.toFixed(0)}</span><span>{min.toFixed(0)}</span></div>
-        <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible cursor-crosshair" onMouseMove={handleMouseMove} onTouchMove={(e) => handleMouseMove(e.touches[0])}>
-          <defs>
-            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" /><stop offset="50%" stopColor="#eab308" stopOpacity="0.2" /><stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" /></linearGradient>
-            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" /><stop offset="50%" stopColor="#eab308" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient>
-          </defs>
-          <path d={areaData} fill="url(#areaGrad)" /><path d={pathData} fill="none" stroke="url(#lineGrad)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          {activePoint && <><line x1={activePoint.x} y1="0" x2={activePoint.x} y2={height} stroke={getDotColor(activePoint.val)} strokeWidth="1" opacity="0.3" /><circle cx={activePoint.x} cy={activePoint.y} r="4" fill={getDotColor(activePoint.val)} /><circle cx={activePoint.x} cy={activePoint.y} r="10" fill={getDotColor(activePoint.val)} fillOpacity="0.1" /></>}
-        </svg>
-      </div>
     </div>
   );
 };
@@ -459,37 +311,6 @@ const SWING_MAP = {
   'Swing': 'Sving'
 };
 
-const ModernDropdown = ({ label, icon: Icon, options, current, onChange, map }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
-  useEffect(() => {
-    const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false); };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const getLabel = (val) => (map && map[val]) ? map[val] : val;
-
-  return (
-    <div className="relative w-full" ref={dropdownRef}>
-      <p className="text-xs uppercase font-bold mb-3 ml-1" style={{color: 'rgba(107, 114, 128, 1)', letterSpacing: '0.2em'}}>{label}</p>
-      <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between px-6 py-4 rounded-2xl hover:transition-all group border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)'}}>
-        <div className="flex items-center gap-3"><Icon className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" /><span className="text-xs font-bold uppercase tracking-widest text-gray-300 italic">{String(getLabel(current) || "Ikkje valt")}</span></div>
-        <ChevronDown className={`w-3.5 h-3.5 text-gray-600 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-      {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-2 z-50 border rounded-2xl overflow-hidden shadow-2xl" style={{backgroundColor: '#121214', borderColor: 'rgba(255,255,255,0.1)'}}>
-          <div className="max-h-48 overflow-y-auto">
-            {(options || []).map((option) => (
-              <button key={option} onClick={() => { onChange(option); setIsOpen(false); }} className={`w-full text-left px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all ${current === option ? 'text-blue-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`} style={{backgroundColor: current === option ? 'rgba(59, 130, 246, 0.1)' : 'transparent'}}>{String(getLabel(option))}</button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 export default function App() {
   const [entities, setEntities] = useState({});
   const [connected, setConnected] = useState(false);
@@ -505,6 +326,9 @@ export default function App() {
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [expandedUpdate, setExpandedUpdate] = useState(null);
+  const [releaseNotes, setReleaseNotes] = useState({});
   const [showEditCardModal, setShowEditCardModal] = useState(null);
   const [customNames, setCustomNames] = useState({});
   const [customIcons, setCustomIcons] = useState({});
@@ -513,6 +337,7 @@ export default function App() {
   const [draggingId, setDraggingId] = useState(null);
   const [activePage, setActivePage] = useState('home');
   const [pagesConfig, setPagesConfig] = useState({
+    header: [OYVIND_ID, TUVA_ID],
     home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky', 'shield'],
     lights: ['light_kjokken', 'light_stova', 'light_studio'],
     automations: [
@@ -525,6 +350,8 @@ export default function App() {
   const [hiddenCards, setHiddenCards] = useState([]);
   const [activeMediaId, setActiveMediaId] = useState(null);
   const [costHistory, setCostHistory] = useState([]);
+  const [tempHistory, setTempHistory] = useState([]);
+  const [weatherForecast, setWeatherForecast] = useState([]);
   const [gridColumns, setGridColumns] = useState(3);
   const [headerScale, setHeaderScale] = useState(1);
   const dragSourceRef = useRef(null);
@@ -534,6 +361,14 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntities, setSelectedEntities] = useState([]);
   const [cardSettings, setCardSettings] = useState({});
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('midttunet_theme');
+      return (saved && themes[saved]) ? saved : 'dark';
+    }
+    return 'dark';
+  });
   
   const [config, setConfig] = useState({
     url: typeof window !== 'undefined' ? localStorage.getItem('ha_url') || '' : '',
@@ -542,11 +377,58 @@ export default function App() {
   });
   const [activeUrl, setActiveUrl] = useState(config.url);
 
+  const resetToHome = () => {
+    const isHome = activePage === 'home';
+    const noModals = !showPowerModal && !showClimateModal && !showLightModal && !showLeafModal && !showShieldModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !activeMediaModal && !editingPage && !editMode;
+    
+    if (!isHome || !noModals) {
+        setActivePage('home');
+        setShowPowerModal(false);
+        setShowClimateModal(false);
+        setShowLightModal(null);
+        setShowLeafModal(false);
+        setShowShieldModal(false);
+        setShowRockyModal(false);
+        setShowAddCardModal(false);
+        setShowCameraModal(false);
+        setShowConfigModal(false);
+        setShowUpdateModal(false);
+        setShowEditCardModal(null);
+        setActiveMediaModal(null);
+        setEditingPage(null);
+        setEditMode(false);
+        setExpandedUpdate(null);
+    }
+  };
+
+  const resetToHomeRef = useRef(resetToHome);
+  useEffect(() => {
+    resetToHomeRef.current = resetToHome;
+  });
+
+  useEffect(() => {
+    let inactivityTimer;
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        if (resetToHomeRef.current) resetToHomeRef.current();
+      }, 30000);
+    };
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => document.addEventListener(event, resetTimer));
+    resetTimer();
+    return () => {
+      clearTimeout(inactivityTimer);
+      events.forEach(event => document.removeEventListener(event, resetTimer));
+    };
+  }, []);
+
   useEffect(() => {
     const savedConfig = localStorage.getItem('midttunet_pages_config');
     if (savedConfig) { 
       try { 
         const parsed = JSON.parse(savedConfig);
+        let modified = false;
         // Migrate legacy flat automations array to columns
         if (parsed.automations && Array.isArray(parsed.automations) && (parsed.automations.length === 0 || typeof parsed.automations[0] === 'string')) {
             const flat = parsed.automations;
@@ -561,18 +443,34 @@ export default function App() {
                else cols[2].cards.push(id);
             });
             parsed.automations = cols;
+            modified = true;
         }
         
         // Ensure rocky is in home if missing
         if (parsed.home && !parsed.home.includes('rocky')) {
             parsed.home.push('rocky');
+            modified = true;
         }
         
         if (parsed.home && !parsed.home.includes('shield')) {
             parsed.home.push('shield');
+            modified = true;
+        }
+
+        if (parsed.home && !parsed.home.includes('weather')) {
+            parsed.home.splice(2, 0, 'weather'); // Insert weather card early
+            modified = true;
+        }
+        
+        if (!parsed.header) {
+            parsed.header = [OYVIND_ID, TUVA_ID];
+            modified = true;
         }
 
         setPagesConfig(parsed);
+        if (modified) {
+            localStorage.setItem('midttunet_pages_config', JSON.stringify(parsed));
+        }
       } catch (e) {} 
     } else {
       // Migration fallback
@@ -580,7 +478,7 @@ export default function App() {
       if (savedOrder) {
         try {
            const raw = JSON.parse(savedOrder).filter(id => id !== 'people');
-           const parsed = [...new Set([...raw, 'rocky', 'shield'])];
+           const parsed = [...new Set([...raw, 'rocky', 'shield', 'weather'])];
            setPagesConfig(prev => ({ ...prev, home: parsed }));
         } catch (e) {}
       }
@@ -588,6 +486,14 @@ export default function App() {
     
     const savedHidden = localStorage.getItem('midttunet_hidden_cards');
     if (savedHidden) { try { setHiddenCards(JSON.parse(savedHidden)); } catch (e) {} }
+    if (savedHidden) { 
+        try { 
+            const hidden = JSON.parse(savedHidden);
+            // Ensure weather is not hidden by default/accident
+            const filteredHidden = hidden.filter(id => id !== 'weather');
+            setHiddenCards(filteredHidden); 
+        } catch (e) {} 
+    }
 
     const savedNames = localStorage.getItem('midttunet_custom_names');
     if (savedNames) { try { setCustomNames(JSON.parse(savedNames)); } catch (e) {} }
@@ -639,6 +545,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const handleFullScreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, []);
+
+  useEffect(() => {
     if (window.HAWS) { setLibLoaded(true); return; }
     const script = document.createElement('script');
     script.src = "https://unpkg.com/home-assistant-js-websocket@latest/dist/haws.umd.js";
@@ -683,6 +595,41 @@ export default function App() {
     connect();
     return () => { if (connection) connection.close(); };
   }, [libLoaded, config.url, config.fallbackUrl, config.token]);
+
+  useLayoutEffect(() => {
+    const theme = themes[currentTheme].colors;
+    for (const key in theme) {
+      document.documentElement.style.setProperty(key, theme[key]);
+    }
+    document.documentElement.style.backgroundColor = theme['--bg-primary'];
+    document.body.style.backgroundColor = theme['--bg-primary'];
+    document.documentElement.style.colorScheme = currentTheme === 'dark' ? 'dark' : 'light';
+    
+    let metaThemeColor = document.querySelector("meta[name='theme-color']");
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.name = 'theme-color';
+      document.head.appendChild(metaThemeColor);
+    }
+    metaThemeColor.content = theme['--bg-primary'];
+    
+    localStorage.setItem('midttunet_theme', currentTheme);
+  }, [currentTheme]);
+
+  const toggleTheme = () => {
+    const themeKeys = Object.keys(themes);
+    const currentIndex = themeKeys.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % themeKeys.length;
+    setCurrentTheme(themeKeys[nextIndex]);
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    }
+  };
 
   useEffect(() => {
     if (!conn) return;
@@ -743,7 +690,88 @@ export default function App() {
       } catch (err) { console.error("History fetch error", err); }
     };
     fetchHistory();
+
+    const fetchTempHistory = async () => {
+        const end = new Date();
+        const start = new Date();
+        start.setHours(start.getHours() - 12);
+        try {
+            // Prøv statistikk først (raskare og meir stabilt for sensorar)
+            const res = await conn.sendMessagePromise({
+                type: 'recorder/statistics_during_period',
+                start_time: start.toISOString(),
+                end_time: end.toISOString(),
+                statistic_ids: [OUTSIDE_TEMP_ID],
+                period: '5minute'
+            });
+            
+            if (res && res[OUTSIDE_TEMP_ID] && res[OUTSIDE_TEMP_ID].length > 0) {
+                // Map statistikk til formatet grafen forventar
+                const stats = res[OUTSIDE_TEMP_ID].map(s => ({
+                    state: s.mean !== null ? s.mean : s.state, // Bruk gjennomsnitt hvis tilgjengeleg
+                    last_updated: s.start // Statistikk bruker 'start' som tidsstempel
+                }));
+                setTempHistory(stats);
+            } else {
+                // Fallback til vanleg historikk om statistikk manglar
+                const resHist = await conn.sendMessagePromise({
+                    type: 'history/history_during_period',
+                    start_time: start.toISOString(),
+                    end_time: end.toISOString(),
+                    entity_ids: [OUTSIDE_TEMP_ID],
+                    minimal_response: false,
+                    no_attributes: true
+                });
+                let historyData = resHist && resHist[OUTSIDE_TEMP_ID];
+                if (!historyData && Array.isArray(resHist) && resHist.length > 0) historyData = resHist[0];
+                if (historyData) setTempHistory(historyData);
+            }
+        } catch (e) { console.error("Temp history fetch error", e); }
+    };
+    fetchTempHistory();
+
+    const fetchForecast = async () => {
+        try {
+           // Prøv å hente prognose via tenestekall (ny metode i HA)
+           const res = await conn.sendMessagePromise({
+             type: "call_service",
+             domain: "weather",
+             service: "get_forecasts",
+             target: { entity_id: WEATHER_ENTITY },
+             service_data: { type: "hourly" },
+             return_response: true
+           });
+           if (res && res[WEATHER_ENTITY] && res[WEATHER_ENTITY].forecast) {
+             setWeatherForecast(res[WEATHER_ENTITY].forecast);
+           } else {
+             // Fallback til dagleg prognose om time-for-time manglar
+             const resDaily = await conn.sendMessagePromise({
+               type: "call_service",
+               domain: "weather",
+               service: "get_forecasts",
+               target: { entity_id: WEATHER_ENTITY },
+               service_data: { type: "daily" },
+               return_response: true
+             });
+             if (resDaily && resDaily[WEATHER_ENTITY] && resDaily[WEATHER_ENTITY].forecast) {
+               setWeatherForecast(resDaily[WEATHER_ENTITY].forecast);
+             }
+           }
+        } catch (e) { console.error("Forecast fetch error", e); }
+    };
+    fetchForecast();
   }, [conn]);
+
+  const fetchReleaseNotes = async (id) => {
+    if (releaseNotes[id]) return;
+    try {
+        const res = await conn.sendMessagePromise({
+            type: "update/release_notes",
+            entity_id: id
+        });
+        setReleaseNotes(prev => ({ ...prev, [id]: res }));
+    } catch (e) { console.error("Error fetching release notes", e); }
+  };
 
   const isSonosActive = (entity) => {
     if (!entity || !entity.state) return false;
@@ -805,38 +833,48 @@ export default function App() {
 
   const personStatus = (id) => {
     const entity = entities[id];
+    if (!entity && !editMode) return null;
+    
     const isHome = entity?.state === 'home';
     const statusText = getS(id);
-    const name = id === OYVIND_ID ? "Øyvind" : "Tuva";
+    const name = customNames[id] || entity?.attributes?.friendly_name || id;
     const baseUrl = activeUrl.replace(/\/$/, '');
     const picture = entity?.attributes?.entity_picture ? `${baseUrl}${entity.attributes.entity_picture}` : null;
 
     return (
-      <div key={id} className="group relative flex items-center gap-3 pl-1.5 pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-white/5" 
+      <div key={id} className="group relative flex items-center gap-3 pl-1.5 pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)]" 
            style={{
-             backgroundColor: 'rgba(255,255,255,0.02)', 
-             boxShadow: isHome ? '0 0 20px rgba(34, 197, 94, 0.05)' : 'none'
+             backgroundColor: 'var(--glass-bg)', 
+             boxShadow: isHome ? '0 0 20px rgba(34, 197, 94, 0.05)' : 'none',
+             cursor: editMode ? 'pointer' : 'default'
            }}>
         
+        {editMode && (
+          <div className="absolute -top-2 -right-2 z-50 flex gap-1">
+             <button onClick={(e) => { e.stopPropagation(); setShowEditCardModal(id); }} className="p-1 rounded-full bg-blue-500 text-white shadow-sm hover:bg-blue-600"><Edit2 className="w-3 h-3" /></button>
+             <button onClick={(e) => { e.stopPropagation(); removeCard(id, 'header'); }} className="p-1 rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600"><X className="w-3 h-3" /></button>
+          </div>
+        )}
+        
         <div className="relative">
-          <div className="w-10 h-10 rounded-full overflow-hidden border-2 transition-all duration-500" 
-               style={{borderColor: isHome ? '#22c55e' : 'rgba(255,255,255,0.1)', filter: isHome ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.7)'}}>
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 transition-all duration-500 bg-gray-800" 
+               style={{borderColor: isHome ? '#22c55e' : 'var(--glass-border)', filter: isHome ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.7)'}}>
             {picture ? (
               <img src={picture} alt={name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-500">
+              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
                 {name.substring(0, 1)}
               </div>
             )}
           </div>
           
           <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#050505] transition-colors duration-500" 
-               style={{backgroundColor: isHome ? '#22c55e' : '#52525b'}}></div>
+               style={{backgroundColor: isHome ? '#22c55e' : '#52525b', borderColor: 'var(--bg-primary)'}}></div>
         </div>
 
         <div className="flex flex-col justify-center">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-white leading-none tracking-wide">{name}</span>
+            <span className="text-sm font-bold text-[var(--text-primary)] leading-none tracking-wide">{name}</span>
           </div>
           <span className="text-xs font-bold uppercase tracking-widest leading-none mt-1 transition-colors duration-300" style={{color: isHome ? '#4ade80' : 'rgba(156, 163, 175, 0.5)'}}>
             {String(statusText)}
@@ -895,10 +933,14 @@ export default function App() {
     localStorage.setItem('midttunet_header_scale', newScale);
   };
 
-  const removeCard = (cardId) => {
+  const removeCard = (cardId, listName = activePage) => {
     const newConfig = { ...pagesConfig };
-    if (newConfig[activePage]) {
-      if (activePage === 'automations') {
+    if (listName === 'header') {
+        newConfig.header = (newConfig.header || []).filter(id => id !== cardId);
+        setPagesConfig(newConfig);
+        localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+    } else if (newConfig[activePage]) {
+      if (activePage === 'automations' && listName !== 'header') {
         newConfig.automations.forEach(col => {
           col.cards = col.cards.filter(id => id !== cardId);
         });
@@ -912,7 +954,9 @@ export default function App() {
 
   const handleAddSelected = () => {
     const newConfig = { ...pagesConfig };
-    if (addCardTargetPage === 'automations') {
+    if (addCardTargetPage === 'header') {
+        newConfig.header = [...(newConfig.header || []), ...selectedEntities];
+    } else if (addCardTargetPage === 'automations') {
         newConfig.automations[0].cards.push(...selectedEntities);
     } else {
         newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...selectedEntities];
@@ -942,13 +986,13 @@ export default function App() {
     else if (domain === 'switch' || domain === 'input_boolean') Icon = Power;
     
     return (
-      <div key={cardId} {...dragProps} className={`p-5 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[140px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+      <div key={cardId} {...dragProps} className={`p-5 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[140px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
         {getControls(cardId)}
         <div className="flex justify-between items-start">
-            <div className="p-2.5 rounded-xl bg-white/5 text-gray-400"><Icon className="w-5 h-5" /></div>
-            {showLastChanged && <div className="flex flex-col items-end"><span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">{formatRelativeTime(lastChanged)}</span></div>}
+            <div className="p-2.5 rounded-xl text-[var(--text-secondary)]" style={{backgroundColor: 'var(--glass-bg)'}}><Icon className="w-5 h-5" /></div>
+            {showLastChanged && <div className="flex flex-col items-end"><span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{formatRelativeTime(lastChanged)}</span></div>}
         </div>
-        <div><p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-0.5 truncate">{name}</p>{showStatus && <p className="text-xl font-light text-white truncate">{String(state)}</p>}</div>
+        <div><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-0.5 truncate">{name}</p>{showStatus && <p className="text-xl font-light truncate" style={{color: 'var(--text-primary)'}}>{String(state)}</p>}</div>
       </div>
     );
   };
@@ -980,8 +1024,8 @@ export default function App() {
     return (
       <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
         {getControls(currentLId)}
-        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-gray-600'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-white/5 border-white/10 text-gray-500')}`}>{isUnavailable ? 'UTILGJENGELIG' : (isOn ? 'PÅ' : 'AV')}</div></div>
-        <div className="mt-2 font-sans"><p className="text-gray-500 text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || 'Lys')}</p><div className="flex items-baseline gap-1 leading-none mb-3"><span className="text-4xl font-normal tracking-tighter text-white italic leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-gray-600 font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
+        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}>{isUnavailable ? 'UTILGJENGELIG' : (isOn ? 'PÅ' : 'AV')}</div></div>
+        <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || 'Lys')}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
       </div>
     );
   };
@@ -995,10 +1039,10 @@ export default function App() {
       <div key={cardId} {...dragProps} className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isOn ? 'rgba(59, 130, 246, 0.03)' : 'rgba(15, 23, 42, 0.6)', borderColor: isOn ? 'rgba(59, 130, 246, 0.15)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)')}} onClick={(e) => { if(!editMode) callService("automation", "toggle", { entity_id: cardId }); }}>
         {getControls(cardId)}
         <div className="flex items-center gap-4">
-          <div className={`p-2.5 rounded-xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-gray-500'}`}><Icon className="w-4 h-4" /></div>
-          <div className="flex flex-col"><div className="flex items-center gap-2"><span className="text-sm font-bold text-white leading-tight">{friendlyName}</span></div><span className="text-[10px] uppercase tracking-widest font-bold text-gray-500 mt-0.5">{isOn ? 'Aktiv' : 'Avslått'}</span></div>
+          <div className={`p-2.5 rounded-xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-4 h-4" /></div>
+          <div className="flex flex-col"><div className="flex items-center gap-2"><span className="text-sm font-bold text-[var(--text-primary)] leading-tight">{friendlyName}</span></div><span className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)] mt-0.5">{isOn ? 'Aktiv' : 'Avslått'}</span></div>
         </div>
-        <div className={`w-10 h-6 rounded-full relative transition-all ${isOn ? 'bg-blue-500/80' : 'bg-white/10'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`} /></div>
+        <div className={`w-10 h-6 rounded-full relative transition-all ${isOn ? 'bg-blue-500/80' : 'bg-[var(--glass-bg-hover)]'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`} /></div>
       </div>
     );
   };
@@ -1027,8 +1071,8 @@ export default function App() {
     return (
       <div key="power" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowPowerModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
         {getControls('power')}
-        <div className="flex justify-between items-start"><div className="p-3 rounded-2xl text-amber-400 group-hover:scale-110 transition-transform duration-500" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)'}}><Icon className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}><span className={`text-xs tracking-widest uppercase font-bold ${levelColor}`}>{levelText}</span></div></div>
-        <div className="mt-2"><div className="flex items-center gap-2"><p className="text-gray-500 text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{name}</p></div><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-white leading-none">{String(getS(TIBBER_ID))}</span><span className="text-gray-600 font-medium text-base ml-1">øre</span></div><SparkLine data={fullPriceData} currentIndex={currentPriceIndex} /></div>
+        <div className="flex justify-between items-start"><div className="p-3 rounded-2xl text-amber-400 group-hover:scale-110 transition-transform duration-500" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)'}}><Icon className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}><span className={`text-xs tracking-widest uppercase font-bold ${levelColor}`}>{levelText}</span></div></div>
+        <div className="mt-2"><div className="flex items-center gap-2"><p className="text-[var(--text-secondary)] text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{name}</p></div><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{String(getS(TIBBER_ID))}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">øre</span></div><SparkLine data={fullPriceData} currentIndex={currentPriceIndex} /></div>
       </div>
     );
   };
@@ -1042,14 +1086,14 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50 pointer-events-none" />
         <div className="flex justify-between items-start relative z-10">
           <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399'}}><Icon className="w-5 h-5" style={{strokeWidth: 1.5}} /></div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', color: '#9ca3af'}}><div className="flex items-center gap-2"><span className="text-xs tracking-widest font-bold uppercase">{name}</span></div></div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)'}}><div className="flex items-center gap-2"><span className="text-xs tracking-widest font-bold uppercase">{name}</span></div></div>
         </div>
         <div className="flex flex-col gap-1 relative z-10 mt-2">
-           <p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none tracking-widest">I dag</p>
-           <div className="flex items-baseline gap-1 leading-none"><span className="text-5xl font-light text-white tracking-tight">{String(getS(COST_TODAY_ID))}</span><span className="text-gray-500 font-medium text-lg">kr</span></div>
+           <p className="text-[var(--text-secondary)] text-xs uppercase font-bold opacity-60 leading-none tracking-widest">I dag</p>
+           <div className="flex items-baseline gap-1 leading-none"><span className="text-5xl font-light text-[var(--text-primary)] tracking-tight">{String(getS(COST_TODAY_ID))}</span><span className="text-[var(--text-secondary)] font-medium text-lg">kr</span></div>
         </div>
-        <div className="relative z-10 mt-auto pt-4 border-t border-white/5">
-           <div className="flex justify-between items-center"><span className="text-xs text-gray-500 font-bold uppercase tracking-widest opacity-80">Denne månaden</span><div className="flex items-baseline gap-1"><span className="text-xl font-medium text-white">{!isNaN(parseFloat(entities[COST_MONTH_ID]?.state)) ? Math.round(parseFloat(entities[COST_MONTH_ID]?.state)) : String(getS(COST_MONTH_ID))}</span><span className="text-xs text-gray-500">kr</span></div></div>
+        <div className="relative z-10 mt-auto pt-4 border-t border-[var(--glass-border)]">
+           <div className="flex justify-between items-center"><span className="text-xs text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-80">Denne månaden</span><div className="flex items-baseline gap-1"><span className="text-xl font-medium text-[var(--text-primary)]">{!isNaN(parseFloat(entities[COST_MONTH_ID]?.state)) ? Math.round(parseFloat(entities[COST_MONTH_ID]?.state)) : String(getS(COST_MONTH_ID))}</span><span className="text-xs text-[var(--text-secondary)]">kr</span></div></div>
         </div>
       </div>
     );
@@ -1069,25 +1113,25 @@ export default function App() {
       <div key="climate" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowClimateModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
         {getControls('climate')}
         <div className="flex justify-between items-start">
-          <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : '#9ca3af'}}>
+          <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : 'var(--text-secondary)'}}>
             <Icon className="w-5 h-5" style={{strokeWidth: 1.5}} />
           </div>
         </div>
         <div className="absolute top-7 right-7 flex flex-col items-end">
-           <span className="text-xs uppercase font-bold opacity-60 mb-1" style={{letterSpacing: '0.05em', color: '#9ca3af'}}>Inne</span>
-           <div className="flex items-baseline gap-0.5"><span className="text-2xl font-medium text-white leading-none">{String(curT)}</span><span className="text-sm text-gray-500 font-medium">°</span></div>
+           <span className="text-xs uppercase font-bold opacity-60 mb-1" style={{letterSpacing: '0.05em', color: 'var(--text-secondary)'}}>Inne</span>
+           <div className="flex items-baseline gap-0.5"><span className="text-2xl font-medium text-[var(--text-primary)] leading-none">{String(curT)}</span><span className="text-sm text-[var(--text-secondary)] font-medium">°</span></div>
         </div>
         <div className="mt-2">
-           <div className="flex items-center gap-2 mb-3"><p className="text-gray-500 text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{name}</p></div>
+           <div className="flex items-center gap-2 mb-3"><p className="text-[var(--text-secondary)] text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{name}</p></div>
            <div className="flex items-stretch gap-3">
-              <div className="flex items-center justify-between rounded-2xl p-1 border flex-1" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
-              <button onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) - 0.5 }); }} className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"><Minus className="w-4 h-4" /></button>
-              <div className="flex flex-col items-center"><span className="text-lg font-bold text-white leading-none">{String(tarT)}°</span></div>
-              <button onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) + 0.5 }); }} className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-gray-400 hover:text-white active:scale-90 hover:bg-white/5"><Plus className="w-4 h-4" /></button>
+              <div className="flex items-center justify-between rounded-2xl p-1 border flex-1" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+              <button onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) - 0.5 }); }} className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"><Minus className="w-4 h-4" /></button>
+              <div className="flex flex-col items-center"><span className="text-lg font-bold text-[var(--text-primary)] leading-none">{String(tarT)}°</span></div>
+              <button onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) + 0.5 }); }} className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"><Plus className="w-4 h-4" /></button>
            </div>
-              <div className="flex items-center justify-center rounded-2xl border w-20 gap-2 pr-2" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)'}}>
-              <Fan className="w-4 h-4 text-gray-500" />
-              {fanSpeedLevel === 0 ? (<span className="text-[10px] font-bold text-gray-500 tracking-wider">AUTO</span>) : (<div className="flex items-end gap-[2px] h-4">{[1, 2, 3, 4, 5].map((level) => (<div key={level} className={`w-1 rounded-sm transition-all duration-300 ${level <= fanSpeedLevel ? (clTheme === 'blue' ? 'bg-blue-400' : clTheme === 'orange' ? 'bg-orange-400' : 'bg-white') : 'bg-white/10'}`} style={{height: `${30 + (level * 14)}%`}} />))}</div>)}
+              <div className="flex items-center justify-center rounded-2xl border w-20 gap-2 pr-2" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+              <Fan className="w-4 h-4 text-[var(--text-secondary)]" />
+              {fanSpeedLevel === 0 ? (<span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">AUTO</span>) : (<div className="flex items-end gap-[2px] h-4">{[1, 2, 3, 4, 5].map((level) => (<div key={level} className={`w-1 rounded-sm transition-all duration-300 ${level <= fanSpeedLevel ? (clTheme === 'blue' ? 'bg-blue-400' : clTheme === 'orange' ? 'bg-orange-400' : 'bg-[var(--text-primary)]') : 'bg-[var(--glass-bg-hover)]'}`} style={{height: `${30 + (level * 14)}%`}} />))}</div>)}
               </div>
         </div>
       </div>
@@ -1102,16 +1146,16 @@ export default function App() {
     const Icon = customIcons['car'] ? ICON_MAP[customIcons['car']] : Car;
     
     return (
-      <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'rgba(15, 23, 42, 0.6)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.04)')}}>
+      <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'var(--card-border)')}}>
         {getControls('car')}
         <div className="flex justify-between items-start font-sans">
           <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-green-500/10 text-green-400'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
           <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white/[0.02] border-white/[0.05] text-gray-500"><MapPin className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
             {isHtg && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">Varmar</span></div>}
           </div>
         </div>
-        <div className="flex justify-between items-end"><div><div className="flex items-center gap-2 mb-1"><p className="text-gray-500 text-xs tracking-widest uppercase font-bold opacity-60">{name}</p></div><div className="flex items-baseline gap-2 leading-none font-sans"><span className={`text-4xl font-normal tracking-tighter italic leading-none ${isCharging ? 'text-green-400' : 'text-white'}`}>{String(getS(LEAF_ID))}%</span>{isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}<span className="text-gray-600 font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 bg-white/[0.02] px-3 py-1.5 rounded-xl border border-white/5 font-sans"><Thermometer className="w-3 h-3 text-gray-500" /><span className="text-sm font-bold text-gray-200">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
+        <div className="flex justify-between items-end"><div><p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className={`text-2xl font-medium leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>{String(getS(LEAF_ID))}%</span>{isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}<span className="text-[var(--text-muted)] font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 bg-[var(--glass-bg)] px-3 py-1.5 rounded-xl border border-[var(--glass-border)] font-sans"><Thermometer className="w-3 h-3 text-[var(--text-secondary)]" /><span className="text-sm font-bold text-[var(--text-primary)]">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
       </div>
     );
   };
@@ -1128,26 +1172,26 @@ export default function App() {
     const Icon = customIcons['rocky'] ? ICON_MAP[customIcons['rocky']] : Bot;
     
     return (
-      <div key="rocky" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.08)' : 'rgba(15, 23, 42, 0.6)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isCleaning ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.04)')}}>
+      <div key="rocky" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isCleaning ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
         {getControls('rocky')}
         <div className="flex justify-between items-start font-sans">
-           <div className={`p-3 rounded-2xl transition-all ${isCleaning ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-white/5 text-gray-500'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
+           <div className={`p-3 rounded-2xl transition-all ${isCleaning ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
            <div className="flex flex-col items-end gap-2">
-             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white/[0.02] border-white/[0.05] text-gray-500"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{room || "Ukjend"}</span></div>
-             {battery && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-white/[0.02] border-white/[0.05] text-gray-500"><Battery className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{battery}%</span></div>}
+             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{room || "Ukjend"}</span></div>
+             {battery && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Battery className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{battery}%</span></div>}
            </div>
         </div>
         
         <div className="flex justify-between items-end">
            <div>
-             <p className="text-gray-500 text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
-             <h3 className="text-2xl font-light text-white italic leading-none tracking-tight">{statusText}</h3>
+             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
+             <h3 className="text-2xl font-medium text-[var(--text-primary)] leading-none">{statusText}</h3>
            </div>
            <div className="flex gap-2">
-             <button onClick={(e) => { e.stopPropagation(); callService("vacuum", isCleaning ? "pause" : "start", { entity_id: ROCKY_ID }); }} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors text-white active:scale-95">
+             <button onClick={(e) => { e.stopPropagation(); callService("vacuum", isCleaning ? "pause" : "start", { entity_id: ROCKY_ID }); }} className="p-3 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95">
                {isCleaning ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
              </button>
-             <button onClick={(e) => { e.stopPropagation(); callService("vacuum", "return_to_base", { entity_id: ROCKY_ID }); }} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors text-gray-400 hover:text-white active:scale-95">
+             <button onClick={(e) => { e.stopPropagation(); callService("vacuum", "return_to_base", { entity_id: ROCKY_ID }); }} className="p-3 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95">
                <Home className="w-5 h-5" />
              </button>
            </div>
@@ -1167,21 +1211,72 @@ export default function App() {
     const picture = entity?.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${entity.attributes.entity_picture}` : null;
 
     return (
-      <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+      <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
         {getControls('shield')}
         
         <div className="flex justify-between items-start relative z-10">
-           <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-500'}`}><Gamepad2 className="w-5 h-5" /></div>
-           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-white/5 border-white/10 text-gray-500'}`}><span className="text-[10px] font-bold uppercase tracking-widest">{isOn ? (isPlaying ? 'SPELAR' : 'PÅ') : 'AV'}</span></div>
+           <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Gamepad2 className="w-5 h-5" /></div>
+           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}><span className="text-[10px] font-bold uppercase tracking-widest">{isOn ? (isPlaying ? 'SPELAR' : 'PÅ') : 'AV'}</span></div>
         </div>
 
         <div className="relative z-10">
-           <p className="text-gray-500 text-[10px] tracking-[0.2em] uppercase mb-1 font-bold opacity-60 leading-none">Shield TV</p>
-           <h3 className="text-xl font-light text-white leading-tight line-clamp-2 mb-1">{appName || (isOn ? 'Heimskjerm' : 'Avslått')}</h3>
-           {title && <p className="text-xs text-gray-400 line-clamp-1 font-medium">{title}</p>}
+           <p className={`${picture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs tracking-widest uppercase mb-1 font-bold opacity-60`}>Shield TV</p>
+           <h3 className="text-2xl font-medium leading-none line-clamp-2 mb-1">{appName || (isOn ? 'Heimskjerm' : 'Avslått')}</h3>
+           {title && <p className={`text-xs ${picture ? 'text-gray-300' : 'text-[var(--text-muted)]'} line-clamp-1 font-medium`}>{title}</p>}
         </div>
 
         {picture && (<div className="absolute inset-0 z-0 opacity-40"><img src={picture} alt="" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/50 to-transparent" /></div>)}
+      </div>
+    );
+  };
+
+  const renderWeatherCard = (dragProps, getControls, cardStyle) => {
+    const weatherEntity = entities[WEATHER_ENTITY];
+    const tempEntity = entities[OUTSIDE_TEMP_ID];
+    const currentTemp = parseFloat(tempEntity?.state);
+    const state = weatherEntity?.state;
+    const name = customNames['weather'] || 'Været';
+    // Bruk henta prognose, eller fall tilbake til attributt (for eldre HA)
+    const forecastData = weatherForecast.length > 0 ? weatherForecast : weatherEntity?.attributes?.forecast;
+
+    const weatherMap = {
+      'sunny': { label: 'Sol', icon: 'clear-day' },
+      'clear-night': { label: 'Klart', icon: 'clear-night' },
+      'partlycloudy': { label: 'Delvis skya', icon: 'partly-cloudy-day' },
+      'cloudy': { label: 'Skya', icon: 'cloudy' },
+      'rainy': { label: 'Regn', icon: 'rain' },
+      'pouring': { label: 'Pøsregn', icon: 'thunderstorms-rain' },
+      'snowy': { label: 'Snø', icon: 'snow' },
+      'fog': { label: 'Tåke', icon: 'fog' },
+      'hail': { label: 'Hagl', icon: 'hail' },
+      'lightning': { label: 'Lyn', icon: 'thunderstorms' },
+      'windy': { label: 'Vind', icon: 'wind' },
+      'exceptional': { label: 'Ekstremt', icon: 'warning' }
+    };
+
+    const info = weatherMap[state] || { label: state || 'Ukjend', icon: 'cloudy' };
+    const iconUrl = `https://cdn.jsdelivr.net/gh/basmilius/weather-icons@master/production/fill/all/${info.icon}.svg`;
+    const CustomIcon = customIcons['weather'] ? ICON_MAP[customIcons['weather']] : null;
+    
+    return (
+      <div key="weather" {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+        {getControls('weather')}
+        <div className="flex justify-between items-start relative z-10">
+          <div className="w-24 h-24 -ml-4 -mt-4 filter drop-shadow-lg transition-transform duration-500 group-hover:scale-110">
+            {CustomIcon ? (
+               <div className="p-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)]"><CustomIcon className="w-8 h-8" /></div>
+            ) : (
+               <img src={iconUrl} alt={info.label} className="w-full h-full object-contain" />
+            )}
+          </div>
+          <div className="flex flex-col items-end">
+             <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{!isNaN(currentTemp) ? currentTemp : '--'}°</span>
+             <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1">{info.label}</span>
+          </div>
+        </div>
+        <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
+            <WeatherGraph history={tempHistory} currentTemp={currentTemp} />
+        </div>
       </div>
     );
   };
@@ -1308,8 +1403,8 @@ export default function App() {
     };
 
     const cardStyle = {
-      backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'rgba(15, 23, 42, 0.6)',
-      borderColor: isDragging ? 'rgba(96, 165, 250, 1)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)'),
+      backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
+      borderColor: isDragging ? 'rgba(96, 165, 250, 1)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'var(--card-border)'),
       backdropFilter: 'blur(16px)',
       borderStyle: editMode ? 'dashed' : 'solid',
       borderWidth: editMode ? '2px' : '1px',
@@ -1383,6 +1478,8 @@ export default function App() {
         return renderRockyCard(dragProps, getControls, cardStyle);
       case 'shield':
         return renderShieldCard(dragProps, getControls, cardStyle);
+      case 'weather':
+        return renderWeatherCard(dragProps, getControls, cardStyle);
       case 'media_player':
         const mediaEntities = MEDIA_PLAYER_IDS.map(id => entities[id]).filter(Boolean);
         const activeMediaEntities = mediaEntities.filter(isMediaActive);
@@ -1443,22 +1540,22 @@ export default function App() {
 
         if (isIdle) {
           return (
-            <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+            <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
               {getControls(mpId)}
               {indicator}
-              <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}>
-                <Tv className="w-8 h-8 text-gray-600" />
+              <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
+                <Tv className="w-8 h-8 text-[var(--text-secondary)]" />
               </div>
               <div className="text-center w-full px-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-500 opacity-60">Ingen media</p>
-                <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-gray-600 opacity-40 truncate">{mpName}</p></div>
+                <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Ingen media</p>
+                <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{mpName}</p></div>
               </div>
             </div>
           );
         }
 
         return (
-          <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+          <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: mpPicture ? 'white' : 'var(--text-primary)'}}>
             {getControls(mpId)}
             {indicator}
             
@@ -1468,8 +1565,8 @@ export default function App() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
               </div>
             ) : (
-               <div className="absolute inset-0 z-0 flex items-center justify-center bg-white/5">
-                  {isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />}
+               <div className="absolute inset-0 z-0 flex items-center justify-center bg-[var(--glass-bg)]">
+                  {isChannel ? <Tv className="w-20 h-20 text-[var(--text-muted)]" /> : <Music className="w-20 h-20 text-[var(--text-muted)]" />}
                </div>
             )}
             
@@ -1478,13 +1575,13 @@ export default function App() {
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate shadow-black drop-shadow-md">{activeUser}</p>
                     <span className="text-white/40 text-[10px]">•</span>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-300 truncate shadow-black drop-shadow-md">{mpApp || 'Media'}</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${mpPicture ? 'text-gray-300' : 'text-[var(--text-secondary)]'} truncate shadow-black drop-shadow-md`}>{mpApp || 'Media'}</p>
                   </div>
                 ) : (
                   <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-1 truncate shadow-black drop-shadow-md">{mpApp || 'Media'}</p>
                 )}
-                <h3 className="text-2xl font-bold text-white leading-tight line-clamp-2 mb-1 shadow-black drop-shadow-lg">{mpTitle || 'Ukjend'}</h3>
-                <p className="text-sm text-gray-200 truncate font-medium shadow-black drop-shadow-md">{mpSeries || ''}</p>
+                <h3 className="text-2xl font-bold leading-tight line-clamp-2 mb-1 shadow-black drop-shadow-lg">{mpTitle || 'Ukjend'}</h3>
+                <p className={`text-sm ${mpPicture ? 'text-gray-200' : 'text-[var(--text-secondary)]'} truncate font-medium shadow-black drop-shadow-md`}>{mpSeries || ''}</p>
             </div>
           </div>
         );
@@ -1512,7 +1609,7 @@ export default function App() {
         const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
 
         const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
-        const sArtist = isTV ? 'Stue' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
+        const sArtist = isTV ? 'Stova' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
         const sPicture = !isTV && currentSonos.attributes?.entity_picture 
           ? `${activeUrl.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}`
           : null;
@@ -1530,17 +1627,17 @@ export default function App() {
 
         if (!sIsActive) {
           return (
-            <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+            <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
               {getControls(sId)}
               {sIndicator}
-              <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'rgba(255,255,255,0.03)'}}><Speaker className="w-8 h-8 text-gray-600" /></div>
-              <div className="text-center w-full px-4"><p className="text-xs font-bold uppercase tracking-widest text-gray-500 opacity-60">Ingen musikk</p><div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-gray-600 opacity-40 truncate">{sName}</p></div></div>
+              <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}><Speaker className="w-8 h-8 text-[var(--text-secondary)]" /></div>
+              <div className="text-center w-full px-4"><p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Ingen musikk</p><div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{sName}</p></div></div>
             </div>
           );
         }
 
         return (
-          <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+          <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: sPicture ? 'white' : 'var(--text-primary)'}}>
             {getControls(sId)}
             {sIndicator}
             {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.7]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
@@ -1549,10 +1646,10 @@ export default function App() {
             {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.6]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
             {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/20 via-transparent to-transparent pointer-events-none" />}
             <div className="relative z-10 flex gap-4 items-start">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 bg-white/5 shadow-lg">{sPicture ? <img src={sPicture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isTV ? <Tv className="w-8 h-8 text-gray-500" /> : <Speaker className="w-8 h-8 text-gray-500" />}</div>}</div>
-              <div className="flex flex-col overflow-hidden pt-1"><div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{sName}</p></div><h3 className="text-lg font-bold text-white leading-tight truncate mb-0.5">{sTitle || 'Ukjend'}</h3><p className="text-xs text-gray-400 truncate font-medium">{sArtist || ''}</p></div>
+              <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-lg">{sPicture ? <img src={sPicture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isTV ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}</div>}</div>
+              <div className="flex flex-col overflow-hidden pt-1"><div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{sName}</p></div><h3 className="text-lg font-bold leading-tight truncate mb-0.5">{sTitle || 'Ukjend'}</h3><p className={`text-xs ${sPicture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} truncate font-medium`}>{sArtist || ''}</p></div>
             </div>
-            <div className="relative z-10 flex items-center justify-center gap-8 mt-2"><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: sId }); }} className="text-gray-400 hover:text-white transition-colors p-2 active:scale-90"><SkipBack className="w-6 h-6" /></button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: sId }); }} className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95">{sIsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}</button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: sId }); }} className="text-gray-400 hover:text-white transition-colors p-2 active:scale-90"><SkipForward className="w-6 h-6" /></button></div>
+            <div className="relative z-10 flex items-center justify-center gap-8 mt-2"><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: sId }); }} className={`${sPicture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipBack className="w-6 h-6" /></button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: sId }); }} className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95">{sIsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}</button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: sId }); }} className={`${sPicture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipForward className="w-6 h-6" /></button></div>
           </div>
         );
       case 'car':
@@ -1564,28 +1661,28 @@ export default function App() {
   const reStatus = () => {
     if (entities[REFRIGERATOR_ID]?.state !== 'on') return null;
     return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border animate-pulse" style={{backgroundColor: 'rgba(249, 115, 22, 0.02)', borderColor: 'rgba(249, 115, 22, 0.01)'}}><div className="p-1.5 rounded-xl text-orange-400" style={{backgroundColor: 'rgba(249, 115, 22, 0.1)'}}><AlertCircle className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">VARSAL</span><span className="text-xs font-medium uppercase tracking-widest text-orange-200/50 italic">Kjøleskap ope</span></div></div>
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl animate-pulse" style={{backgroundColor: 'rgba(249, 115, 22, 0.02)'}}><div className="p-1.5 rounded-xl text-orange-400" style={{backgroundColor: 'rgba(249, 115, 22, 0.1)'}}><AlertCircle className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">VARSAL</span><span className="text-xs font-medium uppercase tracking-widest text-orange-200/50 italic">Kjøleskap ope</span></div></div>
     );
   };
 
   const stStatus = () => {
     if (entities[STUDIO_PRESENCE_ID]?.state !== 'on') return null;
     return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)'}}><div className="p-1.5 rounded-xl text-emerald-400" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">Studioet</span><span className="text-xs font-medium uppercase tracking-widest text-gray-300/50 italic">I bruk</span></div></div>
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-emerald-400" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Studioet</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">I bruk</span></div></div>
     );
   };
 
   const poStatus = () => {
     if (entities[PORTEN_MOTION_ID]?.state !== 'on') return null;
     return (
-      <button onClick={() => setShowCameraModal(true)} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border transition-all hover:bg-white/5 active:scale-95" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)'}}><div className="p-1.5 rounded-xl text-amber-400" style={{backgroundColor: 'rgba(251, 191, 36, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col items-start"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">Porten</span><span className="text-xs font-medium uppercase tracking-widest text-gray-300/50 italic">Bevegelse</span></div></button>
+      <button onClick={() => setShowCameraModal(true)} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-amber-400" style={{backgroundColor: 'rgba(251, 191, 36, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Porten</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">Bevegelse</span></div></button>
     );
   };
 
   const gaStatus = () => {
     if (entities[GARAGE_DOOR_ID]?.state !== 'on') return null;
     return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)'}}><div className="p-1.5 rounded-xl text-red-400" style={{backgroundColor: 'rgba(248, 113, 113, 0.1)'}}><Warehouse className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">Garasje</span><span className="text-xs font-medium uppercase tracking-widest text-gray-300/50 italic">Ope</span></div></div>
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-red-400" style={{backgroundColor: 'rgba(248, 113, 113, 0.1)'}}><Warehouse className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Garasje</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">Ope</span></div></div>
     );
   };
 
@@ -1600,7 +1697,7 @@ export default function App() {
     if (count === 0) return null;
 
     return (
-      <button onClick={() => setActiveMediaModal('media')} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border transition-all hover:bg-white/5 active:scale-95" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)'}}><div className="p-1.5 rounded-xl text-green-400" style={{backgroundColor: 'rgba(74, 222, 128, 0.1)'}}><Clapperboard className="w-4 h-4 animate-pulse" /></div><div className="flex flex-col items-start"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">Emby</span><span className="text-xs font-medium uppercase tracking-widest text-gray-300/50 italic">{count} {count === 1 ? 'spelar' : 'spelar'}</span></div></button>
+      <button onClick={() => setActiveMediaModal('media')} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-green-400" style={{backgroundColor: 'rgba(74, 222, 128, 0.1)'}}><Clapperboard className="w-4 h-4 animate-pulse" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Emby</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{count} {count === 1 ? 'spelar' : 'spelar'}</span></div></button>
     );
   };
 
@@ -1618,25 +1715,42 @@ export default function App() {
     const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
 
     const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
-    const sArtist = isTV ? 'Stue' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
+    const sArtist = isTV ? 'Stova' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
     const sPicture = !isTV && currentSonos.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}` : null;
     const isPlaying = currentSonos.state === 'playing';
 
     return (
-      <button onClick={() => setActiveMediaModal('sonos')} className="flex items-center gap-3 px-2 py-1.5 rounded-2xl border transition-all hover:bg-white/5 active:scale-95" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)'}}><div className="w-8 h-8 rounded-full overflow-hidden bg-white/5 relative flex-shrink-0">{sPicture ? <img src={sPicture} alt="" className={`w-full h-full object-cover ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '10s' }} /> : <div className="w-full h-full flex items-center justify-center bg-blue-500/10 text-blue-400"><Music className="w-4 h-4" /></div>}{isPlaying && <div className="absolute inset-0 flex items-center justify-center bg-black/20"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}</div><div className="flex flex-col items-start max-w-[120px]"><span className="text-xs text-white font-bold leading-tight truncate w-full">{sTitle || 'Ukjend'}</span><span className="text-[10px] font-medium uppercase tracking-widest text-gray-400 truncate w-full">{sArtist || ''}</span></div></button>
+      <button onClick={() => setActiveMediaModal('sonos')} className="flex items-center gap-3 px-2 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--glass-bg)] relative flex-shrink-0">{sPicture ? <img src={sPicture} alt="" className={`w-full h-full object-cover ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '10s' }} /> : <div className="w-full h-full flex items-center justify-center bg-blue-500/10 text-blue-400"><Music className="w-4 h-4" /></div>}</div><div className="flex flex-col items-start max-w-[120px]"><span className="text-xs text-[var(--text-primary)] font-bold leading-tight truncate w-full">{sTitle || 'Ukjend'}</span><span className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-secondary)] truncate w-full">{sArtist || ''}</span></div></button>
     );
   };
 
   const drStatus = (id, label) => {
     if (entities[id]?.state !== 'on') return null;
     return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border" style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(255,255,255,0.01)'}}><div className="p-1.5 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}><DoorOpen className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">{label}</span><span className="text-xs font-medium uppercase tracking-widest text-gray-300/50 italic">Ope</span></div></div>
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}><DoorOpen className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{label}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">Ope</span></div></div>
+    );
+  };
+
+  const updateStatus = () => {
+    const updates = Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on');
+    const count = updates.length;
+    if (count === 0) return null;
+
+    return (
+      <button onClick={() => setShowUpdateModal(true)} className="relative flex items-center justify-center p-2 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}>
+        <div className="p-2 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}>
+          <Download className="w-6 h-6" />
+        </div>
+        <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500 text-white text-sm font-bold flex items-center justify-center border-[3px] border-[var(--bg-primary)] shadow-lg">
+            {count}
+        </div>
+      </button>
     );
   };
 
   return (
-    <div className="min-h-screen text-white font-sans selection:bg-blue-500/30 overflow-x-hidden" style={{backgroundColor: '#02040a'}}>
-      <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, #0f172a, #02040a, #0a0a0c)'}} /><div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)'}} /><div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} /></div>
+    <div className="min-h-screen font-sans selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-500" style={{backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)'}}>
+      <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-primary), var(--bg-gradient-to))'}} /><div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)'}} /><div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} /></div>
       <div className="relative z-10 w-full max-w-[1600px] mx-auto px-6 md:px-20 py-6 md:py-10">
         <style>{`
           @keyframes fadeIn {
@@ -1649,21 +1763,25 @@ export default function App() {
         `}</style>
         <header className="relative mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10 leading-none">
           <div className="absolute top-0 right-0 hidden md:block">
-             <h2 className="font-light tracking-[0.1em] text-white/60 leading-none select-none" style={{ fontSize: `calc(3.75rem * ${headerScale})` }}>{now.toLocaleTimeString('nn-NO', { hour: '2-digit', minute: '2-digit' })}</h2>
+             <h2 className="font-light tracking-[0.1em] leading-none select-none" style={{ fontSize: `calc(3.75rem * ${headerScale})`, color: 'var(--text-muted)' }}>{now.toLocaleTimeString('nn-NO', { hour: '2-digit', minute: '2-digit' })}</h2>
           </div>
           <div className="absolute top-0 right-0 md:hidden">
-             <h2 className="font-light tracking-[0.1em] text-white/60 leading-none select-none" style={{ fontSize: `calc(3rem * ${headerScale})` }}>{now.toLocaleTimeString('nn-NO', { hour: '2-digit', minute: '2-digit' })}</h2>
+             <h2 className="font-light tracking-[0.1em] leading-none select-none" style={{ fontSize: `calc(3rem * ${headerScale})`, color: 'var(--text-muted)' }}>{now.toLocaleTimeString('nn-NO', { hour: '2-digit', minute: '2-digit' })}</h2>
           </div>
 
           <div className="flex flex-col gap-3 font-sans w-full">
             <div>
               <div className="flex items-center gap-4">
-                <h1 className="font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" style={{color: 'rgba(255,255,255,0.6)', fontSize: `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`}}>Midttunet</h1>
+                <h1 className="font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" style={{color: 'var(--text-muted)', fontSize: `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`}}>Midttunet</h1>
                 {editMode && (<div className="flex flex-col gap-1 z-50"><button onClick={() => updateHeaderScale(Math.min(headerScale + 0.1, 2))} className="p-1 bg-white/10 rounded hover:bg-white/20"><ChevronUp className="w-4 h-4" /></button><button onClick={() => updateHeaderScale(Math.max(headerScale - 0.1, 0.5))} className="p-1 bg-white/10 rounded hover:bg-white/20"><ChevronDown className="w-4 h-4" /></button></div>)}
               </div>
               <p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none mt-2 opacity-50 tracking-[0.2em] md:tracking-[0.6em]">{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
-            <div className="flex flex-wrap gap-2.5 mt-0 font-sans">{personStatus(OYVIND_ID)}{personStatus(TUVA_ID)}{reStatus()}{stStatus()}{poStatus()}{gaStatus()}{embyStatus()}{sonosStatus()}{drStatus(EILEV_DOOR_ID, "Eilev si dør")}{drStatus(OLVE_DOOR_ID, "Olve si dør")}</div>
+            <div className="flex flex-wrap gap-2.5 mt-0 font-sans items-center">
+              {(pagesConfig.header || []).map(id => personStatus(id))}
+              <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>
+              {reStatus()}{stStatus()}{poStatus()}{gaStatus()}{embyStatus()}{sonosStatus()}{drStatus(EILEV_DOOR_ID, "Eilev si dør")}{drStatus(OLVE_DOOR_ID, "Olve si dør")}{updateStatus()}
+            </div>
           </div>
         </header>
         
@@ -1679,7 +1797,7 @@ export default function App() {
               <button
                 key={page.id}
                 onClick={() => editMode ? setEditingPage(page.id) : setActivePage(page.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-white/10 text-white border-white/10' : 'bg-white/5 text-gray-400 border-transparent hover:bg-white/10 hover:text-white'} ${editMode && isHidden ? 'opacity-50 border-dashed border-gray-500' : ''}`}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'} ${editMode && isHidden ? 'opacity-50 border-dashed border-gray-500' : ''}`}
               >
                 <Icon className="w-4 h-4" />
                 {label}
@@ -1698,11 +1816,21 @@ export default function App() {
                   if (currentSettings?.hidden) setActivePage('home');
                 }
                 setEditMode(!editMode);
-              }} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-gray-700 hover:text-white'}`}>{editMode ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />} {editMode ? 'Ferdig' : 'Rediger'}</button>
-              {!editMode && <button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-gray-700 hover:text-white transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>}
+              }} className={`group flex items-center gap-2 text-xs font-bold uppercase transition-all whitespace-nowrap ${editMode ? 'text-green-400' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>{editMode ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />} {editMode ? 'Ferdig' : 'Rediger'}</button>
+              {!editMode && <button onClick={() => setShowConfigModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>}
             </div>
-            <button onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-white/5 transition-colors group ${showMenu ? 'bg-white/10' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-white' : 'text-gray-500 group-hover:text-white'}`} /></button>
-            <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: connected ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: connected ? '#22c55e' : '#ef4444', boxShadow: connected ? '0_0_10px_rgba(34,197,94,0.6)' : 'none', animation: connected ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'}} /></div>
+            {!editMode && (
+              <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group" title="Bytt tema">
+                {currentTheme === 'dark' ? <Sun className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" /> : <Moon className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />}
+              </button>
+            )}
+            {!editMode && (
+              <button onClick={toggleFullscreen} className="p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group" title="Fullskjerm">
+                {isFullscreen ? <Minimize className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" /> : <Maximize className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />}
+              </button>
+            )}
+            <button onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group ${showMenu ? 'bg-[var(--glass-bg)]' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`} /></button>
+            {!connected && <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: '#ef4444'}} /></div>}
           </div>
         </div>
 
@@ -1729,9 +1857,9 @@ export default function App() {
               >
                 <div className="mb-4 px-2">
                   {editMode ? (
-                    <input type="text" className="bg-transparent border-b border-white/20 w-full text-xs font-bold uppercase tracking-widest text-gray-500 focus:text-white focus:border-blue-500 outline-none pb-1" value={col.title} onChange={(e) => saveColumnTitle(colIndex, e.target.value)} />
+                    <input type="text" className="bg-transparent border-b border-[var(--glass-border)] w-full text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] focus:text-[var(--text-primary)] focus:border-blue-500 outline-none pb-1" value={col.title} onChange={(e) => saveColumnTitle(colIndex, e.target.value)} />
                   ) : (
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">{col.title}</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{col.title}</h3>
                   )}
                 </div>
                 {col.cards.map((id, index) => renderCard(id, index, colIndex))}
@@ -1745,28 +1873,35 @@ export default function App() {
         )}
         
         {showConfigModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}}><div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}}><button onClick={() => setShowConfigModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button><h3 className="text-3xl font-light mb-10 text-white text-center uppercase tracking-widest italic">System</h3><div className="space-y-8 font-sans"><div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4 flex items-center gap-2">HA URL (Primær){connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label><input type="text" className="w-full px-6 py-5 text-white rounded-2xl border" style={{backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.1)'}} value={config.url} onChange={(e) => setConfig({...config, url: e.target.value})} /></div><div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4 flex items-center gap-2">HA URL (Fallback/Lokal){connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label><input type="text" className="w-full px-6 py-5 text-white rounded-2xl border" style={{backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.1)'}} value={config.fallbackUrl} onChange={(e) => setConfig({...config, fallbackUrl: e.target.value})} placeholder="Valfritt" /></div><div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4">Token</label><textarea className="w-full px-6 py-5 text-white h-48 rounded-2xl border" style={{backgroundColor: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,255,255,0.1)'}} value={config.token} onChange={(e) => setConfig({...config, token: e.target.value})} /></div></div><button onClick={() => setShowConfigModal(false)} className="w-full mt-10 py-5 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>Lagre og kople til</button></div></div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}}><div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}}><button onClick={() => setShowConfigModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button><h3 className="text-3xl font-light mb-10 text-center uppercase tracking-widest italic" style={{color: 'var(--text-primary)'}}>System</h3>
+          <div className="space-y-8 font-sans">
+            <div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4 flex items-center gap-2">HA URL (Primær){connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label><input type="text" className="w-full px-6 py-5 rounded-2xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} value={config.url} onChange={(e) => setConfig({...config, url: e.target.value})} /></div>
+            <div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4 flex items-center gap-2">HA URL (Fallback/Lokal){connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label><input type="text" className="w-full px-6 py-5 rounded-2xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} value={config.fallbackUrl} onChange={(e) => setConfig({...config, fallbackUrl: e.target.value})} placeholder="Valfritt" /></div>
+            <div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4">Token</label><textarea className="w-full px-6 py-5 h-48 rounded-2xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} value={config.token} onChange={(e) => setConfig({...config, token: e.target.value})} /></div>
+            <div className="space-y-2"><ModernDropdown label="Utsjånad" icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: 'Mørk', light: 'Lys' }} /></div>
+          </div>
+          <button onClick={() => setShowConfigModal(false)} className="w-full mt-10 py-5 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>Lagre og kople til</button></div></div>
         )}
 
         {showPowerModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowPowerModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[80vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowPowerModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowPowerModal(false)}>
+            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[80vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowPowerModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
               <div className="flex items-center gap-6 mb-6">
                 <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#fbbf24'}}><Zap className="w-10 h-10" /></div>
-                <h3 className="text-4xl font-light tracking-tight text-white uppercase italic">Straumpris</h3>
+                <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Straumpris</h3>
               </div>
-              <div className="flex justify-around items-center mb-8 px-4 py-4 rounded-2xl border" style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}>
+              <div className="flex justify-around items-center mb-8 px-4 py-4 rounded-2xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                  <div className="flex flex-col items-center">
                     <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Snitt</span>
-                    <span className="text-xl font-light text-white">{priceStats.avg.toFixed(2)}</span>
+                    <span className="text-xl font-light text-[var(--text-primary)]">{priceStats.avg.toFixed(2)}</span>
                  </div>
-                 <div className="w-px h-8 bg-white/10"></div>
+                 <div className="w-px h-8 bg-[var(--glass-border)]"></div>
                  <div className="flex flex-col items-center">
                     <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Låg</span>
                     <span className="text-xl font-light text-blue-400">{priceStats.min.toFixed(2)}</span>
                  </div>
-                 <div className="w-px h-8 bg-white/10"></div>
+                 <div className="w-px h-8 bg-[var(--glass-border)]"></div>
                  <div className="flex flex-col items-center">
                     <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Høg</span>
                     <span className="text-xl font-light text-red-400">{priceStats.max.toFixed(2)}</span>
@@ -1778,42 +1913,42 @@ export default function App() {
         )}
 
         {showClimateModal && entities[CLIMATE_ID] && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowClimateModal(false)}>
-            <div className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: isHeating ? 'rgba(249, 115, 22, 0.01)' : isCooling ? 'rgba(59, 130, 246, 0.01)' : '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowClimateModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-3 md:p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-6 h-6 md:w-8 md:h-8" /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowClimateModal(false)}>
+            <div className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: isHeating ? 'rgba(249, 115, 22, 0.01)' : isCooling ? 'rgba(59, 130, 246, 0.01)' : 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowClimateModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-3 md:p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-6 h-6 md:w-8 md:h-8" /></button>
               <div className="flex items-center gap-8 mb-12 font-sans">
-                <div className="p-6 rounded-3xl transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>
+                <div className="p-6 rounded-3xl transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)'}}>
                   {isCooling ? <Snowflake className="w-12 h-12" /> : <AirVent className="w-12 h-12" />}
                   
                 </div>
                 <div>
-                  <h3 className="text-4xl font-light tracking-tight text-white uppercase italic leading-none">Varmepumpe</h3>
-                  <div className="mt-3 px-4 py-1.5 rounded-full border inline-block transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)', borderColor: isCooling ? 'rgba(59, 130, 246, 0.2)' : isHeating ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255,255,255,0.1)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>
+                  <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">Varmepumpe</h3>
+                  <div className="mt-3 px-4 py-1.5 rounded-full border inline-block transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', borderColor: isCooling ? 'rgba(59, 130, 246, 0.2)' : isHeating ? 'rgba(249, 115, 22, 0.2)' : 'var(--glass-border)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)'}}>
                     <p className="text-xs uppercase font-bold italic tracking-widest">Status: {isHeating ? 'VARMAR' : isCooling ? 'KJØLER' : 'VENTAR'}</p>
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start font-sans">
-                <div className="lg:col-span-3 space-y-10 p-6 md:p-10 rounded-3xl border shadow-inner" style={{backgroundColor: 'rgba(0,0,0,0.2)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                <div className="lg:col-span-3 space-y-10 p-6 md:p-10 rounded-3xl border shadow-inner" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                   <div className="text-center font-sans">
                     <div className="flex justify-between items-center mb-6 px-4 italic">
                       <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.5em'}}>Innetemperatur</p>
                       <span className="text-xs uppercase font-bold" style={{letterSpacing: '0.3em', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>{String(getA(CLIMATE_ID, "current_temperature"))}°C</span>
                     </div>
                     <div className="flex items-center justify-center gap-4 mb-10">
-                      <span className="text-6xl md:text-9xl font-light italic text-white tracking-tighter leading-none select-none" style={{textShadow: '0 10px 25px rgba(0,0,0,0.8)', color: isHeating ? '#fef2f2' : isCooling ? '#f0f9ff' : '#ffffff'}}>
+                      <span className="text-6xl md:text-9xl font-light italic text-[var(--text-primary)] tracking-tighter leading-none select-none" style={{textShadow: '0 10px 25px rgba(0,0,0,0.1)', color: isHeating ? '#fef2f2' : isCooling ? '#f0f9ff' : 'var(--text-primary)'}}>
                         {String(getA(CLIMATE_ID, "temperature"))}
                       </span>
                       <span className="text-5xl font-medium leading-none mt-10 italic text-gray-700">°C</span>
                     </div>
                     <div className="flex items-center gap-8 px-4">
-                      <button onClick={() => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (getA(CLIMATE_ID, "temperature") || 21) - 0.5 })} className="p-6 rounded-full transition-all active:scale-90 shadow-lg border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)'}}>
+                      <button onClick={() => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (getA(CLIMATE_ID, "temperature") || 21) - 0.5 })} className="p-6 rounded-full transition-all active:scale-90 shadow-lg border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                         <Minus className="w-8 h-8" style={{strokeWidth: 3}} />
                       </button>
                       <div className="flex-grow font-sans">
                         <M3Slider min={16} max={30} step={0.5} value={getA(CLIMATE_ID, "temperature") || 21} onChange={(e) => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: parseFloat(e.target.value) })} colorClass={isCooling ? 'bg-blue-500' : isHeating ? 'bg-orange-500' : 'bg-white/20'} />
                       </div>
-                      <button onClick={() => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (getA(CLIMATE_ID, "temperature") || 21) + 0.5 })} className="p-6 rounded-full transition-all active:scale-90 shadow-lg border" style={{backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)'}}>
+                      <button onClick={() => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (getA(CLIMATE_ID, "temperature") || 21) + 0.5 })} className="p-6 rounded-full transition-all active:scale-90 shadow-lg border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                         <Plus className="w-8 h-8" style={{strokeWidth: 3}} />
                       </button>
                     </div>
@@ -1830,8 +1965,8 @@ export default function App() {
         )}
 
         {showLightModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLightModal(null)}>
-            <div className="border w-full max-w-xl rounded-3xl md:rounded-[2.5rem] p-6 font-sans relative max-h-[80vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowLightModal(null)}>
+            <div className="border w-full max-w-xl rounded-3xl md:rounded-[2.5rem] p-6 font-sans relative max-h-[80vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               
               {(() => {
                 const entity = entities[showLightModal];
@@ -1851,15 +1986,15 @@ export default function App() {
                     })()}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-light tracking-tight text-white uppercase italic leading-none">{String(getA(showLightModal, "friendly_name", "Lys"))}</h3>
+                    <h3 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">{String(getA(showLightModal, "friendly_name", "Lys"))}</h3>
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1.5 opacity-60">{isUnavailable ? 'Utilgjengelig' : 'Lysstyring'}</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
-                   <button onClick={() => !isUnavailable && callService("light", "toggle", { entity_id: showLightModal })} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border" style={{backgroundColor: isUnavailable ? 'rgba(255,255,255,0.05)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.2)' : 'rgba(255,255,255,0.05)'), borderColor: isUnavailable ? 'rgba(255,255,255,0.1)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.3)' : 'rgba(255,255,255,0.1)'), color: isUnavailable ? '#6b7280' : (entity?.state === 'on' ? '#fbbf24' : '#9ca3af'), cursor: isUnavailable ? 'not-allowed' : 'pointer'}}>
+                   <button onClick={() => !isUnavailable && callService("light", "toggle", { entity_id: showLightModal })} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border" style={{backgroundColor: isUnavailable ? 'var(--glass-bg)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.2)' : 'var(--glass-bg)'), borderColor: isUnavailable ? 'var(--glass-border)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.3)' : 'var(--glass-border)'), color: isUnavailable ? '#6b7280' : (entity?.state === 'on' ? '#fbbf24' : '#9ca3af'), cursor: isUnavailable ? 'not-allowed' : 'pointer'}}>
                       {isUnavailable ? <AlertTriangle className="w-5 h-5" /> : <Zap className="w-5 h-5" fill={entity?.state === 'on' ? "currentColor" : "none"} />}
                    </button>
-                   <button onClick={() => setShowLightModal(null)} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border hover:bg-white/10" style={{backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: '#9ca3af'}}><X className="w-5 h-5" /></button>
+                   <button onClick={() => setShowLightModal(null)} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border hover:bg-[var(--glass-bg-hover)]" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: '#9ca3af'}}><X className="w-5 h-5" /></button>
                 </div>
               </div>
 
@@ -1873,19 +2008,19 @@ export default function App() {
                 </div>
 
                 {getA(showLightModal, "entity_id", []).length > 0 && (
-                  <div className="space-y-4 pt-6 border-t" style={{borderColor: 'rgba(255,255,255,0.1)'}}>
+                  <div className="space-y-4 pt-6 border-t" style={{borderColor: 'var(--glass-border)'}}>
                     <p className="text-xs text-gray-400 uppercase font-bold ml-1 mb-2" style={{letterSpacing: '0.2em'}}>Lamper i rommet</p>
                     <div className="grid grid-cols-1 gap-3">
                       {getA(showLightModal, "entity_id", []).map(cid => {
                         const subEnt = entities[cid];
                         const subUnavail = subEnt?.state === 'unavailable' || subEnt?.state === 'unknown' || !subEnt;
                         return (
-                        <div key={cid} className={`p-4 rounded-2xl border flex items-center gap-4 transition-all ${subUnavail ? 'opacity-50' : ''}`} style={{backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                        <div key={cid} className={`p-4 rounded-2xl border flex items-center gap-4 transition-all ${subUnavail ? 'opacity-50' : ''}`} style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                           <span className="text-xs font-bold uppercase tracking-widest text-gray-300 w-1/3 truncate">{subEnt?.attributes?.friendly_name || cid.split('.')[1].replace(/_/g, ' ')}</span>
                           <div className="flex-grow">
                             <M3Slider min={0} max={255} step={1} value={subEnt?.attributes?.brightness || 0} disabled={subEnt?.state !== 'on' || subUnavail} onChange={(e) => callService("light", "turn_on", { entity_id: cid, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
                           </div>
-                          <button onClick={() => !subUnavail && callService("light", "toggle", { entity_id: cid })} className="w-10 h-6 rounded-full relative transition-all flex-shrink-0" style={{backgroundColor: subUnavail ? 'rgba(255,255,255,0.05)' : (subEnt?.state === 'on' ? 'rgba(217, 119, 6, 0.4)' : 'rgba(255,255,255,0.1)'), cursor: subUnavail ? 'not-allowed' : 'pointer'}}>
+                          <button onClick={() => !subUnavail && callService("light", "toggle", { entity_id: cid })} className="w-10 h-6 rounded-full relative transition-all flex-shrink-0" style={{backgroundColor: subUnavail ? 'var(--glass-bg)' : (subEnt?.state === 'on' ? 'rgba(217, 119, 6, 0.4)' : 'var(--glass-bg)'), cursor: subUnavail ? 'not-allowed' : 'pointer'}}>
                             <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all" style={{left: subEnt?.state === 'on' ? 'calc(100% - 4px - 16px)' : '4px', backgroundColor: subUnavail ? '#6b7280' : (subEnt?.state === 'on' ? '#fbbf24' : '#9ca3af')}} />
                           </button>
                         </div>
@@ -1902,33 +2037,33 @@ export default function App() {
         )}
 
         {showShieldModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowShieldModal(false)}>
-            <div className="border w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative font-sans bg-[#0d0d0f] border-white/10" onClick={(e) => e.stopPropagation()}>
-               <button onClick={() => setShowShieldModal(false)} className="absolute top-6 right-6 p-4 rounded-full bg-white/5 hover:bg-white/10"><X className="w-6 h-6" /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowShieldModal(false)}>
+            <div className="border w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+               <button onClick={() => setShowShieldModal(false)} className="absolute top-6 right-6 p-4 rounded-full bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]"><X className="w-6 h-6" /></button>
                
                <div className="flex flex-col items-center gap-8 mt-4">
                   <div className="flex items-center gap-4 mb-4">
-                     <div className={`p-4 rounded-2xl ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-500'}`}><Gamepad2 className="w-8 h-8" /></div>
-                     <div><h3 className="text-2xl font-light text-white uppercase italic tracking-widest">Shield</h3><p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{entities[SHIELD_ID]?.state === 'playing' ? 'Spelar no' : (entities[SHIELD_ID]?.state !== 'off' ? 'På' : 'Avslått')}</p></div>
+                     <div className={`p-4 rounded-2xl ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Gamepad2 className="w-8 h-8" /></div>
+                     <div><h3 className="text-2xl font-light text-[var(--text-primary)] uppercase italic tracking-widest">Shield</h3><p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{entities[SHIELD_ID]?.state === 'playing' ? 'Spelar no' : (entities[SHIELD_ID]?.state !== 'off' ? 'På' : 'Avslått')}</p></div>
                   </div>
 
-                  <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/5 relative">
+                  <div className="bg-[var(--glass-bg)] p-6 rounded-[2.5rem] border border-[var(--glass-border)] relative">
                      <div className="grid grid-cols-3 gap-4 items-center justify-items-center">
                         <div />
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_UP" })} className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all"><ChevronUp className="w-6 h-6" /></button>
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_UP" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronUp className="w-6 h-6" /></button>
                         <div />
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_LEFT" })} className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all"><ChevronLeft className="w-6 h-6" /></button>
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_CENTER" })} className="p-6 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all border border-white/10"><div className="w-4 h-4 rounded-full bg-white/50" /></button>
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_RIGHT" })} className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all"><ChevronRight className="w-6 h-6" /></button>
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_LEFT" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronLeft className="w-6 h-6" /></button>
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_CENTER" })} className="p-6 rounded-full bg-[var(--glass-bg-hover)] hover:bg-[var(--glass-bg)] active:scale-95 transition-all border border-[var(--glass-border)]"><div className="w-4 h-4 rounded-full bg-white/50" /></button>
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_RIGHT" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronRight className="w-6 h-6" /></button>
                         <div />
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_DOWN" })} className="p-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all"><ChevronDown className="w-6 h-6" /></button>
+                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_DOWN" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronDown className="w-6 h-6" /></button>
                         <div />
                      </div>
                   </div>
 
-                  <div className="flex gap-6 w-full justify-center"><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "BACK" })} className="flex-1 py-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">Tilbake</button><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "HOME" })} className="flex-1 py-4 rounded-2xl bg-white/5 hover:bg-white/10 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">Heim</button></div>
+                  <div className="flex gap-6 w-full justify-center"><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "BACK" })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">Tilbake</button><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "HOME" })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">Heim</button></div>
 
-                  <div className="flex gap-4 w-full pt-4 border-t border-white/5">
+                  <div className="flex gap-4 w-full pt-4 border-t border-[var(--glass-border)]">
                      <button onClick={() => callService("media_player", "toggle", { entity_id: SHIELD_ID })} className={`flex-1 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'}`}><Power className="w-4 h-4" /> {entities[SHIELD_ID]?.state !== 'off' ? 'Slå av' : 'Slå på'}</button>
                      <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "MEDIA_PLAY_PAUSE" })} className="flex-1 py-4 rounded-2xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2"><Play className="w-4 h-4" /> Spel/Pause</button>
                   </div>
@@ -1938,29 +2073,29 @@ export default function App() {
         )}
 
         {showRockyModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowRockyModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowRockyModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowRockyModal(false)}>
+            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowRockyModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
               
               <div className="flex items-center gap-6 mb-10">
                 <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa'}}><Bot className="w-10 h-10" /></div>
                 <div>
-                  <h3 className="text-4xl font-light tracking-tight text-white uppercase italic">Rocky</h3>
+                  <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Rocky</h3>
                   <p className="text-xs text-gray-500 uppercase font-bold mt-2" style={{letterSpacing: '0.1em'}}>Status: {entities[ROCKY_ID]?.state}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                   <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Sist vaska</p>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-white">{getA(ROCKY_ID, "squareMeterCleanArea", 0)}</span><span className="text-gray-500 font-medium">m²</span></div>
+                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{getA(ROCKY_ID, "squareMeterCleanArea", 0)}</span><span className="text-gray-500 font-medium">m²</span></div>
                   <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">Tid: {Math.round(getA(ROCKY_ID, "cleanTime", 0) / 60)} min</p>
                 </div>
-                <div className="p-8 rounded-3xl border flex flex-col justify-center gap-4" style={{backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                <div className="p-8 rounded-3xl border flex flex-col justify-center gap-4" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                    <button onClick={() => callService("vacuum", entities[ROCKY_ID]?.state === "cleaning" ? "pause" : "start", { entity_id: ROCKY_ID })} className="w-full py-4 rounded-2xl bg-blue-500/20 text-blue-400 font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-2">{entities[ROCKY_ID]?.state === "cleaning" ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Start</>}</button>
                    <div className="flex gap-4">
-                     <button onClick={() => callService("vacuum", "return_to_base", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold uppercase tracking-widest hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><Home className="w-4 h-4" /> Heim</button>
-                     <button onClick={() => callService("vacuum", "locate", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold uppercase tracking-widest hover:bg-white/10 transition-colors flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> Finn</button>
+                     <button onClick={() => callService("vacuum", "return_to_base", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><Home className="w-4 h-4" /> Heim</button>
+                     <button onClick={() => callService("vacuum", "locate", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> Finn</button>
                    </div>
                 </div>
               </div>
@@ -1976,14 +2111,14 @@ export default function App() {
         )}
 
         {showLeafModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowLeafModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowLeafModal(false)}>
+            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
                 <div className="flex items-center gap-6">
                   <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e'}}><Car className="w-10 h-10" /></div>
                   <div>
-                    <h3 className="text-4xl font-light tracking-tight text-white uppercase italic">Nissan Leaf</h3>
+                    <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Nissan Leaf</h3>
                     <div className="flex items-center gap-2 mt-2">
                       <Clock className="w-3 h-3 text-gray-500" />
                       <p className="text-xs text-gray-500 uppercase font-bold" style={{letterSpacing: '0.1em'}}>Oppdatert: {formatRelativeTime(entities[LEAF_LAST_UPDATED]?.state)}</p>
@@ -1994,38 +2129,38 @@ export default function App() {
                   <button 
                     onClick={() => callService("button", "press", { entity_id: LEAF_UPDATE })}
                     className="flex items-center gap-3 px-6 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all hover:bg-white/5 active:scale-95" 
-                    style={{backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff'}}
+                    style={{backgroundColor: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)'}}
                   >
                     <RefreshCw className="w-4 h-4" /> Oppdater
                   </button>
-                  <button onClick={() => setShowLeafModal(false)} className="p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
+                  <button onClick={() => setShowLeafModal(false)} className="p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                   <div className="flex justify-between items-start mb-3">
                     <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Batteri</p>
                     {entities[LEAF_CHARGING]?.state === 'on' && <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />}
                   </div>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-white">{String(getS(LEAF_ID))}</span><span className="text-gray-500 font-medium">%</span></div>
+                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_ID))}</span><span className="text-gray-500 font-medium">%</span></div>
                   <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">{entities[LEAF_PLUGGED]?.state === 'on' ? 'Plugga i' : 'Ikkje plugga i'}</p>
                 </div>
-                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                   <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Rekkevidde</p>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-white">{String(getS(LEAF_RANGE))}</span><span className="text-gray-500 font-medium">km</span></div>
+                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_RANGE))}</span><span className="text-gray-500 font-medium">km</span></div>
                 </div>
-                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,255,255,0.05)'}}>
+                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
                   <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Temp inne</p>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-white">{String(getS(LEAF_INTERNAL_TEMP))}</span><span className="text-gray-500 font-medium">°C</span></div>
+                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_INTERNAL_TEMP))}</span><span className="text-gray-500 font-medium">°C</span></div>
                 </div>
                 <div className="p-6 rounded-3xl border flex flex-col justify-between" 
-                     style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(0,0,0,0.3)', borderColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255,255,255,0.05)'}}
+                     style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', borderColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.3)' : 'var(--glass-border)'}}
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fb923c' : '#9ca3af'}}>Klima</p>
-                      <p className="text-2xl font-light italic text-white mt-1">{entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'PÅ' : 'AV'}</p>
+                      <p className="text-2xl font-light italic text-[var(--text-primary)] mt-1">{entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'PÅ' : 'AV'}</p>
                     </div>
                     <button onClick={() => callService("climate", entities[LEAF_CLIMATE]?.state === 'heat_cool' ? "turn_off" : "turn_on", { entity_id: LEAF_CLIMATE })} className="w-12 h-7 rounded-full relative transition-all" style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.4)' : 'rgba(255,255,255,0.1)'}}>
                       <div className="absolute top-1 w-5 h-5 rounded-full bg-white transition-all" style={{left: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'calc(100% - 5px - 20px)' : '4px', backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fbbf24' : '#9ca3af'}} />
@@ -2063,8 +2198,81 @@ export default function App() {
           </div>
         )}
 
+        {showUpdateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }}>
+            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+              <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Oppdateringar</h3>
+              
+              <div className="space-y-4">
+                {Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on').map(id => {
+                    const entity = entities[id];
+                    const attr = entity.attributes;
+                    const picture = attr.entity_picture 
+                        ? (attr.entity_picture.startsWith('http') ? attr.entity_picture : `${activeUrl.replace(/\/$/, '')}${attr.entity_picture}`) 
+                        : null;
+                    const inProgress = attr.in_progress;
+                    const isExpanded = expandedUpdate === id;
+                    
+                    return (
+                        <div key={id} className="rounded-3xl border overflow-hidden transition-all duration-300" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                            <div 
+                                className="p-4 flex flex-col md:flex-row items-center gap-4 cursor-pointer"
+                                onClick={() => {
+                                    if (isExpanded) setExpandedUpdate(null);
+                                    else {
+                                        setExpandedUpdate(id);
+                                        fetchReleaseNotes(id);
+                                    }
+                                }}
+                            >
+                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0">
+                                    {picture ? <img src={picture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><RefreshCw className="w-6 h-6 text-[var(--text-secondary)]" /></div>}
+                                </div>
+                                <div className="flex-grow text-center md:text-left">
+                                    <h4 className="text-base font-bold text-[var(--text-primary)]">{attr.title || attr.friendly_name}</h4>
+                                    <div className="flex items-center justify-center md:justify-start gap-2 mt-0.5 text-xs">
+                                        <span className="text-[var(--text-secondary)]">{attr.installed_version}</span>
+                                        <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
+                                        <span className="text-green-400 font-bold">{attr.latest_version}</span>
+                                    </div>
+                                    {!isExpanded && attr.release_summary && <p className="text-[10px] text-[var(--text-muted)] mt-1 line-clamp-1">{attr.release_summary}</p>}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); callService("update", "install", { entity_id: id }); }}
+                                        disabled={inProgress}
+                                        className={`px-4 py-2 rounded-lg font-bold uppercase tracking-widest text-[10px] transition-all ${inProgress ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20'}`}
+                                    >
+                                        {inProgress ? 'Oppdaterer...' : 'Oppdater'}
+                                    </button>
+                                    <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                                </div>
+                            </div>
+                            
+                            {isExpanded && (
+                                <div className="px-4 pb-4 pt-0 border-t border-[var(--glass-border)]">
+                                    <div className="pt-3 text-xs text-[var(--text-secondary)] leading-relaxed" dangerouslySetInnerHTML={{ __html: parseMarkdown(releaseNotes[id] || attr.release_summary || "Ingen detaljar tilgjengeleg.") }} />
+                                    {attr.release_url && (
+                                        <a href={attr.release_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 mt-3 text-blue-400 hover:text-blue-300 text-[10px] font-bold uppercase tracking-widest" onClick={(e) => e.stopPropagation()}>
+                                            Les meir <ArrowRight className="w-3 h-3" />
+                                        </a>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+                {Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on').length === 0 && (
+                    <p className="text-center text-[var(--text-secondary)] py-10">Ingen oppdateringar tilgjengeleg</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {showAddCardModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowAddCardModal(false)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowAddCardModal(false)}>
             <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
@@ -2080,14 +2288,14 @@ export default function App() {
                 background: rgba(255, 255, 255, 0.25);
               }
             `}</style>
-            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowAddCardModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
-              <h3 className="text-3xl font-light mb-8 text-white text-center uppercase tracking-widest italic">Legg til kort</h3>
+            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowAddCardModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+              <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Legg til kort</h3>
               
               {addCardTargetPage === 'settings' && (
                 <div className="mb-6 relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <input type="text" placeholder="Søk etter entitet..." className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-white outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} autoFocus />
+                  <input type="text" placeholder="Søk etter entitet..." className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-4 py-3 text-[var(--text-primary)] outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} autoFocus />
                 </div>
               )}
               
@@ -2102,21 +2310,29 @@ export default function App() {
                     <button 
                       key={p.id} 
                       onClick={() => setAddCardTargetPage(p.id)}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardTargetPage === p.id ? 'bg-white/10 text-white border-white/10' : 'bg-white/5 text-gray-400 border-transparent hover:bg-white/10 hover:text-white'}`}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardTargetPage === p.id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <Icon className="w-4 h-4" />
                       {label}
                     </button>
                   );})}
+                  <button 
+                      onClick={() => setAddCardTargetPage('header')}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardTargetPage === 'header' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <User className="w-4 h-4" />
+                      Personar
+                  </button>
                 </div>
               </div>
 
               <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 <div>
-                  <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : (addCardTargetPage === 'settings' ? 'Alle entitetar' : 'Tilgjengelege lys')}</p>
+                  <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'header' ? 'Tilgjengelege personar' : (addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : (addCardTargetPage === 'settings' ? 'Alle entitetar' : 'Tilgjengelege lys'))}</p>
                   <div className="space-y-3">
                     {Object.keys(entities)
                       .filter(id => {
+                        if (addCardTargetPage === 'header') return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
                         if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
                         if (addCardTargetPage === 'settings') {
                            const isNotAdded = !(pagesConfig.settings || []).includes(id);
@@ -2136,29 +2352,30 @@ export default function App() {
                         <button key={id} onClick={() => {
                             if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
                             else setSelectedEntities(prev => [...prev, id]);
-                        }} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${selectedEntities.includes(id) ? 'bg-blue-500/20 border-blue-500/50' : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/5'}`}>
+                        }} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${selectedEntities.includes(id) ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
                           <div className="flex flex-col overflow-hidden mr-4">
-                            <span className={`text-sm font-bold transition-colors truncate ${selectedEntities.includes(id) ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                            <span className={`text-sm font-bold transition-colors truncate ${selectedEntities.includes(id) ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
                             <span className={`text-[10px] font-mono truncate ${selectedEntities.includes(id) ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
                           </div>
-                          <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${selectedEntities.includes(id) ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                          <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${selectedEntities.includes(id) ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                             {selectedEntities.includes(id) ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                           </div>
                         </button>
                       ))}
                       {Object.keys(entities).filter(id => {
+                        if (addCardTargetPage === 'header') return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
                         if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
                         if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
                         return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                       }).length === 0 && (
-                        <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'automations' ? 'automasjonar' : (addCardTargetPage === 'settings' ? 'entitetar' : 'lys')} å legge til</p>
+                        <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'header' ? 'personar' : (addCardTargetPage === 'automations' ? 'automasjonar' : (addCardTargetPage === 'settings' ? 'entitetar' : 'lys'))} å legge til</p>
                       )}
                   </div>
                 </div>
               </div>
               
               {selectedEntities.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-white/10">
+                <div className="mt-8 pt-6 border-t border-[var(--glass-border)]">
                     <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                         <Plus className="w-5 h-5" /> Legg til {selectedEntities.length} {selectedEntities.length === 1 ? 'kort' : 'kort'}
                     </button>
@@ -2169,17 +2386,17 @@ export default function App() {
         )}
 
         {editingPage && (
-          <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setEditingPage(null)}>
-            <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-               <button onClick={() => setEditingPage(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
-               <h3 className="text-2xl font-light mb-6 text-white uppercase tracking-widest italic">Rediger side</h3>
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setEditingPage(null)}>
+            <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+               <button onClick={() => setEditingPage(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+               <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">Rediger side</h3>
                
                <div className="space-y-8">
                  <div className="space-y-2">
                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
                    <input 
                      type="text" 
-                     className="w-full px-6 py-4 text-white rounded-2xl border bg-black/40 border-white/10 focus:border-blue-500/50 outline-none transition-colors"
+                     className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] focus:border-blue-500/50 outline-none transition-colors"
                      value={pageSettings[editingPage]?.label || pages.find(p => p.id === editingPage)?.label}
                      onChange={(e) => {
                         const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], label: e.target.value } };
@@ -2196,7 +2413,7 @@ export default function App() {
                         const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: null } };
                         setPageSettings(newSettings);
                         localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                    }} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!pageSettings[editingPage]?.icon ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                    }} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!pageSettings[editingPage]?.icon ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
                     {Object.keys(ICON_MAP).map(iconName => {
                       const Icon = ICON_MAP[iconName];
                       const isSelected = pageSettings[editingPage]?.icon === iconName;
@@ -2205,13 +2422,13 @@ export default function App() {
                             const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: iconName } };
                             setPageSettings(newSettings);
                             localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                        }} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`} title={iconName}><Icon className="w-5 h-5" /></button>
+                        }} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title={iconName}><Icon className="w-5 h-5" /></button>
                       );
                     })}
                   </div>
                 </div>
                  
-                 <div className="flex items-center justify-between px-6 py-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                 <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Skjul side</span>
                     <button 
                       onClick={() => {
@@ -2219,7 +2436,7 @@ export default function App() {
                         setPageSettings(newSettings);
                         localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
                       }}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${pageSettings[editingPage]?.hidden ? 'bg-blue-500' : 'bg-white/10'}`}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${pageSettings[editingPage]?.hidden ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${pageSettings[editingPage]?.hidden ? 'left-7' : 'left-1'}`} />
                     </button>
@@ -2230,7 +2447,7 @@ export default function App() {
         )}
 
         {showEditCardModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowEditCardModal(null)}>
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowEditCardModal(null)}>
             <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
@@ -2246,16 +2463,16 @@ export default function App() {
                 background: rgba(255, 255, 255, 0.25);
               }
             `}</style>
-            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowEditCardModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}><X className="w-8 h-8" /></button>
-              <h3 className="text-3xl font-light mb-8 text-white text-center uppercase tracking-widest italic">Rediger kort</h3>
+            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowEditCardModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+              <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Rediger kort</h3>
               
               <div className="space-y-8">
                 <div className="space-y-2">
                   <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
                   <input 
                     type="text" 
-                    className="w-full px-6 py-4 text-white rounded-2xl border bg-black/40 border-white/10 focus:border-blue-500/50 outline-none transition-colors" 
+                    className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] focus:border-blue-500/50 outline-none transition-colors" 
                     defaultValue={customNames[showEditCardModal] || (entities[showEditCardModal]?.attributes?.friendly_name || '')}
                     onBlur={(e) => saveCustomName(showEditCardModal, e.target.value)}
                     placeholder="Standard navn"
@@ -2265,31 +2482,31 @@ export default function App() {
                 <div className="space-y-2">
                   <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
                   <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                    <button onClick={() => saveCustomIcon(showEditCardModal, null)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!customIcons[showEditCardModal] ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                    <button onClick={() => saveCustomIcon(showEditCardModal, null)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!customIcons[showEditCardModal] ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
                     {Object.keys(ICON_MAP).map(iconName => {
                       const Icon = ICON_MAP[iconName];
                       return (
-                        <button key={iconName} onClick={() => saveCustomIcon(showEditCardModal, iconName)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${customIcons[showEditCardModal] === iconName ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'}`} title={iconName}><Icon className="w-5 h-5" /></button>
+                        <button key={iconName} onClick={() => saveCustomIcon(showEditCardModal, iconName)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${customIcons[showEditCardModal] === iconName ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title={iconName}><Icon className="w-5 h-5" /></button>
                       );
                     })}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between px-6 py-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis status</span>
                     <button 
                       onClick={() => saveCardSetting(showEditCardModal, 'showStatus', !(cardSettings[showEditCardModal]?.showStatus !== false))}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.showStatus !== false ? 'bg-blue-500' : 'bg-white/10'}`}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${cardSettings[showEditCardModal]?.showStatus !== false ? 'left-7' : 'left-1'}`} />
                     </button>
                 </div>
 
-                <div className="flex items-center justify-between px-6 py-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
+                <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis sist endra</span>
                     <button 
                       onClick={() => saveCardSetting(showEditCardModal, 'showLastChanged', !(cardSettings[showEditCardModal]?.showLastChanged !== false))}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.showLastChanged !== false ? 'bg-blue-500' : 'bg-white/10'}`}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${cardSettings[showEditCardModal]?.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
                     </button>
@@ -2300,8 +2517,8 @@ export default function App() {
         )}
 
         {showCameraModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'rgba(0,0,0,0.7)'}} onClick={() => setShowCameraModal(false)}>
-            <div className="border w-full max-w-4xl rounded-[3rem] p-4 shadow-2xl relative font-sans overflow-hidden" style={{backgroundColor: '#0d0d0f', borderColor: 'rgba(255,255,255,0.1)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowCameraModal(false)}>
+            <div className="border w-full max-w-4xl rounded-[3rem] p-4 shadow-2xl relative font-sans overflow-hidden" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowCameraModal(false)} className="absolute top-6 right-6 p-4 rounded-full z-10" style={{backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)'}}><X className="w-6 h-6 text-white" /></button>
               <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden bg-black relative">
                  {entities[CAMERA_PORTEN_ID] ? (
@@ -2320,8 +2537,8 @@ export default function App() {
 
         {activeMediaModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 backdrop-blur-3xl bg-black/70 font-sans" onClick={() => setActiveMediaModal(null)}>
-            <div className="bg-[#0d0d0f] border border-white/10 w-full max-w-5xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative max-h-[95vh] overflow-y-auto md:overflow-hidden flex flex-col md:flex-row gap-6 md:gap-12" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setActiveMediaModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-3 md:p-5 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white z-20 shadow-lg"><X className="w-6 h-6 md:w-8 md:h-8" /></button>
+            <div className="w-full max-w-5xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative max-h-[95vh] overflow-y-auto md:overflow-hidden flex flex-col md:flex-row gap-6 md:gap-12" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', borderWidth: '1px'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setActiveMediaModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-3 md:p-5 rounded-full transition-colors z-20 shadow-lg" style={{backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)'}}><X className="w-6 h-6 md:w-8 md:h-8" /></button>
               
               {(() => {
                 const isSonos = activeMediaModal === 'sonos';
@@ -2338,7 +2555,7 @@ export default function App() {
                     else currentMp = mediaEntities[0];
                 }
                 
-                if (!currentMp) return <div className="text-white">Ingen mediaspelar funnen</div>;
+                if (!currentMp) return <div className="text-[var(--text-primary)]">Ingen mediaspelar funnen</div>;
 
                 const mpId = currentMp.entity_id;
                 const mpState = currentMp.state;
@@ -2363,7 +2580,7 @@ export default function App() {
                      else if (!mpSeries && season) mpSeries = season;
                 }
                 if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
-                if (isTV) mpSeries = 'Stue';
+        if (isTV) mpSeries = 'Stova';
 
                 const mpApp = getA(mpId, 'app_name');
                 const mpPicture = !isTV && currentMp.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${currentMp.attributes.entity_picture}` : null;
@@ -2383,13 +2600,13 @@ export default function App() {
                 return (
                   <>
                     <div className="flex-1 flex flex-col justify-center relative z-10">
-                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start mb-8 ${isSonos ? 'bg-white/5 border-white/10' : (serverInfo.bg + ' ' + serverInfo.border)}`}>
-                        {isSonos ? <Music className="w-4 h-4 text-white" /> : <ServerIcon className={`w-4 h-4 ${serverInfo.color}`} />}
-                        <span className={`text-xs font-bold uppercase tracking-widest ${isSonos ? 'text-white' : serverInfo.color}`}>{isSonos ? 'SONOS' : serverInfo.name}</span>
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start mb-8 ${isSonos ? 'bg-[var(--glass-bg)] border-[var(--glass-border)]' : (serverInfo.bg + ' ' + serverInfo.border)}`}>
+                        {isSonos ? <Music className="w-4 h-4 text-[var(--text-primary)]" /> : <ServerIcon className={`w-4 h-4 ${serverInfo.color}`} />}
+                        <span className={`text-xs font-bold uppercase tracking-widest ${isSonos ? 'text-[var(--text-primary)]' : serverInfo.color}`}>{isSonos ? 'SONOS' : serverInfo.name}</span>
                       </div>
 
                       <div className="flex flex-col gap-6">
-                        <div className={`${isSonos ? 'h-64 w-64 mx-auto' : 'aspect-video w-full'} rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-white/5 relative group`}>
+                        <div className={`${isSonos ? 'h-64 w-64 mx-auto' : 'aspect-video w-full'} rounded-3xl overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--glass-bg)] relative group`}>
                           {mpPicture ? <img src={mpPicture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
                           <div className="absolute bottom-0 left-0 w-full p-8">
@@ -2417,21 +2634,21 @@ export default function App() {
                           {isSonos ? (
                             <div className="flex flex-col gap-4 pt-2">
                               <div className="flex items-center justify-center gap-6">
-                                <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500 hover:text-gray-300'}`}><Shuffle className="w-4 h-4" /></button>
+                                <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-4 h-4" /></button>
                                 
-                                <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-gray-300" /></button>
-                                <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-3 bg-white text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95 shadow-lg shadow-white/10">
+                                <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-[var(--text-secondary)]" /></button>
+                                <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-3 rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
                                   {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
                                 </button>
-                                <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-gray-300" /></button>
+                                <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-[var(--text-secondary)]" /></button>
                                 
-                                <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-gray-500 hover:text-gray-300'}`}>
+                                <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                                   {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
                                 </button>
                               </div>
                               
-                              <div className="flex items-center gap-3 px-2 pt-2 border-t border-white/5">
-                                <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-gray-400 hover:text-white">
+                              <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
+                                <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                                     {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
                                 </button>
                                 <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
@@ -2439,18 +2656,18 @@ export default function App() {
                             </div>
                           ) : (
                             <div className="flex items-center justify-center gap-8 pt-2">
-                              <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-gray-300" /></button>
-                              <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 bg-white text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95 shadow-lg shadow-white/10">
+                              <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-[var(--text-secondary)]" /></button>
+                              <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
                                 {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
                               </button>
-                              <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-white/10 rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-gray-300" /></button>
+                              <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-[var(--text-secondary)]" /></button>
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-white/10 pt-6 md:pt-24 pl-0 md:pl-12 flex flex-col gap-6 overflow-y-auto">
+                    <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-[var(--glass-border)] pt-6 md:pt-24 pl-0 md:pl-12 flex flex-col gap-6 overflow-y-auto">
                       <div className="flex items-center justify-between">
                         <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{isSonos ? 'Sonos Spelarar' : 'Aktive spelarar'}</h3>
                         {isSonos && listPlayers.length > 1 && (
@@ -2480,14 +2697,14 @@ export default function App() {
                            const isSelf = p.entity_id === mpId;
 
                            return (
-                             <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-white/10 border-white/20' : 'hover:bg-white/5 border-transparent'}`}>
+                             <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'}`}>
                                <button onClick={() => setActiveMediaId(p.entity_id)} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
-                                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 relative">
+                                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
                                  {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isSonos ? <Speaker className="w-5 h-5 text-gray-600" /> : <Music className="w-5 h-5 text-gray-600" />}</div>}
                                  {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
                                </div>
                                <div className="overflow-hidden">
-                                 <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
+                                 <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
                                  <p className="text-[10px] text-gray-600 truncate mt-0.5">{getA(p.entity_id, 'media_title', 'Ukjend')}</p>
                                </div>
                                </button>
@@ -2501,7 +2718,7 @@ export default function App() {
                                        callService("media_player", "join", { entity_id: mpId, group_members: [p.entity_id] });
                                      }
                                    }}
-                                   className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white'}`}
+                                   className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                                    title={isMember ? "Fjern frå gruppe" : "Legg til i gruppe"}
                                  >
                                    {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
