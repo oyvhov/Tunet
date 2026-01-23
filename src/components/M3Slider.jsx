@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const M3Slider = ({ min, max, step, value, onChange, colorClass = "bg-blue-500", disabled = false, variant = "default" }) => {
   const [internalValue, setInternalValue] = useState(value);

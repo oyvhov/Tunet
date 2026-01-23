@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 // Hjelpefunksjon for å lage mjuke kurver (Catmull-Rom til Bezier)
 const getSvgPath = (points, smoothing = 0.35) => {
@@ -42,7 +42,7 @@ export default function WeatherGraph({ history, currentTemp }) {
   const data = useMemo(() => {
     if (!history || history.length === 0) return [];
 
-    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
 
     // Behandle historikk
     let points = history
@@ -50,7 +50,7 @@ export default function WeatherGraph({ history, currentTemp }) {
           time: new Date(d.last_updated),
           temp: parseFloat(d.state),
         }))
-        .filter(p => !isNaN(p.temp) && p.time >= sixHoursAgo)
+        .filter(p => !isNaN(p.temp) && p.time >= twelveHoursAgo)
         .sort((a, b) => a.time - b.time);
 
     // Legg til nåtidspunkt
@@ -79,10 +79,12 @@ export default function WeatherGraph({ history, currentTemp }) {
 
   const minTemp = Math.min(...plotData.map(d => d.temp));
   const maxTemp = Math.max(...plotData.map(d => d.temp));
-  
-  // Legg til litt padding oppe og nede
-  const yMin = minTemp - 12;
-  const yMax = maxTemp + 12;
+
+  // Legg til litt padding dynamisk basert på dataintervallet
+  const baseRange = maxTemp - minTemp || 1;
+  const padding = Math.max(2, baseRange * 0.15);
+  const yMin = minTemp - padding;
+  const yMax = maxTemp + padding;
   const yRange = yMax - yMin || 1;
 
   const minTime = plotData[0].time.getTime();

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 
 export default function InteractivePowerGraph({ data, currentIndex }) {
   const [hoverIndex, setHoverIndex] = useState(null);

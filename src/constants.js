@@ -2,6 +2,8 @@ export const CLIMATE_ID = "climate.varmepumpe";
 export const NORDPOOL_ID = "sensor.nordpool_kwh_no3_nok_1_10_025";
 export const TIBBER_ID = "sensor.tibber_strom_pris";
 export const LEAF_ID = "sensor.leaf_battery_level";
+export const WEATHER_ENTITY = "weather.hjem";
+export const OUTSIDE_TEMP_ID = "sensor.utetemperatur_midttunet_temperature";
 export const OYVIND_ID = "person.oyvind";
 export const TUVA_ID = "person.tuva";
 export const LIGHT_KJOKKEN = "light.kjokken";
@@ -18,6 +20,8 @@ export const GARAGE_DOOR_ID = "binary_sensor.garasjeport_contact";
 export const CAMERA_PORTEN_ID = "camera.porten";
 export const OYVIND_BAT_LEVEL = "sensor.pixel_9_pro_xl_battery_level";
 export const OYVIND_BAT_STATE = "sensor.pixel_9_pro_xl_battery_state";
+export const SHIELD_ID = "media_player.shieldtv";
+export const SHIELD_REMOTE_ID = "remote.shield";
 export const LEAF_CLIMATE = "climate.leaf_climate";
 export const COST_TODAY_ID = "sensor.tibber_forbruk_kroner";
 export const COST_MONTH_ID = "sensor.monthly_cost_midttunet";
@@ -69,29 +73,29 @@ export const LEAF_LAST_UPDATED = "sensor.leaf_last_updated";
 export const LEAF_INTERNAL_TEMP = "sensor.leaf_internal_temperature";
 
 export const HVAC_MAP = {
-  'off': 'Av',
-  'heat_cool': 'Auto',
-  'cool': 'Kjøling',
-  'dry': 'Tørking',
-  'fan_only': 'Vifte',
-  'heat': 'Varme'
+  off: "Av",
+  heat_cool: "Auto",
+  cool: "Kjøling",
+  dry: "Tørking",
+  fan_only: "Vifte",
+  heat: "Varme"
 };
 
 export const FAN_MAP = {
-  'Auto': 'Auto',
-  'Low': 'Låg',
-  'LowMid': 'Låg-Middels',
-  'Mid': 'Middels',
-  'HighMid': 'Høg-Middels',
-  'High': 'Høg'
+  Auto: "Auto",
+  Low: "Låg",
+  LowMid: "Låg-Middels",
+  Mid: "Middels",
+  HighMid: "Høg-Middels",
+  High: "Høg"
 };
 
 export const SWING_MAP = {
-  'Auto': 'Auto',
-  'Up': 'Opp',
-  'UpMid': 'Opp-Middels',
-  'Mid': 'Middels',
-  'DownMid': 'Ned-Middels',
-  'Down': 'Ned',
-  'Swing': 'Sving'
+  Auto: "Auto",
+  Up: "Opp",
+  UpMid: "Opp-Middels",
+  Mid: "Middels",
+  DownMid: "Ned-Middels",
+  Down: "Ned",
+  Swing: "Sving"
 };

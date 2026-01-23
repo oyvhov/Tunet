@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function SparkLine({ data, currentIndex }) {
   if (!data || data.length === 0) return null;
   const values = data.map(d => d.value);

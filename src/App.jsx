@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { 
   Zap, 
   Wind, 
@@ -110,80 +110,48 @@ import InteractivePowerGraph from './components/InteractivePowerGraph';
 import SparkLine from './components/SparkLine';
 import WeatherGraph from './components/WeatherGraph';
 import { themes } from './themes';
-
-const CLIMATE_ID = "climate.varmepumpe";
-const NORDPOOL_ID = "sensor.nordpool_kwh_no3_nok_1_10_025";
-const TIBBER_ID = "sensor.tibber_strom_pris";
-const LEAF_ID = "sensor.leaf_battery_level";
-const WEATHER_ENTITY = "weather.hjem";
-const OUTSIDE_TEMP_ID = "sensor.utetemperatur_midttunet_temperature";
-const OYVIND_ID = "person.oyvind";
-const TUVA_ID = "person.tuva";
-const LIGHT_KJOKKEN = "light.kjokken";
-const LIGHT_STOVA = "light.stova";
-const LIGHT_STUDIO = "light.studioet_kontorpult";
-const REFRIGERATOR_ID = "binary_sensor.kjoleskap";
-const EILEV_DOOR_ID = "binary_sensor.dorsensor_eilev_opening_2";
-const OLVE_DOOR_ID = "binary_sensor.kleven_dor_sensor_contact";
-const STUDIO_PRESENCE_ID = "binary_sensor.studioet_opphld_presence";
-const ROCKY_ID = "vacuum.rocky";
-const ROCKY_ROOM_ID = "sensor.rocky_rom";
-const PORTEN_MOTION_ID = "binary_sensor.bevegelsessensor_porten";
-const GARAGE_DOOR_ID = "binary_sensor.garasjeport_contact";
-const CAMERA_PORTEN_ID = "camera.porten";
-const OYVIND_BAT_LEVEL = "sensor.pixel_9_pro_xl_battery_level";
-const OYVIND_BAT_STATE = "sensor.pixel_9_pro_xl_battery_state";
-const SHIELD_ID = "media_player.shieldtv";
-const SHIELD_REMOTE_ID = "remote.shield";
-const LEAF_CLIMATE = "climate.leaf_climate";
-const COST_TODAY_ID = "sensor.tibber_forbruk_kroner";
-const COST_MONTH_ID = "sensor.monthly_cost_midttunet";
-const BIBLIOTEK_SESSIONS_ID = "sensor.bibliotek_sessions";
-const MEDIA_PLAYER_IDS = [
-  "media_player.bibliotek_sander_tv_65",
-  "media_player.bibliotek_hilde_tv",
-  "media_player.bibliotek_stue",
-  "media_player.bibliotek_gaute_tv",
-  "media_player.bibliotek_shield_tv",
-  "media_player.bibliotek_google_chrome_windows_3",
-  "media_player.midttunet_shield_tv_2",
-  "media_player.midttunet_pixel_9_pro_xl",
-  "media_player.bibliotek_oyvind_sin_tab_a9",
-  "media_player.bibliotek_galaxy_tab_s7",
-  "media_player.bibliotek_desktop_9ubckf5",
-  "media_player.bibliotek_oneplus_nord2_5g",
-  "media_player.bibliotek_chromecast",
-  "media_player.bibliotek_chromecast_2",
-  "media_player.bibliotek_google_tv_3",
-  "media_player.bibliotek_google_chrome_windows",
-  "media_player.bibliotek_google_chrome_windows_2",
-  "media_player.bibliotek_telia_box",
-  "media_player.bibliotek_bibliotek",
-  "media_player.bibliotek_samsung_tv_vindheim",
-  "media_player.bibliotek_pixel_9a",
-  "media_player.bibliotek_chromecast_3",
-  "media_player.bibliotek_familiestue",
-  "media_player.bibliotek_get_box_asbjorn",
-  "media_player.bibliotek_chromecast_4",
-  "media_player.bibliotek_chromecast_5",
-  "media_player.midttunet_android",
-  "media_player.bibliotek_eple",
-  "media_player.midttunet_pixel_9_pro_xl_2",
-  "media_player.bibliotek_android_2"
-];
-const SONOS_IDS = [
-  "media_player.sonos_play_1",
-  "media_player.sonos_lydplanke",
-  "media_player.sonos_kjokken",
-  "media_player.sonos_platespelar"
-];
-const LEAF_LOCATION = "device_tracker.leaf_location";
-const LEAF_PLUGGED = "binary_sensor.leaf_plugged_in";
-const LEAF_CHARGING = "binary_sensor.leaf_charging";
-const LEAF_UPDATE = "button.leaf_update_data";
-const LEAF_RANGE = "sensor.leaf_range_ac_off";
-const LEAF_LAST_UPDATED = "sensor.leaf_last_updated";
-const LEAF_INTERNAL_TEMP = "sensor.leaf_internal_temperature";
+import {
+  CLIMATE_ID,
+  NORDPOOL_ID,
+  TIBBER_ID,
+  LEAF_ID,
+  WEATHER_ENTITY,
+  OUTSIDE_TEMP_ID,
+  OYVIND_ID,
+  TUVA_ID,
+  LIGHT_KJOKKEN,
+  LIGHT_STOVA,
+  LIGHT_STUDIO,
+  REFRIGERATOR_ID,
+  EILEV_DOOR_ID,
+  OLVE_DOOR_ID,
+  STUDIO_PRESENCE_ID,
+  ROCKY_ID,
+  ROCKY_ROOM_ID,
+  PORTEN_MOTION_ID,
+  GARAGE_DOOR_ID,
+  CAMERA_PORTEN_ID,
+  OYVIND_BAT_LEVEL,
+  OYVIND_BAT_STATE,
+  SHIELD_ID,
+  SHIELD_REMOTE_ID,
+  LEAF_CLIMATE,
+  COST_TODAY_ID,
+  COST_MONTH_ID,
+  BIBLIOTEK_SESSIONS_ID,
+  MEDIA_PLAYER_IDS,
+  SONOS_IDS,
+  LEAF_LOCATION,
+  LEAF_PLUGGED,
+  LEAF_CHARGING,
+  LEAF_UPDATE,
+  LEAF_RANGE,
+  LEAF_LAST_UPDATED,
+  LEAF_INTERNAL_TEMP,
+  HVAC_MAP,
+  FAN_MAP,
+  SWING_MAP
+} from './constants';
 
 const ICON_MAP = {
   Zap, Wind, Car, Settings, Flame, User, UserCheck, MapPin, TrendingUp, Clock, 
@@ -195,7 +163,7 @@ const ICON_MAP = {
   Home, Bed, Bath, ShowerHead, Droplets, Sun, Moon, Cloud, CloudRain, Power,
   Wifi, Lock, Unlock, Shield, Video, Camera, Bell, Volume2, Mic, Radio, Warehouse,
   Gamepad2, Laptop, Smartphone, Watch, Coffee, Beer, Armchair, ShoppingCart, Bot,
-  Calendar, Activity, Heart, Star, AlertTriangle, Cloud
+  Calendar, Activity, Heart, Star, AlertTriangle
 };
 
 const formatRelativeTime = (timestamp) => {
@@ -281,34 +249,6 @@ const BarGraph = ({ data }) => {
       ))}
     </div>
   );
-};
-
-const HVAC_MAP = {
-  'off': 'Av',
-  'heat_cool': 'Auto',
-  'cool': 'Kjøling',
-  'dry': 'Tørking',
-  'fan_only': 'Vifte',
-  'heat': 'Varme'
-};
-
-const FAN_MAP = {
-  'Auto': 'Auto',
-  'Low': 'Låg',
-  'LowMid': 'Låg-Middels',
-  'Mid': 'Middels',
-  'HighMid': 'Høg-Middels',
-  'High': 'Høg'
-};
-
-const SWING_MAP = {
-  'Auto': 'Auto',
-  'Up': 'Opp',
-  'UpMid': 'Opp-Middels',
-  'Mid': 'Middels',
-  'DownMid': 'Ned-Middels',
-  'Down': 'Ned',
-  'Swing': 'Sving'
 };
 
 export default function App() {
@@ -562,48 +502,55 @@ export default function App() {
   useEffect(() => {
     if (!libLoaded || !config.url || !config.token) { if (!config.token) setShowConfigModal(true); return; }
     let connection;
+    let cancelled = false;
     const { createConnection, createLongLivedTokenAuth, subscribeEntities } = window.HAWS;
+
+    const persistConfig = (urlUsed) => {
+      localStorage.setItem('ha_url', urlUsed);
+      localStorage.setItem('ha_token', config.token);
+      if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl);
+    };
+
+    async function connectWith(url) {
+      const auth = createLongLivedTokenAuth(url, config.token);
+      const connInstance = await createConnection({ auth });
+      if (cancelled) { connInstance.close(); return null; }
+      connection = connInstance;
+      setConn(connInstance);
+      setConnected(true);
+      setActiveUrl(url);
+      persistConfig(url);
+      subscribeEntities(connInstance, (updatedEntities) => { if (!cancelled) setEntities(updatedEntities); });
+      return connInstance;
+    }
+
     async function connect() {
       try {
-        const auth = createLongLivedTokenAuth(config.url, config.token);
-        connection = await createConnection({ auth });
-        setConn(connection);
-        setConnected(true);
-        setActiveUrl(config.url);
-        localStorage.setItem('ha_url', config.url);
-        localStorage.setItem('ha_token', config.token);
-        if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl);
-        subscribeEntities(connection, (updatedEntities) => setEntities(updatedEntities));
+        await connectWith(config.url);
       } catch (err) { 
         if (config.fallbackUrl) {
           try {
-            const auth = createLongLivedTokenAuth(config.fallbackUrl, config.token);
-            connection = await createConnection({ auth });
-            setConn(connection);
-            setConnected(true);
-            setActiveUrl(config.fallbackUrl);
-            localStorage.setItem('ha_url', config.url);
-            localStorage.setItem('ha_token', config.token);
-            localStorage.setItem('ha_fallback_url', config.fallbackUrl);
-            subscribeEntities(connection, (updatedEntities) => setEntities(updatedEntities));
+            await connectWith(config.fallbackUrl);
             return;
           } catch (e) {}
         }
-        setConnected(false); 
+        if (!cancelled) setConnected(false); 
       }
     }
+
     connect();
-    return () => { if (connection) connection.close(); };
+    return () => { cancelled = true; if (connection) connection.close(); };
   }, [libLoaded, config.url, config.fallbackUrl, config.token]);
 
   useLayoutEffect(() => {
-    const theme = themes[currentTheme].colors;
+    const themeKey = themes[currentTheme] ? currentTheme : 'dark';
+    const theme = themes[themeKey].colors;
     for (const key in theme) {
       document.documentElement.style.setProperty(key, theme[key]);
     }
     document.documentElement.style.backgroundColor = theme['--bg-primary'];
     document.body.style.backgroundColor = theme['--bg-primary'];
-    document.documentElement.style.colorScheme = currentTheme === 'dark' ? 'dark' : 'light';
+    document.documentElement.style.colorScheme = themeKey === 'dark' ? 'dark' : 'light';
     
     let metaThemeColor = document.querySelector("meta[name='theme-color']");
     if (!metaThemeColor) {
@@ -613,7 +560,7 @@ export default function App() {
     }
     metaThemeColor.content = theme['--bg-primary'];
     
-    localStorage.setItem('midttunet_theme', currentTheme);
+    localStorage.setItem('midttunet_theme', themeKey);
   }, [currentTheme]);
 
   const toggleTheme = () => {
@@ -633,6 +580,7 @@ export default function App() {
 
   useEffect(() => {
     if (!conn) return;
+    let cancelled = false;
     
     const fetchHistory = async () => {
       const end = new Date();
@@ -683,11 +631,11 @@ export default function App() {
              });
            }
            
-           setCostHistory(result);
+           if (!cancelled) setCostHistory(result);
         } else {
            console.warn("No history data found or unexpected format", res);
         }
-      } catch (err) { console.error("History fetch error", err); }
+      } catch (err) { if (!cancelled) console.error("History fetch error", err); }
     };
     fetchHistory();
 
@@ -711,7 +659,7 @@ export default function App() {
                     state: s.mean !== null ? s.mean : s.state, // Bruk gjennomsnitt hvis tilgjengeleg
                     last_updated: s.start // Statistikk bruker 'start' som tidsstempel
                 }));
-                setTempHistory(stats);
+                if (!cancelled) setTempHistory(stats);
             } else {
                 // Fallback til vanleg historikk om statistikk manglar
                 const resHist = await conn.sendMessagePromise({
@@ -724,9 +672,9 @@ export default function App() {
                 });
                 let historyData = resHist && resHist[OUTSIDE_TEMP_ID];
                 if (!historyData && Array.isArray(resHist) && resHist.length > 0) historyData = resHist[0];
-                if (historyData) setTempHistory(historyData);
+                if (historyData && !cancelled) setTempHistory(historyData);
             }
-        } catch (e) { console.error("Temp history fetch error", e); }
+        } catch (e) { if (!cancelled) console.error("Temp history fetch error", e); }
     };
     fetchTempHistory();
 
@@ -742,7 +690,7 @@ export default function App() {
              return_response: true
            });
            if (res && res[WEATHER_ENTITY] && res[WEATHER_ENTITY].forecast) {
-             setWeatherForecast(res[WEATHER_ENTITY].forecast);
+             if (!cancelled) setWeatherForecast(res[WEATHER_ENTITY].forecast);
            } else {
              // Fallback til dagleg prognose om time-for-time manglar
              const resDaily = await conn.sendMessagePromise({
@@ -754,12 +702,14 @@ export default function App() {
                return_response: true
              });
              if (resDaily && resDaily[WEATHER_ENTITY] && resDaily[WEATHER_ENTITY].forecast) {
-               setWeatherForecast(resDaily[WEATHER_ENTITY].forecast);
+               if (!cancelled) setWeatherForecast(resDaily[WEATHER_ENTITY].forecast);
              }
            }
-        } catch (e) { console.error("Forecast fetch error", e); }
+        } catch (e) { if (!cancelled) console.error("Forecast fetch error", e); }
     };
     fetchForecast();
+
+    return () => { cancelled = true; };
   }, [conn]);
 
   const fetchReleaseNotes = async (id) => {
