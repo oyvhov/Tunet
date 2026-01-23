@@ -115,6 +115,7 @@ import EnergyCostCard from './components/EnergyCostCard';
 import ClimateCard from './components/ClimateCard';
 import useEnergyData from './hooks/useEnergyData';
 import useClimateInfo from './hooks/useClimateInfo';
+import { callService as haCallService, getHistory, getStatistics, getForecast } from './services/haClient';
 import {
   CLIMATE_ID,
   NORDPOOL_ID,
@@ -594,21 +595,7 @@ export default function App() {
       start.setHours(0, 0, 0, 0);
       
       try {
-        const res = await conn.sendMessagePromise({
-          type: 'history/history_during_period',
-          start_time: start.toISOString(),
-          end_time: end.toISOString(),
-          entity_ids: [COST_TODAY_ID],
-          minimal_response: false,
-          no_attributes: true
-        });
-        
-        // Handle both object (keyed by entity_id) and array response formats
-        let historyData = res && res[COST_TODAY_ID];
-        if (!historyData && Array.isArray(res) && res.length > 0) {
-            historyData = res[0];
-        }
-
+        const historyData = await getHistory(conn, { start, end, entityId: COST_TODAY_ID, minimal_response: false, no_attributes: true });
         if (historyData && Array.isArray(historyData)) {
            const daily = {};
            historyData.forEach(pt => {
@@ -645,70 +632,30 @@ export default function App() {
     fetchHistory();
 
     const fetchTempHistory = async () => {
-        const end = new Date();
-        const start = new Date();
-        start.setHours(start.getHours() - 12);
-        try {
-            // Prøv statistikk først (raskare og meir stabilt for sensorar)
-            const res = await conn.sendMessagePromise({
-                type: 'recorder/statistics_during_period',
-                start_time: start.toISOString(),
-                end_time: end.toISOString(),
-                statistic_ids: [OUTSIDE_TEMP_ID],
-                period: '5minute'
-            });
-            
-            if (res && res[OUTSIDE_TEMP_ID] && res[OUTSIDE_TEMP_ID].length > 0) {
-                // Map statistikk til formatet grafen forventar
-                const stats = res[OUTSIDE_TEMP_ID].map(s => ({
-                    state: s.mean !== null ? s.mean : s.state, // Bruk gjennomsnitt hvis tilgjengeleg
-                    last_updated: s.start // Statistikk bruker 'start' som tidsstempel
-                }));
-                if (!cancelled) setTempHistory(stats);
-            } else {
-                // Fallback til vanleg historikk om statistikk manglar
-                const resHist = await conn.sendMessagePromise({
-                    type: 'history/history_during_period',
-                    start_time: start.toISOString(),
-                    end_time: end.toISOString(),
-                    entity_ids: [OUTSIDE_TEMP_ID],
-                    minimal_response: false,
-                    no_attributes: true
-                });
-                let historyData = resHist && resHist[OUTSIDE_TEMP_ID];
-                if (!historyData && Array.isArray(resHist) && resHist.length > 0) historyData = resHist[0];
-                if (historyData && !cancelled) setTempHistory(historyData);
-            }
-        } catch (e) { if (!cancelled) console.error("Temp history fetch error", e); }
+      const end = new Date();
+      const start = new Date();
+      start.setHours(start.getHours() - 12);
+      try {
+        const stats = await getStatistics(conn, { start, end, statisticId: OUTSIDE_TEMP_ID, period: '5minute' });
+        if (stats.length > 0) {
+          const mapped = stats.map(s => ({ state: s.mean !== null ? s.mean : s.state, last_updated: s.start }));
+          if (!cancelled) setTempHistory(mapped);
+        } else {
+          const historyData = await getHistory(conn, { start, end, entityId: OUTSIDE_TEMP_ID, minimal_response: false, no_attributes: true });
+          if (historyData && !cancelled) setTempHistory(historyData);
+        }
+      } catch (e) { if (!cancelled) console.error("Temp history fetch error", e); }
     };
     fetchTempHistory();
 
     const fetchForecast = async () => {
         try {
-           // Prøv å hente prognose via tenestekall (ny metode i HA)
-           const res = await conn.sendMessagePromise({
-             type: "call_service",
-             domain: "weather",
-             service: "get_forecasts",
-             target: { entity_id: WEATHER_ENTITY },
-             service_data: { type: "hourly" },
-             return_response: true
-           });
-           if (res && res[WEATHER_ENTITY] && res[WEATHER_ENTITY].forecast) {
-             if (!cancelled) setWeatherForecast(res[WEATHER_ENTITY].forecast);
+           const hourly = await getForecast(conn, { entityId: WEATHER_ENTITY, type: 'hourly' });
+           if (hourly.length > 0) {
+             if (!cancelled) setWeatherForecast(hourly);
            } else {
-             // Fallback til dagleg prognose om time-for-time manglar
-             const resDaily = await conn.sendMessagePromise({
-               type: "call_service",
-               domain: "weather",
-               service: "get_forecasts",
-               target: { entity_id: WEATHER_ENTITY },
-               service_data: { type: "daily" },
-               return_response: true
-             });
-             if (resDaily && resDaily[WEATHER_ENTITY] && resDaily[WEATHER_ENTITY].forecast) {
-               if (!cancelled) setWeatherForecast(resDaily[WEATHER_ENTITY].forecast);
-             }
+             const daily = await getForecast(conn, { entityId: WEATHER_ENTITY, type: 'daily' });
+             if (daily.length > 0 && !cancelled) setWeatherForecast(daily);
            }
         } catch (e) { if (!cancelled) console.error("Forecast fetch error", e); }
     };
@@ -755,7 +702,7 @@ export default function App() {
     return state.charAt(0).toUpperCase() + state.slice(1);
   };
   const getA = (id, attr, fallback = null) => entities[id]?.attributes?.[attr] ?? fallback;
-  const callService = (domain, service, data) => { if (conn) conn.sendMessagePromise({ type: "call_service", domain, service, service_data: data }); };
+  const callService = (domain, service, data) => { if (conn) haCallService(conn, domain, service, data); };
 
   const { fullPriceData, currentPriceIndex, priceStats, currentPrice } = useEnergyData(entities, now);
   const { hvacAction, hvacState, isHeating, isCooling, currentTemp: climateCurrentTemp, targetTemp: climateTargetTemp, fanMode } = useClimateInfo(entities);
