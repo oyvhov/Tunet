@@ -110,6 +110,11 @@ import InteractivePowerGraph from './components/InteractivePowerGraph';
 import SparkLine from './components/SparkLine';
 import WeatherGraph from './components/WeatherGraph';
 import { themes } from './themes';
+import EnergyPowerCard from './components/EnergyPowerCard';
+import EnergyCostCard from './components/EnergyCostCard';
+import ClimateCard from './components/ClimateCard';
+import useEnergyData from './hooks/useEnergyData';
+import useClimateInfo from './hooks/useClimateInfo';
 import {
   CLIMATE_ID,
   NORDPOOL_ID,
@@ -752,34 +757,8 @@ export default function App() {
   const getA = (id, attr, fallback = null) => entities[id]?.attributes?.[attr] ?? fallback;
   const callService = (domain, service, data) => { if (conn) conn.sendMessagePromise({ type: "call_service", domain, service, service_data: data }); };
 
-  const rawToday = getA(NORDPOOL_ID, "raw_today", []);
-  const rawTomorrow = getA(NORDPOOL_ID, "raw_tomorrow", []);
-  const tomorrowValid = getA(NORDPOOL_ID, "tomorrow_valid", false);
-  const fullPriceData = useMemo(() => (tomorrowValid && rawTomorrow.length > 0) ? [...rawToday, ...rawTomorrow] : rawToday, [rawToday, rawTomorrow, tomorrowValid]);
-  const currentPriceIndex = useMemo(() => {
-    if (!rawToday.length) return -1;
-    const nowTime = now.getTime();
-    return rawToday.findIndex(d => {
-      const start = new Date(d.start).getTime();
-      const end = new Date(d.end).getTime();
-      return nowTime >= start && nowTime < end;
-    });
-  }, [rawToday, now]);
-
-  const priceStats = useMemo(() => {
-    if (!fullPriceData.length) return { min: 0, max: 0, avg: 0 };
-    const values = fullPriceData.map(d => d.value);
-    return {
-      min: Math.min(...values),
-      max: Math.max(...values),
-      avg: values.reduce((a, b) => a + b, 0) / values.length
-    };
-  }, [fullPriceData]);
-
-  const hvacAction = getA(CLIMATE_ID, "hvac_action", "idle");
-  const hvacState = entities[CLIMATE_ID]?.state || "off";
-  const isHeating = hvacAction === 'heating' || hvacAction === 'heat' || hvacState === 'heat';
-  const isCooling = hvacAction === 'cooling' || hvacAction === 'cool' || hvacState === 'cool';
+  const { fullPriceData, currentPriceIndex, priceStats, currentPrice } = useEnergyData(entities, now);
+  const { hvacAction, hvacState, isHeating, isCooling, currentTemp: climateCurrentTemp, targetTemp: climateTargetTemp, fanMode } = useClimateInfo(entities);
 
   const personStatus = (id) => {
     const entity = entities[id];
@@ -997,97 +976,6 @@ export default function App() {
     );
   };
 
-  const renderPowerCard = (dragProps, getControls, cardStyle) => {
-    const name = customNames['power'] || 'Straumpris';
-    const Icon = customIcons['power'] ? ICON_MAP[customIcons['power']] : Zap;
-    
-    const currentPrice = parseFloat(entities[TIBBER_ID]?.state || 0);
-    let levelText = 'NORMAL';
-    let levelColor = 'text-blue-400';
-
-    if (!isNaN(currentPrice) && priceStats.avg > 0) {
-        if (currentPrice >= priceStats.avg * 1.4) {
-            levelText = 'VELDIG HØG';
-            levelColor = 'text-red-400';
-        } else if (currentPrice >= priceStats.avg * 1.15) {
-            levelText = 'HØG';
-            levelColor = 'text-orange-400';
-        } else if (currentPrice <= priceStats.avg * 0.9) {
-            levelText = 'LAV';
-            levelColor = 'text-green-400';
-        }
-    }
-
-    return (
-      <div key="power" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowPowerModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
-        {getControls('power')}
-        <div className="flex justify-between items-start"><div className="p-3 rounded-2xl text-amber-400 group-hover:scale-110 transition-transform duration-500" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)'}}><Icon className="w-5 h-5" style={{strokeWidth: 1.5}} /></div><div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}><span className={`text-xs tracking-widest uppercase font-bold ${levelColor}`}>{levelText}</span></div></div>
-        <div className="mt-2"><div className="flex items-center gap-2"><p className="text-[var(--text-secondary)] text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{name}</p></div><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{String(getS(TIBBER_ID))}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">øre</span></div><SparkLine data={fullPriceData} currentIndex={currentPriceIndex} /></div>
-      </div>
-    );
-  };
-
-  const renderEnergyCostCard = (dragProps, getControls, cardStyle) => {
-    const name = customNames['energy_cost'] || 'Kostnad';
-    const Icon = customIcons['energy_cost'] ? ICON_MAP[customIcons['energy_cost']] : Coins;
-    return (
-      <div key="energy_cost" {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
-        {getControls('energy_cost')}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50 pointer-events-none" />
-        <div className="flex justify-between items-start relative z-10">
-          <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399'}}><Icon className="w-5 h-5" style={{strokeWidth: 1.5}} /></div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)'}}><div className="flex items-center gap-2"><span className="text-xs tracking-widest font-bold uppercase">{name}</span></div></div>
-        </div>
-        <div className="flex flex-col gap-1 relative z-10 mt-2">
-           <p className="text-[var(--text-secondary)] text-xs uppercase font-bold opacity-60 leading-none tracking-widest">I dag</p>
-           <div className="flex items-baseline gap-1 leading-none"><span className="text-5xl font-light text-[var(--text-primary)] tracking-tight">{String(getS(COST_TODAY_ID))}</span><span className="text-[var(--text-secondary)] font-medium text-lg">kr</span></div>
-        </div>
-        <div className="relative z-10 mt-auto pt-4 border-t border-[var(--glass-border)]">
-           <div className="flex justify-between items-center"><span className="text-xs text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-80">Denne månaden</span><div className="flex items-baseline gap-1"><span className="text-xl font-medium text-[var(--text-primary)]">{!isNaN(parseFloat(entities[COST_MONTH_ID]?.state)) ? Math.round(parseFloat(entities[COST_MONTH_ID]?.state)) : String(getS(COST_MONTH_ID))}</span><span className="text-xs text-[var(--text-secondary)]">kr</span></div></div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderClimateCard = (dragProps, getControls, cardStyle) => {
-    const curT = getA(CLIMATE_ID, "current_temperature", "--");
-    const tarT = getA(CLIMATE_ID, "temperature", 21);
-    const fanMode = getA(CLIMATE_ID, "fan_mode", "Auto");
-    const clTheme = isCooling ? 'blue' : (isHeating ? 'orange' : 'gray');
-    const fanSpeedLevel = ['Low', 'LowMid', 'Mid', 'HighMid', 'High'].indexOf(fanMode) + 1;
-    const name = customNames['climate'] || 'Varmepumpe';
-    const DefaultIcon = isCooling ? Snowflake : AirVent;
-    const Icon = customIcons['climate'] ? ICON_MAP[customIcons['climate']] : DefaultIcon;
-    
-    return (
-      <div key="climate" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowClimateModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-[200px] xl:h-[220px] ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
-        {getControls('climate')}
-        <div className="flex justify-between items-start">
-          <div className="p-3 rounded-2xl transition-all duration-500" style={{backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : 'var(--text-secondary)'}}>
-            <Icon className="w-5 h-5" style={{strokeWidth: 1.5}} />
-          </div>
-        </div>
-        <div className="absolute top-7 right-7 flex flex-col items-end">
-           <span className="text-xs uppercase font-bold opacity-60 mb-1" style={{letterSpacing: '0.05em', color: 'var(--text-secondary)'}}>Inne</span>
-           <div className="flex items-baseline gap-0.5"><span className="text-2xl font-medium text-[var(--text-primary)] leading-none">{String(curT)}</span><span className="text-sm text-[var(--text-secondary)] font-medium">°</span></div>
-        </div>
-        <div className="mt-2">
-           <div className="flex items-center gap-2 mb-3"><p className="text-[var(--text-secondary)] text-xs uppercase font-bold opacity-60 leading-none" style={{letterSpacing: '0.05em'}}>{name}</p></div>
-           <div className="flex items-stretch gap-3">
-              <div className="flex items-center justify-between rounded-2xl p-1 border flex-1" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
-              <button onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) - 0.5 }); }} className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"><Minus className="w-4 h-4" /></button>
-              <div className="flex flex-col items-center"><span className="text-lg font-bold text-[var(--text-primary)] leading-none">{String(tarT)}°</span></div>
-              <button onClick={(e) => { e.stopPropagation(); callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (tarT || 21) + 0.5 }); }} className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"><Plus className="w-4 h-4" /></button>
-           </div>
-              <div className="flex items-center justify-center rounded-2xl border w-20 gap-2 pr-2" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
-              <Fan className="w-4 h-4 text-[var(--text-secondary)]" />
-              {fanSpeedLevel === 0 ? (<span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">AUTO</span>) : (<div className="flex items-end gap-[2px] h-4">{[1, 2, 3, 4, 5].map((level) => (<div key={level} className={`w-1 rounded-sm transition-all duration-300 ${level <= fanSpeedLevel ? (clTheme === 'blue' ? 'bg-blue-400' : clTheme === 'orange' ? 'bg-orange-400' : 'bg-[var(--text-primary)]') : 'bg-[var(--glass-bg-hover)]'}`} style={{height: `${30 + (level * 14)}%`}} />))}</div>)}
-              </div>
-        </div>
-      </div>
-      </div>
-    );
-  };
 
   const renderCarCard = (dragProps, getControls, cardStyle) => {
     const isHtg = entities[LEAF_CLIMATE]?.state === 'heat_cool';
@@ -1419,11 +1307,53 @@ export default function App() {
 
     switch(cardId) {
       case 'power':
-        return renderPowerCard(dragProps, getControls, cardStyle);
+        return (
+          <EnergyPowerCard
+            dragProps={dragProps}
+            controls={getControls('power')}
+            cardStyle={cardStyle}
+            editMode={editMode}
+            name={customNames['power'] || 'Straumpris'}
+            Icon={customIcons['power'] ? ICON_MAP[customIcons['power']] : Zap}
+            priceDisplay={getS(TIBBER_ID)}
+            currentPrice={currentPrice}
+            priceStats={priceStats}
+            fullPriceData={fullPriceData}
+            currentPriceIndex={currentPriceIndex}
+            onOpen={() => setShowPowerModal(true)}
+          />
+        );
       case 'energy_cost':
-        return renderEnergyCostCard(dragProps, getControls, cardStyle);
+        return (
+          <EnergyCostCard
+            dragProps={dragProps}
+            controls={getControls('energy_cost')}
+            cardStyle={cardStyle}
+            editMode={editMode}
+            name={customNames['energy_cost'] || 'Kostnad'}
+            Icon={customIcons['energy_cost'] ? ICON_MAP[customIcons['energy_cost']] : Coins}
+            todayValue={getS(COST_TODAY_ID)}
+            monthValue={!isNaN(parseFloat(entities[COST_MONTH_ID]?.state)) ? Math.round(parseFloat(entities[COST_MONTH_ID]?.state)) : String(getS(COST_MONTH_ID))}
+          />
+        );
       case 'climate':
-        return renderClimateCard(dragProps, getControls, cardStyle);
+        return (
+          <ClimateCard
+            dragProps={dragProps}
+            controls={getControls('climate')}
+            cardStyle={cardStyle}
+            editMode={editMode}
+            name={customNames['climate'] || 'Varmepumpe'}
+            Icon={customIcons['climate'] ? ICON_MAP[customIcons['climate']] : null}
+            currentTemp={climateCurrentTemp}
+            targetTemp={climateTargetTemp}
+            fanMode={fanMode}
+            isCooling={isCooling}
+            isHeating={isHeating}
+            onOpen={() => setShowClimateModal(true)}
+            onSetTemperature={(temp) => callService('climate', 'set_temperature', { entity_id: CLIMATE_ID, temperature: temp })}
+          />
+        );
       case 'rocky':
         return renderRockyCard(dragProps, getControls, cardStyle);
       case 'shield':
