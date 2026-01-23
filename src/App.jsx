@@ -276,6 +276,7 @@ export default function App() {
   const [expandedUpdate, setExpandedUpdate] = useState(null);
   const [releaseNotes, setReleaseNotes] = useState({});
   const [showEditCardModal, setShowEditCardModal] = useState(null);
+  const [editCardSettingsKey, setEditCardSettingsKey] = useState(null);
   const [customNames, setCustomNames] = useState({});
   const [customIcons, setCustomIcons] = useState({});
   const [activeMediaModal, setActiveMediaModal] = useState(null);
@@ -341,6 +342,7 @@ export default function App() {
         setShowConfigModal(false);
         setShowUpdateModal(false);
         setShowEditCardModal(null);
+        setEditCardSettingsKey(null);
         setActiveMediaModal(null);
         setEditingPage(null);
         setEditMode(false);
@@ -728,7 +730,7 @@ export default function App() {
         
         {editMode && (
           <div className="absolute -top-2 -right-2 z-50 flex gap-1">
-             <button onClick={(e) => { e.stopPropagation(); setShowEditCardModal(id); }} className="p-1 rounded-full bg-blue-500 text-white shadow-sm hover:bg-blue-600"><Edit2 className="w-3 h-3" /></button>
+             <button onClick={(e) => { e.stopPropagation(); setShowEditCardModal(id); setEditCardSettingsKey(getCardSettingsKey(id, 'header')); }} className="p-1 rounded-full bg-blue-500 text-white shadow-sm hover:bg-blue-600"><Edit2 className="w-3 h-3" /></button>
              <button onClick={(e) => { e.stopPropagation(); removeCard(id, 'header'); }} className="p-1 rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600"><X className="w-3 h-3" /></button>
           </div>
         )}
@@ -805,6 +807,40 @@ export default function App() {
     localStorage.setItem('midttunet_custom_icons', JSON.stringify(newIcons));
   };
 
+  const getCardSettingsKey = (cardId, pageId = activePage) => `${pageId}::${cardId}`;
+
+  const isCardRemovable = (cardId, pageId = activePage) => {
+    if (pageId === 'header') return cardId.startsWith('person.');
+    if (pageId === 'automations') return cardId.startsWith('automation.');
+    if (pageId === 'settings') {
+      if (['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId)) return false;
+      if (cardId.startsWith('media_player') || cardId.startsWith('sonos')) return false;
+      return true;
+    }
+    if (cardId.startsWith('light_')) return true;
+    if (cardId.startsWith('light.')) return true;
+    return false;
+  };
+
+  const isCardHiddenByLogic = (cardId) => {
+    if (cardId === 'media_player') {
+      const mediaEntities = MEDIA_PLAYER_IDS.map(id => entities[id]).filter(Boolean);
+      const activeMediaEntities = mediaEntities.filter(isMediaActive);
+      return activeMediaEntities.length === 0;
+    }
+
+    if (cardId === 'sonos') {
+      const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
+      return sonosEntities.length === 0;
+    }
+
+    if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+      return !entities[cardId];
+    }
+
+    return false;
+  };
+
   const saveCardSetting = (id, setting, value) => {
     const newSettings = { ...cardSettings, [id]: { ...cardSettings[id], [setting]: value } };
     setCardSettings(newSettings);
@@ -857,7 +893,7 @@ export default function App() {
     setShowAddCardModal(false);
   };
 
-  const renderEntityCard = (cardId, dragProps, getControls, cardStyle) => {
+  const renderEntityCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
     const entity = entities[cardId];
     if (!entity) return null;
     
@@ -865,7 +901,7 @@ export default function App() {
     const state = getS(cardId);
     const lastChanged = entity.last_changed;
     const domain = cardId.split('.')[0];
-    const settings = cardSettings[cardId] || {};
+    const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
     const showStatus = settings.showStatus !== false;
     const showLastChanged = settings.showLastChanged !== false;
     
@@ -889,7 +925,7 @@ export default function App() {
 
   // --- CARD RENDERERS ---
   
-  const renderLightCard = (cardId, dragProps, getControls, cardStyle) => {
+  const renderLightCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
     let currentLId = cardId;
     
     if (cardId === 'light_kjokken') currentLId = LIGHT_KJOKKEN;
@@ -912,7 +948,7 @@ export default function App() {
     const totalCount = subEntities.length;
     const name = customNames[currentLId] || getA(currentLId, "friendly_name");
 
-    const sizeSetting = (cardSettings[currentLId]?.size) || (cardSettings[cardId]?.size);
+    const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size || cardSettings[currentLId]?.size;
     const isSmall = sizeSetting === 'small';
 
     if (isSmall) {
@@ -1124,7 +1160,8 @@ export default function App() {
 
     if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
       const resolvedId = resolveLightId(cardId);
-      const sizeSetting = (cardSettings[resolvedId]?.size) || (cardSettings[cardId]?.size);
+      const settingsKey = getCardSettingsKey(cardId);
+      const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size || cardSettings[resolvedId]?.size;
       return sizeSetting === 'small' ? 1 : 2;
     }
 
@@ -1183,11 +1220,12 @@ export default function App() {
 
   const gridLayout = useMemo(() => {
     const ids = pagesConfig[activePage] || [];
-    return buildGridLayout(ids, gridColCount);
-  }, [pagesConfig, activePage, gridColCount, cardSettings, hiddenCards]);
+    const visibleIds = editMode ? ids : ids.filter(id => !(hiddenCards.includes(id) || isCardHiddenByLogic(id)));
+    return buildGridLayout(visibleIds, gridColCount);
+  }, [pagesConfig, activePage, gridColCount, cardSettings, hiddenCards, editMode, entities]);
 
   const renderCard = (cardId, index, colIndex) => {
-    const isHidden = hiddenCards.includes(cardId);
+    const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
     if (isHidden && !editMode) return null;
     const isDragging = draggingId === cardId;
 
@@ -1325,14 +1363,16 @@ export default function App() {
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     };
 
+    const settingsKey = getCardSettingsKey(cardId);
+
     const getControls = (targetId) => {
       if (!editMode) return null;
       const editId = targetId || cardId;
-      const isHidden = hiddenCards.includes(cardId);
+      const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
       return ( 
       <div className="absolute top-2 right-2 z-50 flex gap-2">
         <button 
-          onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); }}
+          onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); setEditCardSettingsKey(settingsKey); }}
           className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
           title="Rediger kort"
         >
@@ -1346,7 +1386,7 @@ export default function App() {
         >
           {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
-        {!['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky', 'shield'].includes(cardId) && (
+        {isCardRemovable(cardId) && (
           <button 
             onClick={(e) => { e.stopPropagation(); removeCard(cardId); }}
             className="p-2 rounded-full transition-colors hover:bg-red-500/80 text-white border border-white/20 shadow-lg bg-black/60"
@@ -1361,7 +1401,7 @@ export default function App() {
 
     // Handle lights (both legacy IDs and entity IDs)
     if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
-        return renderLightCard(cardId, dragProps, getControls, cardStyle);
+      return renderLightCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     if (cardId.startsWith('automation.')) {
@@ -1369,7 +1409,7 @@ export default function App() {
     }
 
     if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
-        return renderEntityCard(cardId, dragProps, getControls, cardStyle);
+      return renderEntityCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     switch(cardId) {
@@ -1695,6 +1735,9 @@ export default function App() {
     );
   };
 
+  const editSettingsKey = showEditCardModal ? (editCardSettingsKey || getCardSettingsKey(showEditCardModal)) : null;
+  const editSettings = editSettingsKey ? (cardSettings[editSettingsKey] || cardSettings[showEditCardModal] || {}) : {};
+
   return (
     <div className="min-h-screen font-sans selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-500" style={{backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)'}}>
       <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-primary), var(--bg-gradient-to))'}} /><div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)'}} /><div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} /></div>
@@ -1818,7 +1861,7 @@ export default function App() {
             {(pagesConfig[activePage] || []).map((id, index) => {
               const placement = gridLayout[id];
 
-              if (!editMode && hiddenCards.includes(id)) return null;
+              if (!editMode && (hiddenCards.includes(id) || isCardHiddenByLogic(id))) return null;
               if (!placement) return null;
 
               return (
@@ -2413,7 +2456,7 @@ export default function App() {
         )}
 
         {showEditCardModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowEditCardModal(null)}>
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }}>
             <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
@@ -2430,7 +2473,7 @@ export default function App() {
               }
             `}</style>
             <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowEditCardModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+              <button onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
               <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Rediger kort</h3>
               
               <div className="space-y-8">
@@ -2462,10 +2505,10 @@ export default function App() {
                   <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Liten versjon</span>
                     <button
-                      onClick={() => saveCardSetting(showEditCardModal, 'size', (cardSettings[showEditCardModal]?.size === 'small') ? 'large' : 'small')}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.size === 'small' ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                      onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'size', (editSettings.size === 'small') ? 'large' : 'small')}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.size === 'small' ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${cardSettings[showEditCardModal]?.size === 'small' ? 'left-7' : 'left-1'}`} />
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.size === 'small' ? 'left-7' : 'left-1'}`} />
                     </button>
                   </div>
                 )}
@@ -2473,20 +2516,20 @@ export default function App() {
                 <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis status</span>
                     <button 
-                      onClick={() => saveCardSetting(showEditCardModal, 'showStatus', !(cardSettings[showEditCardModal]?.showStatus !== false))}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                      onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showStatus', !(editSettings.showStatus !== false))}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${cardSettings[showEditCardModal]?.showStatus !== false ? 'left-7' : 'left-1'}`} />
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`} />
                     </button>
                 </div>
 
                 <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis sist endra</span>
                     <button 
-                      onClick={() => saveCardSetting(showEditCardModal, 'showLastChanged', !(cardSettings[showEditCardModal]?.showLastChanged !== false))}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${cardSettings[showEditCardModal]?.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                      onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastChanged', !(editSettings.showLastChanged !== false))}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${cardSettings[showEditCardModal]?.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
                     </button>
                 </div>
               </div>
