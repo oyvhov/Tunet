@@ -12,20 +12,22 @@ export default function EnergyPowerCard({
   priceStats,
   fullPriceData,
   currentPriceIndex,
-  onOpen
+  onOpen,
+  t
 }) {
-  let levelText = 'NORMAL';
+  const translate = t || ((key) => key);
+  let levelText = translate('power.level.normal');
   let levelColor = 'text-blue-400';
 
   if (!Number.isNaN(currentPrice) && priceStats.avg > 0) {
     if (currentPrice >= priceStats.avg * 1.4) {
-      levelText = 'VELDIG HØG';
+      levelText = translate('power.level.veryHigh');
       levelColor = 'text-red-400';
     } else if (currentPrice >= priceStats.avg * 1.15) {
-      levelText = 'HØG';
+      levelText = translate('power.level.high');
       levelColor = 'text-orange-400';
     } else if (currentPrice <= priceStats.avg * 0.9) {
-      levelText = 'LAV';
+      levelText = translate('power.level.low');
       levelColor = 'text-green-400';
     }
   }
@@ -58,7 +60,7 @@ export default function EnergyPowerCard({
         </div>
         <div className="flex items-baseline gap-1 leading-none">
           <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{String(priceDisplay)}</span>
-          <span className="text-[var(--text-muted)] font-medium text-base ml-1">øre</span>
+          <span className="text-[var(--text-muted)] font-medium text-base ml-1">{translate('power.ore')}</span>
         </div>
         <SparkLine data={fullPriceData} currentIndex={currentPriceIndex} />
       </div>

@@ -6,8 +6,10 @@ export default function EnergyCostCard({
   name,
   Icon,
   todayValue,
-  monthValue
+  monthValue,
+  t
 }) {
+  const translate = t || ((key) => key);
   return (
     <div
       key="energy_cost"
@@ -26,7 +28,7 @@ export default function EnergyCostCard({
         </div>
       </div>
       <div className="flex flex-col gap-1 relative z-10 mt-2">
-        <p className="text-[var(--text-secondary)] text-xs uppercase font-bold opacity-60 leading-none tracking-widest">I dag</p>
+        <p className="text-[var(--text-secondary)] text-xs uppercase font-bold opacity-60 leading-none tracking-widest">{translate('energyCost.today')}</p>
         <div className="flex items-baseline gap-1 leading-none">
           <span className="text-5xl font-light text-[var(--text-primary)] tracking-tight">{String(todayValue)}</span>
           <span className="text-[var(--text-secondary)] font-medium text-lg">kr</span>
@@ -34,7 +36,7 @@ export default function EnergyCostCard({
       </div>
       <div className="relative z-10 mt-auto pt-4 border-t border-[var(--glass-border)]">
         <div className="flex justify-between items-center">
-          <span className="text-xs text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-80">Denne månaden</span>
+          <span className="text-xs text-[var(--text-secondary)] font-bold uppercase tracking-widest opacity-80">{translate('energyCost.thisMonth')}</span>
           <div className="flex items-baseline gap-1">
             <span className="text-xl font-medium text-[var(--text-primary)]">{monthValue}</span>
             <span className="text-xs text-[var(--text-secondary)]">kr</span>

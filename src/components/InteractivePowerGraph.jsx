@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 
-export default function InteractivePowerGraph({ data, currentIndex }) {
+export default function InteractivePowerGraph({ data, currentIndex, t, locale }) {
+  const translate = t || ((key) => key);
+  const timeLocale = locale || 'en-GB';
   const [hoverIndex, setHoverIndex] = useState(null);
   const svgRef = useRef(null);
   if (!data || data.length === 0) return null;
@@ -14,7 +16,7 @@ export default function InteractivePowerGraph({ data, currentIndex }) {
     x: (i / (values.length - 1)) * width,
     y: height - ((v - min) / range) * height,
     val: v,
-    time: new Date(data[i].start).toLocaleTimeString('nn-NO', { hour: '2-digit', minute: '2-digit' })
+    time: new Date(data[i].start).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' })
   }));
   const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
   const areaData = `${pathData} L ${width},${height} L 0,${height} Z`;
@@ -37,8 +39,8 @@ export default function InteractivePowerGraph({ data, currentIndex }) {
   return (
     <div className="w-full">
       <div className="flex justify-between items-end mb-4 px-2">
-        <div><p className="text-[10px] tracking-widest text-gray-500 uppercase font-bold mb-0.5">Tidspunkt</p><p className="text-xl font-medium text-[var(--text-primary)]">{activePoint.time}</p></div>
-        <div className="text-right"><p className="text-[10px] tracking-widest uppercase font-bold mb-0.5" style={{color: getDotColor(activePoint.val)}}>Pris</p><p className="text-3xl font-light text-[var(--text-primary)] italic leading-none tracking-tighter">{activePoint.val.toFixed(2)} <span className="text-sm text-gray-600 not-italic ml-1">øre</span></p></div>
+        <div><p className="text-[10px] tracking-widest text-gray-500 uppercase font-bold mb-0.5">{translate('power.time')}</p><p className="text-xl font-medium text-[var(--text-primary)]">{activePoint.time}</p></div>
+        <div className="text-right"><p className="text-[10px] tracking-widest uppercase font-bold mb-0.5" style={{color: getDotColor(activePoint.val)}}>{translate('power.price')}</p><p className="text-3xl font-light text-[var(--text-primary)] italic leading-none tracking-tighter">{activePoint.val.toFixed(2)} <span className="text-sm text-gray-600 not-italic ml-1">{translate('power.ore')}</span></p></div>
       </div>
       <div className="relative h-60 w-full" onMouseLeave={() => setHoverIndex(null)}>
         <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-600 font-bold py-1 pointer-events-none"><span>{max.toFixed(0)}</span><span>{min.toFixed(0)}</span></div>

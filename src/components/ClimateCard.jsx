@@ -13,8 +13,10 @@ export default function ClimateCard({
   isCooling,
   isHeating,
   onOpen,
-  onSetTemperature
+  onSetTemperature,
+  t
 }) {
+  const translate = t || ((key) => key);
   const clTheme = isCooling ? 'blue' : isHeating ? 'orange' : 'gray';
   const fanSpeedLevel = ['Low', 'LowMid', 'Mid', 'HighMid', 'High'].indexOf(fanMode) + 1;
   const DisplayIcon = Icon || (isCooling ? Snowflake : AirVent);
@@ -47,7 +49,7 @@ export default function ClimateCard({
       </div>
       <div className="absolute top-7 right-7 flex flex-col items-end">
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
-          <span className="text-xs tracking-widest uppercase font-bold">Inne</span>
+          <span className="text-xs tracking-widest uppercase font-bold">{translate('climate.indoorShort')}</span>
         </div>
         <span className="text-4xl font-medium text-[var(--text-primary)] leading-none mt-2">{String(currentTemp)}°</span>
       </div>
@@ -84,7 +86,7 @@ export default function ClimateCard({
           <div className="flex items-center justify-center rounded-2xl border w-20 gap-2 pr-2" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
             <Fan className="w-4 h-4 text-[var(--text-secondary)]" />
             {fanSpeedLevel === 0 ? (
-              <span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">AUTO</span>
+              <span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">{translate('climate.fanAuto')}</span>
             ) : (
               <div className="flex items-end gap-[2px] h-4">
                 {[1, 2, 3, 4, 5].map((level) => (

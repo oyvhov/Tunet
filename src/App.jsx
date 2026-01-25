@@ -1,4 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import en from './i18n/en.json';
+import nn from './i18n/nn.json';
 import { 
   Zap, 
   Wind, 
@@ -99,8 +101,6 @@ import {
   Unlink,
   Search,
   Palette,
-  Maximize,
-  Minimize,
   Download,
   ArrowRight,
   CloudSun,
@@ -186,10 +186,7 @@ import {
   LEAF_UPDATE,
   LEAF_RANGE,
   LEAF_LAST_UPDATED,
-  LEAF_INTERNAL_TEMP,
-  HVAC_MAP,
-  FAN_MAP,
-  SWING_MAP
+  LEAF_INTERNAL_TEMP
 } from './constants';
 
 const ICON_MAP = {
@@ -209,21 +206,21 @@ const ICON_MAP = {
   Sunset, Truck, Wrench, ToggleLeft, ToggleRight
 };
 
-const formatRelativeTime = (timestamp) => {
+const formatRelativeTime = (timestamp, t = (key) => key) => {
   if (!timestamp || timestamp === "unavailable" || timestamp === "unknown" || timestamp === "--") return "--";
   try {
     const past = new Date(timestamp);
     const now = new Date();
     const diffMs = now - past;
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "akkurat no";
-    if (diffMins < 60) return `for ${diffMins} min sidan`;
+    if (diffMins < 1) return t('time.justNow');
+    if (diffMins < 60) return t('time.minutesAgo').replace('{minutes}', diffMins);
     const diffHours = Math.floor(diffMins / 60);
     const remainingMins = diffMins % 60;
-    if (remainingMins === 0) return `for ${diffHours} timar sidan`;
-    return `for ${diffHours}t ${remainingMins}m sidan`;
+    if (remainingMins === 0) return t('time.hoursAgo').replace('{hours}', diffHours);
+    return t('time.hoursMinutesAgo').replace('{hours}', diffHours).replace('{minutes}', remainingMins);
   } catch (e) {
-    return "ukjend tid";
+    return t('time.unknown');
   }
 };
 
@@ -325,6 +322,7 @@ export default function App() {
   const [editMode, setEditMode] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
   const [activePage, setActivePage] = useState('home');
+  const [language, setLanguage] = useState(() => localStorage.getItem('midttunet_language') || 'nn');
   const [pagesConfig, setPagesConfig] = useState({
     header: [OYVIND_ID, TUVA_ID],
     pages: ['home', 'lights'],
@@ -346,6 +344,7 @@ export default function App() {
   const [gridColumns, setGridColumns] = useState(3);
   const [gridColCount, setGridColCount] = useState(1);
   const [headerScale, setHeaderScale] = useState(1);
+  const [headerTitle, setHeaderTitle] = useState(() => localStorage.getItem('midttunet_header_title') || 'Midttunet');
   const dragSourceRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
   const gearMenuRef = useRef(null);
@@ -364,7 +363,6 @@ export default function App() {
   const [selectedTempId, setSelectedTempId] = useState(null);
   const [tempHistoryById, setTempHistoryById] = useState({});
   const [cardSettings, setCardSettings] = useState({});
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [inactivityTimeout, setInactivityTimeout] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('midttunet_inactivity_timeout');
@@ -582,6 +580,9 @@ export default function App() {
     const savedScale = localStorage.getItem('midttunet_header_scale');
     if (savedScale) setHeaderScale(parseFloat(savedScale));
 
+    const savedHeaderTitle = localStorage.getItem('midttunet_header_title');
+    if (savedHeaderTitle) setHeaderTitle(savedHeaderTitle);
+
     const savedPageSettings = localStorage.getItem('midttunet_page_settings');
     if (savedPageSettings) { try { setPageSettings(JSON.parse(savedPageSettings)); } catch (e) {} }
 
@@ -594,7 +595,7 @@ export default function App() {
   }, [showAddCardModal]);
 
   useEffect(() => {
-    document.title = "Midttunet";
+    document.title = headerTitle || "Midttunet";
     let link = document.querySelector("link[rel~='icon']");
     if (!link) {
       link = document.createElement('link');
@@ -612,7 +613,7 @@ export default function App() {
       document.head.appendChild(meta);
     }
     meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
-  }, []);
+  }, [headerTitle]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30000);
@@ -620,10 +621,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const handleFullScreenChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handleFullScreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
-  }, []);
+    localStorage.setItem('midttunet_language', language);
+  }, [language]);
 
   useEffect(() => {
     if (window.HAWS) { setLibLoaded(true); return; }
@@ -705,13 +704,33 @@ export default function App() {
     setCurrentTheme(themeKeys[nextIndex]);
   };
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-    }
-  };
+  const translations = useMemo(() => ({ en, nn }), []);
+  const t = (key) => translations[language]?.[key] || translations.nn[key] || key;
+  const hvacMap = useMemo(() => ({
+    off: t('climate.hvac.off'),
+    auto: t('climate.hvac.auto'),
+    cool: t('climate.hvac.cool'),
+    dry: t('climate.hvac.dry'),
+    fan_only: t('climate.hvac.fanOnly'),
+    heat: t('climate.hvac.heat')
+  }), [language]);
+  const fanMap = useMemo(() => ({
+    Auto: t('climate.fan.auto'),
+    Low: t('climate.fan.low'),
+    LowMid: t('climate.fan.lowMid'),
+    Mid: t('climate.fan.mid'),
+    HighMid: t('climate.fan.highMid'),
+    High: t('climate.fan.high')
+  }), [language]);
+  const swingMap = useMemo(() => ({
+    Auto: t('climate.swing.auto'),
+    Up: t('climate.swing.up'),
+    UpMid: t('climate.swing.upMid'),
+    Mid: t('climate.swing.mid'),
+    DownMid: t('climate.swing.downMid'),
+    Down: t('climate.swing.down'),
+    Swing: t('climate.swing.swing')
+  }), [language]);
 
   useEffect(() => {
     if (!conn) return;
@@ -826,8 +845,8 @@ export default function App() {
   const getS = (id, fallback = "--") => {
     const state = entities[id]?.state;
     if (!state || state === "unavailable" || state === "unknown") return fallback;
-    if (state === "home") return "Heime";
-    if (state === "not_home") return "Borte";
+    if (state === "home") return t('status.home');
+    if (state === "not_home") return t('status.notHome');
     return state.charAt(0).toUpperCase() + state.slice(1);
   };
   const getA = (id, attr, fallback = null) => entities[id]?.attributes?.[attr] ?? fallback;
@@ -894,8 +913,8 @@ export default function App() {
   };
 
   const pageDefaults = {
-    home: { label: 'HEIM', icon: LayoutGrid },
-    lights: { label: 'Lys', icon: Lightbulb }
+    home: { label: t('page.home'), icon: LayoutGrid },
+    lights: { label: t('page.lights'), icon: Lightbulb }
   };
   const pages = (pagesConfig.pages || []).map(id => ({
     id,
@@ -933,6 +952,37 @@ export default function App() {
     }
     setAddCardType('entity');
   }, [showAddCardModal, addCardTargetPage]);
+
+  const getAddCardAvailableLabel = () => {
+    if (addCardTargetPage === 'header') return t('addCard.available.people');
+    if (addCardTargetPage === 'automations') return t('addCard.available.automations');
+    if (addCardTargetPage === 'settings') return t('addCard.available.allEntities');
+    if (addCardType === 'vacuum') return t('addCard.available.vacuums');
+    if (addCardType === 'media') return t('addCard.available.players');
+    if (addCardType === 'toggle') return t('addCard.available.toggles');
+    if (addCardType === 'entity') return t('addCard.available.entities');
+    return t('addCard.available.lights');
+  };
+
+  const getAddCardNoneLeftLabel = () => {
+    const itemKey = addCardTargetPage === 'header'
+      ? 'addCard.item.people'
+      : addCardTargetPage === 'automations'
+        ? 'addCard.item.automations'
+        : addCardTargetPage === 'settings'
+          ? 'addCard.item.entities'
+          : addCardType === 'vacuum'
+            ? 'addCard.item.vacuums'
+            : addCardType === 'media'
+              ? 'addCard.item.players'
+              : addCardType === 'toggle'
+                ? 'addCard.item.toggles'
+                : addCardType === 'entity'
+                  ? 'addCard.item.entities'
+                  : 'addCard.item.lights';
+
+    return t('addCard.noneLeft').replace('{item}', t(itemKey));
+  };
 
   useEffect(() => {
     if (!conn) return;
@@ -1077,6 +1127,11 @@ export default function App() {
     localStorage.setItem('midttunet_header_scale', newScale);
   };
 
+  const updateHeaderTitle = (newTitle) => {
+    setHeaderTitle(newTitle);
+    localStorage.setItem('midttunet_header_title', newTitle);
+  };
+
   const isToggleEntity = (id) => {
     const domain = id?.split('.')?.[0];
     const toggleDomains = ['automation', 'switch', 'input_boolean', 'script', 'fan'];
@@ -1103,7 +1158,7 @@ export default function App() {
   };
 
   const createPage = () => {
-    const label = newPageLabel.trim() || 'Ny side';
+    const label = newPageLabel.trim() || t('page.newDefault');
     const slugBase = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'side';
     let pageId = slugBase;
     const existing = new Set(pagesConfig.pages || []);
@@ -1129,7 +1184,7 @@ export default function App() {
 
   const deletePage = (pageId) => {
     if (!pageId || pageId === 'home') return;
-    if (!window.confirm('Er du sikker på at du vil slette sida?')) return;
+    if (!window.confirm(t('confirm.deletePage'))) return;
 
     const newConfig = { ...pagesConfig };
     newConfig.pages = (newConfig.pages || []).filter(id => id !== pageId);
@@ -1241,7 +1296,7 @@ export default function App() {
         {getControls(cardId)}
         <div className="flex justify-between items-start">
             <div className="p-2.5 rounded-xl text-[var(--text-secondary)]" style={{backgroundColor: 'var(--glass-bg)'}}><Icon className="w-5 h-5" /></div>
-            {showLastChanged && <div className="flex flex-col items-end"><span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{formatRelativeTime(lastChanged)}</span></div>}
+            {showLastChanged && <div className="flex flex-col items-end"><span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{formatRelativeTime(lastChanged, t)}</span></div>}
         </div>
         <div><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-0.5 truncate">{name}</p>{showStatus && <p className="text-xl font-light truncate" style={{color: 'var(--text-primary)'}}>{String(state)}</p>}</div>
       </div>
@@ -1259,7 +1314,7 @@ export default function App() {
     const domain = cardId.split('.')[0];
     const isToggle = type === 'toggle';
     const isOn = entity.state === 'on';
-    const statusText = isToggle ? (isOn ? 'PÅ' : 'AV') : getS(cardId);
+    const statusText = isToggle ? (isOn ? t('common.on') : t('common.off')) : getS(cardId);
     const name = customNames[cardId] || getA(cardId, 'friendly_name', cardId);
     const defaultIcons = {
       automation: Workflow,
@@ -1378,8 +1433,8 @@ export default function App() {
 
           <div className="flex-1 flex flex-col gap-3 min-w-0 justify-center h-full pt-1">
             <div className="flex justify-between items-baseline pr-1">
-              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none">{String(name || 'Lys')}</p>
-              <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round((br / 255) * 100)}%` : 'AV'}</span>
+              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none">{String(name || t('common.light'))}</p>
+              <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round((br / 255) * 100)}%` : t('common.off')}</span>
             </div>
             <div className="w-full">
                <M3Slider variant="thin" min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
@@ -1392,8 +1447,8 @@ export default function App() {
     return (
       <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
         {getControls(currentLId)}
-        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}><span className="text-xs tracking-widest uppercase font-bold">{isUnavailable ? 'N/A' : (totalCount > 0 ? (activeCount > 0 ? `${activeCount}/${totalCount}` : 'AV') : (isOn ? 'PÅ' : 'AV'))}</span></div></div>
-        <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || 'Lys')}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
+        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}><span className="text-xs tracking-widest uppercase font-bold">{isUnavailable ? t('status.unavailable') : (totalCount > 0 ? (activeCount > 0 ? `${activeCount}/${totalCount}` : t('common.off')) : (isOn ? t('common.on') : t('common.off')))}</span></div></div>
+        <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
       </div>
     );
   };
@@ -1408,7 +1463,7 @@ export default function App() {
         {getControls(cardId)}
         <div className="flex items-center gap-4">
           <div className={`p-2.5 rounded-xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-4 h-4" /></div>
-          <div className="flex flex-col"><div className="flex items-center gap-2"><span className="text-sm font-bold text-[var(--text-primary)] leading-tight">{friendlyName}</span></div><span className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)] mt-0.5">{isOn ? 'Aktiv' : 'Avslått'}</span></div>
+          <div className="flex flex-col"><div className="flex items-center gap-2"><span className="text-sm font-bold text-[var(--text-primary)] leading-tight">{friendlyName}</span></div><span className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)] mt-0.5">{isOn ? t('status.active') : t('status.off')}</span></div>
         </div>
         <div className={`w-10 h-6 rounded-full relative transition-all ${isOn ? 'bg-blue-500/80' : 'bg-[var(--glass-bg-hover)]'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`} /></div>
       </div>
@@ -1444,7 +1499,7 @@ export default function App() {
     const isCleaning = state === "cleaning";
     const isReturning = state === "returning";
     const isDocked = state === "docked";
-    const statusText = isCleaning ? "Støvsuger" : isReturning ? "Returnerer" : isDocked ? "Ladar" : state;
+    const statusText = isCleaning ? t('vacuum.cleaning') : isReturning ? t('vacuum.returning') : isDocked ? t('vacuum.charging') : state;
     const name = customNames['rocky'] || 'Rocky';
     const Icon = customIcons['rocky'] ? ICON_MAP[customIcons['rocky']] : Bot;
     
@@ -1454,7 +1509,7 @@ export default function App() {
         <div className="flex justify-between items-start font-sans">
            <div className={`p-3 rounded-2xl transition-all ${isCleaning ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
            <div className="flex flex-col items-end gap-2">
-             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{room || "Ukjend"}</span></div>
+             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{room || t('vacuum.unknown')}</span></div>
              {battery && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Battery className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{battery}%</span></div>}
            </div>
         </div>
@@ -1485,15 +1540,15 @@ export default function App() {
     const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
     const battery = getA(vacuumId, "battery_level");
     const room = getA(vacuumId, "current_room") || getA(vacuumId, "room");
-    const name = customNames[vacuumId] || getA(vacuumId, "friendly_name", "Støvsugar");
+    const name = customNames[vacuumId] || getA(vacuumId, "friendly_name", t('vacuum.name'));
     const Icon = customIcons[vacuumId] ? ICON_MAP[customIcons[vacuumId]] : Bot;
     const statusText = (() => {
-      if (state === "cleaning") return "Støvsuger";
-      if (state === "returning") return "Returnerer";
-      if ((state === "charging" || state === "docked") && battery === 100) return "Dokka";
-      if (state === "docked") return "Ladar";
-      if (state === "idle") return "Klar";
-      return state || "Ukjend";
+      if (state === "cleaning") return t('vacuum.cleaning');
+      if (state === "returning") return t('vacuum.returning');
+      if ((state === "charging" || state === "docked") && battery === 100) return t('vacuum.docked');
+      if (state === "docked") return t('vacuum.charging');
+      if (state === "idle") return t('vacuum.idle');
+      return state || t('vacuum.unknown');
     })();
 
     const showRoom = !!room;
@@ -1540,7 +1595,7 @@ export default function App() {
     const isPlaying = mpState === 'playing';
     const isActive = isMediaActive(entity);
     const name = customNames[mpId] || getA(mpId, 'friendly_name', 'Media Player');
-    const title = getA(mpId, 'media_title') || (isActive ? 'Aktiv' : 'Ingen media');
+    const title = getA(mpId, 'media_title') || (isActive ? t('status.active') : t('media.noneMedia'));
     const subtitle = getA(mpId, 'media_artist') || getA(mpId, 'media_series_title') || getA(mpId, 'media_album_name') || '';
     const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
     const isChannel = getA(mpId, 'media_content_type') === 'channel';
@@ -1553,7 +1608,7 @@ export default function App() {
             {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}
           </div>
           <div className="text-center w-full px-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Ingen musikk</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMusic')}</p>
             <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{name}</p></div>
           </div>
         </div>
@@ -1575,7 +1630,7 @@ export default function App() {
           </div>
           <div className="flex flex-col overflow-hidden pt-1">
             <div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{name}</p></div>
-            <h3 className="text-lg font-bold leading-tight truncate mb-0.5">{title || 'Ukjend'}</h3>
+            <h3 className="text-lg font-bold leading-tight truncate mb-0.5">{title || t('common.unknown')}</h3>
             {subtitle && <p className={`${picture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs truncate font-medium`}>{subtitle}</p>}
           </div>
         </div>
@@ -1610,7 +1665,7 @@ export default function App() {
     const isPlaying = mpState === 'playing';
     const isActive = activeEntities.length > 0;
     const name = customNames[cardId] || getA(mpId, 'friendly_name', 'Musikk');
-    const title = getA(mpId, 'media_title') || (isActive ? 'Aktiv' : 'Ingen musikk');
+    const title = getA(mpId, 'media_title') || (isActive ? t('status.active') : t('media.noneMusic'));
     const subtitle = getA(mpId, 'media_artist') || getA(mpId, 'media_series_title') || getA(mpId, 'media_album_name') || '';
     const picture = getEntityImageUrl(currentMp.attributes?.entity_picture);
     const isChannel = getA(mpId, 'media_content_type') === 'channel';
@@ -1631,7 +1686,7 @@ export default function App() {
             {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}
           </div>
           <div className="text-center w-full px-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Ingen musikk</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMusic')}</p>
             <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{name}</p></div>
           </div>
         </div>
@@ -1662,7 +1717,7 @@ export default function App() {
           </div>
           <div className="flex flex-col overflow-hidden pt-1">
             <div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{name}</p></div>
-            <h3 className="text-lg font-bold leading-tight truncate mb-0.5">{title || 'Ukjend'}</h3>
+            <h3 className="text-lg font-bold leading-tight truncate mb-0.5">{title || t('common.unknown')}</h3>
             {subtitle && <p className={`${picture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs truncate font-medium`}>{subtitle}</p>}
           </div>
         </div>
@@ -1691,12 +1746,12 @@ export default function App() {
         
         <div className="flex justify-between items-start relative z-10">
            <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Gamepad2 className="w-5 h-5" /></div>
-           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}><span className="text-[10px] font-bold uppercase tracking-widest">{isOn ? (isPlaying ? 'SPELAR' : 'PÅ') : 'AV'}</span></div>
+           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}><span className="text-[10px] font-bold uppercase tracking-widest">{isOn ? (isPlaying ? t('status.playing') : t('common.on')) : t('common.off')}</span></div>
         </div>
 
         <div className="relative z-10">
            <p className={`${picture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs tracking-widest uppercase mb-1 font-bold opacity-60`}>Shield TV</p>
-           <h3 className="text-2xl font-medium leading-none line-clamp-2 mb-1">{appName || (isOn ? 'Heimskjerm' : 'Avslått')}</h3>
+           <h3 className="text-2xl font-medium leading-none line-clamp-2 mb-1">{appName || (isOn ? t('media.homeScreen') : t('status.off'))}</h3>
            {title && <p className={`text-xs ${picture ? 'text-gray-300' : 'text-[var(--text-muted)]'} line-clamp-1 font-medium`}>{title}</p>}
         </div>
 
@@ -1707,20 +1762,20 @@ export default function App() {
 
   const getWeatherInfo = (state) => {
     const weatherMap = {
-      'sunny': { label: 'Sol', icon: 'clear-day' },
-      'clear-night': { label: 'Klart', icon: 'clear-night' },
-      'partlycloudy': { label: 'Delvis skya', icon: 'partly-cloudy-day' },
-      'cloudy': { label: 'Skya', icon: 'cloudy' },
-      'rainy': { label: 'Regn', icon: 'rain' },
-      'pouring': { label: 'Pøsregn', icon: 'thunderstorms-rain' },
-      'snowy': { label: 'Snø', icon: 'snow' },
-      'fog': { label: 'Tåke', icon: 'fog' },
-      'hail': { label: 'Hagl', icon: 'hail' },
-      'lightning': { label: 'Lyn', icon: 'thunderstorms' },
-      'windy': { label: 'Vind', icon: 'wind' },
-      'exceptional': { label: 'Ekstremt', icon: 'warning' }
+      'sunny': { label: t('weather.condition.sunny'), icon: 'clear-day' },
+      'clear-night': { label: t('weather.condition.clearNight'), icon: 'clear-night' },
+      'partlycloudy': { label: t('weather.condition.partlyCloudy'), icon: 'partly-cloudy-day' },
+      'cloudy': { label: t('weather.condition.cloudy'), icon: 'cloudy' },
+      'rainy': { label: t('weather.condition.rainy'), icon: 'rain' },
+      'pouring': { label: t('weather.condition.pouring'), icon: 'thunderstorms-rain' },
+      'snowy': { label: t('weather.condition.snowy'), icon: 'snow' },
+      'fog': { label: t('weather.condition.fog'), icon: 'fog' },
+      'hail': { label: t('weather.condition.hail'), icon: 'hail' },
+      'lightning': { label: t('weather.condition.lightning'), icon: 'thunderstorms' },
+      'windy': { label: t('weather.condition.windy'), icon: 'wind' },
+      'exceptional': { label: t('weather.condition.exceptional'), icon: 'warning' }
     };
-    return weatherMap[state] || { label: state || 'Ukjend', icon: 'cloudy' };
+    return weatherMap[state] || { label: state || t('common.unknown'), icon: 'cloudy' };
   };
 
   const renderWeatherTempCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
@@ -1767,7 +1822,7 @@ export default function App() {
     const tempEntity = entities[OUTSIDE_TEMP_ID];
     const currentTemp = parseFloat(tempEntity?.state);
     const state = weatherEntity?.state;
-    const name = customNames['weather'] || 'Været';
+    const name = customNames['weather'] || t('weather.name');
     // Bruk henta prognose, eller fall tilbake til attributt (for eldre HA)
     const forecastData = weatherForecast.length > 0 ? weatherForecast : weatherEntity?.attributes?.forecast;
 
@@ -1854,11 +1909,9 @@ export default function App() {
       }
     };
 
-    ids.forEach((id) => {
-      const span = getCardGridSpan(id);
+    const placeSingle = (id, span) => {
       let placed = false;
       let row = 0;
-
       while (!placed) {
         ensureRow(row);
         for (let col = 0; col < columns; col += 1) {
@@ -1871,7 +1924,40 @@ export default function App() {
         }
         if (!placed) row += 1;
       }
-    });
+    };
+
+    const placePair = (firstId, secondId) => {
+      let placed = false;
+      let row = 0;
+      while (!placed) {
+        ensureRow(row);
+        for (let col = 0; col < columns; col += 1) {
+          if (canPlace(row, col, 2)) {
+            place(row, col, 2);
+            positions[firstId] = { row: row + 1, col: col + 1, span: 1 };
+            positions[secondId] = { row: row + 2, col: col + 1, span: 1 };
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) row += 1;
+      }
+    };
+
+    for (let i = 0; i < ids.length; i += 1) {
+      const id = ids[i];
+      const span = getCardGridSpan(id);
+      const nextId = ids[i + 1];
+      const nextSpan = nextId ? getCardGridSpan(nextId) : null;
+
+      if (span === 1 && nextSpan === 1) {
+        placePair(id, nextId);
+        i += 1;
+        continue;
+      }
+
+      placeSingle(id, span);
+    }
 
     return positions;
   };
@@ -2122,7 +2208,7 @@ export default function App() {
           <button 
             onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); setEditCardSettingsKey(settingsKey); }}
             className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
-            title="Rediger kort"
+            title={t('tooltip.editCard')}
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -2130,7 +2216,7 @@ export default function App() {
             onClick={(e) => { e.stopPropagation(); toggleCardVisibility(cardId); }}
             className="p-2 rounded-full transition-colors hover:bg-white/20 text-white border border-white/20 shadow-lg"
             style={{backgroundColor: isHidden ? 'rgba(239, 68, 68, 0.8)' : 'rgba(0, 0, 0, 0.6)'}}
-            title={isHidden ? "Vis kort" : "Skjul kort"}
+            title={isHidden ? t('tooltip.showCard') : t('tooltip.hideCard')}
           >
             {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
@@ -2138,7 +2224,7 @@ export default function App() {
             <button 
               onClick={(e) => { e.stopPropagation(); removeCard(cardId); }}
               className="p-2 rounded-full transition-colors hover:bg-red-500/80 text-white border border-white/20 shadow-lg bg-black/60"
-              title="Fjern kort"
+              title={t('tooltip.removeCard')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -2194,7 +2280,7 @@ export default function App() {
             className="flex items-center gap-2 px-4 py-3 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto"
           >
             <GripVertical className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">Flytt</span>
+            <span className="text-xs font-bold uppercase tracking-widest">{t('drag.move')}</span>
           </div>
         </div>
       </>
@@ -2247,7 +2333,7 @@ export default function App() {
             controls={getControls('power')}
             cardStyle={cardStyle}
             editMode={editMode}
-            name={customNames['power'] || 'Straumpris'}
+            name={customNames['power'] || t('power.title')}
             Icon={customIcons['power'] ? ICON_MAP[customIcons['power']] : Zap}
             priceDisplay={getS(TIBBER_ID)}
             currentPrice={currentPrice}
@@ -2255,6 +2341,7 @@ export default function App() {
             fullPriceData={fullPriceData}
             currentPriceIndex={currentPriceIndex}
             onOpen={() => setShowPowerModal(true)}
+            t={t}
           />
         );
       case 'energy_cost':
@@ -2264,10 +2351,11 @@ export default function App() {
             controls={getControls('energy_cost')}
             cardStyle={cardStyle}
             editMode={editMode}
-            name={customNames['energy_cost'] || 'Kostnad'}
+            name={customNames['energy_cost'] || t('energyCost.title')}
             Icon={customIcons['energy_cost'] ? ICON_MAP[customIcons['energy_cost']] : Coins}
             todayValue={getS(COST_TODAY_ID)}
             monthValue={!isNaN(parseFloat(entities[COST_MONTH_ID]?.state)) ? Math.round(parseFloat(entities[COST_MONTH_ID]?.state)) : String(getS(COST_MONTH_ID))}
+            t={t}
           />
         );
       case 'climate':
@@ -2277,7 +2365,7 @@ export default function App() {
             controls={getControls('climate')}
             cardStyle={cardStyle}
             editMode={editMode}
-            name={customNames['climate'] || 'Varmepumpe'}
+            name={customNames['climate'] || t('climate.title')}
             Icon={customIcons['climate'] ? ICON_MAP[customIcons['climate']] : null}
             currentTemp={climateCurrentTemp}
             targetTemp={climateTargetTemp}
@@ -2286,6 +2374,7 @@ export default function App() {
             isHeating={isHeating}
             onOpen={() => setShowClimateModal(true)}
             onSetTemperature={(temp) => callService('climate', 'set_temperature', { entity_id: CLIMATE_ID, temperature: temp })}
+            t={t}
           />
         );
       case 'rocky':
@@ -2372,7 +2461,7 @@ export default function App() {
                 <Tv className="w-8 h-8 text-[var(--text-secondary)]" />
               </div>
               <div className="text-center w-full px-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Ingen media</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMedia')}</p>
                 <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{mpName}</p></div>
               </div>
             </div>
@@ -2400,12 +2489,12 @@ export default function App() {
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate shadow-black drop-shadow-md">{activeUser}</p>
                     <span className="text-white/40 text-[10px]">•</span>
-                    <p className={`text-[10px] font-bold uppercase tracking-widest ${mpPicture ? 'text-gray-300' : 'text-[var(--text-secondary)]'} truncate shadow-black drop-shadow-md`}>{mpApp || 'Media'}</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${mpPicture ? 'text-gray-300' : 'text-[var(--text-secondary)]'} truncate shadow-black drop-shadow-md`}>{mpApp || t('addCard.type.media')}</p>
                   </div>
                 ) : (
-                  <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-1 truncate shadow-black drop-shadow-md">{mpApp || 'Media'}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-1 truncate shadow-black drop-shadow-md">{mpApp || t('addCard.type.media')}</p>
                 )}
-                <h3 className="text-2xl font-bold leading-tight line-clamp-2 mb-1 shadow-black drop-shadow-lg">{mpTitle || 'Ukjend'}</h3>
+                <h3 className="text-2xl font-bold leading-tight line-clamp-2 mb-1 shadow-black drop-shadow-lg">{mpTitle || t('common.unknown')}</h3>
                 <p className={`text-sm ${mpPicture ? 'text-gray-200' : 'text-[var(--text-secondary)]'} truncate font-medium shadow-black drop-shadow-md`}>{mpSeries || ''}</p>
             </div>
           </div>
@@ -2435,8 +2524,8 @@ export default function App() {
         const isLydplanke = sId === 'media_player.sonos_lydplanke';
         const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
 
-        const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
-        const sArtist = isTV ? 'Stova' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
+        const sTitle = isTV ? t('media.tvAudio') : getA(sId, 'media_title');
+        const sArtist = isTV ? t('media.livingRoom') : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
         const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
         const sName = customNames[sId] || getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '');
 
@@ -2456,7 +2545,7 @@ export default function App() {
               {getControls(sId)}
               {sIndicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}><Speaker className="w-8 h-8 text-[var(--text-secondary)]" /></div>
-              <div className="text-center w-full px-4"><p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Ingen musikk</p><div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{sName}</p></div></div>
+              <div className="text-center w-full px-4"><p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMusic')}</p><div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{sName}</p></div></div>
             </div>
           );
         }
@@ -2472,7 +2561,7 @@ export default function App() {
             {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/20 via-transparent to-transparent pointer-events-none" />}
             <div className="relative z-10 flex gap-4 items-start">
               <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-lg">{sPicture ? <img src={sPicture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isTV ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}</div>}</div>
-              <div className="flex flex-col overflow-hidden pt-1"><div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{sName}</p></div><h3 className="text-lg font-bold leading-tight truncate mb-0.5">{sTitle || 'Ukjend'}</h3><p className={`text-xs ${sPicture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} truncate font-medium`}>{sArtist || ''}</p></div>
+              <div className="flex flex-col overflow-hidden pt-1"><div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{sName}</p></div><h3 className="text-lg font-bold leading-tight truncate mb-0.5">{sTitle || t('common.unknown')}</h3><p className={`text-xs ${sPicture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} truncate font-medium`}>{sArtist || ''}</p></div>
             </div>
             <div className="relative z-10 flex items-center justify-center gap-8 mt-2"><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: sId }); }} className={`${sPicture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipBack className="w-6 h-6" /></button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: sId }); }} className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95">{sIsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}</button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: sId }); }} className={`${sPicture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipForward className="w-6 h-6" /></button></div>
           </div>
@@ -2486,28 +2575,28 @@ export default function App() {
   const reStatus = () => {
     if (entities[REFRIGERATOR_ID]?.state !== 'on') return null;
     return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl animate-pulse" style={{backgroundColor: 'rgba(249, 115, 22, 0.02)'}}><div className="p-1.5 rounded-xl text-orange-400" style={{backgroundColor: 'rgba(249, 115, 22, 0.1)'}}><AlertCircle className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">VARSAL</span><span className="text-xs font-medium uppercase tracking-widest text-orange-200/50 italic">Kjøleskap ope</span></div></div>
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl animate-pulse" style={{backgroundColor: 'rgba(249, 115, 22, 0.02)'}}><div className="p-1.5 rounded-xl text-orange-400" style={{backgroundColor: 'rgba(249, 115, 22, 0.1)'}}><AlertCircle className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">{t('status.alert')}</span><span className="text-xs font-medium uppercase tracking-widest text-orange-200/50 italic">{t('status.fridgeOpen')}</span></div></div>
     );
   };
 
   const stStatus = () => {
     if (entities[STUDIO_PRESENCE_ID]?.state !== 'on') return null;
     return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-emerald-400" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Studioet</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">I bruk</span></div></div>
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-emerald-400" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{t('status.studio')}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{t('status.inUse')}</span></div></div>
     );
   };
 
   const poStatus = () => {
     if (entities[PORTEN_MOTION_ID]?.state !== 'on') return null;
     return (
-      <button onClick={() => setShowCameraModal(true)} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-amber-400" style={{backgroundColor: 'rgba(251, 191, 36, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Porten</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">Bevegelse</span></div></button>
+      <button onClick={() => setShowCameraModal(true)} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-amber-400" style={{backgroundColor: 'rgba(251, 191, 36, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{t('camera.gate')}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{t('camera.motion')}</span></div></button>
     );
   };
 
   const gaStatus = () => {
     if (entities[GARAGE_DOOR_ID]?.state !== 'on') return null;
     return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-red-400" style={{backgroundColor: 'rgba(248, 113, 113, 0.1)'}}><Warehouse className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Garasje</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">Ope</span></div></div>
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-red-400" style={{backgroundColor: 'rgba(248, 113, 113, 0.1)'}}><Warehouse className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{t('status.garage')}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{t('status.open')}</span></div></div>
     );
   };
 
@@ -2528,7 +2617,7 @@ export default function App() {
         if (firstActive) setActiveMediaId(firstActive);
         setActiveMediaGroupKey('__emby__');
         setActiveMediaModal('media');
-      }} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-green-400" style={{backgroundColor: 'rgba(74, 222, 128, 0.1)'}}><Clapperboard className="w-4 h-4 animate-pulse" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Emby</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{count} {count === 1 ? 'spelar' : 'spelar'}</span></div></button>
+      }} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-green-400" style={{backgroundColor: 'rgba(74, 222, 128, 0.1)'}}><Clapperboard className="w-4 h-4 animate-pulse" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Emby</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{count} {t('addCard.players')}</span></div></button>
     );
   };
 
@@ -2545,20 +2634,20 @@ export default function App() {
     const isLydplanke = sId === 'media_player.sonos_lydplanke';
     const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
 
-    const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
-    const sArtist = isTV ? 'Stova' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
+    const sTitle = isTV ? t('media.tvAudio') : getA(sId, 'media_title');
+    const sArtist = isTV ? t('media.livingRoom') : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
     const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
     const isPlaying = currentSonos.state === 'playing';
 
     return (
-      <button onClick={() => setActiveMediaModal('sonos')} className="flex items-center gap-3 px-2 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--glass-bg)] relative flex-shrink-0">{sPicture ? <img src={sPicture} alt="" className={`w-full h-full object-cover ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '10s' }} /> : <div className="w-full h-full flex items-center justify-center bg-blue-500/10 text-blue-400"><Music className="w-4 h-4" /></div>}</div><div className="flex flex-col items-start max-w-[120px]"><span className="text-xs text-[var(--text-primary)] font-bold leading-tight truncate w-full">{sTitle || 'Ukjend'}</span><span className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-secondary)] truncate w-full">{sArtist || ''}</span></div></button>
+      <button onClick={() => setActiveMediaModal('sonos')} className="flex items-center gap-3 px-2 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--glass-bg)] relative flex-shrink-0">{sPicture ? <img src={sPicture} alt="" className={`w-full h-full object-cover ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '10s' }} /> : <div className="w-full h-full flex items-center justify-center bg-blue-500/10 text-blue-400"><Music className="w-4 h-4" /></div>}</div><div className="flex flex-col items-start max-w-[120px]"><span className="text-xs text-[var(--text-primary)] font-bold leading-tight truncate w-full">{sTitle || t('common.unknown')}</span><span className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-secondary)] truncate w-full">{sArtist || ''}</span></div></button>
     );
   };
 
   const drStatus = (id, label) => {
     if (entities[id]?.state !== 'on') return null;
     return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}><DoorOpen className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{label}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">Ope</span></div></div>
+      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}><DoorOpen className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{label}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{t('status.open')}</span></div></div>
     );
   };
 
@@ -2689,15 +2778,27 @@ export default function App() {
           <div className="flex flex-col gap-3 font-sans w-full">
             <div>
               <div className="flex items-center gap-4">
-                <h1 className="font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" style={{color: 'var(--text-muted)', fontSize: `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`}}>Midttunet</h1>
+                <h1 className="font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" style={{color: 'var(--text-muted)', fontSize: `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`}}>{headerTitle || 'Midttunet'}</h1>
                 {editMode && (<div className="flex flex-col gap-1 z-50"><button onClick={() => updateHeaderScale(Math.min(headerScale + 0.1, 2))} className="p-1 bg-white/10 rounded hover:bg-white/20"><ChevronUp className="w-4 h-4" /></button><button onClick={() => updateHeaderScale(Math.max(headerScale - 0.1, 0.5))} className="p-1 bg-white/10 rounded hover:bg-white/20"><ChevronDown className="w-4 h-4" /></button></div>)}
               </div>
+              {editMode && (
+                <div className="mt-4 space-y-2">
+                  <label className="text-[10px] md:text-xs uppercase font-bold text-gray-500 ml-1 tracking-[0.2em]">{t('header.titleLabel')}</label>
+                  <input
+                    type="text"
+                    value={headerTitle}
+                    onChange={(e) => updateHeaderTitle(e.target.value)}
+                    placeholder={t('header.titlePlaceholder')}
+                    className="w-full max-w-sm px-4 py-2.5 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                  />
+                </div>
+              )}
               <p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none mt-2 opacity-50 tracking-[0.2em] md:tracking-[0.6em]">{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
             <div className="flex flex-wrap gap-2.5 mt-0 font-sans items-center">
               {(pagesConfig.header || []).map(id => personStatus(id))}
               <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>
-              {reStatus()}{stStatus()}{poStatus()}{gaStatus()}{embyStatus()}{sonosStatus()}{drStatus(EILEV_DOOR_ID, "Eilev si dør")}{drStatus(OLVE_DOOR_ID, "Olve si dør")}{updateStatus()}
+              {reStatus()}{stStatus()}{poStatus()}{gaStatus()}{embyStatus()}{sonosStatus()}{drStatus(EILEV_DOOR_ID, t('door.eilev'))}{drStatus(OLVE_DOOR_ID, t('door.olve'))}{updateStatus()}
             </div>
           </div>
         </header>
@@ -2727,20 +2828,20 @@ export default function App() {
                 className="flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Ny side</span>
+                <span className="hidden sm:inline">{t('nav.addPage')}</span>
               </button>
             )}
           </div>
           <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 w-full md:w-auto justify-end">
-            {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> Legg til</button>}
-            {editMode && <button onClick={() => { const newCols = gridColumns === 3 ? 4 : 3; setGridColumns(newCols); localStorage.setItem('midttunet_grid_columns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {gridColumns === 3 ? '4' : '3'} Kolonner</button>}
+            {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> {t('nav.addCard')}</button>}
+            {editMode && <button onClick={() => { const newCols = gridColumns === 3 ? 4 : 3; setGridColumns(newCols); localStorage.setItem('midttunet_grid_columns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {gridColumns === 3 ? '4' : '3'} {t('nav.columns')}</button>}
             {editMode && (
               <button onClick={() => {
                 const currentSettings = pageSettings[activePage];
                 if (currentSettings?.hidden) setActivePage('home');
                 setEditMode(false);
               }} className="group flex items-center gap-2 text-xs font-bold uppercase text-green-400 hover:text-white transition-all whitespace-nowrap">
-                <Check className="w-4 h-4" /> Ferdig
+                <Check className="w-4 h-4" /> {t('nav.done')}
               </button>
             )}
             
@@ -2750,20 +2851,14 @@ export default function App() {
                   setEditMode(true);
                   setShowMenu(false);
                 }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]">
-                  <Edit2 className="w-4 h-4" /> Rediger
+                  <Edit2 className="w-4 h-4" /> {t('menu.edit')}
                 </button>
               )}
-              {!editMode && <button onClick={() => { setShowConfigModal(true); setShowMenu(false); }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]"><Settings className="w-4 h-4" /> System</button>}
+              {!editMode && <button onClick={() => { setShowConfigModal(true); setShowMenu(false); }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]"><Settings className="w-4 h-4" /> {t('menu.system')}</button>}
               {!editMode && (
-                <button onClick={() => { toggleTheme(); setShowMenu(false); }} className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]" title="Bytt tema">
+                <button onClick={() => { toggleTheme(); setShowMenu(false); }} className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]" title={t('menu.themeTitle')}>
                   {currentTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  Tema
-                </button>
-              )}
-              {!editMode && (
-                <button onClick={() => { toggleFullscreen(); setShowMenu(false); }} className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]" title="Fullskjerm">
-                  {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                  Fullskjerm
+                  {t('menu.theme')}
                 </button>
               )}
             </div>
@@ -2833,26 +2928,26 @@ export default function App() {
           <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowConfigModal(false)}>
             <div className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowConfigModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-xl font-light mb-4 text-[var(--text-primary)] text-center uppercase tracking-widest italic">System</h3>
+              <h3 className="text-xl font-light mb-4 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('system.title')}</h3>
 
               <div className="flex items-center gap-2 mb-5">
-                <button onClick={() => setConfigTab('connection')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'connection' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>Connection</button>
-                <button onClick={() => setConfigTab('settings')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'settings' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>Settings</button>
+                <button onClick={() => setConfigTab('connection')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'connection' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>{t('system.tabConnection')}</button>
+                <button onClick={() => setConfigTab('settings')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'settings' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>{t('system.tabSettings')}</button>
               </div>
 
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {configTab === 'connection' && (
                   <div className="space-y-5 font-sans">
                     <div className="space-y-2">
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">HA URL (Primær){connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label>
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">{t('system.haUrlPrimary')}{connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}</label>
                       <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.url} onChange={(e) => setConfig({...config, url: e.target.value})} />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">HA URL (Fallback/Lokal){connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label>
-                      <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.fallbackUrl} onChange={(e) => setConfig({...config, fallbackUrl: e.target.value})} placeholder="Valfritt" />
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">{t('system.haUrlFallback')}{connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}</label>
+                      <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.fallbackUrl} onChange={(e) => setConfig({...config, fallbackUrl: e.target.value})} placeholder={t('common.optional')} />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-3">Token</label>
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-3">{t('system.token')}</label>
                       <textarea className="w-full px-4 py-3 h-32 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.token} onChange={(e) => setConfig({...config, token: e.target.value})} />
                     </div>
                   </div>
@@ -2860,9 +2955,10 @@ export default function App() {
 
                 {configTab === 'settings' && (
                   <div className="space-y-4 font-sans">
-                    <ModernDropdown label="Tema" icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: 'Mørk', light: 'Lys' }} />
+                    <ModernDropdown label={t('settings.theme')} icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: t('theme.dark'), light: t('theme.light') }} placeholder={t('dropdown.noneSelected')} />
+                    <ModernDropdown label={t('settings.language')} icon={Globe} options={['nn', 'en']} current={language} onChange={setLanguage} map={{ nn: t('language.nn'), en: t('language.en') }} placeholder={t('dropdown.noneSelected')} />
                     <div className="space-y-2">
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-3">Tilbake til Heim (sek)</label>
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-3">{t('settings.inactivity')}</label>
                       <div className="flex items-center gap-3">
                         <input
                           type="range"
@@ -2878,7 +2974,7 @@ export default function App() {
                           className="flex-1"
                         />
                         <div className="min-w-[64px] text-right text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-                          {inactivityTimeout === 0 ? 'AV' : `${inactivityTimeout}s`}
+                          {inactivityTimeout === 0 ? t('common.off') : `${inactivityTimeout}s`}
                         </div>
                       </div>
                     </div>
@@ -2887,7 +2983,7 @@ export default function App() {
               </div>
 
               <div className="pt-4 mt-4 border-t border-[var(--glass-border)]">
-                <button onClick={() => setShowConfigModal(false)} className="w-full py-3 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>Lagre</button>
+                <button onClick={() => setShowConfigModal(false)} className="w-full py-3 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>{t('system.save')}</button>
               </div>
             </div>
           </div>
@@ -2899,25 +2995,25 @@ export default function App() {
               <button onClick={() => setShowPowerModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               <div className="flex items-center gap-6 mb-6">
                 <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#fbbf24'}}><Zap className="w-10 h-10" /></div>
-                <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Straumpris</h3>
+                <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">{t('power.title')}</h3>
               </div>
                 <div className="flex justify-around items-center mb-8 px-4 py-4 rounded-2xl popup-surface">
                  <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Snitt</span>
+                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">{t('power.avg')}</span>
                     <span className="text-xl font-light text-[var(--text-primary)]">{priceStats.avg.toFixed(2)}</span>
                  </div>
                   <div className="w-px h-8 popup-surface-divider"></div>
                  <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Låg</span>
+                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">{t('power.low')}</span>
                     <span className="text-xl font-light text-blue-400">{priceStats.min.toFixed(2)}</span>
                  </div>
                   <div className="w-px h-8 popup-surface-divider"></div>
                  <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Høg</span>
+                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">{t('power.high')}</span>
                     <span className="text-xl font-light text-red-400">{priceStats.max.toFixed(2)}</span>
                  </div>
               </div>
-              <InteractivePowerGraph data={fullPriceData} currentIndex={currentPriceIndex} />
+              <InteractivePowerGraph data={fullPriceData} currentIndex={currentPriceIndex} t={t} locale={language === 'nn' ? 'nn-NO' : 'en-GB'} />
             </div>
           </div>
         )}
@@ -2932,9 +3028,9 @@ export default function App() {
                   
                 </div>
                 <div>
-                  <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">Varmepumpe</h3>
+                  <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">{t('climate.title')}</h3>
                   <div className="mt-3 px-4 py-1.5 rounded-full border inline-block transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', borderColor: isCooling ? 'rgba(59, 130, 246, 0.2)' : isHeating ? 'rgba(249, 115, 22, 0.2)' : 'var(--glass-border)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)'}}>
-                    <p className="text-xs uppercase font-bold italic tracking-widest">Status: {isHeating ? 'VARMAR' : isCooling ? 'KJØLER' : 'VENTAR'}</p>
+                    <p className="text-xs uppercase font-bold italic tracking-widest">{t('status.statusLabel')}: {isHeating ? t('status.heating') : isCooling ? t('status.cooling') : t('status.idle')}</p>
                   </div>
                 </div>
               </div>
@@ -2942,7 +3038,7 @@ export default function App() {
                 <div className="lg:col-span-3 space-y-10 p-6 md:p-10 rounded-3xl popup-surface">
                   <div className="text-center font-sans">
                     <div className="flex justify-between items-center mb-6 px-4 italic">
-                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.5em'}}>Innetemperatur</p>
+                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.5em'}}>{t('climate.indoorTemp')}</p>
                       <span className="text-xs uppercase font-bold" style={{letterSpacing: '0.3em', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>{String(getA(CLIMATE_ID, "current_temperature"))}°C</span>
                     </div>
                     <div className="flex items-center justify-center gap-4 mb-10">
@@ -2965,9 +3061,9 @@ export default function App() {
                   </div>
                 </div>
                 <div className="lg:col-span-2 space-y-10 py-4 italic font-sans">
-                  <ModernDropdown label="Modus" icon={Flame} options={getA(CLIMATE_ID, "hvac_modes", [])} current={entities[CLIMATE_ID]?.state} onChange={(m) => callService("climate", "set_hvac_mode", { entity_id: CLIMATE_ID, hvac_mode: m })} map={HVAC_MAP} />
-                  <ModernDropdown label="Viftestyrke" icon={Fan} options={getA(CLIMATE_ID, "fan_modes", [])} current={getA(CLIMATE_ID, "fan_mode")} onChange={(m) => callService("climate", "set_fan_mode", { entity_id: CLIMATE_ID, fan_mode: m })} map={FAN_MAP} />
-                  <ModernDropdown label="Sving" icon={ArrowUpDown} options={getA(CLIMATE_ID, "swing_modes", [])} current={getA(CLIMATE_ID, "swing_mode")} onChange={(m) => callService("climate", "set_swing_mode", { entity_id: CLIMATE_ID, swing_mode: m })} map={SWING_MAP} />
+                  <ModernDropdown label={t('climate.mode')} icon={Flame} options={getA(CLIMATE_ID, "hvac_modes", [])} current={entities[CLIMATE_ID]?.state} onChange={(m) => callService("climate", "set_hvac_mode", { entity_id: CLIMATE_ID, hvac_mode: m })} map={hvacMap} placeholder={t('dropdown.noneSelected')} />
+                  <ModernDropdown label={t('climate.fanSpeed')} icon={Fan} options={getA(CLIMATE_ID, "fan_modes", [])} current={getA(CLIMATE_ID, "fan_mode")} onChange={(m) => callService("climate", "set_fan_mode", { entity_id: CLIMATE_ID, fan_mode: m })} map={fanMap} placeholder={t('dropdown.noneSelected')} />
+                  <ModernDropdown label={t('climate.swing')} icon={ArrowUpDown} options={getA(CLIMATE_ID, "swing_modes", [])} current={getA(CLIMATE_ID, "swing_mode")} onChange={(m) => callService("climate", "set_swing_mode", { entity_id: CLIMATE_ID, swing_mode: m })} map={swingMap} placeholder={t('dropdown.noneSelected')} />
                 </div>
               </div>
             </div>
@@ -2996,8 +3092,8 @@ export default function App() {
                     })()}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">{String(getA(showLightModal, "friendly_name", "Lys"))}</h3>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1.5 opacity-60">{isUnavailable ? 'Utilgjengelig' : 'Lysstyring'}</p>
+                    <h3 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">{String(getA(showLightModal, "friendly_name", t('common.light')))}</h3>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1.5 opacity-60">{isUnavailable ? t('status.unavailable') : t('status.lighting')}</p>
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -3019,7 +3115,7 @@ export default function App() {
 
                 {getA(showLightModal, "entity_id", []).length > 0 && (
                   <div className="space-y-4 pt-6 border-t" style={{borderColor: 'var(--glass-border)'}}>
-                    <p className="text-xs text-gray-400 uppercase font-bold ml-1 mb-2" style={{letterSpacing: '0.2em'}}>Lamper i rommet</p>
+                    <p className="text-xs text-gray-400 uppercase font-bold ml-1 mb-2" style={{letterSpacing: '0.2em'}}>{t('light.roomLights')}</p>
                     <div className="grid grid-cols-1 gap-3">
                       {getA(showLightModal, "entity_id", []).map(cid => {
                         const subEnt = entities[cid];
@@ -3054,7 +3150,7 @@ export default function App() {
                <div className="flex flex-col items-center gap-8 mt-4">
                   <div className="flex items-center gap-4 mb-4">
                      <div className={`p-4 rounded-2xl ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Gamepad2 className="w-8 h-8" /></div>
-                     <div><h3 className="text-2xl font-light text-[var(--text-primary)] uppercase italic tracking-widest">Shield</h3><p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{entities[SHIELD_ID]?.state === 'playing' ? 'Spelar no' : (entities[SHIELD_ID]?.state !== 'off' ? 'På' : 'Avslått')}</p></div>
+                     <div><h3 className="text-2xl font-light text-[var(--text-primary)] uppercase italic tracking-widest">Shield</h3><p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{entities[SHIELD_ID]?.state === 'playing' ? t('shield.playingNow') : (entities[SHIELD_ID]?.state !== 'off' ? t('shield.on') : t('shield.off'))}</p></div>
                   </div>
 
                   <div className="popup-surface p-6 rounded-[2.5rem] relative">
@@ -3071,11 +3167,11 @@ export default function App() {
                      </div>
                   </div>
 
-                  <div className="flex gap-6 w-full justify-center"><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "BACK" })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">Tilbake</button><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "HOME" })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">Heim</button></div>
+                  <div className="flex gap-6 w-full justify-center"><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "BACK" })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">{t('shield.back')}</button><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "HOME" })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">{t('shield.home')}</button></div>
 
                   <div className="flex gap-4 w-full pt-4 border-t border-[var(--glass-border)]">
-                     <button onClick={() => callService("media_player", "toggle", { entity_id: SHIELD_ID })} className={`flex-1 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'}`}><Power className="w-4 h-4" /> {entities[SHIELD_ID]?.state !== 'off' ? 'Slå av' : 'Slå på'}</button>
-                     <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "MEDIA_PLAY_PAUSE" })} className="flex-1 py-4 rounded-2xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2"><Play className="w-4 h-4" /> Spel/Pause</button>
+                     <button onClick={() => callService("media_player", "toggle", { entity_id: SHIELD_ID })} className={`flex-1 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'}`}><Power className="w-4 h-4" /> {entities[SHIELD_ID]?.state !== 'off' ? t('shield.turnOff') : t('shield.turnOn')}</button>
+                     <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "MEDIA_PLAY_PAUSE" })} className="flex-1 py-4 rounded-2xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2"><Play className="w-4 h-4" /> {t('shield.playPause')}</button>
                   </div>
                </div>
             </div>
@@ -3091,29 +3187,29 @@ export default function App() {
                 <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa'}}><Bot className="w-10 h-10" /></div>
                 <div>
                   <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Rocky</h3>
-                  <p className="text-xs text-gray-500 uppercase font-bold mt-2" style={{letterSpacing: '0.1em'}}>Status: {entities[ROCKY_ID]?.state}</p>
+                  <p className="text-xs text-gray-500 uppercase font-bold mt-2" style={{letterSpacing: '0.1em'}}>{t('status.statusLabel')}: {entities[ROCKY_ID]?.state}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="p-8 rounded-3xl popup-surface">
-                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Sist vaska</p>
+                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>{t('rocky.lastCleaned')}</p>
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{getA(ROCKY_ID, "squareMeterCleanArea", 0)}</span><span className="text-gray-500 font-medium">m²</span></div>
                   <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">Tid: {Math.round(getA(ROCKY_ID, "cleanTime", 0) / 60)} min</p>
                 </div>
                 <div className="p-8 rounded-3xl popup-surface flex flex-col justify-center gap-4">
-                   <button onClick={() => callService("vacuum", entities[ROCKY_ID]?.state === "cleaning" ? "pause" : "start", { entity_id: ROCKY_ID })} className="w-full py-4 rounded-2xl bg-blue-500/20 text-blue-400 font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-2">{entities[ROCKY_ID]?.state === "cleaning" ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Start</>}</button>
+                   <button onClick={() => callService("vacuum", entities[ROCKY_ID]?.state === "cleaning" ? "pause" : "start", { entity_id: ROCKY_ID })} className="w-full py-4 rounded-2xl bg-blue-500/20 text-blue-400 font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-2">{entities[ROCKY_ID]?.state === "cleaning" ? <><Pause className="w-4 h-4" /> {t('rocky.pause')}</> : <><Play className="w-4 h-4" /> {t('rocky.start')}</>}</button>
                    <div className="flex gap-4">
-                     <button onClick={() => callService("vacuum", "return_to_base", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><Home className="w-4 h-4" /> Heim</button>
-                     <button onClick={() => callService("vacuum", "locate", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> Finn</button>
+                     <button onClick={() => callService("vacuum", "return_to_base", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><Home className="w-4 h-4" /> {t('rocky.home')}</button>
+                     <button onClick={() => callService("vacuum", "locate", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> {t('rocky.find')}</button>
                    </div>
                 </div>
               </div>
 
               <div className="space-y-6">
-                 <ModernDropdown label="Sugekraft" icon={Fan} options={getA(ROCKY_ID, "fan_speed_list", [])} current={getA(ROCKY_ID, "fan_speed")} onChange={(val) => callService("vacuum", "set_fan_speed", { entity_id: ROCKY_ID, fan_speed: val })} />
+                 <ModernDropdown label={t('rocky.suction')} icon={Fan} options={getA(ROCKY_ID, "fan_speed_list", [])} current={getA(ROCKY_ID, "fan_speed")} onChange={(val) => callService("vacuum", "set_fan_speed", { entity_id: ROCKY_ID, fan_speed: val })} placeholder={t('dropdown.noneSelected')} />
                  {getA(ROCKY_ID, "mop_intensity_list") && (
-                   <ModernDropdown label="Mopp Intensitet" icon={Droplets} options={getA(ROCKY_ID, "mop_intensity_list", [])} current={getA(ROCKY_ID, "mop_intensity")} onChange={(val) => callService("vacuum", "send_command", { entity_id: ROCKY_ID, command: "set_mop_mode", params: { mop_mode: val } })} />
+                   <ModernDropdown label={t('rocky.mopIntensity')} icon={Droplets} options={getA(ROCKY_ID, "mop_intensity_list", [])} current={getA(ROCKY_ID, "mop_intensity")} onChange={(val) => callService("vacuum", "send_command", { entity_id: ROCKY_ID, command: "set_mop_mode", params: { mop_mode: val } })} placeholder={t('dropdown.noneSelected')} />
                  )}
               </div>
             </div>
@@ -3131,7 +3227,7 @@ export default function App() {
                     <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Nissan Leaf</h3>
                     <div className="flex items-center gap-2 mt-2">
                       <Clock className="w-3 h-3 text-gray-500" />
-                      <p className="text-xs text-gray-500 uppercase font-bold" style={{letterSpacing: '0.1em'}}>Oppdatert: {formatRelativeTime(entities[LEAF_LAST_UPDATED]?.state)}</p>
+                      <p className="text-xs text-gray-500 uppercase font-bold" style={{letterSpacing: '0.1em'}}>{t('common.updated')}: {formatRelativeTime(entities[LEAF_LAST_UPDATED]?.state, t)}</p>
                     </div>
                   </div>
                 </div>
@@ -3141,7 +3237,7 @@ export default function App() {
                     className="flex items-center gap-3 px-6 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all hover:bg-white/5 active:scale-95" 
                     style={{backgroundColor: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)'}}
                   >
-                    <RefreshCw className="w-4 h-4" /> Oppdater
+                    <RefreshCw className="w-4 h-4" /> {t('leaf.update')}
                   </button>
                   <button onClick={() => setShowLeafModal(false)} className="modal-close"><X className="w-4 h-4" /></button>
                 </div>
@@ -3150,18 +3246,18 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="p-8 rounded-3xl popup-surface">
                   <div className="flex justify-between items-start mb-3">
-                    <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Batteri</p>
+                    <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>{t('leaf.battery')}</p>
                     {entities[LEAF_CHARGING]?.state === 'on' && <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />}
                   </div>
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_ID))}</span><span className="text-gray-500 font-medium">%</span></div>
-                  <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">{entities[LEAF_PLUGGED]?.state === 'on' ? 'Plugga i' : 'Ikkje plugga i'}</p>
+                  <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">{entities[LEAF_PLUGGED]?.state === 'on' ? t('leaf.pluggedIn') : t('leaf.unplugged')}</p>
                 </div>
                 <div className="p-8 rounded-3xl popup-surface">
-                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Rekkevidde</p>
+                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>{t('leaf.range')}</p>
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_RANGE))}</span><span className="text-gray-500 font-medium">km</span></div>
                 </div>
                 <div className="p-8 rounded-3xl popup-surface">
-                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Temp inne</p>
+                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>{t('leaf.tempInside')}</p>
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_INTERNAL_TEMP))}</span><span className="text-gray-500 font-medium">°C</span></div>
                 </div>
                  <div className="p-6 rounded-3xl popup-surface flex flex-col justify-between" 
@@ -3169,8 +3265,8 @@ export default function App() {
                  >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fb923c' : '#9ca3af'}}>Klima</p>
-                      <p className="text-2xl font-light italic text-[var(--text-primary)] mt-1">{entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'PÅ' : 'AV'}</p>
+                      <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fb923c' : '#9ca3af'}}>{t('leaf.climate')}</p>
+                      <p className="text-2xl font-light italic text-[var(--text-primary)] mt-1">{entities[LEAF_CLIMATE]?.state === 'heat_cool' ? t('common.on') : t('common.off')}</p>
                     </div>
                     <button onClick={() => callService("climate", entities[LEAF_CLIMATE]?.state === 'heat_cool' ? "turn_off" : "turn_on", { entity_id: LEAF_CLIMATE })} className="w-12 h-7 rounded-full relative transition-all" style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.4)' : 'rgba(255,255,255,0.1)'}}>
                       <div className="absolute top-1 w-5 h-5 rounded-full bg-white transition-all" style={{left: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'calc(100% - 5px - 20px)' : '4px', backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fbbf24' : '#9ca3af'}} />
@@ -3178,7 +3274,7 @@ export default function App() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
-                       <p className="text-[10px] uppercase font-bold opacity-60">Mål: {getA(LEAF_CLIMATE, "temperature", 20)}°C</p>
+                       <p className="text-[10px] uppercase font-bold opacity-60">{t('leaf.target')}: {getA(LEAF_CLIMATE, "temperature", 20)}°C</p>
                     </div>
                     <M3Slider min={16} max={30} step={0.5} value={getA(LEAF_CLIMATE, "temperature") || 20} onChange={(e) => callService("climate", "set_temperature", { entity_id: LEAF_CLIMATE, temperature: parseFloat(e.target.value) })} colorClass={entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'bg-orange-500' : 'bg-white/20'} />
                   </div>
@@ -3200,7 +3296,7 @@ export default function App() {
                   ></iframe>
                   <div className="absolute bottom-4 left-4 px-4 py-2 rounded-xl backdrop-blur-md bg-black/60 popup-surface flex items-center gap-2 pointer-events-none">
                     <MapPin className="w-3 h-3 text-blue-400" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-white">Sist sett her</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-white">{t('map.lastSeenHere')}</span>
                   </div>
                 </div>
               )}
@@ -3212,7 +3308,7 @@ export default function App() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }}>
             <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Oppdateringar</h3>
+              <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('updates.title')}</h3>
               
               <div className="space-y-4">
                 {Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on').map(id => {
@@ -3252,7 +3348,7 @@ export default function App() {
                                         disabled={inProgress}
                                         className={`px-4 py-2 rounded-lg font-bold uppercase tracking-widest text-[10px] transition-all ${inProgress ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20'}`}
                                     >
-                                        {inProgress ? 'Oppdaterer...' : 'Oppdater'}
+                                        {inProgress ? t('updates.updating') : t('updates.update')}
                                     </button>
                                     <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                                 </div>
@@ -3260,7 +3356,7 @@ export default function App() {
                             
                             {isExpanded && (
                                 <div className="px-4 pb-4 pt-0 border-t border-[var(--glass-border)]">
-                                    <div className="pt-3 text-xs text-[var(--text-secondary)] leading-relaxed" dangerouslySetInnerHTML={{ __html: parseMarkdown(releaseNotes[id] || attr.release_summary || "Ingen detaljar tilgjengeleg.") }} />
+                                    <div className="pt-3 text-xs text-[var(--text-secondary)] leading-relaxed" dangerouslySetInnerHTML={{ __html: parseMarkdown(releaseNotes[id] || attr.release_summary || t('updates.noDetails')) }} />
                                     {attr.release_url && (
                                         <a href={attr.release_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 mt-3 text-blue-400 hover:text-blue-300 text-[10px] font-bold uppercase tracking-widest" onClick={(e) => e.stopPropagation()}>
                                             Les meir <ArrowRight className="w-3 h-3" />
@@ -3272,7 +3368,7 @@ export default function App() {
                     );
                 })}
                 {Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on').length === 0 && (
-                    <p className="text-center text-[var(--text-secondary)] py-10">Ingen oppdateringar tilgjengeleg</p>
+                    <p className="text-center text-[var(--text-secondary)] py-10">{t('updates.none')}</p>
                 )}
               </div>
             </div>
@@ -3298,55 +3394,55 @@ export default function App() {
             `}</style>
             <div className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowAddCardModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-xl font-light mb-5 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Legg til kort</h3>
+              <h3 className="text-xl font-light mb-5 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('modal.addCard.title')}</h3>
               
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
               {(addCardTargetPage !== 'header' && addCardTargetPage !== 'automations') && (
                 <div className="mb-4 relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <input type="text" placeholder="Søk etter entitet..." className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                  <input type="text" placeholder={t('addCard.search')} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
               )}
               
               {(addCardTargetPage !== 'header' && addCardTargetPage !== 'automations' && addCardTargetPage !== 'settings') && (
                 <div className="mb-5">
-                  <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">Korttype</p>
+                  <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">{t('addCard.cardType')}</p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setAddCardType('entity')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'entity' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <LayoutGrid className="w-4 h-4" /> Enhet
+                      <LayoutGrid className="w-4 h-4" /> {t('addCard.type.entity')}
                     </button>
                     <button
                       onClick={() => setAddCardType('toggle')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'toggle' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <ToggleRight className="w-4 h-4" /> Toggle
+                      <ToggleRight className="w-4 h-4" /> {t('addCard.type.toggle')}
                     </button>
                     <button
                       onClick={() => setAddCardType('light')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'light' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <Lightbulb className="w-4 h-4" /> Lys
+                      <Lightbulb className="w-4 h-4" /> {t('addCard.type.light')}
                     </button>
                     <button
                       onClick={() => setAddCardType('vacuum')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'vacuum' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <Bot className="w-4 h-4" /> Støvsuger
+                      <Bot className="w-4 h-4" /> {t('addCard.type.vacuum')}
                     </button>
                     <button
                       onClick={() => setAddCardType('media')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'media' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <Music className="w-4 h-4" /> Musikk
+                      <Music className="w-4 h-4" /> {t('addCard.type.media')}
                     </button>
                     <button
                       onClick={() => setAddCardType('weather')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'weather' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <CloudSun className="w-4 h-4" /> Vær/Temp
+                      <CloudSun className="w-4 h-4" /> {t('addCard.type.weather')}
                     </button>
                   </div>
                 </div>
@@ -3356,7 +3452,7 @@ export default function App() {
                 {addCardType === 'weather' ? (
                   <div className="space-y-8">
                     <div>
-                      <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">Værsensor (påkravd)</p>
+                        <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{t('addCard.weatherRequired')}</p>
                       <div className="space-y-3">
                         {Object.keys(entities)
                           .filter(id => id.startsWith('weather.'))
@@ -3382,7 +3478,7 @@ export default function App() {
                             );
                           })}
                         {Object.keys(entities).filter(id => id.startsWith('weather.')).length === 0 && (
-                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen værsensorar funne</p>
+                          <p className="text-gray-500 italic text-sm text-center py-4">{t('addCard.noWeatherSensors')}</p>
                         )}
                       </div>
                     </div>
@@ -3392,7 +3488,7 @@ export default function App() {
                       <div className="space-y-3">
                         <button type="button" onClick={() => setSelectedTempId(null)} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${!selectedTempId ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
                           <div className="flex flex-col overflow-hidden mr-4">
-                            <span className={`text-sm font-bold transition-colors truncate ${!selectedTempId ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>Bruk temperatur frå vær</span>
+                            <span className={`text-sm font-bold transition-colors truncate ${!selectedTempId ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.useWeatherTemp')}</span>
                             <span className={`text-[11px] font-medium truncate ${!selectedTempId ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>weather.temperature</span>
                           </div>
                           <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedTempId ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
@@ -3433,14 +3529,14 @@ export default function App() {
                           const lowerId = id.toLowerCase();
                           return deviceClass === 'temperature' || lowerId.includes('temperature') || lowerId.includes('temp');
                         }).length === 0 && (
-                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen temperatursensorar funne</p>
+                          <p className="text-gray-500 italic text-sm text-center py-4">{t('addCard.noTempSensors')}</p>
                         )}
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'header' ? 'Tilgjengelege personar' : (addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : (addCardTargetPage === 'settings' ? 'Alle entitetar' : (addCardType === 'vacuum' ? 'Tilgjengelege støvsugarar' : (addCardType === 'media' ? 'Tilgjengelege spelarar' : (addCardType === 'toggle' ? 'Tilgjengelege togglar' : (addCardType === 'entity' ? 'Tilgjengelege entitetar' : 'Tilgjengelege lys'))))))}</p>
+                    <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{getAddCardAvailableLabel()}</p>
                     <div className="space-y-3">
                       {Object.keys(entities)
                         .filter(id => {
@@ -3499,7 +3595,7 @@ export default function App() {
                           if (addCardType === 'entity') return !id.startsWith('person.') && !id.startsWith('update.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                         }).length === 0 && (
-                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'header' ? 'personar' : (addCardTargetPage === 'automations' ? 'automasjonar' : (addCardTargetPage === 'settings' ? 'entitetar' : (addCardType === 'vacuum' ? 'støvsugarar' : (addCardType === 'media' ? 'spelarar' : (addCardType === 'toggle' ? 'toggle-entitetar' : (addCardType === 'entity' ? 'entitetar' : 'lys'))))))} å legge til</p>
+                          <p className="text-gray-500 italic text-sm text-center py-4">{getAddCardNoneLeftLabel()}</p>
                         )}
                     </div>
                   </div>
@@ -3510,12 +3606,12 @@ export default function App() {
               <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
                 {addCardType !== 'weather' && selectedEntities.length > 0 && (
                   <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-                    <Plus className="w-5 h-5" /> {addCardType === 'media' ? `Legg til ${selectedEntities.length} spelarar` : `Legg til ${selectedEntities.length} ${selectedEntities.length === 1 ? 'kort' : 'kort'}`}
+                    <Plus className="w-5 h-5" /> {addCardType === 'media' ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}` : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
                   </button>
                 )}
                 {addCardType === 'weather' && selectedWeatherId && (
                   <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-                    <Plus className="w-5 h-5" /> Legg til værkort
+                    <Plus className="w-5 h-5" /> {t('addCard.weatherCard')}
                   </button>
                 )}
                 <button onClick={() => setShowAddCardModal(false)} className="w-full py-3 rounded-2xl popup-surface popup-surface-hover text-[var(--text-secondary)] font-bold uppercase tracking-widest transition-colors">OK</button>
@@ -3528,11 +3624,11 @@ export default function App() {
           <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setEditingPage(null)}>
             <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
                <button onClick={() => setEditingPage(null)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-               <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">Rediger side</h3>
+               <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">{t('modal.editPage.title')}</h3>
                
                <div className="space-y-8">
                  <div className="space-y-2">
-                   <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
+                   <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
                    <input 
                      type="text" 
                      className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
@@ -3546,13 +3642,13 @@ export default function App() {
                  </div>
                  
                  <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
                   <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                     <button onClick={() => {
                       const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: null } };
                       setPageSettings(newSettings);
                       localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                    }} className={`p-3 rounded-xl flex items-center justify-center transition-all ${!pageSettings[editingPage]?.icon ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                    }} className={`p-3 rounded-xl flex items-center justify-center transition-all ${!pageSettings[editingPage]?.icon ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title={t('form.defaultIcon')}><RefreshCw className="w-5 h-5" /></button>
                     {Object.keys(ICON_MAP).map(iconName => {
                       const Icon = ICON_MAP[iconName];
                       const isSelected = pageSettings[editingPage]?.icon === iconName;
@@ -3568,7 +3664,7 @@ export default function App() {
                 </div>
                  
                  <div className="flex items-center justify-between px-6 py-4 rounded-2xl popup-surface">
-                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Skjul side</span>
+                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.hidePage')}</span>
                     <button 
                       onClick={() => {
                         const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], hidden: !pageSettings[editingPage]?.hidden } };
@@ -3586,7 +3682,7 @@ export default function App() {
                      onClick={() => deletePage(editingPage)}
                      className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 font-bold uppercase tracking-widest hover:bg-red-500/15 transition-colors"
                    >
-                     Slett side
+                     {t('form.deletePage')}
                    </button>
                  )}
                </div>
@@ -3598,25 +3694,25 @@ export default function App() {
           <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowAddPageModal(false)}>
             <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowAddPageModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">Ny side</h3>
+              <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">{t('modal.addPage.title')}</h3>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
                   <input
                     type="text"
                     className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
                     value={newPageLabel}
                     onChange={(e) => setNewPageLabel(e.target.value)}
-                    placeholder="F.eks. Stova"
+                    placeholder={t('form.exampleName')}
                     autoFocus
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
                   <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                    <button onClick={() => setNewPageIcon(null)} className={`p-3 rounded-xl flex items-center justify-center transition-all ${!newPageIcon ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                    <button onClick={() => setNewPageIcon(null)} className={`p-3 rounded-xl flex items-center justify-center transition-all ${!newPageIcon ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title={t('form.defaultIcon')}><RefreshCw className="w-5 h-5" /></button>
                     {Object.keys(ICON_MAP).map(iconName => {
                       const Icon = ICON_MAP[iconName];
                       const isSelected = newPageIcon === iconName;
@@ -3631,7 +3727,7 @@ export default function App() {
                   onClick={createPage}
                   className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-5 h-5" /> Opprett side
+                  <Plus className="w-5 h-5" /> {t('page.create')}
                 </button>
               </div>
             </div>
@@ -3657,27 +3753,27 @@ export default function App() {
             `}</style>
             <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }} className="absolute top-5 right-5 md:top-7 md:right-7 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Rediger kort</h3>
+              <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('modal.editCard.title')}</h3>
               
               <div className="space-y-8">
                 {canEditName && (
                   <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
+                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
                     <input 
                       type="text" 
                       className="w-full px-5 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors" 
                       defaultValue={customNames[showEditCardModal] || (entities[showEditCardModal]?.attributes?.friendly_name || '')}
                       onBlur={(e) => saveCustomName(showEditCardModal, e.target.value)}
-                      placeholder="Standard navn"
+                      placeholder={t('form.defaultName')}
                     />
                   </div>
                 )}
 
                 {canEditIcon && (
                   <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
+                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
                     <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                      <button onClick={() => saveCustomIcon(showEditCardModal, null)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!customIcons[showEditCardModal] ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                      <button onClick={() => saveCustomIcon(showEditCardModal, null)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!customIcons[showEditCardModal] ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title={t('form.defaultIcon')}><RefreshCw className="w-5 h-5" /></button>
                       {Object.keys(ICON_MAP).map(iconName => {
                         const Icon = ICON_MAP[iconName];
                         return (
@@ -3690,7 +3786,7 @@ export default function App() {
 
                 {(isEditLight || isEditGenericType) && (
                   <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Liten versjon</span>
+                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.smallVersion')}</span>
                     <button
                       onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'size', (editSettings.size === 'small') ? 'large' : 'small')}
                       className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.size === 'small' ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
@@ -3703,7 +3799,7 @@ export default function App() {
                 {canEditStatus && (
                   <>
                     <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                        <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis status</span>
+                      <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showStatus')}</span>
                         <button 
                           onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showStatus', !(editSettings.showStatus !== false))}
                           className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
@@ -3713,7 +3809,7 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                        <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis sist endra</span>
+                      <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showLastChanged')}</span>
                         <button 
                           onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastChanged', !(editSettings.showLastChanged !== false))}
                           className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
@@ -3734,13 +3830,13 @@ export default function App() {
               <button onClick={() => setShowCameraModal(false)} className="absolute top-6 right-6 modal-close modal-close-dark z-10" style={{backdropFilter: 'blur(10px)'}}><X className="w-4 h-4" /></button>
               <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden bg-black relative">
                  {entities[CAMERA_PORTEN_ID] ? (
-                   <img src={getEntityImageUrl(entities[CAMERA_PORTEN_ID].attributes.entity_picture)} alt="Kamera Porten" className="w-full h-full object-cover" />
+                   <img src={getEntityImageUrl(entities[CAMERA_PORTEN_ID].attributes.entity_picture)} alt={t('camera.gateAlt')} className="w-full h-full object-cover" />
                  ) : (
-                   <div className="w-full h-full flex items-center justify-center text-gray-500">Kamera ikkje tilgjengeleg</div>
+                   <div className="w-full h-full flex items-center justify-center text-gray-500">{t('camera.unavailable')}</div>
                  )}
                  <div className="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black/80 to-transparent">
-                    <h3 className="text-2xl font-bold text-white">Porten</h3>
-                    <p className="text-sm text-gray-400">Direktebilde</p>
+                    <h3 className="text-2xl font-bold text-white">{t('camera.gate')}</h3>
+                    <p className="text-sm text-gray-400">{t('camera.live')}</p>
                  </div>
               </div>
             </div>
@@ -3787,7 +3883,7 @@ export default function App() {
                     else currentMp = mediaEntities[0];
                 }
                 
-                if (!currentMp) return <div className="text-[var(--text-primary)]">Ingen mediaspelar funnen</div>;
+                if (!currentMp) return <div className="text-[var(--text-primary)]">{t('media.noPlayerFound')}</div>;
 
                 const mpId = currentMp.entity_id;
                 const mpState = currentMp.state;
@@ -3798,7 +3894,7 @@ export default function App() {
                 const isPlaying = mpState === 'playing';
                 
                 let mpTitle = getA(mpId, 'media_title');
-                if (isTV) mpTitle = 'TV-lyd';
+                if (isTV) mpTitle = t('media.tvAudio');
                 
                 const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
                 const mpFriendlyName = getA(mpId, 'friendly_name', '');
@@ -3812,7 +3908,7 @@ export default function App() {
                      else if (!mpSeries && season) mpSeries = season;
                 }
                 if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
-        if (isTV) mpSeries = 'Stova';
+                if (isTV) mpSeries = t('media.livingRoom');
 
                 const mpApp = getA(mpId, 'app_name');
                 const mpPicture = !isTV ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
@@ -3821,7 +3917,7 @@ export default function App() {
                 const serverInfo = getServerInfo(mpId);
                 const ServerIcon = serverInfo.icon;
                 const isMidttunet = mpId.includes('midttunet');
-                const serverLabel = isGenericMedia ? 'Musikk' : (isMidttunet ? 'Jellyfin' : 'Emby');
+                const serverLabel = isGenericMedia ? t('addCard.type.media') : (isMidttunet ? 'Jellyfin' : 'Emby');
                 const ServerBadgeIcon = isGenericMedia ? Music : (isMidttunet ? JellyfinLogo : EmbyLogo);
                 const groupCardId = (!isEmbyGroup && activeMediaGroupKey && activeMediaGroupKey.includes('::'))
                   ? activeMediaGroupKey.split('::').slice(1).join('::')
@@ -3864,7 +3960,7 @@ export default function App() {
                              ) : (
                                <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-2">{mpApp || 'Media'}</p>
                              )}
-                             <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || 'Ukjend'}</h2>
+                             <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || t('common.unknown')}</h2>
                              <p className="text-xl text-gray-300 font-medium">{mpSeries}</p>
                           </div>
                         </div>
@@ -3922,7 +4018,7 @@ export default function App() {
 
                     <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-[var(--glass-border)] pt-6 md:pt-24 pl-0 md:pl-12 flex flex-col gap-6 overflow-y-auto">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{(isSonos || isAllSonos) ? 'Sonos Spelarar' : (isEmbyGroup ? 'Aktive spelarar' : 'Valde spelarar')}</h3>
+                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{(isSonos || isAllSonos) ? t('media.group.sonosPlayers') : (isEmbyGroup ? t('media.group.activePlayers') : t('media.group.selectedPlayers'))}</h3>
                         {canGroup && listPlayers.length > 1 && (
                           <button 
                             onClick={() => {
@@ -3942,14 +4038,14 @@ export default function App() {
                         )}
                       </div>
                       <div className="flex flex-col gap-4">
-                        {listPlayers.length === 0 && <p className="text-gray-600 italic text-sm">Ingen spelarar funnen</p>}
+                        {listPlayers.length === 0 && <p className="text-gray-600 italic text-sm">{t('media.noPlayersFound')}</p>}
                         {listPlayers.map((p, idx) => {
                           const pPic = getEntityImageUrl(p.attributes?.entity_picture);
                            const isSelected = p.entity_id === mpId;
                            const isMember = groupMembers.includes(p.entity_id);
                            const isSelf = p.entity_id === mpId;
                            const isActivePlayer = treatAsSonos ? isSonosActive(p) : isMediaActive(p);
-                           const pTitle = getA(p.entity_id, 'media_title', 'Ukjend');
+                           const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
                            const pUser = (() => {
                              const s = Array.isArray(sessions) ? sessions.find(s => s.device_name && (p.attributes?.friendly_name || '').toLowerCase().includes(s.device_name.toLowerCase())) : null;
                              return s?.user_name || '';
@@ -3979,7 +4075,7 @@ export default function App() {
                                      }
                                    }}
                                    className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                                   title={isMember ? "Fjern frå gruppe" : "Legg til i gruppe"}
+                                   title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
                                  >
                                    {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                                  </button>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-export default function ModernDropdown({ label, icon: Icon, options, current, onChange, map }) {
+export default function ModernDropdown({ label, icon: Icon, options, current, onChange, map, placeholder = "Not selected" }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function ModernDropdown({ label, icon: Icon, options, current, on
     <div className="relative w-full" ref={dropdownRef}>
       <p className="text-xs uppercase font-bold mb-3 ml-1" style={{color: 'rgba(107, 114, 128, 1)', letterSpacing: '0.2em'}}>{label}</p>
       <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between px-6 py-4 rounded-2xl group transition-all popup-surface popup-surface-hover">
-        <div className="flex items-center gap-3"><Icon className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" /><span className="text-xs font-bold uppercase tracking-widest italic" style={{color: 'var(--text-secondary)'}}>{String(getLabel(current) || "Ikkje valt")}</span></div>
+        <div className="flex items-center gap-3"><Icon className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" /><span className="text-xs font-bold uppercase tracking-widest italic" style={{color: 'var(--text-secondary)'}}>{String(getLabel(current) || placeholder)}</span></div>
         <ChevronDown className={`w-3.5 h-3.5 text-gray-600 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
