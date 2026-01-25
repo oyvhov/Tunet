@@ -102,7 +102,38 @@ import {
   Maximize,
   Minimize,
   Download,
-  ArrowRight
+  ArrowRight,
+  CloudSun,
+  AlarmClock,
+  Archive,
+  Award,
+  Book,
+  BookOpen,
+  Bookmark,
+  Briefcase,
+  Building2,
+  Bus,
+  Cpu,
+  Database,
+  DollarSign,
+  Feather,
+  Gift,
+  Globe,
+  Key,
+  Leaf,
+  Monitor,
+  Paintbrush,
+  PenTool,
+  Plug,
+  Puzzle,
+  Rocket,
+  Router,
+  Siren,
+  Sprout,
+  Sunrise,
+  Sunset,
+  Truck,
+  Wrench
 } from 'lucide-react';
 import M3Slider from './components/M3Slider';
 import ModernDropdown from './components/ModernDropdown';
@@ -169,7 +200,11 @@ const ICON_MAP = {
   Home, Bed, Bath, ShowerHead, Droplets, Sun, Moon, Cloud, CloudRain, Power,
   Wifi, Lock, Unlock, Shield, Video, Camera, Bell, Volume2, Mic, Radio, Warehouse,
   Gamepad2, Laptop, Smartphone, Watch, Coffee, Beer, Armchair, ShoppingCart, Bot,
-  Calendar, Activity, Heart, Star, AlertTriangle
+  Calendar, Activity, Heart, Star, AlertTriangle,
+  AlarmClock, Archive, Award, Book, BookOpen, Bookmark, Briefcase, Building2,
+  Bus, Cpu, Database, DollarSign, Feather, Gift, Globe, Key, Leaf, Monitor,
+  Paintbrush, PenTool, Plug, Puzzle, Rocket, Router, Siren, Sprout, Sunrise,
+  Sunset, Truck, Wrench
 };
 
 const formatRelativeTime = (timestamp) => {
@@ -280,12 +315,13 @@ export default function App() {
   const [customNames, setCustomNames] = useState({});
   const [customIcons, setCustomIcons] = useState({});
   const [activeMediaModal, setActiveMediaModal] = useState(null);
+  const [activeMediaGroupKey, setActiveMediaGroupKey] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
   const [activePage, setActivePage] = useState('home');
   const [pagesConfig, setPagesConfig] = useState({
     header: [OYVIND_ID, TUVA_ID],
-    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'rocky', 'shield'],
+    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'shield'],
     lights: ['light_kjokken', 'light_stova', 'light_studio'],
     automations: [
       { id: 'col0', title: 'Kolonne 1', cards: [] },
@@ -294,6 +330,7 @@ export default function App() {
     ]
   });
   const [addCardTargetPage, setAddCardTargetPage] = useState('home');
+  const [addCardType, setAddCardType] = useState('light');
   const [hiddenCards, setHiddenCards] = useState([]);
   const [activeMediaId, setActiveMediaId] = useState(null);
   const [costHistory, setCostHistory] = useState([]);
@@ -304,10 +341,21 @@ export default function App() {
   const [headerScale, setHeaderScale] = useState(1);
   const dragSourceRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
+  const gearMenuRef = useRef(null);
+  const gearButtonRef = useRef(null);
+  const touchTargetRef = useRef(null);
+  const [touchTargetId, setTouchTargetId] = useState(null);
+  const [touchPath, setTouchPath] = useState(null);
+  const touchSwapCooldownRef = useRef(0);
+  const pointerDragRef = useRef(false);
+  const ignoreTouchRef = useRef(false);
   const [pageSettings, setPageSettings] = useState({});
   const [editingPage, setEditingPage] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntities, setSelectedEntities] = useState([]);
+  const [selectedWeatherId, setSelectedWeatherId] = useState(null);
+  const [selectedTempId, setSelectedTempId] = useState(null);
+  const [tempHistoryById, setTempHistoryById] = useState({});
   const [cardSettings, setCardSettings] = useState({});
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(() => {
@@ -344,6 +392,7 @@ export default function App() {
         setShowEditCardModal(null);
         setEditCardSettingsKey(null);
         setActiveMediaModal(null);
+        setActiveMediaGroupKey(null);
         setEditingPage(null);
         setEditMode(false);
         setExpandedUpdate(null);
@@ -361,7 +410,7 @@ export default function App() {
       clearTimeout(inactivityTimer);
       inactivityTimer = setTimeout(() => {
         if (resetToHomeRef.current) resetToHomeRef.current();
-      }, 30000);
+      }, 60000);
     };
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     events.forEach(event => document.addEventListener(event, resetTimer));
@@ -371,6 +420,21 @@ export default function App() {
       events.forEach(event => document.removeEventListener(event, resetTimer));
     };
   }, []);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e) => {
+      if (gearMenuRef.current && gearMenuRef.current.contains(e.target)) return;
+      if (gearButtonRef.current && gearButtonRef.current.contains(e.target)) return;
+      setShowMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [showMenu]);
 
   useEffect(() => {
     const savedConfig = localStorage.getItem('midttunet_pages_config');
@@ -395,10 +459,10 @@ export default function App() {
             modified = true;
         }
         
-        // Ensure rocky is in home if missing
-        if (parsed.home && !parsed.home.includes('rocky')) {
-            parsed.home.push('rocky');
-            modified = true;
+        // Remove legacy static rocky card
+        if (parsed.home && parsed.home.includes('rocky')) {
+          parsed.home = parsed.home.filter(id => id !== 'rocky');
+          modified = true;
         }
         
         if (parsed.home && !parsed.home.includes('shield')) {
@@ -406,9 +470,9 @@ export default function App() {
             modified = true;
         }
 
-        if (parsed.home && !parsed.home.includes('weather')) {
-            parsed.home.splice(2, 0, 'weather'); // Insert weather card early
-            modified = true;
+        if (parsed.home && parsed.home.includes('weather')) {
+          parsed.home = parsed.home.filter(id => id !== 'weather');
+          modified = true;
         }
         
         if (!parsed.header) {
@@ -427,7 +491,7 @@ export default function App() {
       if (savedOrder) {
         try {
            const raw = JSON.parse(savedOrder).filter(id => id !== 'people');
-           const parsed = [...new Set([...raw, 'rocky', 'shield', 'weather'])];
+           const parsed = [...new Set([...raw, 'shield'])];
            setPagesConfig(prev => ({ ...prev, home: parsed }));
         } catch (e) {}
       }
@@ -705,6 +769,11 @@ export default function App() {
     return state.charAt(0).toUpperCase() + state.slice(1);
   };
   const getA = (id, attr, fallback = null) => entities[id]?.attributes?.[attr] ?? fallback;
+  const getEntityImageUrl = (rawUrl) => {
+    if (!rawUrl) return null;
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) return rawUrl;
+    return `${activeUrl.replace(/\/$/, '')}${rawUrl}`;
+  };
   const callService = (domain, service, data) => { if (conn) haCallService(conn, domain, service, data); };
 
   const { fullPriceData, currentPriceIndex, priceStats, currentPrice } = useEnergyData(entities, now);
@@ -717,8 +786,7 @@ export default function App() {
     const isHome = entity?.state === 'home';
     const statusText = getS(id);
     const name = customNames[id] || entity?.attributes?.friendly_name || id;
-    const baseUrl = activeUrl.replace(/\/$/, '');
-    const picture = entity?.attributes?.entity_picture ? `${baseUrl}${entity.attributes.entity_picture}` : null;
+    const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
 
     return (
       <div key={id} className="group relative flex items-center gap-3 pl-1.5 pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)]" 
@@ -775,6 +843,66 @@ export default function App() {
   }, [showAddCardModal, activePage]);
 
   useEffect(() => {
+    if (showAddCardModal) setSelectedEntities([]);
+    if (showAddCardModal) {
+      setSelectedWeatherId(null);
+      setSelectedTempId(null);
+    }
+  }, [showAddCardModal]);
+
+  useEffect(() => {
+    if (!showAddCardModal) return;
+    if (addCardTargetPage === 'header' || addCardTargetPage === 'automations' || addCardTargetPage === 'settings') {
+      setAddCardType('entity');
+      return;
+    }
+    if (addCardTargetPage === 'lights') {
+      setAddCardType('light');
+      return;
+    }
+    setAddCardType('light');
+  }, [showAddCardModal, addCardTargetPage]);
+
+  useEffect(() => {
+    if (!conn) return;
+    let cancelled = false;
+    const tempIds = Object.keys(cardSettings)
+      .filter(key => key.includes('::weather_temp_'))
+      .map(key => cardSettings[key]?.tempId)
+      .filter(Boolean);
+
+    const uniqueIds = Array.from(new Set(tempIds));
+
+    const fetchHistoryFor = async (tempId) => {
+      const end = new Date();
+      const start = new Date();
+      start.setHours(start.getHours() - 12);
+      try {
+        const stats = await getStatistics(conn, { start, end, statisticId: tempId, period: '5minute' });
+        if (!cancelled && Array.isArray(stats) && stats.length > 0) {
+          const mapped = stats.map(s => ({ state: s.mean !== null ? s.mean : s.state, last_updated: s.start }));
+          setTempHistoryById(prev => ({ ...prev, [tempId]: mapped }));
+          return;
+        }
+        const historyData = await getHistory(conn, { start, end, entityId: tempId, minimal_response: false, no_attributes: true });
+        if (!cancelled && historyData) {
+          setTempHistoryById(prev => ({ ...prev, [tempId]: historyData }));
+        }
+      } catch (e) {
+        if (!cancelled) console.error("Temp history fetch error", e);
+      }
+    };
+
+    uniqueIds.forEach((tempId) => {
+      if (!tempHistoryById[tempId] && tempId !== OUTSIDE_TEMP_ID) {
+        fetchHistoryFor(tempId);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [conn, cardSettings, tempHistoryById]);
+
+  useEffect(() => {
     const updateGridCols = () => {
       const width = window.innerWidth;
       if (width >= 1024) setGridColCount(gridColumns === 4 ? 4 : 3);
@@ -813,19 +941,36 @@ export default function App() {
     if (pageId === 'header') return cardId.startsWith('person.');
     if (pageId === 'automations') return cardId.startsWith('automation.');
     if (pageId === 'settings') {
-      if (['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId)) return false;
+      if (['power', 'energy_cost', 'climate', 'shield', 'car'].includes(cardId)) return false;
       if (cardId.startsWith('media_player') || cardId.startsWith('sonos')) return false;
       return true;
     }
     if (cardId.startsWith('light_')) return true;
     if (cardId.startsWith('light.')) return true;
+    if (cardId.startsWith('vacuum.')) return true;
+    if (cardId.startsWith('media_player.')) return true;
+    if (cardId.startsWith('media_group_')) return true;
+    if (cardId.startsWith('weather_temp_')) return true;
     return false;
   };
 
   const isCardHiddenByLogic = (cardId) => {
     if (cardId === 'media_player') {
-      const mediaEntities = MEDIA_PLAYER_IDS.map(id => entities[id]).filter(Boolean);
-      const activeMediaEntities = mediaEntities.filter(isMediaActive);
+      const mediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
+      const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
+      const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
+      const sessionActiveEntities = Array.isArray(sessions)
+        ? mediaEntities.filter((entity) => {
+            if (!isMediaActive(entity)) return false;
+            const name = (entity.attributes?.friendly_name || '').toLowerCase();
+            return sessions.some((s) => {
+              const device = (s?.device_name || '').toLowerCase();
+              if (!device) return false;
+              return name.includes(device) || device.includes(name);
+            });
+          })
+        : [];
+      const activeMediaEntities = sessionActiveEntities.length > 0 ? sessionActiveEntities : mediaEntities.filter(isMediaActive);
       return activeMediaEntities.length === 0;
     }
 
@@ -881,12 +1026,59 @@ export default function App() {
   const handleAddSelected = () => {
     const newConfig = { ...pagesConfig };
     if (addCardTargetPage === 'header') {
-        newConfig.header = [...(newConfig.header || []), ...selectedEntities];
-    } else if (addCardTargetPage === 'automations') {
-        newConfig.automations[0].cards.push(...selectedEntities);
-    } else {
-        newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...selectedEntities];
+      newConfig.header = [...(newConfig.header || []), ...selectedEntities];
+      setPagesConfig(newConfig);
+      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      setSelectedEntities([]);
+      setShowAddCardModal(false);
+      return;
     }
+
+    if (addCardTargetPage === 'automations') {
+      newConfig.automations[0].cards.push(...selectedEntities);
+      setPagesConfig(newConfig);
+      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      setSelectedEntities([]);
+      setShowAddCardModal(false);
+      return;
+    }
+
+    if (addCardType === 'weather') {
+      if (!selectedWeatherId) return;
+      const cardId = `weather_temp_${Date.now()}`;
+      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+      setPagesConfig(newConfig);
+      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+
+      const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+      const newSettings = { ...cardSettings, [settingsKey]: { ...(cardSettings[settingsKey] || {}), weatherId: selectedWeatherId, tempId: selectedTempId || null } };
+      setCardSettings(newSettings);
+      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+
+      setSelectedWeatherId(null);
+      setSelectedTempId(null);
+      setShowAddCardModal(false);
+      return;
+    }
+
+    if (addCardType === 'media') {
+      if (selectedEntities.length === 0) return;
+      const cardId = `media_group_${Date.now()}`;
+      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+      setPagesConfig(newConfig);
+      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+
+      const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+      const newSettings = { ...cardSettings, [settingsKey]: { ...(cardSettings[settingsKey] || {}), mediaIds: selectedEntities } };
+      setCardSettings(newSettings);
+      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+
+      setSelectedEntities([]);
+      setShowAddCardModal(false);
+      return;
+    }
+
+    newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...selectedEntities];
     setPagesConfig(newConfig);
     localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
     setSelectedEntities([]);
@@ -1065,6 +1257,203 @@ export default function App() {
     );
   };
 
+  const renderVacuumCard = (vacuumId, dragProps, getControls, cardStyle) => {
+    const entity = entities[vacuumId];
+    if (!entity) return null;
+
+    const state = entity?.state;
+    const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
+    const battery = getA(vacuumId, "battery_level");
+    const room = getA(vacuumId, "current_room") || getA(vacuumId, "room");
+    const name = customNames[vacuumId] || getA(vacuumId, "friendly_name", "Støvsugar");
+    const Icon = customIcons[vacuumId] ? ICON_MAP[customIcons[vacuumId]] : Bot;
+    const statusText = (() => {
+      if (state === "cleaning") return "Støvsuger";
+      if (state === "returning") return "Returnerer";
+      if (state === "docked") return "Ladar";
+      if (state === "idle") return "Klar";
+      return state || "Ukjend";
+    })();
+
+    const showRoom = !!room;
+    const showBattery = typeof battery === 'number';
+
+    return (
+      <div key={vacuumId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
+        {getControls(vacuumId)}
+        <div className="flex justify-between items-start font-sans">
+           <div className={`p-3 rounded-2xl transition-all ${state === "cleaning" ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
+           <div className="flex flex-col items-end gap-2">
+             {showRoom && (
+               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{room}</span></div>
+             )}
+             {showBattery && (
+               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Battery className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{battery}%</span></div>
+             )}
+           </div>
+        </div>
+        
+        <div className="flex justify-between items-end">
+           <div>
+             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
+             <h3 className="text-2xl font-medium text-[var(--text-primary)] leading-none">{statusText}</h3>
+           </div>
+           <div className="flex gap-2">
+             <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className="p-3 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95">
+               {state === "cleaning" ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+             </button>
+             <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", "return_to_base", { entity_id: vacuumId }); }} className="p-3 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95">
+               <Home className="w-5 h-5" />
+             </button>
+           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMediaPlayerCard = (mpId, dragProps, getControls, cardStyle) => {
+    const entity = entities[mpId];
+    if (!entity) return null;
+
+    const mpState = entity?.state;
+    const isPlaying = mpState === 'playing';
+    const isActive = isMediaActive(entity);
+    const name = customNames[mpId] || getA(mpId, 'friendly_name', 'Media Player');
+    const title = getA(mpId, 'media_title') || (isActive ? 'Aktiv' : 'Ingen media');
+    const subtitle = getA(mpId, 'media_artist') || getA(mpId, 'media_series_title') || getA(mpId, 'media_album_name') || '';
+    const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
+    const isChannel = getA(mpId, 'media_content_type') === 'channel';
+
+    if (!isActive) {
+      return (
+        <div key={mpId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+          {getControls(mpId)}
+          <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
+            {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}
+          </div>
+          <div className="text-center w-full px-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Ingen musikk</p>
+            <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{name}</p></div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={mpId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
+        {getControls(mpId)}
+        {picture && (
+          <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+            <img src={picture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${isPlaying ? 'scale-[1.6]' : 'scale-150'}`} />
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
+        )}
+        <div className="relative z-10 flex gap-4 items-start">
+          <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-lg">
+            {picture ? <img src={picture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}</div>}
+          </div>
+          <div className="flex flex-col overflow-hidden pt-1">
+            <div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{name}</p></div>
+            <h3 className="text-lg font-bold leading-tight truncate mb-0.5">{title || 'Ukjend'}</h3>
+            {subtitle && <p className={`${picture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs truncate font-medium`}>{subtitle}</p>}
+          </div>
+        </div>
+        <div className="relative z-10 flex items-center justify-center gap-8 mt-2">
+          <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: mpId }); }} className={`${picture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipBack className="w-6 h-6" /></button>
+          <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: mpId }); }} className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95">{isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}</button>
+          <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: mpId }); }} className={`${picture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipForward className="w-6 h-6" /></button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMediaGroupCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const groupSettings = cardSettings[settingsKey] || {};
+    const mediaIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
+    const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
+
+    if (mediaEntities.length === 0) return null;
+
+    const activeEntities = mediaEntities.filter(isMediaActive);
+    const playingEntities = mediaEntities.filter(e => e.state === 'playing');
+    const pool = activeEntities.length > 0 ? activeEntities : mediaEntities;
+    const cyclePool = playingEntities.length > 1 ? playingEntities : (activeEntities.length > 1 ? activeEntities : pool);
+
+    let currentMp = pool.find(e => e.entity_id === groupSettings.activeId);
+    if (!currentMp) currentMp = (playingEntities[0] || pool[0]);
+
+    if (!currentMp) return null;
+
+    const mpId = currentMp.entity_id;
+    const mpState = currentMp.state;
+    const isPlaying = mpState === 'playing';
+    const isActive = activeEntities.length > 0;
+    const name = customNames[cardId] || getA(mpId, 'friendly_name', 'Musikk');
+    const title = getA(mpId, 'media_title') || (isActive ? 'Aktiv' : 'Ingen musikk');
+    const subtitle = getA(mpId, 'media_artist') || getA(mpId, 'media_series_title') || getA(mpId, 'media_album_name') || '';
+    const picture = getEntityImageUrl(currentMp.attributes?.entity_picture);
+    const isChannel = getA(mpId, 'media_content_type') === 'channel';
+
+    const cyclePlayers = (e) => {
+      e.stopPropagation();
+      if (cyclePool.length < 2) return;
+      const idx = cyclePool.findIndex(e => e.entity_id === mpId);
+      const next = cyclePool[(idx + 1) % cyclePool.length];
+      saveCardSetting(settingsKey, 'activeId', next.entity_id);
+    };
+
+    if (!isActive) {
+      return (
+        <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey(settingsKey); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+          {getControls(cardId)}
+          <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
+            {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}
+          </div>
+          <div className="text-center w-full px-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Ingen musikk</p>
+            <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{name}</p></div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey(settingsKey); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
+        {getControls(cardId)}
+        {cyclePool.length > 1 && (
+          <button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <span className="text-xs font-bold">{cyclePool.length}</span>
+            <ArrowLeftRight className="w-3 h-3 ml-0.5" />
+          </button>
+        )}
+        {isPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/10 via-transparent to-transparent opacity-50 animate-pulse pointer-events-none" />}
+        {isPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/40 via-transparent to-transparent animate-pulse pointer-events-none" />}
+        {picture && (
+          <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+            <img src={picture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${isPlaying ? 'scale-[1.6]' : 'scale-150'}`} />
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
+        )}
+        <div className="relative z-10 flex gap-4 items-start">
+          <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-lg">
+            {picture ? <img src={picture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}</div>}
+          </div>
+          <div className="flex flex-col overflow-hidden pt-1">
+            <div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{name}</p></div>
+            <h3 className="text-lg font-bold leading-tight truncate mb-0.5">{title || 'Ukjend'}</h3>
+            {subtitle && <p className={`${picture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs truncate font-medium`}>{subtitle}</p>}
+          </div>
+        </div>
+        <div className="relative z-10 flex items-center justify-center gap-8 mt-2">
+          <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: mpId }); }} className={`${picture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipBack className="w-6 h-6" /></button>
+          <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: mpId }); }} className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95">{isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}</button>
+          <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: mpId }); }} className={`${picture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipForward className="w-6 h-6" /></button>
+        </div>
+      </div>
+    );
+  };
+
   const renderShieldCard = (dragProps, getControls, cardStyle) => {
     const entity = entities[SHIELD_ID];
     const state = entity?.state;
@@ -1073,7 +1462,7 @@ export default function App() {
     const isPlaying = state === 'playing';
     const appName = getA(SHIELD_ID, 'app_name');
     const title = getA(SHIELD_ID, 'media_title');
-    const picture = entity?.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${entity.attributes.entity_picture}` : null;
+    const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
 
     return (
       <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
@@ -1095,15 +1484,7 @@ export default function App() {
     );
   };
 
-  const renderWeatherCard = (dragProps, getControls, cardStyle) => {
-    const weatherEntity = entities[WEATHER_ENTITY];
-    const tempEntity = entities[OUTSIDE_TEMP_ID];
-    const currentTemp = parseFloat(tempEntity?.state);
-    const state = weatherEntity?.state;
-    const name = customNames['weather'] || 'Været';
-    // Bruk henta prognose, eller fall tilbake til attributt (for eldre HA)
-    const forecastData = weatherForecast.length > 0 ? weatherForecast : weatherEntity?.attributes?.forecast;
-
+  const getWeatherInfo = (state) => {
     const weatherMap = {
       'sunny': { label: 'Sol', icon: 'clear-day' },
       'clear-night': { label: 'Klart', icon: 'clear-night' },
@@ -1118,8 +1499,58 @@ export default function App() {
       'windy': { label: 'Vind', icon: 'wind' },
       'exceptional': { label: 'Ekstremt', icon: 'warning' }
     };
+    return weatherMap[state] || { label: state || 'Ukjend', icon: 'cloudy' };
+  };
 
-    const info = weatherMap[state] || { label: state || 'Ukjend', icon: 'cloudy' };
+  const renderWeatherTempCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const settings = cardSettings[settingsKey] || {};
+    const weatherId = settings.weatherId;
+    const tempId = settings.tempId;
+    const weatherEntity = weatherId ? entities[weatherId] : null;
+    const tempEntity = tempId ? entities[tempId] : null;
+    if (!weatherEntity) return null;
+
+    const state = weatherEntity?.state;
+    const info = getWeatherInfo(state);
+    const iconUrl = `https://cdn.jsdelivr.net/gh/basmilius/weather-icons@master/production/fill/all/${info.icon}.svg`;
+    const tempValueRaw = tempEntity?.state ?? weatherEntity?.attributes?.temperature;
+    const tempValue = parseFloat(tempValueRaw);
+    const currentTemp = Number.isFinite(tempValue) ? tempValue : NaN;
+    const history = tempId
+      ? (tempId === OUTSIDE_TEMP_ID ? tempHistory : (tempHistoryById[tempId] || []))
+      : (weatherId === WEATHER_ENTITY ? tempHistory : []);
+
+    return (
+      <div key={cardId} {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+        {getControls(cardId)}
+        <div className="flex justify-between items-start relative z-10">
+          <div className="w-24 h-24 -ml-4 -mt-4 filter drop-shadow-lg transition-transform duration-500 group-hover:scale-110">
+            <img src={iconUrl} alt={info.label} className="w-full h-full object-contain" />
+          </div>
+          <div className="flex flex-col items-end">
+             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+               <span className="text-xs tracking-widest uppercase font-bold">{info.label}</span>
+             </div>
+             <span className="text-4xl font-medium text-[var(--text-primary)] leading-none mt-2">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
+          </div>
+        </div>
+        <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
+            <WeatherGraph history={history} currentTemp={currentTemp} />
+        </div>
+      </div>
+    );
+  };
+
+  const renderWeatherCard = (dragProps, getControls, cardStyle) => {
+    const weatherEntity = entities[WEATHER_ENTITY];
+    const tempEntity = entities[OUTSIDE_TEMP_ID];
+    const currentTemp = parseFloat(tempEntity?.state);
+    const state = weatherEntity?.state;
+    const name = customNames['weather'] || 'Været';
+    // Bruk henta prognose, eller fall tilbake til attributt (for eldre HA)
+    const forecastData = weatherForecast.length > 0 ? weatherForecast : weatherEntity?.attributes?.forecast;
+
+    const info = getWeatherInfo(state);
     const iconUrl = `https://cdn.jsdelivr.net/gh/basmilius/weather-icons@master/production/fill/all/${info.icon}.svg`;
     const CustomIcon = customIcons['weather'] ? ICON_MAP[customIcons['weather']] : null;
     
@@ -1165,7 +1596,9 @@ export default function App() {
       return sizeSetting === 'small' ? 1 : 2;
     }
 
-    if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (cardId.startsWith('weather_temp_')) return 2;
+
+    if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
       return 1;
     }
 
@@ -1229,27 +1662,67 @@ export default function App() {
     if (isHidden && !editMode) return null;
     const isDragging = draggingId === cardId;
 
-    const handleTouchStart = (e) => {
+    const startTouchDrag = (x, y) => {
       if (!editMode) return;
-      if (e.target.closest('button') || e.target.closest('input')) return;
-      if (e.cancelable) e.preventDefault();
       if (navigator.vibrate) navigator.vibrate(50);
       dragSourceRef.current = { index, cardId, colIndex };
+      touchTargetRef.current = null;
+      setTouchPath({ startX: x, startY: y, x, y });
+      setTouchTargetId(null);
       setDraggingId(cardId);
     };
 
-    const handleTouchMove = (e) => {
+    const updateTouchDrag = (x, y) => {
       if (!editMode || !dragSourceRef.current) return;
-      if (e.cancelable) e.preventDefault();
+      setTouchPath((prev) => (prev ? { ...prev, x, y } : { startX: x, startY: y, x, y }));
+      const el = document.elementFromPoint(x, y);
+      const cardEl = el?.closest?.('[data-card-id]');
+
+      if (cardEl) {
+        const targetId = cardEl.getAttribute('data-card-id');
+        const targetIndex = parseInt(cardEl.getAttribute('data-index'));
+        const targetColIndexStr = cardEl.getAttribute('data-col-index');
+        const targetColIndex = targetColIndexStr ? parseInt(targetColIndexStr) : undefined;
+
+        if (targetId && targetId !== dragSourceRef.current.cardId) {
+          touchTargetRef.current = { targetId, targetIndex, targetColIndex };
+          setTouchTargetId(targetId);
+
+          const now = Date.now();
+          if (now - touchSwapCooldownRef.current > 150) {
+            touchSwapCooldownRef.current = now;
+            const source = dragSourceRef.current;
+            const newConfig = { ...pagesConfig };
+
+            if (activePage === 'automations') {
+              const cols = newConfig.automations;
+              const sourceColIdx = source.colIndex !== undefined ? source.colIndex : 0;
+              const targetColIdx = targetColIndex !== undefined ? targetColIndex : sourceColIdx;
+
+              if (cols[sourceColIdx] && cols[targetColIdx]) {
+                const [movedItem] = cols[sourceColIdx].cards.splice(source.index, 1);
+                cols[targetColIdx].cards.splice(targetIndex, 0, movedItem);
+                source.index = targetIndex;
+                source.colIndex = targetColIdx;
+              }
+            } else {
+              const currentList = [...(newConfig[activePage] || [])];
+              const [movedItem] = currentList.splice(source.index, 1);
+              currentList.splice(targetIndex, 0, movedItem);
+              newConfig[activePage] = currentList;
+              source.index = targetIndex;
+            }
+
+            dragSourceRef.current = source;
+            setPagesConfig(newConfig);
+            localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+            if (navigator.vibrate) navigator.vibrate(10);
+          }
+        }
+      }
     };
 
-    const handleTouchEnd = (e) => {
-      if (!editMode || !dragSourceRef.current) return;
-      
-      const touch = e.changedTouches[0];
-      const x = touch.clientX;
-      const y = touch.clientY;
-      
+    const performTouchDrop = (x, y) => {
       // Magnetic drop: Find nearest card if dropped in gap
       const cards = Array.from(document.querySelectorAll('[data-card-id]'));
       let cardElement = cards.find(card => {
@@ -1264,10 +1737,14 @@ export default function App() {
             const cx = rect.left + rect.width / 2;
             const cy = rect.top + rect.height / 2;
             const dist = Math.hypot(x - cx, y - cy);
-            if (dist < 150 && dist < minDist) { minDist = dist; cardElement = card; }
+            if (dist < 220 && dist < minDist) { minDist = dist; cardElement = card; }
         });
       }
-      
+
+      if (!cardElement && touchTargetRef.current) {
+        cardElement = cards.find(card => card.getAttribute('data-card-id') === touchTargetRef.current.targetId);
+      }
+
       if (cardElement) {
           const targetId = cardElement.getAttribute('data-card-id');
           const targetIndex = parseInt(cardElement.getAttribute('data-index'));
@@ -1297,9 +1774,36 @@ export default function App() {
               if (navigator.vibrate) navigator.vibrate(20);
           }
       }
+    };
+
+    const handleTouchEnd = (e) => {
+      if (!editMode || !dragSourceRef.current) return;
+      
+      const touch = e.changedTouches[0];
+      const x = touch.clientX;
+      const y = touch.clientY;
+      performTouchDrop(x, y);
       
       setDraggingId(null);
       dragSourceRef.current = null;
+      touchTargetRef.current = null;
+      setTouchTargetId(null);
+      setTouchPath(null);
+    };
+
+    const handleTouchCancel = (e) => {
+      if (!editMode || !dragSourceRef.current) return;
+      if (e.cancelable) e.preventDefault();
+      const x = touchPath?.x;
+      const y = touchPath?.y;
+      if (typeof x === 'number' && typeof y === 'number') {
+        performTouchDrop(x, y);
+      }
+      setDraggingId(null);
+      dragSourceRef.current = null;
+      touchTargetRef.current = null;
+      setTouchTargetId(null);
+      setTouchPath(null);
     };
 
     const dragProps = { 
@@ -1337,13 +1841,31 @@ export default function App() {
         localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
         setDraggingId(null);
       },
-      onTouchStart: handleTouchStart,
-      onTouchMove: handleTouchMove,
+      onTouchStart: (e) => {
+        if (ignoreTouchRef.current) return;
+        if (!editMode) return;
+        if (!e.target.closest('[data-drag-handle]')) return;
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches[0];
+        if (!touch) return;
+        startTouchDrag(touch.clientX, touch.clientY);
+      },
+      onTouchMove: (e) => {
+        if (ignoreTouchRef.current) return;
+        if (!editMode || !dragSourceRef.current) return;
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches[0];
+        if (!touch) return;
+        updateTouchDrag(touch.clientX, touch.clientY);
+      },
       onTouchEnd: handleTouchEnd,
+      onTouchCancel: handleTouchCancel,
       'data-card-id': cardId,
       'data-index': index,
       'data-col-index': colIndex
     };
+
+    const isTouchTarget = !!touchTargetId && touchTargetId === cardId;
 
     const cardStyle = {
       backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
@@ -1354,7 +1876,7 @@ export default function App() {
       opacity: isHidden && editMode ? 0.4 : 1,
       filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
       transform: isDragging ? 'scale(1.08)' : 'none',
-      boxShadow: isDragging ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : 'none',
+      boxShadow: isDragging ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : (isTouchTarget ? '0 0 0 2px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.35)' : 'none'),
       touchAction: editMode ? 'none' : 'auto',
       userSelect: editMode ? 'none' : 'auto',
       WebkitUserSelect: editMode ? 'none' : 'auto',
@@ -1370,32 +1892,87 @@ export default function App() {
       const editId = targetId || cardId;
       const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
       return ( 
-      <div className="absolute top-2 right-2 z-50 flex gap-2">
-        <button 
-          onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); setEditCardSettingsKey(settingsKey); }}
-          className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
-          title="Rediger kort"
-        >
-          <Edit2 className="w-4 h-4" />
-        </button>
-        <button 
-          onClick={(e) => { e.stopPropagation(); toggleCardVisibility(cardId); }}
-          className="p-2 rounded-full transition-colors hover:bg-white/20 text-white border border-white/20 shadow-lg"
-          style={{backgroundColor: isHidden ? 'rgba(239, 68, 68, 0.8)' : 'rgba(0, 0, 0, 0.6)'}}
-          title={isHidden ? "Vis kort" : "Skjul kort"}
-        >
-          {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        </button>
-        {isCardRemovable(cardId) && (
+      <>
+        <div className="absolute top-2 right-2 z-50 flex gap-2">
           <button 
-            onClick={(e) => { e.stopPropagation(); removeCard(cardId); }}
-            className="p-2 rounded-full transition-colors hover:bg-red-500/80 text-white border border-white/20 shadow-lg bg-black/60"
-            title="Fjern kort"
+            onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); setEditCardSettingsKey(settingsKey); }}
+            className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
+            title="Rediger kort"
           >
-            <Trash2 className="w-4 h-4" />
+            <Edit2 className="w-4 h-4" />
           </button>
-        )}
-      </div>
+          <button 
+            onClick={(e) => { e.stopPropagation(); toggleCardVisibility(cardId); }}
+            className="p-2 rounded-full transition-colors hover:bg-white/20 text-white border border-white/20 shadow-lg"
+            style={{backgroundColor: isHidden ? 'rgba(239, 68, 68, 0.8)' : 'rgba(0, 0, 0, 0.6)'}}
+            title={isHidden ? "Vis kort" : "Skjul kort"}
+          >
+            {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+          {isCardRemovable(cardId) && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); removeCard(cardId); }}
+              className="p-2 rounded-full transition-colors hover:bg-red-500/80 text-white border border-white/20 shadow-lg bg-black/60"
+              title="Fjern kort"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
+          <div
+            data-drag-handle
+            onContextMenu={(e) => e.preventDefault()}
+            onPointerDown={(e) => {
+              if (!editMode || e.pointerType !== 'touch') return;
+              e.preventDefault();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              pointerDragRef.current = true;
+              ignoreTouchRef.current = true;
+              startTouchDrag(e.clientX, e.clientY);
+            }}
+            onPointerMove={(e) => {
+              if (!editMode || e.pointerType !== 'touch') return;
+              if (!pointerDragRef.current) return;
+              e.preventDefault();
+              updateTouchDrag(e.clientX, e.clientY);
+            }}
+            onPointerUp={(e) => {
+              if (!editMode || e.pointerType !== 'touch') return;
+              if (!pointerDragRef.current) return;
+              e.preventDefault();
+              pointerDragRef.current = false;
+              ignoreTouchRef.current = false;
+              performTouchDrop(e.clientX, e.clientY);
+              setDraggingId(null);
+              dragSourceRef.current = null;
+              touchTargetRef.current = null;
+              setTouchTargetId(null);
+              setTouchPath(null);
+            }}
+            onPointerCancel={(e) => {
+              if (!editMode || e.pointerType !== 'touch') return;
+              if (!pointerDragRef.current) return;
+              e.preventDefault();
+              pointerDragRef.current = false;
+              ignoreTouchRef.current = false;
+              const x = touchPath?.x ?? e.clientX;
+              const y = touchPath?.y ?? e.clientY;
+              performTouchDrop(x, y);
+              setDraggingId(null);
+              dragSourceRef.current = null;
+              touchTargetRef.current = null;
+              setTouchTargetId(null);
+              setTouchPath(null);
+            }}
+            style={{ touchAction: 'none' }}
+            className="flex items-center gap-2 px-4 py-3 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto"
+          >
+            <GripVertical className="w-5 h-5" />
+            <span className="text-xs font-bold uppercase tracking-widest">Flytt</span>
+          </div>
+        </div>
+      </>
       );
     };
 
@@ -1406,6 +1983,22 @@ export default function App() {
 
     if (cardId.startsWith('automation.')) {
         return renderAutomationCard(cardId, dragProps, getControls, cardStyle);
+    }
+
+    if (cardId.startsWith('vacuum.')) {
+      return renderVacuumCard(cardId, dragProps, getControls, cardStyle);
+    }
+
+    if (cardId.startsWith('media_player.')) {
+      return renderMediaPlayerCard(cardId, dragProps, getControls, cardStyle);
+    }
+
+    if (cardId.startsWith('media_group_')) {
+      return renderMediaGroupCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+    }
+
+    if (cardId.startsWith('weather_temp_')) {
+      return renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
@@ -1468,12 +2061,26 @@ export default function App() {
       case 'weather':
         return renderWeatherCard(dragProps, getControls, cardStyle);
       case 'media_player':
-        const mediaEntities = MEDIA_PLAYER_IDS.map(id => entities[id]).filter(Boolean);
-        const activeMediaEntities = mediaEntities.filter(isMediaActive);
+        const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
+        const mediaEntities = embyIds.map(id => entities[id]).filter(Boolean);
+        const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
+        const sessionActiveEntities = Array.isArray(sessions)
+          ? mediaEntities.filter((entity) => {
+              if (!isMediaActive(entity)) return false;
+              const name = (entity.attributes?.friendly_name || '').toLowerCase();
+              return sessions.some((s) => {
+                const device = (s?.device_name || '').toLowerCase();
+                if (!device) return false;
+                return name.includes(device) || device.includes(name);
+              });
+            })
+          : [];
+        const activeMediaEntities = sessionActiveEntities.length > 0 ? sessionActiveEntities : mediaEntities.filter(isMediaActive);
+        const activeCount = activeMediaEntities.length;
 
-        if (!editMode && activeMediaEntities.length === 0) return null;
+        if (!editMode && activeCount === 0) return null;
 
-        const pool = (editMode && activeMediaEntities.length === 0) ? mediaEntities : activeMediaEntities;
+        const pool = (editMode && activeCount === 0) ? mediaEntities : (activeCount > 0 ? activeMediaEntities : mediaEntities);
         const playingEntities = pool.filter(e => e.state === 'playing');
         const playingCount = playingEntities.length;
         
@@ -1505,29 +2112,26 @@ export default function App() {
         if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
 
         const mpApp = getA(mpId, 'app_name');
-        const mpPicture = currentMp.attributes?.entity_picture 
-          ? `${activeUrl.replace(/\/$/, '')}${currentMp.attributes.entity_picture}`
-          : null;
+        const mpPicture = getEntityImageUrl(currentMp.attributes?.entity_picture);
         
-        const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
         const mpFriendlyName = getA(mpId, 'friendly_name', '');
         const activeSession = Array.isArray(sessions) ? sessions.find(s => s.device_name && mpFriendlyName.toLowerCase().includes(s.device_name.toLowerCase())) : null;
         const activeUser = activeSession?.user_name;
         const mpName = customNames[mpId] || getA(mpId, 'friendly_name', 'Media Player').replace(/^(Midttunet|Bibliotek)\s*/i, '');
 
         const cyclePlayers = (e) => {
-            e.stopPropagation();
-            const list = playingCount > 1 ? playingEntities : pool;
-            const idx = list.findIndex(e => e.entity_id === mpId);
-            const next = list[(idx + 1) % list.length];
-            setActiveMediaId(next.entity_id);
+          e.stopPropagation();
+          const list = activeCount > 1 ? activeMediaEntities : (playingEntities.length > 1 ? playingEntities : pool);
+          const idx = list.findIndex(e => e.entity_id === mpId);
+          const next = list[(idx + 1) % list.length];
+          setActiveMediaId(next.entity_id);
         };
 
-        const indicator = (!editMode && playingCount >= 2) ? (<button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-xs font-bold">{playingCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
+        const indicator = (!editMode && activeCount >= 2) ? (<button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-xs font-bold">{activeCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
 
             if (isIdle) {
           return (
-            <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+            <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey('__emby__'); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
               {getControls(mpId)}
               {indicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
@@ -1542,7 +2146,7 @@ export default function App() {
         }
 
         return (
-          <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('media'); }} className={`p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: mpPicture ? 'white' : 'var(--text-primary)'}}>
+          <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey('__emby__'); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: mpPicture ? 'white' : 'var(--text-primary)'}}>
             {getControls(mpId)}
             {indicator}
             
@@ -1576,8 +2180,10 @@ export default function App() {
         const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
         const activeSonos = sonosEntities.filter(isSonosActive);
         const sonosCount = activeSonos.length;
+        const sonosSettingsKey = settingsKey;
+        const localActiveSonosId = cardSettings[sonosSettingsKey]?.activeId;
         
-        let currentSonos = sonosEntities.find(e => e.entity_id === activeMediaId);
+        let currentSonos = sonosEntities.find(e => e.entity_id === localActiveSonosId) || sonosEntities.find(e => e.entity_id === activeMediaId);
         
         if (!currentSonos) {
             if (sonosCount > 0) currentSonos = activeSonos[0];
@@ -1597,24 +2203,22 @@ export default function App() {
 
         const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
         const sArtist = isTV ? 'Stova' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
-        const sPicture = !isTV && currentSonos.attributes?.entity_picture 
-          ? `${activeUrl.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}`
-          : null;
+        const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
         const sName = customNames[sId] || getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '');
 
         const cycleSonos = (e) => {
-            e.stopPropagation();
-            const list = sonosCount > 1 ? activeSonos : sonosEntities;
-            const idx = list.findIndex(e => e.entity_id === sId);
-            const next = list[(idx + 1) % list.length];
-            setActiveMediaId(next.entity_id);
+          e.stopPropagation();
+          const list = sonosCount > 1 ? activeSonos : sonosEntities;
+          const idx = list.findIndex(e => e.entity_id === sId);
+          const next = list[(idx + 1) % list.length];
+          saveCardSetting(sonosSettingsKey, 'activeId', next.entity_id);
         };
 
         const sIndicator = (!editMode && sonosCount >= 2) ? (<button onClick={cycleSonos} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-xs font-bold">{sonosCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
 
         if (!sIsActive) {
           return (
-            <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+            <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(sId); setActiveMediaModal('sonos'); } }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
               {getControls(sId)}
               {sIndicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}><Speaker className="w-8 h-8 text-[var(--text-secondary)]" /></div>
@@ -1624,7 +2228,7 @@ export default function App() {
         }
 
         return (
-          <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveMediaModal('sonos'); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: sPicture ? 'white' : 'var(--text-primary)'}}>
+          <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(sId); setActiveMediaModal('sonos'); } }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: sPicture ? 'white' : 'var(--text-primary)'}}>
             {getControls(sId)}
             {sIndicator}
             {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.7]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
@@ -1674,17 +2278,23 @@ export default function App() {
   };
 
   const embyStatus = () => {
-    const activePlayers = MEDIA_PLAYER_IDS
+    const activePlayers = Object.keys(entities)
+      .filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'))
       .map(id => entities[id])
       .filter(Boolean)
-      .filter(e => isMediaActive(e) && (e.entity_id.includes('midttunet') || e.entity_id.includes('bibliotek')));
+      .filter(e => isMediaActive(e));
     
     const count = activePlayers.length;
     
     if (count === 0) return null;
 
     return (
-      <button onClick={() => setActiveMediaModal('media')} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-green-400" style={{backgroundColor: 'rgba(74, 222, 128, 0.1)'}}><Clapperboard className="w-4 h-4 animate-pulse" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Emby</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{count} {count === 1 ? 'spelar' : 'spelar'}</span></div></button>
+      <button onClick={() => {
+        const firstActive = activePlayers[0]?.entity_id;
+        if (firstActive) setActiveMediaId(firstActive);
+        setActiveMediaGroupKey('__emby__');
+        setActiveMediaModal('media');
+      }} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-green-400" style={{backgroundColor: 'rgba(74, 222, 128, 0.1)'}}><Clapperboard className="w-4 h-4 animate-pulse" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Emby</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{count} {count === 1 ? 'spelar' : 'spelar'}</span></div></button>
     );
   };
 
@@ -1703,7 +2313,7 @@ export default function App() {
 
     const sTitle = isTV ? 'TV-lyd' : getA(sId, 'media_title');
     const sArtist = isTV ? 'Stova' : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
-    const sPicture = !isTV && currentSonos.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${currentSonos.attributes.entity_picture}` : null;
+    const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
     const isPlaying = currentSonos.state === 'playing';
 
     return (
@@ -1737,10 +2347,32 @@ export default function App() {
 
   const editSettingsKey = showEditCardModal ? (editCardSettingsKey || getCardSettingsKey(showEditCardModal)) : null;
   const editSettings = editSettingsKey ? (cardSettings[editSettingsKey] || cardSettings[showEditCardModal] || {}) : {};
+  const editId = showEditCardModal;
+  const editEntity = editId ? entities[editId] : null;
+  const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
+  const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
+  const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
+  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || !!editEntity || ['power', 'energy_cost', 'climate', 'car', 'shield', 'rocky', 'weather'].includes(editId));
+  const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
 
   return (
     <div className="min-h-screen font-sans selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-500" style={{backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)'}}>
       <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-primary), var(--bg-gradient-to))'}} /><div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)'}} /><div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} /></div>
+      {editMode && draggingId && touchPath && (
+        <svg className="fixed inset-0 pointer-events-none z-40">
+          <line
+            x1={touchPath.startX}
+            y1={touchPath.startY}
+            x2={touchPath.x}
+            y2={touchPath.y}
+            stroke="rgba(59, 130, 246, 0.6)"
+            strokeWidth="3"
+            strokeDasharray="6 6"
+          />
+          <circle cx={touchPath.startX} cy={touchPath.startY} r="6" fill="rgba(59, 130, 246, 0.6)" />
+          <circle cx={touchPath.x} cy={touchPath.y} r="8" fill="rgba(59, 130, 246, 0.9)" />
+        </svg>
+      )}
       <div className="relative z-10 w-full max-w-[1600px] mx-auto px-6 md:px-20 py-6 md:py-10">
         <style>{`
           @keyframes fadeIn {
@@ -1815,30 +2447,30 @@ export default function App() {
               </button>
             )}
             
-            <div className={`absolute right-0 top-12 z-50 flex flex-col items-stretch gap-4 p-4 rounded-2xl bg-[var(--glass-bg)] backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] transition-all duration-500 ease-in-out ${showMenu ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+            <div ref={gearMenuRef} className={`absolute right-0 top-12 z-50 flex flex-col items-stretch gap-3 p-5 min-w-[200px] w-fit max-w-[280px] rounded-2xl bg-[var(--glass-bg)] backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] transition-all duration-500 ease-in-out ${showMenu ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
               {!editMode && (
                 <button onClick={() => {
                   setEditMode(true);
                   setShowMenu(false);
-                }} className="group flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap">
+                }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]">
                   <Edit2 className="w-4 h-4" /> Rediger
                 </button>
               )}
-              {!editMode && <button onClick={() => { setShowConfigModal(true); setShowMenu(false); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap"><Settings className="w-4 h-4" /> System</button>}
+              {!editMode && <button onClick={() => { setShowConfigModal(true); setShowMenu(false); }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]"><Settings className="w-4 h-4" /> System</button>}
               {!editMode && (
-                <button onClick={() => { toggleTheme(); setShowMenu(false); }} className="flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap" title="Bytt tema">
+                <button onClick={() => { toggleTheme(); setShowMenu(false); }} className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]" title="Bytt tema">
                   {currentTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   Tema
                 </button>
               )}
               {!editMode && (
-                <button onClick={() => { toggleFullscreen(); setShowMenu(false); }} className="flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap" title="Fullskjerm">
+                <button onClick={() => { toggleFullscreen(); setShowMenu(false); }} className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]" title="Fullskjerm">
                   {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
                   Fullskjerm
                 </button>
               )}
             </div>
-            <button onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group ${showMenu ? 'bg-[var(--glass-bg)]' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`} /></button>
+            <button ref={gearButtonRef} onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group ${showMenu ? 'bg-[var(--glass-bg)]' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`} /></button>
             {!connected && <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: '#ef4444'}} /></div>}
           </div>
         </div>
@@ -2236,9 +2868,7 @@ export default function App() {
                 {Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on').map(id => {
                     const entity = entities[id];
                     const attr = entity.attributes;
-                    const picture = attr.entity_picture 
-                        ? (attr.entity_picture.startsWith('http') ? attr.entity_picture : `${activeUrl.replace(/\/$/, '')}${attr.entity_picture}`) 
-                        : null;
+                    const picture = getEntityImageUrl(attr.entity_picture);
                     const inProgress = attr.in_progress;
                     const isExpanded = expandedUpdate === id;
                     
@@ -2318,7 +2948,7 @@ export default function App() {
             `}</style>
             <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowAddCardModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
-              <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Legg til kort</h3>
+              <h3 className="text-2xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Legg til kort</h3>
               
               {addCardTargetPage === 'settings' && (
                 <div className="mb-6 relative">
@@ -2327,88 +2957,188 @@ export default function App() {
                 </div>
               )}
               
-              <div className="mb-8">
-                <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">Legg til på side</p>
-                <div className="flex flex-wrap gap-2">
-                  {pages.map(p => {
-                    const settings = pageSettings[p.id] || {};
-                    const label = settings.label || p.label;
-                    const Icon = settings.icon ? ICON_MAP[settings.icon] : p.icon;
-                    return (
-                    <button 
-                      key={p.id} 
-                      onClick={() => setAddCardTargetPage(p.id)}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardTargetPage === p.id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              {(addCardTargetPage !== 'header' && addCardTargetPage !== 'automations' && addCardTargetPage !== 'settings') && (
+                <div className="mb-8">
+                  <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">Korttype</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setAddCardType('light')}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardType === 'light' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <Icon className="w-4 h-4" />
-                      {label}
+                      <Lightbulb className="w-4 h-4" /> Lys
                     </button>
-                  );})}
-                  <button 
-                      onClick={() => setAddCardTargetPage('header')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardTargetPage === 'header' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    <button
+                      onClick={() => setAddCardType('vacuum')}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardType === 'vacuum' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <User className="w-4 h-4" />
-                      Personar
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                <div>
-                  <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'header' ? 'Tilgjengelege personar' : (addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : (addCardTargetPage === 'settings' ? 'Alle entitetar' : 'Tilgjengelege lys'))}</p>
-                  <div className="space-y-3">
-                    {Object.keys(entities)
-                      .filter(id => {
-                        if (addCardTargetPage === 'header') return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
-                        if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
-                        if (addCardTargetPage === 'settings') {
-                           const isNotAdded = !(pagesConfig.settings || []).includes(id);
-                           if (!isNotAdded) return false;
-                           if (searchTerm) {
-                             const lowerTerm = searchTerm.toLowerCase();
-                             const name = entities[id].attributes?.friendly_name || id;
-                             return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
-                           }
-                           return true;
-                        }
-                        return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
-                      })
-                      .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
-                      .slice(0, addCardTargetPage === 'settings' ? 100 : undefined) // Limit settings list for performance
-                      .map(id => (
-                        <button key={id} onClick={() => {
-                            if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
-                            else setSelectedEntities(prev => [...prev, id]);
-                        }} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${selectedEntities.includes(id) ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
-                          <div className="flex flex-col overflow-hidden mr-4">
-                            <span className={`text-sm font-bold transition-colors truncate ${selectedEntities.includes(id) ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
-                            <span className={`text-[10px] font-mono truncate ${selectedEntities.includes(id) ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
-                          </div>
-                          <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${selectedEntities.includes(id) ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
-                            {selectedEntities.includes(id) ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                          </div>
-                        </button>
-                      ))}
-                      {Object.keys(entities).filter(id => {
-                        if (addCardTargetPage === 'header') return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
-                        if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
-                        if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
-                        return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
-                      }).length === 0 && (
-                        <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'header' ? 'personar' : (addCardTargetPage === 'automations' ? 'automasjonar' : (addCardTargetPage === 'settings' ? 'entitetar' : 'lys'))} å legge til</p>
-                      )}
+                      <Bot className="w-4 h-4" /> Støvsuger
+                    </button>
+                    <button
+                      onClick={() => setAddCardType('media')}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardType === 'media' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <Music className="w-4 h-4" /> Musikk
+                    </button>
+                    <button
+                      onClick={() => setAddCardType('weather')}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardType === 'weather' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <CloudSun className="w-4 h-4" /> Vær/Temp
+                    </button>
                   </div>
                 </div>
+              )}
+
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {addCardType === 'weather' ? (
+                  <div className="space-y-8">
+                    <div>
+                      <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">Værsensor (påkravd)</p>
+                      <div className="space-y-3">
+                        {Object.keys(entities)
+                          .filter(id => id.startsWith('weather.'))
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(id => {
+                            const isSelected = selectedWeatherId === id;
+                            return (
+                              <button type="button" key={id} onClick={() => setSelectedWeatherId(prev => prev === id ? null : id)} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
+                                <div className="flex flex-col overflow-hidden mr-4">
+                                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                                  <span className={`text-[10px] font-mono truncate ${isSelected ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
+                                </div>
+                                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                                  {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        {Object.keys(entities).filter(id => id.startsWith('weather.')).length === 0 && (
+                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen værsensorar funne</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">Temperatursensor (valfri)</p>
+                      <div className="space-y-3">
+                        <button type="button" onClick={() => setSelectedTempId(null)} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${!selectedTempId ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
+                          <div className="flex flex-col overflow-hidden mr-4">
+                            <span className={`text-sm font-bold transition-colors truncate ${!selectedTempId ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>Bruk temperatur frå vær</span>
+                            <span className={`text-[10px] font-mono truncate ${!selectedTempId ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>weather.temperature</span>
+                          </div>
+                          <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedTempId ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                            {!selectedTempId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                          </div>
+                        </button>
+                        {Object.keys(entities)
+                          .filter(id => {
+                            if (!id.startsWith('sensor.')) return false;
+                            const deviceClass = entities[id].attributes?.device_class;
+                            const lowerId = id.toLowerCase();
+                            return deviceClass === 'temperature' || lowerId.includes('temperature') || lowerId.includes('temp');
+                          })
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(id => {
+                            const isSelected = selectedTempId === id;
+                            return (
+                              <button type="button" key={id} onClick={() => setSelectedTempId(prev => prev === id ? null : id)} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
+                                <div className="flex flex-col overflow-hidden mr-4">
+                                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                                  <span className={`text-[10px] font-mono truncate ${isSelected ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
+                                </div>
+                                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                                  {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        {Object.keys(entities).filter(id => {
+                          if (!id.startsWith('sensor.')) return false;
+                          const deviceClass = entities[id].attributes?.device_class;
+                          const lowerId = id.toLowerCase();
+                          return deviceClass === 'temperature' || lowerId.includes('temperature') || lowerId.includes('temp');
+                        }).length === 0 && (
+                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen temperatursensorar funne</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'header' ? 'Tilgjengelege personar' : (addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : (addCardTargetPage === 'settings' ? 'Alle entitetar' : (addCardType === 'vacuum' ? 'Tilgjengelege støvsugarar' : (addCardType === 'media' ? 'Tilgjengelege spelarar' : 'Tilgjengelege lys'))))}</p>
+                    <div className="space-y-3">
+                      {Object.keys(entities)
+                        .filter(id => {
+                          if (addCardTargetPage === 'header') return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
+                          if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
+                          if (addCardTargetPage === 'settings') {
+                             const isNotAdded = !(pagesConfig.settings || []).includes(id);
+                             if (!isNotAdded) return false;
+                             if (searchTerm) {
+                               const lowerTerm = searchTerm.toLowerCase();
+                               const name = entities[id].attributes?.friendly_name || id;
+                               return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
+                             }
+                             return true;
+                          }
+                          if (addCardType === 'vacuum') {
+                            return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                          }
+                          if (addCardType === 'media') {
+                            return id.startsWith('media_player.');
+                          }
+                          return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                        })
+                        .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                        .slice(0, addCardTargetPage === 'settings' ? 100 : undefined) // Limit settings list for performance
+                        .map(id => {
+                          const isSelected = selectedEntities.includes(id);
+                          return (
+                          <button type="button" key={id} onClick={() => {
+                              if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
+                              else setSelectedEntities(prev => [...prev, id]);
+                          }} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
+                            <div className="flex flex-col overflow-hidden mr-4">
+                              <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                              <span className={`text-[10px] font-mono truncate ${isSelected ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
+                            </div>
+                            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                              {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                            </div>
+                          </button>
+                        );})}
+                        {Object.keys(entities).filter(id => {
+                          if (addCardTargetPage === 'header') return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
+                          if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
+                          if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
+                          if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                          if (addCardType === 'media') return id.startsWith('media_player.');
+                          return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                        }).length === 0 && (
+                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'header' ? 'personar' : (addCardTargetPage === 'automations' ? 'automasjonar' : (addCardTargetPage === 'settings' ? 'entitetar' : (addCardType === 'vacuum' ? 'støvsugarar' : (addCardType === 'media' ? 'spelarar' : 'lys'))))} å legge til</p>
+                        )}
+                    </div>
+                  </div>
+                )}
               </div>
               
-              {selectedEntities.length > 0 && (
+                {addCardType !== 'weather' && selectedEntities.length > 0 && (
                 <div className="mt-8 pt-6 border-t border-[var(--glass-border)]">
-                    <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-                        <Plus className="w-5 h-5" /> Legg til {selectedEntities.length} {selectedEntities.length === 1 ? 'kort' : 'kort'}
+                  <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                    <Plus className="w-5 h-5" /> {addCardType === 'media' ? `Legg til ${selectedEntities.length} spelarar` : `Legg til ${selectedEntities.length} ${selectedEntities.length === 1 ? 'kort' : 'kort'}`}
                     </button>
                 </div>
               )}
+              {addCardType === 'weather' && selectedWeatherId && (
+                <div className="mt-8 pt-6 border-t border-[var(--glass-border)]">
+                  <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                    <Plus className="w-5 h-5" /> Legg til værkort
+                  </button>
+                </div>
+              )}
+              <div className="mt-4">
+                <button onClick={() => setShowAddCardModal(false)} className="w-full py-3 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors">OK</button>
+              </div>
             </div>
           </div>
         )}
@@ -2475,7 +3205,7 @@ export default function App() {
         )}
 
         {showEditCardModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }}>
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }}>
             <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
@@ -2491,36 +3221,40 @@ export default function App() {
                 background: rgba(255, 255, 255, 0.25);
               }
             `}</style>
-            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
-              <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Rediger kort</h3>
+            <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }} className="absolute top-5 right-5 md:top-7 md:right-7 p-4 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-6 h-6" /></button>
+              <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Rediger kort</h3>
               
               <div className="space-y-8">
-                <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] focus:border-blue-500/50 outline-none transition-colors" 
-                    defaultValue={customNames[showEditCardModal] || (entities[showEditCardModal]?.attributes?.friendly_name || '')}
-                    onBlur={(e) => saveCustomName(showEditCardModal, e.target.value)}
-                    placeholder="Standard navn"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
-                  <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                    <button onClick={() => saveCustomIcon(showEditCardModal, null)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!customIcons[showEditCardModal] ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
-                    {Object.keys(ICON_MAP).map(iconName => {
-                      const Icon = ICON_MAP[iconName];
-                      return (
-                        <button key={iconName} onClick={() => saveCustomIcon(showEditCardModal, iconName)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${customIcons[showEditCardModal] === iconName ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title={iconName}><Icon className="w-5 h-5" /></button>
-                      );
-                    })}
+                {canEditName && (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
+                    <input 
+                      type="text" 
+                      className="w-full px-5 py-3 text-[var(--text-primary)] rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] focus:border-blue-500/50 outline-none transition-colors" 
+                      defaultValue={customNames[showEditCardModal] || (entities[showEditCardModal]?.attributes?.friendly_name || '')}
+                      onBlur={(e) => saveCustomName(showEditCardModal, e.target.value)}
+                      placeholder="Standard navn"
+                    />
                   </div>
-                </div>
+                )}
 
-                {(showEditCardModal && (showEditCardModal.startsWith('light_') || showEditCardModal.startsWith('light.'))) && (
+                {canEditIcon && (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
+                    <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                      <button onClick={() => saveCustomIcon(showEditCardModal, null)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!customIcons[showEditCardModal] ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                      {Object.keys(ICON_MAP).map(iconName => {
+                        const Icon = ICON_MAP[iconName];
+                        return (
+                          <button key={iconName} onClick={() => saveCustomIcon(showEditCardModal, iconName)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${customIcons[showEditCardModal] === iconName ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title={iconName}><Icon className="w-5 h-5" /></button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {isEditLight && (
                   <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Liten versjon</span>
                     <button
@@ -2532,25 +3266,29 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis status</span>
-                    <button 
-                      onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showStatus', !(editSettings.showStatus !== false))}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`} />
-                    </button>
-                </div>
+                {canEditStatus && (
+                  <>
+                    <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+                        <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis status</span>
+                        <button 
+                          onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showStatus', !(editSettings.showStatus !== false))}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`} />
+                        </button>
+                    </div>
 
-                <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis sist endra</span>
-                    <button 
-                      onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastChanged', !(editSettings.showLastChanged !== false))}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
-                    </button>
-                </div>
+                    <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+                        <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Vis sist endra</span>
+                        <button 
+                          onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastChanged', !(editSettings.showLastChanged !== false))}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
+                        </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -2562,7 +3300,7 @@ export default function App() {
               <button onClick={() => setShowCameraModal(false)} className="absolute top-6 right-6 p-4 rounded-full z-10" style={{backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)'}}><X className="w-6 h-6 text-white" /></button>
               <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden bg-black relative">
                  {entities[CAMERA_PORTEN_ID] ? (
-                   <img src={`${activeUrl.replace(/\/$/, '')}${entities[CAMERA_PORTEN_ID].attributes.entity_picture}`} alt="Kamera Porten" className="w-full h-full object-cover" />
+                   <img src={getEntityImageUrl(entities[CAMERA_PORTEN_ID].attributes.entity_picture)} alt="Kamera Porten" className="w-full h-full object-cover" />
                  ) : (
                    <div className="w-full h-full flex items-center justify-center text-gray-500">Kamera ikkje tilgjengeleg</div>
                  )}
@@ -2582,10 +3320,27 @@ export default function App() {
               
               {(() => {
                 const isSonos = activeMediaModal === 'sonos';
-                const mediaEntities = (isSonos ? SONOS_IDS : MEDIA_PLAYER_IDS).map(id => entities[id]).filter(Boolean);
+                const allMediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.'));
+                const fallbackId = allMediaIds.map(id => entities[id]).find(isMediaActive)?.entity_id;
+                const groupSettings = activeMediaGroupKey ? cardSettings[activeMediaGroupKey] : null;
+                const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
+                const isEmbyGroup = !isSonos && activeMediaGroupKey === '__emby__';
+                const groupIds = isEmbyGroup
+                  ? embyIds
+                  : (Array.isArray(groupSettings?.mediaIds) ? groupSettings.mediaIds : []);
+                const mediaIds = isSonos ? SONOS_IDS : (groupIds.length > 0 ? groupIds : (activeMediaId ? [activeMediaId] : (fallbackId ? [fallbackId] : [])));
+                const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
                 
-                // For Sonos viser vi alle, for andre kun aktive
-                const listPlayers = isSonos ? mediaEntities : mediaEntities.filter(isMediaActive);
+                // For Sonos viser vi alle, for andre: berre valde spelarar
+                const listPlayers = mediaEntities
+                  .filter((p) => (isEmbyGroup ? isMediaActive(p) : true))
+                  .slice()
+                  .sort((a, b) => {
+                    const aActive = isSonos ? isSonosActive(a) : isMediaActive(a);
+                    const bActive = isSonos ? isSonosActive(b) : isMediaActive(b);
+                    if (aActive !== bActive) return aActive ? -1 : 1;
+                    return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
+                  });
                 
                 let currentMp = mediaEntities.find(e => e.entity_id === activeMediaId);
                 if (!currentMp) {
@@ -2623,11 +3378,14 @@ export default function App() {
         if (isTV) mpSeries = 'Stova';
 
                 const mpApp = getA(mpId, 'app_name');
-                const mpPicture = !isTV && currentMp.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${currentMp.attributes.entity_picture}` : null;
+                const mpPicture = !isTV ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
                 const duration = getA(mpId, 'media_duration');
                 const position = getA(mpId, 'media_position');
                 const serverInfo = getServerInfo(mpId);
                 const ServerIcon = serverInfo.icon;
+                const isMidttunet = mpId.includes('midttunet');
+                const serverLabel = isMidttunet ? 'Jellyfin' : 'Emby';
+                const ServerBadgeIcon = isMidttunet ? JellyfinLogo : EmbyLogo;
                 
                 // Sonos spesifikke attributter
                 const volume = getA(mpId, 'volume_level', 0);
@@ -2636,13 +3394,17 @@ export default function App() {
                 const repeat = getA(mpId, 'repeat', 'off');
                 const rawMembers = getA(mpId, 'group_members');
                 const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
+                const canGroup = isSonos;
 
                 return (
                   <>
                     <div className="flex-1 flex flex-col justify-center relative z-10">
+                      {!isSonos && (
+                        <h3 className="text-sm font-bold uppercase tracking-[0.25em] text-gray-500 mb-4">{serverLabel}</h3>
+                      )}
                       <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start mb-8 ${isSonos ? 'bg-[var(--glass-bg)] border-[var(--glass-border)]' : (serverInfo.bg + ' ' + serverInfo.border)}`}>
-                        {isSonos ? <Music className="w-4 h-4 text-[var(--text-primary)]" /> : <ServerIcon className={`w-4 h-4 ${serverInfo.color}`} />}
-                        <span className={`text-xs font-bold uppercase tracking-widest ${isSonos ? 'text-[var(--text-primary)]' : serverInfo.color}`}>{isSonos ? 'SONOS' : serverInfo.name}</span>
+                        {isSonos ? <Music className="w-4 h-4 text-[var(--text-primary)]" /> : <ServerBadgeIcon className={`w-4 h-4 ${serverInfo.color}`} />}
+                        <span className={`text-xs font-bold uppercase tracking-widest ${isSonos ? 'text-[var(--text-primary)]' : serverInfo.color}`}>{isSonos ? 'SONOS' : serverLabel}</span>
                       </div>
 
                       <div className="flex flex-col gap-6">
@@ -2709,8 +3471,8 @@ export default function App() {
 
                     <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-[var(--glass-border)] pt-6 md:pt-24 pl-0 md:pl-12 flex flex-col gap-6 overflow-y-auto">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{isSonos ? 'Sonos Spelarar' : 'Aktive spelarar'}</h3>
-                        {isSonos && listPlayers.length > 1 && (
+                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{isSonos ? 'Sonos Spelarar' : (isEmbyGroup ? 'Aktive spelarar' : 'Valde spelarar')}</h3>
+                        {canGroup && listPlayers.length > 1 && (
                           <button 
                             onClick={() => {
                               const allIds = listPlayers.map(p => p.entity_id);
@@ -2731,13 +3493,19 @@ export default function App() {
                       <div className="flex flex-col gap-4">
                         {listPlayers.length === 0 && <p className="text-gray-600 italic text-sm">Ingen spelarar funnen</p>}
                         {listPlayers.map((p, idx) => {
-                           const pPic = p.attributes?.entity_picture ? `${activeUrl.replace(/\/$/, '')}${p.attributes.entity_picture}` : null;
+                          const pPic = getEntityImageUrl(p.attributes?.entity_picture);
                            const isSelected = p.entity_id === mpId;
                            const isMember = groupMembers.includes(p.entity_id);
                            const isSelf = p.entity_id === mpId;
+                           const isActivePlayer = isSonos ? isSonosActive(p) : isMediaActive(p);
+                           const pTitle = getA(p.entity_id, 'media_title', 'Ukjend');
+                           const pUser = (() => {
+                             const s = Array.isArray(sessions) ? sessions.find(s => s.device_name && (p.attributes?.friendly_name || '').toLowerCase().includes(s.device_name.toLowerCase())) : null;
+                             return s?.user_name || '';
+                           })();
 
                            return (
-                             <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'}`}>
+                             <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'} ${isActivePlayer ? '' : 'opacity-70'}`}>
                                <button onClick={() => setActiveMediaId(p.entity_id)} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
                                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
                                  {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isSonos ? <Speaker className="w-5 h-5 text-gray-600" /> : <Music className="w-5 h-5 text-gray-600" />}</div>}
@@ -2745,10 +3513,11 @@ export default function App() {
                                </div>
                                <div className="overflow-hidden">
                                  <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
-                                 <p className="text-[10px] text-gray-600 truncate mt-0.5">{getA(p.entity_id, 'media_title', 'Ukjend')}</p>
+                                 <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
+                                 {pUser && <p className="text-[10px] text-gray-500 truncate">{pUser}</p>}
                                </div>
                                </button>
-                               {isSonos && !isSelf && (
+                               {canGroup && isSonos && !isSelf && (
                                  <button 
                                    onClick={(e) => {
                                      e.stopPropagation();
@@ -2764,7 +3533,7 @@ export default function App() {
                                    {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                                  </button>
                                )}
-                               {isSonos && isSelf && groupMembers.length > 1 && (
+                               {canGroup && isSonos && isSelf && groupMembers.length > 1 && (
                                  <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title="Linka">
                                    <Link className="w-4 h-4" />
                                  </div>
