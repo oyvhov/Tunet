@@ -133,7 +133,9 @@ import {
   Sunrise,
   Sunset,
   Truck,
-  Wrench
+  Wrench,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import M3Slider from './components/M3Slider';
 import ModernDropdown from './components/ModernDropdown';
@@ -204,7 +206,7 @@ const ICON_MAP = {
   AlarmClock, Archive, Award, Book, BookOpen, Bookmark, Briefcase, Building2,
   Bus, Cpu, Database, DollarSign, Feather, Gift, Globe, Key, Leaf, Monitor,
   Paintbrush, PenTool, Plug, Puzzle, Rocket, Router, Siren, Sprout, Sunrise,
-  Sunset, Truck, Wrench
+  Sunset, Truck, Wrench, ToggleLeft, ToggleRight
 };
 
 const formatRelativeTime = (timestamp) => {
@@ -307,6 +309,10 @@ export default function App() {
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configTab, setConfigTab] = useState('connection');
+  const [showAddPageModal, setShowAddPageModal] = useState(false);
+  const [newPageLabel, setNewPageLabel] = useState('');
+  const [newPageIcon, setNewPageIcon] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [expandedUpdate, setExpandedUpdate] = useState(null);
   const [releaseNotes, setReleaseNotes] = useState({});
@@ -321,7 +327,8 @@ export default function App() {
   const [activePage, setActivePage] = useState('home');
   const [pagesConfig, setPagesConfig] = useState({
     header: [OYVIND_ID, TUVA_ID],
-    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'sonos', 'shield'],
+    pages: ['home', 'lights'],
+    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'shield'],
     lights: ['light_kjokken', 'light_stova', 'light_studio'],
     automations: [
       { id: 'col0', title: 'Kolonne 1', cards: [] },
@@ -358,6 +365,16 @@ export default function App() {
   const [tempHistoryById, setTempHistoryById] = useState({});
   const [cardSettings, setCardSettings] = useState({});
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [inactivityTimeout, setInactivityTimeout] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('midttunet_inactivity_timeout');
+      if (saved !== null) {
+        const parsed = parseInt(saved, 10);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+    }
+    return 60;
+  });
   const [currentTheme, setCurrentTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('midttunet_theme');
@@ -408,9 +425,10 @@ export default function App() {
     let inactivityTimer;
     const resetTimer = () => {
       clearTimeout(inactivityTimer);
+      if (!inactivityTimeout || inactivityTimeout <= 0) return;
       inactivityTimer = setTimeout(() => {
         if (resetToHomeRef.current) resetToHomeRef.current();
-      }, 60000);
+      }, inactivityTimeout * 1000);
     };
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     events.forEach(event => document.addEventListener(event, resetTimer));
@@ -419,7 +437,7 @@ export default function App() {
       clearTimeout(inactivityTimer);
       events.forEach(event => document.removeEventListener(event, resetTimer));
     };
-  }, []);
+  }, [inactivityTimeout]);
 
   useEffect(() => {
     if (!showMenu) return;
@@ -474,6 +492,50 @@ export default function App() {
           parsed.home = parsed.home.filter(id => id !== 'weather');
           modified = true;
         }
+
+        if (parsed.home && parsed.home.includes('sonos')) {
+          parsed.home = parsed.home.filter(id => id !== 'sonos');
+          modified = true;
+        }
+        if (parsed.lights && parsed.lights.includes('sonos')) {
+          parsed.lights = parsed.lights.filter(id => id !== 'sonos');
+          modified = true;
+        }
+        if (parsed.settings && parsed.settings.includes('sonos')) {
+          parsed.settings = parsed.settings.filter(id => id !== 'sonos');
+          modified = true;
+        }
+        if (parsed.automations && Array.isArray(parsed.automations)) {
+          const updatedCols = parsed.automations.map(col => ({
+            ...col,
+            cards: Array.isArray(col.cards) ? col.cards.filter(id => id !== 'sonos') : col.cards
+          }));
+          if (JSON.stringify(updatedCols) !== JSON.stringify(parsed.automations)) {
+            parsed.automations = updatedCols;
+            modified = true;
+          }
+        }
+
+        if (!Array.isArray(parsed.pages)) {
+          const detectedPages = Object.keys(parsed)
+            .filter(key => Array.isArray(parsed[key]) && !['header', 'automations', 'settings'].includes(key));
+          parsed.pages = detectedPages.length > 0 ? detectedPages : ['home', 'lights'];
+          modified = true;
+        }
+
+        if (!parsed.pages.includes('home')) {
+          parsed.pages.unshift('home');
+          modified = true;
+        }
+
+        parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'automations');
+
+        parsed.pages.forEach((pageId) => {
+          if (!Array.isArray(parsed[pageId])) {
+            parsed[pageId] = [];
+            modified = true;
+          }
+        });
         
         if (!parsed.header) {
             parsed.header = [OYVIND_ID, TUVA_ID];
@@ -831,16 +893,25 @@ export default function App() {
     );
   };
 
-  const pages = [
-    { id: 'home', label: 'HEIM', icon: LayoutGrid },
-    { id: 'lights', label: 'Lys', icon: Lightbulb },
-    { id: 'automations', label: 'Automasjonar', icon: Workflow },
-    { id: 'settings', label: 'Innstillingar', icon: Settings },
-  ];
+  const pageDefaults = {
+    home: { label: 'HEIM', icon: LayoutGrid },
+    lights: { label: 'Lys', icon: Lightbulb }
+  };
+  const pages = (pagesConfig.pages || []).map(id => ({
+    id,
+    label: pageDefaults[id]?.label || id,
+    icon: pageDefaults[id]?.icon || LayoutGrid
+  }));
 
   useEffect(() => {
     if (showAddCardModal) setAddCardTargetPage(activePage);
   }, [showAddCardModal, activePage]);
+
+  useEffect(() => {
+    if (!showAddPageModal) return;
+    setNewPageLabel('');
+    setNewPageIcon(null);
+  }, [showAddPageModal]);
 
   useEffect(() => {
     if (showAddCardModal) setSelectedEntities([]);
@@ -860,7 +931,7 @@ export default function App() {
       setAddCardType('light');
       return;
     }
-    setAddCardType('light');
+    setAddCardType('entity');
   }, [showAddCardModal, addCardTargetPage]);
 
   useEffect(() => {
@@ -939,12 +1010,14 @@ export default function App() {
 
   const isCardRemovable = (cardId, pageId = activePage) => {
     if (pageId === 'header') return cardId.startsWith('person.');
-    if (pageId === 'automations') return cardId.startsWith('automation.');
     if (pageId === 'settings') {
       if (['power', 'energy_cost', 'climate', 'shield', 'car'].includes(cardId)) return false;
       if (cardId.startsWith('media_player') || cardId.startsWith('sonos')) return false;
       return true;
     }
+    const settingsKey = getCardSettingsKey(cardId, pageId);
+    const typeSetting = cardSettings[settingsKey]?.type || cardSettings[cardId]?.type;
+    if (typeSetting === 'entity' || typeSetting === 'toggle') return true;
     if (cardId.startsWith('light_')) return true;
     if (cardId.startsWith('light.')) return true;
     if (cardId.startsWith('vacuum.')) return true;
@@ -1004,6 +1077,12 @@ export default function App() {
     localStorage.setItem('midttunet_header_scale', newScale);
   };
 
+  const isToggleEntity = (id) => {
+    const domain = id?.split('.')?.[0];
+    const toggleDomains = ['automation', 'switch', 'input_boolean', 'script', 'fan'];
+    return toggleDomains.includes(domain);
+  };
+
   const removeCard = (cardId, listName = activePage) => {
     const newConfig = { ...pagesConfig };
     if (listName === 'header') {
@@ -1021,6 +1100,50 @@ export default function App() {
       setPagesConfig(newConfig);
       localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
     }
+  };
+
+  const createPage = () => {
+    const label = newPageLabel.trim() || 'Ny side';
+    const slugBase = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'side';
+    let pageId = slugBase;
+    const existing = new Set(pagesConfig.pages || []);
+    let counter = 1;
+    while (existing.has(pageId)) {
+      counter += 1;
+      pageId = `${slugBase}_${counter}`;
+    }
+
+    const newConfig = { ...pagesConfig };
+    newConfig.pages = [...(newConfig.pages || []), pageId];
+    newConfig[pageId] = [];
+    setPagesConfig(newConfig);
+    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+
+    const newSettings = { ...pageSettings, [pageId]: { ...(pageSettings[pageId] || {}), label, icon: newPageIcon } };
+    setPageSettings(newSettings);
+    localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+
+    setActivePage(pageId);
+    setShowAddPageModal(false);
+  };
+
+  const deletePage = (pageId) => {
+    if (!pageId || pageId === 'home') return;
+    if (!window.confirm('Er du sikker på at du vil slette sida?')) return;
+
+    const newConfig = { ...pagesConfig };
+    newConfig.pages = (newConfig.pages || []).filter(id => id !== pageId);
+    delete newConfig[pageId];
+    setPagesConfig(newConfig);
+    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+
+    const newSettings = { ...pageSettings };
+    delete newSettings[pageId];
+    setPageSettings(newSettings);
+    localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+
+    if (activePage === pageId) setActivePage('home');
+    setEditingPage(null);
   };
 
   const handleAddSelected = () => {
@@ -1078,6 +1201,16 @@ export default function App() {
       return;
     }
 
+    if (addCardType === 'entity' || addCardType === 'toggle') {
+      const newSettings = { ...cardSettings };
+      selectedEntities.forEach((id) => {
+        const settingsKey = getCardSettingsKey(id, addCardTargetPage);
+        newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), type: addCardType, size: newSettings[settingsKey]?.size || 'large' };
+      });
+      setCardSettings(newSettings);
+      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+    }
+
     newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...selectedEntities];
     setPagesConfig(newConfig);
     localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
@@ -1111,6 +1244,93 @@ export default function App() {
             {showLastChanged && <div className="flex flex-col items-end"><span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{formatRelativeTime(lastChanged)}</span></div>}
         </div>
         <div><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-0.5 truncate">{name}</p>{showStatus && <p className="text-xl font-light truncate" style={{color: 'var(--text-primary)'}}>{String(state)}</p>}</div>
+      </div>
+    );
+  };
+
+  const renderGenericEntityCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const entity = entities[cardId];
+    if (!entity) return null;
+
+    const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+    const type = settings.type || 'entity';
+    const sizeSetting = settings.size || 'large';
+    const isSmall = sizeSetting === 'small';
+    const domain = cardId.split('.')[0];
+    const isToggle = type === 'toggle';
+    const isOn = entity.state === 'on';
+    const statusText = isToggle ? (isOn ? 'PÅ' : 'AV') : getS(cardId);
+    const name = customNames[cardId] || getA(cardId, 'friendly_name', cardId);
+    const defaultIcons = {
+      automation: Workflow,
+      switch: Plug,
+      input_boolean: ToggleRight,
+      script: Play,
+      fan: Fan,
+      sensor: Activity,
+      binary_sensor: AlertCircle,
+      climate: Wind,
+      light: Lightbulb
+    };
+    const DefaultIcon = defaultIcons[domain] || Activity;
+    const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : DefaultIcon;
+    const ToggleIcon = isOn ? ToggleRight : ToggleLeft;
+
+    const handleToggle = (e) => {
+      e.stopPropagation();
+      if (!isToggle) return;
+      if (domain === 'script') {
+        callService(domain, 'turn_on', { entity_id: cardId });
+        return;
+      }
+      callService(domain, isOn ? 'turn_off' : 'turn_on', { entity_id: cardId });
+    };
+
+    if (isSmall) {
+      return (
+        <div key={cardId} {...dragProps} className={`p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+          {getControls(cardId)}
+          <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-blue-500/20 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)]' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`}>
+            <Icon className="w-6 h-6 stroke-[1.5px]" />
+          </div>
+          <div className="flex-1 flex flex-col gap-2 min-w-0 justify-center">
+            <div className="flex justify-between items-baseline pr-1">
+              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none">{String(name)}</p>
+              {!isToggle && (
+                <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-blue-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{statusText}</span>
+              )}
+            </div>
+          </div>
+          {isToggle && (
+            <button onClick={handleToggle} className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${isOn ? 'bg-blue-500/15 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+              <ToggleIcon className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div key={cardId} {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+        {getControls(cardId)}
+        <div className="flex justify-between items-start">
+          <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-blue-500/20 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`}>
+            <Icon className="w-5 h-5 stroke-[1.5px]" />
+          </div>
+          {isToggle ? (
+            <button onClick={handleToggle} className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+              <ToggleIcon className="w-5 h-5" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+              <span className="text-xs tracking-widest uppercase font-bold">{statusText}</span>
+            </div>
+          )}
+        </div>
+        <div className="mt-2">
+          <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{String(name)}</p>
+          <h3 className="text-2xl font-medium text-[var(--text-primary)] leading-none">{statusText}</h3>
+        </div>
       </div>
     );
   };
@@ -1158,8 +1378,8 @@ export default function App() {
 
           <div className="flex-1 flex flex-col gap-3 min-w-0 justify-center h-full pt-1">
             <div className="flex justify-between items-baseline pr-1">
-               <p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase font-bold opacity-60 truncate leading-none">{String(name || 'Lys')}</p>
-               <span className={`text-[10px] uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round((br / 255) * 100)}%` : 'AV'}</span>
+              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none">{String(name || 'Lys')}</p>
+              <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round((br / 255) * 100)}%` : 'AV'}</span>
             </div>
             <div className="w-full">
                <M3Slider variant="thin" min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
@@ -1270,6 +1490,7 @@ export default function App() {
     const statusText = (() => {
       if (state === "cleaning") return "Støvsuger";
       if (state === "returning") return "Returnerer";
+      if ((state === "charging" || state === "docked") && battery === 100) return "Dokka";
       if (state === "docked") return "Ladar";
       if (state === "idle") return "Klar";
       return state || "Ukjend";
@@ -1595,6 +1816,10 @@ export default function App() {
       const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size || cardSettings[resolvedId]?.size;
       return sizeSetting === 'small' ? 1 : 2;
     }
+
+    const settingsKey = getCardSettingsKey(cardId);
+    const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
+    if (sizeSetting === 'small') return 1;
 
     if (cardId.startsWith('weather_temp_')) return 2;
 
@@ -1982,7 +2207,11 @@ export default function App() {
     }
 
     if (cardId.startsWith('automation.')) {
-        return renderAutomationCard(cardId, dragProps, getControls, cardStyle);
+      const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+      if (settings.type === 'entity' || settings.type === 'toggle') {
+        return renderGenericEntityCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+      }
+      return renderAutomationCard(cardId, dragProps, getControls, cardStyle);
     }
 
     if (cardId.startsWith('vacuum.')) {
@@ -1999,6 +2228,11 @@ export default function App() {
 
     if (cardId.startsWith('weather_temp_')) {
       return renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+    }
+
+    const genericSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+    if (genericSettings.type === 'entity' || genericSettings.type === 'toggle') {
+      return renderGenericEntityCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
@@ -2350,6 +2584,7 @@ export default function App() {
   const editId = showEditCardModal;
   const editEntity = editId ? entities[editId] : null;
   const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
+  const isEditGenericType = !!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle');
   const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
   const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
   const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || !!editEntity || ['power', 'energy_cost', 'climate', 'car', 'shield', 'rocky', 'weather'].includes(editId));
@@ -2389,6 +2624,59 @@ export default function App() {
             -ms-overflow-style: none;
             scrollbar-width: none;
           }
+          .popup-surface {
+            background: linear-gradient(145deg,
+              color-mix(in srgb, var(--glass-bg) 85%, transparent),
+              color-mix(in srgb, var(--glass-bg) 55%, transparent)
+            );
+            border: none;
+            box-shadow:
+              0 10px 24px rgba(0, 0, 0, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+          }
+          .popup-surface-hover:hover {
+            background: linear-gradient(145deg,
+              color-mix(in srgb, var(--glass-bg-hover) 90%, transparent),
+              color-mix(in srgb, var(--glass-bg) 45%, transparent)
+            );
+            border: none;
+            box-shadow:
+              0 14px 28px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+          }
+          .popup-surface-divider {
+            background: color-mix(in srgb, var(--glass-border) 35%, transparent);
+          }
+          .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: color-mix(in srgb, var(--glass-bg) 85%, transparent);
+            color: var(--text-secondary);
+            border: none;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: transform 150ms ease, background 150ms ease, color 150ms ease;
+          }
+          .modal-close:hover {
+            background: color-mix(in srgb, var(--glass-bg-hover) 90%, transparent);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+          }
+          .modal-close:active {
+            transform: scale(0.96);
+          }
+          .modal-close-dark {
+            background: rgba(0, 0, 0, 0.55);
+            color: #ffffff;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+          }
+          .modal-close-dark:hover {
+            background: rgba(0, 0, 0, 0.7);
+          }
         `}</style>
         <header className="relative mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10 leading-none">
           <div className="absolute top-0 right-0 hidden md:block">
@@ -2426,13 +2714,22 @@ export default function App() {
               <button
                 key={page.id}
                 onClick={() => editMode ? setEditingPage(page.id) : setActivePage(page.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'} ${editMode && isHidden ? 'opacity-50 border-dashed border-gray-500' : ''}`}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'} ${editMode && isHidden ? 'opacity-50 border-dashed border-gray-500' : ''}`}
               >
                 <Icon className="w-4 h-4" />
-                {label}
-                {editMode && <Settings className="w-3 h-3 ml-1 opacity-50" />}
+                <span className="hidden sm:inline">{label}</span>
+                {editMode && <Settings className="w-3 h-3 ml-1 opacity-50 hidden sm:inline" />}
               </button>
             )})}
+            {editMode && (
+              <button
+                onClick={() => setShowAddPageModal(true)}
+                className="flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Ny side</span>
+              </button>
+            )}
           </div>
           <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 w-full md:w-auto justify-end">
             {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> Legg til</button>}
@@ -2533,35 +2830,88 @@ export default function App() {
         )}
         
         {showConfigModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}}><div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}}><button onClick={() => setShowConfigModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button><h3 className="text-3xl font-light mb-10 text-center uppercase tracking-widest italic" style={{color: 'var(--text-primary)'}}>System</h3>
-          <div className="space-y-8 font-sans">
-            <div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4 flex items-center gap-2">HA URL (Primær){connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label><input type="text" className="w-full px-6 py-5 rounded-2xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} value={config.url} onChange={(e) => setConfig({...config, url: e.target.value})} /></div>
-            <div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4 flex items-center gap-2">HA URL (Fallback/Lokal){connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label><input type="text" className="w-full px-6 py-5 rounded-2xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} value={config.fallbackUrl} onChange={(e) => setConfig({...config, fallbackUrl: e.target.value})} placeholder="Valfritt" /></div>
-            <div className="space-y-2"><label className="text-xs uppercase font-bold text-gray-500 ml-4">Token</label><textarea className="w-full px-6 py-5 h-48 rounded-2xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} value={config.token} onChange={(e) => setConfig({...config, token: e.target.value})} /></div>
-            <div className="space-y-2"><ModernDropdown label="Utsjånad" icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: 'Mørk', light: 'Lys' }} /></div>
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowConfigModal(false)}>
+            <div className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowConfigModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
+              <h3 className="text-xl font-light mb-4 text-[var(--text-primary)] text-center uppercase tracking-widest italic">System</h3>
+
+              <div className="flex items-center gap-2 mb-5">
+                <button onClick={() => setConfigTab('connection')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'connection' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>Connection</button>
+                <button onClick={() => setConfigTab('settings')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'settings' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>Settings</button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                {configTab === 'connection' && (
+                  <div className="space-y-5 font-sans">
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">HA URL (Primær){connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label>
+                      <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.url} onChange={(e) => setConfig({...config, url: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">HA URL (Fallback/Lokal){connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">TILKOBLA</span>}</label>
+                      <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.fallbackUrl} onChange={(e) => setConfig({...config, fallbackUrl: e.target.value})} placeholder="Valfritt" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-3">Token</label>
+                      <textarea className="w-full px-4 py-3 h-32 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.token} onChange={(e) => setConfig({...config, token: e.target.value})} />
+                    </div>
+                  </div>
+                )}
+
+                {configTab === 'settings' && (
+                  <div className="space-y-4 font-sans">
+                    <ModernDropdown label="Tema" icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: 'Mørk', light: 'Lys' }} />
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-3">Tilbake til Heim (sek)</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min={0}
+                          max={300}
+                          step={10}
+                          value={inactivityTimeout}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            setInactivityTimeout(val);
+                            localStorage.setItem('midttunet_inactivity_timeout', String(val));
+                          }}
+                          className="flex-1"
+                        />
+                        <div className="min-w-[64px] text-right text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                          {inactivityTimeout === 0 ? 'AV' : `${inactivityTimeout}s`}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 mt-4 border-t border-[var(--glass-border)]">
+                <button onClick={() => setShowConfigModal(false)} className="w-full py-3 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>Lagre</button>
+              </div>
+            </div>
           </div>
-          <button onClick={() => setShowConfigModal(false)} className="w-full mt-10 py-5 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>Lagre og kople til</button></div></div>
         )}
 
         {showPowerModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowPowerModal(false)}>
             <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[80vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowPowerModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+              <button onClick={() => setShowPowerModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               <div className="flex items-center gap-6 mb-6">
                 <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#fbbf24'}}><Zap className="w-10 h-10" /></div>
                 <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Straumpris</h3>
               </div>
-              <div className="flex justify-around items-center mb-8 px-4 py-4 rounded-2xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                <div className="flex justify-around items-center mb-8 px-4 py-4 rounded-2xl popup-surface">
                  <div className="flex flex-col items-center">
                     <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Snitt</span>
                     <span className="text-xl font-light text-[var(--text-primary)]">{priceStats.avg.toFixed(2)}</span>
                  </div>
-                 <div className="w-px h-8 bg-[var(--glass-border)]"></div>
+                  <div className="w-px h-8 popup-surface-divider"></div>
                  <div className="flex flex-col items-center">
                     <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Låg</span>
                     <span className="text-xl font-light text-blue-400">{priceStats.min.toFixed(2)}</span>
                  </div>
-                 <div className="w-px h-8 bg-[var(--glass-border)]"></div>
+                  <div className="w-px h-8 popup-surface-divider"></div>
                  <div className="flex flex-col items-center">
                     <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Høg</span>
                     <span className="text-xl font-light text-red-400">{priceStats.max.toFixed(2)}</span>
@@ -2575,7 +2925,7 @@ export default function App() {
         {showClimateModal && entities[CLIMATE_ID] && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowClimateModal(false)}>
             <div className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: isHeating ? 'rgba(249, 115, 22, 0.01)' : isCooling ? 'rgba(59, 130, 246, 0.01)' : 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowClimateModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-3 md:p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-6 h-6 md:w-8 md:h-8" /></button>
+              <button onClick={() => setShowClimateModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               <div className="flex items-center gap-8 mb-12 font-sans">
                 <div className="p-6 rounded-3xl transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)'}}>
                   {isCooling ? <Snowflake className="w-12 h-12" /> : <AirVent className="w-12 h-12" />}
@@ -2589,7 +2939,7 @@ export default function App() {
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start font-sans">
-                <div className="lg:col-span-3 space-y-10 p-6 md:p-10 rounded-3xl border shadow-inner" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                <div className="lg:col-span-3 space-y-10 p-6 md:p-10 rounded-3xl popup-surface">
                   <div className="text-center font-sans">
                     <div className="flex justify-between items-center mb-6 px-4 italic">
                       <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.5em'}}>Innetemperatur</p>
@@ -2654,7 +3004,7 @@ export default function App() {
                    <button onClick={() => !isUnavailable && callService("light", "toggle", { entity_id: showLightModal })} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border" style={{backgroundColor: isUnavailable ? 'var(--glass-bg)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.2)' : 'var(--glass-bg)'), borderColor: isUnavailable ? 'var(--glass-border)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.3)' : 'var(--glass-border)'), color: isUnavailable ? '#6b7280' : (entity?.state === 'on' ? '#fbbf24' : '#9ca3af'), cursor: isUnavailable ? 'not-allowed' : 'pointer'}}>
                       {isUnavailable ? <AlertTriangle className="w-5 h-5" /> : <Zap className="w-5 h-5" fill={entity?.state === 'on' ? "currentColor" : "none"} />}
                    </button>
-                   <button onClick={() => setShowLightModal(null)} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border hover:bg-[var(--glass-bg-hover)]" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: '#9ca3af'}}><X className="w-5 h-5" /></button>
+                   <button onClick={() => setShowLightModal(null)} className="modal-close"><X className="w-4 h-4" /></button>
                 </div>
               </div>
 
@@ -2675,7 +3025,7 @@ export default function App() {
                         const subEnt = entities[cid];
                         const subUnavail = subEnt?.state === 'unavailable' || subEnt?.state === 'unknown' || !subEnt;
                         return (
-                        <div key={cid} className={`p-4 rounded-2xl border flex items-center gap-4 transition-all ${subUnavail ? 'opacity-50' : ''}`} style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                        <div key={cid} className={`p-4 rounded-2xl popup-surface flex items-center gap-4 transition-all ${subUnavail ? 'opacity-50' : ''}`}>
                           <span className="text-xs font-bold uppercase tracking-widest text-gray-300 w-1/3 truncate">{subEnt?.attributes?.friendly_name || cid.split('.')[1].replace(/_/g, ' ')}</span>
                           <div className="flex-grow">
                             <M3Slider min={0} max={255} step={1} value={subEnt?.attributes?.brightness || 0} disabled={subEnt?.state !== 'on' || subUnavail} onChange={(e) => callService("light", "turn_on", { entity_id: cid, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
@@ -2699,7 +3049,7 @@ export default function App() {
         {showShieldModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowShieldModal(false)}>
             <div className="border w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-               <button onClick={() => setShowShieldModal(false)} className="absolute top-6 right-6 p-4 rounded-full bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]"><X className="w-6 h-6" /></button>
+               <button onClick={() => setShowShieldModal(false)} className="absolute top-6 right-6 modal-close"><X className="w-4 h-4" /></button>
                
                <div className="flex flex-col items-center gap-8 mt-4">
                   <div className="flex items-center gap-4 mb-4">
@@ -2707,7 +3057,7 @@ export default function App() {
                      <div><h3 className="text-2xl font-light text-[var(--text-primary)] uppercase italic tracking-widest">Shield</h3><p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{entities[SHIELD_ID]?.state === 'playing' ? 'Spelar no' : (entities[SHIELD_ID]?.state !== 'off' ? 'På' : 'Avslått')}</p></div>
                   </div>
 
-                  <div className="bg-[var(--glass-bg)] p-6 rounded-[2.5rem] border border-[var(--glass-border)] relative">
+                  <div className="popup-surface p-6 rounded-[2.5rem] relative">
                      <div className="grid grid-cols-3 gap-4 items-center justify-items-center">
                         <div />
                         <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_UP" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronUp className="w-6 h-6" /></button>
@@ -2735,7 +3085,7 @@ export default function App() {
         {showRockyModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowRockyModal(false)}>
             <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowRockyModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+              <button onClick={() => setShowRockyModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               
               <div className="flex items-center gap-6 mb-10">
                 <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa'}}><Bot className="w-10 h-10" /></div>
@@ -2746,12 +3096,12 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                <div className="p-8 rounded-3xl popup-surface">
                   <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Sist vaska</p>
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{getA(ROCKY_ID, "squareMeterCleanArea", 0)}</span><span className="text-gray-500 font-medium">m²</span></div>
                   <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">Tid: {Math.round(getA(ROCKY_ID, "cleanTime", 0) / 60)} min</p>
                 </div>
-                <div className="p-8 rounded-3xl border flex flex-col justify-center gap-4" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                <div className="p-8 rounded-3xl popup-surface flex flex-col justify-center gap-4">
                    <button onClick={() => callService("vacuum", entities[ROCKY_ID]?.state === "cleaning" ? "pause" : "start", { entity_id: ROCKY_ID })} className="w-full py-4 rounded-2xl bg-blue-500/20 text-blue-400 font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-2">{entities[ROCKY_ID]?.state === "cleaning" ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Start</>}</button>
                    <div className="flex gap-4">
                      <button onClick={() => callService("vacuum", "return_to_base", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><Home className="w-4 h-4" /> Heim</button>
@@ -2793,12 +3143,12 @@ export default function App() {
                   >
                     <RefreshCw className="w-4 h-4" /> Oppdater
                   </button>
-                  <button onClick={() => setShowLeafModal(false)} className="p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+                  <button onClick={() => setShowLeafModal(false)} className="modal-close"><X className="w-4 h-4" /></button>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                <div className="p-8 rounded-3xl popup-surface">
                   <div className="flex justify-between items-start mb-3">
                     <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Batteri</p>
                     {entities[LEAF_CHARGING]?.state === 'on' && <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />}
@@ -2806,17 +3156,17 @@ export default function App() {
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_ID))}</span><span className="text-gray-500 font-medium">%</span></div>
                   <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">{entities[LEAF_PLUGGED]?.state === 'on' ? 'Plugga i' : 'Ikkje plugga i'}</p>
                 </div>
-                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                <div className="p-8 rounded-3xl popup-surface">
                   <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Rekkevidde</p>
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_RANGE))}</span><span className="text-gray-500 font-medium">km</span></div>
                 </div>
-                <div className="p-8 rounded-3xl border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                <div className="p-8 rounded-3xl popup-surface">
                   <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>Temp inne</p>
                   <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_INTERNAL_TEMP))}</span><span className="text-gray-500 font-medium">°C</span></div>
                 </div>
-                <div className="p-6 rounded-3xl border flex flex-col justify-between" 
-                     style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', borderColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.3)' : 'var(--glass-border)'}}
-                >
+                 <div className="p-6 rounded-3xl popup-surface flex flex-col justify-between" 
+                   style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)'}}
+                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fb923c' : '#9ca3af'}}>Klima</p>
@@ -2836,7 +3186,7 @@ export default function App() {
               </div>
 
               {getA(LEAF_LOCATION, "latitude") && getA(LEAF_LOCATION, "longitude") && (
-                <div className="w-full h-64 rounded-3xl overflow-hidden border relative group" style={{borderColor: 'rgba(255,255,255,0.1)'}}>
+                <div className="w-full h-64 rounded-3xl overflow-hidden relative group popup-surface">
                   <iframe 
                     width="100%" 
                     height="100%" 
@@ -2848,7 +3198,7 @@ export default function App() {
                     style={{filter: 'invert(0.9) grayscale(0.8) contrast(1.2) brightness(0.8)'}}
                     className="opacity-60 group-hover:opacity-100 transition-opacity duration-500"
                   ></iframe>
-                  <div className="absolute bottom-4 left-4 px-4 py-2 rounded-xl backdrop-blur-md bg-black/60 border border-white/10 flex items-center gap-2 pointer-events-none">
+                  <div className="absolute bottom-4 left-4 px-4 py-2 rounded-xl backdrop-blur-md bg-black/60 popup-surface flex items-center gap-2 pointer-events-none">
                     <MapPin className="w-3 h-3 text-blue-400" />
                     <span className="text-xs font-bold uppercase tracking-widest text-white">Sist sett her</span>
                   </div>
@@ -2861,7 +3211,7 @@ export default function App() {
         {showUpdateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }}>
             <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+              <button onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Oppdateringar</h3>
               
               <div className="space-y-4">
@@ -2873,7 +3223,7 @@ export default function App() {
                     const isExpanded = expandedUpdate === id;
                     
                     return (
-                        <div key={id} className="rounded-3xl border overflow-hidden transition-all duration-300" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
+                        <div key={id} className="rounded-3xl overflow-hidden transition-all duration-300 popup-surface">
                             <div 
                                 className="p-4 flex flex-col md:flex-row items-center gap-4 cursor-pointer"
                                 onClick={() => {
@@ -2930,7 +3280,7 @@ export default function App() {
         )}
 
         {showAddCardModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowAddCardModal(false)}>
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowAddCardModal(false)}>
             <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
@@ -2946,42 +3296,55 @@ export default function App() {
                 background: rgba(255, 255, 255, 0.25);
               }
             `}</style>
-            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowAddCardModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
-              <h3 className="text-2xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Legg til kort</h3>
+            <div className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowAddCardModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
+              <h3 className="text-xl font-light mb-5 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Legg til kort</h3>
               
-              {addCardTargetPage === 'settings' && (
-                <div className="mb-6 relative">
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              {(addCardTargetPage !== 'header' && addCardTargetPage !== 'automations') && (
+                <div className="mb-4 relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <input type="text" placeholder="Søk etter entitet..." className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-4 py-3 text-[var(--text-primary)] outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} autoFocus />
+                  <input type="text" placeholder="Søk etter entitet..." className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
               )}
               
               {(addCardTargetPage !== 'header' && addCardTargetPage !== 'automations' && addCardTargetPage !== 'settings') && (
-                <div className="mb-8">
+                <div className="mb-5">
                   <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">Korttype</p>
                   <div className="flex flex-wrap gap-2">
                     <button
+                      onClick={() => setAddCardType('entity')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'entity' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <LayoutGrid className="w-4 h-4" /> Enhet
+                    </button>
+                    <button
+                      onClick={() => setAddCardType('toggle')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'toggle' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <ToggleRight className="w-4 h-4" /> Toggle
+                    </button>
+                    <button
                       onClick={() => setAddCardType('light')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardType === 'light' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'light' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <Lightbulb className="w-4 h-4" /> Lys
                     </button>
                     <button
                       onClick={() => setAddCardType('vacuum')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardType === 'vacuum' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'vacuum' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <Bot className="w-4 h-4" /> Støvsuger
                     </button>
                     <button
                       onClick={() => setAddCardType('media')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardType === 'media' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'media' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <Music className="w-4 h-4" /> Musikk
                     </button>
                     <button
                       onClick={() => setAddCardType('weather')}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-bold uppercase tracking-widest text-xs whitespace-nowrap border ${addCardType === 'weather' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'weather' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <CloudSun className="w-4 h-4" /> Vær/Temp
                     </button>
@@ -2989,7 +3352,7 @@ export default function App() {
                 </div>
               )}
 
-              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-6">
                 {addCardType === 'weather' ? (
                   <div className="space-y-8">
                     <div>
@@ -2997,14 +3360,20 @@ export default function App() {
                       <div className="space-y-3">
                         {Object.keys(entities)
                           .filter(id => id.startsWith('weather.'))
+                          .filter(id => {
+                            if (!searchTerm) return true;
+                            const lowerTerm = searchTerm.toLowerCase();
+                            const name = entities[id].attributes?.friendly_name || id;
+                            return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
+                          })
                           .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
                           .map(id => {
                             const isSelected = selectedWeatherId === id;
                             return (
-                              <button type="button" key={id} onClick={() => setSelectedWeatherId(prev => prev === id ? null : id)} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
+                              <button type="button" key={id} onClick={() => setSelectedWeatherId(prev => prev === id ? null : id)} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
                                 <div className="flex flex-col overflow-hidden mr-4">
                                   <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
-                                  <span className={`text-[10px] font-mono truncate ${isSelected ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
+                                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
                                 </div>
                                 <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                                   {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -3021,10 +3390,10 @@ export default function App() {
                     <div>
                       <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">Temperatursensor (valfri)</p>
                       <div className="space-y-3">
-                        <button type="button" onClick={() => setSelectedTempId(null)} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${!selectedTempId ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
+                        <button type="button" onClick={() => setSelectedTempId(null)} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${!selectedTempId ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
                           <div className="flex flex-col overflow-hidden mr-4">
                             <span className={`text-sm font-bold transition-colors truncate ${!selectedTempId ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>Bruk temperatur frå vær</span>
-                            <span className={`text-[10px] font-mono truncate ${!selectedTempId ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>weather.temperature</span>
+                            <span className={`text-[11px] font-medium truncate ${!selectedTempId ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>weather.temperature</span>
                           </div>
                           <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedTempId ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                             {!selectedTempId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -3037,14 +3406,20 @@ export default function App() {
                             const lowerId = id.toLowerCase();
                             return deviceClass === 'temperature' || lowerId.includes('temperature') || lowerId.includes('temp');
                           })
+                          .filter(id => {
+                            if (!searchTerm) return true;
+                            const lowerTerm = searchTerm.toLowerCase();
+                            const name = entities[id].attributes?.friendly_name || id;
+                            return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
+                          })
                           .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
                           .map(id => {
                             const isSelected = selectedTempId === id;
                             return (
-                              <button type="button" key={id} onClick={() => setSelectedTempId(prev => prev === id ? null : id)} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
+                              <button type="button" key={id} onClick={() => setSelectedTempId(prev => prev === id ? null : id)} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
                                 <div className="flex flex-col overflow-hidden mr-4">
                                   <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
-                                  <span className={`text-[10px] font-mono truncate ${isSelected ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
+                                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
                                 </div>
                                 <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                                   {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -3065,7 +3440,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div>
-                    <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'header' ? 'Tilgjengelege personar' : (addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : (addCardTargetPage === 'settings' ? 'Alle entitetar' : (addCardType === 'vacuum' ? 'Tilgjengelege støvsugarar' : (addCardType === 'media' ? 'Tilgjengelege spelarar' : 'Tilgjengelege lys'))))}</p>
+                    <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{addCardTargetPage === 'header' ? 'Tilgjengelege personar' : (addCardTargetPage === 'automations' ? 'Tilgjengelege automasjonar' : (addCardTargetPage === 'settings' ? 'Alle entitetar' : (addCardType === 'vacuum' ? 'Tilgjengelege støvsugarar' : (addCardType === 'media' ? 'Tilgjengelege spelarar' : (addCardType === 'toggle' ? 'Tilgjengelege togglar' : (addCardType === 'entity' ? 'Tilgjengelege entitetar' : 'Tilgjengelege lys'))))))}</p>
                     <div className="space-y-3">
                       {Object.keys(entities)
                         .filter(id => {
@@ -3074,11 +3449,6 @@ export default function App() {
                           if (addCardTargetPage === 'settings') {
                              const isNotAdded = !(pagesConfig.settings || []).includes(id);
                              if (!isNotAdded) return false;
-                             if (searchTerm) {
-                               const lowerTerm = searchTerm.toLowerCase();
-                               const name = entities[id].attributes?.friendly_name || id;
-                               return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
-                             }
                              return true;
                           }
                           if (addCardType === 'vacuum') {
@@ -3087,7 +3457,19 @@ export default function App() {
                           if (addCardType === 'media') {
                             return id.startsWith('media_player.');
                           }
+                          if (addCardType === 'toggle') {
+                            return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                          }
+                          if (addCardType === 'entity') {
+                            return !id.startsWith('person.') && !id.startsWith('update.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                          }
                           return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                        })
+                        .filter(id => {
+                          if (!searchTerm) return true;
+                          const lowerTerm = searchTerm.toLowerCase();
+                          const name = entities[id].attributes?.friendly_name || id;
+                          return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
                         })
                         .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
                         .slice(0, addCardTargetPage === 'settings' ? 100 : undefined) // Limit settings list for performance
@@ -3097,10 +3479,10 @@ export default function App() {
                           <button type="button" key={id} onClick={() => {
                               if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
                               else setSelectedEntities(prev => [...prev, id]);
-                          }} className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}>
+                          }} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
                             <div className="flex flex-col overflow-hidden mr-4">
                               <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
-                              <span className={`text-[10px] font-mono truncate ${isSelected ? 'text-blue-200' : 'text-gray-600 group-hover:text-gray-500'}`}>{id}</span>
+                              <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
                             </div>
                             <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                               {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -3113,31 +3495,30 @@ export default function App() {
                           if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
                           if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           if (addCardType === 'media') return id.startsWith('media_player.');
+                          if (addCardType === 'toggle') return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                          if (addCardType === 'entity') return !id.startsWith('person.') && !id.startsWith('update.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                         }).length === 0 && (
-                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'header' ? 'personar' : (addCardTargetPage === 'automations' ? 'automasjonar' : (addCardTargetPage === 'settings' ? 'entitetar' : (addCardType === 'vacuum' ? 'støvsugarar' : (addCardType === 'media' ? 'spelarar' : 'lys'))))} å legge til</p>
+                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen fleire {addCardTargetPage === 'header' ? 'personar' : (addCardTargetPage === 'automations' ? 'automasjonar' : (addCardTargetPage === 'settings' ? 'entitetar' : (addCardType === 'vacuum' ? 'støvsugarar' : (addCardType === 'media' ? 'spelarar' : (addCardType === 'toggle' ? 'toggle-entitetar' : (addCardType === 'entity' ? 'entitetar' : 'lys'))))))} å legge til</p>
                         )}
                     </div>
                   </div>
                 )}
               </div>
-              
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
                 {addCardType !== 'weather' && selectedEntities.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-[var(--glass-border)]">
                   <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                     <Plus className="w-5 h-5" /> {addCardType === 'media' ? `Legg til ${selectedEntities.length} spelarar` : `Legg til ${selectedEntities.length} ${selectedEntities.length === 1 ? 'kort' : 'kort'}`}
-                    </button>
-                </div>
-              )}
-              {addCardType === 'weather' && selectedWeatherId && (
-                <div className="mt-8 pt-6 border-t border-[var(--glass-border)]">
+                  </button>
+                )}
+                {addCardType === 'weather' && selectedWeatherId && (
                   <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                     <Plus className="w-5 h-5" /> Legg til værkort
                   </button>
-                </div>
-              )}
-              <div className="mt-4">
-                <button onClick={() => setShowAddCardModal(false)} className="w-full py-3 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors">OK</button>
+                )}
+                <button onClick={() => setShowAddCardModal(false)} className="w-full py-3 rounded-2xl popup-surface popup-surface-hover text-[var(--text-secondary)] font-bold uppercase tracking-widest transition-colors">OK</button>
               </div>
             </div>
           </div>
@@ -3146,7 +3527,7 @@ export default function App() {
         {editingPage && (
           <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setEditingPage(null)}>
             <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-               <button onClick={() => setEditingPage(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-5 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-8 h-8" /></button>
+               <button onClick={() => setEditingPage(null)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
                <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">Rediger side</h3>
                
                <div className="space-y-8">
@@ -3154,8 +3535,8 @@ export default function App() {
                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
                    <input 
                      type="text" 
-                     className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] focus:border-blue-500/50 outline-none transition-colors"
-                     value={pageSettings[editingPage]?.label || pages.find(p => p.id === editingPage)?.label}
+                     className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                     value={pageSettings[editingPage]?.label || pageDefaults[editingPage]?.label || editingPage}
                      onChange={(e) => {
                         const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], label: e.target.value } };
                         setPageSettings(newSettings);
@@ -3168,10 +3549,10 @@ export default function App() {
                   <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
                   <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                     <button onClick={() => {
-                        const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: null } };
-                        setPageSettings(newSettings);
-                        localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                    }} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!pageSettings[editingPage]?.icon ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                      const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: null } };
+                      setPageSettings(newSettings);
+                      localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+                    }} className={`p-3 rounded-xl flex items-center justify-center transition-all ${!pageSettings[editingPage]?.icon ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
                     {Object.keys(ICON_MAP).map(iconName => {
                       const Icon = ICON_MAP[iconName];
                       const isSelected = pageSettings[editingPage]?.icon === iconName;
@@ -3180,13 +3561,13 @@ export default function App() {
                             const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: iconName } };
                             setPageSettings(newSettings);
                             localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                        }} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title={iconName}><Icon className="w-5 h-5" /></button>
+                        }} className={`p-3 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title={iconName}><Icon className="w-5 h-5" /></button>
                       );
                     })}
                   </div>
                 </div>
                  
-                 <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+                 <div className="flex items-center justify-between px-6 py-4 rounded-2xl popup-surface">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Skjul side</span>
                     <button 
                       onClick={() => {
@@ -3199,7 +3580,60 @@ export default function App() {
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${pageSettings[editingPage]?.hidden ? 'left-7' : 'left-1'}`} />
                     </button>
                  </div>
+
+                 {editingPage !== 'home' && (
+                   <button
+                     onClick={() => deletePage(editingPage)}
+                     className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 font-bold uppercase tracking-widest hover:bg-red-500/15 transition-colors"
+                   >
+                     Slett side
+                   </button>
+                 )}
                </div>
+            </div>
+          </div>
+        )}
+
+        {showAddPageModal && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowAddPageModal(false)}>
+            <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowAddPageModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
+              <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">Ny side</h3>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
+                  <input
+                    type="text"
+                    className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    value={newPageLabel}
+                    onChange={(e) => setNewPageLabel(e.target.value)}
+                    placeholder="F.eks. Stova"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">Vel ikon</label>
+                  <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                    <button onClick={() => setNewPageIcon(null)} className={`p-3 rounded-xl flex items-center justify-center transition-all ${!newPageIcon ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title="Standard ikon"><RefreshCw className="w-5 h-5" /></button>
+                    {Object.keys(ICON_MAP).map(iconName => {
+                      const Icon = ICON_MAP[iconName];
+                      const isSelected = newPageIcon === iconName;
+                      return (
+                        <button key={iconName} onClick={() => setNewPageIcon(iconName)} className={`p-3 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title={iconName}><Icon className="w-5 h-5" /></button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  onClick={createPage}
+                  className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" /> Opprett side
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -3222,7 +3656,7 @@ export default function App() {
               }
             `}</style>
             <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }} className="absolute top-5 right-5 md:top-7 md:right-7 p-4 rounded-full" style={{backgroundColor: 'var(--glass-bg)'}}><X className="w-6 h-6" /></button>
+              <button onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }} className="absolute top-5 right-5 md:top-7 md:right-7 modal-close"><X className="w-4 h-4" /></button>
               <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] text-center uppercase tracking-widest italic">Rediger kort</h3>
               
               <div className="space-y-8">
@@ -3231,7 +3665,7 @@ export default function App() {
                     <label className="text-xs uppercase font-bold text-gray-500 ml-4">Navn</label>
                     <input 
                       type="text" 
-                      className="w-full px-5 py-3 text-[var(--text-primary)] rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] focus:border-blue-500/50 outline-none transition-colors" 
+                      className="w-full px-5 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors" 
                       defaultValue={customNames[showEditCardModal] || (entities[showEditCardModal]?.attributes?.friendly_name || '')}
                       onBlur={(e) => saveCustomName(showEditCardModal, e.target.value)}
                       placeholder="Standard navn"
@@ -3254,7 +3688,7 @@ export default function App() {
                   </div>
                 )}
 
-                {isEditLight && (
+                {(isEditLight || isEditGenericType) && (
                   <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Liten versjon</span>
                     <button
@@ -3297,7 +3731,7 @@ export default function App() {
         {showCameraModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowCameraModal(false)}>
             <div className="border w-full max-w-4xl rounded-[3rem] p-4 shadow-2xl relative font-sans overflow-hidden" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowCameraModal(false)} className="absolute top-6 right-6 p-4 rounded-full z-10" style={{backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)'}}><X className="w-6 h-6 text-white" /></button>
+              <button onClick={() => setShowCameraModal(false)} className="absolute top-6 right-6 modal-close modal-close-dark z-10" style={{backdropFilter: 'blur(10px)'}}><X className="w-4 h-4" /></button>
               <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden bg-black relative">
                  {entities[CAMERA_PORTEN_ID] ? (
                    <img src={getEntityImageUrl(entities[CAMERA_PORTEN_ID].attributes.entity_picture)} alt="Kamera Porten" className="w-full h-full object-cover" />
@@ -3316,7 +3750,7 @@ export default function App() {
         {activeMediaModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 backdrop-blur-3xl bg-black/70 font-sans" onClick={() => setActiveMediaModal(null)}>
             <div className="w-full max-w-5xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative max-h-[95vh] overflow-y-auto md:overflow-hidden flex flex-col md:flex-row gap-6 md:gap-12" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', borderWidth: '1px'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setActiveMediaModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 p-3 md:p-5 rounded-full transition-colors z-20 shadow-lg" style={{backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)'}}><X className="w-6 h-6 md:w-8 md:h-8" /></button>
+              <button onClick={() => setActiveMediaModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close z-20"><X className="w-4 h-4" /></button>
               
               {(() => {
                 const isSonos = activeMediaModal === 'sonos';
@@ -3330,14 +3764,17 @@ export default function App() {
                   : (Array.isArray(groupSettings?.mediaIds) ? groupSettings.mediaIds : []);
                 const mediaIds = isSonos ? SONOS_IDS : (groupIds.length > 0 ? groupIds : (activeMediaId ? [activeMediaId] : (fallbackId ? [fallbackId] : [])));
                 const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
+                const isAllSonos = !isSonos && mediaEntities.length > 0 && mediaEntities.every(p => p.entity_id.startsWith('media_player.sonos'));
+                const isGenericMedia = !isSonos && !isEmbyGroup;
+                const treatAsSonos = isSonos || isAllSonos;
                 
                 // For Sonos viser vi alle, for andre: berre valde spelarar
                 const listPlayers = mediaEntities
                   .filter((p) => (isEmbyGroup ? isMediaActive(p) : true))
                   .slice()
                   .sort((a, b) => {
-                    const aActive = isSonos ? isSonosActive(a) : isMediaActive(a);
-                    const bActive = isSonos ? isSonosActive(b) : isMediaActive(b);
+                    const aActive = treatAsSonos ? isSonosActive(a) : isMediaActive(a);
+                    const bActive = treatAsSonos ? isSonosActive(b) : isMediaActive(b);
                     if (aActive !== bActive) return aActive ? -1 : 1;
                     return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
                   });
@@ -3345,7 +3782,7 @@ export default function App() {
                 let currentMp = mediaEntities.find(e => e.entity_id === activeMediaId);
                 if (!currentMp) {
                     // Fallback logic
-                    const activePlayers = mediaEntities.filter(e => isSonos ? isSonosActive(e) : isMediaActive(e));
+                    const activePlayers = mediaEntities.filter(e => treatAsSonos ? isSonosActive(e) : isMediaActive(e));
                     if (activePlayers.length > 0) currentMp = activePlayers[0];
                     else currentMp = mediaEntities[0];
                 }
@@ -3384,8 +3821,14 @@ export default function App() {
                 const serverInfo = getServerInfo(mpId);
                 const ServerIcon = serverInfo.icon;
                 const isMidttunet = mpId.includes('midttunet');
-                const serverLabel = isMidttunet ? 'Jellyfin' : 'Emby';
-                const ServerBadgeIcon = isMidttunet ? JellyfinLogo : EmbyLogo;
+                const serverLabel = isGenericMedia ? 'Musikk' : (isMidttunet ? 'Jellyfin' : 'Emby');
+                const ServerBadgeIcon = isGenericMedia ? Music : (isMidttunet ? JellyfinLogo : EmbyLogo);
+                const groupCardId = (!isEmbyGroup && activeMediaGroupKey && activeMediaGroupKey.includes('::'))
+                  ? activeMediaGroupKey.split('::').slice(1).join('::')
+                  : null;
+                const popupHeading = (isGenericMedia && groupCardId && customNames[groupCardId])
+                  ? customNames[groupCardId]
+                  : serverLabel;
                 
                 // Sonos spesifikke attributter
                 const volume = getA(mpId, 'volume_level', 0);
@@ -3394,21 +3837,21 @@ export default function App() {
                 const repeat = getA(mpId, 'repeat', 'off');
                 const rawMembers = getA(mpId, 'group_members');
                 const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
-                const canGroup = isSonos;
+                const canGroup = treatAsSonos;
 
                 return (
                   <>
                     <div className="flex-1 flex flex-col justify-center relative z-10">
-                      {!isSonos && (
-                        <h3 className="text-sm font-bold uppercase tracking-[0.25em] text-gray-500 mb-4">{serverLabel}</h3>
+                      {!treatAsSonos && (
+                        <h3 className="text-sm font-bold uppercase tracking-[0.25em] text-gray-500 mb-4">{popupHeading}</h3>
                       )}
-                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start mb-8 ${isSonos ? 'bg-[var(--glass-bg)] border-[var(--glass-border)]' : (serverInfo.bg + ' ' + serverInfo.border)}`}>
-                        {isSonos ? <Music className="w-4 h-4 text-[var(--text-primary)]" /> : <ServerBadgeIcon className={`w-4 h-4 ${serverInfo.color}`} />}
-                        <span className={`text-xs font-bold uppercase tracking-widest ${isSonos ? 'text-[var(--text-primary)]' : serverInfo.color}`}>{isSonos ? 'SONOS' : serverLabel}</span>
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start mb-8 ${treatAsSonos ? 'bg-[var(--glass-bg)] border-[var(--glass-border)]' : (isGenericMedia ? 'bg-blue-500/10 border-blue-500/20' : (serverInfo.bg + ' ' + serverInfo.border))}`}>
+                        {treatAsSonos ? <Music className="w-4 h-4 text-[var(--text-primary)]" /> : <ServerBadgeIcon className={`w-4 h-4 ${isGenericMedia ? 'text-blue-400' : serverInfo.color}`} />}
+                        <span className={`text-xs font-bold uppercase tracking-widest ${treatAsSonos ? 'text-[var(--text-primary)]' : (isGenericMedia ? 'text-blue-400' : serverInfo.color)}`}>{treatAsSonos ? 'SONOS' : serverLabel}</span>
                       </div>
 
                       <div className="flex flex-col gap-6">
-                        <div className={`${isSonos ? 'h-64 w-64 mx-auto' : 'aspect-video w-full'} rounded-3xl overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--glass-bg)] relative group`}>
+                        <div className={`${(isSonos || isGenericMedia) ? 'h-64 w-64 mx-auto' : 'aspect-video w-full'} rounded-3xl overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--glass-bg)] relative group`}>
                           {mpPicture ? <img src={mpPicture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
                           <div className="absolute bottom-0 left-0 w-full p-8">
@@ -3457,12 +3900,20 @@ export default function App() {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-center gap-8 pt-2">
-                              <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-[var(--text-secondary)]" /></button>
-                              <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
-                                {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
-                              </button>
-                              <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-[var(--text-secondary)]" /></button>
+                            <div className="flex flex-col gap-4 pt-2">
+                              <div className="flex items-center justify-center gap-8">
+                                <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-[var(--text-secondary)]" /></button>
+                                <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
+                                  {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
+                                </button>
+                                <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-[var(--text-secondary)]" /></button>
+                              </div>
+                              <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
+                                <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                                    {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
+                                </button>
+                                <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
+                              </div>
                             </div>
                           )}
                         </div>
@@ -3471,7 +3922,7 @@ export default function App() {
 
                     <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-[var(--glass-border)] pt-6 md:pt-24 pl-0 md:pl-12 flex flex-col gap-6 overflow-y-auto">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{isSonos ? 'Sonos Spelarar' : (isEmbyGroup ? 'Aktive spelarar' : 'Valde spelarar')}</h3>
+                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{(isSonos || isAllSonos) ? 'Sonos Spelarar' : (isEmbyGroup ? 'Aktive spelarar' : 'Valde spelarar')}</h3>
                         {canGroup && listPlayers.length > 1 && (
                           <button 
                             onClick={() => {
@@ -3497,7 +3948,7 @@ export default function App() {
                            const isSelected = p.entity_id === mpId;
                            const isMember = groupMembers.includes(p.entity_id);
                            const isSelf = p.entity_id === mpId;
-                           const isActivePlayer = isSonos ? isSonosActive(p) : isMediaActive(p);
+                           const isActivePlayer = treatAsSonos ? isSonosActive(p) : isMediaActive(p);
                            const pTitle = getA(p.entity_id, 'media_title', 'Ukjend');
                            const pUser = (() => {
                              const s = Array.isArray(sessions) ? sessions.find(s => s.device_name && (p.attributes?.friendly_name || '').toLowerCase().includes(s.device_name.toLowerCase())) : null;
@@ -3517,7 +3968,7 @@ export default function App() {
                                  {pUser && <p className="text-[10px] text-gray-500 truncate">{pUser}</p>}
                                </div>
                                </button>
-                               {canGroup && isSonos && !isSelf && (
+                               {canGroup && !isSelf && (
                                  <button 
                                    onClick={(e) => {
                                      e.stopPropagation();
@@ -3533,7 +3984,7 @@ export default function App() {
                                    {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                                  </button>
                                )}
-                               {canGroup && isSonos && isSelf && groupMembers.length > 1 && (
+                               {canGroup && isSelf && groupMembers.length > 1 && (
                                  <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title="Linka">
                                    <Link className="w-4 h-4" />
                                  </div>
