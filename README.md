@@ -12,6 +12,8 @@ NoName is a feature-rich home automation dashboard that integrates with smart ho
 - 💡 Lighting control
 - 🚪 Door sensors and presence detection
 - 📊 Data visualization and analytics
+- 🌍 Internationalization support (English & Nynorsk)
+- ✏️ Customizable dashboard header and layout
 
 ## � Summary
 
@@ -115,6 +117,7 @@ The application will be available at `http://localhost:5173`
 - **Vite 7** - Fast build tool and dev server
 - **Lucide React** - Modern icon library
 - **Tailwind CSS** - Utility-first CSS framework (styling)
+- **i18n** - Internationalization with English and Nynorsk (Norwegian) language support
 
 ## 🐳 Docker Support
 
@@ -133,7 +136,13 @@ NoName/
 ├── src/
 │   ├── App.jsx          # Main application component
 │   ├── main.jsx         # React entry point
-│   └── ...              # Additional components
+│   ├── components/      # Reusable UI components
+│   ├── hooks/           # Custom React hooks
+│   ├── services/        # API and service integrations
+│   └── i18n/            # Internationalization files
+│       ├── en.json      # English translations
+│       └── nn.json      # Nynorsk (Norwegian) translations
+├── public/              # Static assets
 ├── index.html           # HTML template
 ├── package.json         # Dependencies and scripts
 ├── vite.config.js       # Vite configuration
@@ -141,6 +150,23 @@ NoName/
 ├── docker-compose.yml   # Docker compose setup
 └── README.md            # This file
 ```
+
+## ✨ Key Features
+
+### Customizable Dashboard
+- **Editable Header**: Customize the dashboard title to personalize your experience
+- **Layout Controls**: Adjust header size and arrangement in edit mode
+- **Persistent Settings**: All customizations are saved locally
+
+### Internationalization
+- **Multi-language Support**: Toggle between English and Nynorsk (Norwegian)
+- **Localized Components**: All UI elements, labels, and messages are fully translated
+- **Dynamic Language Switching**: Change language without reloading the page
+
+### Real-time Monitoring
+- **Live Data Updates**: WebSocket connection for instant updates
+- **Energy Pricing**: Real-time electricity price tracking and visualization
+- **Climate Control**: Monitor and control heating systems and temperature
 
 ## 🤝 Contributing
 
