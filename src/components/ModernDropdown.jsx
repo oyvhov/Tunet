@@ -20,7 +20,7 @@ export default function ModernDropdown({ label, icon: Icon, options, current, on
         <ChevronDown className={`w-3.5 h-3.5 text-gray-600 transition-transform duration-500 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-2 z-50 rounded-2xl overflow-hidden shadow-2xl popup-surface">
+        <div className="absolute top-full left-0 w-full mt-2 z-50 rounded-2xl overflow-hidden shadow-2xl border" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)'}}>
           <div className="max-h-48 overflow-y-auto">
             {(options || []).map((option) => (
               <button key={option} onClick={() => { onChange(option); setIsOpen(false); }} className={`w-full text-left px-6 py-3 text-xs font-bold uppercase tracking-widest transition-all ${current === option ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`} style={{backgroundColor: current === option ? 'rgba(59, 130, 246, 0.1)' : 'transparent'}}>{String(getLabel(option))}</button>

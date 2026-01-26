@@ -2157,72 +2157,77 @@ export default function App() {
 
     return (
       <div key={pageId} className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.85fr] gap-8 font-sans fade-in-anim items-start">
-        <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6 space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
-            <Music className="w-4 h-4 text-[var(--text-primary)]" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">SONOS</span>
+        <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-8 flex flex-col min-h-[480px]">
+          <div className="mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
+              <Music className="w-4 h-4 text-[var(--text-primary)]" />
+              <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">SONOS</span>
+            </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-4">
-            {mpPicture ? (
-              <img src={mpPicture} alt="" className="w-52 h-52 md:w-60 md:h-60 object-cover rounded-2xl" />
-            ) : (
-              <div className="w-52 h-52 md:w-60 md:h-60 flex items-center justify-center">
-                {isTV ? <Tv className="w-20 h-20 text-gray-700" /> : <Speaker className="w-20 h-20 text-gray-700" />}
+          <div className="flex-1 flex flex-col md:flex-row gap-8 md:gap-12 items-center">
+            {/* Art - Left Side */}
+            <div className="flex-shrink-0 flex justify-center md:justify-start">
+              {mpPicture ? (
+                <img src={mpPicture} alt="" className="w-64 h-64 md:w-72 md:h-72 object-cover rounded-2xl shadow-2xl" />
+              ) : (
+                <div className="w-64 h-64 md:w-72 md:h-72 flex items-center justify-center rounded-2xl bg-[var(--glass-bg)]">
+                  {isTV ? <Tv className="w-24 h-24 text-gray-700" /> : <Speaker className="w-24 h-24 text-gray-700" />}
+                </div>
+              )}
+            </div>
+
+            {/* Controls - Right Side */}
+            <div className="flex-1 w-full flex flex-col justify-center space-y-8 min-w-0">
+              {/* Metadata */}
+              <div className="space-y-2 text-center md:text-left">
+                <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] leading-none truncate">{mpTitle || t('common.unknown')}</h2>
+                <p className="text-xl text-[var(--text-secondary)] font-medium truncate">{mpSeries || ''}</p>
               </div>
-            )}
-            <div className="text-center">
-              <h2 className="text-2xl md:text-4xl font-bold text-[var(--text-primary)] leading-tight mb-2 line-clamp-2">{mpTitle || t('common.unknown')}</h2>
-              <p className="text-xl text-[var(--text-secondary)] font-medium truncate">{mpSeries || ''}</p>
-            </div>
-          </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs font-bold text-gray-500 tracking-widest px-1">
-              <span>{formatDuration(position)}</span>
-              <span>{formatDuration(duration)}</span>
-            </div>
-            <M3Slider variant="thin" min={0} max={duration || 100} step={1} value={position || 0} disabled={!duration} onChange={(e) => callService("media_player", "media_seek", { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
+              {/* Progress & Controls Wrapper */}
+              <div className="space-y-5">
+                {/* Progress */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-[var(--text-secondary)] tracking-widest">
+                    <span>{formatDuration(position)}</span>
+                    <span>{formatDuration(duration)}</span>
+                  </div>
+                  <M3Slider variant="thin" min={0} max={duration || 100} step={1} value={position || 0} disabled={!duration} onChange={(e) => callService("media_player", "media_seek", { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
+                </div>
 
-            <div className="flex items-center justify-center gap-6 pt-2">
-              <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-4 h-4" /></button>
-              <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-[var(--text-secondary)]" /></button>
-              <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-3 rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
-                {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
-              </button>
-              <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-[var(--text-secondary)]" /></button>
-              <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
-              </button>
-            </div>
+                {/* Top control row */}
+                <div className="flex items-center justify-between">
+                  <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-all active:scale-95 ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`} title="Shuffle">
+                    <Shuffle className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-all active:scale-95 ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`} title="Repeat">
+                    {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+                  </button>
+                </div>
 
-            <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
-              <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
-              </button>
-              <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
-            </div>
-          </div>
-
-          <div className="pt-2">
-            {playlistOptions.length > 0 ? (
-              <ModernDropdown
-                label={t('sonos.playlist')}
-                icon={Music}
-                options={playlistOptions}
-                current={currentSource}
-                onChange={(option) => callService("media_player", "select_source", { entity_id: mpId, source: option })}
-                placeholder={t('sonos.playlistPlaceholder')}
-              />
-            ) : (
-              <div className="text-xs uppercase font-bold text-gray-500 tracking-widest px-2">
-                {t('sonos.noPlaylists')}
+                {/* Main transport row */}
+                <div className="flex items-center justify-center gap-6">
+                  <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-3 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipBack className="w-6 h-6 text-[var(--text-secondary)]" /></button>
+                  <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-4 rounded-full transition-all active:scale-95 shadow-xl hover:shadow-2xl hover:scale-105" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
+                    {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
+                  </button>
+                  <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-3 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipForward className="w-6 h-6 text-[var(--text-secondary)]" /></button>
+                </div>
               </div>
-            )}
+
+              {/* Volume */}
+              <div className="flex items-center gap-4">
+                <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex-shrink-0 transition-colors">
+                  {isMuted ? <VolumeX className="w-5 h-5" /> : (volume < 0.5 ? <Volume1 className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />)}
+                </button>
+                <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6">
+        <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6 min-h-[480px] flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{t('media.group.sonosPlayers')}</h3>
             {listPlayers.length > 1 && (
@@ -2243,7 +2248,7 @@ export default function App() {
               </button>
             )}
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 overflow-y-auto flex-1">
             {listPlayers.map((p, idx) => {
               const pPic = getEntityImageUrl(p.attributes?.entity_picture);
               const isSelected = p.entity_id === mpId;
@@ -3369,7 +3374,7 @@ export default function App() {
         
         {showConfigModal && (
           <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowConfigModal(false)}>
-            <div className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+            <div className="border w-full max-w-xl max-h-[95vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowConfigModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
               <h3 className="text-xl font-light mb-4 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('system.title')}</h3>
 
@@ -3378,7 +3383,7 @@ export default function App() {
                 <button onClick={() => setConfigTab('settings')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'settings' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>{t('system.tabSettings')}</button>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex-1 overflow-visible pr-2">
                 {configTab === 'connection' && (
                   <div className="space-y-5 font-sans">
                     <div className="space-y-2">
