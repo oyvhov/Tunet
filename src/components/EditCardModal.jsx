@@ -1,0 +1,159 @@
+import React from 'react';
+import { X } from 'lucide-react';
+import M3Slider from './M3Slider';
+import IconPicker from './IconPicker';
+
+const EditCardModal = ({ 
+  isOpen, 
+  onClose, 
+  t, 
+  entityId,
+  entities,
+  canEditName, 
+  canEditIcon, 
+  canEditStatus, 
+  isEditLight, 
+  isEditGenericType,
+  isEditSensor,
+  editSettingsKey,
+  editSettings,
+  customNames,
+  saveCustomName,
+  customIcons,
+  saveCustomIcon,
+  saveCardSetting,
+  hiddenCards,
+  toggleCardVisibility
+}) => {
+  if (!isOpen) return null;
+
+  const isHidden = hiddenCards.includes(entityId);
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" style={{
+      backdropFilter: 'blur(48px)', 
+      backgroundColor: 'var(--modal-backdrop)'
+    }} onClick={onClose}>
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.25);
+        }
+      `}</style>
+      <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans" style={{
+        backgroundColor: 'var(--modal-bg)', 
+        borderColor: 'var(--glass-border)', 
+        color: 'var(--text-primary)'
+      }} onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-5 right-5 md:top-7 md:right-7 modal-close"><X className="w-4 h-4" /></button>
+        <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('modal.editCard.title')}</h3>
+        
+        <div className="space-y-8">
+          {canEditName && (
+            <div className="space-y-2">
+              <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
+              <input 
+                type="text" 
+                className="w-full px-5 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors" 
+                defaultValue={customNames[entityId] || (entities[entityId]?.attributes?.friendly_name || '')}
+                onBlur={(e) => saveCustomName(entityId, e.target.value)}
+                placeholder={t('form.defaultName')}
+              />
+            </div>
+          )}
+
+
+
+          {canEditIcon && (
+            <div className="space-y-2">
+              <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
+              <IconPicker
+                value={customIcons[entityId] || null}
+                onSelect={(iconName) => saveCustomIcon(entityId, iconName)}
+                onClear={() => saveCustomIcon(entityId, null)}
+                t={t}
+                maxHeightClass="max-h-48"
+              />
+            </div>
+          )}
+
+          {(isEditLight || isEditGenericType) && (
+            <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+              <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.smallVersion')}</span>
+              <button
+                onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'size', (editSettings.size === 'small') ? 'large' : 'small')}
+                className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.size === 'small' ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.size === 'small' ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
+          )}
+
+          {canEditStatus && (
+            <>
+              <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showStatus')}</span>
+                  <button 
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showStatus', !(editSettings.showStatus !== false))}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`} />
+                  </button>
+              </div>
+
+              <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showLastChanged')}</span>
+                  <button 
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastChanged', !(editSettings.showLastChanged !== false))}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
+                  </button>
+              </div>
+            </>
+          )}
+
+          {isEditSensor && (
+            <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+              <div className="flex flex-col">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Controls</span>
+                <span className="text-[10px] text-gray-500">Enable +/- or Toggle</span>
+              </div>
+              <button 
+                onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showControls', !editSettings.showControls)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showControls ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
+          )}
+
+          {isEditSensor && (
+            <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+              <div className="flex flex-col">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Graph</span>
+                <span className="text-[10px] text-gray-500">Show history graph</span>
+              </div>
+              <button 
+                onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showGraph', !(editSettings.showGraph !== false))}
+                className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showGraph !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showGraph !== false ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+export default EditCardModal;

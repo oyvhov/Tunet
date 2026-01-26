@@ -14,14 +14,37 @@ const SensorCard = ({
   editMode, 
   controls,
   onControl,
-  onOpen
+  onOpen,
+  t
 }) => {
   if (!entity) return null;
 
+  const translate = t || ((key) => key);
   const state = entity.state;
   const unit = entity.attributes?.unit_of_measurement || '';
-  const isNumeric = !isNaN(parseFloat(state));
+  const isNumeric = typeof state === 'string'
+    ? /^\s*-?\d+(\.\d+)?\s*$/.test(state)
+    : !isNaN(parseFloat(state));
   const domain = entity.entity_id.split('.')[0];
+  const deviceClass = entity.attributes?.device_class;
+  const isOnOffState = state === 'on' || state === 'off';
+  const binaryStateKeys = {
+    door: { on: 'binary.door.open', off: 'binary.door.closed' },
+    window: { on: 'binary.window.open', off: 'binary.window.closed' },
+    garage_door: { on: 'binary.garageDoor.open', off: 'binary.garageDoor.closed' },
+    motion: { on: 'binary.motion.detected', off: 'binary.motion.clear' },
+    moisture: { on: 'binary.moisture.wet', off: 'binary.moisture.dry' },
+    occupancy: { on: 'binary.occupancy.occupied', off: 'binary.occupancy.clear' },
+    smoke: { on: 'binary.smoke.detected', off: 'binary.smoke.clear' },
+    lock: { on: 'binary.lock.unlocked', off: 'binary.lock.locked' }
+  };
+  const binaryDisplayState = domain === 'binary_sensor' && isOnOffState
+    ? translate(binaryStateKeys[deviceClass]?.[state] || (state === 'on' ? 'status.on' : 'status.off'))
+    : null;
+  const toggleDisplayState = isOnOffState && ['automation', 'input_boolean', 'switch', 'input_number'].includes(domain)
+    ? translate(state === 'on' ? 'status.on' : 'status.off')
+    : null;
+  const displayState = isNumeric ? parseFloat(state) : (binaryDisplayState || toggleDisplayState || state);
   
   // Feature flags from settings
   const showControls = settings?.showControls;
@@ -116,7 +139,7 @@ const SensorCard = ({
   }, [conn, entity.entity_id, showGraph, state]);
 
   // Determine controls based on domain
-  const isToggleDomain = domain === 'input_boolean' || domain === 'switch';
+  const isToggleDomain = domain === 'input_boolean' || domain === 'switch' || domain === 'automation';
 
   const renderControls = () => {
     if (!showControls) return null;
@@ -187,10 +210,10 @@ const SensorCard = ({
             {Icon ? <Icon className="w-6 h-6 stroke-[1.5px]" /> : <Activity className="w-6 h-6" />}
           </div>
           <div className="flex flex-col min-w-0">
-            <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">{String(name)}</p>
+            <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{String(name)}</p>
              <div className="flex items-baseline gap-1">
                 <span className="text-sm font-bold text-[var(--text-primary)] leading-none">
-                  {isNumeric ? parseFloat(state) : state}
+                  {displayState}
                 </span>
                 {unit && <span className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider leading-none">{unit}</span>}
             </div>
@@ -241,7 +264,7 @@ const SensorCard = ({
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
           <span className="text-xs tracking-widest uppercase font-bold">
-            {isNumeric ? parseFloat(state) : state}
+            {displayState}
           </span>
           {unit && <span className="text-[10px] font-medium uppercase tracking-wider">{unit}</span>}
         </div>
@@ -268,7 +291,7 @@ const SensorCard = ({
           <>
             {domain !== 'input_number' && (
               <h3 className="text-2xl font-medium text-[var(--text-primary)] leading-none">
-                {isNumeric ? parseFloat(state) : state}
+                {displayState}
               </h3>
             )}
             {renderControls()}

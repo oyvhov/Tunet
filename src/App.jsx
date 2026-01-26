@@ -145,12 +145,19 @@ import SparkLine from './components/SparkLine';
 import WeatherGraph from './components/WeatherGraph';
 import SensorCard from './components/SensorCard';
 import SensorModal from './components/SensorModal';
+import AddPageModal from './components/AddPageModal';
+import EditPageModal from './components/EditPageModal';
+import EditCardModal from './components/EditCardModal';
 import { themes } from './themes';
 import EnergyPowerCard from './components/EnergyPowerCard';
 import EnergyCostCard from './components/EnergyCostCard';
 import ClimateCard from './components/ClimateCard';
 import useEnergyData from './hooks/useEnergyData';
 import useClimateInfo from './hooks/useClimateInfo';
+import BarGraph from './components/BarGraph';
+import { formatRelativeTime, formatDuration, parseMarkdown } from './utils';
+import { ICON_MAP } from './iconMap';
+import { EmbyLogo, JellyfinLogo, getServerInfo } from './components/CustomIcons';
 import { callService as haCallService, getHistory, getStatistics, getForecast } from './services/haClient';
 import {
   CLIMATE_ID,
@@ -192,107 +199,7 @@ import {
   LEAF_INTERNAL_TEMP
 } from './constants';
 
-const ICON_MAP = {
-  Zap, Wind, Car, Settings, Flame, User, UserCheck, MapPin, TrendingUp, Clock, 
-  Edit2, Check, Fan, ArrowUpDown, ArrowLeftRight, Plus, Minus, Lightbulb, 
-  RefreshCw, BatteryCharging, Navigation, Thermometer, DoorOpen, Snowflake, 
-  Battery, AlertCircle, TrendingDown, BarChart3, Eye, EyeOff, Play, Pause, 
-  SkipBack, SkipForward, Music, Clapperboard, Server, HardDrive, Tv, Coins,
-  Speaker, Sofa, Utensils, AirVent, LampDesk, LayoutGrid, Trash2, Workflow,
-  Home, Bed, Bath, ShowerHead, Droplets, Sun, Moon, Cloud, CloudRain, Power,
-  Wifi, Lock, Unlock, Shield, Video, Camera, Bell, Volume2, Mic, Radio, Warehouse,
-  Gamepad2, Laptop, Smartphone, Watch, Coffee, Beer, Armchair, ShoppingCart, Bot,
-  Calendar, Activity, Heart, Star, AlertTriangle,
-  AlarmClock, Archive, Award, Book, BookOpen, Bookmark, Briefcase, Building2,
-  Bus, Cpu, Database, DollarSign, Feather, Gift, Globe, Key, Leaf, Monitor,
-  Paintbrush, PenTool, Plug, Puzzle, Rocket, Router, Siren, Sprout, Sunrise,
-  Sunset, Truck, Wrench, ToggleLeft, ToggleRight
-};
 
-const formatRelativeTime = (timestamp, t = (key) => key) => {
-  if (!timestamp || timestamp === "unavailable" || timestamp === "unknown" || timestamp === "--") return "--";
-  try {
-    const past = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now - past;
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return t('time.justNow');
-    if (diffMins < 60) return t('time.minutesAgo').replace('{minutes}', diffMins);
-    const diffHours = Math.floor(diffMins / 60);
-    const remainingMins = diffMins % 60;
-    if (remainingMins === 0) return t('time.hoursAgo').replace('{hours}', diffHours);
-    return t('time.hoursMinutesAgo').replace('{hours}', diffHours).replace('{minutes}', remainingMins);
-  } catch (e) {
-    return t('time.unknown');
-  }
-};
-
-const formatDuration = (seconds) => {
-  if (typeof seconds !== 'number' || isNaN(seconds)) return "0:00";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-};
-
-const parseMarkdown = (text) => {
-  if (!text) return "";
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">$1</a>')
-    .replace(/\n/g, '<br />');
-};
-
-const EmbyLogo = (props) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M11,2L6,7L7,8L2,13L7,18L8,17L13,22L18,17L17,16L22,11L17,6L16,7L11,2M10,8.5L16,12L10,15.5V8.5Z" />
-  </svg>
-);
-
-const JellyfinLogo = (props) => (
-  <svg viewBox="0 0 512 512" {...props}>
-    <defs>
-      <linearGradient id="jellyfin-grad" x1="126.15" y1="219.32" x2="457.68" y2="410.73" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#aa5cc3" />
-        <stop offset="100%" stopColor="#00a4dc" />
-      </linearGradient>
-    </defs>
-    <path d="M190.56 329.07c8.63 17.3 122.4 17.12 130.93 0 8.52-17.1-47.9-119.78-65.46-119.8-17.57 0-74.1 102.5-65.47 119.8z" fill="url(#jellyfin-grad)" />
-    <path d="M58.75 417.03c25.97 52.15 368.86 51.55 394.55 0S308.93 56.08 256.03 56.08c-52.92 0-223.25 308.8-197.28 360.95zm68.04-45.25c-17.02-34.17 94.6-236.5 129.26-236.5 34.67 0 146.1 202.7 129.26 236.5-16.83 33.8-241.5 34.17-258.52 0z" fill="url(#jellyfin-grad)" />
-  </svg>
-);
-
-const getServerInfo = (id) => {
-  if (!id || typeof id !== 'string') return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
-  if (id.includes('midttunet')) return { name: 'Jellyfin', icon: JellyfinLogo, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
-  if (id.includes('bibliotek')) return { name: 'Emby', icon: EmbyLogo, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' };
-  return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
-};
-
-const BarGraph = ({ data }) => {
-  if (!data || data.length === 0) return null;
-  
-  const normalizedData = data.map(d => (typeof d === 'object' ? d : { value: d, label: '' }));
-  
-  // Ensure we always show 7 bars to maintain layout
-  const paddedData = [...Array(Math.max(0, 7 - normalizedData.length)).fill({ value: 0, label: '' }), ...normalizedData];
-  const max = Math.max(...paddedData.map(d => d.value)) * 1.1 || 1;
-
-  return (
-    <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end gap-[2px] px-0 opacity-90 pointer-events-none">
-      {paddedData.map((d, i) => (
-        <div key={i} className="flex-1 flex items-end h-full group relative pointer-events-auto">
-           <div className={`w-full rounded-t-sm transition-all duration-1000 ${i === paddedData.length - 1 ? 'bg-emerald-400' : 'bg-emerald-500/30 group-hover:bg-emerald-500/60'}`} style={{ height: `${(d.value/max)*100}%` }}></div>
-           {d.value > 0 && (
-             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#121214] border border-white/10 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 shadow-xl flex flex-col items-center pointer-events-none">
-               <span className="font-bold text-emerald-400 text-xs">{d.value.toFixed(0)} kr</span>
-               <span className="text-gray-500 font-medium uppercase tracking-wider">{d.label}</span>
-             </div>
-           )}
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export default function App() {
   const [entities, setEntities] = useState({});
@@ -1371,6 +1278,7 @@ export default function App() {
         controls={getControls(cardId)}
         Icon={Icon}
         name={name}
+        t={t}
         onControl={handleControl}
         onOpen={() => { if (!editMode) setShowSensorInfoModal(cardId); }}
       />
@@ -4018,224 +3926,50 @@ export default function App() {
           </div>
         )}
 
-        {editingPage && (
-          <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setEditingPage(null)}>
-            <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-               <button onClick={() => setEditingPage(null)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-               <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">{t('modal.editPage.title')}</h3>
-               
-               <div className="space-y-8">
-                 <div className="space-y-2">
-                   <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
-                   <input 
-                     type="text" 
-                     className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
-                     value={pageSettings[editingPage]?.label || pageDefaults[editingPage]?.label || editingPage}
-                     onChange={(e) => {
-                        const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], label: e.target.value } };
-                        setPageSettings(newSettings);
-                        localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                     }}
-                   />
-                 </div>
-                 
-                 <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
-                  <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                    <button onClick={() => {
-                      const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: null } };
-                      setPageSettings(newSettings);
-                      localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                    }} className={`p-3 rounded-xl flex items-center justify-center transition-all ${!pageSettings[editingPage]?.icon ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title={t('form.defaultIcon')}><RefreshCw className="w-5 h-5" /></button>
-                    {Object.keys(ICON_MAP).map(iconName => {
-                      const Icon = ICON_MAP[iconName];
-                      const isSelected = pageSettings[editingPage]?.icon === iconName;
-                      return (
-                        <button key={iconName} onClick={() => {
-                            const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], icon: iconName } };
-                            setPageSettings(newSettings);
-                            localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                        }} className={`p-3 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title={iconName}><Icon className="w-5 h-5" /></button>
-                      );
-                    })}
-                  </div>
-                </div>
-                 
-                 <div className="flex items-center justify-between px-6 py-4 rounded-2xl popup-surface">
-                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.hidePage')}</span>
-                    <button 
-                      onClick={() => {
-                        const newSettings = { ...pageSettings, [editingPage]: { ...pageSettings[editingPage], hidden: !pageSettings[editingPage]?.hidden } };
-                        setPageSettings(newSettings);
-                        localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-                      }}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${pageSettings[editingPage]?.hidden ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${pageSettings[editingPage]?.hidden ? 'left-7' : 'left-1'}`} />
-                    </button>
-                 </div>
+        <EditPageModal 
+          isOpen={!!editingPage}
+          onClose={() => setEditingPage(null)}
+          t={t}
+          editingPage={editingPage}
+          pageSettings={pageSettings}
+          setPageSettings={setPageSettings}
+          pageDefaults={pageDefaults}
+          onDelete={deletePage}
+        />
 
-                 {editingPage !== 'home' && (
-                   <button
-                     onClick={() => deletePage(editingPage)}
-                     className="w-full py-3 rounded-2xl bg-red-500/10 text-red-400 font-bold uppercase tracking-widest hover:bg-red-500/15 transition-colors"
-                   >
-                     {t('form.deletePage')}
-                   </button>
-                 )}
-               </div>
-            </div>
-          </div>
-        )}
+        <AddPageModal 
+          isOpen={showAddPageModal} 
+          onClose={() => setShowAddPageModal(false)} 
+          t={t}
+          newPageLabel={newPageLabel}
+          setNewPageLabel={setNewPageLabel}
+          newPageIcon={newPageIcon}
+          setNewPageIcon={setNewPageIcon}
+          onCreate={createPage}
+        />
 
-        {showAddPageModal && (
-          <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowAddPageModal(false)}>
-            <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowAddPageModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">{t('modal.addPage.title')}</h3>
-
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
-                  <input
-                    type="text"
-                    className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
-                    value={newPageLabel}
-                    onChange={(e) => setNewPageLabel(e.target.value)}
-                    placeholder={t('form.exampleName')}
-                    autoFocus
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
-                  <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                    <button onClick={() => setNewPageIcon(null)} className={`p-3 rounded-xl flex items-center justify-center transition-all ${!newPageIcon ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title={t('form.defaultIcon')}><RefreshCw className="w-5 h-5" /></button>
-                    {Object.keys(ICON_MAP).map(iconName => {
-                      const Icon = ICON_MAP[iconName];
-                      const isSelected = newPageIcon === iconName;
-                      return (
-                        <button key={iconName} onClick={() => setNewPageIcon(iconName)} className={`p-3 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`} title={iconName}><Icon className="w-5 h-5" /></button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <button
-                  onClick={createPage}
-                  className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-5 h-5" /> {t('page.create')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showEditCardModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }}>
-            <style>{`
-              .custom-scrollbar::-webkit-scrollbar {
-                width: 4px;
-              }
-              .custom-scrollbar::-webkit-scrollbar-track {
-                background: rgba(255, 255, 255, 0.02);
-              }
-              .custom-scrollbar::-webkit-scrollbar-thumb {
-                background: rgba(255, 255, 255, 0.15);
-                border-radius: 10px;
-              }
-              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                background: rgba(255, 255, 255, 0.25);
-              }
-            `}</style>
-            <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }} className="absolute top-5 right-5 md:top-7 md:right-7 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('modal.editCard.title')}</h3>
-              
-              <div className="space-y-8">
-                {canEditName && (
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-5 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors" 
-                      defaultValue={customNames[showEditCardModal] || (entities[showEditCardModal]?.attributes?.friendly_name || '')}
-                      onBlur={(e) => saveCustomName(showEditCardModal, e.target.value)}
-                      placeholder={t('form.defaultName')}
-                    />
-                  </div>
-                )}
-
-                {canEditIcon && (
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
-                    <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                      <button onClick={() => saveCustomIcon(showEditCardModal, null)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${!customIcons[showEditCardModal] ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title={t('form.defaultIcon')}><RefreshCw className="w-5 h-5" /></button>
-                      {Object.keys(ICON_MAP).map(iconName => {
-                        const Icon = ICON_MAP[iconName];
-                        return (
-                          <button key={iconName} onClick={() => saveCustomIcon(showEditCardModal, iconName)} className={`p-3 rounded-xl border flex items-center justify-center transition-all ${customIcons[showEditCardModal] === iconName ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-gray-500 hover:bg-[var(--glass-bg-hover)]'}`} title={iconName}><Icon className="w-5 h-5" /></button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {(isEditLight || isEditGenericType) && (
-                  <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                    <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.smallVersion')}</span>
-                    <button
-                      onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'size', (editSettings.size === 'small') ? 'large' : 'small')}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.size === 'small' ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.size === 'small' ? 'left-7' : 'left-1'}`} />
-                    </button>
-                  </div>
-                )}
-
-                {canEditStatus && (
-                  <>
-                    <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                      <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showStatus')}</span>
-                        <button 
-                          onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showStatus', !(editSettings.showStatus !== false))}
-                          className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                      <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showLastChanged')}</span>
-                        <button 
-                          onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastChanged', !(editSettings.showLastChanged !== false))}
-                          className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
-                        </button>
-                    </div>
-                  </>
-                )}
-
-                {isEditSensor && (
-                  <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
-                    <div className="flex flex-col">
-                      <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Controls</span>
-                      <span className="text-[10px] text-gray-500">Enable +/- or Toggle</span>
-                    </div>
-                    <button 
-                      onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showControls', !editSettings.showControls)}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showControls ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <EditCardModal 
+          isOpen={!!showEditCardModal}
+          onClose={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }}
+          t={t}
+          entityId={showEditCardModal}
+          entities={entities}
+          canEditName={canEditName}
+          canEditIcon={canEditIcon}
+          canEditStatus={canEditStatus}
+          isEditLight={isEditLight}
+          isEditGenericType={isEditGenericType}
+          isEditSensor={isEditSensor}
+          editSettingsKey={editSettingsKey}
+          editSettings={editSettings}
+          customNames={customNames}
+          saveCustomName={saveCustomName}
+          customIcons={customIcons}
+          saveCustomIcon={saveCustomIcon}
+          saveCardSetting={saveCardSetting}
+          hiddenCards={hiddenCards}
+          toggleCardVisibility={toggleCardVisibility}
+        />
 
         <SensorModal 
           isOpen={!!showSensorInfoModal}

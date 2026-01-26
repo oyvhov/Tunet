@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { X, Clock, Calendar } from 'lucide-react';
 import { getHistory, getStatistics } from '../services/haClient';
 import SensorHistoryGraph from './SensorHistoryGraph';
+import { formatRelativeTime } from '../utils';
 
 export default function SensorModal({ isOpen, onClose, entityId, entity, customName, conn, t = (key) => key }) {
   const [history, setHistory] = useState([]);
+  const [historyEvents, setHistoryEvents] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -16,6 +18,8 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
           const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
           
           let points = [];
+          let events = [];
+          const isBinaryEntity = entity.entity_id?.startsWith('binary_sensor.');
           
           // Try fetching history first
           try {
@@ -23,13 +27,28 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
               entityId: entity.entity_id,
               start,
               end,
-              minimal_response: true
+              minimal_response: !isBinaryEntity,
+              no_attributes: !isBinaryEntity
             });
 
             if (data && Array.isArray(data)) {
-              points = data
-                .filter(d => !isNaN(parseFloat(d.state)))
-                .map(d => ({ value: parseFloat(d.state), time: new Date(d.last_changed) }));
+              const raw = Array.isArray(data[0]) ? data[0] : data;
+              points = raw
+                .filter(d => !isNaN(parseFloat(d?.state)))
+                .map(d => ({ value: parseFloat(d.state), time: new Date(d.last_changed || d.last_updated) }));
+              events = raw
+                .map(d => {
+                  if (!d) return null;
+                  const stateValue = d.state ?? d.s;
+                  const changed = d.last_changed || d.last_updated || d.l;
+                  if (stateValue === undefined || !changed) return null;
+                  return {
+                    state: stateValue,
+                    time: new Date(changed),
+                    lastChanged: changed
+                  };
+                })
+                .filter(Boolean);
             }
           } catch (err) {
             console.warn("History fetch failed, trying stats", err);
@@ -69,6 +88,7 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
           }
 
           setHistory(points);
+          setHistoryEvents(events);
         } catch (e) {
           console.error("Failed to load history", e);
         } finally {
@@ -79,6 +99,7 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
       fetchHistory();
     } else {
       setHistory([]);
+      setHistoryEvents([]);
     }
   }, [isOpen, entity, conn]);
 
@@ -89,6 +110,8 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
   const unit = attrs.unit_of_measurement ? `${attrs.unit_of_measurement}` : '';
   const state = entity.state;
   const isNumeric = !isNaN(parseFloat(state));
+  const deviceClass = attrs.device_class;
+  const isBinary = entity.entity_id?.startsWith('binary_sensor.') && (state === 'on' || state === 'off');
   
   const lastChanged = entity.last_changed ? new Date(entity.last_changed).toLocaleString() : '--';
   const lastUpdated = entity.last_updated ? new Date(entity.last_updated).toLocaleString() : '--';
@@ -124,7 +147,30 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
     return stateMap[normalized] || String(value);
   };
 
-  const displayState = isNumeric ? parseFloat(state) : formatStateLabel(state);
+  const formatBinaryStateLabel = (value) => {
+    const normalized = String(value).toLowerCase();
+    const isOnOff = normalized === 'on' || normalized === 'off';
+    if (!isOnOff) return formatStateLabel(value);
+    const binaryStateKeys = {
+      door: { on: 'binary.door.open', off: 'binary.door.closed' },
+      window: { on: 'binary.window.open', off: 'binary.window.closed' },
+      garage_door: { on: 'binary.garageDoor.open', off: 'binary.garageDoor.closed' },
+      motion: { on: 'binary.motion.detected', off: 'binary.motion.clear' },
+      moisture: { on: 'binary.moisture.wet', off: 'binary.moisture.dry' },
+      occupancy: { on: 'binary.occupancy.occupied', off: 'binary.occupancy.clear' },
+      smoke: { on: 'binary.smoke.detected', off: 'binary.smoke.clear' },
+      lock: { on: 'binary.lock.unlocked', off: 'binary.lock.locked' }
+    };
+    const key = binaryStateKeys[deviceClass]?.[normalized];
+    return key ? t(key) : (normalized === 'on' ? t('status.on') : t('status.off'));
+  };
+
+  const displayState = isNumeric ? parseFloat(state) : (isBinary ? formatBinaryStateLabel(state) : formatStateLabel(state));
+
+  const recentEvents = historyEvents
+    .filter(e => e && e.time instanceof Date && !isNaN(e.time))
+    .sort((a, b) => b.time - a.time)
+    .slice(0, 30);
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 backdrop-blur-[6px] bg-black/40 transition-all duration-300" 
@@ -171,6 +217,41 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
             ) : (
               <SensorHistoryGraph data={history} height={220} noDataLabel={t('sensorInfo.noHistory')} />
             )}
+          </div>
+        )}
+
+        {!isNumeric && isBinary && (
+          <div className="px-8 pb-2 mt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('history.activity')}</h3>
+              <span className="text-[10px] text-[var(--text-secondary)] opacity-60">{t('history.last24h')}</span>
+            </div>
+            <div className="mt-4 space-y-3">
+              {loading && (
+                <div className="h-[120px] flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--text-primary)] opacity-20"></div>
+                </div>
+              )}
+              {!loading && recentEvents.length === 0 && (
+                <div className="text-xs text-[var(--text-secondary)] opacity-60">{t('sensorInfo.noHistory')}</div>
+              )}
+              {!loading && recentEvents.map((event, idx) => {
+                const stateLabel = formatBinaryStateLabel(event.state);
+                return (
+                  <div key={`${event.lastChanged || idx}`} className="flex items-start gap-3">
+                    <div className={`mt-1.5 h-2 w-2 rounded-full ${event.state === 'on' ? 'bg-yellow-400' : 'bg-gray-500'} opacity-80`} />
+                    <div className="flex flex-col">
+                      <span className="text-sm text-[var(--text-primary)]">
+                        {t('history.wasState').replace('{state}', stateLabel)}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-secondary)] opacity-70">
+                        {event.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {formatRelativeTime(event.time, t)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
