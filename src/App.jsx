@@ -3,6 +3,7 @@ import en from './i18n/en.json';
 import nn from './i18n/nn.json';
 import { 
   Zap, 
+  Hash,
   Wind, 
   Car, 
   Settings, 
@@ -142,6 +143,7 @@ import ModernDropdown from './components/ModernDropdown';
 import InteractivePowerGraph from './components/InteractivePowerGraph';
 import SparkLine from './components/SparkLine';
 import WeatherGraph from './components/WeatherGraph';
+import SensorCard from './components/SensorCard';
 import { themes } from './themes';
 import EnergyPowerCard from './components/EnergyPowerCard';
 import EnergyCostCard from './components/EnergyCostCard';
@@ -335,7 +337,7 @@ export default function App() {
     ]
   });
   const [addCardTargetPage, setAddCardTargetPage] = useState('home');
-  const [addCardType, setAddCardType] = useState('light');
+  const [addCardType, setAddCardType] = useState('sensor');
   const [hiddenCards, setHiddenCards] = useState([]);
   const [activeMediaId, setActiveMediaId] = useState(null);
   const [costHistory, setCostHistory] = useState([]);
@@ -1028,10 +1030,12 @@ export default function App() {
     return () => { cancelled = true; };
   }, [conn, cardSettings, tempHistoryById]);
 
+  const activeGridColumns = pageSettings[activePage]?.gridColumns ?? gridColumns;
+
   useEffect(() => {
     const updateGridCols = () => {
       const width = window.innerWidth;
-      if (width >= 1024) setGridColCount(gridColumns === 4 ? 4 : 3);
+      if (width >= 1024) setGridColCount(activeGridColumns === 4 ? 4 : 3);
       else if (width >= 768) setGridColCount(2);
       else setGridColCount(1);
     };
@@ -1039,7 +1043,7 @@ export default function App() {
     updateGridCols();
     window.addEventListener('resize', updateGridCols);
     return () => window.removeEventListener('resize', updateGridCols);
-  }, [gridColumns]);
+  }, [activeGridColumns]);
 
   const toggleCardVisibility = (cardId) => {
     const newHidden = hiddenCards.includes(cardId) 
@@ -1072,7 +1076,7 @@ export default function App() {
     }
     const settingsKey = getCardSettingsKey(cardId, pageId);
     const typeSetting = cardSettings[settingsKey]?.type || cardSettings[cardId]?.type;
-    if (typeSetting === 'entity' || typeSetting === 'toggle') return true;
+    if (typeSetting === 'entity' || typeSetting === 'toggle' || typeSetting === 'sensor') return true;
     if (cardId.startsWith('light_')) return true;
     if (cardId.startsWith('light.')) return true;
     if (cardId.startsWith('vacuum.')) return true;
@@ -1314,7 +1318,7 @@ export default function App() {
       return;
     }
 
-    if (addCardType === 'entity' || addCardType === 'toggle') {
+    if (addCardType === 'entity' || addCardType === 'toggle' || addCardType === 'sensor') {
       const newSettings = { ...cardSettings };
       selectedEntities.forEach((id) => {
         const settingsKey = getCardSettingsKey(id, addCardTargetPage);
@@ -1331,120 +1335,41 @@ export default function App() {
     setShowAddCardModal(false);
   };
 
-  const renderEntityCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+
+  const renderSensorCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
     const entity = entities[cardId];
     if (!entity) return null;
-    
-    const name = customNames[cardId] || entity.attributes.friendly_name || cardId;
-    const state = getS(cardId);
-    const lastChanged = entity.last_changed;
-    const domain = cardId.split('.')[0];
     const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
-    const showStatus = settings.showStatus !== false;
-    const showLastChanged = settings.showLastChanged !== false;
-    
-    let Icon = Activity;
-    if (customIcons[cardId]) Icon = ICON_MAP[customIcons[cardId]];
-    else if (domain === 'binary_sensor') Icon = Activity;
-    else if (domain === 'sensor') Icon = TrendingUp;
-    else if (domain === 'switch' || domain === 'input_boolean') Icon = Power;
-    
-    return (
-      <div key={cardId} {...dragProps} className={`p-5 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
-        {getControls(cardId)}
-        <div className="flex justify-between items-start">
-            <div className="p-2.5 rounded-xl text-[var(--text-secondary)]" style={{backgroundColor: 'var(--glass-bg)'}}><Icon className="w-5 h-5" /></div>
-            {showLastChanged && <div className="flex flex-col items-end"><span className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{formatRelativeTime(lastChanged, t)}</span></div>}
-        </div>
-        <div><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-0.5 truncate">{name}</p>{showStatus && <p className="text-xl font-light truncate" style={{color: 'var(--text-primary)'}}>{String(state)}</p>}</div>
-      </div>
-    );
-  };
-
-  const renderGenericEntityCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
-    const entity = entities[cardId];
-    if (!entity) return null;
-
-    const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
-    const type = settings.type || 'entity';
-    const sizeSetting = settings.size || 'large';
-    const isSmall = sizeSetting === 'small';
-    const domain = cardId.split('.')[0];
-    const isToggle = type === 'toggle';
-    const isOn = entity.state === 'on';
-    const statusText = isToggle ? (isOn ? t('common.on') : t('common.off')) : getS(cardId);
     const name = customNames[cardId] || getA(cardId, 'friendly_name', cardId);
-    const defaultIcons = {
-      automation: Workflow,
-      switch: Plug,
-      input_boolean: ToggleRight,
-      script: Play,
-      fan: Fan,
-      sensor: Activity,
-      binary_sensor: AlertCircle,
-      climate: Wind,
-      light: Lightbulb
-    };
-    const DefaultIcon = defaultIcons[domain] || Activity;
+    const domain = cardId.split('.')[0];
+    const defaultIcons = { sensor: Activity, input_number: Hash, input_boolean: ToggleRight, switch: Power, default: Activity };
+    const DefaultIcon = defaultIcons[domain] || defaultIcons.default;
     const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : DefaultIcon;
-    const ToggleIcon = isOn ? ToggleRight : ToggleLeft;
 
-    const handleToggle = (e) => {
-      e.stopPropagation();
-      if (!isToggle) return;
-      if (domain === 'script') {
-        callService(domain, 'turn_on', { entity_id: cardId });
-        return;
+    const handleControl = (action) => {
+      if (domain === 'input_number') {
+        if (action === 'increment') callService('input_number', 'increment', { entity_id: cardId });
+        if (action === 'decrement') callService('input_number', 'decrement', { entity_id: cardId });
       }
-      callService(domain, isOn ? 'turn_off' : 'turn_on', { entity_id: cardId });
+      if (domain === 'input_boolean' || domain === 'switch' || domain === 'light') {
+         if (action === 'toggle') callService(domain, 'toggle', { entity_id: cardId });
+      }
     };
-
-    if (isSmall) {
-      return (
-        <div key={cardId} {...dragProps} className={`p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
-          {getControls(cardId)}
-          <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-blue-500/20 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)]' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`}>
-            <Icon className="w-6 h-6 stroke-[1.5px]" />
-          </div>
-          <div className="flex-1 flex flex-col gap-2 min-w-0 justify-center">
-            <div className="flex justify-between items-baseline pr-1">
-              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none">{String(name)}</p>
-              {!isToggle && (
-                <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-blue-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{statusText}</span>
-              )}
-            </div>
-          </div>
-          {isToggle && (
-            <button onClick={handleToggle} className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${isOn ? 'bg-blue-500/15 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-              <ToggleIcon className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      );
-    }
 
     return (
-      <div key={cardId} {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
-        {getControls(cardId)}
-        <div className="flex justify-between items-start">
-          <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-blue-500/20 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`}>
-            <Icon className="w-5 h-5 stroke-[1.5px]" />
-          </div>
-          {isToggle ? (
-            <button onClick={handleToggle} className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-              <ToggleIcon className="w-5 h-5" />
-            </button>
-          ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-              <span className="text-xs tracking-widest uppercase font-bold">{statusText}</span>
-            </div>
-          )}
-        </div>
-        <div className="mt-2">
-          <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{String(name)}</p>
-          <h3 className="text-2xl font-medium text-[var(--text-primary)] leading-none">{statusText}</h3>
-        </div>
-      </div>
+      <SensorCard 
+        key={cardId}
+        entity={entity}
+        conn={conn}
+        settings={settings}
+        dragProps={dragProps}
+        cardStyle={cardStyle}
+        editMode={editMode}
+        controls={getControls(cardId)}
+        Icon={Icon}
+        name={name}
+        onControl={handleControl}
+      />
     );
   };
 
@@ -2739,7 +2664,7 @@ export default function App() {
     if (cardId.startsWith('automation.')) {
       const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
       if (settings.type === 'entity' || settings.type === 'toggle') {
-        return renderGenericEntityCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+        return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
       }
       return renderAutomationCard(cardId, dragProps, getControls, cardStyle);
     }
@@ -2761,12 +2686,12 @@ export default function App() {
     }
 
     const genericSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
-    if (genericSettings.type === 'entity' || genericSettings.type === 'toggle') {
-      return renderGenericEntityCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+    if (genericSettings.type === 'sensor' || genericSettings.type === 'entity' || genericSettings.type === 'toggle') {
+      return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
-      return renderEntityCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+      return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     switch(cardId) {
@@ -3117,7 +3042,8 @@ export default function App() {
   const editId = showEditCardModal;
   const editEntity = editId ? entities[editId] : null;
   const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
-  const isEditGenericType = !!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle');
+  const isEditGenericType = !!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor');
+  const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
   const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
   const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
   const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || !!editEntity || ['power', 'energy_cost', 'climate', 'car', 'shield', 'rocky', 'weather'].includes(editId));
@@ -3239,10 +3165,15 @@ export default function App() {
               )}
               <p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none mt-2 opacity-50 tracking-[0.2em] md:tracking-[0.6em]">{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
-            <div className="flex flex-wrap gap-2.5 mt-0 font-sans items-center">
-              {(pagesConfig.header || []).map(id => personStatus(id))}
-              <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>
-              {reStatus()}{stStatus()}{poStatus()}{gaStatus()}{embyStatus()}{sonosStatus()}{drStatus(EILEV_DOOR_ID, t('door.eilev'))}{drStatus(OLVE_DOOR_ID, t('door.olve'))}{updateStatus()}
+            <div className="flex items-center justify-between w-full mt-0 font-sans">
+              <div className="flex flex-wrap gap-2.5 items-center min-w-0">
+                {(pagesConfig.header || []).map(id => personStatus(id))}
+                <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>
+                {reStatus()}{stStatus()}{poStatus()}{gaStatus()}{embyStatus()}{sonosStatus()}{drStatus(EILEV_DOOR_ID, t('door.eilev'))}{drStatus(OLVE_DOOR_ID, t('door.olve'))}
+              </div>
+              <div className="flex items-center pl-4">
+                {updateStatus()}
+              </div>
             </div>
           </div>
         </header>
@@ -3278,7 +3209,7 @@ export default function App() {
           </div>
           <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 justify-end">
             {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> {t('nav.addCard')}</button>}
-            {editMode && <button onClick={() => { const newCols = gridColumns === 3 ? 4 : 3; setGridColumns(newCols); localStorage.setItem('midttunet_grid_columns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {gridColumns === 3 ? '4' : '3'} {t('nav.columns')}</button>}
+              {editMode && <button onClick={() => { const currentCols = pageSettings[activePage]?.gridColumns ?? gridColumns; const newCols = currentCols === 3 ? 4 : 3; savePageSetting(activePage, 'gridColumns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {(pageSettings[activePage]?.gridColumns ?? gridColumns) === 3 ? '4' : '3'} {t('nav.columns')}</button>}
             {editMode && (
               <button onClick={() => {
                 const currentSettings = pageSettings[activePage];
@@ -3857,16 +3788,10 @@ export default function App() {
                   <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">{t('addCard.cardType')}</p>
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => setAddCardType('entity')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'entity' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      onClick={() => setAddCardType('sensor')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'sensor' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
-                      <LayoutGrid className="w-4 h-4" /> {t('addCard.type.entity')}
-                    </button>
-                    <button
-                      onClick={() => setAddCardType('toggle')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'toggle' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                    >
-                      <ToggleRight className="w-4 h-4" /> {t('addCard.type.toggle')}
+                      <Activity className="w-4 h-4" /> Sensor
                     </button>
                     <button
                       onClick={() => setAddCardType('light')}
@@ -4013,6 +3938,12 @@ export default function App() {
                           }
                           if (addCardType === 'media') {
                             return id.startsWith('media_player.');
+                          }
+                          if (addCardType === 'sensor') {
+                             return (id.startsWith('sensor.') || id.startsWith('input_number.') || id.startsWith('input_boolean.') || id.startsWith('binary_sensor.') || id.startsWith('switch.')) && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                          }
+                          if (addCardType === 'sensor') {
+                             return (id.startsWith('sensor.') || id.startsWith('input_number.') || id.startsWith('input_boolean.') || id.startsWith('binary_sensor.') || id.startsWith('switch.')) && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           }
                           if (addCardType === 'toggle') {
                             return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
@@ -4284,6 +4215,21 @@ export default function App() {
                         </button>
                     </div>
                   </>
+                )}
+
+                {isEditSensor && (
+                  <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+                    <div className="flex flex-col">
+                      <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">Controls</span>
+                      <span className="text-[10px] text-gray-500">Enable +/- or Toggle</span>
+                    </div>
+                    <button 
+                      onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showControls', !editSettings.showControls)}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showControls ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`} />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
