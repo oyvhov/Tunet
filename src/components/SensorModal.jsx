@@ -8,6 +8,7 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
   const [history, setHistory] = useState([]);
   const [historyEvents, setHistoryEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showAttributes, setShowAttributes] = useState(false);
 
   useEffect(() => {
     if (isOpen && entity && conn) {
@@ -173,15 +174,19 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
     .slice(0, 30);
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 backdrop-blur-[6px] bg-black/40 transition-all duration-300" 
-         onClick={onClose}>
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 transition-all duration-300" 
+          style={{
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          backdropFilter: 'blur(20px)'
+          }}
+          onClick={onClose}>
       
       <div 
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar rounded-[2rem] shadow-2xl relative font-sans flex flex-col transition-all"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar rounded-[2rem] shadow-2xl relative font-sans flex flex-col transition-all backdrop-blur-xl border popup-anim"
         style={{
-            backgroundColor: 'var(--modal-bg)', 
+            background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', 
+            borderColor: 'var(--glass-border)',
             color: 'var(--text-primary)'
-            /* No border for flatter look, using shadow effectively */
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -282,15 +287,26 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
             {/* Other Attributes */}
             {attributeEntries.length > 0 && (
                 <div className="pt-2">
-                     <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 mb-4">{t('sensorInfo.attributes')}</h3>
-                     <div className="flex flex-col gap-2">
-                        {attributeEntries.map(([key, value]) => (
-                        <div key={key} className="flex items-center justify-between py-2">
-                                <span className="text-sm text-[var(--text-secondary)] capitalize opacity-80">{key.replace(/_/g, ' ')}</span>
-                                <span className="text-sm font-medium text-[var(--text-primary)] text-right max-w-[65%] truncate opacity-90">{String(value)}</span>
-                            </div>
-                        ))}
-                     </div>
+                     <button
+                        type="button"
+                        onClick={() => setShowAttributes((prev) => !prev)}
+                        className="w-full flex items-center justify-between py-2 px-3 rounded-xl bg-[var(--glass-bg)]/20 hover:bg-[var(--glass-bg)]/35 transition-colors"
+                     >
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-70">{t('sensorInfo.attributes')}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">
+                          {showAttributes ? t('sensorInfo.hideAttributes') : t('sensorInfo.showAttributes')}
+                        </span>
+                     </button>
+                     {showAttributes && (
+                       <div className="flex flex-col gap-2 mt-3">
+                          {attributeEntries.map(([key, value]) => (
+                          <div key={key} className="flex items-center justify-between py-2">
+                                  <span className="text-sm text-[var(--text-secondary)] capitalize opacity-80">{key.replace(/_/g, ' ')}</span>
+                                  <span className="text-sm font-medium text-[var(--text-primary)] text-right max-w-[65%] truncate opacity-90">{String(value)}</span>
+                              </div>
+                          ))}
+                       </div>
+                     )}
                 </div>
             )}
         </div>

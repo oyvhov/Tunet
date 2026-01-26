@@ -54,3 +54,48 @@ export async function getForecast(conn, { entityId, type = 'hourly' }) {
   const fc = res && res[entityId] && res[entityId].forecast;
   return Array.isArray(fc) ? fc : [];
 }
+
+export async function getCalendarEvents(conn, { start, end, entityIds }) {
+  if (!conn) throw new Error('No HA connection');
+  const res = await conn.sendMessagePromise({
+    type: 'call_service',
+    domain: 'calendar',
+    service: 'get_events',
+    target: { entity_id: entityIds },
+    service_data: {
+      start_date_time: start.toISOString(),
+      end_date_time: end.toISOString()
+    },
+    return_response: true
+  });
+
+  const normalized = {};
+  const addEntries = (obj) => {
+    if (!obj || typeof obj !== 'object') return;
+    Object.entries(obj).forEach(([key, value]) => {
+      if (value && Array.isArray(value.events)) {
+        normalized[key] = value;
+      } else if (Array.isArray(value)) {
+        normalized[key] = { events: value };
+      }
+    });
+  };
+
+  // Common response shapes
+  addEntries(res?.service_response?.calendar);
+  addEntries(res?.service_response);
+  addEntries(res?.response?.calendar);
+  addEntries(res?.response);
+  addEntries(res?.result?.calendar);
+  addEntries(res?.result);
+  addEntries(res?.calendar);
+  addEntries(res);
+
+  // If still empty but single calendar returns events directly
+  if (!Object.keys(normalized).length && res?.events && Array.isArray(res.events)) {
+    const key = Array.isArray(entityIds) && entityIds.length === 1 ? entityIds[0] : 'calendar';
+    normalized[key] = { events: res.events };
+  }
+
+  return normalized;
+}

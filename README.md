@@ -1,181 +1,86 @@
-# 🏠 NoName Dashboard
+﻿#  NoName Dashboard
 
-A modern, responsive React dashboard application for home automation and energy monitoring, built with Vite and styled for optimal performance.
+A modern React dashboard for home automation and energy monitoring with Home Assistant integration.
 
-## 📋 Overview
+## Features
 
-NoName is a feature-rich home automation dashboard that integrates with smart home systems to provide real-time monitoring and control of:
+- Climate & heating control
+- Energy consumption tracking with real-time pricing
+- Vehicle status monitoring (Nissan Leaf)
+- Lighting control with color/warmth adjustment
+- Door sensors & presence detection
+- Media player control (Sonos, Jellyfin, Emby)
+- Customizable dashboard layout & header
+- Dark/Light theme
+- Multi-language (English, Nynorsk)
 
-- 🌡️ Climate and heating systems
-- ⚡ Energy consumption and pricing
-- 🚗 Vehicle status and battery levels
-- 💡 Lighting control
-- 🚪 Door sensors and presence detection
-- 📊 Data visualization and analytics
-- 🌍 Internationalization support (English & Nynorsk)
-- ✏️ Customizable dashboard header and layout
-
-## � Summary
-
-NoName consolidates household telemetry and control into a single, easy-to-use dashboard. It aggregates data from smart meters, thermostats, EV chargers, and sensors to visualize consumption trends, optimize energy usage based on price signals, and provide quick access to device controls. The UI focuses on clarity and real-time updates so users can make informed decisions about energy and comfort.
-
-## 🖼️ Screenshots & Features
-
-### Main Dashboard
-The central hub displays all key information at a glance with real-time updates.
+## Main Dashboard
 
 ![Main Dashboard](public/1.Main.jpg)
 
-### Light page
-Monitor and control your heating systems and heat pump settings for optimal comfort.
-
-![Heating Systems](public/2.lights.jpg)
-
-### Automation page
-View and manage automations
-
-![Automations](public/3.automations.jpg)
-
-### Settings & Configuration
-Customize dashboard preferences and device integrations to suit your needs.
-
-![Settings](public/4.settings.jpg)
-
-### Edit Dashboard
-Personalize your dashboard layout by arranging and editing dashboard elements.
-
-![Edit Dashboard](public/5.edit_main.jpg)
-
-### Heat Pump popup
-Detailed heat pump monitoring with popup interface for advanced settings.
-
-![Heat Pump Popup](public/6.Popu_heatpump.jpg)
-
-### Light Popup
-Quick access lighting controls with preset options and brightness adjustment.
-
-![Lights Popup](public/7.Popup_lights.jpg)
-
-### Sonos 
-Control your Sonos audio system directly from the dashboard.
-
-![Sonos Control](public/8.Popup_Sonos.jpg)
-
-### Grid View
-Alternative grid-based view layout for organizing smart home devices.
-
-![Grid View](public/9.GridView.jpg)
-
-### Add New Devices
-Simple interface to add new entities and devices to your smart home system.
-
-![Add Entity](public/10.Add_entity.jpg)
-
-### Add Lighting Zones
-Configure and add new lighting zones for advanced lighting automation.
-
-![Add Lighting](public/11.Add_light.jpg)
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
-- Node.js 18+ (or Docker Desktop for containerized setup)
-- npm or yarn package manager
+
+- Node.js 18+
+- Home Assistant instance with API token
 
 ### Installation
 
-1. Clone the repository:
-```bash
+\\\ash
 git clone https://github.com/oyvhov/NoName.git
 cd NoName
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Start the development server:
-```bash
 npm run dev
-```
+\\\
 
-The application will be available at `http://localhost:5173`
+Access at \http://localhost:5173\
 
-## 🛠️ Development
+## Configuration
 
-### Available Scripts
+1. Open dashboard settings ()
+2. Add Home Assistant URL and token
+3. Customize layout in edit mode
 
-- `npm run dev` - Start Vite development server with hot module replacement
-- `npm run build` - Build for production with optimizations
-- `npm run preview` - Preview the production build locally
-- `npm run lint` - Run ESLint to check code quality
+## Build & Deploy
 
-## 📦 Technologies
+\\\ash
+npm run build
+\\\
 
-- **React 18** - UI library for building components
-- **Vite 7** - Fast build tool and dev server
-- **Lucide React** - Modern icon library
-- **Tailwind CSS** - Utility-first CSS framework (styling)
-- **i18n** - Internationalization with English and Nynorsk (Norwegian) language support
-
-## 🐳 Docker Support
-
-The project includes Docker configuration for easy deployment:
-
-```bash
+Docker:
+\\\ash
 docker-compose up
-```
+\\\
 
-This will build and run the application in a Docker container.
+## Light Control
 
-## 📁 Project Structure
+![Light Control](public/7.Popup_lights.jpg)
 
-```
-NoName/
-├── src/
-│   ├── App.jsx          # Main application component
-│   ├── main.jsx         # React entry point
-│   ├── components/      # Reusable UI components
-│   ├── hooks/           # Custom React hooks
-│   ├── services/        # API and service integrations
-│   └── i18n/            # Internationalization files
-│       ├── en.json      # English translations
-│       └── nn.json      # Nynorsk (Norwegian) translations
-├── public/              # Static assets
-├── index.html           # HTML template
-├── package.json         # Dependencies and scripts
-├── vite.config.js       # Vite configuration
-├── Dockerfile           # Docker image definition
-├── docker-compose.yml   # Docker compose setup
-└── README.md            # This file
-```
+## Technologies
 
-## ✨ Key Features
+- React 18
+- Vite 7
+- Tailwind CSS
+- Lucide Icons
+- Home Assistant API
 
-### Customizable Dashboard
-- **Editable Header**: Customize the dashboard title to personalize your experience
-- **Layout Controls**: Adjust header size and arrangement in edit mode
-- **Persistent Settings**: All customizations are saved locally
+## Project Structure
 
-### Internationalization
-- **Multi-language Support**: Toggle between English and Nynorsk (Norwegian)
-- **Localized Components**: All UI elements, labels, and messages are fully translated
-- **Dynamic Language Switching**: Change language without reloading the page
+\\\
+src/
+ App.jsx              # Main component
+ components/          # UI components
+ hooks/              # Custom hooks
+ services/           # HA integration
+ i18n/               # Translations
+ themes.js           # Theme config
+\\\
 
-### Real-time Monitoring
-- **Live Data Updates**: WebSocket connection for instant updates
-- **Energy Pricing**: Real-time electricity price tracking and visualization
-- **Climate Control**: Monitor and control heating systems and temperature
+## License
 
-## 🤝 Contributing
+MIT - See [LICENSE](LICENSE) for details
 
-Contributions are welcome! Feel free to submit issues or pull requests.
+## Author
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-Created by [oyvhov](https://github.com/oyvhov)
+[oyvhov](https://github.com/oyvhov)

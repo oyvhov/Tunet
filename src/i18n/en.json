@@ -81,7 +81,9 @@
   "addCard.type.media": "Media",
   "addCard.type.sonos": "Sonos",
   "addCard.type.weather": "Weather/Temp",
-  "addCard.weatherRequired": "Weather sensor (required)",
+  "addCard.type.calendar": "Calendar",
+  "addCard.weatherRequired": "Weather sensor required",
+  "addCard.calendarDescription": "Add a calendar card. You can select calendars after adding the card.",
   "addCard.noWeatherSensors": "No weather sensors found",
   "addCard.noTempSensors": "No temperature sensors found",
   "addCard.useWeatherTemp": "Use temperature from weather",
@@ -247,6 +249,8 @@
   "sensorInfo.lastUpdated": "Last updated",
   "sensorInfo.state": "State",
   "sensorInfo.attributes": "Attributes",
+  "sensorInfo.showAttributes": "Show attributes",
+  "sensorInfo.hideAttributes": "Hide attributes",
   "sensorInfo.noHistory": "No history data available",
   "history.activity": "Activity",
   "history.last24h": "Last 24h",
@@ -268,5 +272,12 @@
   "time.minutesAgo": "{minutes} min ago",
   "time.hoursAgo": "{hours} hours ago",
   "time.hoursMinutesAgo": "{hours}h {minutes}m ago",
-  "time.unknown": "unknown time"
+  "time.unknown": "unknown time",
+  "calendar.title": "Calendar",
+  "calendar.selectCalendars": "Select Calendars",
+  "calendar.noCalendarsFound": "No calendars found",
+  "calendar.select.title": "Calendars",
+  "calendar.today": "Today",
+  "calendar.tomorrow": "Tomorrow",
+  "calendar.noEvents": "No upcoming events"
 }

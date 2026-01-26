@@ -152,6 +152,7 @@ import { themes } from './themes';
 import EnergyPowerCard from './components/EnergyPowerCard';
 import EnergyCostCard from './components/EnergyCostCard';
 import ClimateCard from './components/ClimateCard';
+import CalendarCard from './components/CalendarCard';
 import useEnergyData from './hooks/useEnergyData';
 import useClimateInfo from './hooks/useClimateInfo';
 import BarGraph from './components/BarGraph';
@@ -210,6 +211,7 @@ export default function App() {
   const [showPowerModal, setShowPowerModal] = useState(false);
   const [showClimateModal, setShowClimateModal] = useState(false);
   const [showLightModal, setShowLightModal] = useState(null);
+  const [lightControlTab, setLightControlTab] = useState('brightness');
   const [showLeafModal, setShowLeafModal] = useState(false);
   const [showShieldModal, setShowShieldModal] = useState(false);
   const [showRockyModal, setShowRockyModal] = useState(false);
@@ -531,6 +533,12 @@ export default function App() {
     const timer = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (showLightModal) {
+      setLightControlTab('brightness');
+    }
+  }, [showLightModal]);
 
   useEffect(() => {
     localStorage.setItem('midttunet_language', language);
@@ -993,6 +1001,7 @@ export default function App() {
     if (cardId.startsWith('media_player.')) return true;
     if (cardId.startsWith('media_group_')) return true;
     if (cardId.startsWith('weather_temp_')) return true;
+    if (cardId.startsWith('calendar_card_')) return true;
     return false;
   };
 
@@ -1209,6 +1218,19 @@ export default function App() {
       setSelectedTempId(null);
       setShowAddCardModal(false);
       return;
+    }
+
+    if (addCardType === 'calendar') {
+        const cardId = selectedEntities.length === 1 && selectedEntities[0].startsWith('calendar_card_') 
+            ? selectedEntities[0] 
+            : `calendar_card_${Date.now()}`;
+            
+        newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+        setPagesConfig(newConfig);
+        localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+        
+        setShowAddCardModal(false);
+        return;
     }
 
     if (addCardType === 'media') {
@@ -2146,6 +2168,8 @@ export default function App() {
   const getCardGridSpan = (cardId) => {
     if (cardId.startsWith('automation.')) return 1;
 
+    if (cardId.startsWith('calendar_card_')) return 4;
+
     if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
       const resolvedId = resolveLightId(cardId);
       const settingsKey = getCardSettingsKey(cardId);
@@ -2593,6 +2617,24 @@ export default function App() {
       return renderMediaGroupCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
+    if (cardId.startsWith('calendar_card_')) {
+      return (
+        <CalendarCard 
+           key={cardId}
+           cardId={cardId}
+           settings={cardSettings[settingsKey] || cardSettings[cardId] || {}}
+           conn={conn}
+           t={t}
+           dragProps={dragProps}
+           getControls={getControls}
+           isEditMode={editMode}
+           className="h-full"
+           style={cardStyle}
+           onClick={(e) => { e.stopPropagation(); if (editMode) { setShowEditCardModal(cardId); setEditCardSettingsKey(settingsKey); } }}
+        />
+      );
+    }
+
     if (cardId.startsWith('weather_temp_')) {
       return renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
@@ -2954,6 +2996,7 @@ export default function App() {
   const editId = showEditCardModal;
   const editEntity = editId ? entities[editId] : null;
   const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
+  const isEditCalendar = !!editId && editId.startsWith('calendar_card_');
   const isEditGenericType = !!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor');
   const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
   const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
@@ -2984,6 +3027,13 @@ export default function App() {
           @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes popupIn {
+            0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          .popup-anim {
+            animation: popupIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           }
           .fade-in-anim {
             animation: fadeIn 0.4s ease-out forwards;
@@ -3194,6 +3244,8 @@ export default function App() {
           <div key={activePage} className="grid gap-8 font-sans fade-in-anim items-start" style={{ gridAutoRows: '100px', gridTemplateColumns: `repeat(${gridColCount}, minmax(0, 1fr))` }}>
             {(pagesConfig[activePage] || []).map((id, index) => {
               const placement = gridLayout[id];
+              const isCalendarCard = id.startsWith('calendar_card_');
+              const forcedSpan = isCalendarCard ? 4 : placement?.span;
 
               if (!editMode && (hiddenCards.includes(id) || isCardHiddenByLogic(id))) return null;
               if (!placement) return null;
@@ -3205,7 +3257,8 @@ export default function App() {
                   style={{
                     gridRowStart: placement.row,
                     gridColumnStart: placement.col,
-                    gridRowEnd: `span ${placement.span}`
+                    gridRowEnd: `span ${forcedSpan}`,
+                    minHeight: isCalendarCard ? '496px' : undefined
                   }}
                 >
                   {renderCard(id, index)}
@@ -3216,8 +3269,8 @@ export default function App() {
         )}
         
         {showConfigModal && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowConfigModal(false)}>
-            <div className="border w-full max-w-xl max-h-[95vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowConfigModal(false)}>
+            <div className="border w-full max-w-xl max-h-[95vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowConfigModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
               <h3 className="text-xl font-light mb-4 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('system.title')}</h3>
 
@@ -3281,8 +3334,8 @@ export default function App() {
         )}
 
         {showPowerModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowPowerModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[80vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowPowerModal(false)}>
+            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[80vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowPowerModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               <div className="flex items-center gap-6 mb-6">
                 <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#fbbf24'}}><Zap className="w-10 h-10" /></div>
@@ -3310,8 +3363,8 @@ export default function App() {
         )}
 
         {showClimateModal && entities[CLIMATE_ID] && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowClimateModal(false)}>
-            <div className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto" style={{backgroundColor: isHeating ? 'rgba(249, 115, 22, 0.01)' : isCooling ? 'rgba(59, 130, 246, 0.01)' : 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowClimateModal(false)}>
+            <div className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowClimateModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               <div className="flex items-center gap-8 mb-12 font-sans">
                 <div className="p-6 rounded-3xl transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)'}}>
@@ -3362,15 +3415,59 @@ export default function App() {
         )}
 
         {showLightModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowLightModal(null)}>
-            <div className="border w-full max-w-xl rounded-3xl md:rounded-[2.5rem] p-6 font-sans relative max-h-[80vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowLightModal(null)}>
+            <div className="border w-full max-w-xl rounded-3xl md:rounded-[2.5rem] p-6 font-sans relative max-h-[80vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               
               {(() => {
                 const entity = entities[showLightModal];
                 const isUnavailable = entity?.state === 'unavailable' || entity?.state === 'unknown' || !entity;
+                const colorModes = entity?.attributes?.supported_color_modes || [];
+                const supportsColorTemp = colorModes.includes('color_temp') || colorModes.includes('color_temp_kelvin');
+                const supportsColor = colorModes.some((mode) => ['hs', 'rgb', 'xy'].includes(mode));
+                const showPills = supportsColorTemp || supportsColor;
+                const activeTab = (lightControlTab === 'warmth' && !supportsColorTemp)
+                  ? 'brightness'
+                  : (lightControlTab === 'color' && !supportsColor)
+                    ? 'brightness'
+                    : lightControlTab;
+                const minKelvin = entity?.attributes?.min_color_temp_kelvin
+                  || (entity?.attributes?.max_mireds ? Math.round(1000000 / entity.attributes.max_mireds) : 2000);
+                const maxKelvin = entity?.attributes?.max_color_temp_kelvin
+                  || (entity?.attributes?.min_mireds ? Math.round(1000000 / entity.attributes.min_mireds) : 6500);
+                const currentKelvin = entity?.attributes?.color_temp_kelvin
+                  || (entity?.attributes?.color_temp ? Math.round(1000000 / entity.attributes.color_temp) : Math.round((minKelvin + maxKelvin) / 2));
+                const currentHue = entity?.attributes?.hs_color?.[0] ?? 0;
                 
                 return (
                   <>
+              <style>{`
+                .light-slider {
+                  -webkit-appearance: none;
+                  width: 100%;
+                  height: 10px;
+                  border-radius: 999px;
+                  outline: none;
+                }
+                .light-slider::-webkit-slider-thumb {
+                  -webkit-appearance: none;
+                  width: 18px;
+                  height: 18px;
+                  border-radius: 50%;
+                  background: white;
+                  border: 2px solid rgba(255,255,255,0.6);
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+                  cursor: pointer;
+                }
+                .light-slider::-moz-range-thumb {
+                  width: 18px;
+                  height: 18px;
+                  border-radius: 50%;
+                  background: white;
+                  border: 2px solid rgba(255,255,255,0.6);
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+                  cursor: pointer;
+                }
+              `}</style>
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-5">
                   <div className="p-4 rounded-2xl" style={{backgroundColor: isUnavailable ? 'rgba(239, 68, 68, 0.1)' : 'rgba(217, 119, 6, 0.15)', color: isUnavailable ? '#ef4444' : '#fbbf24'}}>
@@ -3396,13 +3493,86 @@ export default function App() {
               </div>
 
               <div className="space-y-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-end px-1">
-                    <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Hovudstyrke</p>
-                    <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : (entity?.state === 'on' ? Math.round(((getA(showLightModal, "brightness") || 0) / 255) * 100) : 0)}%</p>
+                {showPills && (
+                  <div className="flex items-center gap-2 bg-[var(--glass-bg)] border border-[var(--glass-border)] p-1 rounded-full">
+                    <button
+                      onClick={() => setLightControlTab('brightness')}
+                      className={`flex-1 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === 'brightness' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+                    >
+                      Lysstyrke
+                    </button>
+                    {supportsColorTemp && (
+                      <button
+                        onClick={() => setLightControlTab('warmth')}
+                        className={`flex-1 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === 'warmth' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+                      >
+                        Varme
+                      </button>
+                    )}
+                    {supportsColor && (
+                      <button
+                        onClick={() => setLightControlTab('color')}
+                        className={`flex-1 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === 'color' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+                      >
+                        Farge
+                      </button>
+                    )}
                   </div>
-                  <M3Slider min={0} max={255} step={1} value={getA(showLightModal, "brightness") || 0} disabled={entity?.state !== 'on' || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
-                </div>
+                )}
+
+                {(!showPills || activeTab === 'brightness') && (
+                  <div className="space-y-3 min-h-[96px]">
+                    <div className="flex justify-between items-end px-1">
+                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Hovudstyrke</p>
+                      <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : (entity?.state === 'on' ? Math.round(((getA(showLightModal, "brightness") || 0) / 255) * 100) : 0)}%</p>
+                    </div>
+                    <M3Slider min={0} max={255} step={1} value={getA(showLightModal, "brightness") || 0} disabled={entity?.state !== 'on' || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+                  </div>
+                )}
+
+                {showPills && activeTab === 'warmth' && supportsColorTemp && (
+                  <div className="space-y-3 min-h-[96px]">
+                    <div className="flex justify-between items-end px-1">
+                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Varme</p>
+                      <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : `${currentKelvin}K`}</p>
+                    </div>
+                    <input
+                      type="range"
+                      min={minKelvin}
+                      max={maxKelvin}
+                      step={50}
+                      value={currentKelvin}
+                      disabled={entity?.state !== 'on' || isUnavailable}
+                      onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, color_temp_kelvin: parseInt(e.target.value, 10) })}
+                      className="light-slider"
+                      style={{
+                        background: 'linear-gradient(90deg, #f59e0b 0%, #fde68a 50%, #93c5fd 100%)'
+                      }}
+                    />
+                  </div>
+                )}
+
+                {showPills && activeTab === 'color' && supportsColor && (
+                  <div className="space-y-3 min-h-[96px]">
+                    <div className="flex justify-between items-end px-1">
+                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Farge</p>
+                      <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : `${Math.round(currentHue)}°`}</p>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={360}
+                      step={1}
+                      value={currentHue}
+                      disabled={entity?.state !== 'on' || isUnavailable}
+                      onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, hs_color: [parseInt(e.target.value, 10), 100] })}
+                      className="light-slider"
+                      style={{
+                        background: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 16%, #facc15 32%, #22c55e 48%, #06b6d4 64%, #6366f1 80%, #d946ef 100%)'
+                      }}
+                    />
+                  </div>
+                )}
 
                 {getA(showLightModal, "entity_id", []).length > 0 && (
                   <div className="space-y-4 pt-6 border-t" style={{borderColor: 'var(--glass-border)'}}>
@@ -3412,7 +3582,7 @@ export default function App() {
                         const subEnt = entities[cid];
                         const subUnavail = subEnt?.state === 'unavailable' || subEnt?.state === 'unknown' || !subEnt;
                         return (
-                        <div key={cid} className={`p-4 rounded-2xl popup-surface flex items-center gap-4 transition-all ${subUnavail ? 'opacity-50' : ''}`}>
+                        <div key={cid} className={`px-3 py-2 rounded-xl bg-[var(--glass-bg)]/20 flex items-center gap-3 transition-all ${subUnavail ? 'opacity-50' : 'hover:bg-[var(--glass-bg)]/35'}`}>
                           <span className="text-xs font-bold uppercase tracking-widest text-gray-300 w-1/3 truncate">{subEnt?.attributes?.friendly_name || cid.split('.')[1].replace(/_/g, ' ')}</span>
                           <div className="flex-grow">
                             <M3Slider min={0} max={255} step={1} value={subEnt?.attributes?.brightness || 0} disabled={subEnt?.state !== 'on' || subUnavail} onChange={(e) => callService("light", "turn_on", { entity_id: cid, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
@@ -3434,8 +3604,8 @@ export default function App() {
         )}
 
         {showShieldModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowShieldModal(false)}>
-            <div className="border w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative font-sans" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowShieldModal(false)}>
+            <div className="border w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative font-sans backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
                <button onClick={() => setShowShieldModal(false)} className="absolute top-6 right-6 modal-close"><X className="w-4 h-4" /></button>
                
                <div className="flex flex-col items-center gap-8 mt-4">
@@ -3470,8 +3640,8 @@ export default function App() {
         )}
 
         {showRockyModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowRockyModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowRockyModal(false)}>
+            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowRockyModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               
               <div className="flex items-center gap-6 mb-10">
@@ -3508,8 +3678,8 @@ export default function App() {
         )}
 
         {showLeafModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowLeafModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowLeafModal(false)}>
+            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
                 <div className="flex items-center gap-6">
@@ -3596,8 +3766,8 @@ export default function App() {
         )}
 
         {showUpdateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }}>
-            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans max-h-[85vh] overflow-y-auto" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }}>
+            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans max-h-[85vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
               <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('updates.title')}</h3>
               
@@ -3667,7 +3837,7 @@ export default function App() {
         )}
 
         {showAddCardModal && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowAddCardModal(false)}>
+          <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowAddCardModal(false)}>
             <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
@@ -3683,7 +3853,7 @@ export default function App() {
                 background: rgba(255, 255, 255, 0.25);
               }
             `}</style>
-            <div className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+            <div className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowAddCardModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
               <h3 className="text-xl font-light mb-5 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('modal.addCard.title')}</h3>
               
@@ -3734,6 +3904,12 @@ export default function App() {
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'weather' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <CloudSun className="w-4 h-4" /> {t('addCard.type.weather')}
+                    </button>
+                    <button
+                      onClick={() => setAddCardType('calendar')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'calendar' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <Calendar className="w-4 h-4" /> {t('addCard.type.calendar') || 'Calendar'}
                     </button>
                   </div>
                 </div>
@@ -3831,6 +4007,19 @@ export default function App() {
                       <p className="font-bold uppercase tracking-widest text-[10px] text-gray-500 mb-2">{t('sonos.createTitle')}</p>
                       <p className="leading-relaxed">{t('sonos.createDescription')}</p>
                     </div>
+                  </div>
+                ) : addCardType === 'calendar' ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
+                    <div className="p-4 rounded-full bg-blue-500/10 text-blue-400">
+                      <Calendar className="w-8 h-8" />
+                    </div>
+                    <p className="text-gray-400 max-w-xs text-sm">{t('addCard.calendarDescription') || 'Add a calendar card. You can select calendars after adding the card.'}</p>
+                    <button 
+                      onClick={() => handleAddSelected()}
+                      className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+                    >
+                      {t('addCard.add')}
+                    </button>
                   </div>
                 ) : (
                   <div>
@@ -3958,6 +4147,7 @@ export default function App() {
           canEditIcon={canEditIcon}
           canEditStatus={canEditStatus}
           isEditLight={isEditLight}
+          isEditCalendar={isEditCalendar}
           isEditGenericType={isEditGenericType}
           isEditSensor={isEditSensor}
           editSettingsKey={editSettingsKey}
@@ -3982,8 +4172,8 @@ export default function App() {
         />
 
         {showCameraModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowCameraModal(false)}>
-            <div className="border w-full max-w-4xl rounded-[3rem] p-4 shadow-2xl relative font-sans overflow-hidden" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowCameraModal(false)}>
+            <div className="border w-full max-w-4xl rounded-[3rem] p-4 shadow-2xl relative font-sans overflow-hidden backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowCameraModal(false)} className="absolute top-6 right-6 modal-close modal-close-dark z-10" style={{backdropFilter: 'blur(10px)'}}><X className="w-4 h-4" /></button>
               <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden bg-black relative">
                  {entities[CAMERA_PORTEN_ID] ? (
@@ -4001,8 +4191,8 @@ export default function App() {
         )}
 
         {activeMediaModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 backdrop-blur-3xl bg-black/70 font-sans" onClick={() => setActiveMediaModal(null)}>
-            <div className="w-full max-w-5xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative max-h-[95vh] overflow-y-auto md:overflow-hidden flex flex-col md:flex-row gap-6 md:gap-12" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)', borderWidth: '1px'}} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setActiveMediaModal(null)}>
+            <div className="w-full max-w-5xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative max-h-[95vh] overflow-y-auto md:overflow-hidden flex flex-col md:flex-row gap-6 md:gap-12 border backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setActiveMediaModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close z-20"><X className="w-4 h-4" /></button>
               
               {(() => {

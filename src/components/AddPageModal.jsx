@@ -7,11 +7,11 @@ const AddPageModal = ({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPa
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{
-      backdropFilter: 'blur(48px)', 
-      backgroundColor: 'var(--modal-backdrop)'
+      backdropFilter: 'blur(20px)', 
+      backgroundColor: 'rgba(0,0,0,0.3)'
     }} onClick={onClose}>
-      <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl relative font-sans" style={{
-        backgroundColor: 'var(--modal-bg)', 
+      <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl relative font-sans backdrop-blur-xl popup-anim" style={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', 
         borderColor: 'var(--glass-border)', 
         color: 'var(--text-primary)'
       }} onClick={(e) => e.stopPropagation()}>

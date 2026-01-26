@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import M3Slider from './M3Slider';
 import IconPicker from './IconPicker';
 
@@ -15,6 +15,7 @@ const EditCardModal = ({
   isEditLight, 
   isEditGenericType,
   isEditSensor,
+  isEditCalendar,
   editSettingsKey,
   editSettings,
   customNames,
@@ -31,8 +32,8 @@ const EditCardModal = ({
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" style={{
-      backdropFilter: 'blur(48px)', 
-      backgroundColor: 'var(--modal-backdrop)'
+      backdropFilter: 'blur(20px)', 
+      backgroundColor: 'rgba(0,0,0,0.3)'
     }} onClick={onClose}>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -49,8 +50,8 @@ const EditCardModal = ({
           background: rgba(255, 255, 255, 0.25);
         }
       `}</style>
-      <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans" style={{
-        backgroundColor: 'var(--modal-bg)', 
+      <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans backdrop-blur-xl popup-anim" style={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', 
         borderColor: 'var(--glass-border)', 
         color: 'var(--text-primary)'
       }} onClick={(e) => e.stopPropagation()}>
@@ -149,6 +150,38 @@ const EditCardModal = ({
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showGraph !== false ? 'left-7' : 'left-1'}`} />
               </button>
+            </div>
+          )}
+
+          {isEditCalendar && (
+            <div className="space-y-4">
+               <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-2 block">{t('calendar.selectCalendars') || 'Select Calendars'}</label>
+               <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl p-4 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
+                  {Object.keys(entities).filter(id => id.startsWith('calendar.')).length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">{t('calendar.noCalendarsFound') || 'No calendars found'}</p>
+                  ) : (
+                      Object.keys(entities).filter(id => id.startsWith('calendar.')).map(calId => {
+                        const calendars = editSettings.calendars || [];
+                        const isSelected = calendars.includes(calId);
+                        return (
+                            <div key={calId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
+                                const newCalendars = isSelected 
+                                    ? calendars.filter(c => c !== calId) 
+                                    : [...calendars, calId];
+                                saveCardSetting(editSettingsKey, 'calendars', newCalendars);
+                            }}>
+                                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium text-[var(--text-primary)]">{entities[calId].attributes?.friendly_name || calId}</span>
+                                    <span className="text-[10px] text-gray-500 font-mono">{calId}</span>
+                                </div>
+                            </div>
+                        );
+                      })
+                  )}
+               </div>
             </div>
           )}
         </div>
