@@ -13,7 +13,8 @@ const SensorCard = ({
   name, 
   editMode, 
   controls,
-  onControl 
+  onControl,
+  onOpen
 }) => {
   if (!entity) return null;
 
@@ -179,7 +180,7 @@ const SensorCard = ({
 
   if (isSmall) {
     return (
-      <div {...dragProps} className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+      <div {...dragProps} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
         {controls}
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className="w-12 h-12 rounded-2xl bg-[var(--glass-bg)] flex-shrink-0 flex items-center justify-center text-[var(--text-secondary)]">
@@ -221,7 +222,7 @@ const SensorCard = ({
   }
 
   return (
-    <div {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-default' : 'cursor-move'}`} style={cardStyle}>
+    <div {...dragProps} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-default' : 'cursor-move'}`} style={cardStyle}>
       {controls}
       
       <div className="absolute -bottom-4 -right-4 text-[var(--glass-border)] opacity-[0.03] pointer-events-none">
@@ -229,9 +230,9 @@ const SensorCard = ({
       </div>
 
       {showGraph && history.length > 0 && (
-         <div className="absolute inset-x-0 bottom-0 h-24 z-0 pointer-events-none">
-            <SparkLine data={history} height={96} currentIndex={history.length - 1} />
-         </div>
+        <div className="absolute inset-x-0 bottom-2 h-24 z-0 pointer-events-none">
+          <SparkLine data={history} height={96} currentIndex={history.length - 1} fade />
+        </div>
       )}
 
       <div className="relative z-10 flex justify-between items-start">

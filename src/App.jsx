@@ -144,6 +144,7 @@ import InteractivePowerGraph from './components/InteractivePowerGraph';
 import SparkLine from './components/SparkLine';
 import WeatherGraph from './components/WeatherGraph';
 import SensorCard from './components/SensorCard';
+import SensorModal from './components/SensorModal';
 import { themes } from './themes';
 import EnergyPowerCard from './components/EnergyPowerCard';
 import EnergyCostCard from './components/EnergyCostCard';
@@ -316,6 +317,7 @@ export default function App() {
   const [expandedUpdate, setExpandedUpdate] = useState(null);
   const [releaseNotes, setReleaseNotes] = useState({});
   const [showEditCardModal, setShowEditCardModal] = useState(null);
+  const [showSensorInfoModal, setShowSensorInfoModal] = useState(null);
   const [editCardSettingsKey, setEditCardSettingsKey] = useState(null);
   const [customNames, setCustomNames] = useState({});
   const [customIcons, setCustomIcons] = useState({});
@@ -392,7 +394,7 @@ export default function App() {
 
   const resetToHome = () => {
     const isHome = activePage === 'home';
-    const noModals = !showPowerModal && !showClimateModal && !showLightModal && !showLeafModal && !showShieldModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !activeMediaModal && !editingPage && !editMode;
+    const noModals = !showPowerModal && !showClimateModal && !showLightModal && !showLeafModal && !showShieldModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
     
     if (!isHome || !noModals) {
         setActivePage('home');
@@ -407,6 +409,7 @@ export default function App() {
         setShowConfigModal(false);
         setShowUpdateModal(false);
         setShowEditCardModal(null);
+        setShowSensorInfoModal(null);
         setEditCardSettingsKey(null);
         setActiveMediaModal(null);
         setActiveMediaGroupKey(null);
@@ -1369,6 +1372,7 @@ export default function App() {
         Icon={Icon}
         name={name}
         onControl={handleControl}
+        onOpen={() => { if (!editMode) setShowSensorInfoModal(cardId); }}
       />
     );
   };
@@ -1408,10 +1412,10 @@ export default function App() {
           
           <button 
             onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} 
-            className={`w-11 h-11 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`} 
+            className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`} 
             disabled={isUnavailable}
           >
-            <LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} />
+            <LightIcon className={`w-6 h-6 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} />
           </button>
 
           <div className="flex-1 flex flex-col gap-3 min-w-0 justify-center h-full pt-1">
@@ -1445,7 +1449,7 @@ export default function App() {
       <div key={cardId} {...dragProps} className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isOn ? 'rgba(59, 130, 246, 0.03)' : 'rgba(15, 23, 42, 0.6)', borderColor: isOn ? 'rgba(59, 130, 246, 0.15)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)')}} onClick={(e) => { if(!editMode) callService("automation", "toggle", { entity_id: cardId }); }}>
         {getControls(cardId)}
         <div className="flex items-center gap-4">
-          <div className={`p-2.5 rounded-xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-4 h-4" /></div>
+          <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
           <div className="flex flex-col"><div className="flex items-center gap-2"><span className="text-sm font-bold text-[var(--text-primary)] leading-tight">{friendlyName}</span></div><span className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)] mt-0.5">{isOn ? t('status.active') : t('status.off')}</span></div>
         </div>
         <div className={`w-10 h-6 rounded-full relative transition-all ${isOn ? 'bg-blue-500/80' : 'bg-[var(--glass-bg-hover)]'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`} /></div>
@@ -1466,9 +1470,9 @@ export default function App() {
         <div className="flex justify-between items-start font-sans">
           <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-green-500/10 text-green-400'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
           <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div>
-            {isHtg && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">Varmar</span></div>}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div>
+            {isHtg && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">Varmar</span></div>}
           </div>
         </div>
         <div className="flex justify-between items-end"><div><p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className={`text-2xl font-medium leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>{String(getS(LEAF_ID))}%</span>{isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}<span className="text-[var(--text-muted)] font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div></div>
@@ -1919,7 +1923,7 @@ export default function App() {
         
         <div className="flex justify-between items-start relative z-10">
            <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Gamepad2 className="w-5 h-5" /></div>
-           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}><span className="text-[10px] font-bold uppercase tracking-widest">{isOn ? (isPlaying ? t('status.playing') : t('common.on')) : t('common.off')}</span></div>
+           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}><span className="text-xs font-bold uppercase tracking-widest">{isOn ? (isPlaying ? t('status.playing') : t('common.on')) : t('common.off')}</span></div>
         </div>
 
         <div className="relative z-10">
@@ -3942,9 +3946,6 @@ export default function App() {
                           if (addCardType === 'sensor') {
                              return (id.startsWith('sensor.') || id.startsWith('input_number.') || id.startsWith('input_boolean.') || id.startsWith('binary_sensor.') || id.startsWith('switch.')) && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           }
-                          if (addCardType === 'sensor') {
-                             return (id.startsWith('sensor.') || id.startsWith('input_number.') || id.startsWith('input_boolean.') || id.startsWith('binary_sensor.') || id.startsWith('switch.')) && !(pagesConfig[addCardTargetPage] || []).includes(id);
-                          }
                           if (addCardType === 'toggle') {
                             return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           }
@@ -4235,6 +4236,16 @@ export default function App() {
             </div>
           </div>
         )}
+
+        <SensorModal 
+          isOpen={!!showSensorInfoModal}
+          onClose={() => setShowSensorInfoModal(null)}
+          entityId={showSensorInfoModal}
+          entity={entities[showSensorInfoModal]}
+          customName={customNames[showSensorInfoModal]}
+          conn={conn}
+          t={t}
+        />
 
         {showCameraModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(48px)', backgroundColor: 'var(--modal-backdrop)'}} onClick={() => setShowCameraModal(false)}>

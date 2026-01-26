@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-export default function SparkLine({ data, currentIndex, height = 40 }) {
+export default function SparkLine({ data, currentIndex, height = 40, fade = false }) {
   if (!data || data.length === 0) return null;
   
   const idSuffix = useMemo(() => Math.random().toString(36).substr(2, 9), []);
@@ -32,7 +32,7 @@ export default function SparkLine({ data, currentIndex, height = 40 }) {
   };
 
   return (
-    <div className="mt-2 relative opacity-80 group-hover:opacity-100 transition-all duration-700">
+    <div className="mt-1 relative opacity-80 group-hover:opacity-100 transition-all duration-700">
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
         <defs>
           <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" /><stop offset="50%" stopColor="#eab308" stopOpacity="0.2" /><stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" /></linearGradient>
@@ -42,6 +42,9 @@ export default function SparkLine({ data, currentIndex, height = 40 }) {
         <path d={pathData} fill="none" stroke={`url(#${lineId})`} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx={currentPoint.x} cy={currentPoint.y} r="3" fill={getDotColor(values[currentIndex])} className="animate-pulse" />
       </svg>
+      {fade && (
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--glass-bg)] opacity-60" />
+      )}
     </div>
   );
 }
