@@ -35,6 +35,26 @@ const M3Slider = ({ min, max, step, value, onChange, colorClass = "bg-blue-500",
     );
   }
 
+  if (variant === "thinLg") {
+    return (
+      <div className={`relative w-full h-6 flex items-center group cursor-pointer ${disabled ? 'opacity-30 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <div className="absolute w-full h-2 bg-white/10 rounded-full overflow-hidden group-hover:h-2.5 transition-all duration-300">
+          <div className={`h-full ${colorClass} transition-all duration-150 ease-out`} style={{ width: `${percentage}%` }} />
+        </div>
+        <input
+          type="range" min={min} max={max} step={step} value={internalValue} disabled={disabled}
+          onMouseDown={() => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); }}
+          onTouchStart={() => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); }}
+          onMouseUp={() => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); }}
+          onTouchEnd={() => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); }}
+          onChange={(e) => { setInternalValue(parseFloat(e.target.value)); onChange(e); }}
+          className="absolute w-full h-full opacity-0 cursor-pointer z-20"
+        />
+        <div className="absolute w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10" style={{ left: `calc(${percentage}% - 8px)` }} />
+      </div>
+    );
+  }
+
   if (variant === "volume") {
     return (
       <div className={`relative w-full h-10 flex items-center group ${disabled ? 'opacity-30 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>

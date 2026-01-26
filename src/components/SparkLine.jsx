@@ -1,11 +1,10 @@
-export default function SparkLine({ data, currentIndex }) {
+export default function SparkLine({ data, currentIndex, height = 40 }) {
   if (!data || data.length === 0) return null;
   const values = data.map(d => d.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
   const width = 300;
-  const height = 40;
   const points = values.map((v, i) => ({
     x: (i / (values.length - 1)) * width,
     y: height - ((v - min) / range) * height

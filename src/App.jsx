@@ -870,7 +870,7 @@ export default function App() {
     const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
 
     return (
-      <div key={id} className="group relative flex items-center gap-3 pl-1.5 pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)]" 
+      <div key={id} className="group relative flex items-center gap-2 sm:gap-3 pl-1.5 pr-2 sm:pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)]" 
            style={{
              backgroundColor: 'var(--glass-bg)', 
              boxShadow: isHome ? '0 0 20px rgba(34, 197, 94, 0.05)' : 'none',
@@ -900,7 +900,7 @@ export default function App() {
                style={{backgroundColor: isHome ? '#22c55e' : '#52525b', borderColor: 'var(--bg-primary)'}}></div>
         </div>
 
-        <div className="flex flex-col justify-center">
+        <div className="hidden sm:flex flex-col justify-center">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-[var(--text-primary)] leading-none tracking-wide">{name}</span>
           </div>
@@ -942,6 +942,10 @@ export default function App() {
 
   useEffect(() => {
     if (!showAddCardModal) return;
+    if (isSonosPage(addCardTargetPage)) {
+      setAddCardType('sonos');
+      return;
+    }
     if (addCardTargetPage === 'header' || addCardTargetPage === 'automations' || addCardTargetPage === 'settings') {
       setAddCardType('entity');
       return;
@@ -958,6 +962,7 @@ export default function App() {
     if (addCardTargetPage === 'automations') return t('addCard.available.automations');
     if (addCardTargetPage === 'settings') return t('addCard.available.allEntities');
     if (addCardType === 'vacuum') return t('addCard.available.vacuums');
+    if (addCardType === 'sonos') return t('addCard.available.sonos');
     if (addCardType === 'media') return t('addCard.available.players');
     if (addCardType === 'toggle') return t('addCard.available.toggles');
     if (addCardType === 'entity') return t('addCard.available.entities');
@@ -1115,6 +1120,12 @@ export default function App() {
     localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
   };
 
+  const savePageSetting = (id, setting, value) => {
+    const newSettings = { ...pageSettings, [id]: { ...(pageSettings[id] || {}), [setting]: value } };
+    setPageSettings(newSettings);
+    localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+  };
+
   const saveColumnTitle = (colIndex, title) => {
     const newConfig = { ...pagesConfig };
     newConfig.automations[colIndex].title = title;
@@ -1130,6 +1141,12 @@ export default function App() {
   const updateHeaderTitle = (newTitle) => {
     setHeaderTitle(newTitle);
     localStorage.setItem('midttunet_header_title', newTitle);
+  };
+
+  const isSonosPage = (pageId) => {
+    if (!pageId) return false;
+    const settings = pageSettings[pageId];
+    return settings?.type === 'sonos' || pageId.startsWith('sonos');
   };
 
   const isToggleEntity = (id) => {
@@ -1182,6 +1199,43 @@ export default function App() {
     setShowAddPageModal(false);
   };
 
+  const createSonosPage = () => {
+    const baseLabel = t('sonos.pageName');
+    const existingLabels = (pagesConfig.pages || []).map(id => pageSettings[id]?.label || pageDefaults[id]?.label || id);
+    let maxNum = 0;
+    existingLabels.forEach((label) => {
+      if (String(label).toLowerCase().startsWith(baseLabel.toLowerCase())) {
+        const match = String(label).match(/(\d+)$/);
+        const num = match ? parseInt(match[1], 10) : 1;
+        if (num > maxNum) maxNum = num;
+      }
+    });
+    const nextNum = maxNum + 1;
+    const label = nextNum === 1 ? baseLabel : `${baseLabel} ${nextNum}`;
+
+    const slugBase = baseLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'sonos';
+    let pageId = slugBase;
+    const existing = new Set(pagesConfig.pages || []);
+    let counter = 1;
+    while (existing.has(pageId)) {
+      counter += 1;
+      pageId = `${slugBase}_${counter}`;
+    }
+
+    const newConfig = { ...pagesConfig };
+    newConfig.pages = [...(newConfig.pages || []), pageId];
+    newConfig[pageId] = [];
+    setPagesConfig(newConfig);
+    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+
+    const newSettings = { ...pageSettings, [pageId]: { ...(pageSettings[pageId] || {}), label, icon: 'Speaker', type: 'sonos' } };
+    setPageSettings(newSettings);
+    localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+
+    setActivePage(pageId);
+    setShowAddCardModal(false);
+  };
+
   const deletePage = (pageId) => {
     if (!pageId || pageId === 'home') return;
     if (!window.confirm(t('confirm.deletePage'))) return;
@@ -1203,6 +1257,10 @@ export default function App() {
 
   const handleAddSelected = () => {
     const newConfig = { ...pagesConfig };
+    if (addCardType === 'sonos') {
+      createSonosPage();
+      return;
+    }
     if (addCardTargetPage === 'header') {
       newConfig.header = [...(newConfig.header || []), ...selectedEntities];
       setPagesConfig(newConfig);
@@ -1425,10 +1483,10 @@ export default function App() {
           
           <button 
             onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} 
-            className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`} 
+            className={`w-11 h-11 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`} 
             disabled={isUnavailable}
           >
-            <LightIcon className={`w-6 h-6 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} />
+            <LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} />
           </button>
 
           <div className="flex-1 flex flex-col gap-3 min-w-0 justify-center h-full pt-1">
@@ -1437,7 +1495,7 @@ export default function App() {
               <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round((br / 255) * 100)}%` : t('common.off')}</span>
             </div>
             <div className="w-full">
-               <M3Slider variant="thin" min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+               <M3Slider variant="thinLg" min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
             </div>
           </div>
         </div>
@@ -1484,10 +1542,200 @@ export default function App() {
           <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-green-500/10 text-green-400'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div>
             {isHtg && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-[10px] tracking-widest font-bold uppercase">Varmar</span></div>}
           </div>
         </div>
-        <div className="flex justify-between items-end"><div><p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className={`text-2xl font-medium leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>{String(getS(LEAF_ID))}%</span>{isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}<span className="text-[var(--text-muted)] font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div><div className="flex items-center gap-1 bg-[var(--glass-bg)] px-3 py-1.5 rounded-xl border border-[var(--glass-border)] font-sans"><Thermometer className="w-3 h-3 text-[var(--text-secondary)]" /><span className="text-sm font-bold text-[var(--text-primary)]">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div></div>
+        <div className="flex justify-between items-end"><div><p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className={`text-2xl font-medium leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>{String(getS(LEAF_ID))}%</span>{isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}<span className="text-[var(--text-muted)] font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div></div>
+      </div>
+    );
+  };
+
+  const renderSonosPageCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
+    if (sonosEntities.length === 0) return null;
+
+    const activeSonos = sonosEntities.filter(isSonosActive);
+    const localActiveId = cardSettings[settingsKey]?.activeId;
+    let currentSonos = sonosEntities.find(e => e.entity_id === localActiveId) || activeSonos.find(e => e.state === 'playing') || activeSonos[0] || sonosEntities[0];
+    if (!currentSonos) return null;
+
+    const sId = currentSonos.entity_id;
+    const sIsPlaying = currentSonos.state === 'playing';
+    const isLydplanke = sId === 'media_player.sonos_lydplanke';
+    const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
+    const sTitle = isTV ? t('media.tvAudio') : getA(sId, 'media_title');
+    const sArtist = isTV ? t('media.livingRoom') : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
+    const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
+    const sName = customNames[sId] || getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '');
+
+    const volume = getA(sId, 'volume_level', 0);
+    const isMuted = getA(sId, 'is_volume_muted', false);
+    const shuffle = getA(sId, 'shuffle', false);
+    const repeat = getA(sId, 'repeat', 'off');
+    const rawMembers = getA(sId, 'group_members');
+    const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
+    const playlists = Array.isArray(getA(sId, 'source_list')) ? getA(sId, 'source_list') : [];
+    const currentSource = cardSettings[settingsKey]?.playlist || getA(sId, 'source');
+
+    const listPlayers = sonosEntities
+      .slice()
+      .sort((a, b) => {
+        const aActive = isSonosActive(a);
+        const bActive = isSonosActive(b);
+        if (aActive !== bActive) return aActive ? -1 : 1;
+        return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
+      });
+
+    return (
+      <div key={cardId} {...dragProps} className={`p-7 rounded-3xl flex flex-col transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer' : 'cursor-move'}`} style={cardStyle}>
+        {getControls(cardId)}
+        <div className="flex flex-col lg:flex-row gap-6 h-full">
+          <div className="flex-1 flex flex-col">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)]">
+                  <Speaker className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)]">SONOS</p>
+                  <p className="text-sm font-bold text-[var(--text-primary)] truncate">{sName}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+                <span className="text-xs tracking-widest uppercase font-bold">{sIsPlaying ? t('status.playing') : t('status.off')}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col md:flex-row gap-6">
+              <div className="w-full md:w-56 h-56 rounded-3xl overflow-hidden border border-[var(--glass-border)] bg-[var(--glass-bg)] relative">
+                {sPicture ? (
+                  <img src={sPicture} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    {isTV ? <Tv className="w-12 h-12 text-gray-600" /> : <Speaker className="w-12 h-12 text-gray-600" />}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 w-full p-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-300 truncate">{sArtist || ''}</p>
+                  <h3 className="text-lg font-bold text-white truncate">{sTitle || t('common.unknown')}</h3>
+                </div>
+              </div>
+
+              <div className="flex-1 flex flex-col gap-4">
+                <div className="flex items-center justify-center gap-6">
+                  <button onClick={() => callService('media_player', 'shuffle_set', { entity_id: sId, shuffle: !shuffle })} className={`p-2 rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-4 h-4" /></button>
+
+                  <button onClick={() => callService('media_player', 'media_previous_track', { entity_id: sId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-[var(--text-secondary)]" /></button>
+                  <button onClick={() => callService('media_player', 'media_play_pause', { entity_id: sId })} className="w-12 h-12 flex items-center justify-center rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
+                    {sIsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                  </button>
+                  <button onClick={() => callService('media_player', 'media_next_track', { entity_id: sId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-[var(--text-secondary)]" /></button>
+
+                  <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService('media_player', 'repeat_set', { entity_id: sId, repeat: nextMode }); }} className={`p-2 rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+                    {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
+                  <button onClick={() => callService('media_player', 'volume_mute', { entity_id: sId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                    {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
+                  </button>
+                  <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService('media_player', 'volume_set', { entity_id: sId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
+                </div>
+
+                {playlists.length > 0 ? (
+                  <div className="pt-2 border-t border-[var(--glass-border)]">
+                    <ModernDropdown
+                      label={t('sonos.playlist')}
+                      icon={Music}
+                      options={playlists}
+                      current={currentSource}
+                      onChange={(value) => {
+                        saveCardSetting(settingsKey, 'playlist', value);
+                        callService('media_player', 'select_source', { entity_id: sId, source: value });
+                      }}
+                      placeholder={t('sonos.playlistPlaceholder')}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-xs text-[var(--text-muted)] italic">{t('sonos.noPlaylists')}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-[var(--glass-border)] pt-6 lg:pt-0 lg:pl-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{t('media.group.sonosPlayers')}</h3>
+              {listPlayers.length > 1 && (
+                <button
+                  onClick={() => {
+                    const allIds = listPlayers.map(p => p.entity_id);
+                    const unjoined = allIds.filter(id => !groupMembers.includes(id));
+                    if (unjoined.length > 0) {
+                      callService('media_player', 'join', { entity_id: sId, group_members: unjoined });
+                    } else {
+                      const others = groupMembers.filter(id => id !== sId);
+                      others.forEach(id => callService('media_player', 'unjoin', { entity_id: id }));
+                    }
+                  }}
+                  className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-white transition-colors"
+                >
+                  {listPlayers.every(p => groupMembers.includes(p.entity_id)) ? t('sonos.ungroupAll') : t('sonos.groupAll')}
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col gap-3">
+              {listPlayers.length === 0 && <p className="text-gray-600 italic text-sm">{t('media.noPlayersFound')}</p>}
+              {listPlayers.map((p, idx) => {
+                const pPic = getEntityImageUrl(p.attributes?.entity_picture);
+                const isSelected = p.entity_id === sId;
+                const isMember = groupMembers.includes(p.entity_id);
+                const isSelf = p.entity_id === sId;
+                const isActivePlayer = isSonosActive(p);
+                const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
+
+                return (
+                  <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'} ${isActivePlayer ? '' : 'opacity-70'}`}>
+                    <button onClick={() => saveCardSetting(settingsKey, 'activeId', p.entity_id)} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
+                        {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Speaker className="w-5 h-5 text-gray-600" /></div>}
+                        {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes?.friendly_name || '').replace(/^(Sonos)\s*/i, '')}</p>
+                        <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
+                      </div>
+                    </button>
+                    {!isSelf && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isMember) {
+                            callService('media_player', 'unjoin', { entity_id: p.entity_id });
+                          } else {
+                            callService('media_player', 'join', { entity_id: sId, group_members: [p.entity_id] });
+                          }
+                        }}
+                        className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                        title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
+                      >
+                        {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      </button>
+                    )}
+                    {isSelf && groupMembers.length > 1 && (
+                      <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title="Linka">
+                        <Link className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -1850,6 +2098,197 @@ export default function App() {
         </div>
         <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
             <WeatherGraph history={tempHistory} currentTemp={currentTemp} />
+        </div>
+      </div>
+    );
+  };
+
+  const renderSonosPage = (pageId) => {
+    const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
+    if (sonosEntities.length === 0) {
+      return (
+        <div key={pageId} className="rounded-3xl popup-surface p-8 text-center text-[var(--text-secondary)]">
+          {t('media.noPlayersFound')}
+        </div>
+      );
+    }
+
+    const pageSetting = pageSettings[pageId] || {};
+    const activeSonos = sonosEntities.filter(isSonosActive);
+    let currentMp = sonosEntities.find(e => e.entity_id === pageSetting.activeId) || sonosEntities.find(e => e.entity_id === activeMediaId);
+    if (!currentMp) currentMp = activeSonos[0] || sonosEntities[0];
+
+    const mpId = currentMp.entity_id;
+    const mpState = currentMp.state;
+    const isPlaying = mpState === 'playing';
+    const isLydplanke = mpId === 'media_player.sonos_lydplanke';
+    const isTV = isLydplanke && (currentMp.attributes?.source === 'TV' || currentMp.attributes?.media_title === 'TV');
+
+    let mpTitle = getA(mpId, 'media_title');
+    if (isTV) mpTitle = t('media.tvAudio');
+    let mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_album_name');
+    if (isTV) mpSeries = t('media.livingRoom');
+
+    const mpPicture = !isTV ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
+    const duration = getA(mpId, 'media_duration');
+    const position = getA(mpId, 'media_position');
+    const volume = getA(mpId, 'volume_level', 0);
+    const isMuted = getA(mpId, 'is_volume_muted', false);
+    const shuffle = getA(mpId, 'shuffle', false);
+    const repeat = getA(mpId, 'repeat', 'off');
+
+    const rawMembers = getA(mpId, 'group_members');
+    const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
+
+    const listPlayers = sonosEntities
+      .slice()
+      .sort((a, b) => {
+        const aActive = isSonosActive(a);
+        const bActive = isSonosActive(b);
+        if (aActive !== bActive) return aActive ? -1 : 1;
+        return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
+      });
+
+    const sourceList = getA(mpId, 'source_list', []);
+    const playlistAttr = getA(mpId, 'media_playlist');
+    const playlistList = Array.isArray(playlistAttr) ? playlistAttr : (playlistAttr ? [playlistAttr] : []);
+    const playlistOptions = Array.from(new Set([...(Array.isArray(sourceList) ? sourceList : []), ...playlistList])).filter(Boolean);
+    const currentSource = getA(mpId, 'source');
+
+    return (
+      <div key={pageId} className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.85fr] gap-8 font-sans fade-in-anim items-start">
+        <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6 space-y-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
+            <Music className="w-4 h-4 text-[var(--text-primary)]" />
+            <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">SONOS</span>
+          </div>
+
+          <div className="flex flex-col items-center justify-center gap-4">
+            {mpPicture ? (
+              <img src={mpPicture} alt="" className="w-52 h-52 md:w-60 md:h-60 object-cover rounded-2xl" />
+            ) : (
+              <div className="w-52 h-52 md:w-60 md:h-60 flex items-center justify-center">
+                {isTV ? <Tv className="w-20 h-20 text-gray-700" /> : <Speaker className="w-20 h-20 text-gray-700" />}
+              </div>
+            )}
+            <div className="text-center">
+              <h2 className="text-2xl md:text-4xl font-bold text-[var(--text-primary)] leading-tight mb-2 line-clamp-2">{mpTitle || t('common.unknown')}</h2>
+              <p className="text-xl text-[var(--text-secondary)] font-medium truncate">{mpSeries || ''}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-500 tracking-widest px-1">
+              <span>{formatDuration(position)}</span>
+              <span>{formatDuration(duration)}</span>
+            </div>
+            <M3Slider variant="thin" min={0} max={duration || 100} step={1} value={position || 0} disabled={!duration} onChange={(e) => callService("media_player", "media_seek", { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
+
+            <div className="flex items-center justify-center gap-6 pt-2">
+              <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-4 h-4" /></button>
+              <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-[var(--text-secondary)]" /></button>
+              <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-3 rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
+                {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
+              </button>
+              <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-[var(--text-secondary)]" /></button>
+              <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+                {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
+              <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
+              </button>
+              <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
+            </div>
+          </div>
+
+          <div className="pt-2">
+            {playlistOptions.length > 0 ? (
+              <ModernDropdown
+                label={t('sonos.playlist')}
+                icon={Music}
+                options={playlistOptions}
+                current={currentSource}
+                onChange={(option) => callService("media_player", "select_source", { entity_id: mpId, source: option })}
+                placeholder={t('sonos.playlistPlaceholder')}
+              />
+            ) : (
+              <div className="text-xs uppercase font-bold text-gray-500 tracking-widest px-2">
+                {t('sonos.noPlaylists')}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{t('media.group.sonosPlayers')}</h3>
+            {listPlayers.length > 1 && (
+              <button
+                onClick={() => {
+                  const allIds = listPlayers.map(p => p.entity_id);
+                  const unjoined = allIds.filter(id => !groupMembers.includes(id));
+                  if (unjoined.length > 0) {
+                    callService("media_player", "join", { entity_id: mpId, group_members: unjoined });
+                  } else {
+                    const others = groupMembers.filter(id => id !== mpId);
+                    others.forEach(id => callService("media_player", "unjoin", { entity_id: id }));
+                  }
+                }}
+                className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-white transition-colors"
+              >
+                {listPlayers.every(p => groupMembers.includes(p.entity_id)) ? t('sonos.ungroupAll') : t('sonos.groupAll')}
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-4">
+            {listPlayers.map((p, idx) => {
+              const pPic = getEntityImageUrl(p.attributes?.entity_picture);
+              const isSelected = p.entity_id === mpId;
+              const isMember = groupMembers.includes(p.entity_id);
+              const isSelf = p.entity_id === mpId;
+              const isActivePlayer = isSonosActive(p);
+              const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
+
+              return (
+                <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'} ${isActivePlayer ? '' : 'opacity-70'}`}>
+                  <button onClick={() => { savePageSetting(pageId, 'activeId', p.entity_id); setActiveMediaId(p.entity_id); }} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
+                      {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Speaker className="w-5 h-5 text-gray-600" /></div>}
+                      {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
+                      <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
+                    </div>
+                  </button>
+                  {!isSelf && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isMember) {
+                          callService("media_player", "unjoin", { entity_id: p.entity_id });
+                        } else {
+                          callService("media_player", "join", { entity_id: mpId, group_members: [p.entity_id] });
+                        }
+                      }}
+                      className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
+                    >
+                      {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    </button>
+                  )}
+                  {isSelf && groupMembers.length > 1 && (
+                    <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title="Linka">
+                      <Link className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -2803,8 +3242,8 @@ export default function App() {
           </div>
         </header>
         
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto">
+        <div className="flex flex-nowrap items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide flex-1 min-w-0">
             {pages.map(page => {
               const settings = pageSettings[page.id] || {};
               const label = settings.label || page.label;
@@ -2815,7 +3254,7 @@ export default function App() {
               <button
                 key={page.id}
                 onClick={() => editMode ? setEditingPage(page.id) : setActivePage(page.id)}
-                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'} ${editMode && isHidden ? 'opacity-50 border-dashed border-gray-500' : ''}`}
+                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'} ${editMode && isHidden ? 'opacity-50 border-dashed border-gray-500' : ''}`}
               >
                 <Icon className="w-4 h-4" />
                 <span className="hidden sm:inline">{label}</span>
@@ -2825,14 +3264,14 @@ export default function App() {
             {editMode && (
               <button
                 onClick={() => setShowAddPageModal(true)}
-                className="flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
+                className="flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">{t('nav.addPage')}</span>
               </button>
             )}
           </div>
-          <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 w-full md:w-auto justify-end">
+          <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 justify-end">
             {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> {t('nav.addCard')}</button>}
             {editMode && <button onClick={() => { const newCols = gridColumns === 3 ? 4 : 3; setGridColumns(newCols); localStorage.setItem('midttunet_grid_columns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {gridColumns === 3 ? '4' : '3'} {t('nav.columns')}</button>}
             {editMode && (
@@ -2867,7 +3306,11 @@ export default function App() {
           </div>
         </div>
 
-        {activePage === 'automations' ? (
+        {isSonosPage(activePage) ? (
+          <div key={activePage} className="fade-in-anim">
+            {renderSonosPage(activePage)}
+          </div>
+        ) : activePage === 'automations' ? (
           <div key={activePage} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 font-sans fade-in-anim items-start">
             {pagesConfig.automations.map((col, colIndex) => (
               <div 
@@ -3439,6 +3882,12 @@ export default function App() {
                       <Music className="w-4 h-4" /> {t('addCard.type.media')}
                     </button>
                     <button
+                      onClick={() => setAddCardType('sonos')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'sonos' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <Speaker className="w-4 h-4" /> {t('addCard.type.sonos')}
+                    </button>
+                    <button
                       onClick={() => setAddCardType('weather')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'weather' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
@@ -3534,6 +3983,13 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                ) : addCardType === 'sonos' ? (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-2xl popup-surface text-sm text-[var(--text-secondary)]">
+                      <p className="font-bold uppercase tracking-widest text-[10px] text-gray-500 mb-2">{t('sonos.createTitle')}</p>
+                      <p className="leading-relaxed">{t('sonos.createDescription')}</p>
+                    </div>
+                  </div>
                 ) : (
                   <div>
                     <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{getAddCardAvailableLabel()}</p>
@@ -3604,7 +4060,12 @@ export default function App() {
               </div>
 
               <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
-                {addCardType !== 'weather' && selectedEntities.length > 0 && (
+                {addCardType === 'sonos' && (
+                  <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                    <Plus className="w-5 h-5" /> {t('sonos.createPage')}
+                  </button>
+                )}
+                {addCardType !== 'weather' && addCardType !== 'sonos' && selectedEntities.length > 0 && (
                   <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                     <Plus className="w-5 h-5" /> {addCardType === 'media' ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}` : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
                   </button>
@@ -4033,7 +4494,7 @@ export default function App() {
                             }}
                             className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-white transition-colors"
                           >
-                            {listPlayers.every(p => groupMembers.includes(p.entity_id)) ? 'Ungrupper alle' : 'Grupper alle'}
+                            {listPlayers.every(p => groupMembers.includes(p.entity_id)) ? t('sonos.ungroupAll') : t('sonos.groupAll')}
                           </button>
                         )}
                       </div>
