@@ -27,14 +27,14 @@ A modern React dashboard for home automation and energy monitoring with Home Ass
 
 ### Installation
 
-\\\ash
+```bash
 git clone https://github.com/oyvhov/NoName.git
 cd NoName
 npm install
 npm run dev
-\\\
+```
 
-Access at \http://localhost:5173\
+Access at http://localhost:5173
 
 ## Configuration
 
@@ -44,14 +44,15 @@ Access at \http://localhost:5173\
 
 ## Build & Deploy
 
-\\\ash
+```bash
 npm run build
-\\\
+```
 
 Docker:
-\\\ash
+
+```bash
 docker-compose up
-\\\
+```
 
 ## Light Control
 
@@ -67,7 +68,7 @@ docker-compose up
 
 ## Project Structure
 
-\\\
+```
 src/
  App.jsx              # Main component
  components/          # UI components
@@ -75,7 +76,7 @@ src/
  services/           # HA integration
  i18n/               # Translations
  themes.js           # Theme config
-\\\
+```
 
 ## License
 
