@@ -1,39 +1,39 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import en from './i18n/en.json';
 import nn from './i18n/nn.json';
-import { 
-  Zap, 
+import {
+  Zap,
   Hash,
-  Wind, 
-  Car, 
-  Settings, 
-  ChevronUp, 
-  ChevronDown, 
+  Wind,
+  Car,
+  Settings,
+  ChevronUp,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Flame, 
-  User, 
-  UserCheck, 
-  MapPin, 
-  X, 
-  TrendingUp, 
-  Clock, 
-  Edit2, 
-  GripVertical, 
-  Check, 
-  Fan, 
-  ArrowUpDown, 
-  ArrowLeftRight, 
-  Plus, 
-  Minus, 
-  Lightbulb, 
-  RefreshCw, 
-  BatteryCharging, 
-  Navigation, 
-  Thermometer, 
-  DoorOpen, 
-  Snowflake, 
-  Battery, 
+  Flame,
+  User,
+  UserCheck,
+  MapPin,
+  X,
+  TrendingUp,
+  Clock,
+  Edit2,
+  GripVertical,
+  Check,
+  Fan,
+  ArrowUpDown,
+  ArrowLeftRight,
+  Plus,
+  Minus,
+  Lightbulb,
+  RefreshCw,
+  BatteryCharging,
+  Navigation,
+  Thermometer,
+  DoorOpen,
+  Snowflake,
+  Battery,
   AlertCircle,
   TrendingDown,
   BarChart3,
@@ -137,7 +137,7 @@ import {
   Wrench,
   ToggleLeft,
   ToggleRight
-} from 'lucide-react';
+} from './icons';
 import M3Slider from './components/M3Slider';
 import ModernDropdown from './components/ModernDropdown';
 import InteractivePowerGraph from './components/InteractivePowerGraph';
@@ -148,20 +148,27 @@ import SensorModal from './components/SensorModal';
 import AddPageModal from './components/AddPageModal';
 import EditPageModal from './components/EditPageModal';
 import EditCardModal from './components/EditCardModal';
+import ConfigModal from './components/ConfigModal';
+import ShieldCard from './components/ShieldCard';
+import WeatherTempCard from './components/WeatherTempCard';
+import WeatherCard from './components/WeatherCard';
+import SonosPage from './components/SonosPage';
 import { themes } from './themes';
 import EnergyPowerCard from './components/EnergyPowerCard';
 import EnergyCostCard from './components/EnergyCostCard';
-import ClimateCard from './components/ClimateCard';
+import GenericClimateCard from './components/GenericClimateCard';
+import GenericClimateModal from './components/GenericClimateModal';
 import CalendarCard from './components/CalendarCard';
 import useEnergyData from './hooks/useEnergyData';
-import useClimateInfo from './hooks/useClimateInfo';
 import BarGraph from './components/BarGraph';
 import { formatRelativeTime, formatDuration, parseMarkdown } from './utils';
 import { ICON_MAP } from './iconMap';
+import { buildOnboardingSteps, validateUrl } from './onboarding';
+import { DEFAULT_PAGES_CONFIG } from './defaults';
 import { EmbyLogo, JellyfinLogo, getServerInfo } from './components/CustomIcons';
 import { callService as haCallService, getHistory, getStatistics, getForecast } from './services/haClient';
+import { createDragAndDropHandlers } from './dragAndDrop';
 import {
-  CLIMATE_ID,
   NORDPOOL_ID,
   TIBBER_ID,
   LEAF_ID,
@@ -205,11 +212,13 @@ import {
 export default function App() {
   const [entities, setEntities] = useState({});
   const [connected, setConnected] = useState(false);
+  const [haUnavailable, setHaUnavailable] = useState(false);
+  const [haUnavailableVisible, setHaUnavailableVisible] = useState(false);
   const [libLoaded, setLibLoaded] = useState(false);
   const [conn, setConn] = useState(null);
   const [now, setNow] = useState(new Date());
   const [showPowerModal, setShowPowerModal] = useState(false);
-  const [showClimateModal, setShowClimateModal] = useState(false);
+  const [activeClimateEntityModal, setActiveClimateEntityModal] = useState(null);
   const [showLightModal, setShowLightModal] = useState(null);
   const [lightControlTab, setLightControlTab] = useState('brightness');
   const [showLeafModal, setShowLeafModal] = useState(false);
@@ -219,6 +228,15 @@ export default function App() {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configTab, setConfigTab] = useState('connection');
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('ha_token') : null;
+    return !token;
+  });
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingUrlError, setOnboardingUrlError] = useState('');
+  const [onboardingTokenError, setOnboardingTokenError] = useState('');
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState(null);
   const [showAddPageModal, setShowAddPageModal] = useState(false);
   const [newPageLabel, setNewPageLabel] = useState('');
   const [newPageIcon, setNewPageIcon] = useState(null);
@@ -236,17 +254,7 @@ export default function App() {
   const [draggingId, setDraggingId] = useState(null);
   const [activePage, setActivePage] = useState('home');
   const [language, setLanguage] = useState(() => localStorage.getItem('midttunet_language') || 'nn');
-  const [pagesConfig, setPagesConfig] = useState({
-    header: [OYVIND_ID, TUVA_ID],
-    pages: ['home', 'lights'],
-    home: ['power', 'energy_cost', 'climate', 'light_kjokken', 'light_stova', 'light_studio', 'car', 'media_player', 'shield'],
-    lights: ['light_kjokken', 'light_stova', 'light_studio'],
-    automations: [
-      { id: 'col0', title: 'Kolonne 1', cards: [] },
-      { id: 'col1', title: 'Kolonne 2', cards: [] },
-      { id: 'col2', title: 'Kolonne 3', cards: [] }
-    ]
-  });
+  const [pagesConfig, setPagesConfig] = useState(DEFAULT_PAGES_CONFIG);
   const [addCardTargetPage, setAddCardTargetPage] = useState('home');
   const [addCardType, setAddCardType] = useState('sensor');
   const [hiddenCards, setHiddenCards] = useState([]);
@@ -303,12 +311,12 @@ export default function App() {
 
   const resetToHome = () => {
     const isHome = activePage === 'home';
-    const noModals = !showPowerModal && !showClimateModal && !showLightModal && !showLeafModal && !showShieldModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
+    const noModals = !showPowerModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showShieldModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
     
     if (!isHome || !noModals) {
         setActivePage('home');
         setShowPowerModal(false);
-        setShowClimateModal(false);
+        setActiveClimateEntityModal(null);
         setShowLightModal(null);
         setShowLeafModal(false);
         setShowShieldModal(false);
@@ -394,6 +402,12 @@ export default function App() {
           parsed.home = parsed.home.filter(id => id !== 'rocky');
           modified = true;
         }
+
+        // Remove legacy static climate card
+        if (parsed.home && parsed.home.includes('climate')) {
+          parsed.home = parsed.home.filter(id => id !== 'climate');
+          modified = true;
+        }
         
         if (parsed.home && !parsed.home.includes('shield')) {
             parsed.home.push('shield');
@@ -415,6 +429,10 @@ export default function App() {
         }
         if (parsed.settings && parsed.settings.includes('sonos')) {
           parsed.settings = parsed.settings.filter(id => id !== 'sonos');
+          modified = true;
+        }
+        if (parsed.settings && parsed.settings.includes('climate')) {
+          parsed.settings = parsed.settings.filter(id => id !== 'climate');
           modified = true;
         }
         if (parsed.automations && Array.isArray(parsed.automations)) {
@@ -554,7 +572,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!libLoaded || !config.url || !config.token) { if (!config.token) setShowConfigModal(true); return; }
+    if (!libLoaded || !config.url || !config.token) {
+      if (!config.token && !showOnboarding && !showConfigModal) {
+        setShowOnboarding(true);
+        setOnboardingStep(0);
+        setConfigTab('connection');
+      }
+      return;
+    }
     let connection;
     let cancelled = false;
     const { createConnection, createLongLivedTokenAuth, subscribeEntities } = window.HAWS;
@@ -572,6 +597,7 @@ export default function App() {
       connection = connInstance;
       setConn(connInstance);
       setConnected(true);
+      setHaUnavailable(false);
       setActiveUrl(url);
       persistConfig(url);
       subscribeEntities(connInstance, (updatedEntities) => { if (!cancelled) setEntities(updatedEntities); });
@@ -589,12 +615,44 @@ export default function App() {
           } catch (e) {}
         }
         if (!cancelled) setConnected(false); 
+        if (!cancelled) setHaUnavailable(true);
       }
     }
 
     connect();
     return () => { cancelled = true; if (connection) connection.close(); };
-  }, [libLoaded, config.url, config.fallbackUrl, config.token]);
+  }, [libLoaded, config.url, config.fallbackUrl, config.token, showConfigModal, showOnboarding]);
+
+  useEffect(() => {
+    if (!conn) return;
+    let cancelled = false;
+
+    const handleReady = () => {
+      if (!cancelled) setHaUnavailable(false);
+    };
+    const handleDisconnected = () => {
+      if (!cancelled) setHaUnavailable(true);
+    };
+
+    conn.addEventListener?.('ready', handleReady);
+    conn.addEventListener?.('disconnected', handleDisconnected);
+
+    return () => {
+      cancelled = true;
+      conn.removeEventListener?.('ready', handleReady);
+      conn.removeEventListener?.('disconnected', handleDisconnected);
+    };
+  }, [conn]);
+
+  useEffect(() => {
+    if (!haUnavailable) {
+      setHaUnavailableVisible(false);
+      return;
+    }
+    const timer = setTimeout(() => setHaUnavailableVisible(true), 2500);
+    return () => clearTimeout(timer);
+  }, [haUnavailable]);
+
 
   useLayoutEffect(() => {
     const themeKey = themes[currentTheme] ? currentTheme : 'dark';
@@ -762,6 +820,14 @@ export default function App() {
     return (nowTime - lastUpdated) < 30000;
   };
 
+  const isMediaRecentlyPlaying = (entity) => {
+    if (!entity || !entity.state) return false;
+    if (entity.state === 'playing') return true;
+    const lastChanged = new Date(entity.last_changed || entity.last_updated).getTime();
+    const nowTime = now.getTime();
+    return (nowTime - lastChanged) < 30000;
+  };
+
   const getS = (id, fallback = "--") => {
     const state = entities[id]?.state;
     if (!state || state === "unavailable" || state === "unknown") return fallback;
@@ -778,7 +844,6 @@ export default function App() {
   const callService = (domain, service, data) => { if (conn) haCallService(conn, domain, service, data); };
 
   const { fullPriceData, currentPriceIndex, priceStats, currentPrice } = useEnergyData(entities, now);
-  const { hvacAction, hvacState, isHeating, isCooling, currentTemp: climateCurrentTemp, targetTemp: climateTargetTemp, fanMode } = useClimateInfo(entities);
 
   const personStatus = (id) => {
     const entity = entities[id];
@@ -882,6 +947,7 @@ export default function App() {
     if (addCardTargetPage === 'automations') return t('addCard.available.automations');
     if (addCardTargetPage === 'settings') return t('addCard.available.allEntities');
     if (addCardType === 'vacuum') return t('addCard.available.vacuums');
+    if (addCardType === 'climate') return t('addCard.available.climates');
     if (addCardType === 'media') return t('addCard.available.players');
     if (addCardType === 'toggle') return t('addCard.available.toggles');
     if (addCardType === 'entity') return t('addCard.available.entities');
@@ -897,6 +963,8 @@ export default function App() {
           ? 'addCard.item.entities'
           : addCardType === 'vacuum'
             ? 'addCard.item.vacuums'
+            : addCardType === 'climate'
+              ? 'addCard.item.climates'
             : addCardType === 'media'
               ? 'addCard.item.players'
               : addCardType === 'toggle'
@@ -987,7 +1055,7 @@ export default function App() {
   const isCardRemovable = (cardId, pageId = activePage) => {
     if (pageId === 'header') return cardId.startsWith('person.');
     if (pageId === 'settings') {
-      if (['power', 'energy_cost', 'climate', 'shield', 'car'].includes(cardId)) return false;
+      if (['power', 'energy_cost', 'shield', 'car'].includes(cardId)) return false;
       if (cardId.startsWith('media_player') || cardId.startsWith('sonos')) return false;
       return true;
     }
@@ -1001,6 +1069,7 @@ export default function App() {
     if (cardId.startsWith('media_group_')) return true;
     if (cardId.startsWith('weather_temp_')) return true;
     if (cardId.startsWith('calendar_card_')) return true;
+    if (cardId.startsWith('climate_card_')) return true;
     return false;
   };
 
@@ -1010,31 +1079,45 @@ export default function App() {
       const selectedSonosId = cardSettings[sonosHomeKey]?.activeId || cardSettings['sonos']?.activeId;
       const lydplankeSelected = selectedSonosId === 'media_player.sonos_lydplanke';
 
+      const mediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
+      const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
+      const otherPlaying = mediaEntities.some(entity => entity?.state === 'playing');
+
+      let lydplankeIsTV = false;
       if (lydplankeSelected) {
         const lydplanke = entities['media_player.sonos_lydplanke'];
         const lydplankeIsPlaying = lydplanke?.state === 'playing';
         const lydplankeSource = (lydplanke?.attributes?.source || '').toLowerCase();
         const lydplankeTitle = (lydplanke?.attributes?.media_title || '').toLowerCase();
-        const lydplankeIsTV = lydplankeIsPlaying && (lydplankeSource === 'tv' || lydplankeTitle === 'tv');
-        if (lydplankeIsTV) return true;
+        lydplankeIsTV = lydplankeIsPlaying && (lydplankeSource === 'tv' || lydplankeTitle === 'tv');
       }
 
-      const mediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
-      const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
-      const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
-      const sessionActiveEntities = Array.isArray(sessions)
-        ? mediaEntities.filter((entity) => {
-            if (!isMediaActive(entity)) return false;
-            const name = (entity.attributes?.friendly_name || '').toLowerCase();
-            return sessions.some((s) => {
-              const device = (s?.device_name || '').toLowerCase();
-              if (!device) return false;
-              return name.includes(device) || device.includes(name);
-            });
-          })
-        : [];
-      const activeMediaEntities = sessionActiveEntities.length > 0 ? sessionActiveEntities : mediaEntities.filter(isMediaActive);
-      return activeMediaEntities.length === 0;
+      if (lydplankeIsTV && !otherPlaying) return true;
+      return false;
+    }
+
+    if (cardId.startsWith('media_group_')) {
+      const settingsKey = getCardSettingsKey(cardId);
+      const groupSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+      const selectedIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
+      const mediaEntities = selectedIds.map(id => entities[id]).filter(Boolean);
+
+      const lydplankeSelected = selectedIds.includes('media_player.sonos_lydplanke');
+      let lydplankeIsTV = false;
+      if (lydplankeSelected) {
+        const lydplanke = entities['media_player.sonos_lydplanke'];
+        const lydplankeIsPlaying = lydplanke?.state === 'playing';
+        const lydplankeSource = (lydplanke?.attributes?.source || '').toLowerCase();
+        const lydplankeTitle = (lydplanke?.attributes?.media_title || '').toLowerCase();
+        lydplankeIsTV = lydplankeIsPlaying && (lydplankeSource === 'tv' || lydplankeTitle === 'tv');
+      }
+
+      const otherSelectedPlaying = mediaEntities
+        .filter(entity => entity?.entity_id !== 'media_player.sonos_lydplanke')
+        .some(entity => entity?.state === 'playing');
+
+      if (lydplankeIsTV && !otherSelectedPlaying) return true;
+      return false;
     }
 
     if (cardId === 'sonos') {
@@ -1042,7 +1125,7 @@ export default function App() {
       return sonosEntities.length === 0;
     }
 
-    if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['power', 'energy_cost', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
       return !entities[cardId];
     }
 
@@ -1250,6 +1333,26 @@ export default function App() {
 
       const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
       const newSettings = { ...cardSettings, [settingsKey]: { ...(cardSettings[settingsKey] || {}), mediaIds: selectedEntities } };
+      setCardSettings(newSettings);
+      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+
+      setSelectedEntities([]);
+      setShowAddCardModal(false);
+      return;
+    }
+
+    if (addCardType === 'climate') {
+      if (selectedEntities.length === 0) return;
+      const cardId = `climate_card_${Date.now()}`;
+      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+      setPagesConfig(newConfig);
+      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+
+      const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+      const newSettings = {
+        ...cardSettings,
+        [settingsKey]: { ...(cardSettings[settingsKey] || {}), climateId: selectedEntities[0] }
+      };
       setCardSettings(newSettings);
       localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
 
@@ -1845,367 +1948,82 @@ export default function App() {
     );
   };
 
-  const renderShieldCard = (dragProps, getControls, cardStyle) => {
-    const entity = entities[SHIELD_ID];
-    const state = entity?.state;
-    const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
-    const isOn = state !== 'off' && !isUnavailable;
-    const isPlaying = state === 'playing';
-    const appName = getA(SHIELD_ID, 'app_name');
-    const title = getA(SHIELD_ID, 'media_title');
-    const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
+  const renderShieldCard = (dragProps, getControls, cardStyle) => (
+    <ShieldCard
+      dragProps={dragProps}
+      getControls={getControls}
+      cardStyle={cardStyle}
+      editMode={editMode}
+      entities={entities}
+      shieldId={SHIELD_ID}
+      getA={getA}
+      getEntityImageUrl={getEntityImageUrl}
+      setShowShieldModal={setShowShieldModal}
+      t={t}
+    />
+  );
 
-    // App logo mapping for Shield TV (real logos via Simple Icons CDN)
-    const getAppLogo = (app) => {
-      if (!app) return null;
-      const appLower = app.toLowerCase();
-      const logoMap = {
-        'notifications for android tv': 'https://cdn.simpleicons.org/android',
-        'notification': 'https://cdn.simpleicons.org/android',
-        'android': 'https://cdn.simpleicons.org/android',
-        'play store': 'https://cdn.simpleicons.org/googleplay',
-        'google play': 'https://cdn.simpleicons.org/googleplay',
-        'google cast': 'https://cdn.simpleicons.org/chromecast',
-        'chromecast': 'https://cdn.simpleicons.org/chromecast',
-        'emby': 'https://cdn.simpleicons.org/emby',
-        'jellyfin': 'https://cdn.simpleicons.org/jellyfin',
-        'spotify': 'https://cdn.simpleicons.org/spotify',
-        'youtube': 'https://cdn.simpleicons.org/youtube',
-        'youtube tv': 'https://cdn.simpleicons.org/youtube'
-      };
 
-      for (const [key, url] of Object.entries(logoMap)) {
-        if (appLower.includes(key)) return url;
-      }
-      return null;
-    };
+  const renderWeatherTempCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => (
+    <WeatherTempCard
+      cardId={cardId}
+      dragProps={dragProps}
+      getControls={getControls}
+      cardStyle={cardStyle}
+      settingsKey={settingsKey}
+      cardSettings={cardSettings}
+      entities={entities}
+      tempHistory={tempHistory}
+      tempHistoryById={tempHistoryById}
+      outsideTempId={OUTSIDE_TEMP_ID}
+      weatherEntityId={WEATHER_ENTITY}
+      editMode={editMode}
+      t={t}
+    />
+  );
 
-    const appLogo = getAppLogo(appName);
+  const renderGenericClimateCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+    const entityId = settings.climateId;
+    const entity = entityId ? entities[entityId] : null;
+
+    if (!entity || !entityId) return null;
 
     return (
-      <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)'}}>
-        {getControls('shield')}
-        
-        <div className="flex justify-between items-start relative z-10">
-           <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Gamepad2 className="w-5 h-5" /></div>
-           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}><span className="text-xs font-bold uppercase tracking-widest">{isOn ? (isPlaying ? t('status.playing') : t('common.on')) : t('common.off')}</span></div>
-        </div>
-
-        <div className="relative z-10">
-            <p className={`${picture || appLogo ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs tracking-widest uppercase mb-1 font-bold opacity-60`}>Shield TV</p>
-           <h3 className="text-2xl font-medium leading-none line-clamp-2 mb-1">{appName || (isOn ? t('media.homeScreen') : t('status.off'))}</h3>
-            {title && <p className={`text-xs ${picture || appLogo ? 'text-gray-300' : 'text-[var(--text-muted)]'} line-clamp-1 font-medium`}>{title}</p>}
-        </div>
-
-        {(picture || appLogo) && (
-          <div className="absolute inset-0 z-0 opacity-45">
-            {picture ? (
-              <>
-                <img src={picture} alt="" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/50 to-transparent" />
-              </>
-            ) : appLogo ? (
-              <>
-                <img src={appLogo} alt={appName} className="w-full h-full object-contain p-12 blur-sm scale-160" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/35 to-transparent" />
-              </>
-            ) : null}
-          </div>
-        )}
-      </div>
+      <GenericClimateCard
+        key={cardId}
+        cardId={cardId}
+        entityId={entityId}
+        entity={entity}
+        dragProps={dragProps}
+        controls={getControls(cardId)}
+        cardStyle={cardStyle}
+        editMode={editMode}
+        customNames={customNames}
+        customIcons={customIcons}
+        onOpen={() => setActiveClimateEntityModal(entityId)}
+        onSetTemperature={(temp) => callService('climate', 'set_temperature', { entity_id: entityId, temperature: temp })}
+        t={t}
+      />
     );
   };
 
-  const getWeatherInfo = (state) => {
-    const weatherMap = {
-      'sunny': { label: t('weather.condition.sunny'), icon: 'clear-day' },
-      'clear-night': { label: t('weather.condition.clearNight'), icon: 'clear-night' },
-      'partlycloudy': { label: t('weather.condition.partlyCloudy'), icon: 'partly-cloudy-day' },
-      'cloudy': { label: t('weather.condition.cloudy'), icon: 'cloudy' },
-      'rainy': { label: t('weather.condition.rainy'), icon: 'rain' },
-      'pouring': { label: t('weather.condition.pouring'), icon: 'thunderstorms-rain' },
-      'snowy': { label: t('weather.condition.snowy'), icon: 'snow' },
-      'fog': { label: t('weather.condition.fog'), icon: 'fog' },
-      'hail': { label: t('weather.condition.hail'), icon: 'hail' },
-      'lightning': { label: t('weather.condition.lightning'), icon: 'thunderstorms' },
-      'windy': { label: t('weather.condition.windy'), icon: 'wind' },
-      'exceptional': { label: t('weather.condition.exceptional'), icon: 'warning' }
-    };
-    return weatherMap[state] || { label: state || t('common.unknown'), icon: 'cloudy' };
-  };
-
-  const renderWeatherTempCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
-    const settings = cardSettings[settingsKey] || {};
-    const weatherId = settings.weatherId;
-    const tempId = settings.tempId;
-    const weatherEntity = weatherId ? entities[weatherId] : null;
-    const tempEntity = tempId ? entities[tempId] : null;
-    if (!weatherEntity) return null;
-
-    const state = weatherEntity?.state;
-    const info = getWeatherInfo(state);
-    const iconUrl = `https://cdn.jsdelivr.net/gh/basmilius/weather-icons@master/production/fill/all/${info.icon}.svg`;
-    const tempValueRaw = tempEntity?.state ?? weatherEntity?.attributes?.temperature;
-    const tempValue = parseFloat(tempValueRaw);
-    const currentTemp = Number.isFinite(tempValue) ? tempValue : NaN;
-    const history = tempId
-      ? (tempId === OUTSIDE_TEMP_ID ? tempHistory : (tempHistoryById[tempId] || []))
-      : (weatherId === WEATHER_ENTITY ? tempHistory : []);
-
-    return (
-      <div key={cardId} {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
-        {getControls(cardId)}
-        <div className="flex justify-between items-start relative z-10">
-          <div className="w-24 h-24 -ml-4 -mt-4 filter drop-shadow-lg transition-transform duration-500 group-hover:scale-110">
-            <img src={iconUrl} alt={info.label} className="w-full h-full object-contain" />
-          </div>
-          <div className="flex flex-col items-end">
-             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-               <span className="text-xs tracking-widest uppercase font-bold">{info.label}</span>
-             </div>
-             <span className="text-4xl font-medium text-[var(--text-primary)] leading-none mt-2">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
-          </div>
-        </div>
-        <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
-            <WeatherGraph history={history} currentTemp={currentTemp} />
-        </div>
-      </div>
-    );
-  };
-
-  const renderWeatherCard = (dragProps, getControls, cardStyle) => {
-    const weatherEntity = entities[WEATHER_ENTITY];
-    const tempEntity = entities[OUTSIDE_TEMP_ID];
-    const currentTemp = parseFloat(tempEntity?.state);
-    const state = weatherEntity?.state;
-    const name = customNames['weather'] || t('weather.name');
-    // Bruk henta prognose, eller fall tilbake til attributt (for eldre HA)
-    const forecastData = weatherForecast.length > 0 ? weatherForecast : weatherEntity?.attributes?.forecast;
-
-    const info = getWeatherInfo(state);
-    const iconUrl = `https://cdn.jsdelivr.net/gh/basmilius/weather-icons@master/production/fill/all/${info.icon}.svg`;
-    const CustomIcon = customIcons['weather'] ? ICON_MAP[customIcons['weather']] : null;
-    
-    return (
-      <div key="weather" {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
-        {getControls('weather')}
-        <div className="flex justify-between items-start relative z-10">
-          <div className="w-24 h-24 -ml-4 -mt-4 filter drop-shadow-lg transition-transform duration-500 group-hover:scale-110">
-            {CustomIcon ? (
-               <div className="p-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)]"><CustomIcon className="w-8 h-8" /></div>
-            ) : (
-               <img src={iconUrl} alt={info.label} className="w-full h-full object-contain" />
-            )}
-          </div>
-          <div className="flex flex-col items-end">
-             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-               <span className="text-xs tracking-widest uppercase font-bold">{info.label}</span>
-             </div>
-             <span className="text-4xl font-medium text-[var(--text-primary)] leading-none mt-2">{!isNaN(currentTemp) ? currentTemp : '--'}°</span>
-          </div>
-        </div>
-        <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
-            <WeatherGraph history={tempHistory} currentTemp={currentTemp} />
-        </div>
-      </div>
-    );
-  };
-
-  const renderSonosPage = (pageId) => {
-    const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
-    if (sonosEntities.length === 0) {
-      return (
-        <div key={pageId} className="rounded-3xl popup-surface p-8 text-center text-[var(--text-secondary)]">
-          {t('media.noPlayersFound')}
-        </div>
-      );
-    }
-
-    const pageSetting = pageSettings[pageId] || {};
-    const activeSonos = sonosEntities.filter(isSonosActive);
-    let currentMp = sonosEntities.find(e => e.entity_id === pageSetting.activeId) || sonosEntities.find(e => e.entity_id === activeMediaId);
-    if (!currentMp) currentMp = activeSonos[0] || sonosEntities[0];
-
-    const mpId = currentMp.entity_id;
-    const mpState = currentMp.state;
-    const isPlaying = mpState === 'playing';
-    const isLydplanke = mpId === 'media_player.sonos_lydplanke';
-    const isTV = isLydplanke && (currentMp.attributes?.source === 'TV' || currentMp.attributes?.media_title === 'TV');
-
-    let mpTitle = getA(mpId, 'media_title');
-    if (isTV) mpTitle = t('media.tvAudio');
-    let mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_album_name');
-    if (isTV) mpSeries = t('media.livingRoom');
-
-    const mpPicture = !isTV ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
-    const duration = getA(mpId, 'media_duration');
-    const position = getA(mpId, 'media_position');
-    const volume = getA(mpId, 'volume_level', 0);
-    const isMuted = getA(mpId, 'is_volume_muted', false);
-    const shuffle = getA(mpId, 'shuffle', false);
-    const repeat = getA(mpId, 'repeat', 'off');
-
-    const rawMembers = getA(mpId, 'group_members');
-    const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
-
-    const listPlayers = sonosEntities
-      .slice()
-      .sort((a, b) => {
-        const aActive = isSonosActive(a);
-        const bActive = isSonosActive(b);
-        if (aActive !== bActive) return aActive ? -1 : 1;
-        return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
-      });
-
-    const sourceList = getA(mpId, 'source_list', []);
-    const playlistAttr = getA(mpId, 'media_playlist');
-    const playlistList = Array.isArray(playlistAttr) ? playlistAttr : (playlistAttr ? [playlistAttr] : []);
-    const playlistOptions = Array.from(new Set([...(Array.isArray(sourceList) ? sourceList : []), ...playlistList])).filter(Boolean);
-    const currentSource = getA(mpId, 'source');
-
-    return (
-      <div key={pageId} className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.85fr] gap-8 font-sans fade-in-anim items-start">
-        <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-8 flex flex-col min-h-[480px]">
-          <div className="mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
-              <Music className="w-4 h-4 text-[var(--text-primary)]" />
-              <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">SONOS</span>
-            </div>
-          </div>
-
-          <div className="flex-1 flex flex-col md:flex-row gap-8 md:gap-12 items-center">
-            {/* Art - Left Side */}
-            <div className="flex-shrink-0 flex justify-center md:justify-start">
-              {mpPicture ? (
-                <img src={mpPicture} alt="" className="w-64 h-64 md:w-72 md:h-72 object-cover rounded-2xl shadow-2xl" />
-              ) : (
-                <div className="w-64 h-64 md:w-72 md:h-72 flex items-center justify-center rounded-2xl bg-[var(--glass-bg)]">
-                  {isTV ? <Tv className="w-24 h-24 text-gray-700" /> : <Speaker className="w-24 h-24 text-gray-700" />}
-                </div>
-              )}
-            </div>
-
-            {/* Controls - Right Side */}
-            <div className="flex-1 w-full flex flex-col justify-center space-y-8 min-w-0">
-              {/* Metadata */}
-              <div className="space-y-2 text-center md:text-left">
-                <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] leading-none truncate">{mpTitle || t('common.unknown')}</h2>
-                <p className="text-xl text-[var(--text-secondary)] font-medium truncate">{mpSeries || ''}</p>
-              </div>
-
-              {/* Progress & Controls Wrapper */}
-              <div className="space-y-5">
-                {/* Progress */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs font-bold text-[var(--text-secondary)] tracking-widest">
-                    <span>{formatDuration(position)}</span>
-                    <span>{formatDuration(duration)}</span>
-                  </div>
-                  <M3Slider variant="thin" min={0} max={duration || 100} step={1} value={position || 0} disabled={!duration} onChange={(e) => callService("media_player", "media_seek", { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
-                </div>
-
-                {/* Top control row */}
-                <div className="flex items-center justify-between">
-                  <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-all active:scale-95 ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`} title="Shuffle">
-                    <Shuffle className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-all active:scale-95 ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`} title="Repeat">
-                    {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
-                  </button>
-                </div>
-
-                {/* Main transport row */}
-                <div className="flex items-center justify-center gap-6">
-                  <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-3 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipBack className="w-6 h-6 text-[var(--text-secondary)]" /></button>
-                  <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-4 rounded-full transition-all active:scale-95 shadow-xl hover:shadow-2xl hover:scale-105" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
-                    {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
-                  </button>
-                  <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-3 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipForward className="w-6 h-6 text-[var(--text-secondary)]" /></button>
-                </div>
-              </div>
-
-              {/* Volume */}
-              <div className="flex items-center gap-4">
-                <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex-shrink-0 transition-colors">
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : (volume < 0.5 ? <Volume1 className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />)}
-                </button>
-                <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6 min-h-[480px] flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{t('media.group.sonosPlayers')}</h3>
-            {listPlayers.length > 1 && (
-              <button
-                onClick={() => {
-                  const allIds = listPlayers.map(p => p.entity_id);
-                  const unjoined = allIds.filter(id => !groupMembers.includes(id));
-                  if (unjoined.length > 0) {
-                    callService("media_player", "join", { entity_id: mpId, group_members: unjoined });
-                  } else {
-                    const others = groupMembers.filter(id => id !== mpId);
-                    others.forEach(id => callService("media_player", "unjoin", { entity_id: id }));
-                  }
-                }}
-                className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-white transition-colors"
-              >
-                {listPlayers.every(p => groupMembers.includes(p.entity_id)) ? t('sonos.ungroupAll') : t('sonos.groupAll')}
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col gap-4 overflow-y-auto flex-1">
-            {listPlayers.map((p, idx) => {
-              const pPic = getEntityImageUrl(p.attributes?.entity_picture);
-              const isSelected = p.entity_id === mpId;
-              const isMember = groupMembers.includes(p.entity_id);
-              const isSelf = p.entity_id === mpId;
-              const isActivePlayer = isSonosActive(p);
-              const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
-
-              return (
-                <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'} ${isActivePlayer ? '' : 'opacity-70'}`}>
-                  <button onClick={() => { savePageSetting(pageId, 'activeId', p.entity_id); setActiveMediaId(p.entity_id); }} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
-                      {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Speaker className="w-5 h-5 text-gray-600" /></div>}
-                      {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
-                    </div>
-                    <div className="overflow-hidden">
-                      <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
-                      <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
-                    </div>
-                  </button>
-                  {!isSelf && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isMember) {
-                          callService("media_player", "unjoin", { entity_id: p.entity_id });
-                        } else {
-                          callService("media_player", "join", { entity_id: mpId, group_members: [p.entity_id] });
-                        }
-                      }}
-                      className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                      title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
-                    >
-                      {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                    </button>
-                  )}
-                  {isSelf && groupMembers.length > 1 && (
-                    <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title="Linka">
-                      <Link className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const renderWeatherCard = (dragProps, getControls, cardStyle) => (
+    <WeatherCard
+      dragProps={dragProps}
+      getControls={getControls}
+      cardStyle={cardStyle}
+      editMode={editMode}
+      entities={entities}
+      weatherEntityId={WEATHER_ENTITY}
+      outsideTempId={OUTSIDE_TEMP_ID}
+      tempHistory={tempHistory}
+      weatherForecast={weatherForecast}
+      customNames={customNames}
+      customIcons={customIcons}
+      t={t}
+    />
+  );
 
   const resolveLightId = (cardId) => {
     if (cardId === 'light_kjokken') return LIGHT_KJOKKEN;
@@ -2232,7 +2050,7 @@ export default function App() {
 
     if (cardId.startsWith('weather_temp_')) return 2;
 
-    if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['power', 'energy_cost', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
       return 1;
     }
 
@@ -2322,233 +2140,38 @@ export default function App() {
     return buildGridLayout(visibleIds, gridColCount);
   }, [pagesConfig, activePage, gridColCount, cardSettings, hiddenCards, editMode, entities]);
 
+  const dragAndDrop = createDragAndDropHandlers({
+    editMode,
+    pagesConfig,
+    setPagesConfig,
+    activePage,
+    dragSourceRef,
+    touchTargetRef,
+    touchSwapCooldownRef,
+    touchPath,
+    setTouchPath,
+    touchTargetId,
+    setTouchTargetId,
+    setDraggingId,
+    ignoreTouchRef
+  });
+
   const renderCard = (cardId, index, colIndex) => {
     const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
     if (isHidden && !editMode) return null;
     const isDragging = draggingId === cardId;
 
-    const startTouchDrag = (x, y) => {
-      if (!editMode) return;
-      if (navigator.vibrate) navigator.vibrate(50);
-      dragSourceRef.current = { index, cardId, colIndex };
-      touchTargetRef.current = null;
-      setTouchPath({ startX: x, startY: y, x, y });
-      setTouchTargetId(null);
-      setDraggingId(cardId);
-    };
+    const {
+      getDragProps,
+      getCardStyle,
+      startTouchDrag,
+      updateTouchDrag,
+      performTouchDrop,
+      resetDragState
+    } = dragAndDrop;
 
-    const updateTouchDrag = (x, y) => {
-      if (!editMode || !dragSourceRef.current) return;
-      setTouchPath((prev) => (prev ? { ...prev, x, y } : { startX: x, startY: y, x, y }));
-      const el = document.elementFromPoint(x, y);
-      const cardEl = el?.closest?.('[data-card-id]');
-
-      if (cardEl) {
-        const targetId = cardEl.getAttribute('data-card-id');
-        const targetIndex = parseInt(cardEl.getAttribute('data-index'));
-        const targetColIndexStr = cardEl.getAttribute('data-col-index');
-        const targetColIndex = targetColIndexStr ? parseInt(targetColIndexStr) : undefined;
-
-        if (targetId && targetId !== dragSourceRef.current.cardId) {
-          touchTargetRef.current = { targetId, targetIndex, targetColIndex };
-          setTouchTargetId(targetId);
-
-          const now = Date.now();
-          if (now - touchSwapCooldownRef.current > 150) {
-            touchSwapCooldownRef.current = now;
-            const source = dragSourceRef.current;
-            const newConfig = { ...pagesConfig };
-
-            if (activePage === 'automations') {
-              const cols = newConfig.automations;
-              const sourceColIdx = source.colIndex !== undefined ? source.colIndex : 0;
-              const targetColIdx = targetColIndex !== undefined ? targetColIndex : sourceColIdx;
-
-              if (cols[sourceColIdx] && cols[targetColIdx]) {
-                const [movedItem] = cols[sourceColIdx].cards.splice(source.index, 1);
-                cols[targetColIdx].cards.splice(targetIndex, 0, movedItem);
-                source.index = targetIndex;
-                source.colIndex = targetColIdx;
-              }
-            } else {
-              const currentList = [...(newConfig[activePage] || [])];
-              const [movedItem] = currentList.splice(source.index, 1);
-              currentList.splice(targetIndex, 0, movedItem);
-              newConfig[activePage] = currentList;
-              source.index = targetIndex;
-            }
-
-            dragSourceRef.current = source;
-            setPagesConfig(newConfig);
-            localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
-            if (navigator.vibrate) navigator.vibrate(10);
-          }
-        }
-      }
-    };
-
-    const performTouchDrop = (x, y) => {
-      // Magnetic drop: Find nearest card if dropped in gap
-      const cards = Array.from(document.querySelectorAll('[data-card-id]'));
-      let cardElement = cards.find(card => {
-          const rect = card.getBoundingClientRect();
-          return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-      });
-
-      if (!cardElement) {
-        let minDist = Infinity;
-        cards.forEach(card => {
-            const rect = card.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            const dist = Math.hypot(x - cx, y - cy);
-            if (dist < 220 && dist < minDist) { minDist = dist; cardElement = card; }
-        });
-      }
-
-      if (!cardElement && touchTargetRef.current) {
-        cardElement = cards.find(card => card.getAttribute('data-card-id') === touchTargetRef.current.targetId);
-      }
-
-      if (cardElement) {
-          const targetId = cardElement.getAttribute('data-card-id');
-          const targetIndex = parseInt(cardElement.getAttribute('data-index'));
-          const targetColIndexStr = cardElement.getAttribute('data-col-index');
-          const targetColIndex = targetColIndexStr ? parseInt(targetColIndexStr) : undefined;
-          
-          if (targetId && targetId !== dragSourceRef.current.cardId) {
-              const source = dragSourceRef.current;
-              const newConfig = { ...pagesConfig };
-
-              if (activePage === 'automations') {
-                 const cols = newConfig.automations;
-                 const sourceColIdx = source.colIndex !== undefined ? source.colIndex : 0;
-                 const targetColIdx = targetColIndex !== undefined ? targetColIndex : sourceColIdx;
-                 
-                 const [movedItem] = cols[sourceColIdx].cards.splice(source.index, 1);
-                 cols[targetColIdx].cards.splice(targetIndex, 0, movedItem);
-              } else {
-                 const currentList = [...(newConfig[activePage] || [])];
-                 const movedItem = currentList.splice(source.index, 1)[0];
-                 currentList.splice(targetIndex, 0, movedItem);
-                 newConfig[activePage] = currentList;
-              }
-
-              setPagesConfig(newConfig);
-              localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
-              if (navigator.vibrate) navigator.vibrate(20);
-          }
-      }
-    };
-
-    const handleTouchEnd = (e) => {
-      if (!editMode || !dragSourceRef.current) return;
-      
-      const touch = e.changedTouches[0];
-      const x = touch.clientX;
-      const y = touch.clientY;
-      performTouchDrop(x, y);
-      
-      setDraggingId(null);
-      dragSourceRef.current = null;
-      touchTargetRef.current = null;
-      setTouchTargetId(null);
-      setTouchPath(null);
-    };
-
-    const handleTouchCancel = (e) => {
-      if (!editMode || !dragSourceRef.current) return;
-      if (e.cancelable) e.preventDefault();
-      const x = touchPath?.x;
-      const y = touchPath?.y;
-      if (typeof x === 'number' && typeof y === 'number') {
-        performTouchDrop(x, y);
-      }
-      setDraggingId(null);
-      dragSourceRef.current = null;
-      touchTargetRef.current = null;
-      setTouchTargetId(null);
-      setTouchPath(null);
-    };
-
-    const dragProps = { 
-      draggable: editMode, 
-      onDragStart: (e) => {
-        e.dataTransfer.setData('dragData', JSON.stringify({ index, cardId, colIndex }));
-        e.dataTransfer.effectAllowed = "move";
-        // Set dragging ID with a tiny delay so the browser captures the full-opacity element as the drag image
-        setTimeout(() => setDraggingId(cardId), 0);
-      },
-      onDragEnd: () => setDraggingId(null),
-      onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }, 
-      onDrop: (e) => {
-        e.stopPropagation();
-        const rawData = e.dataTransfer.getData('dragData');
-        if (!rawData) return;
-        const source = JSON.parse(rawData);
-        const newConfig = { ...pagesConfig };
-
-        if (activePage === 'automations') {
-           const cols = newConfig.automations;
-           const sourceColIdx = source.colIndex !== undefined ? source.colIndex : 0; // Fallback
-           const targetColIdx = colIndex !== undefined ? colIndex : sourceColIdx;
-           
-           const [movedItem] = cols[sourceColIdx].cards.splice(source.index, 1);
-           cols[targetColIdx].cards.splice(index, 0, movedItem);
-        } else {
-           const currentList = [...(newConfig[activePage] || [])];
-           const movedItem = currentList.splice(source.index, 1)[0];
-           currentList.splice(index, 0, movedItem);
-           newConfig[activePage] = currentList;
-        }
-
-        setPagesConfig(newConfig);
-        localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
-        setDraggingId(null);
-      },
-      onTouchStart: (e) => {
-        if (ignoreTouchRef.current) return;
-        if (!editMode) return;
-        if (!e.target.closest('[data-drag-handle]')) return;
-        if (e.cancelable) e.preventDefault();
-        const touch = e.touches[0];
-        if (!touch) return;
-        startTouchDrag(touch.clientX, touch.clientY);
-      },
-      onTouchMove: (e) => {
-        if (ignoreTouchRef.current) return;
-        if (!editMode || !dragSourceRef.current) return;
-        if (e.cancelable) e.preventDefault();
-        const touch = e.touches[0];
-        if (!touch) return;
-        updateTouchDrag(touch.clientX, touch.clientY);
-      },
-      onTouchEnd: handleTouchEnd,
-      onTouchCancel: handleTouchCancel,
-      'data-card-id': cardId,
-      'data-index': index,
-      'data-col-index': colIndex
-    };
-
-    const isTouchTarget = !!touchTargetId && touchTargetId === cardId;
-
-    const cardStyle = {
-      backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
-      borderColor: isDragging ? 'rgba(96, 165, 250, 1)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'var(--card-border)'),
-      backdropFilter: 'blur(16px)',
-      borderStyle: editMode ? 'dashed' : 'solid',
-      borderWidth: editMode ? '2px' : '1px',
-      opacity: isHidden && editMode ? 0.4 : 1,
-      filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
-      transform: isDragging ? 'scale(1.08)' : 'none',
-      boxShadow: isDragging ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : (isTouchTarget ? '0 0 0 2px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.35)' : 'none'),
-      touchAction: editMode ? 'none' : 'auto',
-      userSelect: editMode ? 'none' : 'auto',
-      WebkitUserSelect: editMode ? 'none' : 'auto',
-      zIndex: isDragging ? 50 : 1,
-      pointerEvents: isDragging ? 'none' : 'auto',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    };
+    const dragProps = getDragProps({ cardId, index, colIndex });
+    const cardStyle = getCardStyle({ cardId, isHidden, isDragging });
 
     const settingsKey = getCardSettingsKey(cardId);
 
@@ -2594,7 +2217,7 @@ export default function App() {
               e.currentTarget.setPointerCapture(e.pointerId);
               pointerDragRef.current = true;
               ignoreTouchRef.current = true;
-              startTouchDrag(e.clientX, e.clientY);
+              startTouchDrag(cardId, index, colIndex, e.clientX, e.clientY);
             }}
             onPointerMove={(e) => {
               if (!editMode || e.pointerType !== 'touch') return;
@@ -2609,11 +2232,7 @@ export default function App() {
               pointerDragRef.current = false;
               ignoreTouchRef.current = false;
               performTouchDrop(e.clientX, e.clientY);
-              setDraggingId(null);
-              dragSourceRef.current = null;
-              touchTargetRef.current = null;
-              setTouchTargetId(null);
-              setTouchPath(null);
+              resetDragState();
             }}
             onPointerCancel={(e) => {
               if (!editMode || e.pointerType !== 'touch') return;
@@ -2624,11 +2243,7 @@ export default function App() {
               const x = touchPath?.x ?? e.clientX;
               const y = touchPath?.y ?? e.clientY;
               performTouchDrop(x, y);
-              setDraggingId(null);
-              dragSourceRef.current = null;
-              touchTargetRef.current = null;
-              setTouchTargetId(null);
-              setTouchPath(null);
+              resetDragState();
             }}
             style={{ touchAction: 'none' }}
             className="flex items-center gap-2 px-4 py-3 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto"
@@ -2684,6 +2299,10 @@ export default function App() {
       );
     }
 
+    if (cardId.startsWith('climate_card_')) {
+      return renderGenericClimateCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+    }
+
     if (cardId.startsWith('weather_temp_')) {
       return renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
@@ -2693,7 +2312,7 @@ export default function App() {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
-    if (activePage === 'settings' && !['power', 'energy_cost', 'climate', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['power', 'energy_cost', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
@@ -2727,25 +2346,6 @@ export default function App() {
             Icon={customIcons['energy_cost'] ? ICON_MAP[customIcons['energy_cost']] : Coins}
             todayValue={getS(COST_TODAY_ID)}
             monthValue={!isNaN(parseFloat(entities[COST_MONTH_ID]?.state)) ? Math.round(parseFloat(entities[COST_MONTH_ID]?.state)) : String(getS(COST_MONTH_ID))}
-            t={t}
-          />
-        );
-      case 'climate':
-        return (
-          <ClimateCard
-            dragProps={dragProps}
-            controls={getControls('climate')}
-            cardStyle={cardStyle}
-            editMode={editMode}
-            name={customNames['climate'] || t('climate.title')}
-            Icon={customIcons['climate'] ? ICON_MAP[customIcons['climate']] : null}
-            currentTemp={climateCurrentTemp}
-            targetTemp={climateTargetTemp}
-            fanMode={fanMode}
-            isCooling={isCooling}
-            isHeating={isHeating}
-            onOpen={() => setShowClimateModal(true)}
-            onSetTemperature={(temp) => callService('climate', 'set_temperature', { entity_id: CLIMATE_ID, temperature: temp })}
             t={t}
           />
         );
@@ -3050,8 +2650,31 @@ export default function App() {
   const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
   const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
   const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
-  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || !!editEntity || ['power', 'energy_cost', 'climate', 'car', 'shield', 'rocky', 'weather'].includes(editId));
+  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || !!editEntity || ['power', 'energy_cost', 'car', 'shield', 'rocky', 'weather'].includes(editId));
   const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
+  const isOnboardingActive = showOnboarding;
+  const onboardingSteps = buildOnboardingSteps(t);
+
+  const testConnection = async () => {
+    if (!validateUrl(config.url) || !config.token) return;
+    setTestingConnection(true);
+    setConnectionTestResult(null);
+    try {
+      const { createConnection, createLongLivedTokenAuth } = window.HAWS;
+      const auth = createLongLivedTokenAuth(config.url, config.token);
+      const testConn = await createConnection({ auth });
+      testConn.close();
+      setConnectionTestResult({ success: true, message: t('onboarding.testSuccess') });
+    } catch (err) {
+      setConnectionTestResult({ success: false, message: t('onboarding.testFailed') });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const canAdvanceOnboarding = onboardingStep === 1
+    ? Boolean(config.url && config.token && validateUrl(config.url) && connectionTestResult?.success)
+    : true;
 
   return (
     <div className="min-h-screen font-sans selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-500" style={{backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)'}}>
@@ -3188,7 +2811,16 @@ export default function App() {
             </div>
           </div>
         </header>
-        
+
+        {haUnavailableVisible && (
+          <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-100 px-4 sm:px-6 py-4 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-300" />
+            <div className="text-sm font-semibold">
+              Home Assistant er utilgjengeleg akkurat no. Data kan vere utdaterte, men korta blir viste.
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-nowrap items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide flex-1 min-w-0">
             {pages.map(page => {
@@ -3240,7 +2872,7 @@ export default function App() {
                   <Edit2 className="w-4 h-4" /> {t('menu.edit')}
                 </button>
               )}
-              {!editMode && <button onClick={() => { setShowConfigModal(true); setShowMenu(false); }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]"><Settings className="w-4 h-4" /> {t('menu.system')}</button>}
+              {!editMode && <button onClick={() => { setShowConfigModal(true); setShowOnboarding(false); setShowMenu(false); }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]"><Settings className="w-4 h-4" /> {t('menu.system')}</button>}
               {!editMode && (
                 <button onClick={() => { toggleTheme(); setShowMenu(false); }} className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]" title={t('menu.themeTitle')}>
                   {currentTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -3255,7 +2887,21 @@ export default function App() {
 
         {isSonosPage(activePage) ? (
           <div key={activePage} className="fade-in-anim">
-            {renderSonosPage(activePage)}
+            <SonosPage
+              pageId={activePage}
+              entities={entities}
+              sonosIds={SONOS_IDS}
+              pageSettings={pageSettings}
+              isSonosActive={isSonosActive}
+              activeMediaId={activeMediaId}
+              setActiveMediaId={setActiveMediaId}
+              getA={getA}
+              getEntityImageUrl={getEntityImageUrl}
+              callService={callService}
+              savePageSetting={savePageSetting}
+              formatDuration={formatDuration}
+              t={t}
+            />
           </div>
         ) : activePage === 'automations' ? (
           <div key={activePage} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 font-sans fade-in-anim items-start">
@@ -3317,70 +2963,39 @@ export default function App() {
           </div>
         )}
         
-        {showConfigModal && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowConfigModal(false)}>
-            <div className="border w-full max-w-xl max-h-[95vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowConfigModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-xl font-light mb-4 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('system.title')}</h3>
-
-              <div className="flex items-center gap-2 mb-5">
-                <button onClick={() => setConfigTab('connection')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'connection' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>{t('system.tabConnection')}</button>
-                <button onClick={() => setConfigTab('settings')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'settings' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>{t('system.tabSettings')}</button>
-              </div>
-
-              <div className="flex-1 overflow-visible pr-2">
-                {configTab === 'connection' && (
-                  <div className="space-y-5 font-sans">
-                    <div className="space-y-2">
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">{t('system.haUrlPrimary')}{connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}</label>
-                      <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.url} onChange={(e) => setConfig({...config, url: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">{t('system.haUrlFallback')}{connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}</label>
-                      <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.fallbackUrl} onChange={(e) => setConfig({...config, fallbackUrl: e.target.value})} placeholder={t('common.optional')} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-3">{t('system.token')}</label>
-                      <textarea className="w-full px-4 py-3 h-32 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.token} onChange={(e) => setConfig({...config, token: e.target.value})} />
-                    </div>
-                  </div>
-                )}
-
-                {configTab === 'settings' && (
-                  <div className="space-y-4 font-sans">
-                    <ModernDropdown label={t('settings.theme')} icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: t('theme.dark'), light: t('theme.light') }} placeholder={t('dropdown.noneSelected')} />
-                    <ModernDropdown label={t('settings.language')} icon={Globe} options={['nn', 'en']} current={language} onChange={setLanguage} map={{ nn: t('language.nn'), en: t('language.en') }} placeholder={t('dropdown.noneSelected')} />
-                    <div className="space-y-2">
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-3">{t('settings.inactivity')}</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="range"
-                          min={0}
-                          max={300}
-                          step={10}
-                          value={inactivityTimeout}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            setInactivityTimeout(val);
-                            localStorage.setItem('midttunet_inactivity_timeout', String(val));
-                          }}
-                          className="flex-1"
-                        />
-                        <div className="min-w-[64px] text-right text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-                          {inactivityTimeout === 0 ? t('common.off') : `${inactivityTimeout}s`}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-[var(--glass-border)]">
-                <button onClick={() => setShowConfigModal(false)} className="w-full py-3 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid'}}>{t('system.save')}</button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfigModal
+          open={showConfigModal || showOnboarding}
+          isOnboardingActive={isOnboardingActive}
+          t={t}
+          configTab={configTab}
+          setConfigTab={setConfigTab}
+          onboardingSteps={onboardingSteps}
+          onboardingStep={onboardingStep}
+          setOnboardingStep={setOnboardingStep}
+          canAdvanceOnboarding={canAdvanceOnboarding}
+          connected={connected}
+          activeUrl={activeUrl}
+          config={config}
+          setConfig={setConfig}
+          onboardingUrlError={onboardingUrlError}
+          setOnboardingUrlError={setOnboardingUrlError}
+          onboardingTokenError={onboardingTokenError}
+          setOnboardingTokenError={setOnboardingTokenError}
+          setConnectionTestResult={setConnectionTestResult}
+          connectionTestResult={connectionTestResult}
+          validateUrl={validateUrl}
+          testConnection={testConnection}
+          testingConnection={testingConnection}
+          themes={themes}
+          currentTheme={currentTheme}
+          setCurrentTheme={setCurrentTheme}
+          language={language}
+          setLanguage={setLanguage}
+          inactivityTimeout={inactivityTimeout}
+          setInactivityTimeout={setInactivityTimeout}
+          onClose={() => setShowConfigModal(false)}
+          onFinishOnboarding={() => { setShowOnboarding(false); setShowConfigModal(false); }}
+        />
 
         {showPowerModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowPowerModal(false)}>
@@ -3411,56 +3026,17 @@ export default function App() {
           </div>
         )}
 
-        {showClimateModal && entities[CLIMATE_ID] && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowClimateModal(false)}>
-            <div className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowClimateModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-              <div className="flex items-center gap-8 mb-12 font-sans">
-                <div className="p-6 rounded-3xl transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)'}}>
-                  {isCooling ? <Snowflake className="w-12 h-12" /> : <AirVent className="w-12 h-12" />}
-                  
-                </div>
-                <div>
-                  <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">{t('climate.title')}</h3>
-                  <div className="mt-3 px-4 py-1.5 rounded-full border inline-block transition-all duration-500" style={{backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.1)' : isHeating ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)', borderColor: isCooling ? 'rgba(59, 130, 246, 0.2)' : isHeating ? 'rgba(249, 115, 22, 0.2)' : 'var(--glass-border)', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)'}}>
-                    <p className="text-xs uppercase font-bold italic tracking-widest">{t('status.statusLabel')}: {isHeating ? t('status.heating') : isCooling ? t('status.cooling') : t('status.idle')}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start font-sans">
-                <div className="lg:col-span-3 space-y-10 p-6 md:p-10 rounded-3xl popup-surface">
-                  <div className="text-center font-sans">
-                    <div className="flex justify-between items-center mb-6 px-4 italic">
-                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.5em'}}>{t('climate.indoorTemp')}</p>
-                      <span className="text-xs uppercase font-bold" style={{letterSpacing: '0.3em', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af'}}>{String(getA(CLIMATE_ID, "current_temperature"))}°C</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-4 mb-10">
-                      <span className="text-6xl md:text-9xl font-light italic text-[var(--text-primary)] tracking-tighter leading-none select-none" style={{textShadow: '0 10px 25px rgba(0,0,0,0.1)', color: isHeating ? '#fef2f2' : isCooling ? '#f0f9ff' : 'var(--text-primary)'}}>
-                        {String(getA(CLIMATE_ID, "temperature"))}
-                      </span>
-                      <span className="text-5xl font-medium leading-none mt-10 italic text-gray-700">°C</span>
-                    </div>
-                    <div className="flex items-center gap-8 px-4">
-                      <button onClick={() => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (getA(CLIMATE_ID, "temperature") || 21) - 0.5 })} className="p-6 rounded-full transition-all active:scale-90 shadow-lg border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
-                        <Minus className="w-8 h-8" style={{strokeWidth: 3}} />
-                      </button>
-                      <div className="flex-grow font-sans">
-                        <M3Slider min={16} max={30} step={0.5} value={getA(CLIMATE_ID, "temperature") || 21} onChange={(e) => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: parseFloat(e.target.value) })} colorClass={isCooling ? 'bg-blue-500' : isHeating ? 'bg-orange-500' : 'bg-white/20'} />
-                      </div>
-                      <button onClick={() => callService("climate", "set_temperature", { entity_id: CLIMATE_ID, temperature: (getA(CLIMATE_ID, "temperature") || 21) + 0.5 })} className="p-6 rounded-full transition-all active:scale-90 shadow-lg border" style={{backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)'}}>
-                        <Plus className="w-8 h-8" style={{strokeWidth: 3}} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div className="lg:col-span-2 space-y-10 py-4 italic font-sans">
-                  <ModernDropdown label={t('climate.mode')} icon={Flame} options={getA(CLIMATE_ID, "hvac_modes", [])} current={entities[CLIMATE_ID]?.state} onChange={(m) => callService("climate", "set_hvac_mode", { entity_id: CLIMATE_ID, hvac_mode: m })} map={hvacMap} placeholder={t('dropdown.noneSelected')} />
-                  <ModernDropdown label={t('climate.fanSpeed')} icon={Fan} options={getA(CLIMATE_ID, "fan_modes", [])} current={getA(CLIMATE_ID, "fan_mode")} onChange={(m) => callService("climate", "set_fan_mode", { entity_id: CLIMATE_ID, fan_mode: m })} map={fanMap} placeholder={t('dropdown.noneSelected')} />
-                  <ModernDropdown label={t('climate.swing')} icon={ArrowUpDown} options={getA(CLIMATE_ID, "swing_modes", [])} current={getA(CLIMATE_ID, "swing_mode")} onChange={(m) => callService("climate", "set_swing_mode", { entity_id: CLIMATE_ID, swing_mode: m })} map={swingMap} placeholder={t('dropdown.noneSelected')} />
-                </div>
-              </div>
-            </div>
-          </div>
+        {activeClimateEntityModal && entities[activeClimateEntityModal] && (
+          <GenericClimateModal
+            entityId={activeClimateEntityModal}
+            entity={entities[activeClimateEntityModal]}
+            onClose={() => setActiveClimateEntityModal(null)}
+            callService={callService}
+            hvacMap={hvacMap}
+            fanMap={fanMap}
+            swingMap={swingMap}
+            t={t}
+          />
         )}
 
         {showLightModal && (
@@ -3937,6 +3513,12 @@ export default function App() {
                       <Bot className="w-4 h-4" /> {t('addCard.type.vacuum')}
                     </button>
                     <button
+                      onClick={() => setAddCardType('climate')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'climate' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <Thermometer className="w-4 h-4" /> {t('addCard.type.climate')}
+                    </button>
+                    <button
                       onClick={() => setAddCardType('media')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'media' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
@@ -4073,6 +3655,9 @@ export default function App() {
                           if (addCardType === 'vacuum') {
                             return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           }
+                          if (addCardType === 'climate') {
+                            return id.startsWith('climate.');
+                          }
                           if (addCardType === 'media') {
                             return id.startsWith('media_player.');
                           }
@@ -4099,6 +3684,10 @@ export default function App() {
                           const isSelected = selectedEntities.includes(id);
                           return (
                           <button type="button" key={id} onClick={() => {
+                              if (addCardType === 'climate') {
+                                setSelectedEntities(prev => (prev.includes(id) ? [] : [id]));
+                                return;
+                              }
                               if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
                               else setSelectedEntities(prev => [...prev, id]);
                           }} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
@@ -4116,6 +3705,7 @@ export default function App() {
                           if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
                           if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
                           if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                          if (addCardType === 'climate') return id.startsWith('climate.');
                           if (addCardType === 'media') return id.startsWith('media_player.');
                           if (addCardType === 'toggle') return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           if (addCardType === 'entity') return !id.startsWith('person.') && !id.startsWith('update.') && !(pagesConfig[addCardTargetPage] || []).includes(id);

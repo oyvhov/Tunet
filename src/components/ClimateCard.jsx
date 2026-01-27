@@ -12,6 +12,7 @@ export default function ClimateCard({
   fanMode,
   isCooling,
   isHeating,
+  showFan = true,
   onOpen,
   onSetTemperature,
   t
@@ -83,30 +84,32 @@ export default function ClimateCard({
               <Plus className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex items-center justify-center rounded-2xl border w-20 gap-2 pr-2" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
-            <Fan className="w-4 h-4 text-[var(--text-secondary)]" />
-            {fanSpeedLevel === 0 ? (
-              <span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">{translate('climate.fanAuto')}</span>
-            ) : (
-              <div className="flex items-end gap-[2px] h-4">
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <div
-                    key={level}
-                    className={`w-1 rounded-sm transition-all duration-300 ${
-                      level <= fanSpeedLevel
-                        ? clTheme === 'blue'
-                          ? 'bg-blue-400'
-                          : clTheme === 'orange'
-                          ? 'bg-orange-400'
-                          : 'bg-[var(--text-primary)]'
-                        : 'bg-[var(--glass-bg-hover)]'
-                    }`}
-                    style={{ height: `${30 + level * 14}%` }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          {showFan && (
+            <div className="flex items-center justify-center rounded-2xl border w-20 gap-2 pr-2" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
+              <Fan className="w-4 h-4 text-[var(--text-secondary)]" />
+              {fanSpeedLevel === 0 ? (
+                <span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">{translate('climate.fanAuto')}</span>
+              ) : (
+                <div className="flex items-end gap-[2px] h-4">
+                  {[1, 2, 3, 4, 5].map((level) => (
+                    <div
+                      key={level}
+                      className={`w-1 rounded-sm transition-all duration-300 ${
+                        level <= fanSpeedLevel
+                          ? clTheme === 'blue'
+                            ? 'bg-blue-400'
+                            : clTheme === 'orange'
+                            ? 'bg-orange-400'
+                            : 'bg-[var(--text-primary)]'
+                          : 'bg-[var(--glass-bg-hover)]'
+                      }`}
+                      style={{ height: `${30 + level * 14}%` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
