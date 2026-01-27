@@ -78,32 +78,34 @@ export default function WeatherTempCard({
   return (
     <div key={cardId} {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
       {getControls(cardId)}
-      <div className="flex justify-between items-start relative z-10">
-        <div className="w-24 h-24 -ml-4 -mt-4 filter drop-shadow-lg transition-transform duration-500 group-hover:scale-110">
-          <img src={iconUrl} alt={info.label} className="w-full h-full object-contain" />
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-            <span className="text-xs tracking-widest uppercase font-bold">{info.label}</span>
+      <div className="flex flex-col gap-3 relative z-10">
+        <div className="flex justify-between items-start">
+          <div className="w-24 h-24 -ml-4 -mt-4 filter drop-shadow-lg transition-transform duration-500 group-hover:scale-110">
+            <img src={iconUrl} alt={info.label} className="w-full h-full object-contain" />
           </div>
-          <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
-          {(minTemp !== null || maxTemp !== null) && (
-            <div className="flex flex-col gap-1.5 items-end mt-1">
-              {maxTemp !== null && (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
-                  <span className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Max</span>
-                  <span className="text-xs font-bold text-[var(--text-primary)]">{Math.round(maxTemp)}°</span>
-                </div>
-              )}
-              {minTemp !== null && (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
-                  <span className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Min</span>
-                  <span className="text-xs font-bold text-[var(--text-primary)]">{Math.round(minTemp)}°</span>
-                </div>
-              )}
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+              <span className="text-xs tracking-widest uppercase font-bold">{info.label}</span>
             </div>
-          )}
+            <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
+          </div>
         </div>
+        {(minTemp !== null || maxTemp !== null) && (
+          <div className="flex justify-between items-center">
+            {minTemp !== null ? (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
+                <span className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Min</span>
+                <span className="text-xs font-bold text-[var(--text-primary)]">{Math.round(minTemp)}°</span>
+              </div>
+            ) : <div />}
+            {maxTemp !== null ? (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
+                <span className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Max</span>
+                <span className="text-xs font-bold text-[var(--text-primary)]">{Math.round(maxTemp)}°</span>
+              </div>
+            ) : <div />}
+          </div>
+        )}
       </div>
       <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
         <WeatherGraph history={history} currentTemp={currentTemp} />

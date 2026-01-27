@@ -70,7 +70,7 @@ import {
   Wifi,
   Lock,
   Unlock,
-  Shield,
+
   Video,
   Camera,
   Bell,
@@ -151,13 +151,13 @@ import AddPageModal from './components/AddPageModal';
 import EditPageModal from './components/EditPageModal';
 import EditCardModal from './components/EditCardModal';
 import ConfigModal from './components/ConfigModal';
-import ShieldCard from './components/ShieldCard';
+
+import GenericAndroidTVCard from './components/GenericAndroidTVCard';
+import GenericAndroidTVModal from './components/GenericAndroidTVModal';
 import WeatherTempCard from './components/WeatherTempCard';
-import WeatherCard from './components/WeatherCard';
 import SonosPage from './components/SonosPage';
 import { themes } from './themes';
 import EnergyPowerCard from './components/EnergyPowerCard';
-import EnergyCostCard from './components/EnergyCostCard';
 import GenericEnergyCostCard from './components/GenericEnergyCostCard';
 import GenericClimateCard from './components/GenericClimateCard';
 import GenericClimateModal from './components/GenericClimateModal';
@@ -193,8 +193,7 @@ import {
   CAMERA_PORTEN_ID,
   OYVIND_BAT_LEVEL,
   OYVIND_BAT_STATE,
-  SHIELD_ID,
-  SHIELD_REMOTE_ID,
+
   LEAF_CLIMATE,
   COST_TODAY_ID,
   COST_MONTH_ID,
@@ -225,7 +224,8 @@ export default function App() {
   const [showLightModal, setShowLightModal] = useState(null);
   const [lightControlTab, setLightControlTab] = useState('brightness');
   const [showLeafModal, setShowLeafModal] = useState(false);
-  const [showShieldModal, setShowShieldModal] = useState(false);
+
+  const [showAndroidTVModal, setShowAndroidTVModal] = useState(null);
   const [showRockyModal, setShowRockyModal] = useState(false);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
@@ -285,6 +285,8 @@ export default function App() {
   const [selectedEntities, setSelectedEntities] = useState([]);
   const [selectedWeatherId, setSelectedWeatherId] = useState(null);
   const [selectedTempId, setSelectedTempId] = useState(null);
+  const [selectedAndroidTVMediaId, setSelectedAndroidTVMediaId] = useState(null);
+  const [selectedAndroidTVRemoteId, setSelectedAndroidTVRemoteId] = useState(null);
   const [selectedCostTodayId, setSelectedCostTodayId] = useState(null);
   const [selectedCostMonthId, setSelectedCostMonthId] = useState(null);
   const [costSelectionTarget, setCostSelectionTarget] = useState('today');
@@ -318,7 +320,7 @@ export default function App() {
 
   const resetToHome = () => {
     const isHome = activePage === 'home';
-    const noModals = !showPowerModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showShieldModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
+    const noModals = !showPowerModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
     
     if (!isHome || !noModals) {
         setActivePage('home');
@@ -326,7 +328,7 @@ export default function App() {
         setActiveClimateEntityModal(null);
         setShowLightModal(null);
         setShowLeafModal(false);
-        setShowShieldModal(false);
+
         setShowRockyModal(false);
         setShowAddCardModal(false);
         setShowCameraModal(false);
@@ -415,10 +417,22 @@ export default function App() {
           parsed.home = parsed.home.filter(id => id !== 'climate');
           modified = true;
         }
+
+        // Remove deprecated energy_price_ cards (generic system removed)
+        Object.keys(parsed).forEach(pageKey => {
+          if (Array.isArray(parsed[pageKey])) {
+            const filtered = parsed[pageKey].filter(id => !String(id).startsWith('energy_price_'));
+            if (filtered.length !== parsed[pageKey].length) {
+              parsed[pageKey] = filtered;
+              modified = true;
+            }
+          }
+        });
         
-        if (parsed.home && !parsed.home.includes('shield')) {
-            parsed.home.push('shield');
-            modified = true;
+        // Remove legacy static shield card
+        if (parsed.home && parsed.home.includes('shield')) {
+          parsed.home = parsed.home.filter(id => id !== 'shield');
+          modified = true;
         }
 
         if (parsed.home && parsed.home.includes('weather')) {
@@ -490,7 +504,7 @@ export default function App() {
       if (savedOrder) {
         try {
            const raw = JSON.parse(savedOrder).filter(id => id !== 'people');
-           const parsed = [...new Set([...raw, 'shield'])];
+           const parsed = [...new Set([...raw])];
            setPagesConfig(prev => ({ ...prev, home: parsed }));
         } catch (e) {}
       }
@@ -858,7 +872,8 @@ export default function App() {
   };
   const callService = (domain, service, data) => { if (conn) haCallService(conn, domain, service, data); };
 
-  const { fullPriceData, currentPriceIndex, priceStats, currentPrice } = useEnergyData(entities, now);
+  const nordpoolEntity = entities[NORDPOOL_ID];
+  const { fullPriceData, currentPriceIndex, priceStats, currentPrice } = useEnergyData(nordpoolEntity || null, now);
 
   const personStatus = (id) => {
     const entity = entities[id];
@@ -1076,7 +1091,7 @@ export default function App() {
   const isCardRemovable = (cardId, pageId = activePage) => {
     if (pageId === 'header') return cardId.startsWith('person.');
     if (pageId === 'settings') {
-      if (['power', 'shield', 'car'].includes(cardId)) return false;
+      if (['power', 'car'].includes(cardId)) return false;
       if (cardId.startsWith('media_player') || cardId.startsWith('sonos')) return false;
       return true;
     }
@@ -1092,6 +1107,7 @@ export default function App() {
     if (cardId.startsWith('calendar_card_')) return true;
     if (cardId.startsWith('climate_card_')) return true;
     if (cardId.startsWith('cost_card_')) return true;
+    if (cardId.startsWith('androidtv_card_')) return true;
     return false;
   };
 
@@ -1147,8 +1163,8 @@ export default function App() {
       return sonosEntities.length === 0;
     }
 
-    if (activePage === 'settings' && !['power', 'energy_cost', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
-      if (activePage === 'settings' && !['power', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['power', 'energy_cost', 'rocky', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+      if (activePage === 'settings' && !['power', 'rocky', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
         return !entities[cardId];
       }
     }
@@ -1381,6 +1397,31 @@ export default function App() {
       localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
 
       setSelectedEntities([]);
+      setShowAddCardModal(false);
+      return;
+    }
+
+    if (addCardType === 'androidtv') {
+      if (!selectedAndroidTVMediaId) return;
+      const cardId = `androidtv_card_${Date.now()}`;
+      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+      setPagesConfig(newConfig);
+      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+
+      const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+      const newSettings = {
+        ...cardSettings,
+        [settingsKey]: { 
+          ...(cardSettings[settingsKey] || {}), 
+          mediaPlayerId: selectedAndroidTVMediaId,
+          remoteId: selectedAndroidTVRemoteId || null
+        }
+      };
+      setCardSettings(newSettings);
+      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+
+      setSelectedAndroidTVMediaId(null);
+      setSelectedAndroidTVRemoteId(null);
       setShowAddCardModal(false);
       return;
     }
@@ -2030,20 +2071,7 @@ export default function App() {
     );
   };
 
-  const renderShieldCard = (dragProps, getControls, cardStyle) => (
-    <ShieldCard
-      dragProps={dragProps}
-      getControls={getControls}
-      cardStyle={cardStyle}
-      editMode={editMode}
-      entities={entities}
-      shieldId={SHIELD_ID}
-      getA={getA}
-      getEntityImageUrl={getEntityImageUrl}
-      setShowShieldModal={setShowShieldModal}
-      t={t}
-    />
-  );
+
 
 
   const renderWeatherTempCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => (
@@ -2112,22 +2140,33 @@ export default function App() {
     );
   };
 
-  const renderWeatherCard = (dragProps, getControls, cardStyle) => (
-    <WeatherCard
-      dragProps={dragProps}
-      getControls={getControls}
-      cardStyle={cardStyle}
-      editMode={editMode}
-      entities={entities}
-      weatherEntityId={WEATHER_ENTITY}
-      outsideTempId={OUTSIDE_TEMP_ID}
-      tempHistory={tempHistory}
-      weatherForecast={weatherForecast}
-      customNames={customNames}
-      customIcons={customIcons}
-      t={t}
-    />
-  );
+
+
+  const renderGenericAndroidTVCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+    const mediaPlayerId = settings.mediaPlayerId;
+    const remoteId = settings.remoteId;
+    
+    if (!mediaPlayerId) return null;
+    
+    return (
+      <GenericAndroidTVCard
+        cardId={cardId}
+        dragProps={dragProps}
+        controls={getControls(cardId)}
+        cardStyle={cardStyle}
+        editMode={editMode}
+        entities={entities}
+        mediaPlayerId={mediaPlayerId}
+        remoteId={remoteId}
+        getA={getA}
+        getEntityImageUrl={getEntityImageUrl}
+        onOpen={() => setShowAndroidTVModal(cardId)}
+        customNames={customNames}
+        t={t}
+      />
+    );
+  };
 
   const resolveLightId = (cardId) => {
     if (cardId === 'light_kjokken') return LIGHT_KJOKKEN;
@@ -2161,6 +2200,22 @@ export default function App() {
     }
 
     return 2;
+  };
+
+  const moveCardInArray = (cardId, direction) => {
+    const newConfig = { ...pagesConfig };
+    const pageCards = newConfig[activePage];
+    const currentIndex = pageCards.indexOf(cardId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= pageCards.length) return;
+
+    // Swap cards
+    [pageCards[currentIndex], pageCards[newIndex]] = [pageCards[newIndex], pageCards[currentIndex]];
+    
+    setPagesConfig(newConfig);
+    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
   };
 
   const buildGridLayout = (ids, columns) => {
@@ -2289,6 +2344,22 @@ export default function App() {
       const canToggleSize = (editId.startsWith('light_') || editId.startsWith('light.') || editId.startsWith('vacuum.') || editId.startsWith('automation.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('weather_temp_') || settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor');
       return ( 
       <>
+        <div className="absolute top-2 left-2 z-50 flex gap-2">
+          <button 
+            onClick={(e) => { e.stopPropagation(); moveCardInArray(cardId, 'left'); }}
+            className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
+            title={t('tooltip.moveLeft')}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); moveCardInArray(cardId, 'right'); }}
+            className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
+            title={t('tooltip.moveRight')}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
         <div className="absolute top-2 right-2 z-50 flex gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); setEditCardSettingsKey(settingsKey); }}
@@ -2429,6 +2500,10 @@ export default function App() {
       return renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
+    if (cardId.startsWith('androidtv_card_')) {
+      return renderGenericAndroidTVCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+    }
+
     const genericSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
     if (genericSettings.type === 'sensor' || genericSettings.type === 'entity' || genericSettings.type === 'toggle') {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
@@ -2459,10 +2534,9 @@ export default function App() {
         );
       case 'rocky':
         return renderRockyCard(dragProps, getControls, cardStyle);
-      case 'shield':
-        return renderShieldCard(dragProps, getControls, cardStyle);
+
       case 'weather':
-        return renderWeatherCard(dragProps, getControls, cardStyle);
+        return renderWeatherTempCard('weather', dragProps, getControls, cardStyle, 'weather');
       case 'media_player':
         const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
         const mediaEntities = embyIds.map(id => entities[id]).filter(Boolean);
@@ -3056,6 +3130,9 @@ export default function App() {
               if (!editMode && (hiddenCards.includes(id) || isCardHiddenByLogic(id))) return null;
               if (!placement) return null;
 
+              const cardContent = renderCard(id, index);
+              if (!cardContent) return null;
+
               return (
                 <div
                   key={`${id}-${index}`}
@@ -3067,7 +3144,7 @@ export default function App() {
                     minHeight: isCalendarCard ? '496px' : undefined
                   }}
                 >
-                  {renderCard(id, index)}
+                  {cardContent}
                 </div>
               );
             })}
@@ -3340,41 +3417,25 @@ export default function App() {
           </div>
         )}
 
-        {showShieldModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowShieldModal(false)}>
-            <div className="border w-full max-w-sm rounded-[3rem] p-8 shadow-2xl relative font-sans backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-               <button onClick={() => setShowShieldModal(false)} className="absolute top-6 right-6 modal-close"><X className="w-4 h-4" /></button>
-               
-               <div className="flex flex-col items-center gap-8 mt-4">
-                  <div className="flex items-center gap-4 mb-4">
-                     <div className={`p-4 rounded-2xl ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Gamepad2 className="w-8 h-8" /></div>
-                     <div><h3 className="text-2xl font-light text-[var(--text-primary)] uppercase italic tracking-widest">Shield</h3><p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{entities[SHIELD_ID]?.state === 'playing' ? t('shield.playingNow') : (entities[SHIELD_ID]?.state !== 'off' ? t('shield.on') : t('shield.off'))}</p></div>
-                  </div>
 
-                  <div className="popup-surface p-6 rounded-[2.5rem] relative">
-                     <div className="grid grid-cols-3 gap-4 items-center justify-items-center">
-                        <div />
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_UP" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronUp className="w-6 h-6" /></button>
-                        <div />
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_LEFT" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronLeft className="w-6 h-6" /></button>
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_CENTER" })} className="p-6 rounded-full bg-[var(--glass-bg-hover)] hover:bg-[var(--glass-bg)] active:scale-95 transition-all border border-[var(--glass-border)]"><div className="w-4 h-4 rounded-full bg-white/50" /></button>
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_RIGHT" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronRight className="w-6 h-6" /></button>
-                        <div />
-                        <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "DPAD_DOWN" })} className="p-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all"><ChevronDown className="w-6 h-6" /></button>
-                        <div />
-                     </div>
-                  </div>
 
-                  <div className="flex gap-6 w-full justify-center"><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "BACK" })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">{t('shield.back')}</button><button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "HOME" })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] active:scale-95 transition-all font-bold uppercase tracking-widest text-xs text-gray-400">{t('shield.home')}</button></div>
-
-                  <div className="flex gap-4 w-full pt-4 border-t border-[var(--glass-border)]">
-                     <button onClick={() => callService("media_player", "toggle", { entity_id: SHIELD_ID })} className={`flex-1 py-4 rounded-2xl font-bold uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${entities[SHIELD_ID]?.state !== 'off' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'}`}><Power className="w-4 h-4" /> {entities[SHIELD_ID]?.state !== 'off' ? t('shield.turnOff') : t('shield.turnOn')}</button>
-                     <button onClick={() => callService("remote", "send_command", { entity_id: SHIELD_REMOTE_ID, command: "MEDIA_PLAY_PAUSE" })} className="flex-1 py-4 rounded-2xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95 transition-all font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2"><Play className="w-4 h-4" /> {t('shield.playPause')}</button>
-                  </div>
-               </div>
-            </div>
-          </div>
-        )}
+        {showAndroidTVModal && (() => {
+          const settings = cardSettings[getCardSettingsKey(showAndroidTVModal)] || {};
+          return (
+            <GenericAndroidTVModal
+              show={true}
+              onClose={() => setShowAndroidTVModal(null)}
+              entities={entities}
+              mediaPlayerId={settings.mediaPlayerId}
+              remoteId={settings.remoteId}
+              callService={callService}
+              getA={getA}
+              getEntityImageUrl={getEntityImageUrl}
+              customNames={customNames}
+              t={t}
+            />
+          );
+        })()}
 
         {showRockyModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowRockyModal(false)}>
@@ -3631,6 +3692,12 @@ export default function App() {
                       <Thermometer className="w-4 h-4" /> {t('addCard.type.climate')}
                     </button>
                     <button
+                      onClick={() => setAddCardType('androidtv')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'androidtv' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <Gamepad2 className="w-4 h-4" /> Android TV
+                    </button>
+                    <button
                       onClick={() => setAddCardType('cost')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'cost' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
@@ -3744,6 +3811,87 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                ) : addCardType === 'androidtv' ? (
+                  <div className="space-y-8">
+                    <div>
+                      <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">Media Player (påkrevd)</p>
+                      <div className="space-y-3">
+                        {Object.keys(entities)
+                          .filter(id => id.startsWith('media_player.'))
+                          .filter(id => {
+                            if (!searchTerm) return true;
+                            const lowerTerm = searchTerm.toLowerCase();
+                            const name = entities[id].attributes?.friendly_name || id;
+                            return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
+                          })
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(id => {
+                            const isSelected = selectedAndroidTVMediaId === id;
+                            return (
+                              <button type="button" key={id} onClick={() => setSelectedAndroidTVMediaId(prev => prev === id ? null : id)} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
+                                <div className="flex flex-col overflow-hidden mr-4">
+                                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+                                </div>
+                                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                                  {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        {Object.keys(entities).filter(id => id.startsWith('media_player.')).length === 0 && (
+                          <p className="text-gray-500 italic text-sm text-center py-4">{t('addCard.noMediaPlayers')}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">Fjernkontroll (valfri)</p>
+                      <div className="space-y-3">
+                        <button type="button" onClick={() => setSelectedAndroidTVRemoteId(null)} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${!selectedAndroidTVRemoteId ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
+                          <div className="flex flex-col overflow-hidden mr-4">
+                            <span className={`text-sm font-bold transition-colors truncate ${!selectedAndroidTVRemoteId ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>Ingen fjernkontroll</span>
+                            <span className={`text-[11px] font-medium truncate ${!selectedAndroidTVRemoteId ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>(berre media kontroll)</span>
+                          </div>
+                          <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedAndroidTVRemoteId ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                            {!selectedAndroidTVRemoteId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                          </div>
+                        </button>
+                        {Object.keys(entities)
+                          .filter(id => id.startsWith('remote.'))
+                          .filter(id => {
+                            if (!searchTerm) return true;
+                            const lowerTerm = searchTerm.toLowerCase();
+                            const name = entities[id].attributes?.friendly_name || id;
+                            return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
+                          })
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(id => {
+                            const isSelected = selectedAndroidTVRemoteId === id;
+                            return (
+                              <button type="button" key={id} onClick={() => setSelectedAndroidTVRemoteId(prev => prev === id ? null : id)} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
+                                <div className="flex flex-col overflow-hidden mr-4">
+                                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+                                </div>
+                                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                                  {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                    <div className="mt-8 pt-6 border-t border-gray-700">
+                      <button 
+                        onClick={() => handleAddSelected()}
+                        disabled={!selectedAndroidTVMediaId}
+                        className="w-full px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {t('addCard.add')}
+                      </button>
+                    </div>
+                  </div>
                 ) : addCardType === 'calendar' ? (
                   <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
                     <div className="p-4 rounded-full bg-blue-500/10 text-blue-400">
@@ -3802,6 +3950,9 @@ export default function App() {
                           }
                           if (addCardType === 'climate') {
                             return id.startsWith('climate.');
+                          }
+                          if (addCardType === 'androidtv') {
+                            return id.startsWith('media_player.') || id.startsWith('remote.');
                           }
                           if (addCardType === 'cost') {
                             return (id.startsWith('sensor.') || id.startsWith('input_number.'));
@@ -3882,6 +4033,7 @@ export default function App() {
                           if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
                           if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           if (addCardType === 'climate') return id.startsWith('climate.');
+                          if (addCardType === 'androidtv') return id.startsWith('media_player.') || id.startsWith('remote.');
                           if (addCardType === 'cost') return (id.startsWith('sensor.') || id.startsWith('input_number.'));
                           if (addCardType === 'media') return id.startsWith('media_player.');
                           if (addCardType === 'toggle') return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
