@@ -16,6 +16,7 @@ const EditCardModal = ({
   isEditGenericType,
   isEditSensor,
   isEditCalendar,
+  isEditCost,
   editSettingsKey,
   editSettings,
   customNames,
@@ -181,6 +182,84 @@ const EditCardModal = ({
                         );
                       })
                   )}
+               </div>
+            </div>
+          )}
+
+          {isEditCost && (
+            <div className="space-y-4">
+               <div>
+                 <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-2 block">{t('energyCost.today') || 'Today'}</label>
+                 <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl p-4 max-h-40 overflow-y-auto custom-scrollbar space-y-2">
+                    {Object.keys(entities).filter(id => id.startsWith('sensor.') || id.startsWith('input_number.')).length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-4">{t('addCard.noSensors') || 'No sensors found'}</p>
+                    ) : (
+                        Object.keys(entities).filter(id => id.startsWith('sensor.') || id.startsWith('input_number.'))
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(sensorId => {
+                          const isSelected = editSettings.todayId === sensorId;
+                          return (
+                              <div key={sensorId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
+                                  saveCardSetting(editSettingsKey, 'todayId', isSelected ? null : sensorId);
+                              }}>
+                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
+                                  </div>
+                                  <div className="flex flex-col">
+                                      <span className="text-sm font-medium text-[var(--text-primary)]">{entities[sensorId].attributes?.friendly_name || sensorId}</span>
+                                      <span className="text-[10px] text-gray-500 font-mono">{sensorId}</span>
+                                  </div>
+                              </div>
+                          );
+                        })
+                    )}
+                 </div>
+               </div>
+               
+               <div>
+                 <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-2 block">{t('energyCost.thisMonth') || 'This Month'}</label>
+                 <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl p-4 max-h-40 overflow-y-auto custom-scrollbar space-y-2">
+                    {Object.keys(entities).filter(id => id.startsWith('sensor.') || id.startsWith('input_number.')).length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-4">{t('addCard.noSensors') || 'No sensors found'}</p>
+                    ) : (
+                        Object.keys(entities).filter(id => id.startsWith('sensor.') || id.startsWith('input_number.'))
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(sensorId => {
+                          const isSelected = editSettings.monthId === sensorId;
+                          return (
+                              <div key={sensorId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
+                                  saveCardSetting(editSettingsKey, 'monthId', isSelected ? null : sensorId);
+                              }}>
+                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
+                                  </div>
+                                  <div className="flex flex-col">
+                                      <span className="text-sm font-medium text-[var(--text-primary)]">{entities[sensorId].attributes?.friendly_name || sensorId}</span>
+                                      <span className="text-[10px] text-gray-500 font-mono">{sensorId}</span>
+                                  </div>
+                              </div>
+                          );
+                        })
+                    )}
+                 </div>
+               </div>
+
+               <div className="space-y-2">
+                 <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('cost.decimals') || 'Decimals (Today)'}</label>
+                 <div className="flex items-center gap-4">
+                   <input
+                     type="range"
+                     min={0}
+                     max={3}
+                     step={1}
+                     value={editSettings.decimals ?? 0}
+                     onChange={(e) => saveCardSetting(editSettingsKey, 'decimals', parseInt(e.target.value, 10))}
+                     className="flex-1"
+                   />
+                   <div className="min-w-[48px] text-center text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)] bg-[var(--glass-bg)] px-3 py-2 rounded-xl border border-[var(--glass-border)]">
+                     {editSettings.decimals ?? 0}
+                   </div>
+                 </div>
                </div>
             </div>
           )}

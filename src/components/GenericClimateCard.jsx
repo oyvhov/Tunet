@@ -25,10 +25,12 @@ export default function GenericClimateCard({
   customIcons,
   onOpen,
   onSetTemperature,
+  settings,
   t
 }) {
   if (!entity || !entityId) return null;
 
+  const isSmall = settings?.size === 'small';
   const currentTemp = entity.attributes?.current_temperature ?? '--';
   const targetTemp = entity.attributes?.temperature ?? '--';
   const fanMode = entity.attributes?.fan_mode ?? 'Auto';
@@ -57,6 +59,7 @@ export default function GenericClimateCard({
       showFan={showFan}
       onOpen={onOpen}
       onSetTemperature={onSetTemperature}
+      isSmall={isSmall}
       t={t}
     />
   );

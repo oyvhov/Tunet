@@ -15,6 +15,7 @@ export default function ClimateCard({
   showFan = true,
   onOpen,
   onSetTemperature,
+  isSmall = false,
   t
 }) {
   const translate = t || ((key) => key);
@@ -23,6 +24,61 @@ export default function ClimateCard({
   const DisplayIcon = Icon || (isCooling ? Snowflake : AirVent);
 
   const stepTemp = (delta) => onSetTemperature((targetTemp || 21) + delta);
+
+  if (isSmall) {
+    return (
+      <div
+        {...dragProps}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!editMode && onOpen) onOpen();
+        }}
+        className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        style={cardStyle}
+      >
+        {controls}
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div
+            className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500"
+            style={{
+              backgroundColor:
+                clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)',
+              color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : 'var(--text-secondary)'
+            }}
+          >
+            <DisplayIcon className="w-6 h-6 stroke-[1.5px]" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{name}</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{String(currentTemp)}°</span>
+              <span className="text-xs text-[var(--text-secondary)]">→ {String(targetTemp)}°</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              stepTemp(-0.5);
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              stepTemp(0.5);
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

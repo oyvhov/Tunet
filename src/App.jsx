@@ -136,7 +136,9 @@ import {
   Truck,
   Wrench,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Maximize2,
+  Minimize2
 } from './icons';
 import M3Slider from './components/M3Slider';
 import ModernDropdown from './components/ModernDropdown';
@@ -156,6 +158,7 @@ import SonosPage from './components/SonosPage';
 import { themes } from './themes';
 import EnergyPowerCard from './components/EnergyPowerCard';
 import EnergyCostCard from './components/EnergyCostCard';
+import GenericEnergyCostCard from './components/GenericEnergyCostCard';
 import GenericClimateCard from './components/GenericClimateCard';
 import GenericClimateModal from './components/GenericClimateModal';
 import CalendarCard from './components/CalendarCard';
@@ -282,6 +285,10 @@ export default function App() {
   const [selectedEntities, setSelectedEntities] = useState([]);
   const [selectedWeatherId, setSelectedWeatherId] = useState(null);
   const [selectedTempId, setSelectedTempId] = useState(null);
+  const [selectedCostTodayId, setSelectedCostTodayId] = useState(null);
+  const [selectedCostMonthId, setSelectedCostMonthId] = useState(null);
+  const [costSelectionTarget, setCostSelectionTarget] = useState('today');
+  const [optimisticLightBrightness, setOptimisticLightBrightness] = useState({});
   const [tempHistoryById, setTempHistoryById] = useState({});
   const [cardSettings, setCardSettings] = useState({});
   const [inactivityTimeout, setInactivityTimeout] = useState(() => {
@@ -557,6 +564,14 @@ export default function App() {
       setLightControlTab('brightness');
     }
   }, [showLightModal]);
+
+  useEffect(() => {
+    // Clear optimistic updates when actual state comes back
+    const timeout = setTimeout(() => {
+      setOptimisticLightBrightness({});
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [entities]);
 
   useEffect(() => {
     localStorage.setItem('midttunet_language', language);
@@ -922,6 +937,9 @@ export default function App() {
     if (showAddCardModal) {
       setSelectedWeatherId(null);
       setSelectedTempId(null);
+      setSelectedCostTodayId(null);
+      setSelectedCostMonthId(null);
+      setCostSelectionTarget('today');
     }
   }, [showAddCardModal]);
 
@@ -948,6 +966,7 @@ export default function App() {
     if (addCardTargetPage === 'settings') return t('addCard.available.allEntities');
     if (addCardType === 'vacuum') return t('addCard.available.vacuums');
     if (addCardType === 'climate') return t('addCard.available.climates');
+    if (addCardType === 'cost') return t('addCard.available.costs');
     if (addCardType === 'media') return t('addCard.available.players');
     if (addCardType === 'toggle') return t('addCard.available.toggles');
     if (addCardType === 'entity') return t('addCard.available.entities');
@@ -965,6 +984,8 @@ export default function App() {
             ? 'addCard.item.vacuums'
             : addCardType === 'climate'
               ? 'addCard.item.climates'
+              : addCardType === 'cost'
+                ? 'addCard.item.costs'
             : addCardType === 'media'
               ? 'addCard.item.players'
               : addCardType === 'toggle'
@@ -1055,7 +1076,7 @@ export default function App() {
   const isCardRemovable = (cardId, pageId = activePage) => {
     if (pageId === 'header') return cardId.startsWith('person.');
     if (pageId === 'settings') {
-      if (['power', 'energy_cost', 'shield', 'car'].includes(cardId)) return false;
+      if (['power', 'shield', 'car'].includes(cardId)) return false;
       if (cardId.startsWith('media_player') || cardId.startsWith('sonos')) return false;
       return true;
     }
@@ -1070,6 +1091,7 @@ export default function App() {
     if (cardId.startsWith('weather_temp_')) return true;
     if (cardId.startsWith('calendar_card_')) return true;
     if (cardId.startsWith('climate_card_')) return true;
+    if (cardId.startsWith('cost_card_')) return true;
     return false;
   };
 
@@ -1126,7 +1148,9 @@ export default function App() {
     }
 
     if (activePage === 'settings' && !['power', 'energy_cost', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
-      return !entities[cardId];
+      if (activePage === 'settings' && !['power', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+        return !entities[cardId];
+      }
     }
 
     return false;
@@ -1361,6 +1385,32 @@ export default function App() {
       return;
     }
 
+    if (addCardType === 'cost') {
+      if (!selectedCostTodayId || !selectedCostMonthId) return;
+      const cardId = `cost_card_${Date.now()}`;
+      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+      setPagesConfig(newConfig);
+      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+
+      const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+      const newSettings = {
+        ...cardSettings,
+        [settingsKey]: {
+          ...(cardSettings[settingsKey] || {}),
+          todayId: selectedCostTodayId,
+          monthId: selectedCostMonthId
+        }
+      };
+      setCardSettings(newSettings);
+      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+
+      setSelectedCostTodayId(null);
+      setSelectedCostMonthId(null);
+      setCostSelectionTarget('today');
+      setShowAddCardModal(false);
+      return;
+    }
+
     if (addCardType === 'entity' || addCardType === 'toggle' || addCardType === 'sensor') {
       const newSettings = { ...cardSettings };
       selectedEntities.forEach((id) => {
@@ -1462,10 +1512,10 @@ export default function App() {
           <div className="flex-1 flex flex-col gap-3 min-w-0 justify-center h-full pt-1">
             <div className="flex justify-between items-baseline pr-1">
               <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none">{String(name || t('common.light'))}</p>
-              <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round((br / 255) * 100)}%` : t('common.off')}</span>
+              <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round(((optimisticLightBrightness[currentLId] ?? br) / 255) * 100)}%` : t('common.off')}</span>
             </div>
             <div className="w-full">
-               <M3Slider variant="thinLg" min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+               <M3Slider variant="thinLg" min={0} max={255} step={1} value={optimisticLightBrightness[currentLId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [currentLId]: val })); callService("light", "turn_on", { entity_id: currentLId, brightness: val }); }} colorClass="bg-amber-500" />
             </div>
           </div>
         </div>
@@ -1476,12 +1526,14 @@ export default function App() {
       <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
         {getControls(currentLId)}
         <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}><span className="text-xs tracking-widest uppercase font-bold">{isUnavailable ? t('status.unavailable') : (totalCount > 0 ? (activeCount > 0 ? `${activeCount}/${totalCount}` : t('common.off')) : (isOn ? t('common.on') : t('common.off')))}</span></div></div>
-        <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round((br / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={br} disabled={!isOn || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: currentLId, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" /></div>
+        <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round(((optimisticLightBrightness[currentLId] ?? br) / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={optimisticLightBrightness[currentLId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [currentLId]: val })); callService("light", "turn_on", { entity_id: currentLId, brightness: val }); }} colorClass="bg-amber-500" /></div>
       </div>
     );
   };
 
-  const renderAutomationCard = (cardId, dragProps, getControls, cardStyle) => {
+  const renderAutomationCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+    const isSmall = settings.size === 'small';
     const isOn = entities[cardId]?.state === 'on';
     const friendlyName = customNames[cardId] || getA(cardId, 'friendly_name') || cardId;
     const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : Workflow;
@@ -1750,10 +1802,12 @@ export default function App() {
     );
   };
 
-  const renderVacuumCard = (vacuumId, dragProps, getControls, cardStyle) => {
+  const renderVacuumCard = (vacuumId, dragProps, getControls, cardStyle, settingsKey) => {
     const entity = entities[vacuumId];
     if (!entity) return null;
 
+    const settings = cardSettings[settingsKey] || cardSettings[vacuumId] || {};
+    const isSmall = settings.size === 'small';
     const state = entity?.state;
     const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
     const battery = getA(vacuumId, "battery_level");
@@ -1771,6 +1825,34 @@ export default function App() {
 
     const showRoom = !!room;
     const showBattery = typeof battery === 'number';
+
+    if (isSmall) {
+      return (
+        <div key={vacuumId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
+          {getControls(vacuumId)}
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all ${state === "cleaning" ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
+              <Icon className="w-6 h-6 stroke-[1.5px]" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{name}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{statusText}</span>
+                {showBattery && <span className="text-xs text-[var(--text-secondary)]">{battery}%</span>}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className="p-2 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95">
+              {state === "cleaning" ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", "return_to_base", { entity_id: vacuumId }); }} className="p-2 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95">
+              <Home className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div key={vacuumId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
@@ -2003,6 +2085,28 @@ export default function App() {
         customIcons={customIcons}
         onOpen={() => setActiveClimateEntityModal(entityId)}
         onSetTemperature={(temp) => callService('climate', 'set_temperature', { entity_id: entityId, temperature: temp })}
+        settings={settings}
+        t={t}
+      />
+    );
+  };
+
+  const renderGenericCostCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+    return (
+      <GenericEnergyCostCard
+        cardId={cardId}
+        todayEntityId={settings.todayId}
+        monthEntityId={settings.monthId}
+        entities={entities}
+        dragProps={dragProps}
+        controls={getControls(cardId)}
+        cardStyle={cardStyle}
+        editMode={editMode}
+        customNames={customNames}
+        customIcons={customIcons}
+        decimals={settings.decimals ?? 0}
+        settings={settings}
         t={t}
       />
     );
@@ -2051,7 +2155,9 @@ export default function App() {
     if (cardId.startsWith('weather_temp_')) return 2;
 
     if (activePage === 'settings' && !['power', 'energy_cost', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
-      return 1;
+      if (activePage === 'settings' && !['power', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+        return 1;
+      }
     }
 
     return 2;
@@ -2179,6 +2285,8 @@ export default function App() {
       if (!editMode) return null;
       const editId = targetId || cardId;
       const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
+      const settings = cardSettings[settingsKey] || cardSettings[editId] || {};
+      const canToggleSize = (editId.startsWith('light_') || editId.startsWith('light.') || editId.startsWith('vacuum.') || editId.startsWith('automation.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('weather_temp_') || settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor');
       return ( 
       <>
         <div className="absolute top-2 right-2 z-50 flex gap-2">
@@ -2197,6 +2305,16 @@ export default function App() {
           >
             {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
+          {canToggleSize && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); saveCardSetting(settingsKey, 'size', (cardSettings[settingsKey]?.size === 'small') ? 'large' : 'small'); }}
+              className="p-2 rounded-full transition-colors hover:bg-purple-500/80 text-white border border-white/20 shadow-lg"
+              style={{backgroundColor: cardSettings[settingsKey]?.size === 'small' ? 'rgba(168, 85, 247, 0.8)' : 'rgba(0, 0, 0, 0.6)'}}
+              title={cardSettings[settingsKey]?.size === 'small' ? t('tooltip.largeSize') : t('tooltip.smallSize')}
+            >
+              {cardSettings[settingsKey]?.size === 'small' ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+            </button>
+          )}
           {isCardRemovable(cardId) && (
             <button 
               onClick={(e) => { e.stopPropagation(); removeCard(cardId); }}
@@ -2266,11 +2384,11 @@ export default function App() {
       if (settings.type === 'entity' || settings.type === 'toggle') {
         return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
       }
-      return renderAutomationCard(cardId, dragProps, getControls, cardStyle);
+      return renderAutomationCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     if (cardId.startsWith('vacuum.')) {
-      return renderVacuumCard(cardId, dragProps, getControls, cardStyle);
+      return renderVacuumCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     if (cardId.startsWith('media_player.')) {
@@ -2303,6 +2421,10 @@ export default function App() {
       return renderGenericClimateCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
+    if (cardId.startsWith('cost_card_')) {
+      return renderGenericCostCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+    }
+
     if (cardId.startsWith('weather_temp_')) {
       return renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
@@ -2312,7 +2434,7 @@ export default function App() {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
-    if (activePage === 'settings' && !['power', 'energy_cost', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['power', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
@@ -2332,20 +2454,6 @@ export default function App() {
             fullPriceData={fullPriceData}
             currentPriceIndex={currentPriceIndex}
             onOpen={() => setShowPowerModal(true)}
-            t={t}
-          />
-        );
-      case 'energy_cost':
-        return (
-          <EnergyCostCard
-            dragProps={dragProps}
-            controls={getControls('energy_cost')}
-            cardStyle={cardStyle}
-            editMode={editMode}
-            name={customNames['energy_cost'] || t('energyCost.title')}
-            Icon={customIcons['energy_cost'] ? ICON_MAP[customIcons['energy_cost']] : Coins}
-            todayValue={getS(COST_TODAY_ID)}
-            monthValue={!isNaN(parseFloat(entities[COST_MONTH_ID]?.state)) ? Math.round(parseFloat(entities[COST_MONTH_ID]?.state)) : String(getS(COST_MONTH_ID))}
             t={t}
           />
         );
@@ -2646,11 +2754,14 @@ export default function App() {
   const editEntity = editId ? entities[editId] : null;
   const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
   const isEditCalendar = !!editId && editId.startsWith('calendar_card_');
-  const isEditGenericType = !!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor');
+  const isEditCost = !!editId && editId.startsWith('cost_card_');
+  const isEditVacuum = !!editId && editId.startsWith('vacuum.');
+  const isEditAutomation = !!editId && editId.startsWith('automation.');
+  const isEditGenericType = !!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor') || isEditVacuum || isEditAutomation;
   const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
   const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
   const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
-  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || !!editEntity || ['power', 'energy_cost', 'car', 'shield', 'rocky', 'weather'].includes(editId));
+  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || ['power', 'car', 'shield', 'rocky', 'weather'].includes(editId));
   const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
   const isOnboardingActive = showOnboarding;
   const onboardingSteps = buildOnboardingSteps(t);
@@ -3072,6 +3183,7 @@ export default function App() {
                   height: 10px;
                   border-radius: 999px;
                   outline: none;
+                  touch-action: none;
                 }
                 .light-slider::-webkit-slider-thumb {
                   -webkit-appearance: none;
@@ -3149,9 +3261,9 @@ export default function App() {
                   <div className="space-y-3 min-h-[96px]">
                     <div className="flex justify-between items-end px-1">
                       <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Hovudstyrke</p>
-                      <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : (entity?.state === 'on' ? Math.round(((getA(showLightModal, "brightness") || 0) / 255) * 100) : 0)}%</p>
+                      <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : (entity?.state === 'on' ? Math.round((((optimisticLightBrightness[showLightModal] ?? (getA(showLightModal, "brightness") || 0)) / 255) * 100)) : 0)}%</p>
                     </div>
-                    <M3Slider min={0} max={255} step={1} value={getA(showLightModal, "brightness") || 0} disabled={entity?.state !== 'on' || isUnavailable} onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+                    <M3Slider min={0} max={255} step={1} value={optimisticLightBrightness[showLightModal] ?? (getA(showLightModal, "brightness") || 0)} disabled={entity?.state !== 'on' || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [showLightModal]: val })); callService("light", "turn_on", { entity_id: showLightModal, brightness: val }); }} colorClass="bg-amber-500" />
                   </div>
                 )}
 
@@ -3210,7 +3322,7 @@ export default function App() {
                         <div key={cid} className={`px-3 py-2 rounded-xl bg-[var(--glass-bg)]/20 flex items-center gap-3 transition-all ${subUnavail ? 'opacity-50' : 'hover:bg-[var(--glass-bg)]/35'}`}>
                           <span className="text-xs font-bold uppercase tracking-widest text-gray-300 w-1/3 truncate">{subEnt?.attributes?.friendly_name || cid.split('.')[1].replace(/_/g, ' ')}</span>
                           <div className="flex-grow">
-                            <M3Slider min={0} max={255} step={1} value={subEnt?.attributes?.brightness || 0} disabled={subEnt?.state !== 'on' || subUnavail} onChange={(e) => callService("light", "turn_on", { entity_id: cid, brightness: parseInt(e.target.value) })} colorClass="bg-amber-500" />
+                            <M3Slider min={0} max={255} step={1} value={(optimisticLightBrightness[cid] ?? (subEnt?.attributes?.brightness || 0))} disabled={subEnt?.state !== 'on' || subUnavail} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [cid]: val })); callService("light", "turn_on", { entity_id: cid, brightness: val }); }} colorClass="bg-amber-500" />
                           </div>
                           <button onClick={() => !subUnavail && callService("light", "toggle", { entity_id: cid })} className="w-10 h-6 rounded-full relative transition-all flex-shrink-0" style={{backgroundColor: subUnavail ? 'var(--glass-bg)' : (subEnt?.state === 'on' ? 'rgba(217, 119, 6, 0.4)' : 'var(--glass-bg)'), cursor: subUnavail ? 'not-allowed' : 'pointer'}}>
                             <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all" style={{left: subEnt?.state === 'on' ? 'calc(100% - 4px - 16px)' : '4px', backgroundColor: subUnavail ? '#6b7280' : (subEnt?.state === 'on' ? '#fbbf24' : '#9ca3af')}} />
@@ -3478,7 +3590,7 @@ export default function App() {
                 background: rgba(255, 255, 255, 0.25);
               }
             `}</style>
-            <div className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
+            <div className="border w-full max-w-xl lg:max-w-4xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowAddCardModal(false)} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close"><X className="w-4 h-4" /></button>
               <h3 className="text-xl font-light mb-5 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('modal.addCard.title')}</h3>
               
@@ -3517,6 +3629,12 @@ export default function App() {
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'climate' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <Thermometer className="w-4 h-4" /> {t('addCard.type.climate')}
+                    </button>
+                    <button
+                      onClick={() => setAddCardType('cost')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'cost' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <Coins className="w-4 h-4" /> {t('addCard.type.cost')}
                     </button>
                     <button
                       onClick={() => setAddCardType('media')}
@@ -3641,6 +3759,33 @@ export default function App() {
                   </div>
                 ) : (
                   <div>
+                    {addCardType === 'cost' && (
+                      <div className="mb-5">
+                        <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">{t('addCard.costPickTarget')}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setCostSelectionTarget('today')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${costSelectionTarget === 'today' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            <Coins className="w-4 h-4" /> {t('addCard.costToday')}
+                          </button>
+                          <button
+                            onClick={() => setCostSelectionTarget('month')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${costSelectionTarget === 'month' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            <Coins className="w-4 h-4" /> {t('addCard.costMonth')}
+                          </button>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                          <span className={`px-3 py-1 rounded-full border ${selectedCostTodayId ? 'border-emerald-500/30 text-emerald-400' : 'border-[var(--glass-border)] text-[var(--text-muted)]'}`}>
+                            {t('addCard.costToday')}: {selectedCostTodayId ? (entities[selectedCostTodayId]?.attributes?.friendly_name || selectedCostTodayId) : t('common.missing')}
+                          </span>
+                          <span className={`px-3 py-1 rounded-full border ${selectedCostMonthId ? 'border-emerald-500/30 text-emerald-400' : 'border-[var(--glass-border)] text-[var(--text-muted)]'}`}>
+                            {t('addCard.costMonth')}: {selectedCostMonthId ? (entities[selectedCostMonthId]?.attributes?.friendly_name || selectedCostMonthId) : t('common.missing')}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{getAddCardAvailableLabel()}</p>
                     <div className="space-y-3">
                       {Object.keys(entities)
@@ -3657,6 +3802,9 @@ export default function App() {
                           }
                           if (addCardType === 'climate') {
                             return id.startsWith('climate.');
+                          }
+                          if (addCardType === 'cost') {
+                            return (id.startsWith('sensor.') || id.startsWith('input_number.'));
                           }
                           if (addCardType === 'media') {
                             return id.startsWith('media_player.');
@@ -3681,11 +3829,23 @@ export default function App() {
                         .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
                         .slice(0, addCardTargetPage === 'settings' ? 100 : undefined) // Limit settings list for performance
                         .map(id => {
-                          const isSelected = selectedEntities.includes(id);
+                          const isSelected = addCardType === 'cost'
+                            ? (selectedCostTodayId === id || selectedCostMonthId === id)
+                            : selectedEntities.includes(id);
+                          const isSelectedToday = selectedCostTodayId === id;
+                          const isSelectedMonth = selectedCostMonthId === id;
                           return (
                           <button type="button" key={id} onClick={() => {
                               if (addCardType === 'climate') {
                                 setSelectedEntities(prev => (prev.includes(id) ? [] : [id]));
+                                return;
+                              }
+                              if (addCardType === 'cost') {
+                                if (costSelectionTarget === 'today') {
+                                  setSelectedCostTodayId(prev => (prev === id ? null : id));
+                                } else {
+                                  setSelectedCostMonthId(prev => (prev === id ? null : id));
+                                }
                                 return;
                               }
                               if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
@@ -3695,9 +3855,25 @@ export default function App() {
                               <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
                               <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
                             </div>
-                            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
-                              {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                            </div>
+                            {addCardType === 'cost' ? (
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                {isSelectedToday && (
+                                  <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400">{t('addCard.costToday')}</span>
+                                )}
+                                {isSelectedMonth && (
+                                  <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400">{t('addCard.costMonth')}</span>
+                                )}
+                                {!isSelected && (
+                                  <div className="p-2 rounded-full transition-colors bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400">
+                                    <Plus className="w-4 h-4" />
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                                {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                              </div>
+                            )}
                           </button>
                         );})}
                         {Object.keys(entities).filter(id => {
@@ -3706,6 +3882,7 @@ export default function App() {
                           if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
                           if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           if (addCardType === 'climate') return id.startsWith('climate.');
+                          if (addCardType === 'cost') return (id.startsWith('sensor.') || id.startsWith('input_number.'));
                           if (addCardType === 'media') return id.startsWith('media_player.');
                           if (addCardType === 'toggle') return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           if (addCardType === 'entity') return !id.startsWith('person.') && !id.startsWith('update.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
@@ -3720,9 +3897,14 @@ export default function App() {
               </div>
 
               <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
-                {addCardType !== 'weather' && selectedEntities.length > 0 && (
+                {addCardType !== 'weather' && addCardType !== 'cost' && selectedEntities.length > 0 && (
                   <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                     <Plus className="w-5 h-5" /> {addCardType === 'media' ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}` : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
+                  </button>
+                )}
+                {addCardType === 'cost' && selectedCostTodayId && selectedCostMonthId && (
+                  <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                    <Plus className="w-5 h-5" /> {t('addCard.costCard')}
                   </button>
                 )}
                 {addCardType === 'weather' && selectedWeatherId && (
@@ -3770,6 +3952,7 @@ export default function App() {
           canEditStatus={canEditStatus}
           isEditLight={isEditLight}
           isEditCalendar={isEditCalendar}
+          isEditCost={isEditCost}
           isEditGenericType={isEditGenericType}
           isEditSensor={isEditSensor}
           editSettingsKey={editSettingsKey}

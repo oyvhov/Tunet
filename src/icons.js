@@ -133,5 +133,7 @@ export {
   Truck,
   Wrench,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';

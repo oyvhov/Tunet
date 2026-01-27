@@ -108,11 +108,6 @@ export default function WeatherGraph({ history, currentTemp }) {
   const yTop = getY(30); // Varmt
   const yBottom = getY(-15); // Kaldt
 
-  // Finn min og max punkt for labels
-  const minPoint = plotData.reduce((prev, curr) => (curr.temp < prev.temp ? curr : prev), plotData[0]);
-  const maxPoint = plotData.reduce((prev, curr) => (curr.temp > prev.temp ? curr : prev), plotData[0]);
-  const lastPoint = plotData[plotData.length - 1];
-
   return (
     <div className="w-full h-full relative">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
@@ -143,16 +138,6 @@ export default function WeatherGraph({ history, currentTemp }) {
         {!isNaN(currentTemp) && <circle cx={points[points.length-1][0]} cy={points[points.length-1][1]} r="6" fill="var(--card-bg)" stroke="url(#weatherGrad)" strokeWidth="4" />}
 
       </svg>
-
-      {/* Min/Max labels (HTML for å unngå distortion) */}
-      <div className="absolute text-[var(--text-primary)] font-bold text-sm pointer-events-none" 
-           style={{ left: `${(getX(maxPoint.time) / width) * 100}%`, top: `${(getY(maxPoint.temp) / height) * 100}%`, transform: 'translate(-50%, -150%)' }}>
-        {Math.round(maxPoint.temp)}°
-      </div>
-      <div className="absolute text-[var(--text-primary)] font-bold text-sm pointer-events-none" 
-           style={{ left: `${(getX(minPoint.time) / width) * 100}%`, top: `${(getY(minPoint.temp) / height) * 100}%`, transform: 'translate(-50%, 25%)' }}>
-        {Math.round(minPoint.temp)}°
-      </div>
     </div>
   );
 }
