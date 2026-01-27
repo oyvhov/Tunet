@@ -863,7 +863,7 @@ export default function App() {
   useEffect(() => {
     if (!showAddCardModal) return;
     if (isSonosPage(addCardTargetPage)) {
-      setAddCardType('sonos');
+      setAddCardType('entity');
       return;
     }
     if (addCardTargetPage === 'header' || addCardTargetPage === 'automations' || addCardTargetPage === 'settings') {
@@ -882,7 +882,6 @@ export default function App() {
     if (addCardTargetPage === 'automations') return t('addCard.available.automations');
     if (addCardTargetPage === 'settings') return t('addCard.available.allEntities');
     if (addCardType === 'vacuum') return t('addCard.available.vacuums');
-    if (addCardType === 'sonos') return t('addCard.available.sonos');
     if (addCardType === 'media') return t('addCard.available.players');
     if (addCardType === 'toggle') return t('addCard.available.toggles');
     if (addCardType === 'entity') return t('addCard.available.entities');
@@ -1007,6 +1006,19 @@ export default function App() {
 
   const isCardHiddenByLogic = (cardId) => {
     if (cardId === 'media_player') {
+      const sonosHomeKey = getCardSettingsKey('sonos', 'home');
+      const selectedSonosId = cardSettings[sonosHomeKey]?.activeId || cardSettings['sonos']?.activeId;
+      const lydplankeSelected = selectedSonosId === 'media_player.sonos_lydplanke';
+
+      if (lydplankeSelected) {
+        const lydplanke = entities['media_player.sonos_lydplanke'];
+        const lydplankeIsPlaying = lydplanke?.state === 'playing';
+        const lydplankeSource = (lydplanke?.attributes?.source || '').toLowerCase();
+        const lydplankeTitle = (lydplanke?.attributes?.media_title || '').toLowerCase();
+        const lydplankeIsTV = lydplankeIsPlaying && (lydplankeSource === 'tv' || lydplankeTitle === 'tv');
+        if (lydplankeIsTV) return true;
+      }
+
       const mediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
       const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
       const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
@@ -1180,10 +1192,6 @@ export default function App() {
 
   const handleAddSelected = () => {
     const newConfig = { ...pagesConfig };
-    if (addCardType === 'sonos') {
-      createSonosPage();
-      return;
-    }
     if (addCardTargetPage === 'header') {
       newConfig.header = [...(newConfig.header || []), ...selectedEntities];
       setPagesConfig(newConfig);
@@ -1847,8 +1855,35 @@ export default function App() {
     const title = getA(SHIELD_ID, 'media_title');
     const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
 
+    // App logo mapping for Shield TV (real logos via Simple Icons CDN)
+    const getAppLogo = (app) => {
+      if (!app) return null;
+      const appLower = app.toLowerCase();
+      const logoMap = {
+        'notifications for android tv': 'https://cdn.simpleicons.org/android',
+        'notification': 'https://cdn.simpleicons.org/android',
+        'android': 'https://cdn.simpleicons.org/android',
+        'play store': 'https://cdn.simpleicons.org/googleplay',
+        'google play': 'https://cdn.simpleicons.org/googleplay',
+        'google cast': 'https://cdn.simpleicons.org/chromecast',
+        'chromecast': 'https://cdn.simpleicons.org/chromecast',
+        'emby': 'https://cdn.simpleicons.org/emby',
+        'jellyfin': 'https://cdn.simpleicons.org/jellyfin',
+        'spotify': 'https://cdn.simpleicons.org/spotify',
+        'youtube': 'https://cdn.simpleicons.org/youtube',
+        'youtube tv': 'https://cdn.simpleicons.org/youtube'
+      };
+
+      for (const [key, url] of Object.entries(logoMap)) {
+        if (appLower.includes(key)) return url;
+      }
+      return null;
+    };
+
+    const appLogo = getAppLogo(appName);
+
     return (
-      <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
+      <div key="shield" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowShieldModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)'}}>
         {getControls('shield')}
         
         <div className="flex justify-between items-start relative z-10">
@@ -1857,12 +1892,26 @@ export default function App() {
         </div>
 
         <div className="relative z-10">
-           <p className={`${picture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs tracking-widest uppercase mb-1 font-bold opacity-60`}>Shield TV</p>
+            <p className={`${picture || appLogo ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs tracking-widest uppercase mb-1 font-bold opacity-60`}>Shield TV</p>
            <h3 className="text-2xl font-medium leading-none line-clamp-2 mb-1">{appName || (isOn ? t('media.homeScreen') : t('status.off'))}</h3>
-           {title && <p className={`text-xs ${picture ? 'text-gray-300' : 'text-[var(--text-muted)]'} line-clamp-1 font-medium`}>{title}</p>}
+            {title && <p className={`text-xs ${picture || appLogo ? 'text-gray-300' : 'text-[var(--text-muted)]'} line-clamp-1 font-medium`}>{title}</p>}
         </div>
 
-        {picture && (<div className="absolute inset-0 z-0 opacity-40"><img src={picture} alt="" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/50 to-transparent" /></div>)}
+        {(picture || appLogo) && (
+          <div className="absolute inset-0 z-0 opacity-45">
+            {picture ? (
+              <>
+                <img src={picture} alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/50 to-transparent" />
+              </>
+            ) : appLogo ? (
+              <>
+                <img src={appLogo} alt={appName} className="w-full h-full object-contain p-12 blur-sm scale-160" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/35 to-transparent" />
+              </>
+            ) : null}
+          </div>
+        )}
       </div>
     );
   };
@@ -3894,12 +3943,6 @@ export default function App() {
                       <Music className="w-4 h-4" /> {t('addCard.type.media')}
                     </button>
                     <button
-                      onClick={() => setAddCardType('sonos')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'sonos' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                    >
-                      <Speaker className="w-4 h-4" /> {t('addCard.type.sonos')}
-                    </button>
-                    <button
                       onClick={() => setAddCardType('weather')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'weather' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
@@ -4001,13 +4044,6 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                ) : addCardType === 'sonos' ? (
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-2xl popup-surface text-sm text-[var(--text-secondary)]">
-                      <p className="font-bold uppercase tracking-widest text-[10px] text-gray-500 mb-2">{t('sonos.createTitle')}</p>
-                      <p className="leading-relaxed">{t('sonos.createDescription')}</p>
-                    </div>
-                  </div>
                 ) : addCardType === 'calendar' ? (
                   <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
                     <div className="p-4 rounded-full bg-blue-500/10 text-blue-400">
@@ -4094,12 +4130,7 @@ export default function App() {
               </div>
 
               <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
-                {addCardType === 'sonos' && (
-                  <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-                    <Plus className="w-5 h-5" /> {t('sonos.createPage')}
-                  </button>
-                )}
-                {addCardType !== 'weather' && addCardType !== 'sonos' && selectedEntities.length > 0 && (
+                {addCardType !== 'weather' && selectedEntities.length > 0 && (
                   <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                     <Plus className="w-5 h-5" /> {addCardType === 'media' ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}` : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
                   </button>
@@ -4135,6 +4166,7 @@ export default function App() {
           newPageIcon={newPageIcon}
           setNewPageIcon={setNewPageIcon}
           onCreate={createPage}
+          onCreateSonos={createSonosPage}
         />
 
         <EditCardModal 

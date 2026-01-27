@@ -40,6 +40,7 @@ export const MEDIA_PLAYER_IDS = [
   "media_player.bibliotek_desktop_9ubckf5",
   "media_player.bibliotek_oneplus_nord2_5g",
   "media_player.bibliotek_chromecast",
+  "media_player.midttunet_oneplus_nord_4_2",
   "media_player.bibliotek_chromecast_2",
   "media_player.bibliotek_google_tv_3",
   "media_player.bibliotek_google_chrome_windows",

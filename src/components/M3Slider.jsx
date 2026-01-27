@@ -75,11 +75,11 @@ const M3Slider = ({
     <div className={`relative w-full ${containerH} flex items-center group ${disabled ? 'opacity-30 pointer-events-none' : ''}`} onClick={(e) => e.stopPropagation()}>
         {/* Track */}
         {trackClass ? (
-            <div className={`absolute w-full ${trackClass} overflow-hidden`}>
+            <div className={`absolute w-full ${trackClass} overflow-hidden rounded-full`}>
                  <div className={`h-full ${colorClass} transition-all duration-150 ease-out`} style={{ width: `${percentage}%` }} />
             </div>
         ) : (
-            <div className={`absolute w-full ${height ? 'h-full bg-white/10 rounded': 'h-5 rounded-full border'}`} style={!height ? {backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.05)'} : {}}>
+            <div className={`absolute w-full ${height ? 'h-full bg-white/10 rounded': 'h-5 rounded-full border'} overflow-hidden`} style={!height ? {backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.05)'} : {}}>
                 <div 
                     className={`h-full transition-all duration-150 ease-out ${colorClass}`}
                     style={{ width: `${percentage}%`, boxShadow: !height ? '0_0_15px_rgba(0,0,0,0.2)' : 'none' }}

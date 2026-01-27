@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import IconPicker from './IconPicker';
 
-const AddPageModal = ({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon, onCreate }) => {
+const AddPageModal = ({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon, onCreate, onCreateSonos }) => {
   if (!isOpen) return null;
+  const [activeTab, setActiveTab] = useState('standard');
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{
@@ -18,36 +19,70 @@ const AddPageModal = ({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPa
         <button onClick={onClose} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
         <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">{t('modal.addPage.title')}</h3>
 
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
-            <input
-              type="text"
-              className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
-              value={newPageLabel}
-              onChange={(e) => setNewPageLabel(e.target.value)}
-              placeholder={t('form.exampleName')}
-              autoFocus
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
-            <IconPicker
-              value={newPageIcon}
-              onSelect={setNewPageIcon}
-              onClear={() => setNewPageIcon(null)}
-              t={t}
-              maxHeightClass="max-h-60"
-            />
-          </div>
-
+        <div className="flex gap-2 mb-6">
           <button
-            onClick={onCreate}
-            className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+            type="button"
+            onClick={() => setActiveTab('standard')}
+            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'standard' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
           >
-            <Plus className="w-5 h-5" /> {t('page.create')}
+            {t('page.create')}
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('sonos')}
+            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'sonos' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+          >
+            {t('addCard.type.sonos')}
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          {activeTab === 'standard' ? (
+            <>
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
+                <input
+                  type="text"
+                  className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                  value={newPageLabel}
+                  onChange={(e) => setNewPageLabel(e.target.value)}
+                  placeholder={t('form.exampleName')}
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
+                <IconPicker
+                  value={newPageIcon}
+                  onSelect={setNewPageIcon}
+                  onClear={() => setNewPageIcon(null)}
+                  t={t}
+                  maxHeightClass="max-h-60"
+                />
+              </div>
+
+              <button
+                onClick={onCreate}
+                className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" /> {t('page.create')}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="p-4 rounded-2xl popup-surface text-sm text-[var(--text-secondary)]">
+                <p className="font-bold uppercase tracking-widest text-[10px] text-gray-500 mb-2">{t('sonos.createTitle')}</p>
+                <p className="leading-relaxed">{t('sonos.createDescription')}</p>
+              </div>
+              <button
+                onClick={onCreateSonos}
+                className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" /> {t('sonos.createPage')}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
