@@ -55,22 +55,6 @@ export default function WeatherTempCard({
             <span className="text-2xl font-medium text-[var(--text-primary)] leading-none">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
           </div>
         </div>
-        {(minTemp !== null || maxTemp !== null) && (
-          <div className="flex flex-col gap-1.5 shrink-0 relative z-10">
-            {maxTemp !== null && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
-                <span className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Max</span>
-                <span className="text-xs font-bold text-[var(--text-primary)]">{Math.round(maxTemp)}°</span>
-              </div>
-            )}
-            {minTemp !== null && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
-                <span className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Min</span>
-                <span className="text-xs font-bold text-[var(--text-primary)]">{Math.round(minTemp)}°</span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   }
@@ -90,22 +74,6 @@ export default function WeatherTempCard({
             <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
           </div>
         </div>
-        {(minTemp !== null || maxTemp !== null) && (
-          <div className="flex justify-between items-center">
-            {minTemp !== null ? (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
-                <span className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Min</span>
-                <span className="text-xs font-bold text-[var(--text-primary)]">{Math.round(minTemp)}°</span>
-              </div>
-            ) : <div />}
-            {maxTemp !== null ? (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
-                <span className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Max</span>
-                <span className="text-xs font-bold text-[var(--text-primary)]">{Math.round(maxTemp)}°</span>
-              </div>
-            ) : <div />}
-          </div>
-        )}
       </div>
       <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
         <WeatherGraph history={history} currentTemp={currentTemp} />

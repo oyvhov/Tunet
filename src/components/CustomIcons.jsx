@@ -20,8 +20,16 @@ export const JellyfinLogo = (props) => (
   </svg>
 );
 
+export const NRKLogo = (props) => (
+  <svg viewBox="0 0 100 100" fill="currentColor" {...props}>
+    {/* NRK logo - stylized N shape */}
+    <path d="M 15 20 L 35 70 L 35 20 M 65 20 L 45 70 L 45 20 M 55 20 L 75 70 L 75 20" stroke="currentColor" strokeWidth="8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export const getServerInfo = (id) => {
   if (!id || typeof id !== 'string') return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
+  if (id.includes('nrk')) return { name: 'NRK', icon: NRKLogo, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' };
   if (id.includes('midttunet')) return { name: 'Jellyfin', icon: JellyfinLogo, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
   if (id.includes('bibliotek')) return { name: 'Emby', icon: EmbyLogo, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' };
   return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };

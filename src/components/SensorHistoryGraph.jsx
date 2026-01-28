@@ -25,9 +25,9 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
     max += 1;
   }
   
-  // Add some padding to Y-axis range
+  // Add some padding to top of Y-axis range only
   const range = max - min;
-  const renderMin = min - (range * 0.05);
+  const renderMin = min; // No bottom padding
   const renderMax = max + (range * 0.05);
   const renderRange = renderMax - renderMin;
 
@@ -39,7 +39,7 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
   });
 
   const pathData = `M ${points.join(' L ')}`;
-  const areaData = `${pathData} L ${padding.left + graphWidth},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`;
+  const areaData = `${pathData} L ${padding.left + graphWidth},${height} L ${padding.left},${height} Z`;
 
   // Generate Y-axis labels (Max, Mid, Min)
   const yLabels = [

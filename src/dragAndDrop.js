@@ -221,7 +221,7 @@ export const createDragAndDropHandlers = ({
   const getCardStyle = ({ cardId, isHidden, isDragging }) => {
     const isTouchTarget = !!touchTargetId && touchTargetId === cardId;
 
-    return {
+    const style = {
       backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
       borderColor: isDragging ? 'rgba(96, 165, 250, 1)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'var(--card-border)'),
       backdropFilter: 'blur(16px)',
@@ -231,13 +231,12 @@ export const createDragAndDropHandlers = ({
       filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
       transform: isDragging ? 'scale(1.08)' : 'none',
       boxShadow: isDragging ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : (isTouchTarget ? '0 0 0 2px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.35)' : 'none'),
-      touchAction: editMode ? 'none' : 'auto',
-      userSelect: editMode ? 'none' : 'auto',
-      WebkitUserSelect: editMode ? 'none' : 'auto',
       zIndex: isDragging ? 50 : 1,
       pointerEvents: isDragging ? 'none' : 'auto',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
     };
+
+    return style;
   };
 
   return {

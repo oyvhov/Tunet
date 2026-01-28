@@ -6,7 +6,7 @@ A modern Home Assistant dashboard built with React 18 + Vite. Single-page applic
 ## Architecture
 
 ### State Management Pattern
-- **No state library**: All state lives in [src/App.jsx](src/App.jsx) (~4400 lines)
+- **No state library**: All state lives in [App.jsx](../src/App.jsx) (~4400 lines)
 - **localStorage persistence**: All user preferences use `midttunet_*` prefix keys
 - **Home Assistant connection**: Uses `window.HAWS` (loaded from CDN) for WebSocket API
 - **Entity subscription**: Live updates via `subscribeEntities()` populate `entities` object keyed by entity_id
@@ -18,12 +18,12 @@ A modern Home Assistant dashboard built with React 18 + Vite. Single-page applic
 4. User changes persist immediately to localStorage (no save button)
 
 ### Key Files
-- [src/App.jsx](src/App.jsx) - Entire app logic, routing, modals, drag-and-drop state
-- [src/constants.js](src/constants.js) - Hardcoded entity IDs specific to this Home Assistant instance
-- [src/services/haClient.js](src/services/haClient.js) - WebSocket API wrappers (history, statistics, forecasts, calendar)
-- [src/dragAndDrop.js](src/dragAndDrop.js) - Touch/mouse drag handlers for card reordering
-- [src/defaults.js](src/defaults.js) - Default page configuration structure
-- [src/themes.js](src/themes.js) - CSS custom property definitions for dark/light/graphite themes
+- [App.jsx](../src/App.jsx) - Entire app logic, routing, modals, drag-and-drop state
+- [constants.js](../src/constants.js) - Hardcoded entity IDs specific to this Home Assistant instance
+- [haClient.js](../src/services/haClient.js) - WebSocket API wrappers (history, statistics, forecasts, calendar)
+- [dragAndDrop.js](../src/dragAndDrop.js) - Touch/mouse drag handlers for card reordering
+- [defaults.js](../src/defaults.js) - Default page configuration structure
+- [themes.js](../src/themes.js) - CSS custom property definitions for dark/light/graphite themes
 
 ## Home Assistant Integration
 
@@ -36,7 +36,7 @@ subscribeEntities(conn, (entities) => setEntities(entities));
 ```
 
 ### Service Calls
-Use [src/services/haClient.js](src/services/haClient.js) functions:
+Use [haClient.js](../src/services/haClient.js) functions:
 - `callService(conn, domain, service, service_data)` - Call any HA service
 - `getHistory(conn, { start, end, entityId })` - Fetch historical entity states
 - `getStatistics(conn, { start, end, statisticId, period })` - Get recorder statistics
@@ -109,11 +109,11 @@ Cards passed by `renderGenericCard()` receive:
 - `t` - i18n translation function
 
 ### Modal Pattern
-Modals are inline in [src/App.jsx](src/App.jsx), controlled by state like `climateModalOpen`, `costModalOpen`. They render conditionally and use fixed positioning with backdrop. Example for setting climate targets or viewing extended energy stats.
+Modals are inline in [App.jsx](../src/App.jsx), controlled by state like `climateModalOpen`, `costModalOpen`. They render conditionally and use fixed positioning with backdrop. Example for setting climate targets or viewing extended energy stats.
 
 ### Custom Hooks
-- [src/hooks/useEnergyData.js](src/hooks/useEnergyData.js) - Nordpool price array parsing with current price index. Signature: `useEnergyData(entity, now)` takes **single entity** object, returns `{ fullPriceData, currentPriceIndex, priceStats, currentPrice }`
-- [src/hooks/useClimateInfo.js](src/hooks/useClimateInfo.js) - Climate entity state derivation (HVAC mode, current/target temp, preset mode)
+- [useEnergyData.js](../src/hooks/useEnergyData.js) - Nordpool price array parsing with current price index. Signature: `useEnergyData(entity, now)` takes **single entity** object, returns `{ fullPriceData, currentPriceIndex, priceStats, currentPrice }`
+- [useClimateInfo.js](../src/hooks/useClimateInfo.js) - Climate entity state derivation (HVAC mode, current/target temp, preset mode)
 
 ## LocalStorage Schema
 
@@ -143,7 +143,7 @@ All keys use `midttunet_*` or `ha_*` prefix:
 
 ## Page Configuration
 
-Default page structure is defined in [src/defaults.js](src/defaults.js):
+Default page structure is defined in [src/defaults.js](../src/defaults.js):
 ```javascript
 export const DEFAULT_PAGES_CONFIG = {
   header: ['person.oyvind', 'person.tuva'],           // Display presence entities at top
@@ -192,7 +192,7 @@ Use nested dot notation. Keys are organized by domain and type:
 - **UI labels**: `t('menu.edit')`, `t('nav.addCard')`, `t('settings.theme')`
 - **Add card types**: `t('addCard.climateCard')`, `t('addCard.weatherCard')`
 
-Files: [src/i18n/en.json](src/i18n/en.json), [src/i18n/nn.json](src/i18n/nn.json).
+Files: [en.json](../src/i18n/en.json), [nn.json](../src/i18n/nn.json).
 
 Example structure:
 ```json
@@ -207,7 +207,7 @@ Example structure:
 ```
 
 ### Icon Mapping
-Icons from `lucide-react` and `react-icons`. Map in [src/iconMap.js](src/iconMap.js) and [src/icons.js](src/icons.js). Use icon name strings, not components, in localStorage.
+Icons from `lucide-react` and `react-icons`. Map in [iconMap.js](../src/iconMap.js) and [icons.js](../src/icons.js). Use icon name strings, not components, in localStorage.
 
 ### Entity ID Structure
 Format: `domain.object_id`. Domain determines card rendering behavior (e.g., `binary_sensor`, `climate`, `light`, `media_player`).
@@ -222,7 +222,7 @@ Stored in refs (`dragSourceRef`, `touchTargetRef`) to avoid re-renders during dr
 3. **window.HAWS must load first** - Check `libLoaded` state before connecting
 4. **localStorage writes are immediate** - No explicit save action needed
 5. **App.jsx is intentionally large** - Do not split without explicit request
-6. **Modals are not portal-based** - They render inline in [src/App.jsx](src/App.jsx) return statement
+6. **Modals are not portal-based** - They render inline in [App.jsx](../src/App.jsx) return statement
 7. **useEnergyData takes single entity** - Pass `entities[entityId] || null`, not the entire entities object. Always check for null due to React hooks safety.
 8. **All hooks must execute in consistent order** - Don't use early returns in hook implementations (violates React hooks rules)
 

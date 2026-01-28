@@ -1,4 +1,4 @@
-import { Gamepad2 } from '../icons';
+import { Tv } from '../icons';
 
 export default function GenericAndroidTVCard({
   cardId,
@@ -30,6 +30,12 @@ export default function GenericAndroidTVCard({
   const getAppLogo = (app) => {
     if (!app) return null;
     const appLower = app.toLowerCase();
+    
+    // NRK logo as inline SVG
+    if (appLower.includes('nrk')) {
+      return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NiAyNCIgZmlsbD0ibm9uZSI+PHBhdGggZmlsbD0iIzE3NjdDRSIgZD0iTTAgMGg0NnYyNEgweiIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik02IDE4VjZoNHYxMkg2Wk0xNS4yNCA3LjkgMTcuNTEgMThIMTMuMkwxMC41IDZoMi40MWMuNTYgMCAxLjEuMTkgMS41MS41NS40My4zNS42Ni44My44MiAxLjM2Wk0xOCAxOFY2aDR2MTJoLTRabTcuMDEtNy40NGEyLjM1IDIuMzUgMCAwIDEtMi4wOC0xLjE5IDIuMzQgMi4zNCAwIDAgMS0uMzItMS4yYzAtLjQzLjEtLjg0LjMyLTEuMmEyLjQxIDIuNDEgMCAwIDEgNC4xNCAwYy4yMi4zNi4zMy43Ny4zMiAxLjJhMi40IDIuNCAwIDAgMS0yLjM4IDIuNFpNMjggMThWNmg0djEyaC00Wm04Ljk3LTUuNDQuMjYuNDFhOTIuMjYgOTIuMjYgMCAwIDAgMS40MiAyLjMyIDMyMC44IDMyMC44IDAgMCAxIDEuNjQgMi43aC00LjMzYTYxNC4xNyA2MTQuMTcgMCAwIDAtMi4xNy0zLjUzIDYwLjEyIDYwLjEyIDAgMCAxLS45OS0xLjYyIDEuNzUgMS43NSAwIDAgMS0uMjktLjg0Yy4wMi0uMjkuMTEtLjU3LjI3LS44MWwuMzctLjZhMTI3LjA3IDEyNy4wNyAwIDAgMCAyLjA3LTMuNEwzNS45NiA2aDQuMzNsLTMuMzUgNS40NmMtLjEuMTYtLjE2LjM1LS4xNy41NC4wMS4yLjA4LjQuMi41NloiLz48L3N2Zz4=';
+    }
+    
     const logoMap = {
       'notifications for android tv': 'https://cdn.simpleicons.org/android',
       'notification': 'https://cdn.simpleicons.org/android',
@@ -76,7 +82,7 @@ export default function GenericAndroidTVCard({
 
       <div className="flex justify-between items-start relative z-10">
         <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
-          <Gamepad2 className="w-5 h-5" />
+          <Tv className="w-5 h-5" />
         </div>
         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all ${isOn ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
           <span className="text-xs font-bold uppercase tracking-widest">{isOn ? (isPlaying ? t('status.playing') : t('common.on')) : t('common.off')}</span>

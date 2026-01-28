@@ -85,16 +85,19 @@ export default function GenericEnergyCostCard({
           <span className="text-xs tracking-widest font-bold uppercase">{name}</span>
         </div>
       </div>
-      <div className="flex flex-col gap-1 relative z-10 mt-2">
-        <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{translate('energyCost.today')}</p>
-        <div className="flex items-baseline gap-1">
-          <span className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{getEntityValue(todayEntity, decimals)}</span>
-          <span className="text-lg text-[var(--text-secondary)]">kr</span>
+      <div className="grid grid-cols-2 gap-y-2 relative z-10 mt-2">
+        <div className="col-start-1 row-start-1">
+          <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{translate('energyCost.today')}</p>
+          <div className="flex items-baseline gap-1 mt-1">
+            <span className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{getEntityValue(todayEntity, decimals)}</span>
+            <span className="text-lg text-[var(--text-secondary)]">kr</span>
+          </div>
         </div>
-      </div>
-      <div className="flex justify-between items-center relative z-10">
-        <p className="text-xs tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{translate('energyCost.thisMonth')}</p>
-        <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{formatMonthValue(monthEntity)} kr</p>
+        <div className="col-span-2 row-start-2 h-px" style={{ backgroundColor: 'var(--glass-border)' }} />
+        <div className="col-start-2 row-start-3 justify-self-end text-right">
+          <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{translate('energyCost.thisMonth')}</p>
+          <p className="text-2xl font-bold mt-1" style={{ color: 'var(--text-primary)' }}>{formatMonthValue(monthEntity)} kr</p>
+        </div>
       </div>
     </div>
   );

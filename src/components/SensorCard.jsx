@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Minus, Plus, Activity, Power } from 'lucide-react';
+import { Minus, Plus, Activity, Power, ToggleLeft, ToggleRight } from 'lucide-react';
 import { getHistory, getStatistics } from '../services/haClient';
 import SparkLine from './SparkLine';
 
@@ -49,7 +49,7 @@ const SensorCard = ({
   // Feature flags from settings
   const showControls = settings?.showControls;
   const isSmall = settings?.size === 'small';
-  const showGraph = !isSmall && isNumeric && settings?.showGraph !== false;
+  const showGraph = !isSmall && isNumeric && domain !== 'input_number' && settings?.showGraph !== false;
 
   const [history, setHistory] = useState([]);
 
@@ -140,10 +140,9 @@ const SensorCard = ({
 
   // Determine controls based on domain
   const isToggleDomain = domain === 'input_boolean' || domain === 'switch' || domain === 'automation';
+  const showToggleControls = isToggleDomain;
 
   const renderControls = () => {
-    if (!showControls) return null;
-
     if (domain === 'input_number') {
       const min = entity.attributes?.min || 0;
       const max = entity.attributes?.max || 100;
@@ -198,12 +197,15 @@ const SensorCard = ({
       );
     }
 
+    // For other domains, only show controls if explicitly enabled
+    if (!showControls) return null;
+    
     return null;
   };
 
   if (isSmall) {
     return (
-      <div {...dragProps} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+      <div {...dragProps} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-default' : 'cursor-move'}`} style={{...cardStyle, containerType: 'inline-size'}}>
         {controls}
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className="w-12 h-12 rounded-2xl bg-[var(--glass-bg)] flex-shrink-0 flex items-center justify-center text-[var(--text-secondary)]">
@@ -220,20 +222,20 @@ const SensorCard = ({
           </div>
         </div>
         
-        {isToggleDomain ? (
-           <div className="flex flex-col items-center gap-1 bg-[var(--glass-bg)] rounded-xl p-0.5 shrink-0">
-             <button
-               onClick={(e) => { e.stopPropagation(); if(state !== 'on') onControl('toggle'); }}
-               className={`w-9 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${state === 'on' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-[var(--text-secondary)] opacity-50 hover:bg-white/5'}`}
-             >
-               PÅ
-             </button>
-             <button
-               onClick={(e) => { e.stopPropagation(); if(state === 'on') onControl('toggle'); }}
-               className={`w-9 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${state !== 'on' ? 'bg-white/10 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-50 hover:bg-white/5'}`}
-             >
-               AV
-             </button>
+        {showToggleControls ? (
+          <div className="sensor-card-controls shrink-0">
+            <button 
+              onClick={(e) => { e.stopPropagation(); if (state !== 'on') onControl('toggle'); }}
+              className={`control-on px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${state === 'on' ? 'bg-blue-500/20 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
+            >
+              På
+            </button>
+             <button 
+              onClick={(e) => { e.stopPropagation(); if (state === 'on') onControl('toggle'); }}
+              className={`control-off px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${state !== 'on' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
+            >
+              Av
+            </button>
           </div>
         ) : (
           <div className="shrink-0">
@@ -272,20 +274,20 @@ const SensorCard = ({
 
       <div className="relative z-10 mt-4">
         <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{String(name)}</p>
-        {isToggleDomain ? (
-          <div className="w-full mt-3 p-1 rounded-xl flex items-center gap-1 bg-[var(--glass-bg)]">
-             <button
-               onClick={(e) => { e.stopPropagation(); if(state === 'on') onControl('toggle'); }}
-               className={`flex-1 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${state !== 'on' ? 'bg-white/10 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-50 hover:bg-white/5'}`}
-             >
-               AV
-             </button>
-             <button
-               onClick={(e) => { e.stopPropagation(); if(state !== 'on') onControl('toggle'); }}
-               className={`flex-1 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${state === 'on' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-[var(--text-secondary)] opacity-50 hover:bg-white/5'}`}
-             >
-               PÅ
-             </button>
+        {showToggleControls ? (
+          <div className="flex items-center gap-2 mt-4 bg-[var(--glass-bg)] rounded-full p-1 w-fit">
+            <button 
+              onClick={(e) => { e.stopPropagation(); if (state === 'on') onControl('toggle'); }}
+              className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${state !== 'on' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              Av
+            </button>
+             <button 
+              onClick={(e) => { e.stopPropagation(); if (state !== 'on') onControl('toggle'); }}
+              className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${state === 'on' ? 'bg-blue-500/20 text-blue-400' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              På
+            </button>
           </div>
         ) : (
           <>

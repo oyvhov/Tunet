@@ -30,6 +30,8 @@ const EditCardModal = ({
   if (!isOpen) return null;
 
   const isHidden = hiddenCards.includes(entityId);
+  const isPerson = entityId?.startsWith('person.');
+  const personDisplay = editSettings?.personDisplay || 'photo';
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" style={{
@@ -85,6 +87,26 @@ const EditCardModal = ({
                 t={t}
                 maxHeightClass="max-h-48"
               />
+            </div>
+          )}
+
+          {isPerson && (
+            <div className="space-y-2">
+              <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('person.display')}</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'photo')}
+                  className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'photo' ? 'bg-blue-500 text-white border-blue-500' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+                >
+                  {t('person.display.photo')}
+                </button>
+                <button
+                  onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'icon')}
+                  className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'icon' ? 'bg-blue-500 text-white border-blue-500' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+                >
+                  {t('person.display.icon')}
+                </button>
+              </div>
             </div>
           )}
 

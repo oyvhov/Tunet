@@ -168,7 +168,7 @@ import { formatRelativeTime, formatDuration, parseMarkdown } from './utils';
 import { ICON_MAP } from './iconMap';
 import { buildOnboardingSteps, validateUrl } from './onboarding';
 import { DEFAULT_PAGES_CONFIG } from './defaults';
-import { EmbyLogo, JellyfinLogo, getServerInfo } from './components/CustomIcons';
+import { EmbyLogo, JellyfinLogo, NRKLogo, getServerInfo } from './components/CustomIcons';
 import { callService as haCallService, getHistory, getStatistics, getForecast } from './services/haClient';
 import { createDragAndDropHandlers } from './dragAndDrop';
 import {
@@ -456,10 +456,22 @@ export default function App() {
           parsed.settings = parsed.settings.filter(id => id !== 'climate');
           modified = true;
         }
+
+        // Remove legacy 'climate' hardcoded card from all pages
+        Object.keys(parsed).forEach(pageKey => {
+          if (Array.isArray(parsed[pageKey])) {
+            const filtered = parsed[pageKey].filter(id => id !== 'climate');
+            if (filtered.length !== parsed[pageKey].length) {
+              parsed[pageKey] = filtered;
+              modified = true;
+            }
+          }
+        });
+
         if (parsed.automations && Array.isArray(parsed.automations)) {
           const updatedCols = parsed.automations.map(col => ({
             ...col,
-            cards: Array.isArray(col.cards) ? col.cards.filter(id => id !== 'sonos') : col.cards
+            cards: Array.isArray(col.cards) ? col.cards.filter(id => id !== 'sonos' && id !== 'climate') : col.cards
           }));
           if (JSON.stringify(updatedCols) !== JSON.stringify(parsed.automations)) {
             parsed.automations = updatedCols;
@@ -816,7 +828,19 @@ export default function App() {
     };
     fetchForecast();
 
-    return () => { cancelled = true; };
+    // Refresh all data every 10 minutes
+    const refreshInterval = setInterval(() => {
+      if (!cancelled) {
+        fetchHistory();
+        fetchTempHistory();
+        fetchForecast();
+      }
+    }, 600000);
+
+    return () => { 
+      cancelled = true;
+      clearInterval(refreshInterval);
+    };
   }, [conn]);
 
   const fetchReleaseNotes = async (id) => {
@@ -883,6 +907,11 @@ export default function App() {
     const statusText = getS(id);
     const name = customNames[id] || entity?.attributes?.friendly_name || id;
     const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
+    const headerSettingsKey = getCardSettingsKey(id, 'header');
+    const headerSettings = cardSettings[headerSettingsKey] || {};
+    const personDisplay = headerSettings.personDisplay || 'photo';
+    const useIcon = personDisplay === 'icon';
+    const PersonIcon = customIcons[id] ? ICON_MAP[customIcons[id]] : User;
 
     return (
       <div key={id} className="group relative flex items-center gap-2 sm:gap-3 pl-1.5 pr-2 sm:pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)]" 
@@ -902,12 +931,18 @@ export default function App() {
         <div className="relative">
           <div className="w-10 h-10 rounded-full overflow-hidden border-2 transition-all duration-500 bg-gray-800" 
                style={{borderColor: isHome ? '#22c55e' : 'var(--glass-border)', filter: isHome ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.7)'}}>
-            {picture ? (
-              <img src={picture} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
-                {name.substring(0, 1)}
+            {useIcon ? (
+              <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)]">
+                <PersonIcon className="w-5 h-5" />
               </div>
+            ) : (
+              picture ? (
+                <img src={picture} alt={name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
+                  {name.substring(0, 1)}
+                </div>
+              )
             )}
           </div>
           
@@ -1042,14 +1077,29 @@ export default function App() {
       }
     };
 
+    // Fetch all temperature histories immediately
     uniqueIds.forEach((tempId) => {
-      if (!tempHistoryById[tempId] && tempId !== OUTSIDE_TEMP_ID) {
+      if (tempId !== OUTSIDE_TEMP_ID) {
         fetchHistoryFor(tempId);
       }
     });
 
-    return () => { cancelled = true; };
-  }, [conn, cardSettings, tempHistoryById]);
+    // Refresh every 5 minutes (300000ms)
+    const refreshInterval = setInterval(() => {
+      if (!cancelled) {
+        uniqueIds.forEach((tempId) => {
+          if (tempId !== OUTSIDE_TEMP_ID) {
+            fetchHistoryFor(tempId);
+          }
+        });
+      }
+    }, 300000);
+
+    return () => { 
+      cancelled = true;
+      clearInterval(refreshInterval);
+    };
+  }, [conn, cardSettings]);
 
   const activeGridColumns = pageSettings[activePage]?.gridColumns ?? gridColumns;
 
@@ -1383,16 +1433,21 @@ export default function App() {
 
     if (addCardType === 'climate') {
       if (selectedEntities.length === 0) return;
-      const cardId = `climate_card_${Date.now()}`;
-      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+      
+      const newCardIds = [];
+      const newSettings = { ...cardSettings };
+      
+      selectedEntities.forEach((entityId) => {
+        const cardId = `climate_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        newCardIds.push(cardId);
+        const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+        newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), climateId: entityId };
+      });
+      
+      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...newCardIds];
       setPagesConfig(newConfig);
       localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
-
-      const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
-      const newSettings = {
-        ...cardSettings,
-        [settingsKey]: { ...(cardSettings[settingsKey] || {}), climateId: selectedEntities[0] }
-      };
+      
       setCardSettings(newSettings);
       localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
 
@@ -1485,7 +1540,7 @@ export default function App() {
         if (action === 'increment') callService('input_number', 'increment', { entity_id: cardId });
         if (action === 'decrement') callService('input_number', 'decrement', { entity_id: cardId });
       }
-      if (domain === 'input_boolean' || domain === 'switch' || domain === 'light') {
+      if (domain === 'input_boolean' || domain === 'switch' || domain === 'light' || domain === 'automation') {
          if (action === 'toggle') callService(domain, 'toggle', { entity_id: cardId });
       }
     };
@@ -1869,7 +1924,7 @@ export default function App() {
 
     if (isSmall) {
       return (
-        <div key={vacuumId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
+        <div key={vacuumId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)'), containerType: 'inline-size'}}>
           {getControls(vacuumId)}
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all ${state === "cleaning" ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
@@ -1883,11 +1938,11 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="flex gap-1 shrink-0">
-            <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className="p-2 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95">
+          <div className="vacuum-card-controls shrink-0">
+            <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95">
               {state === "cleaning" ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
             </button>
-            <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", "return_to_base", { entity_id: vacuumId }); }} className="p-2 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95">
+            <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", "return_to_base", { entity_id: vacuumId }); }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95">
               <Home className="w-4 h-4" />
             </button>
           </div>
@@ -2176,7 +2231,16 @@ export default function App() {
   };
 
   const getCardGridSpan = (cardId) => {
-    if (cardId.startsWith('automation.')) return 1;
+    if (cardId.startsWith('automation.')) {
+      const settingsKey = getCardSettingsKey(cardId);
+      const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+      const typeSetting = settings.type;
+      if (typeSetting === 'sensor' || typeSetting === 'entity' || typeSetting === 'toggle') {
+        const sizeSetting = settings.size;
+        return sizeSetting === 'small' ? 1 : 2;
+      }
+      return 1;
+    }
 
     if (cardId.startsWith('calendar_card_')) return 4;
 
@@ -2452,7 +2516,7 @@ export default function App() {
 
     if (cardId.startsWith('automation.')) {
       const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
-      if (settings.type === 'entity' || settings.type === 'toggle') {
+      if (settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor') {
         return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
       }
       return renderAutomationCard(cardId, dragProps, getControls, cardStyle, settingsKey);
@@ -2901,6 +2965,59 @@ export default function App() {
           .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;
+          }
+          .vacuum-card-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+          }
+          .card-controls--temp {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+          }
+          .card-controls--temp .control-plus {
+            order: 0;
+          }
+          .card-controls--temp .control-minus {
+            order: 1;
+          }
+          .sensor-card-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+          }
+          .sensor-card-controls .control-on {
+            order: 0;
+          }
+          .sensor-card-controls .control-off {
+            order: 1;
+          }
+          @container (min-width: 248px) {
+            .vacuum-card-controls {
+              flex-direction: row;
+            }
+            .card-controls--temp {
+              flex-direction: row;
+            }
+            .card-controls--temp .control-plus {
+              order: 1;
+            }
+            .card-controls--temp .control-minus {
+              order: 0;
+            }
+            .sensor-card-controls {
+              flex-direction: row;
+            }
+            .sensor-card-controls .control-on {
+              order: 1;
+            }
+            .sensor-card-controls .control-off {
+              order: 0;
+            }
           }
           .popup-surface {
             background: linear-gradient(145deg,
@@ -3961,7 +4078,7 @@ export default function App() {
                             return id.startsWith('media_player.');
                           }
                           if (addCardType === 'sensor') {
-                             return (id.startsWith('sensor.') || id.startsWith('input_number.') || id.startsWith('input_boolean.') || id.startsWith('binary_sensor.') || id.startsWith('switch.')) && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                              return (id.startsWith('sensor.') || id.startsWith('input_number.') || id.startsWith('input_boolean.') || id.startsWith('binary_sensor.') || id.startsWith('switch.') || id.startsWith('automation.')) && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           }
                           if (addCardType === 'toggle') {
                             return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
@@ -3987,10 +4104,6 @@ export default function App() {
                           const isSelectedMonth = selectedCostMonthId === id;
                           return (
                           <button type="button" key={id} onClick={() => {
-                              if (addCardType === 'climate') {
-                                setSelectedEntities(prev => (prev.includes(id) ? [] : [id]));
-                                return;
-                              }
                               if (addCardType === 'cost') {
                                 if (costSelectionTarget === 'today') {
                                   setSelectedCostTodayId(prev => (prev === id ? null : id));
@@ -4036,6 +4149,9 @@ export default function App() {
                           if (addCardType === 'androidtv') return id.startsWith('media_player.') || id.startsWith('remote.');
                           if (addCardType === 'cost') return (id.startsWith('sensor.') || id.startsWith('input_number.'));
                           if (addCardType === 'media') return id.startsWith('media_player.');
+                          if (addCardType === 'sensor') {
+                            return (id.startsWith('sensor.') || id.startsWith('input_number.') || id.startsWith('input_boolean.') || id.startsWith('binary_sensor.') || id.startsWith('switch.') || id.startsWith('automation.')) && !(pagesConfig[addCardTargetPage] || []).includes(id);
+                          }
                           if (addCardType === 'toggle') return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           if (addCardType === 'entity') return !id.startsWith('person.') && !id.startsWith('update.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
