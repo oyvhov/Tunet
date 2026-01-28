@@ -4,15 +4,34 @@ A modern React dashboard for home automation and energy monitoring with Home Ass
 
 ## Features
 
+### Dashboard Controls
 - Climate & heating control
 - Energy consumption tracking with real-time pricing
 - Vehicle status monitoring (Nissan Leaf)
 - Lighting control with color/warmth adjustment
 - Door sensors & presence detection
-- Media player control (Sonos, Jellyfin, Emby)
+- Vacuum cleaner control
+- Media player control (Sonos, Jellyfin, Emby, NRK, Android TV)
+- Presence & person status
+- Calendar integration
 - Customizable dashboard layout & header
-- Dark/Light theme
+- Dark/Light/Graphite theme
 - Multi-language (English, Nynorsk)
+
+### Card Types
+You can add various card types to customize your dashboard:
+- **Sensor** - Display any numeric or text sensor with history
+- **Light** - Control lights with brightness, color, and warmth
+- **Climate** - Manage heat pump or AC with temperature targeting
+- **Vacuum** - Control robot vacuum with suction and mop settings
+- **Media Player** - Play/pause music, control volume on any media player
+- **Sonos** - Dedicated Sonos player management with grouping
+- **Weather** - Display weather with 12h forecast and temperature graph
+- **Cost/Energy** - Track daily and monthly power costs
+- **Calendar** - Show upcoming calendar events
+- **Automation** - Toggle automations and scripts
+- **Android TV** - Media control for Android TV devices
+- **Toggle** - Quick switch for lights, automations, scripts
 
 ## Main Dashboard
 
@@ -27,14 +46,48 @@ A modern React dashboard for home automation and energy monitoring with Home Ass
 
 ### Installation
 
-```bash
-git clone https://github.com/oyvhov/NoName.git
-cd NoName
-npm install
-npm run dev
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/oyvhov/NoName.git
+   cd NoName
+   ```
 
-Access at http://localhost:5173
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open dashboard**
+   - Access at `http://localhost:5173`
+   - Go to Settings and add your Home Assistant URL and token
+
+5. **Configure entities** (optional)
+   - Edit `src/constants.js` to map your specific entity IDs
+   - Or use edit mode to add cards dynamically
+
+### Docker Installation
+
+Alternatively, run with Docker:
+
+1. **Clone the repository** (if not already done)
+   ```bash
+   git clone https://github.com/oyvhov/NoName.git
+   cd NoName
+   ```
+
+2. **Build and run with Docker Compose**
+   ```bash
+   docker-compose up
+   ```
+
+3. **Access dashboard**
+   - Open `http://localhost:5173`
+   - Go to Settings and add your Home Assistant URL and token
 
 ## Configuration
 
