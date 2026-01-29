@@ -12,4 +12,5 @@ export { default as MediaModal } from './MediaModal';
 export { default as NordpoolModal } from './NordpoolModal';
 export { default as RockyModal } from './RockyModal';
 export { default as SensorModal } from './SensorModal';
+export { default as StatusPillsConfigModal } from './StatusPillsConfigModal';
 export { default as UpdateModal } from './UpdateModal';

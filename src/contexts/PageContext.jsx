@@ -219,6 +219,15 @@ export const PageProvider = ({ children }) => {
     writeJSON('midttunet_header_settings', newSettings);
   };
 
+  const [statusPillsConfig, setStatusPillsConfig] = useState(() => 
+    readJSON('midttunet_status_pills_config', [])
+  );
+
+  const saveStatusPillsConfig = (newConfig) => {
+    setStatusPillsConfig(newConfig);
+    writeJSON('midttunet_status_pills_config', newConfig);
+  };
+
   const persistConfig = (newConfig) => {
     setPagesConfig(newConfig);
     writeJSON('midttunet_pages_config', newConfig);
@@ -250,6 +259,8 @@ export const PageProvider = ({ children }) => {
     headerSettings,
     updateHeaderSettings,
     persistCardSettings,
+    statusPillsConfig,
+    saveStatusPillsConfig,
   };
 
   return (

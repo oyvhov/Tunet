@@ -174,6 +174,7 @@ import {
   NordpoolModal,
   RockyModal,
   SensorModal,
+  StatusPillsConfigModal,
   UpdateModal
 } from './modals';
 import { Header, StatusBar } from './layouts';
@@ -267,7 +268,9 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     updateHeaderTitle,
     headerSettings,
     updateHeaderSettings,
-    persistCardSettings
+    persistCardSettings,
+    statusPillsConfig,
+    saveStatusPillsConfig
   } = usePages();
 
   const {
@@ -342,9 +345,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [nordpoolDecimals, setNordpoolDecimals] = useState(2);
   const [optimisticLightBrightness, setOptimisticLightBrightness] = useState({});
   const [tempHistoryById, setTempHistoryById] = useState({});
+  const [showStatusPillsConfig, setShowStatusPillsConfig] = useState(false);
   const resetToHome = () => {
     const isHome = activePage === 'home';
-    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
+    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode && !showStatusPillsConfig;
     
     if (!isHome || !noModals) {
         setActivePage('home');
@@ -366,6 +370,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         setEditingPage(null);
         setEditMode(false);
         setExpandedUpdate(null);
+        setShowStatusPillsConfig(false);
     }
   };
 
@@ -2102,12 +2107,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const dragProps = getDragProps({ cardId, index, colIndex });
     const baseCardStyle = getCardStyle({ cardId, isHidden, isDragging });
     
-    // Add animation delay for stagger effect
-    const cardStyle = {
-      ...baseCardStyle,
-      animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards',
-      animationDelay: `${index * 0.05}s`
-    };
+    // Removed animation delay to prevent slow reanimation on card move
+    const cardStyle = baseCardStyle;
 
     const settingsKey = getCardSettingsKey(cardId);
 
@@ -2119,7 +2120,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       const canToggleSize = (editId.startsWith('light_') || editId.startsWith('light.') || editId.startsWith('vacuum.') || editId.startsWith('automation.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('weather_temp_') || settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor');
       return ( 
       <>
-        <div className="absolute top-2 left-2 z-50 flex gap-2 edit-controls-anim">
+        <div className="absolute top-2 left-2 z-50 flex gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); moveCardInArray(cardId, 'left'); }}
             className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
@@ -2135,7 +2136,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-        <div className="absolute top-2 right-2 z-50 flex gap-2 edit-controls-anim">
+        <div className="absolute top-2 right-2 z-50 flex gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); setEditCardSettingsKey(settingsKey); }}
             className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
@@ -2210,7 +2211,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               resetDragState();
             }}
             style={{ touchAction: 'none' }}
-            className="flex items-center gap-2 px-4 py-3 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto edit-controls-anim"
+            className="flex items-center gap-2 px-4 py-3 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto"
           >
             <GripVertical className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">{t('drag.move')}</span>
@@ -2742,7 +2743,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               {editMode && (pagesConfig.header || []).length === 0 && (
                 <button 
                   onClick={() => { setAddCardTargetPage('header'); setShowAddCardModal(true); }} 
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-all text-xs font-bold uppercase tracking-widest edit-controls-anim"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-all text-xs font-bold uppercase tracking-widest"
                 >
                   <Plus className="w-3 h-3" /> {t('addCard.type.entity')}
                 </button>
@@ -2758,11 +2759,14 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                 setActiveMediaGroupKey={setActiveMediaGroupKey}
                 setActiveMediaModal={setActiveMediaModal}
                 setShowUpdateModal={setShowUpdateModal}
+                setShowStatusPillsConfig={setShowStatusPillsConfig}
+                editMode={editMode}
                 t={t}
                 isSonosActive={isSonosActive}
                 isMediaActive={isMediaActive}
                 getA={getA}
                 getEntityImageUrl={getEntityImageUrl}
+                statusPillsConfig={statusPillsConfig}
               />
             </div>
           </div>
@@ -2921,13 +2925,12 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               return (
                 <div
                   key={`${id}-${index}`}
-                  className="h-full relative card-animate"
+                  className="h-full relative"
                   style={{
                     gridRowStart: placement.row,
                     gridColumnStart: placement.col,
                     gridRowEnd: `span ${forcedSpan}`,
-                    minHeight: isCalendarCard ? '496px' : undefined,
-                    animationDelay: `${sortedIndex * 0.05}s`
+                    minHeight: isCalendarCard ? '496px' : undefined
                   }}
                 >
                   {heading && (
@@ -3731,6 +3734,15 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           JellyfinLogo={JellyfinLogo}
           SONOS_IDS={SONOS_IDS}
           BIBLIOTEK_SESSIONS_ID={BIBLIOTEK_SESSIONS_ID}
+        />
+
+        <StatusPillsConfigModal
+          show={showStatusPillsConfig}
+          onClose={() => setShowStatusPillsConfig(false)}
+          statusPillsConfig={statusPillsConfig}
+          onSave={saveStatusPillsConfig}
+          entities={entities}
+          t={t}
         />
       </div>
     </div>

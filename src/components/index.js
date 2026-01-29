@@ -10,6 +10,7 @@ export { default as SensorCard } from './SensorCard';
 export { default as SettingsMenu } from './SettingsMenu';
 export { default as SonosPage } from './SonosPage';
 export { default as SparkLine } from './SparkLine';
+export { default as StatusPill } from './StatusPill';
 export { default as WeatherGraph } from './WeatherGraph';
 export { default as WeatherTempCard } from './WeatherTempCard';
 export { EmbyLogo, JellyfinLogo, NRKLogo, getServerInfo } from './CustomIcons';

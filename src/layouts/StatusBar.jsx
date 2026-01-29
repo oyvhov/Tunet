@@ -1,7 +1,8 @@
 import { 
   MapPin, Clock, AlertCircle, Activity, DoorOpen, Warehouse, 
-  Clapperboard, Music
+  Clapperboard, Music, Edit2
 } from '../icons';
+import StatusPill from '../components/StatusPill';
 import { 
   REFRIGERATOR_ID, EILEV_DOOR_ID, OLVE_DOOR_ID, STUDIO_PRESENCE_ID,
   PORTEN_MOTION_ID, GARAGE_DOOR_ID, SONOS_IDS, BIBLIOTEK_SESSIONS_ID
@@ -22,6 +23,7 @@ import {
  * @param {Function} props.isMediaActive - Check if media is active
  * @param {Function} props.getA - Get entity attribute
  * @param {Function} props.getEntityImageUrl - Get entity image URL
+ * @param {Array} props.statusPillsConfig - Status pills configuration
  */
 export default function StatusBar({ 
   entities, 
@@ -31,13 +33,15 @@ export default function StatusBar({
   setActiveMediaGroupKey,
   setActiveMediaModal,
   setShowUpdateModal,
-  t,
-  isSonosActive,
-  isMediaActive,
-  getA,
-  getEntityImageUrl
+  setShowStatusPillsConfig,
+  editMode,
+  t, 
+  isSonosActive, 
+  isMediaActive, 
+  getA, 
+  getEntityImageUrl, 
+  statusPillsConfig = [] 
 }) {
-  
   const refrigeratorStatus = () => {
     if (entities[REFRIGERATOR_ID]?.state !== 'on') return null;
     return (
@@ -232,6 +236,95 @@ export default function StatusBar({
   return (
     <div className="flex items-center justify-between w-full mt-0 font-sans">
       <div className="flex flex-wrap gap-2.5 items-center min-w-0">
+        {/* Edit button (only in edit mode) - at first position */}
+        {editMode && (
+          <button
+            onClick={() => setShowStatusPillsConfig(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all bg-blue-500/20 border-blue-500/30 text-blue-400 hover:bg-blue-500/30"
+            title="Rediger status piller"
+          >
+            <Edit2 className="w-3 h-3" />
+            <span className="text-xs tracking-widest uppercase font-bold">Piller</span>
+          </button>
+        )}
+        
+        {/* Configurable status pills */}
+        {statusPillsConfig
+          .filter(pill => pill.visible !== false)
+          .map(pill => {
+            // Handle different pill types
+            if (pill.type === 'media_player') {
+              // Get selected media player entity if specified, otherwise all
+              const mediaIds = pill.entityId 
+                ? [pill.entityId]
+                : Object.keys(entities).filter(id => 
+                    id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet')
+                  );
+              const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
+              
+              return (
+                <StatusPill
+                  key={pill.id}
+                  entity={mediaEntities}
+                  pill={pill}
+                  getA={getA}
+                  getEntityImageUrl={getEntityImageUrl}
+                  isMediaActive={isMediaActive}
+                  t={t}
+                  onClick={pill.clickable ? () => {
+                    const activeEntities = mediaEntities.filter(isMediaActive);
+                    const firstActive = activeEntities[0];
+                    if (firstActive) {
+                      setActiveMediaId(firstActive.entity_id);
+                      setActiveMediaGroupKey('__emby__');
+                      setActiveMediaModal('media');
+                    }
+                  } : undefined}
+                />
+              );
+            }
+            
+            if (pill.type === 'sonos') {
+              // Get Sonos entities
+              const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
+              
+              return (
+                <StatusPill
+                  key={pill.id}
+                  entity={sonosEntities}
+                  pill={pill}
+                  getA={getA}
+                  getEntityImageUrl={getEntityImageUrl}
+                  isMediaActive={isSonosActive}
+                  t={t}
+                  onClick={pill.clickable ? () => {
+                    setActiveMediaModal('sonos');
+                  } : undefined}
+                />
+              );
+            }
+            
+            // Default conditional pill
+            return (
+              <StatusPill
+                key={pill.id}
+                entity={entities[pill.entityId]}
+                pill={pill}
+                getA={getA}
+                t={t}
+                onClick={pill.clickable ? () => {
+                  // Handle click based on entity type
+                  if (pill.entityId === PORTEN_MOTION_ID) {
+                    setShowCameraModal(true);
+                  }
+                  // Add more click handlers as needed
+                } : undefined}
+              />
+            );
+          })
+        }
+        
+        {/* Legacy hardcoded pills (always show as fallback) */}
         {refrigeratorStatus()}
         {studioStatus()}
         {portenStatus()}
