@@ -46,9 +46,9 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const { createConnection, createLongLivedTokenAuth, subscribeEntities } = window.HAWS;
 
     const persistConfig = (urlUsed) => {
-      localStorage.setItem('ha_url', urlUsed);
+      localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
       localStorage.setItem('ha_token', config.token);
-      if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl);
+      if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl.replace(/\/$/, ''));
     };
 
     async function connectWith(url) {

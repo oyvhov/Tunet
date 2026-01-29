@@ -1,6 +1,6 @@
 import { 
   MapPin, Clock, AlertCircle, Activity, DoorOpen, Warehouse, 
-  Clapperboard, Music, Download 
+  Clapperboard, Music
 } from '../icons';
 import { 
   REFRIGERATOR_ID, EILEV_DOOR_ID, OLVE_DOOR_ID, STUDIO_PRESENCE_ID,
@@ -229,29 +229,6 @@ export default function StatusBar({
     );
   };
 
-  const updateStatus = () => {
-    const updates = Object.keys(entities).filter(id => 
-      id.startsWith('update.') && entities[id].state === 'on'
-    );
-    const count = updates.length;
-    if (count === 0) return null;
-
-    return (
-      <button 
-        onClick={() => setShowUpdateModal(true)} 
-        className="relative flex items-center justify-center p-2 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" 
-        style={{backgroundColor: 'rgba(255, 255, 255, 0.03)'}}>
-        <div className="p-2 rounded-xl text-blue-400" 
-             style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}>
-          <Download className="w-6 h-6" />
-        </div>
-        <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500 text-white text-sm font-bold flex items-center justify-center border-[3px] border-[var(--bg-primary)] shadow-lg">
-          {count}
-        </div>
-      </button>
-    );
-  };
-
   return (
     <div className="flex items-center justify-between w-full mt-0 font-sans">
       <div className="flex flex-wrap gap-2.5 items-center min-w-0">
@@ -263,9 +240,6 @@ export default function StatusBar({
         {sonosStatus()}
         {doorStatus(EILEV_DOOR_ID, t('door.eilev'))}
         {doorStatus(OLVE_DOOR_ID, t('door.olve'))}
-      </div>
-      <div className="flex items-center pl-4">
-        {updateStatus()}
       </div>
     </div>
   );

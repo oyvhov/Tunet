@@ -209,6 +209,16 @@ export const PageProvider = ({ children }) => {
     localStorage.setItem('midttunet_header_title', newTitle);
   };
 
+  const [headerSettings, setHeaderSettings] = useState(() => {
+    const saved = readJSON('midttunet_header_settings');
+    return saved || { showTitle: true, showClock: true, showDate: true };
+  });
+
+  const updateHeaderSettings = (newSettings) => {
+    setHeaderSettings(newSettings);
+    writeJSON('midttunet_header_settings', newSettings);
+  };
+
   const persistConfig = (newConfig) => {
     setPagesConfig(newConfig);
     writeJSON('midttunet_pages_config', newConfig);
@@ -237,6 +247,8 @@ export const PageProvider = ({ children }) => {
     updateHeaderScale,
     headerTitle,
     updateHeaderTitle,
+    headerSettings,
+    updateHeaderSettings,
     persistCardSettings,
   };
 

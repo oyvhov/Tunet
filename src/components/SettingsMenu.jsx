@@ -1,4 +1,4 @@
-import { Edit2, Settings, Sun, Moon, Check } from '../icons';
+import { Edit2, Settings, Sun, Moon, Check, Download } from '../icons';
 
 /**
  * SettingsMenu - Dropdown menu for app settings and actions
@@ -29,8 +29,14 @@ export default function SettingsMenu({
   activePage,
   pageSettings,
   t,
-  menuRef
+  menuRef,
+  entities,
+  setShowUpdateModal
 }) {
+  // Count available updates
+  const updateCount = entities ? Object.keys(entities).filter(id => 
+    id.startsWith('update.') && entities[id].state === 'on'
+  ).length : 0;
   return (
     <div
       ref={menuRef}
@@ -38,18 +44,6 @@ export default function SettingsMenu({
         showMenu ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
       }`}
     >
-      {!editMode && (
-        <button 
-          onClick={() => {
-            setEditMode(true);
-            setShowMenu(false);
-          }} 
-          className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]"
-        >
-          <Edit2 className="w-4 h-4" /> {t('menu.edit')}
-        </button>
-      )}
-      
       {!editMode && (
         <button 
           onClick={() => { 
@@ -74,6 +68,22 @@ export default function SettingsMenu({
         >
           {currentTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           {t('menu.theme')}
+        </button>
+      )}
+      
+      {!editMode && updateCount > 0 && (
+        <button 
+          onClick={() => { 
+            setShowUpdateModal(true); 
+            setShowMenu(false); 
+          }} 
+          className="relative flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]"
+        >
+          <Download className="w-4 h-4" />
+          {t('updates.title')}
+          <div className="ml-auto w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
+            {updateCount}
+          </div>
         </button>
       )}
     </div>

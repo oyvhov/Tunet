@@ -2,6 +2,7 @@ export { default as AddPageModal } from './AddPageModal';
 export { default as CameraModal } from './CameraModal';
 export { default as ConfigModal } from './ConfigModal';
 export { default as EditCardModal } from './EditCardModal';
+export { default as EditHeaderModal } from './EditHeaderModal';
 export { default as EditPageModal } from './EditPageModal';
 export { default as GenericAndroidTVModal } from './GenericAndroidTVModal';
 export { default as GenericClimateModal } from './GenericClimateModal';

@@ -10,7 +10,9 @@ import {
   Server,
   RefreshCw,
   Globe,
-  Palette
+  Palette,
+  Monitor,
+  Sparkles
 } from '../icons';
 
 export default function ConfigModal({
@@ -52,301 +54,400 @@ export default function ConfigModal({
     if (!isOnboardingActive) onClose?.();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-6 md:p-6 md:pt-12 overflow-y-auto" style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }} onClick={handleClose}>
-      <div className="border w-full max-w-xl max-h-[90vh] rounded-3xl md:rounded-[2.5rem] p-4 md:p-6 shadow-2xl relative font-sans flex flex-col overflow-hidden backdrop-blur-xl popup-anim my-auto" style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={handleClose} className={`absolute top-4 right-4 md:top-6 md:right-6 modal-close ${isOnboardingActive ? 'opacity-30 cursor-not-allowed' : ''}`}><X className="w-4 h-4" /></button>
-        <h3 className="text-lg md:text-xl font-light mb-3 md:mb-4 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{isOnboardingActive ? t('onboarding.title') : t('system.title')}</h3>
+  const renderConnectionTab = () => (
+    <div className="space-y-6 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="space-y-3">
+        <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex items-center gap-2">
+          <Wifi className="w-4 h-4" />
+          {t('system.haUrlPrimary')}
+          {connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}
+        </label>
+        <div className="relative group">
+          <input
+            type="text"
+            className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all placeholder:text-[var(--text-muted)] p-3"
+            value={config.url}
+            onChange={(e) => setConfig({ ...config, url: e.target.value.trim() })}
+            placeholder="https://homeassistant.local:8123"
+          />
+          <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        </div>
+        {config.url && config.url.endsWith('/') && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/20">
+            <AlertCircle className="w-3 h-3" />
+            {t('onboarding.urlTrailingSlash')}
+          </div>
+        )}
+      </div>
 
+      <div className="space-y-3">
+        <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex items-center gap-2">
+          <Server className="w-4 h-4" />
+          {t('system.haUrlFallback')}
+          {connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}
+        </label>
+        <div className="relative group">
+          <input
+            type="text"
+            className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all placeholder:text-[var(--text-muted)] p-3"
+            value={config.fallbackUrl}
+            onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
+            placeholder={t('common.optional')}
+          />
+           <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        </div>
+        {config.fallbackUrl && config.fallbackUrl.endsWith('/') && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/20">
+            <AlertCircle className="w-3 h-3" />
+            {t('onboarding.urlTrailingSlash')}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex items-center gap-2">
+          <Lock className="w-4 h-4" />
+          {t('system.token')}
+        </label>
+        <div className="relative group">
+          <textarea
+            className="w-full px-4 py-3 h-32 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all font-mono text-xs leading-relaxed resize-none p-3"
+            value={config.token}
+            onChange={(e) => setConfig({ ...config, token: e.target.value.trim() })}
+            placeholder="ey..."
+          />
+           <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSettingsTab = () => (
+    <div className="space-y-8 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="space-y-4">
+        <p className="text-xs uppercase font-bold text-gray-500 ml-1">Utseenede</p>
+        <div className="grid grid-cols-1 gap-4">
+          <ModernDropdown 
+            label={t('settings.theme')} 
+            icon={Palette} 
+            options={Object.keys(themes)} 
+            current={currentTheme} 
+            onChange={setCurrentTheme} 
+            map={{ dark: t('theme.dark'), light: t('theme.light') }} 
+            placeholder={t('dropdown.noneSelected')} 
+          />
+          <ModernDropdown 
+            label={t('settings.language')} 
+            icon={Globe} 
+            options={['nn', 'en']} 
+            current={language} 
+            onChange={setLanguage} 
+            map={{ nn: t('language.nn'), en: t('language.en') }} 
+            placeholder={t('dropdown.noneSelected')} 
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <p className="text-xs uppercase font-bold text-gray-500 ml-1">Oppførsel</p>
+        <div className="p-4 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)]">
+          <div className="flex items-center justify-between mb-4">
+            <label className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+              <Monitor className="w-4 h-4 text-blue-400" />
+              {t('settings.inactivity')}
+            </label>
+            <span className="px-2 py-1 rounded bg-[var(--glass-bg-hover)] text-xs font-bold text-[var(--text-primary)] border border-[var(--glass-border)]">
+              {inactivityTimeout === 0 ? t('common.off') : `${inactivityTimeout}s`}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={300}
+            step={10}
+            value={inactivityTimeout}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              setInactivityTimeout(val);
+              localStorage.setItem('midttunet_inactivity_timeout', String(val));
+            }}
+            className="w-full accent-blue-500"
+          />
+          <div className="flex justify-between text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider mt-2">
+            <span>{t('common.off')}</span>
+            <span>50%</span>
+            <span>300s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8" style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={handleClose}>
+       <style>{`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+          }
+        `}</style>
+      <div 
+        className={`border w-full rounded-2xl md:rounded-3xl shadow-2xl relative font-sans flex flex-col overflow-hidden backdrop-blur-xl popup-anim bg-[var(--modal-bg)] border-[var(--glass-border)] text-[var(--text-primary)] ${isOnboardingActive ? 'max-w-4xl h-[600px] max-h-[90vh]' : 'max-w-4xl h-[600px] max-h-[90vh]'}`} 
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)' }}
+      >
         {isOnboardingActive ? (
-          <div className="mb-5 md:mb-6">
-            <div className="flex items-center justify-center px-2 md:px-4">
+          // ONBOARDING LAYOUT - Redesigned to match System Settings Sidebar
+          <div className="flex flex-col md:flex-row h-full">
+            {/* Sidebar */}
+            <div className="w-full md:w-64 bg-[var(--glass-bg)] flex flex-row md:flex-col gap-1 p-3 border-b md:border-b-0 md:border-r border-[var(--glass-border)]">
+              <div className="hidden md:flex items-center gap-3 px-3 py-4 mb-2">
+                 <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                   <Sparkles className="w-5 h-5" />
+                 </div>
+                 <span className="font-bold text-lg tracking-wide">{t('onboarding.title')}</span>
+              </div>
+              
               {onboardingSteps.map((step, index) => {
                 const isActive = onboardingStep === index;
                 const isDone = onboardingStep > index;
                 const StepIcon = step.icon;
                 return (
-                  <div key={step.key} className="flex items-center flex-1">
-                    <div className="flex flex-col items-center gap-2 relative w-full">
-                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-300 border-2 ${isDone ? 'bg-green-500 border-green-500 text-white' : isActive ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/30' : 'bg-transparent border-[var(--glass-border)] text-[var(--text-muted)]'}`}>
-                        {isDone ? <Check className="w-5 h-5 md:w-6 md:h-6" /> : <StepIcon className="w-5 h-5 md:w-6 md:h-6" />}
-                      </div>
-                      <span className={`text-[9px] md:text-[10px] uppercase tracking-wider font-bold text-center leading-tight absolute -bottom-5 whitespace-nowrap ${isActive ? 'text-blue-400' : isDone ? 'text-green-400' : 'text-[var(--text-muted)]'}`}>{step.label}</span>
-                    </div>
-                    {index < onboardingSteps.length - 1 && (
-                      <div className={`flex-1 h-[2px] mx-2 md:mx-4 transition-all duration-300 ${isDone ? 'bg-green-500' : 'bg-[var(--glass-border)]'}`} />
-                    )}
+                  <div 
+                    key={step.key}
+                    className={`flex-1 md:flex-none flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold uppercase tracking-wide cursor-default ${isActive ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : ''} ${isDone ? 'text-green-400 bg-green-500/10' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
+                  >
+                    {isDone ? <Check className="w-4 h-4" /> : <StepIcon className="w-4 h-4" />}
+                    <span className="hidden md:inline">{step.label}</span>
                   </div>
                 );
               })}
             </div>
+
+            {/* Content Area */}
+            <div className="flex-1 flex flex-col min-h-0 bg-[var(--modal-bg)]">
+              <div className="flex items-center justify-between p-6 border-b border-[var(--glass-border)] md:hidden">
+                 <h3 className="font-bold text-lg uppercase tracking-wide">{onboardingSteps[onboardingStep].label}</h3>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                {/* Desktop Header for Content */}
+                <div className="hidden md:flex items-center justify-between mb-8">
+                   <h2 className="text-2xl font-bold">{onboardingSteps[onboardingStep].label}</h2>
+                </div>
+
+                {onboardingStep === 0 && (
+                   <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                     <div className="space-y-4">
+                        <div className="space-y-3">
+                          <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlPrimary')}</label>
+                          <input
+                            type="text"
+                            className={`w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] ${onboardingUrlError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
+                            value={config.url}
+                            onChange={(e) => {
+                              setConfig({ ...config, url: e.target.value.trim() });
+                              setOnboardingUrlError('');
+                              setConnectionTestResult(null);
+                            }}
+                            placeholder={t('onboarding.haUrlPlaceholder')}
+                          />
+                           {onboardingUrlError && <p className="text-xs text-red-400 font-bold ml-1">{onboardingUrlError}</p>}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.token')}</label>
+                          <textarea
+                            className={`w-full px-4 py-3 h-32 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-mono text-xs ${onboardingTokenError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
+                            value={config.token}
+                            onChange={(e) => {
+                              setConfig({ ...config, token: e.target.value.trim() });
+                              setOnboardingTokenError('');
+                              setConnectionTestResult(null);
+                            }}
+                            placeholder={t('onboarding.tokenPlaceholder')}
+                          />
+                          {onboardingTokenError && <p className="text-xs text-red-400 font-bold ml-1">{onboardingTokenError}</p>}
+                        </div>
+
+                         <div className="space-y-3">
+                          <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlFallback')}</label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] focus:border-blue-500/50"
+                            value={config.fallbackUrl}
+                            onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
+                            placeholder={t('common.optional')}
+                          />
+                           <p className="text-xs text-[var(--text-muted)] ml-1">{t('onboarding.fallbackHint')}</p>
+                        </div>
+                     </div>
+
+                     <button
+                      onClick={testConnection}
+                      disabled={!config.url || !config.token || !validateUrl(config.url) || testingConnection}
+                      className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'}`}
+                    >
+                      {testingConnection ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Wifi className="w-5 h-5" />}
+                      {testingConnection ? t('onboarding.testing') : t('onboarding.testConnection')}
+                    </button>
+
+                    {connectionTestResult && (
+                      <div className={`p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 ${connectionTestResult.success ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                        {connectionTestResult.success ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                        <span className="font-bold">{connectionTestResult.message}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {onboardingStep === 1 && (
+                   <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                     <div className="space-y-4">
+                        <p className="text-xs uppercase font-bold text-gray-500 ml-1">Lokalisering</p>
+                        <ModernDropdown label={t('settings.language')} icon={Globe} options={['nn', 'en']} current={language} onChange={setLanguage} map={{ nn: t('language.nn'), en: t('language.en') }} placeholder={t('dropdown.noneSelected')} />
+                     </div>
+                     <div className="space-y-4">
+                        <p className="text-xs uppercase font-bold text-gray-500 ml-1">Tema</p>
+                        <ModernDropdown label={t('settings.theme')} icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: t('theme.dark'), light: t('theme.light') }} placeholder={t('dropdown.noneSelected')} />
+                     </div>
+                     <div className="space-y-2">
+                      <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex justify-between">
+                        {t('settings.inactivity')}
+                        <span className="text-[var(--text-primary)]">{inactivityTimeout === 0 ? t('common.off') : `${inactivityTimeout}s`}</span>
+                      </label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={300}
+                        step={10}
+                        value={inactivityTimeout}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setInactivityTimeout(val);
+                          localStorage.setItem('midttunet_inactivity_timeout', String(val));
+                        }}
+                        className="w-full accent-blue-500"
+                      />
+                    </div>
+                   </div>
+                )}
+
+                {onboardingStep === 2 && (
+                  <div className="space-y-6 flex flex-col items-center text-center justify-center p-4 animate-in fade-in zoom-in duration-500 h-full">
+                    <div className="w-24 h-24 bg-green-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-green-500/30 mb-8">
+                      <Check className="w-12 h-12" />
+                    </div>
+                    <h4 className="text-3xl font-bold text-[var(--text-primary)]">{t('onboarding.finishTitle')}</h4>
+                    <p className="text-[var(--text-secondary)] max-w-sm text-lg mt-2">{t('onboarding.finishBody')}</p>
+                  </div>
+                )}
+              </div>
+
+               {/* Footer Area */}
+              <div className="p-4 border-t border-[var(--glass-border)] bg-[var(--modal-bg)] flex gap-3">
+                  <button
+                    onClick={() => setOnboardingStep((s) => Math.max(0, s - 1))}
+                    className="flex-1 py-3 rounded-xl text-[var(--text-secondary)] font-bold uppercase tracking-widest border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] transition-colors"
+                    disabled={onboardingStep === 0}
+                    style={{ opacity: onboardingStep === 0 ? 0 : 1, pointerEvents: onboardingStep === 0 ? 'none' : 'auto' }}
+                  >
+                    {t('onboarding.back')}
+                  </button>
+                  {onboardingStep < onboardingSteps.length - 1 ? (
+                    <button
+                      onClick={() => setOnboardingStep((s) => Math.min(onboardingSteps.length - 1, s + 1))}
+                      disabled={!canAdvanceOnboarding}
+                      className={`flex-1 py-3 rounded-xl font-bold uppercase tracking-widest transition-all shadow-lg ${canAdvanceOnboarding ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] cursor-not-allowed opacity-50'}`}
+                    >
+                      {t('onboarding.next')}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={onFinishOnboarding}
+                      className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold uppercase tracking-widest transition-all shadow-lg shadow-green-500/20"
+                    >
+                      {t('onboarding.finish')}
+                    </button>
+                  )}
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2 mb-5">
-            <button onClick={() => setConfigTab('connection')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'connection' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>{t('system.tabConnection')}</button>
-            <button onClick={() => setConfigTab('settings')} className={`flex-1 py-2 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${configTab === 'settings' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}>{t('system.tabSettings')}</button>
+          // SYSTEM SETTINGS LAYOUT (New Sidebar Design)
+          <div className="flex flex-col md:flex-row h-full">
+            {/* Sidebar */}
+            <div className="w-full md:w-64 bg-[var(--glass-bg)] flex flex-row md:flex-col gap-1 p-3 border-b md:border-b-0 md:border-r border-[var(--glass-border)]">
+              <div className="hidden md:flex items-center gap-3 px-3 py-4 mb-2">
+                 <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                   <Settings className="w-5 h-5" />
+                 </div>
+                 <span className="font-bold text-lg tracking-wide">{t('system.title')}</span>
+              </div>
+              
+              <button 
+                onClick={() => setConfigTab('connection')}
+                className={`flex-1 md:flex-none flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold uppercase tracking-wide ${configTab === 'connection' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              >
+                <Wifi className="w-4 h-4" />
+                {t('system.tabConnection')}
+              </button>
+              
+              <button 
+                onClick={() => setConfigTab('settings')}
+                className={`flex-1 md:flex-none flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold uppercase tracking-wide ${configTab === 'settings' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              >
+                <Monitor className="w-4 h-4" />
+                {t('system.tabSettings')}
+              </button>
+
+              <div className="mt-auto hidden md:flex flex-col gap-2 pt-4 border-t border-[var(--glass-border)]">
+                 <button onClick={onClose} className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold uppercase tracking-widest transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2">
+                    <Check className="w-4 h-4" />
+                    {t('system.save')}
+                 </button>
+              </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 flex flex-col min-h-0 bg-[var(--modal-bg)]">
+              <div className="flex items-center justify-between p-6 border-b border-[var(--glass-border)] md:hidden">
+                 <h3 className="font-bold text-lg uppercase tracking-wide">{configTab === 'connection' ? t('system.tabConnection') : t('system.tabSettings')}</h3>
+                 <button onClick={onClose} className="modal-close"><X className="w-4 h-4" /></button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                {/* Desktop Header for Content */}
+                <div className="hidden md:flex items-center justify-between mb-8">
+                   <h2 className="text-2xl font-bold">{configTab === 'connection' ? t('system.tabConnection') : t('system.tabSettings')}</h2>
+                   <button onClick={handleClose} className="p-2 rounded-full hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                     <X className="w-5 h-5" />
+                   </button>
+                </div>
+
+                {configTab === 'connection' && renderConnectionTab()}
+                {configTab === 'settings' && renderSettingsTab()}
+              </div>
+
+              {/* Mobile Footer Area */}
+              <div className="p-4 border-t border-[var(--glass-border)] md:hidden bg-[var(--modal-bg)]">
+                <button onClick={onClose} className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold uppercase tracking-widest transition-all shadow-lg shadow-green-500/20">
+                  {t('system.save')}
+                </button>
+              </div>
+            </div>
           </div>
         )}
-
-        <div className="flex-1 min-h-0 overflow-y-auto pr-2 -mr-2">
-          {isOnboardingActive ? (
-            <div className="space-y-6 font-sans">
-              {onboardingStep === 0 && (
-                <div className="space-y-4">
-                  <div className="space-y-3">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">
-                      <Wifi className="w-4 h-4" />
-                      {t('system.haUrlPrimary')}
-                      {connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}
-                    </label>
-                    <input
-                      type="text"
-                      className={`w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)] border-2 transition-all ${onboardingUrlError ? 'border-red-500/50' : 'border-transparent focus:border-blue-500/50'}`}
-                      value={config.url}
-                      onChange={(e) => {
-                        setConfig({ ...config, url: e.target.value });
-                        setOnboardingUrlError('');
-                        setConnectionTestResult(null);
-                      }}
-                      placeholder={t('onboarding.haUrlPlaceholder')}
-                    />
-                    {onboardingUrlError && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-bold">
-                        <AlertCircle className="w-4 h-4" />
-                        {onboardingUrlError}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">
-                      <Lock className="w-4 h-4" />
-                      {t('system.token')}
-                    </label>
-                    <textarea
-                      className={`w-full px-4 py-3 h-32 rounded-2xl popup-surface text-[var(--text-primary)] border-2 transition-all font-mono text-sm ${onboardingTokenError ? 'border-red-500/50' : 'border-transparent focus:border-blue-500/50'}`}
-                      value={config.token}
-                      onChange={(e) => {
-                        setConfig({ ...config, token: e.target.value });
-                        setOnboardingTokenError('');
-                        setConnectionTestResult(null);
-                      }}
-                      placeholder={t('onboarding.tokenPlaceholder')}
-                    />
-                    {onboardingTokenError && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-bold">
-                        <AlertCircle className="w-4 h-4" />
-                        {onboardingTokenError}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">
-                      <Server className="w-4 h-4" />
-                      {t('system.haUrlFallback')}
-                      {connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)] border-2 border-transparent focus:border-blue-500/50 transition-all"
-                      value={config.fallbackUrl}
-                      onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value })}
-                      placeholder={t('common.optional')}
-                    />
-                    <p className="text-xs text-[var(--text-muted)] ml-3">{t('onboarding.fallbackHint')}</p>
-                  </div>
-
-                  <button
-                    onClick={testConnection}
-                    disabled={!config.url || !config.token || !validateUrl(config.url) || testingConnection}
-                    className={`w-full py-3 rounded-2xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20'}`}
-                  >
-                    {testingConnection ? (
-                      <>
-                        <RefreshCw className="w-5 h-5 animate-spin" />
-                        {t('onboarding.testing')}
-                      </>
-                    ) : (
-                      <>
-                        <Wifi className="w-5 h-5" />
-                        {t('onboarding.testConnection')}
-                      </>
-                    )}
-                  </button>
-
-                  {connectionTestResult && (
-                    <div className={`p-4 rounded-2xl flex items-center gap-3 ${connectionTestResult.success ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                      {connectionTestResult.success ? <Check className="w-6 h-6" /> : <X className="w-6 h-6" />}
-                      <div>
-                        <p className="text-sm font-bold uppercase tracking-widest">{connectionTestResult.message}</p>
-                        {connectionTestResult.success && <p className="text-xs text-[var(--text-secondary)] mt-1">{t('onboarding.readyToContinue')}</p>}
-                      </div>
-                    </div>
-                  )}
-
-                  {!connectionTestResult && config.url && config.token && validateUrl(config.url) && (
-                    <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5" />
-                      {t('onboarding.testRequired')}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {onboardingStep === 1 && (
-                <div className="space-y-4">
-                  <ModernDropdown label={t('settings.theme')} icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: t('theme.dark'), light: t('theme.light') }} placeholder={t('dropdown.noneSelected')} />
-                  <ModernDropdown label={t('settings.language')} icon={Globe} options={['nn', 'en']} current={language} onChange={setLanguage} map={{ nn: t('language.nn'), en: t('language.en') }} placeholder={t('dropdown.noneSelected')} />
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-3">{t('settings.inactivity')}</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min={0}
-                        max={300}
-                        step={10}
-                        value={inactivityTimeout}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          setInactivityTimeout(val);
-                          localStorage.setItem('midttunet_inactivity_timeout', String(val));
-                        }}
-                        className="flex-1"
-                      />
-                      <div className="min-w-[64px] text-right text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-                        {inactivityTimeout === 0 ? t('common.off') : `${inactivityTimeout}s`}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {onboardingStep === 2 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-                    <Check className="w-6 h-6 text-green-400 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-base font-bold mb-1 text-[var(--text-primary)]">{t('onboarding.finishTitle')}</h4>
-                      <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{t('onboarding.finishBody')}</p>
-                    </div>
-                  </div>
-                  <div className="p-5 rounded-2xl popup-surface space-y-4">
-                    <p className="text-xs uppercase font-bold tracking-widest text-gray-500">{t('onboarding.summary')}</p>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-xl bg-green-500/10 text-green-400 flex-shrink-0">
-                          <Wifi className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-1">{t('system.haUrlPrimary')}</p>
-                          <p className="text-sm text-[var(--text-primary)] truncate">{config.url}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-xl bg-green-500/10 text-green-400 flex-shrink-0">
-                          <Globe className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-1">{t('settings.language')}</p>
-                          <p className="text-sm text-[var(--text-primary)]">{language === 'nn' ? t('language.nn') : t('language.en')}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-xl bg-green-500/10 text-green-400 flex-shrink-0">
-                          <Palette className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-1">{t('settings.theme')}</p>
-                          <p className="text-sm text-[var(--text-primary)]">{currentTheme === 'dark' ? t('theme.dark') : t('theme.light')}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              {configTab === 'connection' && (
-                <div className="space-y-5 font-sans">
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">{t('system.haUrlPrimary')}{connected && activeUrl === config.url && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}</label>
-                    <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.url} onChange={(e) => setConfig({ ...config, url: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-3 flex items-center gap-2">{t('system.haUrlFallback')}{connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}</label>
-                    <input type="text" className="w-full px-4 py-3 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.fallbackUrl} onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value })} placeholder={t('common.optional')} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-3">{t('system.token')}</label>
-                    <textarea className="w-full px-4 py-3 h-32 rounded-2xl popup-surface text-[var(--text-primary)]" value={config.token} onChange={(e) => setConfig({ ...config, token: e.target.value })} />
-                  </div>
-                </div>
-              )}
-
-              {configTab === 'settings' && (
-                <div className="space-y-4 font-sans">
-                  <ModernDropdown label={t('settings.theme')} icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: t('theme.dark'), light: t('theme.light') }} placeholder={t('dropdown.noneSelected')} />
-                  <ModernDropdown label={t('settings.language')} icon={Globe} options={['nn', 'en']} current={language} onChange={setLanguage} map={{ nn: t('language.nn'), en: t('language.en') }} placeholder={t('dropdown.noneSelected')} />
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-3">{t('settings.inactivity')}</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min={0}
-                        max={300}
-                        step={10}
-                        value={inactivityTimeout}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          setInactivityTimeout(val);
-                          localStorage.setItem('midttunet_inactivity_timeout', String(val));
-                        }}
-                        className="flex-1"
-                      />
-                      <div className="min-w-[64px] text-right text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-                        {inactivityTimeout === 0 ? t('common.off') : `${inactivityTimeout}s`}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="pt-4 mt-4 border-t border-[var(--glass-border)]">
-          {isOnboardingActive ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setOnboardingStep((s) => Math.max(0, s - 1))}
-                className="flex-1 py-3 rounded-2xl text-[var(--text-secondary)] font-black uppercase tracking-widest border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] transition-colors"
-                disabled={onboardingStep === 0}
-              >
-                {t('onboarding.back')}
-              </button>
-              {onboardingStep < onboardingSteps.length - 1 ? (
-                <button
-                  onClick={() => setOnboardingStep((s) => Math.min(onboardingSteps.length - 1, s + 1))}
-                  disabled={!canAdvanceOnboarding}
-                  className={`flex-1 py-3 rounded-2xl font-black uppercase tracking-widest border transition-colors ${canAdvanceOnboarding ? 'text-blue-400 border-blue-500/30 hover:bg-blue-500/10' : 'text-gray-500 border-[var(--glass-border)] opacity-60 cursor-not-allowed'}`}
-                >
-                  {t('onboarding.next')}
-                </button>
-              ) : (
-                <button
-                  onClick={onFinishOnboarding}
-                  className="flex-1 py-3 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid' }}
-                >
-                  {t('onboarding.finish')}
-                </button>
-              )}
-            </div>
-          ) : (
-            <button onClick={onClose} className="w-full py-3 rounded-2xl text-blue-400 font-black uppercase tracking-widest" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)', border: '1px solid' }}>{t('system.save')}</button>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Plus, Settings } from '../icons';
+import { Plus, Edit2 } from '../icons';
 import { ICON_MAP } from '../iconMap';
 
 /**
@@ -46,7 +46,7 @@ export default function PageNavigation({
           >
             <Icon className="w-4 h-4" />
             <span className="hidden sm:inline">{label}</span>
-            {editMode && <Settings className="w-3 h-3 ml-1 opacity-50 hidden sm:inline" />}
+            {editMode && <Edit2 className="w-4 h-4 ml-1 text-blue-400 hidden sm:inline animate-pulse" />}
           </button>
         );
       })}
@@ -54,9 +54,9 @@ export default function PageNavigation({
       {editMode && (
         <button
           onClick={() => setShowAddPageModal(true)}
-          className="flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
+          className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl sm:rounded-full font-bold uppercase tracking-widest text-xs sm:text-sm whitespace-nowrap border-2 bg-white/5 text-white border-white/20 hover:bg-white/10 hover:border-white/30 transition-all"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-5 h-5" />
           <span className="hidden sm:inline">{t('nav.addPage')}</span>
         </button>
       )}

@@ -164,6 +164,7 @@ import {
   CameraModal,
   ConfigModal,
   EditCardModal,
+  EditHeaderModal,
   EditPageModal,
   GenericAndroidTVModal,
   GenericClimateModal,
@@ -264,6 +265,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     updateHeaderScale,
     headerTitle,
     updateHeaderTitle,
+    headerSettings,
+    updateHeaderSettings,
     persistCardSettings
   } = usePages();
 
@@ -296,6 +299,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [newPageLabel, setNewPageLabel] = useState('');
   const [newPageIcon, setNewPageIcon] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showHeaderEditModal, setShowHeaderEditModal] = useState(false);
   const [expandedUpdate, setExpandedUpdate] = useState(null);
   const [releaseNotes, setReleaseNotes] = useState({});
   const [showEditCardModal, setShowEditCardModal] = useState(null);
@@ -406,6 +410,13 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   useEffect(() => {
     if (!showAddCardModal) setSearchTerm('');
   }, [showAddCardModal]);
+
+  useEffect(() => {
+    // Reset addCardTargetPage when modal closes, but only if it was set to 'header'
+    if (!showAddCardModal && addCardTargetPage === 'header') {
+      setAddCardTargetPage(activePage);
+    }
+  }, [showAddCardModal, activePage, addCardTargetPage]);
 
   useEffect(() => {
     document.title = headerTitle || "Midttunet";
@@ -708,7 +719,9 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   }));
 
   useEffect(() => {
-    if (showAddCardModal) setAddCardTargetPage(activePage);
+    if (showAddCardModal && addCardTargetPage !== 'header') {
+      setAddCardTargetPage(activePage);
+    }
   }, [showAddCardModal, activePage]);
 
   useEffect(() => {
@@ -2106,7 +2119,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       const canToggleSize = (editId.startsWith('light_') || editId.startsWith('light.') || editId.startsWith('vacuum.') || editId.startsWith('automation.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('weather_temp_') || settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor');
       return ( 
       <>
-        <div className="absolute top-2 left-2 z-50 flex gap-2">
+        <div className="absolute top-2 left-2 z-50 flex gap-2 edit-controls-anim">
           <button 
             onClick={(e) => { e.stopPropagation(); moveCardInArray(cardId, 'left'); }}
             className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
@@ -2122,7 +2135,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-        <div className="absolute top-2 right-2 z-50 flex gap-2">
+        <div className="absolute top-2 right-2 z-50 flex gap-2 edit-controls-anim">
           <button 
             onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); setEditCardSettingsKey(settingsKey); }}
             className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
@@ -2197,7 +2210,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               resetDragState();
             }}
             style={{ touchAction: 'none' }}
-            className="flex items-center gap-2 px-4 py-3 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto"
+            className="flex items-center gap-2 px-4 py-3 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto edit-controls-anim"
           >
             <GripVertical className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">{t('drag.move')}</span>
@@ -2563,6 +2576,16 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             0% { opacity: 0; transform: scale(0.95) translateY(10px); }
             100% { opacity: 1; transform: scale(1) translateY(0); }
           }
+          @keyframes editControlsIn {
+            from { opacity: 0; transform: scale(0.9) translateY(-5px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          .edit-controls-anim {
+            animation: editControlsIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+          .edit-mode-card {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          }
           .popup-anim {
             animation: popupIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           }
@@ -2709,13 +2732,21 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           headerTitle={headerTitle}
           headerScale={headerScale}
           editMode={editMode}
-          updateHeaderScale={updateHeaderScale}
-          updateHeaderTitle={updateHeaderTitle}
+          headerSettings={headerSettings}
+          setShowHeaderEditModal={setShowHeaderEditModal}
           t={t}
         >
           <div className="flex items-center justify-between w-full mt-0 font-sans">
             <div className="flex flex-wrap gap-2.5 items-center min-w-0">
               {(pagesConfig.header || []).map(id => personStatus(id))}
+              {editMode && (pagesConfig.header || []).length === 0 && (
+                <button 
+                  onClick={() => { setAddCardTargetPage('header'); setShowAddCardModal(true); }} 
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-all text-xs font-bold uppercase tracking-widest edit-controls-anim"
+                >
+                  <Plus className="w-3 h-3" /> {t('addCard.type.entity')}
+                </button>
+              )}
               <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>
             </div>
             <div className="flex-1 min-w-0">
@@ -2782,8 +2813,21 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               currentTheme={currentTheme}
               activePage={activePage}
               pageSettings={pageSettings}
+              entities={entities}
+              setShowUpdateModal={setShowUpdateModal}
               t={t}
             />
+            <button 
+              onClick={() => {
+                const currentSettings = pageSettings[activePage];
+                if (currentSettings?.hidden) setActivePage('home');
+                setEditMode(!editMode);
+              }} 
+              className={`p-2 rounded-full transition-colors group ${editMode ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              title={editMode ? t('nav.done') : t('menu.edit')}
+            >
+              <Edit2 className="w-5 h-5" />
+            </button>
             <button ref={gearButtonRef} onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group ${showMenu ? 'bg-[var(--glass-bg)]' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`} /></button>
             {!connected && <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: '#ef4444'}} /></div>}
           </div>
@@ -3650,6 +3694,18 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           getEntityImageUrl={getEntityImageUrl}
           t={t}
           cameraEntityId={CAMERA_PORTEN_ID}
+        />
+
+        <EditHeaderModal
+          show={showHeaderEditModal}
+          onClose={() => setShowHeaderEditModal(false)}
+          headerTitle={headerTitle}
+          headerScale={headerScale}
+          headerSettings={headerSettings}
+          updateHeaderTitle={updateHeaderTitle}
+          updateHeaderScale={updateHeaderScale}
+          updateHeaderSettings={updateHeaderSettings}
+          t={t}
         />
 
         <MediaModal

@@ -4,6 +4,7 @@ export {
   Wind,
   Car,
   Settings,
+  Sparkles,
   ChevronUp,
   ChevronDown,
   ChevronLeft,
