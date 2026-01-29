@@ -35,6 +35,7 @@ export const ConfigProvider = ({ children }) => {
     return 60;
   });
 
+
   const [config, setConfig] = useState({
     url: typeof window !== 'undefined' ? localStorage.getItem('ha_url') || '' : '',
     fallbackUrl: typeof window !== 'undefined' ? localStorage.getItem('ha_fallback_url') || '' : '',
@@ -67,6 +68,7 @@ export const ConfigProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('midttunet_language', language);
   }, [language]);
+
 
   const toggleTheme = () => {
     const themeKeys = Object.keys(themes);

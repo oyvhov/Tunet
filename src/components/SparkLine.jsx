@@ -40,7 +40,10 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
         </defs>
         <path d={areaData} fill={`url(#${areaId})`} />
         <path d={pathData} fill="none" stroke={`url(#${lineId})`} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={currentPoint.x} cy={currentPoint.y} r="3" fill={getDotColor(values[currentIndex])} className="animate-pulse" />
+        {/* Vertical line at current time */}
+        <line x1={currentPoint.x} y1="0" x2={currentPoint.x} y2={height} stroke="rgba(59, 130, 246, 0.4)" strokeWidth="1.5" strokeDasharray="3,2" />
+        {/* Current point marker */}
+        <circle cx={currentPoint.x} cy={currentPoint.y} r="3.5" fill={getDotColor(values[currentIndex])} className="animate-pulse" />
       </svg>
       {fade && (
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--glass-bg)] opacity-60" />

@@ -1,6 +1,5 @@
 export const CLIMATE_ID = "climate.varmepumpe";
 export const NORDPOOL_ID = "sensor.nordpool_kwh_no3_nok_1_10_025";
-export const TIBBER_ID = "sensor.tibber_strom_pris";
 export const LEAF_ID = "sensor.leaf_battery_level";
 export const WEATHER_ENTITY = "weather.hjem";
 export const OUTSIDE_TEMP_ID = "sensor.utetemperatur_midttunet_temperature";

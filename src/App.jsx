@@ -142,10 +142,10 @@ import {
 import {
   CalendarCard,
   EmbyLogo,
-  EnergyPowerCard,
   GenericAndroidTVCard,
   GenericClimateCard,
   GenericEnergyCostCard,
+  GenericNordpoolCard,
   JellyfinLogo,
   M3Slider,
   ModernDropdown,
@@ -170,7 +170,7 @@ import {
   LeafModal,
   LightModal,
   MediaModal,
-  PowerModal,
+  NordpoolModal,
   RockyModal,
   SensorModal,
   UpdateModal
@@ -194,7 +194,6 @@ import { callService as haCallService, getForecast, getHistory, getStatistics } 
 import { createDragAndDropHandlers } from './dragAndDrop';
 import {
   NORDPOOL_ID,
-  TIBBER_ID,
   LEAF_ID,
   WEATHER_ENTITY,
   OUTSIDE_TEMP_ID,
@@ -277,7 +276,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     activeUrl
   } = useHomeAssistant();
   const [now, setNow] = useState(new Date());
-  const [showPowerModal, setShowPowerModal] = useState(false);
+  const [showNordpoolModal, setShowNordpoolModal] = useState(null);
   const [activeClimateEntityModal, setActiveClimateEntityModal] = useState(null);
   const [showLightModal, setShowLightModal] = useState(null);
   const [showLeafModal, setShowLeafModal] = useState(false);
@@ -335,15 +334,17 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [selectedCostTodayId, setSelectedCostTodayId] = useState(null);
   const [selectedCostMonthId, setSelectedCostMonthId] = useState(null);
   const [costSelectionTarget, setCostSelectionTarget] = useState('today');
+  const [selectedNordpoolId, setSelectedNordpoolId] = useState(null);
+  const [nordpoolDecimals, setNordpoolDecimals] = useState(2);
   const [optimisticLightBrightness, setOptimisticLightBrightness] = useState({});
   const [tempHistoryById, setTempHistoryById] = useState({});
   const resetToHome = () => {
     const isHome = activePage === 'home';
-    const noModals = !showPowerModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
+    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
     
     if (!isHome || !noModals) {
         setActivePage('home');
-        setShowPowerModal(false);
+        setShowNordpoolModal(null);
         setActiveClimateEntityModal(null);
         setShowLightModal(null);
         setShowLeafModal(false);
@@ -454,6 +455,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       setConfigTab('connection');
     }
   }, [config.token, showOnboarding, showConfigModal]);
+
 
 
   const translations = useMemo(() => ({ en, nn }), []);
@@ -723,6 +725,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       setSelectedCostTodayId(null);
       setSelectedCostMonthId(null);
       setCostSelectionTarget('today');
+      setSelectedNordpoolId(null);
+      setNordpoolDecimals(2);
     }
   }, [showAddCardModal]);
 
@@ -854,7 +858,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const isCardRemovable = (cardId, pageId = activePage) => {
     if (pageId === 'header') return cardId.startsWith('person.');
     if (pageId === 'settings') {
-      if (['power', 'car'].includes(cardId)) return false;
+      if (['car'].includes(cardId)) return false;
       if (cardId.startsWith('media_player') || cardId.startsWith('sonos')) return false;
       return true;
     }
@@ -926,10 +930,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return sonosEntities.length === 0;
     }
 
-    if (activePage === 'settings' && !['power', 'energy_cost', 'rocky', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
-      if (activePage === 'settings' && !['power', 'rocky', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['rocky', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
         return !entities[cardId];
-      }
     }
 
     return false;
@@ -1173,6 +1175,29 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       setSelectedCostTodayId(null);
       setSelectedCostMonthId(null);
       setCostSelectionTarget('today');
+      setShowAddCardModal(false);
+      return;
+    }
+
+    if (addCardType === 'nordpool') {
+      if (!selectedNordpoolId) return;
+      const cardId = `nordpool_card_${Date.now()}`;
+      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+      persistConfig(newConfig);
+
+      const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+      const newSettings = {
+        ...cardSettings,
+        [settingsKey]: {
+          ...(cardSettings[settingsKey] || {}),
+          nordpoolId: selectedNordpoolId,
+          decimals: nordpoolDecimals
+        }
+      };
+      persistCardSettings(newSettings);
+
+      setSelectedNordpoolId(null);
+      setNordpoolDecimals(2);
       setShowAddCardModal(false);
       return;
     }
@@ -1925,10 +1950,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     if (cardId.startsWith('weather_temp_')) return 2;
 
-    if (activePage === 'settings' && !['power', 'energy_cost', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
-      if (activePage === 'settings' && !['power', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
-        return 1;
-      }
+    if (activePage === 'settings' && !['rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+      return 1;
     }
 
     return 2;
@@ -2064,7 +2087,14 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     } = dragAndDrop;
 
     const dragProps = getDragProps({ cardId, index, colIndex });
-    const cardStyle = getCardStyle({ cardId, isHidden, isDragging });
+    const baseCardStyle = getCardStyle({ cardId, isHidden, isDragging });
+    
+    // Add animation delay for stagger effect
+    const cardStyle = {
+      ...baseCardStyle,
+      animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards',
+      animationDelay: `${index * 0.05}s`
+    };
 
     const settingsKey = getCardSettingsKey(cardId);
 
@@ -2236,34 +2266,38 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return renderGenericAndroidTVCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
+    if (cardId.startsWith('nordpool_card_')) {
+      const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+      const entity = entities[settings.nordpoolId];
+      if (!entity) return null;
+      return (
+        <GenericNordpoolCard
+          cardId={cardId}
+          dragProps={dragProps}
+          controls={getControls(cardId)}
+          cardStyle={cardStyle}
+          editMode={editMode}
+          entity={entity}
+          customNames={customNames}
+          customIcons={customIcons}
+          onOpen={() => setShowNordpoolModal(cardId)}
+          settings={settings}
+          saveCardSetting={saveCardSetting}
+          t={t}
+        />
+      );
+    }
+
     const genericSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
     if (genericSettings.type === 'sensor' || genericSettings.type === 'entity' || genericSettings.type === 'toggle') {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
-    if (activePage === 'settings' && !['power', 'rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     switch(cardId) {
-      case 'power':
-        return (
-          <EnergyPowerCard
-            dragProps={dragProps}
-            controls={getControls('power')}
-            cardStyle={cardStyle}
-            editMode={editMode}
-            name={customNames['power'] || t('power.title')}
-            Icon={customIcons['power'] ? ICON_MAP[customIcons['power']] : Zap}
-            priceDisplay={getS(TIBBER_ID)}
-            currentPrice={currentPrice}
-            priceStats={priceStats}
-            fullPriceData={fullPriceData}
-            currentPriceIndex={currentPriceIndex}
-            onOpen={() => setShowPowerModal(true)}
-            t={t}
-          />
-        );
       case 'rocky':
         return renderRockyCard(dragProps, getControls, cardStyle);
 
@@ -2471,7 +2505,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
   const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
   const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
-  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || ['power', 'car', 'shield', 'rocky', 'weather'].includes(editId));
+  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || ['car', 'shield', 'rocky', 'weather'].includes(editId));
   const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
   const isOnboardingActive = showOnboarding;
   const onboardingSteps = buildOnboardingSteps(t);
@@ -2521,6 +2555,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
           }
+          @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
           @keyframes popupIn {
             0% { opacity: 0; transform: scale(0.95) translateY(10px); }
             100% { opacity: 1; transform: scale(1) translateY(0); }
@@ -2530,6 +2568,27 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           }
           .fade-in-anim {
             animation: fadeIn 0.4s ease-out forwards;
+          }
+          .card-animate {
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+          }
+          .card-unavailable {
+            position: relative;
+            overflow: hidden;
+          }
+          .card-unavailable::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 59, 48, 0.03), transparent);
+            animation: shimmer 2s infinite;
+          }
+          @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
           }
           .scrollbar-hide::-webkit-scrollbar {
             display: none;
@@ -2795,7 +2854,15 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           </div>
         ) : (
           <div key={activePage} className="grid gap-8 font-sans fade-in-anim items-start" style={{ gridAutoRows: '100px', gridTemplateColumns: `repeat(${gridColCount}, minmax(0, 1fr))` }}>
-            {(pagesConfig[activePage] || []).map((id, index) => {
+            {(pagesConfig[activePage] || [])
+              .map((id) => ({ id, placement: gridLayout[id] }))
+              .filter(({ placement }) => placement)
+              .sort((a, b) => {
+                if (a.placement.row !== b.placement.row) return a.placement.row - b.placement.row;
+                return a.placement.col - b.placement.col;
+              })
+              .map(({ id }, sortedIndex) => {
+              const index = (pagesConfig[activePage] || []).indexOf(id);
               const placement = gridLayout[id];
               const isCalendarCard = id.startsWith('calendar_card_');
               const forcedSpan = isCalendarCard ? 4 : placement?.span;
@@ -2803,7 +2870,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               const heading = cardSettings[settingsKey]?.heading;
 
               if (!editMode && (hiddenCards.includes(id) || isCardHiddenByLogic(id))) return null;
-              if (!placement) return null;
 
               const cardContent = renderCard(id, index);
               if (!cardContent) return null;
@@ -2811,12 +2877,13 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               return (
                 <div
                   key={`${id}-${index}`}
-                  className="h-full relative"
+                  className="h-full relative card-animate"
                   style={{
                     gridRowStart: placement.row,
                     gridColumnStart: placement.col,
                     gridRowEnd: `span ${forcedSpan}`,
-                    minHeight: isCalendarCard ? '496px' : undefined
+                    minHeight: isCalendarCard ? '496px' : undefined,
+                    animationDelay: `${sortedIndex * 0.05}s`
                   }}
                 >
                   {heading && (
@@ -2867,15 +2934,71 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           onFinishOnboarding={() => { setShowOnboarding(false); setShowConfigModal(false); }}
         />
 
-        <PowerModal
-          show={showPowerModal}
-          onClose={() => setShowPowerModal(false)}
-          fullPriceData={fullPriceData}
-          currentPriceIndex={currentPriceIndex}
-          priceStats={priceStats}
-          t={t}
-          language={language}
-        />
+        {showNordpoolModal && (() => {
+          const settingsKey = getCardSettingsKey(showNordpoolModal);
+          const settings = cardSettings[settingsKey] || cardSettings[showNordpoolModal] || {};
+          const entity = entities[settings.nordpoolId];
+          if (!entity) return null;
+          
+          const todayPrices = Array.isArray(entity.attributes?.today) ? entity.attributes.today : [];
+          const tomorrowPrices = Array.isArray(entity.attributes?.tomorrow) ? entity.attributes.tomorrow : [];
+          const tomorrowValid = entity.attributes?.tomorrow_valid === true;
+          
+          const allPrices = [...todayPrices, ...(tomorrowValid && Array.isArray(tomorrowPrices) ? tomorrowPrices : [])];
+          
+          // Get current hour
+          const now = new Date();
+          const currentHour = now.getHours();
+          
+          // Nordpool array offset
+          const currentPriceIndex = currentHour + 47;
+          
+          const fullPriceDataNordpool = allPrices.map((price, idx) => {
+            const actualHour = (idx - currentPriceIndex + currentHour) % 24;
+            const dayOffset = Math.floor((idx - currentPriceIndex + currentHour) / 24);
+            
+            const startTime = new Date();
+            startTime.setDate(startTime.getDate() + dayOffset);
+            startTime.setHours(actualHour, 0, 0, 0);
+            
+            const endTime = new Date(startTime);
+            endTime.setHours(endTime.getHours() + 1);
+            
+            return {
+              start: startTime.toISOString(),
+              end: endTime.toISOString(),
+              value: price
+            };
+          });
+          
+          const numericalPrices = allPrices.filter(p => typeof p === 'number' && !Number.isNaN(p));
+          const priceStatsNordpool = numericalPrices.length > 0
+            ? {
+                min: Math.min(...numericalPrices),
+                max: Math.max(...numericalPrices),
+                avg: numericalPrices.reduce((a, b) => a + b, 0) / numericalPrices.length
+              }
+            : { min: 0, max: 0, avg: 0 };
+          
+          const name = customNames?.[showNordpoolModal] || entity.attributes?.friendly_name || showNordpoolModal;
+          
+          return (
+            <NordpoolModal
+              show={true}
+              onClose={() => setShowNordpoolModal(null)}
+              entity={entity}
+              fullPriceData={fullPriceDataNordpool}
+              currentPriceIndex={currentPriceIndex}
+              priceStats={priceStatsNordpool}
+              name={name}
+              t={t}
+              language={language}
+              saveCardSetting={saveCardSetting}
+              cardId={showNordpoolModal}
+              settings={settings}
+            />
+          );
+        })()}
 
         {activeClimateEntityModal && entities[activeClimateEntityModal] && (
           <GenericClimateModal
@@ -3053,6 +3176,12 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'calendar' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <Calendar className="w-4 h-4" /> {t('addCard.type.calendar') || 'Calendar'}
+                    </button>
+                    <button
+                      onClick={() => setAddCardType('nordpool')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'nordpool' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <Zap className="w-4 h-4" /> Nordpool
                     </button>
                   </div>
                 </div>
@@ -3238,6 +3367,55 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                       {t('addCard.add')}
                     </button>
                   </div>
+                ) : addCardType === 'nordpool' ? (
+                  <div className="space-y-8">
+                    <div>
+                      <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">Nordpool Sensor (påkrevd)</p>
+                      <div className="space-y-3">
+                        {Object.keys(entities)
+                          .filter(id => id.startsWith('sensor.') && id.toLowerCase().includes('nordpool'))
+                          .filter(id => {
+                            if (!searchTerm) return true;
+                            const lowerTerm = searchTerm.toLowerCase();
+                            const name = entities[id].attributes?.friendly_name || id;
+                            return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
+                          })
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(id => {
+                            const isSelected = selectedNordpoolId === id;
+                            return (
+                              <button type="button" key={id} onClick={() => setSelectedNordpoolId(prev => prev === id ? null : id)} className={`w-full text-left p-3 rounded-2xl transition-all flex items-center justify-between group entity-item ${isSelected ? 'bg-blue-500/20 border border-blue-500/50' : 'popup-surface popup-surface-hover'}`}>
+                                <div className="flex flex-col overflow-hidden mr-4">
+                                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+                                </div>
+                                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                                  {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        {Object.keys(entities).filter(id => id.startsWith('sensor.') && id.toLowerCase().includes('nordpool')).length === 0 && (
+                          <p className="text-gray-500 italic text-sm text-center py-4">Ingen Nordpool sensorar funne</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">Desimalar</p>
+                      <div className="flex gap-2 px-4">
+                        {[0, 1, 2, 3].map(dec => (
+                          <button
+                            key={dec}
+                            onClick={() => setNordpoolDecimals(dec)}
+                            className={`px-4 py-2 rounded-lg transition-all font-bold ${nordpoolDecimals === dec ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                          >
+                            {dec}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div>
                     {addCardType === 'cost' && (
@@ -3394,6 +3572,11 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                 {addCardType === 'weather' && selectedWeatherId && (
                   <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
                     <Plus className="w-5 h-5" /> {t('addCard.weatherCard')}
+                  </button>
+                )}
+                {addCardType === 'nordpool' && selectedNordpoolId && (
+                  <button onClick={handleAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                    <Plus className="w-5 h-5" /> Nordpool kort
                   </button>
                 )}
                 <button onClick={() => setShowAddCardModal(false)} className="w-full py-3 rounded-2xl popup-surface popup-surface-hover text-[var(--text-secondary)] font-bold uppercase tracking-widest transition-colors">OK</button>

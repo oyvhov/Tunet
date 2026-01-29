@@ -70,7 +70,7 @@ export const PageProvider = ({ children }) => {
       }
 
       // Remove deprecated cards
-      const deprecatedCards = ['rocky', 'climate', 'shield', 'weather', 'sonos'];
+      const deprecatedCards = ['power', 'rocky', 'climate', 'shield', 'weather', 'sonos'];
       Object.keys(parsed).forEach(pageKey => {
         if (Array.isArray(parsed[pageKey])) {
           const filtered = parsed[pageKey].filter(id => 

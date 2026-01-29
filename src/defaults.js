@@ -1,7 +1,7 @@
 export const DEFAULT_PAGES_CONFIG = {
   header: ['person.oyvind', 'person.tuva'],
   pages: ['home'],
-  home: ['power', 'car', 'media_player'],
+  home: ['car', 'media_player'],
   lights: [],
   automations: [
     { id: 'col0', title: 'Kolonne 1', cards: [] },

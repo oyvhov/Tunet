@@ -20,6 +20,9 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale })
   }));
   const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
   const areaData = `${pathData} L ${width},${height} L 0,${height} Z`;
+  const currentPointData = points[currentIndex] || points[0];
+  const hoverPointData = (hoverIndex !== null ? points[hoverIndex] : currentPointData) || points[0];
+
   const handleMouseMove = (e) => {
     if (!svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
@@ -27,7 +30,6 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale })
     const idx = Math.round((x / width) * (values.length - 1));
     if (idx >= 0 && idx < values.length) setHoverIndex(idx);
   };
-  const activePoint = (hoverIndex !== null ? points[hoverIndex] : points[currentIndex]) || points[0];
 
   const getDotColor = (val) => {
     const t = (val - min) / range;
@@ -39,18 +41,29 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale })
   return (
     <div className="w-full">
       <div className="flex justify-between items-end mb-4 px-2">
-        <div><p className="text-[10px] tracking-widest text-gray-500 uppercase font-bold mb-0.5">{translate('power.time')}</p><p className="text-xl font-medium text-[var(--text-primary)]">{activePoint.time}</p></div>
-        <div className="text-right"><p className="text-[10px] tracking-widest uppercase font-bold mb-0.5" style={{color: getDotColor(activePoint.val)}}>{translate('power.price')}</p><p className="text-3xl font-light text-[var(--text-primary)] italic leading-none tracking-tighter">{activePoint.val.toFixed(2)} <span className="text-sm text-gray-600 not-italic ml-1">{translate('power.ore')}</span></p></div>
+        <div><p className="text-[10px] tracking-widest text-gray-500 uppercase font-bold mb-0.5">{translate('power.time')}</p><p className="text-xl font-medium text-[var(--text-primary)]">{hoverPointData.time}</p></div>
+        <div className="text-right"><p className="text-[10px] tracking-widest uppercase font-bold mb-0.5" style={{color: getDotColor(hoverPointData.val)}}>{translate('power.price')}</p><p className="text-3xl font-light text-[var(--text-primary)] italic leading-none tracking-tighter">{hoverPointData.val.toFixed(2)} <span className="text-sm text-gray-600 not-italic ml-1">{translate('power.ore')}</span></p></div>
       </div>
       <div className="relative h-60 w-full" onMouseLeave={() => setHoverIndex(null)}>
         <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-600 font-bold py-1 pointer-events-none"><span>{max.toFixed(0)}</span><span>{min.toFixed(0)}</span></div>
+        {/* "Now" indicator */}
+        <div className="absolute left-0 top-0 h-full pointer-events-none" style={{ width: '100%' }}>
+          <div 
+            className="absolute top-0 h-full border-l border-blue-400 opacity-60" 
+            style={{ left: `${(currentPointData.x / width) * 100}%` }}
+          >
+            <span className="absolute -top-6 -left-8 text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-[var(--card-bg)] px-2 py-0.5 rounded">Now</span>
+          </div>
+        </div>
         <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible cursor-crosshair" onMouseMove={handleMouseMove} onTouchMove={(e) => handleMouseMove(e.touches[0])}>
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" /><stop offset="50%" stopColor="#eab308" stopOpacity="0.2" /><stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" /></linearGradient>
             <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" /><stop offset="50%" stopColor="#eab308" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient>
           </defs>
           <path d={areaData} fill="url(#areaGrad)" /><path d={pathData} fill="none" stroke="url(#lineGrad)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          {activePoint && <><line x1={activePoint.x} y1="0" x2={activePoint.x} y2={height} stroke={getDotColor(activePoint.val)} strokeWidth="1" opacity="0.3" /><circle cx={activePoint.x} cy={activePoint.y} r="4" fill={getDotColor(activePoint.val)} /><circle cx={activePoint.x} cy={activePoint.y} r="10" fill={getDotColor(activePoint.val)} fillOpacity="0.1" /></>}
+          {/* Current time permanent indicator */}
+          <line x1={currentPointData.x} y1="0" x2={currentPointData.x} y2={height} stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1.5" strokeDasharray="3,2" />
+          {hoverPointData && <><line x1={hoverPointData.x} y1="0" x2={hoverPointData.x} y2={height} stroke={getDotColor(hoverPointData.val)} strokeWidth="2" opacity="0.4" /><circle cx={hoverPointData.x} cy={hoverPointData.y} r="5" fill={getDotColor(hoverPointData.val)} /><circle cx={hoverPointData.x} cy={hoverPointData.y} r="11" fill={getDotColor(hoverPointData.val)} fillOpacity="0.1" /></>}
         </svg>
       </div>
     </div>
