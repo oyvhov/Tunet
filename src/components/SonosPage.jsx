@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import M3Slider from './M3Slider';
 import {
   Music,
@@ -60,10 +61,27 @@ export default function SonosPage({
   const mpPicture = !isTV ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
   const duration = getA(mpId, 'media_duration');
   const position = getA(mpId, 'media_position');
+  const positionUpdatedAt = getA(mpId, 'media_position_updated_at');
   const volume = getA(mpId, 'volume_level', 0);
   const isMuted = getA(mpId, 'is_volume_muted', false);
   const shuffle = getA(mpId, 'shuffle', false);
   const repeat = getA(mpId, 'repeat', 'off');
+
+  const [playheadNow, setPlayheadNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    setPlayheadNow(Date.now());
+    if (!isPlaying) return;
+    const intervalId = setInterval(() => setPlayheadNow(Date.now()), 1000);
+    return () => clearInterval(intervalId);
+  }, [isPlaying, mpId]);
+
+  const basePosition = typeof position === 'number' ? position : 0;
+  const updatedAtMs = positionUpdatedAt ? new Date(positionUpdatedAt).getTime() : null;
+  const elapsed = isPlaying && Number.isFinite(updatedAtMs)
+    ? Math.max(0, (playheadNow - updatedAtMs) / 1000)
+    : 0;
+  const effectivePosition = Math.min(duration || basePosition, basePosition + elapsed);
 
   const rawMembers = getA(mpId, 'group_members');
   const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
@@ -98,36 +116,35 @@ export default function SonosPage({
             )}
           </div>
 
-          <div className="flex-1 w-full flex flex-col justify-center space-y-8 min-w-0">
+          <div className="flex-1 w-full flex flex-col justify-center md:justify-between md:h-72 gap-6 min-w-0">
             <div className="space-y-2 text-center md:text-left">
               <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] leading-none truncate">{mpTitle || t('common.unknown')}</h2>
               <p className="text-xl text-[var(--text-secondary)] font-medium truncate">{mpSeries || ''}</p>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-3">
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold text-[var(--text-secondary)] tracking-widest">
-                  <span>{formatDuration(position)}</span>
+                  <span>{formatDuration(effectivePosition)}</span>
                   <span>{formatDuration(duration)}</span>
                 </div>
-                <M3Slider variant="thin" min={0} max={duration || 100} step={1} value={position || 0} disabled={!duration} onChange={(e) => callService('media_player', 'media_seek', { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
+                <M3Slider variant="thin" min={0} max={duration || 100} step={1} value={effectivePosition || 0} disabled={!duration} onChange={(e) => callService('media_player', 'media_seek', { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <button onClick={() => callService('media_player', 'shuffle_set', { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-all active:scale-95 ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`} title="Shuffle">
                   <Shuffle className="w-4 h-4" />
                 </button>
+                <div className="flex items-center justify-center gap-4">
+                  <button onClick={() => callService('media_player', 'media_previous_track', { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipBack className="w-6 h-6 text-[var(--text-secondary)]" /></button>
+                  <button onClick={() => callService('media_player', 'media_play_pause', { entity_id: mpId })} className="p-3 rounded-full transition-all active:scale-95 shadow-lg hover:shadow-xl hover:scale-105" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+                    {isPlaying ? <Pause className="w-7 h-7 fill-current" /> : <Play className="w-7 h-7 fill-current ml-0.5" />}
+                  </button>
+                  <button onClick={() => callService('media_player', 'media_next_track', { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipForward className="w-6 h-6 text-[var(--text-secondary)]" /></button>
+                </div>
                 <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService('media_player', 'repeat_set', { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-all active:scale-95 ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`} title="Repeat">
                   {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
                 </button>
-              </div>
-
-              <div className="flex items-center justify-center gap-6">
-                <button onClick={() => callService('media_player', 'media_previous_track', { entity_id: mpId })} className="p-3 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipBack className="w-6 h-6 text-[var(--text-secondary)]" /></button>
-                <button onClick={() => callService('media_player', 'media_play_pause', { entity_id: mpId })} className="p-4 rounded-full transition-all active:scale-95 shadow-xl hover:shadow-2xl hover:scale-105" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-                  {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
-                </button>
-                <button onClick={() => callService('media_player', 'media_next_track', { entity_id: mpId })} className="p-3 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipForward className="w-6 h-6 text-[var(--text-secondary)]" /></button>
               </div>
             </div>
 

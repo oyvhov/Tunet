@@ -1,6 +1,5 @@
-import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import en from './i18n/en.json';
-import nn from './i18n/nn.json';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { en, nn } from './i18n';
 import {
   Zap,
   Hash,
@@ -140,36 +139,58 @@ import {
   Maximize2,
   Minimize2
 } from './icons';
-import M3Slider from './components/M3Slider';
-import ModernDropdown from './components/ModernDropdown';
-import InteractivePowerGraph from './components/InteractivePowerGraph';
-import SparkLine from './components/SparkLine';
-import WeatherGraph from './components/WeatherGraph';
-import SensorCard from './components/SensorCard';
-import SensorModal from './components/SensorModal';
-import AddPageModal from './components/AddPageModal';
-import EditPageModal from './components/EditPageModal';
-import EditCardModal from './components/EditCardModal';
-import ConfigModal from './components/ConfigModal';
+import {
+  CalendarCard,
+  EmbyLogo,
+  EnergyPowerCard,
+  GenericAndroidTVCard,
+  GenericClimateCard,
+  GenericEnergyCostCard,
+  JellyfinLogo,
+  M3Slider,
+  ModernDropdown,
+  NRKLogo,
+  PageNavigation,
+  SensorCard,
+  SettingsMenu,
+  SonosPage,
+  SparkLine,
+  WeatherGraph,
+  WeatherTempCard,
+  getServerInfo
+} from './components';
+import {
+  AddPageModal,
+  CameraModal,
+  ConfigModal,
+  EditCardModal,
+  EditPageModal,
+  GenericAndroidTVModal,
+  GenericClimateModal,
+  LeafModal,
+  LightModal,
+  MediaModal,
+  PowerModal,
+  RockyModal,
+  SensorModal,
+  UpdateModal
+} from './modals';
+import { Header, StatusBar } from './layouts';
 
-import GenericAndroidTVCard from './components/GenericAndroidTVCard';
-import GenericAndroidTVModal from './components/GenericAndroidTVModal';
-import WeatherTempCard from './components/WeatherTempCard';
-import SonosPage from './components/SonosPage';
+
+import {
+  HomeAssistantProvider,
+  useConfig,
+  useHomeAssistant,
+  usePages
+} from './contexts';
+
 import { themes } from './themes';
-import EnergyPowerCard from './components/EnergyPowerCard';
-import GenericEnergyCostCard from './components/GenericEnergyCostCard';
-import GenericClimateCard from './components/GenericClimateCard';
-import GenericClimateModal from './components/GenericClimateModal';
-import CalendarCard from './components/CalendarCard';
-import useEnergyData from './hooks/useEnergyData';
-import BarGraph from './components/BarGraph';
-import { formatRelativeTime, formatDuration, parseMarkdown } from './utils';
+import { useEnergyData } from './hooks';
+import { formatDuration } from './utils';
 import { ICON_MAP } from './iconMap';
 import { buildOnboardingSteps, validateUrl } from './onboarding';
-import { DEFAULT_PAGES_CONFIG } from './defaults';
-import { EmbyLogo, JellyfinLogo, NRKLogo, getServerInfo } from './components/CustomIcons';
-import { callService as haCallService, getHistory, getStatistics, getForecast } from './services/haClient';
+import { callService as haCallService, getForecast, getHistory, getStatistics } from './services';
 import { createDragAndDropHandlers } from './dragAndDrop';
 import {
   NORDPOOL_ID,
@@ -211,18 +232,54 @@ import {
 
 
 
-export default function App() {
-  const [entities, setEntities] = useState({});
-  const [connected, setConnected] = useState(false);
-  const [haUnavailable, setHaUnavailable] = useState(false);
-  const [haUnavailableVisible, setHaUnavailableVisible] = useState(false);
-  const [libLoaded, setLibLoaded] = useState(false);
-  const [conn, setConn] = useState(null);
+function AppContent({ showOnboarding, setShowOnboarding }) {
+  const {
+    currentTheme,
+    setCurrentTheme,
+    toggleTheme,
+    language,
+    setLanguage,
+    inactivityTimeout,
+    setInactivityTimeout,
+    config,
+    setConfig
+  } = useConfig();
+
+  const {
+    pagesConfig,
+    setPagesConfig,
+    persistConfig,
+    cardSettings,
+    saveCardSetting,
+    customNames,
+    saveCustomName,
+    customIcons,
+    saveCustomIcon,
+    hiddenCards,
+    toggleCardVisibility,
+    pageSettings,
+    persistPageSettings,
+    savePageSetting,
+    gridColumns,
+    headerScale,
+    updateHeaderScale,
+    headerTitle,
+    updateHeaderTitle,
+    persistCardSettings
+  } = usePages();
+
+  const {
+    entities,
+    connected,
+    haUnavailable,
+    haUnavailableVisible,
+    conn,
+    activeUrl
+  } = useHomeAssistant();
   const [now, setNow] = useState(new Date());
   const [showPowerModal, setShowPowerModal] = useState(false);
   const [activeClimateEntityModal, setActiveClimateEntityModal] = useState(null);
   const [showLightModal, setShowLightModal] = useState(null);
-  const [lightControlTab, setLightControlTab] = useState('brightness');
   const [showLeafModal, setShowLeafModal] = useState(false);
 
   const [showAndroidTVModal, setShowAndroidTVModal] = useState(null);
@@ -231,10 +288,6 @@ export default function App() {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configTab, setConfigTab] = useState('connection');
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('ha_token') : null;
-    return !token;
-  });
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [onboardingUrlError, setOnboardingUrlError] = useState('');
   const [onboardingTokenError, setOnboardingTokenError] = useState('');
@@ -249,26 +302,19 @@ export default function App() {
   const [showEditCardModal, setShowEditCardModal] = useState(null);
   const [showSensorInfoModal, setShowSensorInfoModal] = useState(null);
   const [editCardSettingsKey, setEditCardSettingsKey] = useState(null);
-  const [customNames, setCustomNames] = useState({});
-  const [customIcons, setCustomIcons] = useState({});
   const [activeMediaModal, setActiveMediaModal] = useState(null);
   const [activeMediaGroupKey, setActiveMediaGroupKey] = useState(null);
+  const [mediaTick, setMediaTick] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
   const [activePage, setActivePage] = useState('home');
-  const [language, setLanguage] = useState(() => localStorage.getItem('midttunet_language') || 'nn');
-  const [pagesConfig, setPagesConfig] = useState(DEFAULT_PAGES_CONFIG);
   const [addCardTargetPage, setAddCardTargetPage] = useState('home');
   const [addCardType, setAddCardType] = useState('sensor');
-  const [hiddenCards, setHiddenCards] = useState([]);
   const [activeMediaId, setActiveMediaId] = useState(null);
   const [costHistory, setCostHistory] = useState([]);
   const [tempHistory, setTempHistory] = useState([]);
   const [weatherForecast, setWeatherForecast] = useState([]);
-  const [gridColumns, setGridColumns] = useState(3);
   const [gridColCount, setGridColCount] = useState(1);
-  const [headerScale, setHeaderScale] = useState(1);
-  const [headerTitle, setHeaderTitle] = useState(() => localStorage.getItem('midttunet_header_title') || 'Midttunet');
   const dragSourceRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
   const gearMenuRef = useRef(null);
@@ -279,7 +325,6 @@ export default function App() {
   const touchSwapCooldownRef = useRef(0);
   const pointerDragRef = useRef(false);
   const ignoreTouchRef = useRef(false);
-  const [pageSettings, setPageSettings] = useState({});
   const [editingPage, setEditingPage] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntities, setSelectedEntities] = useState([]);
@@ -292,32 +337,6 @@ export default function App() {
   const [costSelectionTarget, setCostSelectionTarget] = useState('today');
   const [optimisticLightBrightness, setOptimisticLightBrightness] = useState({});
   const [tempHistoryById, setTempHistoryById] = useState({});
-  const [cardSettings, setCardSettings] = useState({});
-  const [inactivityTimeout, setInactivityTimeout] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('midttunet_inactivity_timeout');
-      if (saved !== null) {
-        const parsed = parseInt(saved, 10);
-        if (!Number.isNaN(parsed)) return parsed;
-      }
-    }
-    return 60;
-  });
-  const [currentTheme, setCurrentTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('midttunet_theme');
-      return (saved && themes[saved]) ? saved : 'dark';
-    }
-    return 'dark';
-  });
-  
-  const [config, setConfig] = useState({
-    url: typeof window !== 'undefined' ? localStorage.getItem('ha_url') || '' : '',
-    fallbackUrl: typeof window !== 'undefined' ? localStorage.getItem('ha_fallback_url') || '' : '',
-    token: typeof window !== 'undefined' ? localStorage.getItem('ha_token') || '' : ''
-  });
-  const [activeUrl, setActiveUrl] = useState(config.url);
-
   const resetToHome = () => {
     const isHome = activePage === 'home';
     const noModals = !showPowerModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode;
@@ -384,178 +403,6 @@ export default function App() {
   }, [showMenu]);
 
   useEffect(() => {
-    const savedConfig = localStorage.getItem('midttunet_pages_config');
-    if (savedConfig) { 
-      try { 
-        const parsed = JSON.parse(savedConfig);
-        let modified = false;
-        // Migrate legacy flat automations array to columns
-        if (parsed.automations && Array.isArray(parsed.automations) && (parsed.automations.length === 0 || typeof parsed.automations[0] === 'string')) {
-            const flat = parsed.automations;
-            const cols = [
-              { id: 'col0', title: 'Kolonne 1', cards: [] },
-              { id: 'col1', title: 'Kolonne 2', cards: [] },
-              { id: 'col2', title: 'Kolonne 3', cards: [] }
-            ];
-            flat.forEach((id, i) => {
-               if (i < 8) cols[0].cards.push(id);
-               else if (i < 16) cols[1].cards.push(id);
-               else cols[2].cards.push(id);
-            });
-            parsed.automations = cols;
-            modified = true;
-        }
-        
-        // Remove legacy static rocky card
-        if (parsed.home && parsed.home.includes('rocky')) {
-          parsed.home = parsed.home.filter(id => id !== 'rocky');
-          modified = true;
-        }
-
-        // Remove legacy static climate card
-        if (parsed.home && parsed.home.includes('climate')) {
-          parsed.home = parsed.home.filter(id => id !== 'climate');
-          modified = true;
-        }
-
-        // Remove deprecated energy_price_ cards (generic system removed)
-        Object.keys(parsed).forEach(pageKey => {
-          if (Array.isArray(parsed[pageKey])) {
-            const filtered = parsed[pageKey].filter(id => !String(id).startsWith('energy_price_'));
-            if (filtered.length !== parsed[pageKey].length) {
-              parsed[pageKey] = filtered;
-              modified = true;
-            }
-          }
-        });
-        
-        // Remove legacy static shield card
-        if (parsed.home && parsed.home.includes('shield')) {
-          parsed.home = parsed.home.filter(id => id !== 'shield');
-          modified = true;
-        }
-
-        if (parsed.home && parsed.home.includes('weather')) {
-          parsed.home = parsed.home.filter(id => id !== 'weather');
-          modified = true;
-        }
-
-        if (parsed.home && parsed.home.includes('sonos')) {
-          parsed.home = parsed.home.filter(id => id !== 'sonos');
-          modified = true;
-        }
-        if (parsed.lights && parsed.lights.includes('sonos')) {
-          parsed.lights = parsed.lights.filter(id => id !== 'sonos');
-          modified = true;
-        }
-        if (parsed.settings && parsed.settings.includes('sonos')) {
-          parsed.settings = parsed.settings.filter(id => id !== 'sonos');
-          modified = true;
-        }
-        if (parsed.settings && parsed.settings.includes('climate')) {
-          parsed.settings = parsed.settings.filter(id => id !== 'climate');
-          modified = true;
-        }
-
-        // Remove legacy 'climate' hardcoded card from all pages
-        Object.keys(parsed).forEach(pageKey => {
-          if (Array.isArray(parsed[pageKey])) {
-            const filtered = parsed[pageKey].filter(id => id !== 'climate');
-            if (filtered.length !== parsed[pageKey].length) {
-              parsed[pageKey] = filtered;
-              modified = true;
-            }
-          }
-        });
-
-        if (parsed.automations && Array.isArray(parsed.automations)) {
-          const updatedCols = parsed.automations.map(col => ({
-            ...col,
-            cards: Array.isArray(col.cards) ? col.cards.filter(id => id !== 'sonos' && id !== 'climate') : col.cards
-          }));
-          if (JSON.stringify(updatedCols) !== JSON.stringify(parsed.automations)) {
-            parsed.automations = updatedCols;
-            modified = true;
-          }
-        }
-
-        if (!Array.isArray(parsed.pages)) {
-          const detectedPages = Object.keys(parsed)
-            .filter(key => Array.isArray(parsed[key]) && !['header', 'automations', 'settings'].includes(key));
-          parsed.pages = detectedPages.length > 0 ? detectedPages : ['home', 'lights'];
-          modified = true;
-        }
-
-        if (!parsed.pages.includes('home')) {
-          parsed.pages.unshift('home');
-          modified = true;
-        }
-
-        parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'automations');
-
-        parsed.pages.forEach((pageId) => {
-          if (!Array.isArray(parsed[pageId])) {
-            parsed[pageId] = [];
-            modified = true;
-          }
-        });
-        
-        if (!parsed.header) {
-            parsed.header = [OYVIND_ID, TUVA_ID];
-            modified = true;
-        }
-
-        setPagesConfig(parsed);
-        if (modified) {
-            localStorage.setItem('midttunet_pages_config', JSON.stringify(parsed));
-        }
-      } catch (e) {} 
-    } else {
-      // Migration fallback
-      const savedOrder = localStorage.getItem('midttunet_card_order');
-      if (savedOrder) {
-        try {
-           const raw = JSON.parse(savedOrder).filter(id => id !== 'people');
-           const parsed = [...new Set([...raw])];
-           setPagesConfig(prev => ({ ...prev, home: parsed }));
-        } catch (e) {}
-      }
-    }
-    
-    const savedHidden = localStorage.getItem('midttunet_hidden_cards');
-    if (savedHidden) { try { setHiddenCards(JSON.parse(savedHidden)); } catch (e) {} }
-    if (savedHidden) { 
-        try { 
-            const hidden = JSON.parse(savedHidden);
-            // Ensure weather is not hidden by default/accident
-            const filteredHidden = hidden.filter(id => id !== 'weather');
-            setHiddenCards(filteredHidden); 
-        } catch (e) {} 
-    }
-
-    const savedNames = localStorage.getItem('midttunet_custom_names');
-    if (savedNames) { try { setCustomNames(JSON.parse(savedNames)); } catch (e) {} }
-
-    const savedIcons = localStorage.getItem('midttunet_custom_icons');
-    if (savedIcons) { try { setCustomIcons(JSON.parse(savedIcons)); } catch (e) {} }
-
-    const savedCols = localStorage.getItem('midttunet_grid_columns');
-    if (savedCols) setGridColumns(parseInt(savedCols));
-
-    const savedScale = localStorage.getItem('midttunet_header_scale');
-    if (savedScale) setHeaderScale(parseFloat(savedScale));
-
-    const savedHeaderTitle = localStorage.getItem('midttunet_header_title');
-    if (savedHeaderTitle) setHeaderTitle(savedHeaderTitle);
-
-    const savedPageSettings = localStorage.getItem('midttunet_page_settings');
-    if (savedPageSettings) { try { setPageSettings(JSON.parse(savedPageSettings)); } catch (e) {} }
-
-    const savedCardSettings = localStorage.getItem('midttunet_card_settings');
-    if (savedCardSettings) { try { setCardSettings(JSON.parse(savedCardSettings)); } catch (e) {} }
-  }, []);
-
-  useEffect(() => {
     if (!showAddCardModal) setSearchTerm('');
   }, [showAddCardModal]);
 
@@ -586,10 +433,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (showLightModal) {
-      setLightControlTab('brightness');
-    }
-  }, [showLightModal]);
+    if (!activeMediaModal) return;
+    setMediaTick(Date.now());
+    const intervalId = setInterval(() => setMediaTick(Date.now()), 1000);
+    return () => clearInterval(intervalId);
+  }, [activeMediaModal]);
 
   useEffect(() => {
     // Clear optimistic updates when actual state comes back
@@ -600,128 +448,13 @@ export default function App() {
   }, [entities]);
 
   useEffect(() => {
-    localStorage.setItem('midttunet_language', language);
-  }, [language]);
-
-  useEffect(() => {
-    if (window.HAWS) { setLibLoaded(true); return; }
-    const script = document.createElement('script');
-    script.src = "https://unpkg.com/home-assistant-js-websocket@latest/dist/haws.umd.js";
-    script.async = true;
-    script.onload = () => setLibLoaded(true);
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    if (!libLoaded || !config.url || !config.token) {
-      if (!config.token && !showOnboarding && !showConfigModal) {
-        setShowOnboarding(true);
-        setOnboardingStep(0);
-        setConfigTab('connection');
-      }
-      return;
+    if (!config.token && !showOnboarding && !showConfigModal) {
+      setShowOnboarding(true);
+      setOnboardingStep(0);
+      setConfigTab('connection');
     }
-    let connection;
-    let cancelled = false;
-    const { createConnection, createLongLivedTokenAuth, subscribeEntities } = window.HAWS;
+  }, [config.token, showOnboarding, showConfigModal]);
 
-    const persistConfig = (urlUsed) => {
-      localStorage.setItem('ha_url', urlUsed);
-      localStorage.setItem('ha_token', config.token);
-      if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl);
-    };
-
-    async function connectWith(url) {
-      const auth = createLongLivedTokenAuth(url, config.token);
-      const connInstance = await createConnection({ auth });
-      if (cancelled) { connInstance.close(); return null; }
-      connection = connInstance;
-      setConn(connInstance);
-      setConnected(true);
-      setHaUnavailable(false);
-      setActiveUrl(url);
-      persistConfig(url);
-      subscribeEntities(connInstance, (updatedEntities) => { if (!cancelled) setEntities(updatedEntities); });
-      return connInstance;
-    }
-
-    async function connect() {
-      try {
-        await connectWith(config.url);
-      } catch (err) { 
-        if (config.fallbackUrl) {
-          try {
-            await connectWith(config.fallbackUrl);
-            return;
-          } catch (e) {}
-        }
-        if (!cancelled) setConnected(false); 
-        if (!cancelled) setHaUnavailable(true);
-      }
-    }
-
-    connect();
-    return () => { cancelled = true; if (connection) connection.close(); };
-  }, [libLoaded, config.url, config.fallbackUrl, config.token, showConfigModal, showOnboarding]);
-
-  useEffect(() => {
-    if (!conn) return;
-    let cancelled = false;
-
-    const handleReady = () => {
-      if (!cancelled) setHaUnavailable(false);
-    };
-    const handleDisconnected = () => {
-      if (!cancelled) setHaUnavailable(true);
-    };
-
-    conn.addEventListener?.('ready', handleReady);
-    conn.addEventListener?.('disconnected', handleDisconnected);
-
-    return () => {
-      cancelled = true;
-      conn.removeEventListener?.('ready', handleReady);
-      conn.removeEventListener?.('disconnected', handleDisconnected);
-    };
-  }, [conn]);
-
-  useEffect(() => {
-    if (!haUnavailable) {
-      setHaUnavailableVisible(false);
-      return;
-    }
-    const timer = setTimeout(() => setHaUnavailableVisible(true), 2500);
-    return () => clearTimeout(timer);
-  }, [haUnavailable]);
-
-
-  useLayoutEffect(() => {
-    const themeKey = themes[currentTheme] ? currentTheme : 'dark';
-    const theme = themes[themeKey].colors;
-    for (const key in theme) {
-      document.documentElement.style.setProperty(key, theme[key]);
-    }
-    document.documentElement.style.backgroundColor = theme['--bg-primary'];
-    document.body.style.backgroundColor = theme['--bg-primary'];
-    document.documentElement.style.colorScheme = themeKey === 'dark' ? 'dark' : 'light';
-    
-    let metaThemeColor = document.querySelector("meta[name='theme-color']");
-    if (!metaThemeColor) {
-      metaThemeColor = document.createElement('meta');
-      metaThemeColor.name = 'theme-color';
-      document.head.appendChild(metaThemeColor);
-    }
-    metaThemeColor.content = theme['--bg-primary'];
-    
-    localStorage.setItem('midttunet_theme', themeKey);
-  }, [currentTheme]);
-
-  const toggleTheme = () => {
-    const themeKeys = Object.keys(themes);
-    const currentIndex = themeKeys.indexOf(currentTheme);
-    const nextIndex = (currentIndex + 1) % themeKeys.length;
-    setCurrentTheme(themeKeys[nextIndex]);
-  };
 
   const translations = useMemo(() => ({ en, nn }), []);
   const t = (key) => translations[language]?.[key] || translations.nn[key] || key;
@@ -916,7 +649,7 @@ export default function App() {
     return (
       <div key={id} className="group relative flex items-center gap-2 sm:gap-3 pl-1.5 pr-2 sm:pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)]" 
            style={{
-             backgroundColor: 'var(--glass-bg)', 
+             backgroundColor: 'rgba(255, 255, 255, 0.02)', 
              boxShadow: isHome ? '0 0 20px rgba(34, 197, 94, 0.05)' : 'none',
              cursor: editMode ? 'pointer' : 'default'
            }}>
@@ -929,8 +662,8 @@ export default function App() {
         )}
         
         <div className="relative">
-          <div className="w-10 h-10 rounded-full overflow-hidden border-2 transition-all duration-500 bg-gray-800" 
-               style={{borderColor: isHome ? '#22c55e' : 'var(--glass-border)', filter: isHome ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.7)'}}>
+          <div className="w-10 h-10 rounded-full overflow-hidden transition-all duration-500 bg-gray-800" 
+            style={{filter: isHome ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.7)'}}>
             {useIcon ? (
               <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)]">
                 <PersonIcon className="w-5 h-5" />
@@ -947,8 +680,8 @@ export default function App() {
           </div>
           
           <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#050505] transition-colors duration-500" 
-               style={{backgroundColor: isHome ? '#22c55e' : '#52525b', borderColor: 'var(--bg-primary)'}}></div>
-        </div>
+            style={{backgroundColor: isHome ? '#22c55e' : '#52525b', borderColor: 'var(--bg-primary)'}}></div>
+           </div>
 
         <div className="hidden sm:flex flex-col justify-center">
           <div className="flex items-center gap-2">
@@ -1116,26 +849,6 @@ export default function App() {
     return () => window.removeEventListener('resize', updateGridCols);
   }, [activeGridColumns]);
 
-  const toggleCardVisibility = (cardId) => {
-    const newHidden = hiddenCards.includes(cardId) 
-      ? hiddenCards.filter(id => id !== cardId)
-      : [...hiddenCards, cardId];
-    setHiddenCards(newHidden);
-    localStorage.setItem('midttunet_hidden_cards', JSON.stringify(newHidden));
-  };
-
-  const saveCustomName = (id, name) => {
-    const newNames = { ...customNames, [id]: name };
-    setCustomNames(newNames);
-    localStorage.setItem('midttunet_custom_names', JSON.stringify(newNames));
-  };
-
-  const saveCustomIcon = (id, iconName) => {
-    const newIcons = { ...customIcons, [id]: iconName };
-    setCustomIcons(newIcons);
-    localStorage.setItem('midttunet_custom_icons', JSON.stringify(newIcons));
-  };
-
   const getCardSettingsKey = (cardId, pageId = activePage) => `${pageId}::${cardId}`;
 
   const isCardRemovable = (cardId, pageId = activePage) => {
@@ -1222,33 +935,10 @@ export default function App() {
     return false;
   };
 
-  const saveCardSetting = (id, setting, value) => {
-    const newSettings = { ...cardSettings, [id]: { ...cardSettings[id], [setting]: value } };
-    setCardSettings(newSettings);
-    localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
-  };
-
-  const savePageSetting = (id, setting, value) => {
-    const newSettings = { ...pageSettings, [id]: { ...(pageSettings[id] || {}), [setting]: value } };
-    setPageSettings(newSettings);
-    localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
-  };
-
   const saveColumnTitle = (colIndex, title) => {
     const newConfig = { ...pagesConfig };
     newConfig.automations[colIndex].title = title;
-    setPagesConfig(newConfig);
-    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
-  };
-
-  const updateHeaderScale = (newScale) => {
-    setHeaderScale(newScale);
-    localStorage.setItem('midttunet_header_scale', newScale);
-  };
-
-  const updateHeaderTitle = (newTitle) => {
-    setHeaderTitle(newTitle);
-    localStorage.setItem('midttunet_header_title', newTitle);
+    persistConfig(newConfig);
   };
 
   const isSonosPage = (pageId) => {
@@ -1267,8 +957,7 @@ export default function App() {
     const newConfig = { ...pagesConfig };
     if (listName === 'header') {
         newConfig.header = (newConfig.header || []).filter(id => id !== cardId);
-        setPagesConfig(newConfig);
-        localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+        persistConfig(newConfig);
     } else if (newConfig[activePage]) {
       if (activePage === 'automations' && listName !== 'header') {
         newConfig.automations.forEach(col => {
@@ -1277,8 +966,7 @@ export default function App() {
       } else {
         newConfig[activePage] = newConfig[activePage].filter(id => id !== cardId);
       }
-      setPagesConfig(newConfig);
-      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      persistConfig(newConfig);
     }
   };
 
@@ -1296,12 +984,10 @@ export default function App() {
     const newConfig = { ...pagesConfig };
     newConfig.pages = [...(newConfig.pages || []), pageId];
     newConfig[pageId] = [];
-    setPagesConfig(newConfig);
-    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+    persistConfig(newConfig);
 
-    const newSettings = { ...pageSettings, [pageId]: { ...(pageSettings[pageId] || {}), label, icon: newPageIcon } };
-    setPageSettings(newSettings);
-    localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+    savePageSetting(pageId, 'label', label);
+    savePageSetting(pageId, 'icon', newPageIcon);
 
     setActivePage(pageId);
     setShowAddPageModal(false);
@@ -1333,12 +1019,11 @@ export default function App() {
     const newConfig = { ...pagesConfig };
     newConfig.pages = [...(newConfig.pages || []), pageId];
     newConfig[pageId] = [];
-    setPagesConfig(newConfig);
-    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+    persistConfig(newConfig);
 
-    const newSettings = { ...pageSettings, [pageId]: { ...(pageSettings[pageId] || {}), label, icon: 'Speaker', type: 'sonos' } };
-    setPageSettings(newSettings);
-    localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+    savePageSetting(pageId, 'label', label);
+    savePageSetting(pageId, 'icon', 'Speaker');
+    savePageSetting(pageId, 'type', 'sonos');
 
     setActivePage(pageId);
     setShowAddCardModal(false);
@@ -1351,13 +1036,11 @@ export default function App() {
     const newConfig = { ...pagesConfig };
     newConfig.pages = (newConfig.pages || []).filter(id => id !== pageId);
     delete newConfig[pageId];
-    setPagesConfig(newConfig);
-    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+    persistConfig(newConfig);
 
     const newSettings = { ...pageSettings };
     delete newSettings[pageId];
-    setPageSettings(newSettings);
-    localStorage.setItem('midttunet_page_settings', JSON.stringify(newSettings));
+    persistPageSettings(newSettings);
 
     if (activePage === pageId) setActivePage('home');
     setEditingPage(null);
@@ -1367,8 +1050,7 @@ export default function App() {
     const newConfig = { ...pagesConfig };
     if (addCardTargetPage === 'header') {
       newConfig.header = [...(newConfig.header || []), ...selectedEntities];
-      setPagesConfig(newConfig);
-      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      persistConfig(newConfig);
       setSelectedEntities([]);
       setShowAddCardModal(false);
       return;
@@ -1376,8 +1058,7 @@ export default function App() {
 
     if (addCardTargetPage === 'automations') {
       newConfig.automations[0].cards.push(...selectedEntities);
-      setPagesConfig(newConfig);
-      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      persistConfig(newConfig);
       setSelectedEntities([]);
       setShowAddCardModal(false);
       return;
@@ -1387,13 +1068,11 @@ export default function App() {
       if (!selectedWeatherId) return;
       const cardId = `weather_temp_${Date.now()}`;
       newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
-      setPagesConfig(newConfig);
-      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      persistConfig(newConfig);
 
       const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
       const newSettings = { ...cardSettings, [settingsKey]: { ...(cardSettings[settingsKey] || {}), weatherId: selectedWeatherId, tempId: selectedTempId || null } };
-      setCardSettings(newSettings);
-      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+      persistCardSettings(newSettings);
 
       setSelectedWeatherId(null);
       setSelectedTempId(null);
@@ -1407,8 +1086,7 @@ export default function App() {
             : `calendar_card_${Date.now()}`;
             
         newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
-        setPagesConfig(newConfig);
-        localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+        persistConfig(newConfig);
         
         setShowAddCardModal(false);
         return;
@@ -1418,13 +1096,11 @@ export default function App() {
       if (selectedEntities.length === 0) return;
       const cardId = `media_group_${Date.now()}`;
       newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
-      setPagesConfig(newConfig);
-      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      persistConfig(newConfig);
 
       const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
       const newSettings = { ...cardSettings, [settingsKey]: { ...(cardSettings[settingsKey] || {}), mediaIds: selectedEntities } };
-      setCardSettings(newSettings);
-      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+      persistCardSettings(newSettings);
 
       setSelectedEntities([]);
       setShowAddCardModal(false);
@@ -1445,11 +1121,9 @@ export default function App() {
       });
       
       newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...newCardIds];
-      setPagesConfig(newConfig);
-      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      persistConfig(newConfig);
       
-      setCardSettings(newSettings);
-      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+      persistCardSettings(newSettings);
 
       setSelectedEntities([]);
       setShowAddCardModal(false);
@@ -1460,8 +1134,7 @@ export default function App() {
       if (!selectedAndroidTVMediaId) return;
       const cardId = `androidtv_card_${Date.now()}`;
       newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
-      setPagesConfig(newConfig);
-      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      persistConfig(newConfig);
 
       const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
       const newSettings = {
@@ -1472,8 +1145,7 @@ export default function App() {
           remoteId: selectedAndroidTVRemoteId || null
         }
       };
-      setCardSettings(newSettings);
-      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+      persistCardSettings(newSettings);
 
       setSelectedAndroidTVMediaId(null);
       setSelectedAndroidTVRemoteId(null);
@@ -1485,8 +1157,7 @@ export default function App() {
       if (!selectedCostTodayId || !selectedCostMonthId) return;
       const cardId = `cost_card_${Date.now()}`;
       newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
-      setPagesConfig(newConfig);
-      localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+      persistConfig(newConfig);
 
       const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
       const newSettings = {
@@ -1497,8 +1168,7 @@ export default function App() {
           monthId: selectedCostMonthId
         }
       };
-      setCardSettings(newSettings);
-      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+      persistCardSettings(newSettings);
 
       setSelectedCostTodayId(null);
       setSelectedCostMonthId(null);
@@ -1513,13 +1183,11 @@ export default function App() {
         const settingsKey = getCardSettingsKey(id, addCardTargetPage);
         newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), type: addCardType, size: newSettings[settingsKey]?.size || 'large' };
       });
-      setCardSettings(newSettings);
-      localStorage.setItem('midttunet_card_settings', JSON.stringify(newSettings));
+      persistCardSettings(newSettings);
     }
 
     newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...selectedEntities];
-    setPagesConfig(newConfig);
-    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+    persistConfig(newConfig);
     setSelectedEntities([]);
     setShowAddCardModal(false);
   };
@@ -2278,8 +1946,7 @@ export default function App() {
     // Swap cards
     [pageCards[currentIndex], pageCards[newIndex]] = [pageCards[newIndex], pageCards[currentIndex]];
     
-    setPagesConfig(newConfig);
-    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+    persistConfig(newConfig);
   };
 
   const buildGridLayout = (ids, columns) => {
@@ -2369,6 +2036,7 @@ export default function App() {
     editMode,
     pagesConfig,
     setPagesConfig,
+    persistConfig,
     activePage,
     dragSourceRef,
     touchTargetRef,
@@ -2790,102 +2458,6 @@ export default function App() {
     }
   };
 
-  const reStatus = () => {
-    if (entities[REFRIGERATOR_ID]?.state !== 'on') return null;
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl animate-pulse" style={{backgroundColor: 'rgba(249, 115, 22, 0.02)'}}><div className="p-1.5 rounded-xl text-orange-400" style={{backgroundColor: 'rgba(249, 115, 22, 0.1)'}}><AlertCircle className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-gray-500 uppercase font-bold leading-tight">{t('status.alert')}</span><span className="text-xs font-medium uppercase tracking-widest text-orange-200/50 italic">{t('status.fridgeOpen')}</span></div></div>
-    );
-  };
-
-  const stStatus = () => {
-    if (entities[STUDIO_PRESENCE_ID]?.state !== 'on') return null;
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-emerald-400" style={{backgroundColor: 'rgba(16, 185, 129, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{t('status.studio')}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{t('status.inUse')}</span></div></div>
-    );
-  };
-
-  const poStatus = () => {
-    if (entities[PORTEN_MOTION_ID]?.state !== 'on') return null;
-    return (
-      <button onClick={() => setShowCameraModal(true)} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-amber-400" style={{backgroundColor: 'rgba(251, 191, 36, 0.1)'}}><Activity className="w-4 h-4" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{t('camera.gate')}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{t('camera.motion')}</span></div></button>
-    );
-  };
-
-  const gaStatus = () => {
-    if (entities[GARAGE_DOOR_ID]?.state !== 'on') return null;
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-red-400" style={{backgroundColor: 'rgba(248, 113, 113, 0.1)'}}><Warehouse className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{t('status.garage')}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{t('status.open')}</span></div></div>
-    );
-  };
-
-  const embyStatus = () => {
-    const activePlayers = Object.keys(entities)
-      .filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'))
-      .map(id => entities[id])
-      .filter(Boolean)
-      .filter(e => isMediaActive(e));
-    
-    const count = activePlayers.length;
-    
-    if (count === 0) return null;
-
-    return (
-      <button onClick={() => {
-        const firstActive = activePlayers[0]?.entity_id;
-        if (firstActive) setActiveMediaId(firstActive);
-        setActiveMediaGroupKey('__emby__');
-        setActiveMediaModal('media');
-      }} className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-green-400" style={{backgroundColor: 'rgba(74, 222, 128, 0.1)'}}><Clapperboard className="w-4 h-4 animate-pulse" /></div><div className="flex flex-col items-start"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">Emby</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{count} {t('addCard.players')}</span></div></button>
-    );
-  };
-
-  const sonosStatus = () => {
-    const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
-    const activeSonos = sonosEntities.filter(isSonosActive);
-    
-    if (activeSonos.length === 0) return null;
-
-    let currentSonos = activeSonos.find(e => e.state === 'playing');
-    if (!currentSonos) currentSonos = activeSonos[0];
-
-    const sId = currentSonos.entity_id;
-    const isLydplanke = sId === 'media_player.sonos_lydplanke';
-    const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
-
-    const sTitle = isTV ? t('media.tvAudio') : getA(sId, 'media_title');
-    const sArtist = isTV ? t('media.livingRoom') : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
-    const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
-    const isPlaying = currentSonos.state === 'playing';
-
-    return (
-      <button onClick={() => setActiveMediaModal('sonos')} className="flex items-center gap-3 px-2 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}><div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--glass-bg)] relative flex-shrink-0">{sPicture ? <img src={sPicture} alt="" className={`w-full h-full object-cover ${isPlaying ? 'animate-spin' : ''}`} style={{ animationDuration: '10s' }} /> : <div className="w-full h-full flex items-center justify-center bg-blue-500/10 text-blue-400"><Music className="w-4 h-4" /></div>}</div><div className="flex flex-col items-start max-w-[120px]"><span className="text-xs text-[var(--text-primary)] font-bold leading-tight truncate w-full">{sTitle || t('common.unknown')}</span><span className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-secondary)] truncate w-full">{sArtist || ''}</span></div></button>
-    );
-  };
-
-  const drStatus = (id, label) => {
-    if (entities[id]?.state !== 'on') return null;
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" style={{backgroundColor: 'var(--glass-bg)'}}><div className="p-1.5 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}><DoorOpen className="w-4 h-4" /></div><div className="flex flex-col"><span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">{label}</span><span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">{t('status.open')}</span></div></div>
-    );
-  };
-
-  const updateStatus = () => {
-    const updates = Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on');
-    const count = updates.length;
-    if (count === 0) return null;
-
-    return (
-      <button onClick={() => setShowUpdateModal(true)} className="relative flex items-center justify-center p-2 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" style={{backgroundColor: 'var(--glass-bg)'}}>
-        <div className="p-2 rounded-xl text-blue-400" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}>
-          <Download className="w-6 h-6" />
-        </div>
-        <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500 text-white text-sm font-bold flex items-center justify-center border-[3px] border-[var(--bg-primary)] shadow-lg">
-            {count}
-        </div>
-      </button>
-    );
-  };
-
   const editSettingsKey = showEditCardModal ? (editCardSettingsKey || getCardSettingsKey(showEditCardModal)) : null;
   const editSettings = editSettingsKey ? (cardSettings[editSettingsKey] || cardSettings[showEditCardModal] || {}) : {};
   const editId = showEditCardModal;
@@ -2921,7 +2493,7 @@ export default function App() {
     }
   };
 
-  const canAdvanceOnboarding = onboardingStep === 1
+  const canAdvanceOnboarding = onboardingStep === 0
     ? Boolean(config.url && config.token && validateUrl(config.url) && connectionTestResult?.success)
     : true;
 
@@ -3073,46 +2645,38 @@ export default function App() {
             background: rgba(0, 0, 0, 0.7);
           }
         `}</style>
-        <header className="relative mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10 leading-none">
-          <div className="absolute top-0 right-0 hidden md:block">
-             <h2 className="font-light tracking-[0.1em] leading-none select-none" style={{ fontSize: `calc(3.75rem * ${headerScale})`, color: 'var(--text-muted)' }}>{now.toLocaleTimeString('nn-NO', { hour: '2-digit', minute: '2-digit' })}</h2>
-          </div>
-          <div className="absolute top-0 right-0 md:hidden">
-             <h2 className="font-light tracking-[0.1em] leading-none select-none" style={{ fontSize: `calc(3rem * ${headerScale})`, color: 'var(--text-muted)' }}>{now.toLocaleTimeString('nn-NO', { hour: '2-digit', minute: '2-digit' })}</h2>
-          </div>
-
-          <div className="flex flex-col gap-3 font-sans w-full">
-            <div>
-              <div className="flex items-center gap-4">
-                <h1 className="font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" style={{color: 'var(--text-muted)', fontSize: `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`}}>{headerTitle || 'Midttunet'}</h1>
-                {editMode && (<div className="flex flex-col gap-1 z-50"><button onClick={() => updateHeaderScale(Math.min(headerScale + 0.1, 2))} className="p-1 bg-white/10 rounded hover:bg-white/20"><ChevronUp className="w-4 h-4" /></button><button onClick={() => updateHeaderScale(Math.max(headerScale - 0.1, 0.5))} className="p-1 bg-white/10 rounded hover:bg-white/20"><ChevronDown className="w-4 h-4" /></button></div>)}
-              </div>
-              {editMode && (
-                <div className="mt-4 space-y-2">
-                  <label className="text-[10px] md:text-xs uppercase font-bold text-gray-500 ml-1 tracking-[0.2em]">{t('header.titleLabel')}</label>
-                  <input
-                    type="text"
-                    value={headerTitle}
-                    onChange={(e) => updateHeaderTitle(e.target.value)}
-                    placeholder={t('header.titlePlaceholder')}
-                    className="w-full max-w-sm px-4 py-2.5 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
-                  />
-                </div>
-              )}
-              <p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none mt-2 opacity-50 tracking-[0.2em] md:tracking-[0.6em]">{now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        <Header
+          now={now}
+          headerTitle={headerTitle}
+          headerScale={headerScale}
+          editMode={editMode}
+          updateHeaderScale={updateHeaderScale}
+          updateHeaderTitle={updateHeaderTitle}
+          t={t}
+        >
+          <div className="flex items-center justify-between w-full mt-0 font-sans">
+            <div className="flex flex-wrap gap-2.5 items-center min-w-0">
+              {(pagesConfig.header || []).map(id => personStatus(id))}
+              <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>
             </div>
-            <div className="flex items-center justify-between w-full mt-0 font-sans">
-              <div className="flex flex-wrap gap-2.5 items-center min-w-0">
-                {(pagesConfig.header || []).map(id => personStatus(id))}
-                <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>
-                {reStatus()}{stStatus()}{poStatus()}{gaStatus()}{embyStatus()}{sonosStatus()}{drStatus(EILEV_DOOR_ID, t('door.eilev'))}{drStatus(OLVE_DOOR_ID, t('door.olve'))}
-              </div>
-              <div className="flex items-center pl-4">
-                {updateStatus()}
-              </div>
+            <div className="flex-1 min-w-0">
+              <StatusBar
+                entities={entities}
+                now={now}
+                setShowCameraModal={setShowCameraModal}
+                setActiveMediaId={setActiveMediaId}
+                setActiveMediaGroupKey={setActiveMediaGroupKey}
+                setActiveMediaModal={setActiveMediaModal}
+                setShowUpdateModal={setShowUpdateModal}
+                t={t}
+                isSonosActive={isSonosActive}
+                isMediaActive={isMediaActive}
+                getA={getA}
+                getEntityImageUrl={getEntityImageUrl}
+              />
             </div>
           </div>
-        </header>
+        </Header>
 
         {haUnavailableVisible && (
           <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-100 px-4 sm:px-6 py-4 flex items-center gap-3">
@@ -3124,34 +2688,16 @@ export default function App() {
         )}
 
         <div className="flex flex-nowrap items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide flex-1 min-w-0">
-            {pages.map(page => {
-              const settings = pageSettings[page.id] || {};
-              const label = settings.label || page.label;
-              const isHidden = settings.hidden;
-              const Icon = settings.icon ? ICON_MAP[settings.icon] : page.icon;
-              if (!editMode && isHidden) return null;
-              return (
-              <button
-                key={page.id}
-                onClick={() => editMode ? setEditingPage(page.id) : setActivePage(page.id)}
-                className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border ${activePage === page.id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'} ${editMode && isHidden ? 'opacity-50 border-dashed border-gray-500' : ''}`}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{label}</span>
-                {editMode && <Settings className="w-3 h-3 ml-1 opacity-50 hidden sm:inline" />}
-              </button>
-            )})}
-            {editMode && (
-              <button
-                onClick={() => setShowAddPageModal(true)}
-                className="flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('nav.addPage')}</span>
-              </button>
-            )}
-          </div>
+          <PageNavigation
+            pages={pages}
+            pageSettings={pageSettings}
+            activePage={activePage}
+            setActivePage={setActivePage}
+            editMode={editMode}
+            setEditingPage={setEditingPage}
+            setShowAddPageModal={setShowAddPageModal}
+            t={t}
+          />
           <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 justify-end">
             {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> {t('nav.addCard')}</button>}
               {editMode && <button onClick={() => { const currentCols = pageSettings[activePage]?.gridColumns ?? gridColumns; const newCols = currentCols === 3 ? 4 : 3; savePageSetting(activePage, 'gridColumns', newCols); }} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Columns className="w-4 h-4" /> {(pageSettings[activePage]?.gridColumns ?? gridColumns) === 3 ? '4' : '3'} {t('nav.columns')}</button>}
@@ -3165,23 +2711,20 @@ export default function App() {
               </button>
             )}
             
-            <div ref={gearMenuRef} className={`absolute right-0 top-12 z-50 flex flex-col items-stretch gap-3 p-5 min-w-[200px] w-fit max-w-[280px] rounded-2xl bg-[var(--glass-bg)] backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] transition-all duration-500 ease-in-out ${showMenu ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
-              {!editMode && (
-                <button onClick={() => {
-                  setEditMode(true);
-                  setShowMenu(false);
-                }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]">
-                  <Edit2 className="w-4 h-4" /> {t('menu.edit')}
-                </button>
-              )}
-              {!editMode && <button onClick={() => { setShowConfigModal(true); setShowOnboarding(false); setShowMenu(false); }} className="group flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]"><Settings className="w-4 h-4" /> {t('menu.system')}</button>}
-              {!editMode && (
-                <button onClick={() => { toggleTheme(); setShowMenu(false); }} className="flex items-center gap-2 text-sm font-bold uppercase text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all whitespace-nowrap py-3 px-3 rounded-xl hover:bg-[var(--glass-bg-hover)]" title={t('menu.themeTitle')}>
-                  {currentTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  {t('menu.theme')}
-                </button>
-              )}
-            </div>
+            <SettingsMenu
+              menuRef={gearMenuRef}
+              showMenu={showMenu}
+              setShowMenu={setShowMenu}
+              editMode={editMode}
+              setEditMode={setEditMode}
+              setShowConfigModal={setShowConfigModal}
+              setShowOnboarding={setShowOnboarding}
+              toggleTheme={toggleTheme}
+              currentTheme={currentTheme}
+              activePage={activePage}
+              pageSettings={pageSettings}
+              t={t}
+            />
             <button ref={gearButtonRef} onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group ${showMenu ? 'bg-[var(--glass-bg)]' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`} /></button>
             {!connected && <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: '#ef4444'}} /></div>}
           </div>
@@ -3222,8 +2765,7 @@ export default function App() {
                    const newConfig = { ...pagesConfig };
                    const [movedItem] = newConfig.automations[source.colIndex].cards.splice(source.index, 1);
                    newConfig.automations[colIndex].cards.push(movedItem);
-                   setPagesConfig(newConfig);
-                   localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+                   persistConfig(newConfig);
                 }}
               >
                 <div className="mb-4 px-2">
@@ -3233,7 +2775,21 @@ export default function App() {
                     <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{col.title}</h3>
                   )}
                 </div>
-                {col.cards.map((id, index) => renderCard(id, index, colIndex))}
+                {col.cards.map((id, index) => {
+                  const settingsKey = getCardSettingsKey(id);
+                  const heading = cardSettings[settingsKey]?.heading;
+                  const cardContent = renderCard(id, index, colIndex);
+                  if (!cardContent) return null;
+                  if (!heading) return cardContent;
+                  return (
+                    <div key={`${id}-${index}`} className="relative">
+                      <div className="absolute -top-4 left-2 text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)]">
+                        {heading}
+                      </div>
+                      {cardContent}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -3243,6 +2799,8 @@ export default function App() {
               const placement = gridLayout[id];
               const isCalendarCard = id.startsWith('calendar_card_');
               const forcedSpan = isCalendarCard ? 4 : placement?.span;
+              const settingsKey = getCardSettingsKey(id);
+              const heading = cardSettings[settingsKey]?.heading;
 
               if (!editMode && (hiddenCards.includes(id) || isCardHiddenByLogic(id))) return null;
               if (!placement) return null;
@@ -3253,7 +2811,7 @@ export default function App() {
               return (
                 <div
                   key={`${id}-${index}`}
-                  className="h-full"
+                  className="h-full relative"
                   style={{
                     gridRowStart: placement.row,
                     gridColumnStart: placement.col,
@@ -3261,7 +2819,14 @@ export default function App() {
                     minHeight: isCalendarCard ? '496px' : undefined
                   }}
                 >
-                  {cardContent}
+                  {heading && (
+                    <div className="absolute -top-4 left-2 text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)]">
+                      {heading}
+                    </div>
+                  )}
+                  <div className="h-full">
+                    {cardContent}
+                  </div>
                 </div>
               );
             })}
@@ -3302,34 +2867,15 @@ export default function App() {
           onFinishOnboarding={() => { setShowOnboarding(false); setShowConfigModal(false); }}
         />
 
-        {showPowerModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowPowerModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[80vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowPowerModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-              <div className="flex items-center gap-6 mb-6">
-                <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#fbbf24'}}><Zap className="w-10 h-10" /></div>
-                <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">{t('power.title')}</h3>
-              </div>
-                <div className="flex justify-around items-center mb-8 px-4 py-4 rounded-2xl popup-surface">
-                 <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">{t('power.avg')}</span>
-                    <span className="text-xl font-light text-[var(--text-primary)]">{priceStats.avg.toFixed(2)}</span>
-                 </div>
-                  <div className="w-px h-8 popup-surface-divider"></div>
-                 <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">{t('power.low')}</span>
-                    <span className="text-xl font-light text-blue-400">{priceStats.min.toFixed(2)}</span>
-                 </div>
-                  <div className="w-px h-8 popup-surface-divider"></div>
-                 <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">{t('power.high')}</span>
-                    <span className="text-xl font-light text-red-400">{priceStats.max.toFixed(2)}</span>
-                 </div>
-              </div>
-              <InteractivePowerGraph data={fullPriceData} currentIndex={currentPriceIndex} t={t} locale={language === 'nn' ? 'nn-NO' : 'en-GB'} />
-            </div>
-          </div>
-        )}
+        <PowerModal
+          show={showPowerModal}
+          onClose={() => setShowPowerModal(false)}
+          fullPriceData={fullPriceData}
+          currentPriceIndex={currentPriceIndex}
+          priceStats={priceStats}
+          t={t}
+          language={language}
+        />
 
         {activeClimateEntityModal && entities[activeClimateEntityModal] && (
           <GenericClimateModal
@@ -3344,195 +2890,18 @@ export default function App() {
           />
         )}
 
-        {showLightModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowLightModal(null)}>
-            <div className="border w-full max-w-xl rounded-3xl md:rounded-[2.5rem] p-6 font-sans relative max-h-[80vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              
-              {(() => {
-                const entity = entities[showLightModal];
-                const isUnavailable = entity?.state === 'unavailable' || entity?.state === 'unknown' || !entity;
-                const colorModes = entity?.attributes?.supported_color_modes || [];
-                const supportsColorTemp = colorModes.includes('color_temp') || colorModes.includes('color_temp_kelvin');
-                const supportsColor = colorModes.some((mode) => ['hs', 'rgb', 'xy'].includes(mode));
-                const showPills = supportsColorTemp || supportsColor;
-                const activeTab = (lightControlTab === 'warmth' && !supportsColorTemp)
-                  ? 'brightness'
-                  : (lightControlTab === 'color' && !supportsColor)
-                    ? 'brightness'
-                    : lightControlTab;
-                const minKelvin = entity?.attributes?.min_color_temp_kelvin
-                  || (entity?.attributes?.max_mireds ? Math.round(1000000 / entity.attributes.max_mireds) : 2000);
-                const maxKelvin = entity?.attributes?.max_color_temp_kelvin
-                  || (entity?.attributes?.min_mireds ? Math.round(1000000 / entity.attributes.min_mireds) : 6500);
-                const currentKelvin = entity?.attributes?.color_temp_kelvin
-                  || (entity?.attributes?.color_temp ? Math.round(1000000 / entity.attributes.color_temp) : Math.round((minKelvin + maxKelvin) / 2));
-                const currentHue = entity?.attributes?.hs_color?.[0] ?? 0;
-                
-                return (
-                  <>
-              <style>{`
-                .light-slider {
-                  -webkit-appearance: none;
-                  width: 100%;
-                  height: 10px;
-                  border-radius: 999px;
-                  outline: none;
-                  touch-action: none;
-                }
-                .light-slider::-webkit-slider-thumb {
-                  -webkit-appearance: none;
-                  width: 18px;
-                  height: 18px;
-                  border-radius: 50%;
-                  background: white;
-                  border: 2px solid rgba(255,255,255,0.6);
-                  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-                  cursor: pointer;
-                }
-                .light-slider::-moz-range-thumb {
-                  width: 18px;
-                  height: 18px;
-                  border-radius: 50%;
-                  background: white;
-                  border: 2px solid rgba(255,255,255,0.6);
-                  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-                  cursor: pointer;
-                }
-              `}</style>
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-5">
-                  <div className="p-4 rounded-2xl" style={{backgroundColor: isUnavailable ? 'rgba(239, 68, 68, 0.1)' : 'rgba(217, 119, 6, 0.15)', color: isUnavailable ? '#ef4444' : '#fbbf24'}}>
-                    {(() => {
-                      let Icon = Lightbulb;
-                      if (showLightModal === LIGHT_KJOKKEN) Icon = Utensils;
-                      if (showLightModal === LIGHT_STOVA) Icon = Sofa;
-                      if (showLightModal === LIGHT_STUDIO) Icon = LampDesk;
-                      return isUnavailable ? <AlertTriangle className="w-8 h-8" /> : <Icon className="w-8 h-8" />;
-                    })()}
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">{String(getA(showLightModal, "friendly_name", t('common.light')))}</h3>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1.5 opacity-60">{isUnavailable ? t('status.unavailable') : t('status.lighting')}</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                   <button onClick={() => !isUnavailable && callService("light", "toggle", { entity_id: showLightModal })} className="w-12 h-12 rounded-full flex items-center justify-center transition-all border" style={{backgroundColor: isUnavailable ? 'var(--glass-bg)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.2)' : 'var(--glass-bg)'), borderColor: isUnavailable ? 'var(--glass-border)' : (entity?.state === 'on' ? 'rgba(217, 119, 6, 0.3)' : 'var(--glass-border)'), color: isUnavailable ? '#6b7280' : (entity?.state === 'on' ? '#fbbf24' : '#9ca3af'), cursor: isUnavailable ? 'not-allowed' : 'pointer'}}>
-                      {isUnavailable ? <AlertTriangle className="w-5 h-5" /> : <Zap className="w-5 h-5" fill={entity?.state === 'on' ? "currentColor" : "none"} />}
-                   </button>
-                   <button onClick={() => setShowLightModal(null)} className="modal-close"><X className="w-4 h-4" /></button>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                {showPills && (
-                  <div className="flex items-center gap-2 bg-[var(--glass-bg)] border border-[var(--glass-border)] p-1 rounded-full">
-                    <button
-                      onClick={() => setLightControlTab('brightness')}
-                      className={`flex-1 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === 'brightness' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
-                    >
-                      Lysstyrke
-                    </button>
-                    {supportsColorTemp && (
-                      <button
-                        onClick={() => setLightControlTab('warmth')}
-                        className={`flex-1 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === 'warmth' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
-                      >
-                        Varme
-                      </button>
-                    )}
-                    {supportsColor && (
-                      <button
-                        onClick={() => setLightControlTab('color')}
-                        className={`flex-1 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${activeTab === 'color' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
-                      >
-                        Farge
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {(!showPills || activeTab === 'brightness') && (
-                  <div className="space-y-3 min-h-[96px]">
-                    <div className="flex justify-between items-end px-1">
-                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Hovudstyrke</p>
-                      <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : (entity?.state === 'on' ? Math.round((((optimisticLightBrightness[showLightModal] ?? (getA(showLightModal, "brightness") || 0)) / 255) * 100)) : 0)}%</p>
-                    </div>
-                    <M3Slider min={0} max={255} step={1} value={optimisticLightBrightness[showLightModal] ?? (getA(showLightModal, "brightness") || 0)} disabled={entity?.state !== 'on' || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [showLightModal]: val })); callService("light", "turn_on", { entity_id: showLightModal, brightness: val }); }} colorClass="bg-amber-500" />
-                  </div>
-                )}
-
-                {showPills && activeTab === 'warmth' && supportsColorTemp && (
-                  <div className="space-y-3 min-h-[96px]">
-                    <div className="flex justify-between items-end px-1">
-                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Varme</p>
-                      <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : `${currentKelvin}K`}</p>
-                    </div>
-                    <input
-                      type="range"
-                      min={minKelvin}
-                      max={maxKelvin}
-                      step={50}
-                      value={currentKelvin}
-                      disabled={entity?.state !== 'on' || isUnavailable}
-                      onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, color_temp_kelvin: parseInt(e.target.value, 10) })}
-                      className="light-slider"
-                      style={{
-                        background: 'linear-gradient(90deg, #f59e0b 0%, #fde68a 50%, #93c5fd 100%)'
-                      }}
-                    />
-                  </div>
-                )}
-
-                {showPills && activeTab === 'color' && supportsColor && (
-                  <div className="space-y-3 min-h-[96px]">
-                    <div className="flex justify-between items-end px-1">
-                      <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>Farge</p>
-                      <p className="text-sm font-bold text-gray-300">{isUnavailable ? '--' : `${Math.round(currentHue)}°`}</p>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={360}
-                      step={1}
-                      value={currentHue}
-                      disabled={entity?.state !== 'on' || isUnavailable}
-                      onChange={(e) => callService("light", "turn_on", { entity_id: showLightModal, hs_color: [parseInt(e.target.value, 10), 100] })}
-                      className="light-slider"
-                      style={{
-                        background: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 16%, #facc15 32%, #22c55e 48%, #06b6d4 64%, #6366f1 80%, #d946ef 100%)'
-                      }}
-                    />
-                  </div>
-                )}
-
-                {getA(showLightModal, "entity_id", []).length > 0 && (
-                  <div className="space-y-4 pt-6 border-t" style={{borderColor: 'var(--glass-border)'}}>
-                    <p className="text-xs text-gray-400 uppercase font-bold ml-1 mb-2" style={{letterSpacing: '0.2em'}}>{t('light.roomLights')}</p>
-                    <div className="grid grid-cols-1 gap-3">
-                      {getA(showLightModal, "entity_id", []).map(cid => {
-                        const subEnt = entities[cid];
-                        const subUnavail = subEnt?.state === 'unavailable' || subEnt?.state === 'unknown' || !subEnt;
-                        return (
-                        <div key={cid} className={`px-3 py-2 rounded-xl bg-[var(--glass-bg)]/20 flex items-center gap-3 transition-all ${subUnavail ? 'opacity-50' : 'hover:bg-[var(--glass-bg)]/35'}`}>
-                          <span className="text-xs font-bold uppercase tracking-widest text-gray-300 w-1/3 truncate">{subEnt?.attributes?.friendly_name || cid.split('.')[1].replace(/_/g, ' ')}</span>
-                          <div className="flex-grow">
-                            <M3Slider min={0} max={255} step={1} value={(optimisticLightBrightness[cid] ?? (subEnt?.attributes?.brightness || 0))} disabled={subEnt?.state !== 'on' || subUnavail} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [cid]: val })); callService("light", "turn_on", { entity_id: cid, brightness: val }); }} colorClass="bg-amber-500" />
-                          </div>
-                          <button onClick={() => !subUnavail && callService("light", "toggle", { entity_id: cid })} className="w-10 h-6 rounded-full relative transition-all flex-shrink-0" style={{backgroundColor: subUnavail ? 'var(--glass-bg)' : (subEnt?.state === 'on' ? 'rgba(217, 119, 6, 0.4)' : 'var(--glass-bg)'), cursor: subUnavail ? 'not-allowed' : 'pointer'}}>
-                            <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all" style={{left: subEnt?.state === 'on' ? 'calc(100% - 4px - 16px)' : '4px', backgroundColor: subUnavail ? '#6b7280' : (subEnt?.state === 'on' ? '#fbbf24' : '#9ca3af')}} />
-                          </button>
-                        </div>
-                      )})}
-                    </div>
-                  </div>
-                )}
-              </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        )}
+        <LightModal
+          show={!!showLightModal}
+          onClose={() => setShowLightModal(null)}
+          lightId={showLightModal}
+          entities={entities}
+          callService={callService}
+          getA={getA}
+          optimisticLightBrightness={optimisticLightBrightness}
+          setOptimisticLightBrightness={setOptimisticLightBrightness}
+          customIcons={customIcons}
+          t={t}
+        />
 
 
 
@@ -3554,202 +2923,49 @@ export default function App() {
           );
         })()}
 
-        {showRockyModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowRockyModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowRockyModal(false)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-              
-              <div className="flex items-center gap-6 mb-10">
-                <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa'}}><Bot className="w-10 h-10" /></div>
-                <div>
-                  <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Rocky</h3>
-                  <p className="text-xs text-gray-500 uppercase font-bold mt-2" style={{letterSpacing: '0.1em'}}>{t('status.statusLabel')}: {entities[ROCKY_ID]?.state}</p>
-                </div>
-              </div>
+        <RockyModal
+          show={showRockyModal}
+          onClose={() => setShowRockyModal(false)}
+          entities={entities}
+          callService={callService}
+          getA={getA}
+          t={t}
+          constants={{ ROCKY_ID, ROCKY_ROOM_ID }}
+        />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="p-8 rounded-3xl popup-surface">
-                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>{t('rocky.lastCleaned')}</p>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{getA(ROCKY_ID, "squareMeterCleanArea", 0)}</span><span className="text-gray-500 font-medium">m²</span></div>
-                  <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">Tid: {Math.round(getA(ROCKY_ID, "cleanTime", 0) / 60)} min</p>
-                </div>
-                <div className="p-8 rounded-3xl popup-surface flex flex-col justify-center gap-4">
-                   <button onClick={() => callService("vacuum", entities[ROCKY_ID]?.state === "cleaning" ? "pause" : "start", { entity_id: ROCKY_ID })} className="w-full py-4 rounded-2xl bg-blue-500/20 text-blue-400 font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-2">{entities[ROCKY_ID]?.state === "cleaning" ? <><Pause className="w-4 h-4" /> {t('rocky.pause')}</> : <><Play className="w-4 h-4" /> {t('rocky.start')}</>}</button>
-                   <div className="flex gap-4">
-                     <button onClick={() => callService("vacuum", "return_to_base", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><Home className="w-4 h-4" /> {t('rocky.home')}</button>
-                     <button onClick={() => callService("vacuum", "locate", { entity_id: ROCKY_ID })} className="flex-1 py-4 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] font-bold uppercase tracking-widest hover:bg-[var(--glass-bg-hover)] transition-colors flex items-center justify-center gap-2"><MapPin className="w-4 h-4" /> {t('rocky.find')}</button>
-                   </div>
-                </div>
-              </div>
+        <LeafModal
+          show={showLeafModal}
+          onClose={() => setShowLeafModal(false)}
+          entities={entities}
+          callService={callService}
+          getS={getS}
+          getA={getA}
+          t={t}
+          constants={{
+            LEAF_ID,
+            LEAF_CLIMATE,
+            LEAF_LOCATION,
+            LEAF_CHARGING,
+            LEAF_PLUGGED,
+            LEAF_RANGE,
+            LEAF_INTERNAL_TEMP,
+            LEAF_LAST_UPDATED,
+            LEAF_UPDATE
+          }}
+        />
 
-              <div className="space-y-6">
-                 <ModernDropdown label={t('rocky.suction')} icon={Fan} options={getA(ROCKY_ID, "fan_speed_list", [])} current={getA(ROCKY_ID, "fan_speed")} onChange={(val) => callService("vacuum", "set_fan_speed", { entity_id: ROCKY_ID, fan_speed: val })} placeholder={t('dropdown.noneSelected')} />
-                 {getA(ROCKY_ID, "mop_intensity_list") && (
-                   <ModernDropdown label={t('rocky.mopIntensity')} icon={Droplets} options={getA(ROCKY_ID, "mop_intensity_list", [])} current={getA(ROCKY_ID, "mop_intensity")} onChange={(val) => callService("vacuum", "send_command", { entity_id: ROCKY_ID, command: "set_mop_mode", params: { mop_mode: val } })} placeholder={t('dropdown.noneSelected')} />
-                 )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showLeafModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowLeafModal(false)}>
-            <div className="border w-full max-w-4xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[85vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
-                <div className="flex items-center gap-6">
-                  <div className="p-6 rounded-3xl" style={{backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e'}}><Car className="w-10 h-10" /></div>
-                  <div>
-                    <h3 className="text-4xl font-light tracking-tight text-[var(--text-primary)] uppercase italic">Nissan Leaf</h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Clock className="w-3 h-3 text-gray-500" />
-                      <p className="text-xs text-gray-500 uppercase font-bold" style={{letterSpacing: '0.1em'}}>{t('common.updated')}: {formatRelativeTime(entities[LEAF_LAST_UPDATED]?.state, t)}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => callService("button", "press", { entity_id: LEAF_UPDATE })}
-                    className="flex items-center gap-3 px-6 py-3 rounded-2xl font-bold uppercase tracking-widest transition-all hover:bg-white/5 active:scale-95" 
-                    style={{backgroundColor: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)'}}
-                  >
-                    <RefreshCw className="w-4 h-4" /> {t('leaf.update')}
-                  </button>
-                  <button onClick={() => setShowLeafModal(false)} className="modal-close"><X className="w-4 h-4" /></button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="p-8 rounded-3xl popup-surface">
-                  <div className="flex justify-between items-start mb-3">
-                    <p className="text-xs text-gray-400 uppercase font-bold" style={{letterSpacing: '0.2em'}}>{t('leaf.battery')}</p>
-                    {entities[LEAF_CHARGING]?.state === 'on' && <Zap className="w-4 h-4 text-yellow-400 animate-pulse" />}
-                  </div>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_ID))}</span><span className="text-gray-500 font-medium">%</span></div>
-                  <p className="text-xs text-gray-500 mt-2 font-medium opacity-60">{entities[LEAF_PLUGGED]?.state === 'on' ? t('leaf.pluggedIn') : t('leaf.unplugged')}</p>
-                </div>
-                <div className="p-8 rounded-3xl popup-surface">
-                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>{t('leaf.range')}</p>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_RANGE))}</span><span className="text-gray-500 font-medium">km</span></div>
-                </div>
-                <div className="p-8 rounded-3xl popup-surface">
-                  <p className="text-xs text-gray-400 uppercase font-bold mb-3" style={{letterSpacing: '0.2em'}}>{t('leaf.tempInside')}</p>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-light italic text-[var(--text-primary)]">{String(getS(LEAF_INTERNAL_TEMP))}</span><span className="text-gray-500 font-medium">°C</span></div>
-                </div>
-                 <div className="p-6 rounded-3xl popup-surface flex flex-col justify-between" 
-                   style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)'}}
-                 >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-xs uppercase font-bold" style={{letterSpacing: '0.2em', color: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fb923c' : '#9ca3af'}}>{t('leaf.climate')}</p>
-                      <p className="text-2xl font-light italic text-[var(--text-primary)] mt-1">{entities[LEAF_CLIMATE]?.state === 'heat_cool' ? t('common.on') : t('common.off')}</p>
-                    </div>
-                    <button onClick={() => callService("climate", entities[LEAF_CLIMATE]?.state === 'heat_cool' ? "turn_off" : "turn_on", { entity_id: LEAF_CLIMATE })} className="w-12 h-7 rounded-full relative transition-all" style={{backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'rgba(249, 115, 22, 0.4)' : 'rgba(255,255,255,0.1)'}}>
-                      <div className="absolute top-1 w-5 h-5 rounded-full bg-white transition-all" style={{left: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'calc(100% - 5px - 20px)' : '4px', backgroundColor: entities[LEAF_CLIMATE]?.state === 'heat_cool' ? '#fbbf24' : '#9ca3af'}} />
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-end">
-                       <p className="text-[10px] uppercase font-bold opacity-60">{t('leaf.target')}: {getA(LEAF_CLIMATE, "temperature", 20)}°C</p>
-                    </div>
-                    <M3Slider min={16} max={30} step={0.5} value={getA(LEAF_CLIMATE, "temperature") || 20} onChange={(e) => callService("climate", "set_temperature", { entity_id: LEAF_CLIMATE, temperature: parseFloat(e.target.value) })} colorClass={entities[LEAF_CLIMATE]?.state === 'heat_cool' ? 'bg-orange-500' : 'bg-white/20'} />
-                  </div>
-                </div>
-              </div>
-
-              {getA(LEAF_LOCATION, "latitude") && getA(LEAF_LOCATION, "longitude") && (
-                <div className="w-full h-64 rounded-3xl overflow-hidden relative group popup-surface">
-                  <iframe 
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
-                    scrolling="no" 
-                    marginHeight="0" 
-                    marginWidth="0" 
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${getA(LEAF_LOCATION, "longitude")-0.005}%2C${getA(LEAF_LOCATION, "latitude")-0.005}%2C${getA(LEAF_LOCATION, "longitude")+0.005}%2C${getA(LEAF_LOCATION, "latitude")+0.005}&layer=mapnik&marker=${getA(LEAF_LOCATION, "latitude")}%2C${getA(LEAF_LOCATION, "longitude")}`} 
-                    style={{filter: 'invert(0.9) grayscale(0.8) contrast(1.2) brightness(0.8)'}}
-                    className="opacity-60 group-hover:opacity-100 transition-opacity duration-500"
-                  ></iframe>
-                  <div className="absolute bottom-4 left-4 px-4 py-2 rounded-xl backdrop-blur-md bg-black/60 popup-surface flex items-center gap-2 pointer-events-none">
-                    <MapPin className="w-3 h-3 text-blue-400" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-white">{t('map.lastSeenHere')}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {showUpdateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }}>
-            <div className="border w-full max-w-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl relative font-sans max-h-[85vh] overflow-y-auto backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setShowUpdateModal(false); setExpandedUpdate(null); }} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-              <h3 className="text-3xl font-light mb-8 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('updates.title')}</h3>
-              
-              <div className="space-y-4">
-                {Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on').map(id => {
-                    const entity = entities[id];
-                    const attr = entity.attributes;
-                    const picture = getEntityImageUrl(attr.entity_picture);
-                    const inProgress = attr.in_progress;
-                    const isExpanded = expandedUpdate === id;
-                    
-                    return (
-                        <div key={id} className="rounded-3xl overflow-hidden transition-all duration-300 popup-surface">
-                            <div 
-                                className="p-4 flex flex-col md:flex-row items-center gap-4 cursor-pointer"
-                                onClick={() => {
-                                    if (isExpanded) setExpandedUpdate(null);
-                                    else {
-                                        setExpandedUpdate(id);
-                                        fetchReleaseNotes(id);
-                                    }
-                                }}
-                            >
-                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0">
-                                    {picture ? <img src={picture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><RefreshCw className="w-6 h-6 text-[var(--text-secondary)]" /></div>}
-                                </div>
-                                <div className="flex-grow text-center md:text-left">
-                                    <h4 className="text-base font-bold text-[var(--text-primary)]">{attr.title || attr.friendly_name}</h4>
-                                    <div className="flex items-center justify-center md:justify-start gap-2 mt-0.5 text-xs">
-                                        <span className="text-[var(--text-secondary)]">{attr.installed_version}</span>
-                                        <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
-                                        <span className="text-green-400 font-bold">{attr.latest_version}</span>
-                                    </div>
-                                    {!isExpanded && attr.release_summary && <p className="text-[10px] text-[var(--text-muted)] mt-1 line-clamp-1">{attr.release_summary}</p>}
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); callService("update", "install", { entity_id: id }); }}
-                                        disabled={inProgress}
-                                        className={`px-4 py-2 rounded-lg font-bold uppercase tracking-widest text-[10px] transition-all ${inProgress ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20'}`}
-                                    >
-                                        {inProgress ? t('updates.updating') : t('updates.update')}
-                                    </button>
-                                    <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
-                                </div>
-                            </div>
-                            
-                            {isExpanded && (
-                                <div className="px-4 pb-4 pt-0 border-t border-[var(--glass-border)]">
-                                    <div className="pt-3 text-xs text-[var(--text-secondary)] leading-relaxed" dangerouslySetInnerHTML={{ __html: parseMarkdown(releaseNotes[id] || attr.release_summary || t('updates.noDetails')) }} />
-                                    {attr.release_url && (
-                                        <a href={attr.release_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 mt-3 text-blue-400 hover:text-blue-300 text-[10px] font-bold uppercase tracking-widest" onClick={(e) => e.stopPropagation()}>
-                                            Les meir <ArrowRight className="w-3 h-3" />
-                                        </a>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-                {Object.keys(entities).filter(id => id.startsWith('update.') && entities[id].state === 'on').length === 0 && (
-                    <p className="text-center text-[var(--text-secondary)] py-10">{t('updates.none')}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <UpdateModal
+          show={showUpdateModal}
+          onClose={() => setShowUpdateModal(false)}
+          entities={entities}
+          callService={callService}
+          getEntityImageUrl={getEntityImageUrl}
+          expandedUpdate={expandedUpdate}
+          setExpandedUpdate={setExpandedUpdate}
+          releaseNotes={releaseNotes}
+          fetchReleaseNotes={fetchReleaseNotes}
+          t={t}
+        />
 
         {showAddCardModal && (
           <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowAddCardModal(false)}>
@@ -4192,7 +3408,7 @@ export default function App() {
           t={t}
           editingPage={editingPage}
           pageSettings={pageSettings}
-          setPageSettings={setPageSettings}
+          savePageSetting={savePageSetting}
           pageDefaults={pageDefaults}
           onDelete={deletePage}
         />
@@ -4244,279 +3460,58 @@ export default function App() {
           t={t}
         />
 
-        {showCameraModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setShowCameraModal(false)}>
-            <div className="border w-full max-w-4xl rounded-[3rem] p-4 shadow-2xl relative font-sans overflow-hidden backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowCameraModal(false)} className="absolute top-6 right-6 modal-close modal-close-dark z-10" style={{backdropFilter: 'blur(10px)'}}><X className="w-4 h-4" /></button>
-              <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden bg-black relative">
-                 {entities[CAMERA_PORTEN_ID] ? (
-                   <img src={getEntityImageUrl(entities[CAMERA_PORTEN_ID].attributes.entity_picture)} alt={t('camera.gateAlt')} className="w-full h-full object-cover" />
-                 ) : (
-                   <div className="w-full h-full flex items-center justify-center text-gray-500">{t('camera.unavailable')}</div>
-                 )}
-                 <div className="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black/80 to-transparent">
-                    <h3 className="text-2xl font-bold text-white">{t('camera.gate')}</h3>
-                    <p className="text-sm text-gray-400">{t('camera.live')}</p>
-                 </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <CameraModal
+          show={showCameraModal}
+          onClose={() => setShowCameraModal(false)}
+          entities={entities}
+          getEntityImageUrl={getEntityImageUrl}
+          t={t}
+          cameraEntityId={CAMERA_PORTEN_ID}
+        />
 
-        {activeMediaModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={() => setActiveMediaModal(null)}>
-            <div className="w-full max-w-5xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative max-h-[95vh] overflow-y-auto md:overflow-hidden flex flex-col md:flex-row gap-6 md:gap-12 border backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setActiveMediaModal(null)} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close z-20"><X className="w-4 h-4" /></button>
-              
-              {(() => {
-                const isSonos = activeMediaModal === 'sonos';
-                const allMediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.'));
-                const fallbackId = allMediaIds.map(id => entities[id]).find(isMediaActive)?.entity_id;
-                const groupSettings = activeMediaGroupKey ? cardSettings[activeMediaGroupKey] : null;
-                const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
-                const isEmbyGroup = !isSonos && activeMediaGroupKey === '__emby__';
-                const groupIds = isEmbyGroup
-                  ? embyIds
-                  : (Array.isArray(groupSettings?.mediaIds) ? groupSettings.mediaIds : []);
-                const mediaIds = isSonos ? SONOS_IDS : (groupIds.length > 0 ? groupIds : (activeMediaId ? [activeMediaId] : (fallbackId ? [fallbackId] : [])));
-                const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
-                const isAllSonos = !isSonos && mediaEntities.length > 0 && mediaEntities.every(p => p.entity_id.startsWith('media_player.sonos'));
-                const isGenericMedia = !isSonos && !isEmbyGroup;
-                const treatAsSonos = isSonos || isAllSonos;
-                
-                // For Sonos viser vi alle, for andre: berre valde spelarar
-                const listPlayers = mediaEntities
-                  .filter((p) => (isEmbyGroup ? isMediaActive(p) : true))
-                  .slice()
-                  .sort((a, b) => {
-                    const aActive = treatAsSonos ? isSonosActive(a) : isMediaActive(a);
-                    const bActive = treatAsSonos ? isSonosActive(b) : isMediaActive(b);
-                    if (aActive !== bActive) return aActive ? -1 : 1;
-                    return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
-                  });
-                
-                let currentMp = mediaEntities.find(e => e.entity_id === activeMediaId);
-                if (!currentMp) {
-                    // Fallback logic
-                    const activePlayers = mediaEntities.filter(e => treatAsSonos ? isSonosActive(e) : isMediaActive(e));
-                    if (activePlayers.length > 0) currentMp = activePlayers[0];
-                    else currentMp = mediaEntities[0];
-                }
-                
-                if (!currentMp) return <div className="text-[var(--text-primary)]">{t('media.noPlayerFound')}</div>;
-
-                const mpId = currentMp.entity_id;
-                const mpState = currentMp.state;
-                const isLydplanke = mpId === 'media_player.sonos_lydplanke';
-                const isTV = isLydplanke && (currentMp.attributes?.source === 'TV' || currentMp.attributes?.media_title === 'TV');
-                const contentType = getA(mpId, 'media_content_type');
-                const isChannel = contentType === 'channel' || isTV;
-                const isPlaying = mpState === 'playing';
-                
-                let mpTitle = getA(mpId, 'media_title');
-                if (isTV) mpTitle = t('media.tvAudio');
-                
-                const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
-                const mpFriendlyName = getA(mpId, 'friendly_name', '');
-                const activeSession = Array.isArray(sessions) ? sessions.find(s => s.device_name && mpFriendlyName.toLowerCase().includes(s.device_name.toLowerCase())) : null;
-                const activeUser = activeSession?.user_name;
-
-                let mpSeries = getA(mpId, 'media_series_title');
-                if (contentType === 'episode') {
-                     const season = getA(mpId, 'media_season');
-                     if (mpSeries && season) mpSeries = `${mpSeries} • ${season}`;
-                     else if (!mpSeries && season) mpSeries = season;
-                }
-                if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
-                if (isTV) mpSeries = t('media.livingRoom');
-
-                const mpApp = getA(mpId, 'app_name');
-                const mpPicture = !isTV ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
-                const duration = getA(mpId, 'media_duration');
-                const position = getA(mpId, 'media_position');
-                const serverInfo = getServerInfo(mpId);
-                const ServerIcon = serverInfo.icon;
-                const isMidttunet = mpId.includes('midttunet');
-                const serverLabel = isGenericMedia ? t('addCard.type.media') : (isMidttunet ? 'Jellyfin' : 'Emby');
-                const ServerBadgeIcon = isGenericMedia ? Music : (isMidttunet ? JellyfinLogo : EmbyLogo);
-                const groupCardId = (!isEmbyGroup && activeMediaGroupKey && activeMediaGroupKey.includes('::'))
-                  ? activeMediaGroupKey.split('::').slice(1).join('::')
-                  : null;
-                const popupHeading = (isGenericMedia && groupCardId && customNames[groupCardId])
-                  ? customNames[groupCardId]
-                  : serverLabel;
-                
-                // Sonos spesifikke attributter
-                const volume = getA(mpId, 'volume_level', 0);
-                const isMuted = getA(mpId, 'is_volume_muted', false);
-                const shuffle = getA(mpId, 'shuffle', false);
-                const repeat = getA(mpId, 'repeat', 'off');
-                const rawMembers = getA(mpId, 'group_members');
-                const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
-                const canGroup = treatAsSonos;
-
-                return (
-                  <>
-                    <div className="flex-1 flex flex-col justify-center relative z-10">
-                      {!treatAsSonos && (
-                        <h3 className="text-sm font-bold uppercase tracking-[0.25em] text-gray-500 mb-4">{popupHeading}</h3>
-                      )}
-                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start mb-8 ${treatAsSonos ? 'bg-[var(--glass-bg)] border-[var(--glass-border)]' : (isGenericMedia ? 'bg-blue-500/10 border-blue-500/20' : (serverInfo.bg + ' ' + serverInfo.border))}`}>
-                        {treatAsSonos ? <Music className="w-4 h-4 text-[var(--text-primary)]" /> : <ServerBadgeIcon className={`w-4 h-4 ${isGenericMedia ? 'text-blue-400' : serverInfo.color}`} />}
-                        <span className={`text-xs font-bold uppercase tracking-widest ${treatAsSonos ? 'text-[var(--text-primary)]' : (isGenericMedia ? 'text-blue-400' : serverInfo.color)}`}>{treatAsSonos ? 'SONOS' : serverLabel}</span>
-                      </div>
-
-                      <div className="flex flex-col gap-6">
-                        <div className={`${(isSonos || isGenericMedia) ? 'h-64 w-64 mx-auto' : 'aspect-video w-full'} rounded-3xl overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--glass-bg)] relative group`}>
-                          {mpPicture ? <img src={mpPicture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
-                          <div className="absolute bottom-0 left-0 w-full p-8">
-                             {activeUser ? (
-                               <div className="flex items-center gap-2 mb-2">
-                                 <p className="text-sm font-bold uppercase tracking-widest text-blue-400 truncate">{activeUser}</p>
-                                 <span className="text-white/40 text-xs">•</span>
-                                 <p className="text-sm font-bold uppercase tracking-widest text-gray-400 truncate">{mpApp || 'Media'}</p>
-                               </div>
-                             ) : (
-                               <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-2">{mpApp || 'Media'}</p>
-                             )}
-                             <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || t('common.unknown')}</h2>
-                             <p className="text-xl text-gray-300 font-medium">{mpSeries}</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4 mt-6">
-                          <div className="flex items-center justify-between text-xs font-bold text-gray-500 tracking-widest px-1">
-                            <span>{formatDuration(position)}</span>
-                            <span>{formatDuration(duration)}</span>
-                          </div>
-                          <M3Slider variant="thin" min={0} max={duration || 100} step={1} value={position || 0} disabled={!duration} onChange={(e) => callService("media_player", "media_seek", { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
-                          
-                          {isSonos ? (
-                            <div className="flex flex-col gap-4 pt-2">
-                              <div className="flex items-center justify-center gap-6">
-                                <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-4 h-4" /></button>
-                                
-                                <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-[var(--text-secondary)]" /></button>
-                                <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-3 rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
-                                  {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
-                                </button>
-                                <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-[var(--text-secondary)]" /></button>
-                                
-                                <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                                  {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
-                                </button>
-                              </div>
-                              
-                              <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
-                                <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                                    {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
-                                </button>
-                                <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-4 pt-2">
-                              <div className="flex items-center justify-center gap-8">
-                                <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-[var(--text-secondary)]" /></button>
-                                <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
-                                  {isPlaying ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current ml-1" />}
-                                </button>
-                                <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-[var(--text-secondary)]" /></button>
-                              </div>
-                              <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
-                                <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                                    {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
-                                </button>
-                                <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-[var(--glass-border)] pt-6 md:pt-24 pl-0 md:pl-12 flex flex-col gap-6 overflow-y-auto">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{(isSonos || isAllSonos) ? t('media.group.sonosPlayers') : (isEmbyGroup ? t('media.group.activePlayers') : t('media.group.selectedPlayers'))}</h3>
-                        {canGroup && listPlayers.length > 1 && (
-                          <button 
-                            onClick={() => {
-                              const allIds = listPlayers.map(p => p.entity_id);
-                              const unjoined = allIds.filter(id => !groupMembers.includes(id));
-                              if (unjoined.length > 0) {
-                                callService("media_player", "join", { entity_id: mpId, group_members: unjoined });
-                              } else {
-                                const others = groupMembers.filter(id => id !== mpId);
-                                others.forEach(id => callService("media_player", "unjoin", { entity_id: id }));
-                              }
-                            }}
-                            className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-white transition-colors"
-                          >
-                            {listPlayers.every(p => groupMembers.includes(p.entity_id)) ? t('sonos.ungroupAll') : t('sonos.groupAll')}
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-4">
-                        {listPlayers.length === 0 && <p className="text-gray-600 italic text-sm">{t('media.noPlayersFound')}</p>}
-                        {listPlayers.map((p, idx) => {
-                          const pPic = getEntityImageUrl(p.attributes?.entity_picture);
-                           const isSelected = p.entity_id === mpId;
-                           const isMember = groupMembers.includes(p.entity_id);
-                           const isSelf = p.entity_id === mpId;
-                           const isActivePlayer = treatAsSonos ? isSonosActive(p) : isMediaActive(p);
-                           const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
-                           const pUser = (() => {
-                             const s = Array.isArray(sessions) ? sessions.find(s => s.device_name && (p.attributes?.friendly_name || '').toLowerCase().includes(s.device_name.toLowerCase())) : null;
-                             return s?.user_name || '';
-                           })();
-
-                           return (
-                             <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'} ${isActivePlayer ? '' : 'opacity-70'}`}>
-                               <button onClick={() => setActiveMediaId(p.entity_id)} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
-                                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
-                                 {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isSonos ? <Speaker className="w-5 h-5 text-gray-600" /> : <Music className="w-5 h-5 text-gray-600" />}</div>}
-                                 {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
-                               </div>
-                               <div className="overflow-hidden">
-                                 <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
-                                 <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
-                                 {pUser && <p className="text-[10px] text-gray-500 truncate">{pUser}</p>}
-                               </div>
-                               </button>
-                               {canGroup && !isSelf && (
-                                 <button 
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     if (isMember) {
-                                       callService("media_player", "unjoin", { entity_id: p.entity_id });
-                                     } else {
-                                       callService("media_player", "join", { entity_id: mpId, group_members: [p.entity_id] });
-                                     }
-                                   }}
-                                   className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                                   title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
-                                 >
-                                   {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                                 </button>
-                               )}
-                               {canGroup && isSelf && groupMembers.length > 1 && (
-                                 <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title="Linka">
-                                   <Link className="w-4 h-4" />
-                                 </div>
-                               )}
-                             </div>
-                           );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        )}
+        <MediaModal
+          show={!!activeMediaModal}
+          onClose={() => setActiveMediaModal(null)}
+          activeMediaModal={activeMediaModal}
+          activeMediaGroupKey={activeMediaGroupKey}
+          activeMediaId={activeMediaId}
+          setActiveMediaId={setActiveMediaId}
+          entities={entities}
+          cardSettings={cardSettings}
+          customNames={customNames}
+          mediaTick={mediaTick}
+          callService={callService}
+          getA={getA}
+          getEntityImageUrl={getEntityImageUrl}
+          isMediaActive={isMediaActive}
+          isSonosActive={isSonosActive}
+          t={t}
+          formatDuration={formatDuration}
+          getServerInfo={getServerInfo}
+          EmbyLogo={EmbyLogo}
+          JellyfinLogo={JellyfinLogo}
+          SONOS_IDS={SONOS_IDS}
+          BIBLIOTEK_SESSIONS_ID={BIBLIOTEK_SESSIONS_ID}
+        />
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  const { config } = useConfig();
+  const [showOnboarding, setShowOnboarding] = useState(() => !config.token);
+
+  const haConfig = showOnboarding
+    ? { ...config, token: '' }
+    : config;
+
+  return (
+    <HomeAssistantProvider config={haConfig}>
+      <AppContent
+        showOnboarding={showOnboarding}
+        setShowOnboarding={setShowOnboarding}
+      />
+    </HomeAssistantProvider>
   );
 }

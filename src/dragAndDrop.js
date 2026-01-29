@@ -2,6 +2,7 @@ export const createDragAndDropHandlers = ({
   editMode,
   pagesConfig,
   setPagesConfig,
+  persistConfig,
   activePage,
   dragSourceRef,
   touchTargetRef,
@@ -13,7 +14,11 @@ export const createDragAndDropHandlers = ({
   setDraggingId,
   ignoreTouchRef
 }) => {
-  const persistConfig = (newConfig) => {
+  const saveConfig = (newConfig) => {
+    if (typeof persistConfig === 'function') {
+      persistConfig(newConfig);
+      return;
+    }
     setPagesConfig(newConfig);
     localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
   };
@@ -90,7 +95,7 @@ export const createDragAndDropHandlers = ({
     });
 
     dragSourceRef.current = source;
-    persistConfig(newConfig);
+    saveConfig(newConfig);
     if (navigator.vibrate) navigator.vibrate(10);
   };
 
@@ -136,7 +141,7 @@ export const createDragAndDropHandlers = ({
       targetColIndex
     });
 
-    persistConfig(newConfig);
+    saveConfig(newConfig);
     if (navigator.vibrate) navigator.vibrate(20);
   };
 
@@ -191,7 +196,7 @@ export const createDragAndDropHandlers = ({
         newConfig[activePage] = currentList;
       }
 
-      persistConfig(newConfig);
+      saveConfig(newConfig);
       setDraggingId(null);
     },
     onTouchStart: (e) => {
