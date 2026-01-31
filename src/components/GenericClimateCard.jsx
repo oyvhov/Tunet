@@ -1,5 +1,5 @@
 import { Minus, Plus, AirVent, Snowflake, Fan } from 'lucide-react';
-import { ICON_MAP } from '../iconMap';
+import { getIconComponent } from '../iconMap';
 
 const isCoolingState = (entity) => {
   const action = entity?.attributes?.hvac_action;
@@ -40,7 +40,8 @@ export default function GenericClimateCard({
     || entity.attributes?.friendly_name
     || entityId;
 
-  const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : null;
+  const climateIconName = customIcons[cardId] || entity?.attributes?.icon;
+  const Icon = climateIconName ? getIconComponent(climateIconName) : null;
 
   const translate = t || ((key) => key);
   const isCooling = isCoolingState(entity);

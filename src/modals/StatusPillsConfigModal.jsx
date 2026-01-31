@@ -3,7 +3,7 @@ import {
   X, Plus, Trash2, Edit2, Eye, EyeOff, GripVertical, Check,
   ChevronDown, ChevronUp
 } from '../icons';
-import { ICON_MAP } from '../iconMap';
+import { ALL_ICON_KEYS, getIconComponent } from '../iconMap';
 import ModernDropdown from '../components/ModernDropdown';
 
 /**
@@ -96,7 +96,7 @@ export default function StatusPillsConfigModal({
 
   const entityOptions = Object.keys(entities).sort();
   
-  const filteredIcons = Object.keys(ICON_MAP).filter(name =>
+  const filteredIcons = ALL_ICON_KEYS.filter(name =>
     name.toLowerCase().includes(iconSearch.toLowerCase())
   );
 
@@ -148,7 +148,7 @@ export default function StatusPillsConfigModal({
             
             <div className="space-y-2">
               {pills.map((pill, idx) => {
-                const Icon = ICON_MAP[pill.icon] || ICON_MAP.Activity;
+                const Icon = getIconComponent(pill.icon) || getIconComponent('Activity');
                 const entity = entities[pill.entityId];
                 const isEditing = editingPill === pill.id;
                 
@@ -221,7 +221,7 @@ export default function StatusPillsConfigModal({
               const pill = pills.find(p => p.id === editingPill);
               if (!pill) return null;
               
-              const Icon = ICON_MAP[pill.icon] || ICON_MAP.Activity;
+              const Icon = getIconComponent(pill.icon) || getIconComponent('Activity');
               
               return (
                 <div className="space-y-4">
@@ -426,7 +426,7 @@ export default function StatusPillsConfigModal({
                           />
                           <div className="grid grid-cols-6 gap-2">
                             {filteredIcons.slice(0, 60).map(iconName => {
-                              const IconComp = ICON_MAP[iconName];
+                              const IconComp = getIconComponent(iconName);
                               return (
                                 <button
                                   key={iconName}

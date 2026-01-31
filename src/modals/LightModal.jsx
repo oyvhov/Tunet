@@ -1,6 +1,6 @@
 import { X, AlertTriangle, Lightbulb, Zap, Utensils, Sofa, LampDesk } from '../icons';
 import M3Slider from '../components/M3Slider';
-import { ICON_MAP } from '../iconMap';
+import { getIconComponent } from '../iconMap';
 
 /**
  * LightModal - Modal for controlling lights with brightness, warmth, and color
@@ -44,7 +44,8 @@ export default function LightModal({
   else if (lightId.includes('stova') || lightId.includes('living')) DefaultIcon = Sofa;
   else if (lightId.includes('studio') || lightId.includes('office')) DefaultIcon = LampDesk;
   
-  const LightIcon = customIcons[lightId] ? ICON_MAP[customIcons[lightId]] : DefaultIcon;
+  const lightIconName = customIcons[lightId] || entities[lightId]?.attributes?.icon;
+  const LightIcon = lightIconName ? (getIconComponent(lightIconName) || DefaultIcon) : DefaultIcon;
 
   // State for active tab
   const [lightControlTab, setLightControlTab] = React.useState('brightness');

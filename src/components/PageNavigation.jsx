@@ -1,5 +1,5 @@
 import { Plus, Edit2 } from '../icons';
-import { ICON_MAP } from '../iconMap';
+import { getIconComponent } from '../iconMap';
 
 /**
  * PageNavigation - Navigation component for switching between pages
@@ -30,7 +30,7 @@ export default function PageNavigation({
         const settings = pageSettings[page.id] || {};
         const label = settings.label || page.label;
         const isHidden = settings.hidden;
-        const Icon = settings.icon ? ICON_MAP[settings.icon] : page.icon;
+        const Icon = settings.icon ? (getIconComponent(settings.icon) || page.icon) : page.icon;
         
         if (!editMode && isHidden) return null;
         
@@ -46,7 +46,7 @@ export default function PageNavigation({
           >
             <Icon className="w-4 h-4" />
             <span className="hidden sm:inline">{label}</span>
-            {editMode && <Edit2 className="w-4 h-4 ml-1 text-blue-400 hidden sm:inline animate-pulse" />}
+            {editMode && <Edit2 className="w-4 h-4 ml-1 text-blue-400 hidden sm:inline" />}
           </button>
         );
       })}

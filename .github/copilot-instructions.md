@@ -22,6 +22,7 @@
 - **Hooks**: `useEnergyData(entity, now)` expects a single entity object (not the whole `entities`).
 - **Icons**: store icon names in localStorage and map via [src/iconMap.js](../src/iconMap.js).
 - **i18n**: keys live in [src/i18n/en.json](../src/i18n/en.json) and [src/i18n/nn.json](../src/i18n/nn.json) (barrel at [src/i18n/index.js](../src/i18n/index.js)).
+- **UI**: keep car-mapping sensor boxes minimal (smaller padding, smaller radius, no flashy hover) across themes.
 
 ## LocalStorage keys (prefix `midttunet_*`)
 - `midttunet_pages_config`, `midttunet_card_settings`, `midttunet_hidden_cards`, `midttunet_custom_names`, `midttunet_custom_icons`, `midttunet_grid_columns`, `midttunet_theme`, `midttunet_language`, `midttunet_inactivity_timeout`.

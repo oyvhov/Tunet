@@ -172,7 +172,7 @@ import {
   MediaModal,
   NordpoolModal,
   PersonModal,
-  RockyModal,
+  VacuumModal,
   SensorModal,
   StatusPillsConfigModal,
   UpdateModal
@@ -190,7 +190,7 @@ import {
 import { themes } from './themes';
 import { useEnergyData } from './hooks';
 import { formatDuration } from './utils';
-import { ICON_MAP } from './iconMap';
+import { getIconComponent } from './iconMap';
 import { buildOnboardingSteps, validateUrl } from './onboarding';
 import { callService as haCallService, getForecast, getHistory, getStatistics } from './services';
 import { createDragAndDropHandlers } from './dragAndDrop';
@@ -208,8 +208,6 @@ import {
   EILEV_DOOR_ID,
   OLVE_DOOR_ID,
   STUDIO_PRESENCE_ID,
-  ROCKY_ID,
-  ROCKY_ROOM_ID,
   PORTEN_MOTION_ID,
   GARAGE_DOOR_ID,
   CAMERA_PORTEN_ID,
@@ -220,7 +218,6 @@ import {
   COST_TODAY_ID,
   COST_MONTH_ID,
   BIBLIOTEK_SESSIONS_ID,
-  MEDIA_PLAYER_IDS,
   SONOS_IDS,
   LEAF_LOCATION,
   LEAF_PLUGGED,
@@ -285,11 +282,12 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [showNordpoolModal, setShowNordpoolModal] = useState(null);
   const [activeClimateEntityModal, setActiveClimateEntityModal] = useState(null);
   const [showLightModal, setShowLightModal] = useState(null);
-  const [showLeafModal, setShowLeafModal] = useState(false);
+  const [activeCarModal, setActiveCarModal] = useState(null);
   const [showPersonModal, setShowPersonModal] = useState(null);
 
   const [showAndroidTVModal, setShowAndroidTVModal] = useState(null);
-  const [showRockyModal, setShowRockyModal] = useState(false);
+  const [showVacuumModal, setShowVacuumModal] = useState(false);
+  const [activeVacuumId, setActiveVacuumId] = useState(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -347,17 +345,18 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [showStatusPillsConfig, setShowStatusPillsConfig] = useState(false);
   const resetToHome = () => {
     const isHome = activePage === 'home';
-    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode && !showStatusPillsConfig && !showPersonModal;
+    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !activeCarModal && !showAndroidTVModal && !showVacuumModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode && !showStatusPillsConfig && !showPersonModal;
     
     if (!isHome || !noModals) {
         setActivePage('home');
         setShowNordpoolModal(null);
         setActiveClimateEntityModal(null);
         setShowLightModal(null);
-        setShowLeafModal(false);
+        setActiveCarModal(null);
         setShowPersonModal(null);
 
-        setShowRockyModal(false);
+        setShowVacuumModal(false);
+        setActiveVacuumId(null);
         setShowAddCardModal(false);
         setShowCameraModal(false);
         setShowConfigModal(false);
@@ -658,7 +657,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const headerSettings = cardSettings[headerSettingsKey] || {};
     const personDisplay = headerSettings.personDisplay || 'photo';
     const useIcon = personDisplay === 'icon';
-    const PersonIcon = customIcons[id] ? ICON_MAP[customIcons[id]] : User;
+    const personIconName = customIcons[id] || entity?.attributes?.icon;
+    const PersonIcon = personIconName ? (getIconComponent(personIconName) || User) : User;
 
     return (
       <div key={id} 
@@ -671,10 +671,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
            }}>
         
         {editMode && (
-          <div className="absolute -top-2 -right-2 z-50 flex gap-1">
-             <button onClick={(e) => { e.stopPropagation(); setShowEditCardModal(id); setEditCardSettingsKey(getCardSettingsKey(id, 'header')); }} className="p-1 rounded-full bg-blue-500 text-white shadow-sm hover:bg-blue-600"><Edit2 className="w-3 h-3" /></button>
-             <button onClick={(e) => { e.stopPropagation(); removeCard(id, 'header'); }} className="p-1 rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600"><X className="w-3 h-3" /></button>
-          </div>
+           <div className="absolute -top-2 -right-2 z-50 flex gap-1">
+             <button onClick={(e) => { e.stopPropagation(); setShowEditCardModal(id); setEditCardSettingsKey(getCardSettingsKey(id, 'header')); }} className="p-1 rounded-full bg-blue-500 text-white shadow-sm"><Edit2 className="w-3 h-3" /></button>
+             <button onClick={(e) => { e.stopPropagation(); removeCard(id, 'header'); }} className="p-1 rounded-full bg-red-500/60 text-white shadow-sm"><Trash2 className="w-3 h-3" /></button>
+           </div>
         )}
         
         <div className="relative">
@@ -712,8 +712,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   };
 
   const pageDefaults = {
-    home: { label: t('page.home'), icon: LayoutGrid },
-    lights: { label: t('page.lights'), icon: Lightbulb }
+    home: { label: t('page.home'), icon: LayoutGrid }
   };
   const pages = (pagesConfig.pages || []).map(id => ({
     id,
@@ -752,12 +751,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       setAddCardType('entity');
       return;
     }
-    if (addCardTargetPage === 'header' || addCardTargetPage === 'automations' || addCardTargetPage === 'settings') {
+    if (addCardTargetPage === 'header' || addCardTargetPage === 'settings') {
       setAddCardType('entity');
-      return;
-    }
-    if (addCardTargetPage === 'lights') {
-      setAddCardType('light');
       return;
     }
     setAddCardType('entity');
@@ -765,12 +760,12 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
   const getAddCardAvailableLabel = () => {
     if (addCardTargetPage === 'header') return t('addCard.available.people');
-    if (addCardTargetPage === 'automations') return t('addCard.available.automations');
     if (addCardTargetPage === 'settings') return t('addCard.available.allEntities');
     if (addCardType === 'vacuum') return t('addCard.available.vacuums');
     if (addCardType === 'climate') return t('addCard.available.climates');
     if (addCardType === 'cost') return t('addCard.available.costs');
     if (addCardType === 'media') return t('addCard.available.players');
+    if (addCardType === 'car') return t('addCard.available.cars');
     if (addCardType === 'toggle') return t('addCard.available.toggles');
     if (addCardType === 'entity') return t('addCard.available.entities');
     return t('addCard.available.lights');
@@ -779,23 +774,23 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const getAddCardNoneLeftLabel = () => {
     const itemKey = addCardTargetPage === 'header'
       ? 'addCard.item.people'
-      : addCardTargetPage === 'automations'
-        ? 'addCard.item.automations'
-        : addCardTargetPage === 'settings'
-          ? 'addCard.item.entities'
-          : addCardType === 'vacuum'
-            ? 'addCard.item.vacuums'
-            : addCardType === 'climate'
-              ? 'addCard.item.climates'
-              : addCardType === 'cost'
-                ? 'addCard.item.costs'
-            : addCardType === 'media'
-              ? 'addCard.item.players'
-              : addCardType === 'toggle'
-                ? 'addCard.item.toggles'
-                : addCardType === 'entity'
-                  ? 'addCard.item.entities'
-                  : 'addCard.item.lights';
+      : addCardTargetPage === 'settings'
+        ? 'addCard.item.entities'
+        : addCardType === 'vacuum'
+          ? 'addCard.item.vacuums'
+          : addCardType === 'climate'
+            ? 'addCard.item.climates'
+            : addCardType === 'cost'
+              ? 'addCard.item.costs'
+          : addCardType === 'media'
+            ? 'addCard.item.players'
+            : addCardType === 'car'
+              ? 'addCard.item.cars'
+            : addCardType === 'toggle'
+              ? 'addCard.item.toggles'
+              : addCardType === 'entity'
+                ? 'addCard.item.entities'
+                : 'addCard.item.lights';
 
     return t('addCard.noneLeft').replace('{item}', t(itemKey));
   };
@@ -893,6 +888,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     if (cardId.startsWith('climate_card_')) return true;
     if (cardId.startsWith('cost_card_')) return true;
     if (cardId.startsWith('androidtv_card_')) return true;
+    if (cardId.startsWith('car_card_')) return true;
     return false;
   };
 
@@ -948,17 +944,11 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return sonosEntities.length === 0;
     }
 
-    if (activePage === 'settings' && !['rocky', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
         return !entities[cardId];
     }
 
     return false;
-  };
-
-  const saveColumnTitle = (colIndex, title) => {
-    const newConfig = { ...pagesConfig };
-    newConfig.automations[colIndex].title = title;
-    persistConfig(newConfig);
   };
 
   const isSonosPage = (pageId) => {
@@ -979,13 +969,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         newConfig.header = (newConfig.header || []).filter(id => id !== cardId);
         persistConfig(newConfig);
     } else if (newConfig[activePage]) {
-      if (activePage === 'automations' && listName !== 'header') {
-        newConfig.automations.forEach(col => {
-          col.cards = col.cards.filter(id => id !== cardId);
-        });
-      } else {
-        newConfig[activePage] = newConfig[activePage].filter(id => id !== cardId);
-      }
+      newConfig[activePage] = newConfig[activePage].filter(id => id !== cardId);
       persistConfig(newConfig);
     }
   };
@@ -1070,14 +1054,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const newConfig = { ...pagesConfig };
     if (addCardTargetPage === 'header') {
       newConfig.header = [...(newConfig.header || []), ...selectedEntities];
-      persistConfig(newConfig);
-      setSelectedEntities([]);
-      setShowAddCardModal(false);
-      return;
-    }
-
-    if (addCardTargetPage === 'automations') {
-      newConfig.automations[0].cards.push(...selectedEntities);
       persistConfig(newConfig);
       setSelectedEntities([]);
       setShowAddCardModal(false);
@@ -1220,6 +1196,24 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return;
     }
 
+    if (addCardType === 'car') {
+      const cardId = `car_card_${Date.now()}`;
+      newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
+      persistConfig(newConfig);
+
+      const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+      const newSettings = {
+        ...cardSettings,
+        [settingsKey]: { ...(cardSettings[settingsKey] || {}), type: 'car', size: 'large' }
+      };
+      persistCardSettings(newSettings);
+
+      setShowAddCardModal(false);
+      setShowEditCardModal(cardId);
+      setEditCardSettingsKey(settingsKey);
+      return;
+    }
+
     if (addCardType === 'entity' || addCardType === 'toggle' || addCardType === 'sensor') {
       const newSettings = { ...cardSettings };
       selectedEntities.forEach((id) => {
@@ -1244,7 +1238,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const domain = cardId.split('.')[0];
     const defaultIcons = { sensor: Activity, input_number: Hash, input_boolean: ToggleRight, switch: Power, default: Activity };
     const DefaultIcon = defaultIcons[domain] || defaultIcons.default;
-    const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : DefaultIcon;
+    const sensorIconName = customIcons[cardId] || entity?.attributes?.icon;
+    const Icon = sensorIconName ? (getIconComponent(sensorIconName) || DefaultIcon) : DefaultIcon;
 
     const handleControl = (action) => {
       if (domain === 'input_number') {
@@ -1289,7 +1284,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     else if (currentLId === LIGHT_STOVA) DefaultIcon = Sofa;
     else if (currentLId === LIGHT_STUDIO) DefaultIcon = LampDesk;
     
-    const LightIcon = customIcons[currentLId] ? ICON_MAP[customIcons[currentLId]] : DefaultIcon;
+    const lightIconName = customIcons[currentLId] || entity?.attributes?.icon;
+    const LightIcon = lightIconName ? (getIconComponent(lightIconName) || DefaultIcon) : DefaultIcon;
     const entity = entities[currentLId];
     const state = entity?.state;
     const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
@@ -1343,7 +1339,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const isSmall = settings.size === 'small';
     const isOn = entities[cardId]?.state === 'on';
     const friendlyName = customNames[cardId] || getA(cardId, 'friendly_name') || cardId;
-    const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : Workflow;
+    const automationIconName = customIcons[cardId] || entities[cardId]?.attributes?.icon;
+    const Icon = automationIconName ? (getIconComponent(automationIconName) || Workflow) : Workflow;
     
     return (
       <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} className={`touch-feedback w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isOn ? 'rgba(59, 130, 246, 0.03)' : 'rgba(15, 23, 42, 0.6)', borderColor: isOn ? 'rgba(59, 130, 246, 0.15)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)')}} onClick={(e) => { if(!editMode) callService("automation", "toggle", { entity_id: cardId }); }}>
@@ -1358,24 +1355,129 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   };
 
 
-  const renderCarCard = (dragProps, getControls, cardStyle) => {
-    const isHtg = entities[LEAF_CLIMATE]?.state === 'heat_cool';
-    const isCharging = entities[LEAF_CHARGING]?.state === 'on';
-    const name = customNames['car'] || 'Nissan Leaf';
-    const Icon = customIcons['car'] ? ICON_MAP[customIcons['car']] : Car;
-    
-    return (
-      <div key="car" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'var(--card-border)')}}>
-        {getControls('car')}
-        <div className="flex justify-between items-start font-sans">
-          <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-green-500/10 text-green-400'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{getS(LEAF_LOCATION)}</span></div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{String(getS(LEAF_INTERNAL_TEMP))}°</span></div>
-            {isHtg && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">Varmar</span></div>}
+  const resolveCarSettings = (cardId, settings = {}) => {
+    if (cardId !== 'car') return settings;
+    return {
+      batteryId: settings.batteryId ?? LEAF_ID,
+      rangeId: settings.rangeId ?? LEAF_RANGE,
+      locationId: settings.locationId ?? LEAF_LOCATION,
+      chargingId: settings.chargingId ?? LEAF_CHARGING,
+      pluggedId: settings.pluggedId ?? LEAF_PLUGGED,
+      climateId: settings.climateId ?? LEAF_CLIMATE,
+      tempId: settings.tempId ?? null,
+      lastUpdatedId: settings.lastUpdatedId ?? LEAF_LAST_UPDATED,
+      updateButtonId: settings.updateButtonId ?? LEAF_UPDATE
+    };
+  };
+
+  const getSafeState = (id) => {
+    const state = id ? entities[id]?.state : null;
+    if (!state || state === 'unavailable' || state === 'unknown') return null;
+    return state;
+  };
+
+  const getNumberState = (id) => {
+    const state = getSafeState(id);
+    if (state === null) return null;
+    const value = parseFloat(state);
+    return Number.isFinite(value) ? value : null;
+  };
+
+  const renderCarCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
+    const settings = resolveCarSettings(cardId, cardSettings[settingsKey] || cardSettings[cardId] || {});
+    const batteryId = settings.batteryId;
+    const rangeId = settings.rangeId;
+    const locationId = settings.locationId;
+    const chargingId = settings.chargingId;
+    const pluggedId = settings.pluggedId;
+    const climateId = settings.climateId;
+    const tempId = settings.tempId;
+
+    const batteryValue = getNumberState(batteryId);
+    const rangeValue = getNumberState(rangeId);
+    const climateTempValueRaw = climateId ? getA(climateId, 'current_temperature') : null;
+    const climateTempValue = climateTempValueRaw !== null && climateTempValueRaw !== undefined
+      ? parseFloat(climateTempValueRaw)
+      : null;
+    const tempValue = getNumberState(tempId) ?? (Number.isFinite(climateTempValue) ? climateTempValue : null);
+    const locationLabel = locationId ? getS(locationId) : null;
+
+    const chargingState = getSafeState(chargingId);
+    const pluggedState = getSafeState(pluggedId);
+    const climateEntity = climateId ? entities[climateId] : null;
+
+    const isCharging = chargingState === 'on' || chargingState === 'charging';
+    const isPlugged = pluggedState === 'on' || pluggedState === 'plugged' || pluggedState === 'true';
+    const isHtg = climateEntity && !['off', 'unavailable', 'unknown'].includes(climateEntity.state);
+
+    const name = customNames[cardId] || t('car.defaultName');
+    const Icon = customIcons[cardId] ? (getIconComponent(customIcons[cardId]) || Car) : Car;
+    const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
+    const isSmall = sizeSetting === 'small';
+
+    if (isSmall) {
+      return (
+        <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveCarModal(cardId); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.06)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.2)' : 'var(--card-border)')}}>
+          {getControls(cardId)}
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : (isCharging ? 'bg-green-500/15 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]')}`}>
+              <Icon className="w-6 h-6 stroke-[1.5px]" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">{name}</p>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-bold ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
+                  {batteryValue !== null ? `${Math.round(batteryValue)}%` : '--'}
+                </span>
+                {rangeValue !== null && (
+                  <span className="text-xs text-[var(--text-secondary)]">{Math.round(rangeValue)}km</span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isHtg ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' : (isCharging ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}>
+            <span className="text-[10px] font-bold uppercase tracking-widest">
+              {locationLabel ? String(locationLabel) : (isCharging ? t('car.charging') : t('common.off'))}
+            </span>
           </div>
         </div>
-        <div className="flex justify-between items-end"><div><p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p><div className="flex items-baseline gap-2 leading-none font-sans"><span className={`text-2xl font-medium leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>{String(getS(LEAF_ID))}%</span>{isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}<span className="text-[var(--text-muted)] font-medium text-base ml-1">{String(getS(LEAF_RANGE))}km</span></div></div></div>
+      );
+    }
+
+    return (
+      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setActiveCarModal(cardId); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'var(--card-border)')}}>
+        {getControls(cardId)}
+        <div className="flex justify-between items-start font-sans">
+          <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : (isCharging ? 'bg-green-500/15 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]')}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
+          <div className="flex flex-col items-end gap-2">
+            {locationLabel && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{String(locationLabel)}</span></div>
+            )}
+            {tempValue !== null && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{Math.round(tempValue)}°</span></div>
+            )}
+            {isHtg && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{t('car.heating')}</span></div>}
+          </div>
+        </div>
+        <div className="flex justify-between items-end">
+          <div>
+            <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
+            <div className="flex items-baseline gap-2 leading-none font-sans">
+              <span className={`text-2xl font-medium leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
+                {batteryValue !== null ? `${Math.round(batteryValue)}%` : '--'}
+              </span>
+              {isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}
+              {rangeValue !== null && (
+                <span className="text-[var(--text-muted)] font-medium text-base ml-1">{Math.round(rangeValue)}km</span>
+              )}
+            </div>
+            {pluggedId && (
+              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-2 font-bold opacity-60">
+                {isPlugged ? t('car.pluggedIn') : t('car.unplugged')}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
@@ -1569,46 +1671,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     );
   };
 
-  const renderRockyCard = (dragProps, getControls, cardStyle) => {
-    const state = entities[ROCKY_ID]?.state;
-    const battery = getA(ROCKY_ID, "battery_level");
-    const room = entities[ROCKY_ROOM_ID]?.state;
-    const isCleaning = state === "cleaning";
-    const isReturning = state === "returning";
-    const isDocked = state === "docked";
-    const statusText = isCleaning ? t('vacuum.cleaning') : isReturning ? t('vacuum.returning') : isDocked ? t('vacuum.charging') : state;
-    const name = customNames['rocky'] || 'Rocky';
-    const Icon = customIcons['rocky'] ? ICON_MAP[customIcons['rocky']] : Bot;
-    
-    return (
-      <div key="rocky" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isCleaning ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
-        {getControls('rocky')}
-        <div className="flex justify-between items-start font-sans">
-           <div className={`p-3 rounded-2xl transition-all ${isCleaning ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
-           <div className="flex flex-col items-end gap-2">
-             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{room || t('vacuum.unknown')}</span></div>
-             {battery && <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Battery className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{battery}%</span></div>}
-           </div>
-        </div>
-        
-        <div className="flex justify-between items-end">
-           <div>
-             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
-             <h3 className="text-2xl font-medium text-[var(--text-primary)] leading-none">{statusText}</h3>
-           </div>
-           <div className="flex gap-2">
-             <button onClick={(e) => { e.stopPropagation(); callService("vacuum", isCleaning ? "pause" : "start", { entity_id: ROCKY_ID }); }} className="p-3 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95">
-               {isCleaning ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-             </button>
-             <button onClick={(e) => { e.stopPropagation(); callService("vacuum", "return_to_base", { entity_id: ROCKY_ID }); }} className="p-3 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95">
-               <Home className="w-5 h-5" />
-             </button>
-           </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderVacuumCard = (vacuumId, dragProps, getControls, cardStyle, settingsKey) => {
     const entity = entities[vacuumId];
     if (!entity) return null;
@@ -1620,7 +1682,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const battery = getA(vacuumId, "battery_level");
     const room = getA(vacuumId, "current_room") || getA(vacuumId, "room");
     const name = customNames[vacuumId] || getA(vacuumId, "friendly_name", t('vacuum.name'));
-    const Icon = customIcons[vacuumId] ? ICON_MAP[customIcons[vacuumId]] : Bot;
+    const vacuumIconName = customIcons[vacuumId] || entity?.attributes?.icon;
+    const Icon = vacuumIconName ? (getIconComponent(vacuumIconName) || Bot) : Bot;
     const statusText = (() => {
       if (state === "cleaning") return t('vacuum.cleaning');
       if (state === "returning") return t('vacuum.returning');
@@ -1635,7 +1698,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     if (isSmall) {
       return (
-        <div key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)'), containerType: 'inline-size'}}>
+        <div key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveVacuumId(vacuumId); setShowVacuumModal(true); } }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)'), containerType: 'inline-size'}}>
           {getControls(vacuumId)}
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all ${state === "cleaning" ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
@@ -1662,7 +1725,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }
 
     return (
-      <div key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
+      <div key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveVacuumId(vacuumId); setShowVacuumModal(true); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
         {getControls(vacuumId)}
         <div className="flex justify-between items-start font-sans">
            <div className={`p-3 rounded-2xl transition-all ${state === "cleaning" ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
@@ -1925,6 +1988,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         entities={entities}
         mediaPlayerId={mediaPlayerId}
         remoteId={remoteId}
+        size={settings.size}
         getA={getA}
         getEntityImageUrl={getEntityImageUrl}
         onOpen={() => setShowAndroidTVModal(cardId)}
@@ -1962,13 +2026,19 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return sizeSetting === 'small' ? 1 : 2;
     }
 
+    if (cardId === 'car' || cardId.startsWith('car_card_')) {
+      const settingsKey = getCardSettingsKey(cardId);
+      const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
+      return sizeSetting === 'small' ? 1 : 2;
+    }
+
     const settingsKey = getCardSettingsKey(cardId);
     const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
     if (sizeSetting === 'small') return 1;
 
     if (cardId.startsWith('weather_temp_')) return 2;
 
-    if (activePage === 'settings' && !['rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
       return 1;
     }
 
@@ -2117,7 +2187,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       const editId = targetId || cardId;
       const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
       const settings = cardSettings[settingsKey] || cardSettings[editId] || {};
-      const canToggleSize = (editId.startsWith('light_') || editId.startsWith('light.') || editId.startsWith('vacuum.') || editId.startsWith('automation.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('weather_temp_') || settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor');
+      const canToggleSize = (editId.startsWith('light_') || editId.startsWith('light.') || editId.startsWith('vacuum.') || editId.startsWith('automation.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('weather_temp_') || editId.startsWith('androidtv_card_') || editId === 'car' || editId.startsWith('car_card_') || settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor');
       return ( 
       <>
         <div className="absolute top-2 left-2 z-50 flex gap-2">
@@ -2139,7 +2209,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         <div className="absolute top-2 right-2 z-50 flex gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); setShowEditCardModal(editId); setEditCardSettingsKey(settingsKey); }}
-            className="p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60"
+            className="p-2 rounded-full text-white border border-white/20 shadow-lg bg-black/60"
             title={t('tooltip.editCard')}
           >
             <Edit2 className="w-4 h-4" />
@@ -2280,6 +2350,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return renderGenericAndroidTVCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
+    if (cardId.startsWith('car_card_')) {
+      return renderCarCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+    }
+
     if (cardId.startsWith('nordpool_card_')) {
       const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
       const entity = entities[settings.nordpoolId];
@@ -2307,16 +2381,11 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
-    if (activePage === 'settings' && !['rocky', 'shield', 'car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
     switch(cardId) {
-      case 'rocky':
-        return renderRockyCard(dragProps, getControls, cardStyle);
-
-      case 'weather':
-        return renderWeatherTempCard('weather', dragProps, getControls, cardStyle, 'weather');
       case 'media_player':
         const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
         const mediaEntities = embyIds.map(id => entities[id]).filter(Boolean);
@@ -2501,13 +2570,13 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           </div>
         );
       case 'car':
-        return renderCarCard(dragProps, getControls, cardStyle);
+        return renderCarCard(cardId, dragProps, getControls, cardStyle, settingsKey);
       default: return null;
     }
   };
 
   const editSettingsKey = showEditCardModal ? (editCardSettingsKey || getCardSettingsKey(showEditCardModal)) : null;
-  const editSettings = editSettingsKey ? (cardSettings[editSettingsKey] || cardSettings[showEditCardModal] || {}) : {};
+  const rawEditSettings = editSettingsKey ? (cardSettings[editSettingsKey] || cardSettings[showEditCardModal] || {}) : {};
   const editId = showEditCardModal;
   const editEntity = editId ? entities[editId] : null;
   const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
@@ -2515,11 +2584,13 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const isEditCost = !!editId && editId.startsWith('cost_card_');
   const isEditVacuum = !!editId && editId.startsWith('vacuum.');
   const isEditAutomation = !!editId && editId.startsWith('automation.');
-  const isEditGenericType = !!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor') || isEditVacuum || isEditAutomation;
+  const isEditCar = !!editId && (editId === 'car' || editId.startsWith('car_card_'));
+  const editSettings = isEditCar ? resolveCarSettings(editId, rawEditSettings) : rawEditSettings;
+  const isEditGenericType = (!!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor')) || isEditVacuum || isEditAutomation || isEditCar;
   const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
   const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
   const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
-  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || ['car', 'shield', 'rocky', 'weather'].includes(editId));
+  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
   const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
   const isOnboardingActive = showOnboarding;
   const onboardingSteps = buildOnboardingSteps(t);
@@ -2679,28 +2750,23 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             }
           }
           .popup-surface {
-            background: linear-gradient(145deg,
-              color-mix(in srgb, var(--glass-bg) 85%, transparent),
-              color-mix(in srgb, var(--glass-bg) 55%, transparent)
-            );
+            background: var(--modal-surface, var(--glass-bg));
             border: none;
-            box-shadow:
-              0 10px 24px rgba(0, 0, 0, 0.25),
-              inset 0 1px 0 rgba(255, 255, 255, 0.03);
+            box-shadow: var(--modal-surface-shadow, 0 10px 24px rgba(0, 0, 0, 0.25));
             backdrop-filter: blur(16px);
           }
           .popup-surface-hover:hover {
-            background: linear-gradient(145deg,
-              color-mix(in srgb, var(--glass-bg-hover) 90%, transparent),
-              color-mix(in srgb, var(--glass-bg) 45%, transparent)
-            );
+            background: var(--modal-surface-hover, var(--glass-bg-hover));
             border: none;
-            box-shadow:
-              0 14px 28px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            box-shadow: var(--modal-surface-shadow-hover, 0 14px 28px rgba(0, 0, 0, 0.3));
           }
           .popup-surface-divider {
             background: color-mix(in srgb, var(--glass-border) 35%, transparent);
+          }
+          .popup-anim {
+            border-color: var(--modal-border, var(--glass-border));
+            box-shadow: var(--modal-shadow, 0 20px 40px rgba(0, 0, 0, 0.35));
+            border-width: var(--modal-border-width, 0px);
           }
           .compact-cards .card-compact {
             transform: scale(0.92);
@@ -2844,7 +2910,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                 if (currentSettings?.hidden) setActivePage('home');
                 setEditMode(!editMode);
               }} 
-              className={`p-2 rounded-full transition-colors group ${editMode ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              className={`p-2 rounded-full group ${editMode ? 'bg-blue-500/20 text-blue-400' : 'text-[var(--text-secondary)]'}`}
               title={editMode ? t('nav.done') : t('menu.edit')}
             >
               <Edit2 className="w-5 h-5" />
@@ -2871,57 +2937,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               formatDuration={formatDuration}
               t={t}
             />
-          </div>
-        ) : activePage === 'automations' ? (
-          <div key={activePage} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 font-sans fade-in-anim items-start">
-            {pagesConfig.automations.map((col, colIndex) => (
-              <div 
-                key={col.id} 
-                className="flex flex-col w-full min-h-[200px]"
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-                onDrop={(e) => {
-                   e.preventDefault();
-                   const rawData = e.dataTransfer.getData('dragData');
-                   if (!rawData) return;
-                   const source = JSON.parse(rawData);
-                   if (source.colIndex === colIndex) return; // Already in this column, handled by card drop
-                   
-                   const newConfig = { ...pagesConfig };
-                   const [movedItem] = newConfig.automations[source.colIndex].cards.splice(source.index, 1);
-                   newConfig.automations[colIndex].cards.push(movedItem);
-                   persistConfig(newConfig);
-                }}
-              >
-                <div className="mb-4 px-2">
-                  {editMode ? (
-                    <input type="text" className="bg-transparent border-b border-[var(--glass-border)] w-full text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] focus:text-[var(--text-primary)] focus:border-blue-500 outline-none pb-1" value={col.title} onChange={(e) => saveColumnTitle(colIndex, e.target.value)} />
-                  ) : (
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{col.title}</h3>
-                  )}
-                </div>
-                {col.cards.map((id, index) => {
-                  const settingsKey = getCardSettingsKey(id);
-                  const heading = cardSettings[settingsKey]?.heading;
-                  const cardContent = renderCard(id, index, colIndex);
-                  if (!cardContent) return null;
-                  if (!heading) {
-                    return (
-                      <div key={`${id}-${index}`} className={isCompactCards ? 'card-compact' : ''}>
-                        {cardContent}
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={`${id}-${index}`} className={`relative ${isCompactCards ? 'card-compact' : ''}`}>
-                      <div className="absolute -top-4 left-2 text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)]">
-                        {heading}
-                      </div>
-                      {cardContent}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
           </div>
         ) : (
           <div key={activePage} className="grid gap-8 font-sans fade-in-anim items-start" style={{ gridAutoRows: '100px', gridTemplateColumns: `repeat(${gridColCount}, minmax(0, 1fr))` }}>
@@ -3117,36 +3132,33 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           );
         })()}
 
-        <RockyModal
-          show={showRockyModal}
-          onClose={() => setShowRockyModal(false)}
+        <VacuumModal
+          show={showVacuumModal}
+          onClose={() => { setShowVacuumModal(false); setActiveVacuumId(null); }}
           entities={entities}
           callService={callService}
           getA={getA}
           t={t}
-          constants={{ ROCKY_ID, ROCKY_ROOM_ID }}
+          vacuumId={activeVacuumId}
         />
 
-        <LeafModal
-          show={showLeafModal}
-          onClose={() => setShowLeafModal(false)}
-          entities={entities}
-          callService={callService}
-          getS={getS}
-          getA={getA}
-          t={t}
-          constants={{
-            LEAF_ID,
-            LEAF_CLIMATE,
-            LEAF_LOCATION,
-            LEAF_CHARGING,
-            LEAF_PLUGGED,
-            LEAF_RANGE,
-            LEAF_INTERNAL_TEMP,
-            LEAF_LAST_UPDATED,
-            LEAF_UPDATE
-          }}
-        />
+        {activeCarModal && (() => {
+          const settingsKey = getCardSettingsKey(activeCarModal);
+          const settings = resolveCarSettings(activeCarModal, cardSettings[settingsKey] || cardSettings[activeCarModal] || {});
+          const name = customNames[activeCarModal] || t('car.defaultName');
+          return (
+            <LeafModal
+              show={true}
+              onClose={() => setActiveCarModal(null)}
+              entities={entities}
+              callService={callService}
+              getS={getS}
+              getA={getA}
+              t={t}
+              car={{ name, ...settings }}
+            />
+          );
+        })()}
 
         <UpdateModal
           show={showUpdateModal}
@@ -3183,14 +3195,14 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               <h3 className="text-xl font-light mb-5 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('modal.addCard.title')}</h3>
               
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              {(addCardTargetPage !== 'header' && addCardTargetPage !== 'automations') && (
+              {(addCardTargetPage !== 'header') && (
                 <div className="mb-4 relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <input type="text" placeholder={t('addCard.search')} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
               )}
               
-              {(addCardTargetPage !== 'header' && addCardTargetPage !== 'automations' && addCardTargetPage !== 'settings') && (
+              {(addCardTargetPage !== 'header' && addCardTargetPage !== 'settings') && (
                 <div className="mb-5">
                   <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">{t('addCard.cardType')}</p>
                   <div className="flex flex-wrap gap-2">
@@ -3217,6 +3229,12 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'climate' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                     >
                       <Thermometer className="w-4 h-4" /> {t('addCard.type.climate')}
+                    </button>
+                    <button
+                      onClick={() => setAddCardType('car')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${addCardType === 'car' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      <Car className="w-4 h-4" /> {t('addCard.type.car')}
                     </button>
                     <button
                       onClick={() => setAddCardType('androidtv')}
@@ -3438,6 +3456,19 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                       {t('addCard.add')}
                     </button>
                   </div>
+                ) : addCardType === 'car' ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
+                    <div className="p-4 rounded-full bg-blue-500/10 text-blue-400">
+                      <Car className="w-8 h-8" />
+                    </div>
+                    <p className="text-gray-400 max-w-xs text-sm">{t('addCard.carDescription')}</p>
+                    <button 
+                      onClick={() => handleAddSelected()}
+                      className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+                    >
+                      {t('addCard.carCard')}
+                    </button>
+                  </div>
                 ) : addCardType === 'nordpool' ? (
                   <div className="space-y-8">
                     <div>
@@ -3521,7 +3552,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                       {Object.keys(entities)
                         .filter(id => {
                           if (addCardTargetPage === 'header') return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
-                          if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
                           if (addCardTargetPage === 'settings') {
                              const isNotAdded = !(pagesConfig.settings || []).includes(id);
                              if (!isNotAdded) return false;
@@ -3607,7 +3637,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                         );})}
                         {Object.keys(entities).filter(id => {
                           if (addCardTargetPage === 'header') return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
-                          if (addCardTargetPage === 'automations') return id.startsWith('automation.') && !pagesConfig.automations.some(c => c.cards.includes(id));
                           if (addCardTargetPage === 'settings') return !(pagesConfig.settings || []).includes(id);
                           if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
                           if (addCardType === 'climate') return id.startsWith('climate.');
@@ -3692,6 +3721,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           isEditCalendar={isEditCalendar}
           isEditCost={isEditCost}
           isEditGenericType={isEditGenericType}
+          isEditCar={isEditCar}
           isEditSensor={isEditSensor}
           editSettingsKey={editSettingsKey}
           editSettings={editSettings}

@@ -22,6 +22,8 @@ const readNumber = (key, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const deprecatedCardIds = ['power', 'rocky', 'climate', 'shield', 'weather'];
+
 const PageContext = createContext(null);
 
 export const usePages = () => {
@@ -51,30 +53,21 @@ export const PageProvider = ({ children }) => {
     if (parsed) {
       let modified = false;
 
-      // Migration logic for legacy configurations
-      if (parsed.automations && Array.isArray(parsed.automations) && 
-          (parsed.automations.length === 0 || typeof parsed.automations[0] === 'string')) {
-        const flat = parsed.automations;
-        const cols = [
-          { id: 'col0', title: 'Kolonne 1', cards: [] },
-          { id: 'col1', title: 'Kolonne 2', cards: [] },
-          { id: 'col2', title: 'Kolonne 3', cards: [] }
-        ];
-        flat.forEach((id, i) => {
-          if (i < 8) cols[0].cards.push(id);
-          else if (i < 16) cols[1].cards.push(id);
-          else cols[2].cards.push(id);
-        });
-        parsed.automations = cols;
+      // Remove legacy automations/lights page config entirely
+      if (parsed.automations) {
+        delete parsed.automations;
+        modified = true;
+      }
+      if (parsed.lights) {
+        delete parsed.lights;
         modified = true;
       }
 
       // Remove deprecated cards
-      const deprecatedCards = ['power', 'rocky', 'climate', 'shield', 'weather', 'sonos'];
       Object.keys(parsed).forEach(pageKey => {
         if (Array.isArray(parsed[pageKey])) {
           const filtered = parsed[pageKey].filter(id => 
-            !deprecatedCards.includes(id) && !String(id).startsWith('energy_price_')
+            !deprecatedCardIds.includes(id) && !String(id).startsWith('energy_price_')
           );
           if (filtered.length !== parsed[pageKey].length) {
             parsed[pageKey] = filtered;
@@ -83,31 +76,21 @@ export const PageProvider = ({ children }) => {
         }
       });
 
-      // Clean automations columns
-      if (parsed.automations && Array.isArray(parsed.automations)) {
-        const updatedCols = parsed.automations.map(col => ({
-          ...col,
-          cards: Array.isArray(col.cards) 
-            ? col.cards.filter(id => !deprecatedCards.includes(id)) 
-            : col.cards
-        }));
-        if (JSON.stringify(updatedCols) !== JSON.stringify(parsed.automations)) {
-          parsed.automations = updatedCols;
-          modified = true;
-        }
-      }
-
       // Ensure pages array exists
       if (!Array.isArray(parsed.pages)) {
         const detectedPages = Object.keys(parsed)
           .filter(key => Array.isArray(parsed[key]) && 
-            !['header', 'automations', 'settings'].includes(key));
-        parsed.pages = detectedPages.length > 0 ? detectedPages : ['home', 'lights'];
+            !['header', 'settings', 'lights', 'automations'].includes(key));
+        parsed.pages = detectedPages.length > 0 ? detectedPages : ['home'];
         modified = true;
       }
 
-      // Filter out settings and automations from pages
-      parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'automations');
+      // Filter out settings, automations, and lights from pages (no separate lights/automations pages)
+      parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'lights' && id !== 'automations');
+      if (parsed.pages.length === 0) {
+        parsed.pages = ['home'];
+        modified = true;
+      }
 
       // Ensure all pages have arrays
       parsed.pages.forEach((pageId) => {
@@ -131,7 +114,7 @@ export const PageProvider = ({ children }) => {
 
     const hidden = readJSON('midttunet_hidden_cards', null);
     if (hidden) {
-      const filteredHidden = hidden.filter(id => id !== 'weather');
+      const filteredHidden = hidden.filter(id => !deprecatedCardIds.includes(id));
       setHiddenCards(filteredHidden);
     }
 

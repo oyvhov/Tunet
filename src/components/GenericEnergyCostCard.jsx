@@ -1,5 +1,5 @@
 import { Coins } from '../icons';
-import { ICON_MAP } from '../iconMap';
+import { getIconComponent } from '../iconMap';
 
 const getEntityValue = (entity, decimals = 0) => {
   const state = entity?.state;
@@ -37,7 +37,7 @@ export default function GenericEnergyCostCard({
   const monthEntity = monthEntityId ? entities[monthEntityId] : null;
 
   const name = customNames[cardId] || t('energyCost.title');
-  const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : Coins;
+  const Icon = customIcons[cardId] ? (getIconComponent(customIcons[cardId]) || Coins) : Coins;
   const translate = t || ((key) => key);
 
   if (isSmall) {

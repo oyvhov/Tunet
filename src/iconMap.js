@@ -1,3 +1,4 @@
+import React from 'react';
 import { 
   Zap, Hash, Wind, Car, Settings, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
   Flame, User, UserCheck, MapPin, X, TrendingUp, Clock, Edit2, GripVertical, Check, 
@@ -83,6 +84,8 @@ import {
   MdOutlineOutdoorGrill, MdOutlineWater, MdOutlineWaterDrop, MdOutlineWaterDamage,
   MdOutlineWaterfallChart, MdOutlineEmojiNature
 } from 'react-icons/md';
+import { Icon as MdiIcon } from '@mdi/react';
+import * as mdiIcons from '@mdi/js';
 
 export const ICON_MAP = {
   Zap, Wind, Car, Settings, Flame, User, UserCheck, MapPin, TrendingUp, Clock, 
@@ -162,4 +165,33 @@ export const ICON_MAP = {
   MdOutlineYard, MdOutlineGrass, MdOutlinePark, MdOutlineNature, MdOutlineNaturePeople,
   MdOutlineOutdoorGrill, MdOutlineWater, MdOutlineWaterDrop, MdOutlineWaterDamage,
   MdOutlineWaterfallChart, MdOutlineEmojiNature
+};
+
+const toKebab = (name) => name
+  .replace(/^mdi/, '')
+  .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+  .replace(/_/g, '-')
+  .toLowerCase();
+
+const mdiEntries = Object.entries(mdiIcons)
+  .filter(([key, value]) => key.startsWith('mdi') && typeof value === 'string');
+
+const mdiPathByName = new Map(
+  mdiEntries.map(([key, value]) => [`mdi:${toKebab(key)}`, value])
+);
+
+export const ALL_ICON_KEYS = [
+  ...Object.keys(ICON_MAP),
+  ...mdiEntries.map(([key]) => `mdi:${toKebab(key)}`)
+];
+
+export const getIconComponent = (iconName) => {
+  if (!iconName) return null;
+  if (ICON_MAP[iconName]) return ICON_MAP[iconName];
+  if (iconName.startsWith('mdi:')) {
+    const path = mdiPathByName.get(iconName);
+    if (!path) return null;
+    return (props) => React.createElement(MdiIcon, { path, size: '1.4em', ...props });
+  }
+  return null;
 };

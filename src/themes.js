@@ -21,6 +21,13 @@ export const themes = {
       '--modal-backdrop': 'rgba(0,0,0,0.7)',
       '--accent-color': '#3b82f6', // blue-500
       '--accent-bg': 'rgba(59, 130, 246, 0.1)',
+      '--modal-border': 'transparent',
+      '--modal-border-width': '0px',
+      '--modal-shadow': 'none',
+      '--modal-surface': 'rgba(255, 255, 255, 0.015)',
+      '--modal-surface-hover': 'rgba(255, 255, 255, 0.03)',
+      '--modal-surface-shadow': 'none',
+      '--modal-surface-shadow-hover': 'none'
     }
   },
   light: {
@@ -43,6 +50,12 @@ export const themes = {
       '--modal-backdrop': 'rgba(0,0,0,0.2)',
       '--accent-color': '#2563eb', // blue-600
       '--accent-bg': '#eff6ff',
+      '--modal-border': '#e2e8f0',
+      '--modal-shadow': '0 20px 40px rgba(15, 23, 42, 0.12)',
+      '--modal-surface': '#f3f4f6',
+      '--modal-surface-hover': '#e5e7eb',
+      '--modal-surface-shadow': '0 10px 24px rgba(15, 23, 42, 0.08)',
+      '--modal-surface-shadow-hover': '0 14px 28px rgba(15, 23, 42, 0.12)'
     }
   },
   graphite: {
@@ -65,6 +78,12 @@ export const themes = {
       '--modal-backdrop': 'rgba(0,0,0,0.85)',
       '--accent-color': '#22d3ee', // cyan-400
       '--accent-bg': 'rgba(34, 211, 238, 0.1)',
+      '--modal-border': 'rgba(255, 255, 255, 0.08)',
+      '--modal-shadow': '0 20px 40px rgba(0, 0, 0, 0.45)',
+      '--modal-surface': 'rgba(24, 24, 31, 0.5)',
+      '--modal-surface-hover': 'rgba(39, 39, 42, 0.55)',
+      '--modal-surface-shadow': '0 10px 24px rgba(0, 0, 0, 0.3)',
+      '--modal-surface-shadow-hover': '0 14px 28px rgba(0, 0, 0, 0.35)'
     }
   },
   amethyst: {
@@ -87,6 +106,12 @@ export const themes = {
       '--modal-backdrop': 'rgba(19, 17, 28, 0.9)',
       '--accent-color': '#d946ef', // fuchsia-500
       '--accent-bg': 'rgba(217, 70, 239, 0.15)',
+      '--modal-border': 'rgba(216, 180, 254, 0.18)',
+      '--modal-shadow': '0 20px 40px rgba(19, 17, 28, 0.55)',
+      '--modal-surface': 'rgba(45, 42, 66, 0.45)',
+      '--modal-surface-hover': 'rgba(216, 180, 254, 0.1)',
+      '--modal-surface-shadow': '0 10px 24px rgba(0, 0, 0, 0.35)',
+      '--modal-surface-shadow-hover': '0 14px 28px rgba(0, 0, 0, 0.4)'
     }
   },
   flat: {
@@ -145,7 +170,13 @@ export const themes = {
       '--chart-2': '#22c55e',
       '--chart-3': '#a855f7',
       '--chart-4': '#f59e0b',
-      '--chart-5': '#ef4444'
+      '--chart-5': '#ef4444',
+      '--modal-border': 'transparent',
+      '--modal-shadow': 'none',
+      '--modal-surface': 'rgba(255, 255, 255, 0.03)',
+      '--modal-surface-hover': 'rgba(255, 255, 255, 0.06)',
+      '--modal-surface-shadow': 'none',
+      '--modal-surface-shadow-hover': 'none'
     }
   }
 };

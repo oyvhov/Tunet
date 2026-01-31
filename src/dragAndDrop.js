@@ -41,27 +41,13 @@ export const createDragAndDropHandlers = ({
     setDraggingId(cardId);
   };
 
-  const moveCard = ({ source, targetIndex, targetColIndex }) => {
+  const moveCard = ({ source, targetIndex }) => {
     const newConfig = { ...pagesConfig };
-
-    if (activePage === 'automations') {
-      const cols = newConfig.automations;
-      const sourceColIdx = source.colIndex !== undefined ? source.colIndex : 0;
-      const targetColIdx = targetColIndex !== undefined ? targetColIndex : sourceColIdx;
-
-      if (cols[sourceColIdx] && cols[targetColIdx]) {
-        const [movedItem] = cols[sourceColIdx].cards.splice(source.index, 1);
-        cols[targetColIdx].cards.splice(targetIndex, 0, movedItem);
-        source.index = targetIndex;
-        source.colIndex = targetColIdx;
-      }
-    } else {
-      const currentList = [...(newConfig[activePage] || [])];
-      const [movedItem] = currentList.splice(source.index, 1);
-      currentList.splice(targetIndex, 0, movedItem);
-      newConfig[activePage] = currentList;
-      source.index = targetIndex;
-    }
+    const currentList = [...(newConfig[activePage] || [])];
+    const [movedItem] = currentList.splice(source.index, 1);
+    currentList.splice(targetIndex, 0, movedItem);
+    newConfig[activePage] = currentList;
+    source.index = targetIndex;
 
     return { newConfig, source };
   };
@@ -90,8 +76,7 @@ export const createDragAndDropHandlers = ({
 
     const { newConfig, source } = moveCard({
       source: dragSourceRef.current,
-      targetIndex,
-      targetColIndex
+      targetIndex
     });
 
     dragSourceRef.current = source;
@@ -137,8 +122,7 @@ export const createDragAndDropHandlers = ({
 
     const { newConfig } = moveCard({
       source: dragSourceRef.current,
-      targetIndex,
-      targetColIndex
+      targetIndex
     });
 
     saveConfig(newConfig);
@@ -181,20 +165,10 @@ export const createDragAndDropHandlers = ({
       const source = JSON.parse(rawData);
 
       const newConfig = { ...pagesConfig };
-
-      if (activePage === 'automations') {
-        const cols = newConfig.automations;
-        const sourceColIdx = source.colIndex !== undefined ? source.colIndex : 0;
-        const targetColIdx = colIndex !== undefined ? colIndex : sourceColIdx;
-
-        const [movedItem] = cols[sourceColIdx].cards.splice(source.index, 1);
-        cols[targetColIdx].cards.splice(index, 0, movedItem);
-      } else {
-        const currentList = [...(newConfig[activePage] || [])];
-        const movedItem = currentList.splice(source.index, 1)[0];
-        currentList.splice(index, 0, movedItem);
-        newConfig[activePage] = currentList;
-      }
+      const currentList = [...(newConfig[activePage] || [])];
+      const movedItem = currentList.splice(source.index, 1)[0];
+      currentList.splice(index, 0, movedItem);
+      newConfig[activePage] = currentList;
 
       saveConfig(newConfig);
       setDraggingId(null);

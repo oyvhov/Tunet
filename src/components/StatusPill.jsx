@@ -1,4 +1,4 @@
-import { ICON_MAP } from '../iconMap';
+import { getIconComponent } from '../iconMap';
 import { Activity, Music, Clapperboard } from '../icons';
 
 /**
@@ -95,7 +95,7 @@ export default function StatusPill({
     const label = pill.showCount && count > 1 ? `${count} ${t('addCard.players')}` : (title || 'Media');
     const sublabel = pill.showCount && count > 1 ? title : artist;
     
-    const IconComponent = pill.icon ? ICON_MAP[pill.icon] : Clapperboard;
+    const IconComponent = pill.icon ? (getIconComponent(pill.icon) || Clapperboard) : Clapperboard;
     const bgColor = pill.bgColor || 'rgba(255, 255, 255, 0.03)';
     const iconColor = pill.iconColor || 'text-green-400';
     const iconBgColor = pill.iconBgColor || 'rgba(74, 222, 128, 0.1)';
@@ -154,7 +154,7 @@ export default function StatusPill({
   const sublabel = pill.sublabel || entity.state;
   
   // Get icon
-  const IconComponent = pill.icon ? ICON_MAP[pill.icon] : Activity;
+  const IconComponent = pill.icon ? (getIconComponent(pill.icon) || Activity) : Activity;
   
   // Get colors
   const bgColor = pill.bgColor || 'rgba(255, 255, 255, 0.03)';
