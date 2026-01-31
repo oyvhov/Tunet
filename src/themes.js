@@ -88,5 +88,64 @@ export const themes = {
       '--accent-color': '#d946ef', // fuchsia-500
       '--accent-bg': 'rgba(217, 70, 239, 0.15)',
     }
+  },
+  flat: {
+    label: 'Flat',
+    icon: Moon,
+    colors: {
+      '--bg-primary': '#0b0f14',
+      '--bg-secondary': '#0d1117',
+      '--bg-gradient-from': '#0b0f14',
+      '--bg-gradient-to': '#0b0f14',
+      '--text-primary': '#f3f4f6',
+      '--text-secondary': '#9ca3af',
+      '--text-muted': 'rgba(156, 163, 175, 0.65)',
+      '--card-bg': '#0f141b',
+      '--card-border': 'transparent',
+      '--glass-bg': '#10161e',
+      '--glass-bg-hover': '#121a24',
+      '--glass-border': 'transparent',
+      '--modal-bg': '#0f141b',
+      '--modal-backdrop': 'rgba(0,0,0,0.7)',
+      '--accent-color': '#38bdf8', // sky-400
+      '--accent-bg': 'rgba(56, 189, 248, 0.12)',
+      '--accent-strong': '#0ea5e9',
+      '--accent-soft': 'rgba(14, 165, 233, 0.18)',
+
+      '--success-color': '#22c55e',
+      '--success-bg': 'rgba(34, 197, 94, 0.12)',
+      '--warning-color': '#f59e0b',
+      '--warning-bg': 'rgba(245, 158, 11, 0.12)',
+      '--danger-color': '#ef4444',
+      '--danger-bg': 'rgba(239, 68, 68, 0.12)',
+      '--info-color': '#38bdf8',
+      '--info-bg': 'rgba(56, 189, 248, 0.12)',
+
+      '--selection-bg': 'rgba(56, 189, 248, 0.25)',
+      '--selection-text': '#f8fafc',
+
+      // Extra flat theme tokens
+      '--surface-1': '#0f141b',
+      '--surface-2': '#0c1118',
+      '--surface-3': '#0b0f14',
+      '--divider': 'transparent',
+      '--shadow-soft': 'none',
+      '--shadow-hard': 'none',
+      '--focus-ring': '0 0 0 2px rgba(56, 189, 248, 0.35)',
+      '--chip-bg': '#0e131a',
+      '--chip-border': 'transparent',
+      '--chip-text': '#cbd5f5',
+      '--input-bg': '#0c1218',
+      '--input-border': 'transparent',
+      '--input-text': '#e5e7eb',
+      '--input-placeholder': '#6b7280',
+      '--ring': 'rgba(56, 189, 248, 0.35)',
+      '--ring-strong': 'rgba(56, 189, 248, 0.6)',
+      '--chart-1': '#38bdf8',
+      '--chart-2': '#22c55e',
+      '--chart-3': '#a855f7',
+      '--chart-4': '#f59e0b',
+      '--chart-5': '#ef4444'
+    }
   }
 };

@@ -111,11 +111,12 @@ export default function GenericClimateCard({
     <div
       key="climate"
       {...dragProps}
+      data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();
         if (!editMode && onOpen) onOpen();
       }}
-      className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
+      className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
       style={cardStyle}
     >
       {controls}

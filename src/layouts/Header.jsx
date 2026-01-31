@@ -65,33 +65,47 @@ export default function Header({
       )}
 
       <div className="flex flex-col gap-3 font-sans w-full">
-        <div className="flex items-center gap-4">
-          {headerSettings.showTitle && (
-            <>
-              <h1 
-                className="font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em]" 
-                style={{
-                  color: 'var(--text-muted)', 
-                  fontSize: `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`
-                }}
-              >
-                {headerTitle || 'Midttunet'}
-              </h1>
-              
-              {editMode && setShowHeaderEditModal && (
-                <button
-                  onClick={() => setShowHeaderEditModal(true)}
-                  className="p-2 rounded-full hover:bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                  title="Rediger heading"
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-4">
+            {headerSettings.showTitle && (
+              <>
+                <h1 
+                  className={`font-light uppercase leading-none select-none tracking-[0.2em] md:tracking-[0.8em] ${
+                    headerSettings?.headerFont === 'serif' ? 'font-serif' :
+                    headerSettings?.headerFont === 'mono' ? 'font-mono' :
+                    'font-sans'
+                  }`}
+                  style={{
+                    color: 'var(--text-muted)', 
+                    fontSize: `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`,
+                    fontFamily: 
+                      headerSettings?.headerFont === 'georgia' ? 'Georgia, serif' :
+                      headerSettings?.headerFont === 'courier' ? '"Courier New", monospace' :
+                      headerSettings?.headerFont === 'trebuchet' ? '"Trebuchet MS", sans-serif' :
+                      headerSettings?.headerFont === 'comic' ? '"Comic Sans MS", cursive' :
+                      headerSettings?.headerFont === 'times' ? '"Times New Roman", serif' :
+                      headerSettings?.headerFont === 'verdana' ? 'Verdana, sans-serif' :
+                      undefined
+                  }}
                 >
-                  <Edit2 className="w-4 h-4 text-blue-400 animate-pulse" />
-                </button>
-              )}
-            </>
-          )}
+                  {headerTitle || 'Midttunet'}
+                </h1>
+                
+                {editMode && setShowHeaderEditModal && (
+                  <button
+                    onClick={() => setShowHeaderEditModal(true)}
+                    className="p-2 rounded-full hover:bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    title="Rediger heading"
+                  >
+                    <Edit2 className="w-4 h-4 text-blue-400 animate-pulse" />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
           
           {headerSettings.showDate && (
-            <p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none mt-2 opacity-50 tracking-[0.2em] md:tracking-[0.6em]">
+            <p className="text-gray-500 font-medium uppercase text-[10px] md:text-xs leading-none opacity-50 tracking-[0.2em] md:tracking-[0.6em]">
               {now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           )}

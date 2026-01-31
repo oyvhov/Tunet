@@ -42,92 +42,6 @@ export default function StatusBar({
   getEntityImageUrl, 
   statusPillsConfig = [] 
 }) {
-  const refrigeratorStatus = () => {
-    if (entities[REFRIGERATOR_ID]?.state !== 'on') return null;
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl animate-pulse" 
-           style={{backgroundColor: 'rgba(249, 115, 22, 0.02)'}}>
-        <div className="p-1.5 rounded-xl text-orange-400" 
-             style={{backgroundColor: 'rgba(249, 115, 22, 0.1)'}}>
-          <AlertCircle className="w-4 h-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-xs text-gray-500 uppercase font-bold leading-tight">
-            {t('status.alert')}
-          </span>
-          <span className="text-xs font-medium uppercase tracking-widest text-orange-200/50 italic">
-            {t('status.fridgeOpen')}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-  const studioStatus = () => {
-    if (entities[STUDIO_PRESENCE_ID]?.state !== 'on') return null;
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" 
-           style={{backgroundColor: 'rgba(255, 255, 255, 0.03)'}}>
-        <div className="p-1.5 rounded-xl text-emerald-400" 
-             style={{backgroundColor: 'rgba(16, 185, 129, 0.1)'}}>
-          <Activity className="w-4 h-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">
-            {t('status.studio')}
-          </span>
-          <span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">
-            {t('status.inUse')}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-  const portenStatus = () => {
-    if (entities[PORTEN_MOTION_ID]?.state !== 'on') return null;
-    return (
-      <button 
-        onClick={() => setShowCameraModal(true)} 
-        className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" 
-        style={{backgroundColor: 'rgba(255, 255, 255, 0.03)'}}>
-        <div className="p-1.5 rounded-xl text-amber-400" 
-             style={{backgroundColor: 'rgba(251, 191, 36, 0.1)'}}>
-          <Activity className="w-4 h-4" />
-        </div>
-        <div className="flex flex-col items-start">
-          <span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">
-            {t('camera.gate')}
-          </span>
-          <span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">
-            {t('camera.motion')}
-          </span>
-        </div>
-      </button>
-    );
-  };
-
-  const garageStatus = () => {
-    if (entities[GARAGE_DOOR_ID]?.state !== 'on') return null;
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" 
-           style={{backgroundColor: 'rgba(255, 255, 255, 0.03)'}}>
-        <div className="p-1.5 rounded-xl text-red-400" 
-             style={{backgroundColor: 'rgba(248, 113, 113, 0.1)'}}>
-          <Warehouse className="w-4 h-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">
-            {t('status.garage')}
-          </span>
-          <span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">
-            {t('status.open')}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
   const embyStatus = () => {
     const activePlayers = Object.keys(entities)
       .filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'))
@@ -158,54 +72,6 @@ export default function StatusBar({
           </span>
           <span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">
             {count} {t('addCard.players')}
-          </span>
-        </div>
-      </button>
-    );
-  };
-
-  const sonosStatus = () => {
-    const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
-    const activeSonos = sonosEntities.filter(isSonosActive);
-    
-    if (activeSonos.length === 0) return null;
-
-    let currentSonos = activeSonos.find(e => e.state === 'playing');
-    if (!currentSonos) currentSonos = activeSonos[0];
-
-    const sId = currentSonos.entity_id;
-    const isLydplanke = sId === 'media_player.sonos_lydplanke';
-    const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
-    const sTitle = isTV ? t('media.tvAudio') : getA(sId, 'media_title');
-    const sArtist = isTV ? t('media.livingRoom') : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
-    const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
-    const isPlaying = currentSonos.state === 'playing';
-
-    return (
-      <button 
-        onClick={() => setActiveMediaModal('sonos')} 
-        className="flex items-center gap-3 px-2 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" 
-        style={{backgroundColor: 'rgba(255, 255, 255, 0.03)'}}>
-        <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--glass-bg)] relative flex-shrink-0">
-          {sPicture ? (
-            <img 
-              src={sPicture} 
-              alt="" 
-              className={`w-full h-full object-cover ${isPlaying ? 'animate-spin' : ''}`} 
-              style={{ animationDuration: '10s' }} 
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-blue-500/10 text-blue-400">
-              <Music className="w-4 h-4" />
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col items-start max-w-[120px]">
-          <span className="text-xs text-[var(--text-primary)] font-bold leading-tight truncate w-full">
-            {sTitle || t('common.unknown')}
-          </span>
-          <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-secondary)] truncate w-full">
-            {sArtist || ''}
           </span>
         </div>
       </button>
@@ -325,14 +191,7 @@ export default function StatusBar({
         }
         
         {/* Legacy hardcoded pills (always show as fallback) */}
-        {refrigeratorStatus()}
-        {studioStatus()}
-        {portenStatus()}
-        {garageStatus()}
         {embyStatus()}
-        {sonosStatus()}
-        {doorStatus(EILEV_DOOR_ID, t('door.eilev'))}
-        {doorStatus(OLVE_DOOR_ID, t('door.olve'))}
       </div>
     </div>
   );

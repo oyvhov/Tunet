@@ -53,15 +53,15 @@ const EditCardModal = ({
           background: rgba(255, 255, 255, 0.25);
         }
       `}</style>
-      <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans backdrop-blur-xl popup-anim" style={{
+      <div className="border w-full max-w-lg rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans backdrop-blur-xl popup-anim flex flex-col max-h-[85vh]" style={{
         background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', 
         borderColor: 'var(--glass-border)', 
         color: 'var(--text-primary)'
       }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-5 right-5 md:top-7 md:right-7 modal-close"><X className="w-4 h-4" /></button>
-        <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] text-center uppercase tracking-widest italic">{t('modal.editCard.title')}</h3>
+        <button onClick={onClose} className="absolute top-5 right-5 md:top-7 md:right-7 modal-close z-10"><X className="w-4 h-4" /></button>
+        <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] text-center uppercase tracking-widest italic shrink-0">{t('modal.editCard.title')}</h3>
         
-        <div className="space-y-8">
+        <div className="space-y-8 flex-1 overflow-y-auto custom-scrollbar pr-2">
           {canEditName && (
             <div className="space-y-2">
               <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
@@ -104,21 +104,92 @@ const EditCardModal = ({
           )}
 
           {isPerson && (
-            <div className="space-y-2">
-              <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('person.display')}</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'photo')}
-                  className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'photo' ? 'bg-blue-500 text-white border-blue-500' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
-                >
-                  {t('person.display.photo')}
-                </button>
-                <button
-                  onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'icon')}
-                  className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'icon' ? 'bg-blue-500 text-white border-blue-500' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
-                >
-                  {t('person.display.icon')}
-                </button>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('person.display')}</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'photo')}
+                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'photo' ? 'bg-blue-500 text-white border-blue-500' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    {t('person.display.photo')}
+                  </button>
+                  <button
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'icon')}
+                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'icon' ? 'bg-blue-500 text-white border-blue-500' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    {t('person.display.icon')}
+                  </button>
+                </div>
+              </div>
+
+               {/* Mobile App / Battery Sensor */}
+               <div>
+                 <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-2 block">{t('person.mobileAppBattery') || 'Mobile App Battery'}</label>
+                 <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl p-4 max-h-40 overflow-y-auto custom-scrollbar space-y-2">
+                    {Object.keys(entities).filter(id => id.startsWith('sensor.') && (id.includes('battery_level') || id.includes('battery'))).length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-4">{t('addCard.noSensors') || 'No sensors found'}</p>
+                    ) : (
+                        Object.keys(entities).filter(id => id.startsWith('sensor.') && (id.includes('battery_level') || id.includes('battery')))
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(sensorId => {
+                          const isSelected = editSettings.batteryEntity === sensorId;
+                          return (
+                              <div key={sensorId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
+                                  saveCardSetting(editSettingsKey, 'batteryEntity', isSelected ? null : sensorId);
+                              }}>
+                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
+                                  </div>
+                                  <div className="flex flex-col">
+                                      <span className="text-sm font-medium text-[var(--text-primary)]">{entities[sensorId].attributes?.friendly_name || sensorId}</span>
+                                      <span className="text-[10px] text-gray-500 font-mono">{sensorId}</span>
+                                  </div>
+                              </div>
+                          );
+                        })
+                    )}
+                 </div>
+               </div>
+
+               {/* Device Tracker */}
+               <div>
+                 <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-2 block">{t('person.deviceTracker') || 'Device Tracker (Map)'}</label>
+                 <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl p-4 max-h-40 overflow-y-auto custom-scrollbar space-y-2">
+                    {Object.keys(entities).filter(id => id.startsWith('device_tracker.')).length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-4">{t('addCard.noSensors') || 'No trackers found'}</p>
+                    ) : (
+                        Object.keys(entities).filter(id => id.startsWith('device_tracker.'))
+                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
+                          .map(trackerId => {
+                          const isSelected = editSettings.deviceTracker === trackerId;
+                          return (
+                              <div key={trackerId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
+                                  saveCardSetting(editSettingsKey, 'deviceTracker', isSelected ? null : trackerId);
+                              }}>
+                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
+                                  </div>
+                                  <div className="flex flex-col">
+                                      <span className="text-sm font-medium text-[var(--text-primary)]">{entities[trackerId].attributes?.friendly_name || trackerId}</span>
+                                      <span className="text-[10px] text-gray-500 font-mono">{trackerId}</span>
+                                  </div>
+                              </div>
+                          );
+                        })
+                    )}
+                 </div>
+               </div>
+
+               {/* Show History Toggle */}
+               <div className="flex items-center justify-between px-6 py-4 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showHistory') || 'Show History on Map'}</span>
+                  <button 
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showHistory', !(editSettings.showHistory))}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showHistory ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showHistory ? 'left-7' : 'left-1'}`} />
+                  </button>
               </div>
             </div>
           )}

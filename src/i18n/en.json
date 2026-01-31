@@ -110,7 +110,7 @@
   "binary.lock.locked": "Locked",
   "addCard.search": "Search entities...",
   "addCard.cardType": "Card type",
-  "addCard.type.entity": "Entity",
+  "addCard.type.entity": "Person",
   "addCard.type.toggle": "Toggle",
   "addCard.type.light": "Light",
   "addCard.type.vacuum": "Vacuum",

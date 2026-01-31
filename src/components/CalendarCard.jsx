@@ -169,8 +169,9 @@ const CalendarCard = ({
   return (
     <div 
       {...dragProps} 
+      data-haptic={isEditMode ? undefined : 'card'}
       onClick={onClick}
-      className={`relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${className}`}
+      className={`touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${className}`}
       style={style}
     >
       {getControls && getControls(cardId)}

@@ -51,6 +51,7 @@ export const ConfigProvider = ({ children }) => {
     }
     document.documentElement.style.backgroundColor = theme['--bg-primary'];
     document.body.style.backgroundColor = theme['--bg-primary'];
+    document.documentElement.dataset.theme = themeKey;
     document.documentElement.style.colorScheme = themeKey === 'dark' ? 'dark' : 'light';
     
     let metaThemeColor = document.querySelector("meta[name='theme-color']");

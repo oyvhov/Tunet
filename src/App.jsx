@@ -152,7 +152,6 @@ import {
   NRKLogo,
   PageNavigation,
   SensorCard,
-  SettingsMenu,
   SonosPage,
   SparkLine,
   WeatherGraph,
@@ -172,6 +171,7 @@ import {
   LightModal,
   MediaModal,
   NordpoolModal,
+  PersonModal,
   RockyModal,
   SensorModal,
   StatusPillsConfigModal,
@@ -286,6 +286,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [activeClimateEntityModal, setActiveClimateEntityModal] = useState(null);
   const [showLightModal, setShowLightModal] = useState(null);
   const [showLeafModal, setShowLeafModal] = useState(false);
+  const [showPersonModal, setShowPersonModal] = useState(null);
 
   const [showAndroidTVModal, setShowAndroidTVModal] = useState(null);
   const [showRockyModal, setShowRockyModal] = useState(false);
@@ -321,10 +322,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [tempHistory, setTempHistory] = useState([]);
   const [weatherForecast, setWeatherForecast] = useState([]);
   const [gridColCount, setGridColCount] = useState(1);
+  const [isCompactCards, setIsCompactCards] = useState(false);
   const dragSourceRef = useRef(null);
-  const [showMenu, setShowMenu] = useState(false);
-  const gearMenuRef = useRef(null);
-  const gearButtonRef = useRef(null);
   const touchTargetRef = useRef(null);
   const [touchTargetId, setTouchTargetId] = useState(null);
   const [touchPath, setTouchPath] = useState(null);
@@ -348,7 +347,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [showStatusPillsConfig, setShowStatusPillsConfig] = useState(false);
   const resetToHome = () => {
     const isHome = activePage === 'home';
-    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode && !showStatusPillsConfig;
+    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !showLeafModal && !showAndroidTVModal && !showRockyModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode && !showStatusPillsConfig && !showPersonModal;
     
     if (!isHome || !noModals) {
         setActivePage('home');
@@ -356,6 +355,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         setActiveClimateEntityModal(null);
         setShowLightModal(null);
         setShowLeafModal(false);
+        setShowPersonModal(null);
 
         setShowRockyModal(false);
         setShowAddCardModal(false);
@@ -396,21 +396,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       events.forEach(event => document.removeEventListener(event, resetTimer));
     };
   }, [inactivityTimeout]);
-
-  useEffect(() => {
-    if (!showMenu) return;
-    const handler = (e) => {
-      if (gearMenuRef.current && gearMenuRef.current.contains(e.target)) return;
-      if (gearButtonRef.current && gearButtonRef.current.contains(e.target)) return;
-      setShowMenu(false);
-    };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler);
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('touchstart', handler);
-    };
-  }, [showMenu]);
 
   useEffect(() => {
     if (!showAddCardModal) setSearchTerm('');
@@ -463,6 +448,17 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }, 500);
     return () => clearTimeout(timeout);
   }, [entities]);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
+      const target = event.target?.closest?.('[data-haptic]');
+      if (!target) return;
+      if (navigator.vibrate) navigator.vibrate(8);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, []);
 
   useEffect(() => {
     if (!config.token && !showOnboarding && !showConfigModal) {
@@ -665,11 +661,13 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const PersonIcon = customIcons[id] ? ICON_MAP[customIcons[id]] : User;
 
     return (
-      <div key={id} className="group relative flex items-center gap-2 sm:gap-3 pl-1.5 pr-2 sm:pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)]" 
+      <div key={id} 
+           onClick={(e) => { if (!editMode) { e.stopPropagation(); setShowPersonModal(id); } }}
+           className="group relative flex items-center gap-2 sm:gap-3 pl-1.5 pr-2 sm:pr-5 py-1.5 rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)]" 
            style={{
              backgroundColor: 'rgba(255, 255, 255, 0.02)', 
              boxShadow: isHome ? '0 0 20px rgba(34, 197, 94, 0.05)' : 'none',
-             cursor: editMode ? 'pointer' : 'default'
+             cursor: editMode ? 'pointer' : 'cursor-pointer'
            }}>
         
         {editMode && (
@@ -861,9 +859,11 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   useEffect(() => {
     const updateGridCols = () => {
       const width = window.innerWidth;
-      if (width >= 1024) setGridColCount(activeGridColumns === 4 ? 4 : 3);
-      else if (width >= 768) setGridColCount(2);
+      if (width >= 1280) setGridColCount(activeGridColumns === 4 ? 4 : 3);
+      else if (width >= 1024) setGridColCount(3);
+      else if (width >= 480) setGridColCount(2);
       else setGridColCount(1);
+      setIsCompactCards(width >= 480 && width < 640);
     };
 
     updateGridCols();
@@ -1305,7 +1305,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     if (isSmall) {
       return (
-        <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+        <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
           {getControls(currentLId)}
           
           <button 
@@ -1330,7 +1330,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }
 
     return (
-      <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
         {getControls(currentLId)}
         <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}><span className="text-xs tracking-widest uppercase font-bold">{isUnavailable ? t('status.unavailable') : (totalCount > 0 ? (activeCount > 0 ? `${activeCount}/${totalCount}` : t('common.off')) : (isOn ? t('common.on') : t('common.off')))}</span></div></div>
         <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round(((optimisticLightBrightness[currentLId] ?? br) / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={optimisticLightBrightness[currentLId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [currentLId]: val })); callService("light", "turn_on", { entity_id: currentLId, brightness: val }); }} colorClass="bg-amber-500" /></div>
@@ -1346,7 +1346,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const Icon = customIcons[cardId] ? ICON_MAP[customIcons[cardId]] : Workflow;
     
     return (
-      <div key={cardId} {...dragProps} className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isOn ? 'rgba(59, 130, 246, 0.03)' : 'rgba(15, 23, 42, 0.6)', borderColor: isOn ? 'rgba(59, 130, 246, 0.15)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)')}} onClick={(e) => { if(!editMode) callService("automation", "toggle", { entity_id: cardId }); }}>
+      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} className={`touch-feedback w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isOn ? 'rgba(59, 130, 246, 0.03)' : 'rgba(15, 23, 42, 0.6)', borderColor: isOn ? 'rgba(59, 130, 246, 0.15)' : (editMode ? 'rgba(59, 130, 246, 0.6)' : 'rgba(255, 255, 255, 0.04)')}} onClick={(e) => { if(!editMode) callService("automation", "toggle", { entity_id: cardId }); }}>
         {getControls(cardId)}
         <div className="flex items-center gap-4">
           <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
@@ -1365,7 +1365,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const Icon = customIcons['car'] ? ICON_MAP[customIcons['car']] : Car;
     
     return (
-      <div key="car" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'var(--card-border)')}}>
+      <div key="car" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLeafModal(true); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isHtg ? 'rgba(249, 115, 22, 0.3)' : 'var(--card-border)')}}>
         {getControls('car')}
         <div className="flex justify-between items-start font-sans">
           <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : 'bg-green-500/10 text-green-400'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
@@ -1581,7 +1581,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const Icon = customIcons['rocky'] ? ICON_MAP[customIcons['rocky']] : Bot;
     
     return (
-      <div key="rocky" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isCleaning ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
+      <div key="rocky" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={{...cardStyle, backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (isCleaning ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
         {getControls('rocky')}
         <div className="flex justify-between items-start font-sans">
            <div className={`p-3 rounded-2xl transition-all ${isCleaning ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
@@ -1635,7 +1635,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     if (isSmall) {
       return (
-        <div key={vacuumId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)'), containerType: 'inline-size'}}>
+        <div key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)'), containerType: 'inline-size'}}>
           {getControls(vacuumId)}
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all ${state === "cleaning" ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
@@ -1662,7 +1662,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }
 
     return (
-      <div key={vacuumId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
+      <div key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowRockyModal(true); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.6)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
         {getControls(vacuumId)}
         <div className="flex justify-between items-start font-sans">
            <div className={`p-3 rounded-2xl transition-all ${state === "cleaning" ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
@@ -1709,7 +1709,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     if (!isActive) {
       return (
-        <div key={mpId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+        <div key={mpId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaModal('media'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
           {getControls(mpId)}
           <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
             {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}
@@ -1723,7 +1723,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }
 
     return (
-      <div key={mpId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
+      <div key={mpId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaModal('media'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
         {getControls(mpId)}
         {picture && (
           <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
@@ -1787,7 +1787,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     if (!isActive) {
       return (
-        <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey(settingsKey); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+        <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey(settingsKey); setActiveMediaModal('media'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
           {getControls(cardId)}
           <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
             {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}
@@ -1801,7 +1801,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }
 
     return (
-      <div key={cardId} {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey(settingsKey); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
+      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey(settingsKey); setActiveMediaModal('media'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: picture ? 'white' : 'var(--text-primary)'}}>
         {getControls(cardId)}
         {cyclePool.length > 1 && (
           <button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md">
@@ -2388,7 +2388,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
             if (isIdle) {
           return (
-            <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey('__emby__'); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+            <div key="media_player" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey('__emby__'); setActiveMediaModal('media'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
               {getControls(mpId)}
               {indicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
@@ -2403,7 +2403,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         }
 
         return (
-          <div key="media_player" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey('__emby__'); setActiveMediaModal('media'); } }} className={`p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: mpPicture ? 'white' : 'var(--text-primary)'}}>
+          <div key="media_player" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey('__emby__'); setActiveMediaModal('media'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: mpPicture ? 'white' : 'var(--text-primary)'}}>
             {getControls(mpId)}
             {indicator}
             
@@ -2475,7 +2475,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
         if (!sIsActive) {
           return (
-            <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(sId); setActiveMediaModal('sonos'); } }} className={`p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+            <div key="sonos" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(sId); setActiveMediaModal('sonos'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
               {getControls(sId)}
               {sIndicator}
               <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}><Speaker className="w-8 h-8 text-[var(--text-secondary)]" /></div>
@@ -2485,7 +2485,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         }
 
         return (
-          <div key="sonos" {...dragProps} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(sId); setActiveMediaModal('sonos'); } }} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: sPicture ? 'white' : 'var(--text-primary)'}}>
+          <div key="sonos" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(sId); setActiveMediaModal('sonos'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: sPicture ? 'white' : 'var(--text-primary)'}}>
             {getControls(sId)}
             {sIndicator}
             {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.7]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
@@ -2563,7 +2563,11 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           <circle cx={touchPath.x} cy={touchPath.y} r="8" fill="rgba(59, 130, 246, 0.9)" />
         </svg>
       )}
-      <div className="relative z-10 w-full max-w-[1600px] mx-auto px-6 md:px-20 py-6 md:py-10">
+      <div
+        className={`relative z-10 w-full max-w-[1600px] mx-auto py-6 md:py-10 ${
+          gridColCount === 1 ? 'px-10 sm:px-16 md:px-24' : 'px-6 md:px-20'
+        } ${isCompactCards ? 'compact-cards' : ''}`}
+      >
         <style>{`
           @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -2698,6 +2702,13 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           .popup-surface-divider {
             background: color-mix(in srgb, var(--glass-border) 35%, transparent);
           }
+          .compact-cards .card-compact {
+            transform: scale(0.92);
+            transform-origin: top center;
+          }
+          .compact-cards .card-compact > * {
+            width: 100%;
+          }
           .modal-close {
             width: 36px;
             height: 36px;
@@ -2727,6 +2738,28 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           .modal-close-dark:hover {
             background: rgba(0, 0, 0, 0.7);
           }
+          .touch-feedback {
+            transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+            -webkit-tap-highlight-color: transparent;
+          }
+          .touch-feedback:active {
+            transform: scale(0.98);
+            filter: brightness(1.05);
+          }
+          ::selection {
+            background: var(--selection-bg, rgba(59, 130, 246, 0.3));
+            color: var(--selection-text, #fff);
+          }
+          html[data-theme='flat'] * {
+            box-shadow: none !important;
+            border-color: transparent !important;
+          }
+          html[data-theme='flat'] .modal-close,
+          html[data-theme='flat'] .modal-close-dark,
+          html[data-theme='flat'] .popup-surface,
+          html[data-theme='flat'] .popup-surface-hover {
+            box-shadow: none !important;
+          }
         `}</style>
         <Header
           now={now}
@@ -2748,7 +2781,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                   <Plus className="w-3 h-3" /> {t('addCard.type.entity')}
                 </button>
               )}
-              <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>
+              {(pagesConfig.header || []).length > 0 && <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>}
             </div>
             <div className="flex-1 min-w-0">
               <StatusBar
@@ -2805,22 +2838,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               </button>
             )}
             
-            <SettingsMenu
-              menuRef={gearMenuRef}
-              showMenu={showMenu}
-              setShowMenu={setShowMenu}
-              editMode={editMode}
-              setEditMode={setEditMode}
-              setShowConfigModal={setShowConfigModal}
-              setShowOnboarding={setShowOnboarding}
-              toggleTheme={toggleTheme}
-              currentTheme={currentTheme}
-              activePage={activePage}
-              pageSettings={pageSettings}
-              entities={entities}
-              setShowUpdateModal={setShowUpdateModal}
-              t={t}
-            />
             <button 
               onClick={() => {
                 const currentSettings = pageSettings[activePage];
@@ -2832,7 +2849,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             >
               <Edit2 className="w-5 h-5" />
             </button>
-            <button ref={gearButtonRef} onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group ${showMenu ? 'bg-[var(--glass-bg)]' : ''}`}><Settings className={`w-5 h-5 transition-all duration-500 ${showMenu ? 'rotate-90 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`} /></button>
+            <button onClick={() => setShowConfigModal(true)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group`}><Settings className={`w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]`} /></button>
             {!connected && <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: '#ef4444'}} /></div>}
           </div>
         </div>
@@ -2887,9 +2904,15 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                   const heading = cardSettings[settingsKey]?.heading;
                   const cardContent = renderCard(id, index, colIndex);
                   if (!cardContent) return null;
-                  if (!heading) return cardContent;
+                  if (!heading) {
+                    return (
+                      <div key={`${id}-${index}`} className={isCompactCards ? 'card-compact' : ''}>
+                        {cardContent}
+                      </div>
+                    );
+                  }
                   return (
-                    <div key={`${id}-${index}`} className="relative">
+                    <div key={`${id}-${index}`} className={`relative ${isCompactCards ? 'card-compact' : ''}`}>
                       <div className="absolute -top-4 left-2 text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)]">
                         {heading}
                       </div>
@@ -2925,7 +2948,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               return (
                 <div
                   key={`${id}-${index}`}
-                  className="h-full relative"
+                  className={`h-full relative ${isCompactCards ? 'card-compact' : ''}`}
                   style={{
                     gridRowStart: placement.row,
                     gridColumnStart: placement.col,
@@ -2977,6 +3000,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           setLanguage={setLanguage}
           inactivityTimeout={inactivityTimeout}
           setInactivityTimeout={setInactivityTimeout}
+          entities={entities}
           onClose={() => setShowConfigModal(false)}
           onFinishOnboarding={() => { setShowOnboarding(false); setShowConfigModal(false); }}
         />
@@ -3743,6 +3767,19 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           onSave={saveStatusPillsConfig}
           entities={entities}
           t={t}
+        />
+
+        <PersonModal
+          show={!!showPersonModal}
+          onClose={() => setShowPersonModal(null)}
+          personId={showPersonModal}
+          entity={showPersonModal ? entities[showPersonModal] : null}
+          entities={entities}
+          customName={showPersonModal ? customNames[showPersonModal] : null}
+          getEntityImageUrl={getEntityImageUrl}
+          conn={conn}
+          t={t}
+          settings={showPersonModal ? (cardSettings[getCardSettingsKey(showPersonModal, 'header')] || cardSettings[showPersonModal] || {}) : {}}
         />
       </div>
     </div>

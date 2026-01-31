@@ -1,4 +1,5 @@
-import { X } from '../icons';
+import { X, Palette } from '../icons';
+import ModernDropdown from '../components/ModernDropdown';
 
 /**
  * Modal for editing header settings
@@ -80,6 +81,28 @@ export default function EditHeaderModal({
                 {headerScale.toFixed(1)}x
               </span>
             </div>
+          </div>
+
+          <div>
+            <ModernDropdown 
+              label="Header font" 
+              icon={Palette} 
+              options={['sans', 'serif', 'mono', 'georgia', 'courier', 'trebuchet', 'comic', 'times', 'verdana']} 
+              current={headerSettings?.headerFont || 'sans'} 
+              onChange={(font) => updateHeaderSettings({ ...headerSettings, headerFont: font })} 
+              map={{ 
+                sans: 'Sans-serif',
+                serif: 'Serif',
+                mono: 'Monospace',
+                georgia: 'Georgia',
+                courier: 'Courier New',
+                trebuchet: 'Trebuchet MS',
+                comic: 'Comic Sans MS',
+                times: 'Times New Roman',
+                verdana: 'Verdana'
+              }} 
+              placeholder="Vel font" 
+            />
           </div>
 
           <div className="space-y-3 pt-4 border-t border-[var(--glass-border)]">

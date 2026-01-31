@@ -1,6 +1,7 @@
 {
     "chat.tools.terminal.autoApprove": {
         "Push-Location": true,
-        "Pop-Location": true
+        "Pop-Location": true,
+        "git add": true
     }
 }

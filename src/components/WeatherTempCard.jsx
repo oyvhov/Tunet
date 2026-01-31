@@ -41,7 +41,7 @@ export default function WeatherTempCard({
 
   if (isSmall) {
     return (
-      <div key={cardId} {...dragProps} className={`p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
+      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
         {getControls(cardId)}
         <div className="absolute inset-0 opacity-30 z-0">
           <WeatherGraph history={history} currentTemp={currentTemp} />
@@ -60,7 +60,7 @@ export default function WeatherTempCard({
   }
 
   return (
-    <div key={cardId} {...dragProps} className={`p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
+    <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`} style={cardStyle}>
       {getControls(cardId)}
       <div className="flex flex-col gap-3 relative z-10">
         <div className="flex justify-between items-start">

@@ -110,7 +110,7 @@
   "binary.lock.locked": "Låst",
   "addCard.search": "Søk etter entitet...",
   "addCard.cardType": "Korttype",
-  "addCard.type.entity": "Enhet",
+  "addCard.type.entity": "Person",
   "addCard.type.toggle": "Toggle",
   "addCard.type.light": "Lys",
   "addCard.type.vacuum": "Støvsugar",

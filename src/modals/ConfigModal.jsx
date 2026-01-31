@@ -12,7 +12,8 @@ import {
   Globe,
   Palette,
   Monitor,
-  Sparkles
+  Sparkles,
+  Download
 } from '../icons';
 
 export default function ConfigModal({
@@ -45,6 +46,7 @@ export default function ConfigModal({
   setLanguage,
   inactivityTimeout,
   setInactivityTimeout,
+  entities,
   onClose,
   onFinishOnboarding
 }) {
@@ -183,6 +185,65 @@ export default function ConfigModal({
     </div>
   );
 
+  const renderUpdatesTab = () => {
+    const updates = entities ? Object.keys(entities).filter(id => 
+      id.startsWith('update.') && entities[id].state === 'on'
+    ).map(id => entities[id]) : [];
+
+    if (updates.length === 0) {
+      return (
+        <div className="space-y-8 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="p-8 rounded-2xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-center">
+            <Check className="w-12 h-12 text-green-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">{t('updates.none')}</h3>
+            <p className="text-[var(--text-secondary)]">Alt systemet er oppdatert!</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
+        {updates.map(update => (
+          <div key={update.entity_id} className="p-4 rounded-2xl bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:border-blue-500/50 transition-all">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h4 className="text-sm font-bold text-[var(--text-primary)] mb-1 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-blue-400" />
+                  {update.attributes?.friendly_name || update.entity_id}
+                </h4>
+                <p className="text-xs text-[var(--text-secondary)] mb-2">
+                  {update.attributes?.latest_version ? `Versjon: ${update.attributes.latest_version}` : ''}
+                </p>
+                {update.attributes?.release_summary && (
+                  <p className="text-xs text-[var(--text-muted)] line-clamp-2">{update.attributes.release_summary}</p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  // Call service to install update
+                  if (window.HAWS && window.HAWS.conn) {
+                    const conn = window.HAWS.conn;
+                    const [domain, service] = update.entity_id.split('.');
+                    conn.sendMessage({
+                      type: 'call_service',
+                      domain: domain === 'update' ? 'update' : domain,
+                      service: 'install',
+                      service_data: { entity_id: update.entity_id }
+                    });
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold uppercase tracking-wide transition-colors"
+              >
+                {t('updates.update')}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8" style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={handleClose}>
        <style>{`
@@ -240,20 +301,20 @@ export default function ConfigModal({
                  <h3 className="font-bold text-lg uppercase tracking-wide">{onboardingSteps[onboardingStep].label}</h3>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">
                 {/* Desktop Header for Content */}
-                <div className="hidden md:flex items-center justify-between mb-8">
-                   <h2 className="text-2xl font-bold">{onboardingSteps[onboardingStep].label}</h2>
+                <div className="hidden md:flex items-center justify-between mb-4">
+                   <h2 className="text-xl font-bold">{onboardingSteps[onboardingStep].label}</h2>
                 </div>
 
                 {onboardingStep === 0 && (
-                   <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                     <div className="space-y-4">
-                        <div className="space-y-3">
+                   <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                     <div className="space-y-3">
+                        <div className="space-y-1.5">
                           <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlPrimary')}</label>
                           <input
                             type="text"
-                            className={`w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] ${onboardingUrlError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
+                            className={`w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] text-sm ${onboardingUrlError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
                             value={config.url}
                             onChange={(e) => {
                               setConfig({ ...config, url: e.target.value.trim() });
@@ -265,10 +326,10 @@ export default function ConfigModal({
                            {onboardingUrlError && <p className="text-xs text-red-400 font-bold ml-1">{onboardingUrlError}</p>}
                         </div>
                         
-                        <div className="space-y-3">
+                        <div className="space-y-1.5">
                           <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.token')}</label>
                           <textarea
-                            className={`w-full px-4 py-3 h-32 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-mono text-xs ${onboardingTokenError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
+                            className={`w-full px-3 py-2 h-24 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-mono text-xs leading-tight ${onboardingTokenError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
                             value={config.token}
                             onChange={(e) => {
                               setConfig({ ...config, token: e.target.value.trim() });
@@ -280,32 +341,32 @@ export default function ConfigModal({
                           {onboardingTokenError && <p className="text-xs text-red-400 font-bold ml-1">{onboardingTokenError}</p>}
                         </div>
 
-                         <div className="space-y-3">
+                         <div className="space-y-1.5">
                           <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlFallback')}</label>
                           <input
                             type="text"
-                            className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] focus:border-blue-500/50"
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] text-sm focus:border-blue-500/50"
                             value={config.fallbackUrl}
                             onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
                             placeholder={t('common.optional')}
                           />
-                           <p className="text-xs text-[var(--text-muted)] ml-1">{t('onboarding.fallbackHint')}</p>
+                           <p className="text-[10px] text-[var(--text-muted)] ml-1 leading-tight">{t('onboarding.fallbackHint')}</p>
                         </div>
                      </div>
 
                      <button
                       onClick={testConnection}
                       disabled={!config.url || !config.token || !validateUrl(config.url) || testingConnection}
-                      className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'}`}
+                      className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg text-sm ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'}`}
                     >
                       {testingConnection ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Wifi className="w-5 h-5" />}
                       {testingConnection ? t('onboarding.testing') : t('onboarding.testConnection')}
                     </button>
 
                     {connectionTestResult && (
-                      <div className={`p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 ${connectionTestResult.success ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-                        {connectionTestResult.success ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                        <span className="font-bold">{connectionTestResult.message}</span>
+                      <div className={`p-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 ${connectionTestResult.success ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                        {connectionTestResult.success ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                        <span className="font-bold text-sm">{connectionTestResult.message}</span>
                       </div>
                     )}
                   </div>
@@ -410,6 +471,14 @@ export default function ConfigModal({
                 <Monitor className="w-4 h-4" />
                 {t('system.tabSettings')}
               </button>
+              
+              <button 
+                onClick={() => setConfigTab('updates')}
+                className={`flex-1 md:flex-none flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold uppercase tracking-wide ${configTab === 'updates' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              >
+                <Download className="w-4 h-4" />
+                {t('updates.title')}
+              </button>
 
               <div className="mt-auto hidden md:flex flex-col gap-2 pt-4 border-t border-[var(--glass-border)]">
                  <button onClick={onClose} className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold uppercase tracking-widest transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2">
@@ -422,14 +491,14 @@ export default function ConfigModal({
             {/* Content Area */}
             <div className="flex-1 flex flex-col min-h-0 bg-[var(--modal-bg)]">
               <div className="flex items-center justify-between p-6 border-b border-[var(--glass-border)] md:hidden">
-                 <h3 className="font-bold text-lg uppercase tracking-wide">{configTab === 'connection' ? t('system.tabConnection') : t('system.tabSettings')}</h3>
+                 <h3 className="font-bold text-lg uppercase tracking-wide">{configTab === 'connection' ? t('system.tabConnection') : configTab === 'settings' ? t('system.tabSettings') : t('updates.title')}</h3>
                  <button onClick={onClose} className="modal-close"><X className="w-4 h-4" /></button>
               </div>
               
               <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
                 {/* Desktop Header for Content */}
                 <div className="hidden md:flex items-center justify-between mb-8">
-                   <h2 className="text-2xl font-bold">{configTab === 'connection' ? t('system.tabConnection') : t('system.tabSettings')}</h2>
+                   <h2 className="text-2xl font-bold">{configTab === 'connection' ? t('system.tabConnection') : configTab === 'settings' ? t('system.tabSettings') : t('updates.title')}</h2>
                    <button onClick={handleClose} className="p-2 rounded-full hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                      <X className="w-5 h-5" />
                    </button>
@@ -437,6 +506,7 @@ export default function ConfigModal({
 
                 {configTab === 'connection' && renderConnectionTab()}
                 {configTab === 'settings' && renderSettingsTab()}
+                {configTab === 'updates' && renderUpdatesTab()}
               </div>
 
               {/* Mobile Footer Area */}
