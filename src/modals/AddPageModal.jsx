@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import IconPicker from '../components/IconPicker';
 
-const AddPageModal = ({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon, onCreate, onCreateSonos }) => {
+export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon, onCreate, onCreateSonos }) {
   if (!isOpen) return null;
   const [activeTab, setActiveTab] = useState('standard');
 
@@ -87,6 +87,4 @@ const AddPageModal = ({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPa
       </div>
     </div>
   );
-};
-
-export default AddPageModal;
+}

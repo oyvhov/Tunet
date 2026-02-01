@@ -12,7 +12,7 @@
   "onboarding.step.connection": "Connection",
   "onboarding.step.preferences": "Preferences",
   "onboarding.step.finish": "Finish",
-  "onboarding.welcomeTitle": "Welcome to Midttunet",
+  "onboarding.welcomeTitle": "Welcome to Tunet",
   "onboarding.welcomeBody": "Let's set up your Home Assistant connection and preferences in a few simple steps. This will only take a few minutes.",
   "onboarding.card.connectionTitle": "Connection",
   "onboarding.card.connectionBody": "Connect to your Home Assistant instance with URL and long-lived token.",

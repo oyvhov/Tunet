@@ -3,7 +3,7 @@ import { Minus, Plus, Activity, Power, ToggleLeft, ToggleRight } from 'lucide-re
 import { getHistory, getStatistics } from '../services/haClient';
 import SparkLine from './SparkLine';
 
-const SensorCard = ({ 
+export default function SensorCard({ 
   entity, 
   conn,
   settings, 
@@ -16,7 +16,7 @@ const SensorCard = ({
   onControl,
   onOpen,
   t
-}) => {
+}) {
   if (!entity) return null;
 
   const translate = t || ((key) => key);
@@ -302,6 +302,4 @@ const SensorCard = ({
       </div>
     </div>
   );
-};
-
-export default SensorCard;
+}

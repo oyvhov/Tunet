@@ -171,7 +171,7 @@ export default function ConfigModal({
             onChange={(e) => {
               const val = parseInt(e.target.value, 10);
               setInactivityTimeout(val);
-              localStorage.setItem('midttunet_inactivity_timeout', String(val));
+              localStorage.setItem('tunet_inactivity_timeout', String(val));
             }}
             className="w-full accent-blue-500"
           />
@@ -396,7 +396,7 @@ export default function ConfigModal({
                         onChange={(e) => {
                           const val = parseInt(e.target.value, 10);
                           setInactivityTimeout(val);
-                          localStorage.setItem('midttunet_inactivity_timeout', String(val));
+                          localStorage.setItem('tunet_inactivity_timeout', String(val));
                         }}
                         className="w-full accent-blue-500"
                       />
@@ -485,6 +485,11 @@ export default function ConfigModal({
                     <Check className="w-4 h-4" />
                     {t('system.save')}
                  </button>
+                 <div className="text-center pt-2">
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest opacity-50">
+                      Tunet Dashboard v1.6.1
+                    </p>
+                 </div>
               </div>
             </div>
 
@@ -514,6 +519,11 @@ export default function ConfigModal({
                 <button onClick={onClose} className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold uppercase tracking-widest transition-all shadow-lg shadow-green-500/20">
                   {t('system.save')}
                 </button>
+                <div className="text-center pt-3">
+                  <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest opacity-50">
+                    Tunet Dashboard v1.6.1
+                  </p>
+                </div>
               </div>
             </div>
           </div>

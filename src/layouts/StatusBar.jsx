@@ -44,7 +44,7 @@ export default function StatusBar({
 }) {
   const embyStatus = () => {
     const activePlayers = Object.keys(entities)
-      .filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'))
+      .filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.tunet'))
       .map(id => entities[id])
       .filter(Boolean)
       .filter(e => isMediaActive(e));
@@ -124,7 +124,7 @@ export default function StatusBar({
               const mediaIds = pill.entityId 
                 ? [pill.entityId]
                 : Object.keys(entities).filter(id => 
-                    id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet')
+                    id.startsWith('media_player.bibliotek') || id.startsWith('media_player.tunet')
                   );
               const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
               

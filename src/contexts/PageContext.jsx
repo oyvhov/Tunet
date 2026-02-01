@@ -22,7 +22,7 @@ const readNumber = (key, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const deprecatedCardIds = ['power', 'rocky', 'climate', 'shield', 'weather'];
+const deprecatedCardIds = ['power', 'rocky', 'climate', 'shield', 'weather', 'car'];
 
 const PageContext = createContext(null);
 
@@ -44,12 +44,12 @@ export const PageProvider = ({ children }) => {
   const [gridColumns, setGridColumns] = useState(3);
   const [headerScale, setHeaderScale] = useState(1);
   const [headerTitle, setHeaderTitle] = useState(() => 
-    localStorage.getItem('midttunet_header_title') || 'Midttunet'
+    localStorage.getItem('tunet_header_title') || ''
   );
 
   // Load configuration from localStorage
   useEffect(() => {
-    const parsed = readJSON('midttunet_pages_config', null);
+    const parsed = readJSON('tunet_pages_config', null);
     if (parsed) {
       let modified = false;
 
@@ -108,51 +108,51 @@ export const PageProvider = ({ children }) => {
 
       setPagesConfig(parsed);
       if (modified) {
-        writeJSON('midttunet_pages_config', parsed);
+        writeJSON('tunet_pages_config', parsed);
       }
     }
 
-    const hidden = readJSON('midttunet_hidden_cards', null);
+    const hidden = readJSON('tunet_hidden_cards', null);
     if (hidden) {
       const filteredHidden = hidden.filter(id => !deprecatedCardIds.includes(id));
       setHiddenCards(filteredHidden);
     }
 
-    const names = readJSON('midttunet_custom_names', null);
+    const names = readJSON('tunet_custom_names', null);
     if (names) setCustomNames(names);
 
-    const icons = readJSON('midttunet_custom_icons', null);
+    const icons = readJSON('tunet_custom_icons', null);
     if (icons) setCustomIcons(icons);
 
-    const savedCols = readNumber('midttunet_grid_columns', null);
+    const savedCols = readNumber('tunet_grid_columns', null);
     if (savedCols !== null) setGridColumns(savedCols);
 
-    const savedScale = readNumber('midttunet_header_scale', null);
+    const savedScale = readNumber('tunet_header_scale', null);
     if (savedScale !== null) setHeaderScale(savedScale);
 
-    const pageSettingsSaved = readJSON('midttunet_page_settings', null);
+    const pageSettingsSaved = readJSON('tunet_page_settings', null);
     if (pageSettingsSaved) setPageSettings(pageSettingsSaved);
 
-    const cardSettingsSaved = readJSON('midttunet_card_settings', null);
+    const cardSettingsSaved = readJSON('tunet_card_settings', null);
     if (cardSettingsSaved) setCardSettings(cardSettingsSaved);
   }, []);
 
   const saveCustomName = (id, name) => {
     const newNames = { ...customNames, [id]: name };
     setCustomNames(newNames);
-    writeJSON('midttunet_custom_names', newNames);
+    writeJSON('tunet_custom_names', newNames);
   };
 
   const saveCustomIcon = (id, iconName) => {
     const newIcons = { ...customIcons, [id]: iconName };
     setCustomIcons(newIcons);
-    writeJSON('midttunet_custom_icons', newIcons);
+    writeJSON('tunet_custom_icons', newIcons);
   };
 
   const saveCardSetting = (id, setting, value) => {
     const newSettings = { ...cardSettings, [id]: { ...cardSettings[id], [setting]: value } };
     setCardSettings(newSettings);
-    writeJSON('midttunet_card_settings', newSettings);
+    writeJSON('tunet_card_settings', newSettings);
   };
 
   const savePageSetting = (id, setting, value) => {
@@ -161,17 +161,17 @@ export const PageProvider = ({ children }) => {
       [id]: { ...(pageSettings[id] || {}), [setting]: value } 
     };
     setPageSettings(newSettings);
-    writeJSON('midttunet_page_settings', newSettings);
+    writeJSON('tunet_page_settings', newSettings);
   };
 
   const persistPageSettings = (newSettings) => {
     setPageSettings(newSettings);
-    writeJSON('midttunet_page_settings', newSettings);
+    writeJSON('tunet_page_settings', newSettings);
   };
 
   const persistCardSettings = (newSettings) => {
     setCardSettings(newSettings);
-    writeJSON('midttunet_card_settings', newSettings);
+    writeJSON('tunet_card_settings', newSettings);
   };
 
   const toggleCardVisibility = (cardId) => {
@@ -179,41 +179,41 @@ export const PageProvider = ({ children }) => {
       ? hiddenCards.filter(id => id !== cardId)
       : [...hiddenCards, cardId];
     setHiddenCards(newHidden);
-    writeJSON('midttunet_hidden_cards', newHidden);
+    writeJSON('tunet_hidden_cards', newHidden);
   };
 
   const updateHeaderScale = (newScale) => {
     setHeaderScale(newScale);
-    localStorage.setItem('midttunet_header_scale', String(newScale));
+    localStorage.setItem('tunet_header_scale', String(newScale));
   };
 
   const updateHeaderTitle = (newTitle) => {
     setHeaderTitle(newTitle);
-    localStorage.setItem('midttunet_header_title', newTitle);
+    localStorage.setItem('tunet_header_title', newTitle);
   };
 
   const [headerSettings, setHeaderSettings] = useState(() => {
-    const saved = readJSON('midttunet_header_settings');
+    const saved = readJSON('tunet_header_settings');
     return saved || { showTitle: true, showClock: true, showDate: true };
   });
 
   const updateHeaderSettings = (newSettings) => {
     setHeaderSettings(newSettings);
-    writeJSON('midttunet_header_settings', newSettings);
+    writeJSON('tunet_header_settings', newSettings);
   };
 
   const [statusPillsConfig, setStatusPillsConfig] = useState(() => 
-    readJSON('midttunet_status_pills_config', [])
+    readJSON('tunet_status_pills_config', [])
   );
 
   const saveStatusPillsConfig = (newConfig) => {
     setStatusPillsConfig(newConfig);
-    writeJSON('midttunet_status_pills_config', newConfig);
+    writeJSON('tunet_status_pills_config', newConfig);
   };
 
   const persistConfig = (newConfig) => {
     setPagesConfig(newConfig);
-    writeJSON('midttunet_pages_config', newConfig);
+    writeJSON('tunet_pages_config', newConfig);
   };
 
   const value = {

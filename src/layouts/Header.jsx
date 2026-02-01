@@ -88,7 +88,7 @@ export default function Header({
                       undefined
                   }}
                 >
-                  {headerTitle || 'Midttunet'}
+                  {headerTitle || 'Tunet'}
                 </h1>
                 
                 {editMode && setShowHeaderEditModal && (

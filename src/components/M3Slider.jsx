@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-const M3Slider = ({ 
+export default function M3Slider({ 
   min, max, step, value, onChange, 
   colorClass = "bg-blue-500", 
   disabled = false, 
@@ -8,7 +8,7 @@ const M3Slider = ({
   trackClass,
   thumbClass,
   height
-}) => {
+}) {
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
   const timeoutRef = useRef(null);
@@ -107,6 +107,4 @@ const M3Slider = ({
       )}
     </div>
   );
-};
-
-export default M3Slider;
+}

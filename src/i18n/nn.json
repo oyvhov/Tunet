@@ -12,7 +12,7 @@
   "onboarding.step.connection": "Tilkobling",
   "onboarding.step.preferences": "Val",
   "onboarding.step.finish": "Ferdig",
-  "onboarding.welcomeTitle": "Velkomen til Midttunet",
+  "onboarding.welcomeTitle": "Velkomen til Tunet",
   "onboarding.welcomeBody": "La oss setja opp Home Assistant-tilkobling og preferansar i nokre enkle steg. Dette tar berre nokre minutt.",
   "onboarding.card.connectionTitle": "Tilkobling",
   "onboarding.card.connectionBody": "Koble til Home Assistant-instansen din med URL og langliva token.",

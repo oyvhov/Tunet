@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { ALL_ICON_KEYS, getIconComponent } from '../iconMap';
+import { getAllIconKeys, getIconComponent } from '../iconMap';
 
-const IconPicker = ({
+export default function IconPicker({
   value,
   onSelect,
   onClear,
   t,
   maxHeightClass = 'max-h-72'
-}) => {
+}) {
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
@@ -19,7 +19,7 @@ const IconPicker = ({
   const COLUMN_COUNT = 6;
   const ROW_HEIGHT = 52;
 
-  const iconKeys = useMemo(() => ALL_ICON_KEYS.slice().sort((a, b) => a.localeCompare(b)), []);
+  const iconKeys = useMemo(() => getAllIconKeys().slice().sort((a, b) => a.localeCompare(b)), []);
   const filteredKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return iconKeys;
@@ -135,6 +135,4 @@ const IconPicker = ({
       )}
     </div>
   );
-};
-
-export default IconPicker;
+}

@@ -33,7 +33,7 @@ class CalendarErrorBoundary extends React.Component {
   }
 }
 
-const CalendarCard = ({ 
+function CalendarCard({ 
   cardId, 
   settings, 
   conn, 
@@ -44,7 +44,7 @@ const CalendarCard = ({
   getControls,
   onClick,
   isEditMode
-}) => {
+}) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -272,10 +272,10 @@ const CalendarCard = ({
   );
 };
 
-const CalendarCardWithBoundary = (props) => (
-  <CalendarErrorBoundary>
-    <CalendarCard {...props} />
-  </CalendarErrorBoundary>
-);
-
-export default CalendarCardWithBoundary;
+export default function CalendarCardWithBoundary(props) {
+  return (
+    <CalendarErrorBoundary>
+      <CalendarCard {...props} />
+    </CalendarErrorBoundary>
+  );
+}

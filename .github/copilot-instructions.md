@@ -1,4 +1,4 @@
-# Hassen Dashboard — Copilot Instructions
+# Tunet Dashboard — Copilot Instructions
 
 ## Big picture
 - React 18 + Vite Home Assistant dashboard. Real‑time entity updates via `window.HAWS` WebSocket; all user changes persist to localStorage (no save button).
@@ -24,8 +24,8 @@
 - **i18n**: keys live in [src/i18n/en.json](../src/i18n/en.json) and [src/i18n/nn.json](../src/i18n/nn.json) (barrel at [src/i18n/index.js](../src/i18n/index.js)).
 - **UI**: keep car-mapping sensor boxes minimal (smaller padding, smaller radius, no flashy hover) across themes.
 
-## LocalStorage keys (prefix `midttunet_*`)
-- `midttunet_pages_config`, `midttunet_card_settings`, `midttunet_hidden_cards`, `midttunet_custom_names`, `midttunet_custom_icons`, `midttunet_grid_columns`, `midttunet_theme`, `midttunet_language`, `midttunet_inactivity_timeout`.
+## LocalStorage keys (prefix `tunet_*`)
+- `tunet_pages_config`, `tunet_card_settings`, `tunet_hidden_cards`, `tunet_custom_names`, `tunet_custom_icons`, `tunet_grid_columns`, `tunet_theme`, `tunet_language`, `tunet_inactivity_timeout`.
 
 ## Dev workflow
 - `npm run dev` (Vite, port 5173), `npm run build`, `npm run postbuild`, `docker-compose up`.

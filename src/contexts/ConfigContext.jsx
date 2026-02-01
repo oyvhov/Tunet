@@ -14,19 +14,19 @@ export const useConfig = () => {
 export const ConfigProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('midttunet_theme');
+      const saved = localStorage.getItem('tunet_theme');
       return (saved && themes[saved]) ? saved : 'dark';
     }
     return 'dark';
   });
 
   const [language, setLanguage] = useState(() => 
-    localStorage.getItem('midttunet_language') || 'nn'
+    localStorage.getItem('tunet_language') || 'nn'
   );
 
   const [inactivityTimeout, setInactivityTimeout] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('midttunet_inactivity_timeout');
+      const saved = localStorage.getItem('tunet_inactivity_timeout');
       if (saved !== null) {
         const parsed = parseInt(saved, 10);
         if (!Number.isNaN(parsed)) return parsed;
@@ -62,12 +62,12 @@ export const ConfigProvider = ({ children }) => {
     }
     metaThemeColor.content = theme['--bg-primary'];
     
-    localStorage.setItem('midttunet_theme', themeKey);
+    localStorage.setItem('tunet_theme', themeKey);
   }, [currentTheme]);
 
   // Save language to localStorage
   useEffect(() => {
-    localStorage.setItem('midttunet_language', language);
+    localStorage.setItem('tunet_language', language);
   }, [language]);
 
 

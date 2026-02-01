@@ -1,4 +1,4 @@
-﻿#  NoName Dashboard
+﻿# Tunet Dashboard
 
 A modern React dashboard for home automation and energy monitoring with Home Assistant integration.
 
@@ -7,7 +7,7 @@ A modern React dashboard for home automation and energy monitoring with Home Ass
 ### Dashboard Controls
 - Climate & heating control
 - Energy consumption tracking with real-time pricing
-- Vehicle status monitoring (Nissan Leaf)
+- Vehicle status monitoring (generic car cards with entity mapping)
 - Lighting control with color/warmth adjustment
 - Door sensors & presence detection
 - Vacuum cleaner control
@@ -17,6 +17,7 @@ A modern React dashboard for home automation and energy monitoring with Home Ass
 - Customizable dashboard layout & header
 - Dark/Light/Graphite theme
 - Multi-language (English, Nynorsk)
+- MDI icon support (same naming as Home Assistant, e.g. `mdi:car-battery`)
 
 ### Card Types
 You can add various card types to customize your dashboard:
@@ -48,10 +49,8 @@ You can add various card types to customize your dashboard:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/oyvhov/NoName.git
-   cd NoName
-   ```
-
+   git clone https://github.com/oyvhov/tunet.git
+   cd tunet
 2. **Install dependencies**
    ```bash
    npm install
@@ -68,7 +67,7 @@ You can add various card types to customize your dashboard:
 
 5. **Configure entities** (optional)
    - Edit `src/constants.js` to map your specific entity IDs
-   - Or use edit mode to add cards dynamically
+   - Or use edit mode to add cards dynamically (car cards use entity mapping)
 
 ### Docker Installation
 
@@ -76,8 +75,8 @@ Alternatively, run with Docker:
 
 1. **Clone the repository** (if not already done)
    ```bash
-   git clone https://github.com/oyvhov/NoName.git
-   cd NoName
+   git clone https://github.com/oyvhov/tunet.git
+   cd tunet
    ```
 
 2. **Build and run with Docker Compose**
@@ -91,7 +90,7 @@ Alternatively, run with Docker:
 
 ## Configuration
 
-1. Open dashboard settings ()
+1. Open dashboard settings
 2. Add Home Assistant URL and token
 3. Customize layout in edit mode
 
@@ -116,7 +115,7 @@ docker-compose up
 - React 18
 - Vite 7
 - Tailwind CSS
-- Lucide Icons
+- Lucide Icons + MDI
 - Home Assistant API
 
 ## Project Structure

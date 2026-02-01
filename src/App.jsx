@@ -278,13 +278,15 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     conn,
     activeUrl
   } = useHomeAssistant();
+  const translations = useMemo(() => ({ en, nn }), []);
+  const t = (key) => translations[language]?.[key] || translations.nn[key] || key;
+  const resolvedHeaderTitle = headerTitle || t('page.home');
   const [now, setNow] = useState(new Date());
   const [showNordpoolModal, setShowNordpoolModal] = useState(null);
   const [activeClimateEntityModal, setActiveClimateEntityModal] = useState(null);
   const [showLightModal, setShowLightModal] = useState(null);
   const [activeCarModal, setActiveCarModal] = useState(null);
   const [showPersonModal, setShowPersonModal] = useState(null);
-
   const [showAndroidTVModal, setShowAndroidTVModal] = useState(null);
   const [showVacuumModal, setShowVacuumModal] = useState(false);
   const [activeVacuumId, setActiveVacuumId] = useState(null);
@@ -408,7 +410,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   }, [showAddCardModal, activePage, addCardTargetPage]);
 
   useEffect(() => {
-    document.title = headerTitle || "Midttunet";
+    document.title = resolvedHeaderTitle;
     let link = document.querySelector("link[rel~='icon']");
     if (!link) {
       link = document.createElement('link');
@@ -426,7 +428,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       document.head.appendChild(meta);
     }
     meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
-  }, [headerTitle]);
+  }, [resolvedHeaderTitle]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30000);
@@ -469,8 +471,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
 
 
-  const translations = useMemo(() => ({ en, nn }), []);
-  const t = (key) => translations[language]?.[key] || translations.nn[key] || key;
   const hvacMap = useMemo(() => ({
     off: t('climate.hvac.off'),
     auto: t('climate.hvac.auto'),
@@ -898,7 +898,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       const selectedSonosId = cardSettings[sonosHomeKey]?.activeId || cardSettings['sonos']?.activeId;
       const lydplankeSelected = selectedSonosId === 'media_player.sonos_lydplanke';
 
-      const mediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
+      const mediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.tunet'));
       const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
       const otherPlaying = mediaEntities.some(entity => entity?.state === 'playing');
 
@@ -1284,9 +1284,9 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     else if (currentLId === LIGHT_STOVA) DefaultIcon = Sofa;
     else if (currentLId === LIGHT_STUDIO) DefaultIcon = LampDesk;
     
+    const entity = entities[currentLId];
     const lightIconName = customIcons[currentLId] || entity?.attributes?.icon;
     const LightIcon = lightIconName ? (getIconComponent(lightIconName) || DefaultIcon) : DefaultIcon;
-    const entity = entities[currentLId];
     const state = entity?.state;
     const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
     const isOn = state === "on";
@@ -2387,7 +2387,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     switch(cardId) {
       case 'media_player':
-        const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
+        const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.tunet'));
         const mediaEntities = embyIds.map(id => entities[id]).filter(Boolean);
         const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
         const sessionActiveEntities = Array.isArray(sessions)
@@ -2443,7 +2443,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         const mpFriendlyName = getA(mpId, 'friendly_name', '');
         const activeSession = Array.isArray(sessions) ? sessions.find(s => s.device_name && mpFriendlyName.toLowerCase().includes(s.device_name.toLowerCase())) : null;
         const activeUser = activeSession?.user_name;
-        const mpName = customNames[mpId] || getA(mpId, 'friendly_name', 'Media Player').replace(/^(Midttunet|Bibliotek)\s*/i, '');
+        const mpName = customNames[mpId] || getA(mpId, 'friendly_name', 'Media Player').replace(/^(Tunet|Bibliotek)\s*/i, '');
 
         const cyclePlayers = (e) => {
           e.stopPropagation();
@@ -2829,7 +2829,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         `}</style>
         <Header
           now={now}
-          headerTitle={headerTitle}
+          headerTitle={resolvedHeaderTitle}
           headerScale={headerScale}
           editMode={editMode}
           headerSettings={headerSettings}

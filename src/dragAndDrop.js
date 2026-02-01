@@ -20,7 +20,7 @@ export const createDragAndDropHandlers = ({
       return;
     }
     setPagesConfig(newConfig);
-    localStorage.setItem('midttunet_pages_config', JSON.stringify(newConfig));
+    localStorage.setItem('tunet_pages_config', JSON.stringify(newConfig));
   };
 
   const resetDragState = () => {

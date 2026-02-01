@@ -2,7 +2,7 @@ export const CLIMATE_ID = "climate.varmepumpe";
 export const NORDPOOL_ID = "sensor.nordpool_kwh_no3_nok_1_10_025";
 export const LEAF_ID = "sensor.leaf_battery_level";
 export const WEATHER_ENTITY = "weather.hjem";
-export const OUTSIDE_TEMP_ID = "sensor.utetemperatur_midttunet_temperature";
+export const OUTSIDE_TEMP_ID = "sensor.utetemperatur_tunet_temperature";
 export const OYVIND_ID = "person.oyvind";
 export const TUVA_ID = "person.tuva";
 export const LIGHT_KJOKKEN = "light.kjokken";
@@ -19,7 +19,7 @@ export const OYVIND_BAT_LEVEL = "sensor.pixel_9_pro_xl_battery_level";
 export const OYVIND_BAT_STATE = "sensor.pixel_9_pro_xl_battery_state";
 export const LEAF_CLIMATE = "climate.leaf_climate";
 export const COST_TODAY_ID = "sensor.tibber_forbruk_kroner";
-export const COST_MONTH_ID = "sensor.monthly_cost_midttunet";
+export const COST_MONTH_ID = "sensor.monthly_cost_tunet";
 export const BIBLIOTEK_SESSIONS_ID = "sensor.bibliotek_sessions";
 export const SONOS_IDS = [
   "media_player.sonos_play_1",

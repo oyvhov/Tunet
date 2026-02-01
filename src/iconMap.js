@@ -173,25 +173,38 @@ const toKebab = (name) => name
   .replace(/_/g, '-')
   .toLowerCase();
 
-const mdiEntries = Object.entries(mdiIcons)
-  .filter(([key, value]) => key.startsWith('mdi') && typeof value === 'string');
+let cachedMdiEntries = null;
+let cachedMdiPathByName = null;
+let cachedMdiKeys = null;
+let cachedAllIconKeys = null;
 
-const mdiPathByName = new Map(
-  mdiEntries.map(([key, value]) => [`mdi:${toKebab(key)}`, value])
-);
+const ensureMdiCache = () => {
+  if (cachedMdiEntries) return;
+  const entries = Object.entries(mdiIcons)
+    .filter(([key, value]) => key.startsWith('mdi') && typeof value === 'string');
+  cachedMdiEntries = entries;
+  cachedMdiPathByName = new Map(
+    entries.map(([key, value]) => [`mdi:${toKebab(key)}`, value])
+  );
+  cachedMdiKeys = entries.map(([key]) => `mdi:${toKebab(key)}`);
+};
 
-export const ALL_ICON_KEYS = [
-  ...Object.keys(ICON_MAP),
-  ...mdiEntries.map(([key]) => `mdi:${toKebab(key)}`)
-];
+export function getAllIconKeys() {
+  if (!cachedAllIconKeys) {
+    ensureMdiCache();
+    cachedAllIconKeys = [...Object.keys(ICON_MAP), ...cachedMdiKeys];
+  }
+  return cachedAllIconKeys;
+}
 
-export const getIconComponent = (iconName) => {
+export function getIconComponent(iconName) {
   if (!iconName) return null;
   if (ICON_MAP[iconName]) return ICON_MAP[iconName];
   if (iconName.startsWith('mdi:')) {
-    const path = mdiPathByName.get(iconName);
+    ensureMdiCache();
+    const path = cachedMdiPathByName.get(iconName);
     if (!path) return null;
     return (props) => React.createElement(MdiIcon, { path, size: '1.4em', ...props });
   }
   return null;
-};
+}

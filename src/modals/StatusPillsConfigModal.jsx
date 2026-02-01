@@ -3,7 +3,7 @@ import {
   X, Plus, Trash2, Edit2, Eye, EyeOff, GripVertical, Check,
   ChevronDown, ChevronUp
 } from '../icons';
-import { ALL_ICON_KEYS, getIconComponent } from '../iconMap';
+import { getAllIconKeys, getIconComponent } from '../iconMap';
 import ModernDropdown from '../components/ModernDropdown';
 
 /**
@@ -96,7 +96,7 @@ export default function StatusPillsConfigModal({
 
   const entityOptions = Object.keys(entities).sort();
   
-  const filteredIcons = ALL_ICON_KEYS.filter(name =>
+  const filteredIcons = getAllIconKeys().filter(name =>
     name.toLowerCase().includes(iconSearch.toLowerCase())
   );
 

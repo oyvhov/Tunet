@@ -1,4 +1,4 @@
-# Hassen Dashboard - Vite + Docker Setup Guide
+# Tunet Dashboard - Vite + Docker Setup Guide
 
 ## Project Structure
 ```
@@ -180,4 +180,8 @@ The following files have been created:
 - Production uses `serve` to run the static site
 - Health checks ensure container is responsive
 - Node 20 Alpine is used for minimal image size (~150MB)
+
+## Icons
+
+- Supports MDI icons with the same naming as Home Assistant (e.g. `mdi:car-battery`).
 

@@ -3,7 +3,7 @@ import { X, Check, Plus } from 'lucide-react';
 import M3Slider from '../components/M3Slider';
 import IconPicker from '../components/IconPicker';
 
-const SearchableSelect = ({ label, value, options, onChange, placeholder, entities, t }) => {
+function SearchableSelect({ label, value, options, onChange, placeholder, entities, t }) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const dropdownRef = React.useRef(null);
@@ -79,7 +79,7 @@ const SearchableSelect = ({ label, value, options, onChange, placeholder, entiti
   );
 };
 
-const EditCardModal = ({ 
+export default function EditCardModal({ 
   isOpen, 
   onClose, 
   t, 
@@ -103,7 +103,7 @@ const EditCardModal = ({
   saveCardSetting,
   hiddenCards,
   toggleCardVisibility
-}) => {
+}) {
   if (!isOpen) return null;
 
   const isHidden = hiddenCards.includes(entityId);
@@ -623,5 +623,4 @@ const EditCardModal = ({
       </div>
     </div>
   );
-};
-export default EditCardModal;
+}
