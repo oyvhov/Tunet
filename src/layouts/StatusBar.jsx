@@ -1,19 +1,11 @@
-import { 
-  MapPin, Clock, AlertCircle, Activity, DoorOpen, Warehouse, 
-  Clapperboard, Music, Edit2
-} from '../icons';
+import { Edit2 } from '../icons';
 import StatusPill from '../components/StatusPill';
-import { 
-  REFRIGERATOR_ID, EILEV_DOOR_ID, OLVE_DOOR_ID, STUDIO_PRESENCE_ID,
-  PORTEN_MOTION_ID, GARAGE_DOOR_ID, SONOS_IDS, BIBLIOTEK_SESSIONS_ID
-} from '../constants';
 
 /**
  * StatusBar component showing various status indicators
  * @param {Object} props
  * @param {Object} props.entities - Home Assistant entities
  * @param {Date} props.now - Current time
- * @param {Function} props.setShowCameraModal - Open camera modal
  * @param {Function} props.setActiveMediaId - Set active media player
  * @param {Function} props.setActiveMediaGroupKey - Set media group key
  * @param {Function} props.setActiveMediaModal - Set active media modal
@@ -28,9 +20,10 @@ import {
 export default function StatusBar({ 
   entities, 
   now,
-  setShowCameraModal,
   setActiveMediaId,
   setActiveMediaGroupKey,
+  setActiveMediaGroupIds,
+  setActiveMediaSessionSensorIds,
   setActiveMediaModal,
   setShowUpdateModal,
   setShowStatusPillsConfig,
@@ -42,61 +35,54 @@ export default function StatusBar({
   getEntityImageUrl, 
   statusPillsConfig = [] 
 }) {
-  const embyStatus = () => {
-    const activePlayers = Object.keys(entities)
-      .filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.tunet'))
-      .map(id => entities[id])
-      .filter(Boolean)
-      .filter(e => isMediaActive(e));
-    
-    const count = activePlayers.length;
-    if (count === 0) return null;
-
-    return (
-      <button 
-        onClick={() => {
-          const firstActive = activePlayers[0]?.entity_id;
-          if (firstActive) setActiveMediaId(firstActive);
-          setActiveMediaGroupKey('__emby__');
-          setActiveMediaModal('media');
-        }} 
-        className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95" 
-        style={{backgroundColor: 'rgba(255, 255, 255, 0.03)'}}>
-        <div className="p-1.5 rounded-xl text-green-400" 
-             style={{backgroundColor: 'rgba(74, 222, 128, 0.1)'}}>
-          <Clapperboard className="w-4 h-4 animate-pulse" />
-        </div>
-        <div className="flex flex-col items-start">
-          <span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">
-            Emby
-          </span>
-          <span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">
-            {count} {t('addCard.players')}
-          </span>
-        </div>
-      </button>
-    );
+  const isSonosEntity = (entity) => {
+    if (!entity) return false;
+    const id = entity.entity_id || '';
+    const name = (entity.attributes?.friendly_name || '').toLowerCase();
+    const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
+    const platform = (entity.attributes?.platform || '').toLowerCase();
+    return id.includes('sonos') || name.includes('sonos') || manufacturer.includes('sonos') || platform.includes('sonos');
   };
 
-  const doorStatus = (id, label) => {
-    if (entities[id]?.state !== 'on') return null;
-    return (
-      <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl" 
-           style={{backgroundColor: 'rgba(255, 255, 255, 0.03)'}}>
-        <div className="p-1.5 rounded-xl text-blue-400" 
-             style={{backgroundColor: 'rgba(59, 130, 246, 0.1)'}}>
-          <DoorOpen className="w-4 h-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-xs text-[var(--text-secondary)] uppercase font-bold leading-tight">
-            {label}
-          </span>
-          <span className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)] italic">
-            {t('status.open')}
-          </span>
-        </div>
-      </div>
-    );
+  const getSonosEntities = () => Object.keys(entities)
+    .filter(id => id.startsWith('media_player.'))
+    .map(id => entities[id])
+    .filter(isSonosEntity);
+
+  const normalizePattern = (pattern) => pattern.trim();
+
+  const buildWildcardRegex = (pattern) => {
+    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    const wildcard = escaped.replace(/\*/g, '.*');
+    return new RegExp(`^${wildcard}$`, 'i');
+  };
+
+  const matchesMediaFilter = (id, filter, mode) => {
+    if (!filter) return true;
+    const patterns = filter
+      .split(',')
+      .map(normalizePattern)
+      .filter(Boolean);
+    if (patterns.length === 0) return true;
+
+    return patterns.some((pattern) => {
+      if (mode === 'regex') {
+        try {
+          const regex = new RegExp(pattern, 'i');
+          return regex.test(id);
+        } catch {
+          return false;
+        }
+      }
+
+      if (pattern.includes('*')) {
+        const wildcardRegex = buildWildcardRegex(pattern);
+        return wildcardRegex.test(id);
+      }
+
+      if (mode === 'contains') return id.toLowerCase().includes(pattern.toLowerCase());
+      return id.toLowerCase().startsWith(pattern.toLowerCase());
+    });
   };
 
   return (
@@ -119,14 +105,26 @@ export default function StatusBar({
           .filter(pill => pill.visible !== false)
           .map(pill => {
             // Handle different pill types
-            if (pill.type === 'media_player') {
-              // Get selected media player entity if specified, otherwise all
-              const mediaIds = pill.entityId 
-                ? [pill.entityId]
-                : Object.keys(entities).filter(id => 
-                    id.startsWith('media_player.bibliotek') || id.startsWith('media_player.tunet')
-                  );
+            if (pill.type === 'media_player' || pill.type === 'emby') {
+              const mediaIds = (() => {
+                if (pill.type === 'media_player') {
+                  return pill.entityId
+                    ? [pill.entityId]
+                    : Object.keys(entities)
+                        .filter(id => id.startsWith('media_player.'))
+                        .filter(id => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode));
+                }
+
+                if (Array.isArray(pill.mediaEntityIds) && pill.mediaEntityIds.length > 0) {
+                  return pill.mediaEntityIds;
+                }
+
+                return Object.keys(entities)
+                  .filter(id => id.startsWith('media_player.'))
+                  .filter(id => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode));
+              })();
               const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
+              const playingCount = mediaEntities.filter(e => e.state === 'playing').length;
               
               return (
                 <StatusPill
@@ -137,22 +135,27 @@ export default function StatusBar({
                   getEntityImageUrl={getEntityImageUrl}
                   isMediaActive={isMediaActive}
                   t={t}
+                  badge={pill.type === 'emby' && playingCount >= 2 ? playingCount : undefined}
                   onClick={pill.clickable ? () => {
                     const activeEntities = mediaEntities.filter(isMediaActive);
-                    const firstActive = activeEntities[0];
-                    if (firstActive) {
-                      setActiveMediaId(firstActive.entity_id);
-                      setActiveMediaGroupKey('__emby__');
-                      setActiveMediaModal('media');
+                    const firstActive = activeEntities[0] || mediaEntities[0];
+                    if (!firstActive) return;
+                    setActiveMediaId(firstActive.entity_id);
+                    setActiveMediaGroupKey(null);
+                    setActiveMediaGroupIds(mediaIds);
+                    if (pill.type === 'emby' && Array.isArray(pill.sessionSensorIds)) {
+                      setActiveMediaSessionSensorIds(pill.sessionSensorIds);
+                    } else {
+                      setActiveMediaSessionSensorIds(null);
                     }
+                    setActiveMediaModal('media');
                   } : undefined}
                 />
               );
             }
             
             if (pill.type === 'sonos') {
-              // Get Sonos entities
-              const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
+              const sonosEntities = getSonosEntities();
               
               return (
                 <StatusPill
@@ -178,20 +181,10 @@ export default function StatusBar({
                 pill={pill}
                 getA={getA}
                 t={t}
-                onClick={pill.clickable ? () => {
-                  // Handle click based on entity type
-                  if (pill.entityId === PORTEN_MOTION_ID) {
-                    setShowCameraModal(true);
-                  }
-                  // Add more click handlers as needed
-                } : undefined}
               />
             );
           })
         }
-        
-        {/* Legacy hardcoded pills (always show as fallback) */}
-        {embyStatus()}
       </div>
     </div>
   );

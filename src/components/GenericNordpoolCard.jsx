@@ -1,5 +1,6 @@
 import SparkLine from './SparkLine';
 import { Zap } from '../icons';
+import { getIconComponent } from '../iconMap';
 
 export default function GenericNordpoolCard({
   cardId,
@@ -21,7 +22,7 @@ export default function GenericNordpoolCard({
 
   const name = customNames?.[cardId] || entity.attributes?.friendly_name || cardId;
   const decimals = settings.decimals ?? 2;
-  const Icon = customIcons?.[cardId] ? null : Zap;
+  const Icon = customIcons?.[cardId] ? (getIconComponent(customIcons[cardId]) || Zap) : Zap;
 
   // Extract price data from sensor attributes
   const todayPrices = Array.isArray(entity.attributes?.today) ? entity.attributes.today : [];
@@ -93,6 +94,47 @@ export default function GenericNordpoolCard({
   // Format price display
   const priceDisplay = currentPrice > 0 ? currentPrice.toFixed(decimals) : '0';
 
+  if (settings.size === 'small') {
+    let pillClass = 'bg-blue-500/10 border-blue-500/20 text-blue-400';
+    if (levelColor.includes('red')) pillClass = 'bg-red-500/10 border-red-500/20 text-red-400';
+    else if (levelColor.includes('orange')) pillClass = 'bg-orange-500/10 border-orange-500/20 text-orange-400';
+    else if (levelColor.includes('green')) pillClass = 'bg-green-500/10 border-green-500/20 text-green-400';
+
+    return (
+      <div
+        key={cardId}
+        {...dragProps}
+        data-haptic={editMode ? undefined : 'card'}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!editMode && onOpen) onOpen();
+        }}
+        className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        style={cardStyle}
+      >
+        {controls}
+        
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center text-amber-400 bg-[var(--glass-bg)] group-hover:scale-110 transition-transform duration-500">
+            <Icon className="w-6 h-6 stroke-[1.5px]" />
+          </div>
+          
+          <div className="flex flex-col min-w-0">
+            <p className="text-[var(--text-secondary)] text-[10px] tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">{name}</p>
+            <div className="flex items-baseline gap-1 leading-none">
+                <span className="text-xl font-bold text-[var(--text-primary)]">{priceDisplay}</span>
+                <span className="text-xs font-medium text-[var(--text-muted)]">{translate('power.ore')}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${pillClass}`}>
+            <span className="text-[10px] font-bold uppercase tracking-widest">{levelText}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       key={cardId}
@@ -102,7 +144,7 @@ export default function GenericNordpoolCard({
         e.stopPropagation();
         if (!editMode && onOpen) onOpen();
       }}
-      className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
+      className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
       style={cardStyle}
     >
       {controls}

@@ -152,6 +152,7 @@ export default function EditCardModal({
     .map(([id]) => id));
 
   const climateOptions = sortByName(byDomain('climate'));
+  const calendarOptions = sortByName(byDomain('calendar'));
 
   const lastUpdatedOptions = sortByName(entityEntries
     .filter(([id]) => id.startsWith('sensor.') && id.toLowerCase().includes('update'))
@@ -230,6 +231,35 @@ export default function EditCardModal({
                 t={t}
                 maxHeightClass="max-h-48"
               />
+            </div>
+          )}
+
+          {isEditCalendar && editSettingsKey && (
+            <div className="space-y-3">
+              <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('calendar.selectCalendars') || 'Select Calendars'}</label>
+              <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl p-4 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
+                {calendarOptions.length === 0 && (
+                  <p className="text-xs text-[var(--text-muted)] text-center py-4">{t('calendar.noCalendarsFound') || 'No calendars found'}</p>
+                )}
+                {calendarOptions.map((id) => {
+                  const selected = Array.isArray(editSettings.calendars) && editSettings.calendars.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        const current = Array.isArray(editSettings.calendars) ? editSettings.calendars : [];
+                        const next = selected ? current.filter((x) => x !== id) : [...current, id];
+                        saveCardSetting(editSettingsKey, 'calendars', next);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-blue-500/15 border-blue-500/30 text-blue-400' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                    >
+                      <div className="text-sm font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
+                      <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -619,6 +649,15 @@ export default function EditCardModal({
               </div>
             </div>
           )}
+        </div>
+
+        <div className="pt-5 mt-5 border-t border-[var(--glass-border)] flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-2xl popup-surface popup-surface-hover text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest transition-colors"
+          >
+            OK
+          </button>
         </div>
       </div>
     </div>

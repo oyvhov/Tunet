@@ -2,15 +2,19 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { en, nn } from './i18n';
 import {
   Zap,
+  Activity,
   Hash,
   Wind,
   Car,
   Settings,
+  Calendar,
+  Columns,
   ChevronUp,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Flame,
+  Gamepad2,
   User,
   UserCheck,
   MapPin,
@@ -20,12 +24,15 @@ import {
   Edit2,
   GripVertical,
   Check,
+  Maximize2,
+  Minimize2,
   Fan,
   ArrowUpDown,
   ArrowLeftRight,
   Plus,
   Minus,
   Lightbulb,
+  CloudSun,
   RefreshCw,
   BatteryCharging,
   Navigation,
@@ -34,6 +41,7 @@ import {
   Snowflake,
   Battery,
   AlertCircle,
+  AlertTriangle,
   TrendingDown,
   BarChart3,
   Eye,
@@ -54,113 +62,21 @@ import {
   AirVent,
   LampDesk,
   LayoutGrid,
+  Search,
+  Bot,
   Trash2,
+  ToggleRight,
+  Power,
   Workflow,
   Home,
   Bed,
   Bath,
   ShowerHead,
-  Droplets,
-  Sun,
-  Moon,
-  Cloud,
-  CloudRain,
-  Power,
-  Wifi,
-  Lock,
-  Unlock,
-
-  Video,
-  Camera,
-  Bell,
-  Volume2,
-  Mic,
-  Radio,
-  Gamepad2,
-  Laptop,
-  Smartphone,
-  Watch,
-  Coffee,
-  Beer,
-  Armchair,
-  ShoppingCart,
-  Calendar,
-  Activity,
-  Heart,
-  Star,
-  AlertTriangle,
-  Warehouse,
-  Columns,
-  Bot,
-  Shuffle,
-  Repeat,
-  Repeat1,
-  VolumeX,
-  Volume1,
-  Link,
-  Unlink,
-  Search,
-  Palette,
-  Download,
-  ArrowRight,
-  CloudSun,
-  AlarmClock,
-  Archive,
-  Award,
-  Book,
-  BookOpen,
-  Bookmark,
-  Briefcase,
-  Building2,
-  Bus,
-  Cpu,
-  Database,
-  DollarSign,
-  Feather,
-  Gift,
-  Globe,
-  Key,
-  Leaf,
-  Monitor,
-  Paintbrush,
-  PenTool,
-  Plug,
-  Puzzle,
-  Rocket,
-  Router,
-  Siren,
-  Sprout,
-  Sunrise,
-  Sunset,
-  Truck,
-  Wrench,
-  ToggleLeft,
-  ToggleRight,
-  Maximize2,
-  Minimize2
+  Droplets
 } from './icons';
-import {
-  CalendarCard,
-  EmbyLogo,
-  GenericAndroidTVCard,
-  GenericClimateCard,
-  GenericEnergyCostCard,
-  GenericNordpoolCard,
-  JellyfinLogo,
-  M3Slider,
-  ModernDropdown,
-  NRKLogo,
-  PageNavigation,
-  SensorCard,
-  SonosPage,
-  SparkLine,
-  WeatherGraph,
-  WeatherTempCard,
-  getServerInfo
-} from './components';
+
 import {
   AddPageModal,
-  CameraModal,
   ConfigModal,
   EditCardModal,
   EditHeaderModal,
@@ -172,12 +88,26 @@ import {
   MediaModal,
   NordpoolModal,
   PersonModal,
-  VacuumModal,
   SensorModal,
   StatusPillsConfigModal,
-  UpdateModal
+  UpdateModal,
+  VacuumModal
 } from './modals';
 import { Header, StatusBar } from './layouts';
+
+import {
+  CalendarCard,
+  GenericAndroidTVCard,
+  GenericClimateCard,
+  GenericEnergyCostCard,
+  GenericNordpoolCard,
+  M3Slider,
+  MediaPage,
+  PageNavigation,
+  SensorCard,
+  WeatherTempCard,
+  getServerInfo
+} from './components';
 
 
 import {
@@ -188,47 +118,11 @@ import {
 } from './contexts';
 
 import { themes } from './themes';
-import { useEnergyData } from './hooks';
 import { formatDuration } from './utils';
 import { getIconComponent } from './iconMap';
 import { buildOnboardingSteps, validateUrl } from './onboarding';
-import { callService as haCallService, getForecast, getHistory, getStatistics } from './services';
+import { callService as haCallService, getHistory, getStatistics } from './services';
 import { createDragAndDropHandlers } from './dragAndDrop';
-import {
-  NORDPOOL_ID,
-  LEAF_ID,
-  WEATHER_ENTITY,
-  OUTSIDE_TEMP_ID,
-  OYVIND_ID,
-  TUVA_ID,
-  LIGHT_KJOKKEN,
-  LIGHT_STOVA,
-  LIGHT_STUDIO,
-  REFRIGERATOR_ID,
-  EILEV_DOOR_ID,
-  OLVE_DOOR_ID,
-  STUDIO_PRESENCE_ID,
-  PORTEN_MOTION_ID,
-  GARAGE_DOOR_ID,
-  CAMERA_PORTEN_ID,
-  OYVIND_BAT_LEVEL,
-  OYVIND_BAT_STATE,
-
-  LEAF_CLIMATE,
-  COST_TODAY_ID,
-  COST_MONTH_ID,
-  BIBLIOTEK_SESSIONS_ID,
-  SONOS_IDS,
-  LEAF_LOCATION,
-  LEAF_PLUGGED,
-  LEAF_CHARGING,
-  LEAF_UPDATE,
-  LEAF_RANGE,
-  LEAF_LAST_UPDATED,
-  LEAF_INTERNAL_TEMP
-} from './constants';
-
-
 
 function AppContent({ showOnboarding, setShowOnboarding }) {
   const {
@@ -291,7 +185,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [showVacuumModal, setShowVacuumModal] = useState(false);
   const [activeVacuumId, setActiveVacuumId] = useState(null);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  const [showCameraModal, setShowCameraModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [configTab, setConfigTab] = useState('connection');
   const [onboardingStep, setOnboardingStep] = useState(0);
@@ -311,6 +204,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [editCardSettingsKey, setEditCardSettingsKey] = useState(null);
   const [activeMediaModal, setActiveMediaModal] = useState(null);
   const [activeMediaGroupKey, setActiveMediaGroupKey] = useState(null);
+  const [activeMediaGroupIds, setActiveMediaGroupIds] = useState(null);
+  const [activeMediaSessionSensorIds, setActiveMediaSessionSensorIds] = useState(null);
   const [mediaTick, setMediaTick] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
@@ -318,9 +213,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [addCardTargetPage, setAddCardTargetPage] = useState('home');
   const [addCardType, setAddCardType] = useState('sensor');
   const [activeMediaId, setActiveMediaId] = useState(null);
-  const [costHistory, setCostHistory] = useState([]);
-  const [tempHistory, setTempHistory] = useState([]);
-  const [weatherForecast, setWeatherForecast] = useState([]);
   const [gridColCount, setGridColCount] = useState(1);
   const [isCompactCards, setIsCompactCards] = useState(false);
   const dragSourceRef = useRef(null);
@@ -345,9 +237,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [optimisticLightBrightness, setOptimisticLightBrightness] = useState({});
   const [tempHistoryById, setTempHistoryById] = useState({});
   const [showStatusPillsConfig, setShowStatusPillsConfig] = useState(false);
+  const updateCount = Object.values(entities).filter(e => e.entity_id.startsWith('update.') && e.state === 'on' && !e.attributes.skipped_version).length;
   const resetToHome = () => {
     const isHome = activePage === 'home';
-    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !activeCarModal && !showAndroidTVModal && !showVacuumModal && !showAddCardModal && !showCameraModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode && !showStatusPillsConfig && !showPersonModal;
+    const noModals = !showNordpoolModal && !activeClimateEntityModal && !showLightModal && !activeCarModal && !showAndroidTVModal && !showVacuumModal && !showAddCardModal && !showConfigModal && !showUpdateModal && !showEditCardModal && !showSensorInfoModal && !activeMediaModal && !editingPage && !editMode && !showStatusPillsConfig && !showPersonModal;
     
     if (!isHome || !noModals) {
         setActivePage('home');
@@ -360,7 +253,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         setShowVacuumModal(false);
         setActiveVacuumId(null);
         setShowAddCardModal(false);
-        setShowCameraModal(false);
         setShowConfigModal(false);
         setShowUpdateModal(false);
         setShowEditCardModal(null);
@@ -368,6 +260,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         setEditCardSettingsKey(null);
         setActiveMediaModal(null);
         setActiveMediaGroupKey(null);
+        setActiveMediaGroupIds(null);
+        setActiveMediaSessionSensorIds(null);
         setEditingPage(null);
         setEditMode(false);
         setExpandedUpdate(null);
@@ -497,98 +391,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     Swing: t('climate.swing.swing')
   }), [language]);
 
-  useEffect(() => {
-    if (!conn) return;
-    let cancelled = false;
-    
-    const fetchHistory = async () => {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(start.getDate() - 10);
-      start.setHours(0, 0, 0, 0);
-      
-      try {
-        const historyData = await getHistory(conn, { start, end, entityId: COST_TODAY_ID, minimal_response: false, no_attributes: true });
-        if (historyData && Array.isArray(historyData)) {
-           const daily = {};
-           historyData.forEach(pt => {
-              const s = pt.s !== undefined ? pt.s : pt.state;
-              const lu = pt.lu !== undefined ? pt.lu : pt.last_updated;
-              const val = parseFloat(s);
-              if (isNaN(val)) return;
-              const d = (typeof lu === 'number' ? new Date(lu * 1000) : new Date(lu)).toLocaleDateString('en-CA');
-              if (!daily[d] || val > daily[d]) daily[d] = val;
-           });
-           
-           // Ensure we have exactly the last 7 days filled
-           const result = [];
-           const today = new Date();
-           for (let i = 6; i >= 0; i--) {
-             const d = new Date(today);
-             d.setDate(d.getDate() - i);
-             const dateStr = d.toLocaleDateString('en-CA');
-             const dayName = d.toLocaleDateString('nn-NO', { weekday: 'short' });
-             const dayDate = d.toLocaleDateString('nn-NO', { day: 'numeric', month: 'numeric' });
-             result.push({
-                value: daily[dateStr] || 0,
-                label: `${dayName} ${dayDate}`,
-                date: dateStr
-             });
-           }
-           
-           if (!cancelled) setCostHistory(result);
-        } else {
-           console.warn("No history data found or unexpected format", res);
-        }
-      } catch (err) { if (!cancelled) console.error("History fetch error", err); }
-    };
-    fetchHistory();
-
-    const fetchTempHistory = async () => {
-      const end = new Date();
-      const start = new Date();
-      start.setHours(start.getHours() - 12);
-      try {
-        const stats = await getStatistics(conn, { start, end, statisticId: OUTSIDE_TEMP_ID, period: '5minute' });
-        if (stats.length > 0) {
-          const mapped = stats.map(s => ({ state: s.mean !== null ? s.mean : s.state, last_updated: s.start }));
-          if (!cancelled) setTempHistory(mapped);
-        } else {
-          const historyData = await getHistory(conn, { start, end, entityId: OUTSIDE_TEMP_ID, minimal_response: false, no_attributes: true });
-          if (historyData && !cancelled) setTempHistory(historyData);
-        }
-      } catch (e) { if (!cancelled) console.error("Temp history fetch error", e); }
-    };
-    fetchTempHistory();
-
-    const fetchForecast = async () => {
-        try {
-           const hourly = await getForecast(conn, { entityId: WEATHER_ENTITY, type: 'hourly' });
-           if (hourly.length > 0) {
-             if (!cancelled) setWeatherForecast(hourly);
-           } else {
-             const daily = await getForecast(conn, { entityId: WEATHER_ENTITY, type: 'daily' });
-             if (daily.length > 0 && !cancelled) setWeatherForecast(daily);
-           }
-        } catch (e) { if (!cancelled) console.error("Forecast fetch error", e); }
-    };
-    fetchForecast();
-
-    // Refresh all data every 10 minutes
-    const refreshInterval = setInterval(() => {
-      if (!cancelled) {
-        fetchHistory();
-        fetchTempHistory();
-        fetchForecast();
-      }
-    }, 600000);
-
-    return () => { 
-      cancelled = true;
-      clearInterval(refreshInterval);
-    };
-  }, [conn]);
-
   const fetchReleaseNotes = async (id) => {
     if (releaseNotes[id]) return;
     try {
@@ -641,9 +443,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     return `${activeUrl.replace(/\/$/, '')}${rawUrl}`;
   };
   const callService = (domain, service, data) => { if (conn) haCallService(conn, domain, service, data); };
-
-  const nordpoolEntity = entities[NORDPOOL_ID];
-  const { fullPriceData, currentPriceIndex, priceStats, currentPrice } = useEnergyData(nordpoolEntity || null, now);
 
   const personStatus = (id) => {
     const entity = entities[id];
@@ -747,7 +546,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
   useEffect(() => {
     if (!showAddCardModal) return;
-    if (isSonosPage(addCardTargetPage)) {
+    if (isMediaPage(addCardTargetPage)) {
       setAddCardType('entity');
       return;
     }
@@ -827,18 +626,14 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     // Fetch all temperature histories immediately
     uniqueIds.forEach((tempId) => {
-      if (tempId !== OUTSIDE_TEMP_ID) {
-        fetchHistoryFor(tempId);
-      }
+      fetchHistoryFor(tempId);
     });
 
     // Refresh every 5 minutes (300000ms)
     const refreshInterval = setInterval(() => {
       if (!cancelled) {
         uniqueIds.forEach((tempId) => {
-          if (tempId !== OUTSIDE_TEMP_ID) {
-            fetchHistoryFor(tempId);
-          }
+          fetchHistoryFor(tempId);
         });
       }
     }, 300000);
@@ -872,7 +667,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     if (pageId === 'header') return cardId.startsWith('person.');
     if (pageId === 'settings') {
       if (['car'].includes(cardId)) return false;
-      if (cardId.startsWith('media_player') || cardId.startsWith('sonos')) return false;
+      if (cardId.startsWith('media_player')) return false;
       return true;
     }
     const settingsKey = getCardSettingsKey(cardId, pageId);
@@ -881,6 +676,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     if (cardId.startsWith('light_')) return true;
     if (cardId.startsWith('light.')) return true;
     if (cardId.startsWith('vacuum.')) return true;
+    if (cardId === 'media_player') return true;
     if (cardId.startsWith('media_player.')) return true;
     if (cardId.startsWith('media_group_')) return true;
     if (cardId.startsWith('weather_temp_')) return true;
@@ -889,72 +685,49 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     if (cardId.startsWith('cost_card_')) return true;
     if (cardId.startsWith('androidtv_card_')) return true;
     if (cardId.startsWith('car_card_')) return true;
+    if (cardId.startsWith('nordpool_card_')) return true;
     return false;
   };
 
   const isCardHiddenByLogic = (cardId) => {
     if (cardId === 'media_player') {
-      const sonosHomeKey = getCardSettingsKey('sonos', 'home');
-      const selectedSonosId = cardSettings[sonosHomeKey]?.activeId || cardSettings['sonos']?.activeId;
-      const lydplankeSelected = selectedSonosId === 'media_player.sonos_lydplanke';
-
-      const mediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.tunet'));
-      const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
-      const otherPlaying = mediaEntities.some(entity => entity?.state === 'playing');
-
-      let lydplankeIsTV = false;
-      if (lydplankeSelected) {
-        const lydplanke = entities['media_player.sonos_lydplanke'];
-        const lydplankeIsPlaying = lydplanke?.state === 'playing';
-        const lydplankeSource = (lydplanke?.attributes?.source || '').toLowerCase();
-        const lydplankeTitle = (lydplanke?.attributes?.media_title || '').toLowerCase();
-        lydplankeIsTV = lydplankeIsPlaying && (lydplankeSource === 'tv' || lydplankeTitle === 'tv');
-      }
-
-      if (lydplankeIsTV && !otherPlaying) return true;
-      return false;
+      return true;
     }
 
     if (cardId.startsWith('media_group_')) {
       const settingsKey = getCardSettingsKey(cardId);
       const groupSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
       const selectedIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
-      const mediaEntities = selectedIds.map(id => entities[id]).filter(Boolean);
-
-      const lydplankeSelected = selectedIds.includes('media_player.sonos_lydplanke');
-      let lydplankeIsTV = false;
-      if (lydplankeSelected) {
-        const lydplanke = entities['media_player.sonos_lydplanke'];
-        const lydplankeIsPlaying = lydplanke?.state === 'playing';
-        const lydplankeSource = (lydplanke?.attributes?.source || '').toLowerCase();
-        const lydplankeTitle = (lydplanke?.attributes?.media_title || '').toLowerCase();
-        lydplankeIsTV = lydplankeIsPlaying && (lydplankeSource === 'tv' || lydplankeTitle === 'tv');
-      }
-
-      const otherSelectedPlaying = mediaEntities
-        .filter(entity => entity?.entity_id !== 'media_player.sonos_lydplanke')
-        .some(entity => entity?.state === 'playing');
-
-      if (lydplankeIsTV && !otherSelectedPlaying) return true;
-      return false;
+      const hasEntities = selectedIds.some(id => entities[id]);
+      return !hasEntities;
     }
 
-    if (cardId === 'sonos') {
-      const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
-      return sonosEntities.length === 0;
-    }
-
-    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player')) {
         return !entities[cardId];
+    }
+
+    const isSpecialCard = cardId === 'car' || 
+      cardId.startsWith('media_group_') || 
+      cardId.startsWith('weather_temp_') || 
+      cardId.startsWith('calendar_card_') || 
+      cardId.startsWith('climate_card_') || 
+      cardId.startsWith('cost_card_') || 
+      cardId.startsWith('androidtv_card_') || 
+      cardId.startsWith('car_card_') ||
+      cardId.startsWith('nordpool_card_');
+
+    if (!isSpecialCard && !entities[cardId]) {
+       if (cardId.startsWith('light_') || cardId.startsWith('light.')) return false;
+       return true;
     }
 
     return false;
   };
 
-  const isSonosPage = (pageId) => {
+  const isMediaPage = (pageId) => {
     if (!pageId) return false;
     const settings = pageSettings[pageId];
-    return settings?.type === 'sonos' || pageId.startsWith('sonos');
+    return settings?.type === 'media' || settings?.type === 'sonos' || pageId.startsWith('media') || pageId.startsWith('sonos');
   };
 
   const isToggleEntity = (id) => {
@@ -997,7 +770,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setShowAddPageModal(false);
   };
 
-  const createSonosPage = () => {
+  const createMediaPage = () => {
     const baseLabel = t('sonos.pageName');
     const existingLabels = (pagesConfig.pages || []).map(id => pageSettings[id]?.label || pageDefaults[id]?.label || id);
     let maxNum = 0;
@@ -1011,7 +784,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const nextNum = maxNum + 1;
     const label = nextNum === 1 ? baseLabel : `${baseLabel} ${nextNum}`;
 
-    const slugBase = baseLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'sonos';
+    const slugBase = baseLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'media';
     let pageId = slugBase;
     const existing = new Set(pagesConfig.pages || []);
     let counter = 1;
@@ -1027,7 +800,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     savePageSetting(pageId, 'label', label);
     savePageSetting(pageId, 'icon', 'Speaker');
-    savePageSetting(pageId, 'type', 'sonos');
+    savePageSetting(pageId, 'type', 'media');
 
     setActivePage(pageId);
     setShowAddCardModal(false);
@@ -1232,7 +1005,19 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
   const renderSensorCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
     const entity = entities[cardId];
-    if (!entity) return null;
+    if (!entity) {
+      if (editMode) {
+        return (
+          <div key={cardId} {...dragProps} className="touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full" style={cardStyle}>
+            {getControls(cardId)}
+            <AlertTriangle className="w-8 h-8 text-red-500 mb-2 opacity-80" />
+            <p className="text-xs font-bold text-red-500 text-center uppercase tracking-widest">{t('common.missing')}</p>
+            <p className="text-[10px] text-red-400/70 text-center mt-1 font-mono break-all line-clamp-2">{cardId}</p>
+          </div>
+        );
+      }
+      return null;
+    }
     const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
     const name = customNames[cardId] || getA(cardId, 'friendly_name', cardId);
     const domain = cardId.split('.')[0];
@@ -1273,39 +1058,29 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   // --- CARD RENDERERS ---
   
   const renderLightCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
-    let currentLId = cardId;
-    
-    if (cardId === 'light_kjokken') currentLId = LIGHT_KJOKKEN;
-    else if (cardId === 'light_stova') currentLId = LIGHT_STOVA;
-    else if (cardId === 'light_studio') currentLId = LIGHT_STUDIO;
-    
-    let DefaultIcon = Lightbulb;
-    if (currentLId === LIGHT_KJOKKEN) DefaultIcon = Utensils;
-    else if (currentLId === LIGHT_STOVA) DefaultIcon = Sofa;
-    else if (currentLId === LIGHT_STUDIO) DefaultIcon = LampDesk;
-    
-    const entity = entities[currentLId];
-    const lightIconName = customIcons[currentLId] || entity?.attributes?.icon;
+    const entity = entities[cardId];
+    const DefaultIcon = Lightbulb;
+    const lightIconName = customIcons[cardId] || entity?.attributes?.icon;
     const LightIcon = lightIconName ? (getIconComponent(lightIconName) || DefaultIcon) : DefaultIcon;
     const state = entity?.state;
     const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
     const isOn = state === "on";
-    const br = getA(currentLId, "brightness") || 0;
-    const subEntities = getA(currentLId, "entity_id", []);
+    const br = getA(cardId, "brightness") || 0;
+    const subEntities = getA(cardId, "entity_id", []);
     const activeCount = subEntities.filter(id => entities[id]?.state === 'on').length;
     const totalCount = subEntities.length;
-    const name = customNames[currentLId] || getA(currentLId, "friendly_name");
+    const name = customNames[cardId] || getA(cardId, "friendly_name");
 
-    const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size || cardSettings[currentLId]?.size;
+    const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
     const isSmall = sizeSetting === 'small';
 
     if (isSmall) {
       return (
-        <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
-          {getControls(currentLId)}
+        <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(cardId); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+          {getControls(cardId)}
           
           <button 
-            onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} 
+            onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: cardId }); }} 
             className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`} 
             disabled={isUnavailable}
           >
@@ -1315,10 +1090,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           <div className="flex-1 flex flex-col gap-3 min-w-0 justify-center h-full pt-1">
             <div className="flex justify-between items-baseline pr-1">
               <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none">{String(name || t('common.light'))}</p>
-              <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round(((optimisticLightBrightness[currentLId] ?? br) / 255) * 100)}%` : t('common.off')}</span>
+              <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100)}%` : t('common.off')}</span>
             </div>
             <div className="w-full">
-               <M3Slider variant="thinLg" min={0} max={255} step={1} value={optimisticLightBrightness[currentLId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [currentLId]: val })); callService("light", "turn_on", { entity_id: currentLId, brightness: val }); }} colorClass="bg-amber-500" />
+               <M3Slider variant="thinLg" min={0} max={255} step={1} value={optimisticLightBrightness[cardId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [cardId]: val })); callService("light", "turn_on", { entity_id: cardId, brightness: val }); }} colorClass="bg-amber-500" />
             </div>
           </div>
         </div>
@@ -1326,10 +1101,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }
 
     return (
-      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(currentLId); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
-        {getControls(currentLId)}
-        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: currentLId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}><span className="text-xs tracking-widest uppercase font-bold">{isUnavailable ? t('status.unavailable') : (totalCount > 0 ? (activeCount > 0 ? `${activeCount}/${totalCount}` : t('common.off')) : (isOn ? t('common.on') : t('common.off')))}</span></div></div>
-        <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round(((optimisticLightBrightness[currentLId] ?? br) / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={optimisticLightBrightness[currentLId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [currentLId]: val })); callService("light", "turn_on", { entity_id: currentLId, brightness: val }); }} colorClass="bg-amber-500" /></div>
+      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) setShowLightModal(cardId); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
+        {getControls(cardId)}
+        <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: cardId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}><span className="text-xs tracking-widest uppercase font-bold">{isUnavailable ? t('status.unavailable') : (totalCount > 0 ? (activeCount > 0 ? `${activeCount}/${totalCount}` : t('common.off')) : (isOn ? t('common.on') : t('common.off')))}</span></div></div>
+        <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={optimisticLightBrightness[cardId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [cardId]: val })); callService("light", "turn_on", { entity_id: cardId, brightness: val }); }} colorClass="bg-amber-500" /></div>
       </div>
     );
   };
@@ -1356,18 +1131,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
 
   const resolveCarSettings = (cardId, settings = {}) => {
-    if (cardId !== 'car') return settings;
-    return {
-      batteryId: settings.batteryId ?? LEAF_ID,
-      rangeId: settings.rangeId ?? LEAF_RANGE,
-      locationId: settings.locationId ?? LEAF_LOCATION,
-      chargingId: settings.chargingId ?? LEAF_CHARGING,
-      pluggedId: settings.pluggedId ?? LEAF_PLUGGED,
-      climateId: settings.climateId ?? LEAF_CLIMATE,
-      tempId: settings.tempId ?? null,
-      lastUpdatedId: settings.lastUpdatedId ?? LEAF_LAST_UPDATED,
-      updateButtonId: settings.updateButtonId ?? LEAF_UPDATE
-    };
+    return settings;
   };
 
   const getSafeState = (id) => {
@@ -1482,198 +1246,21 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     );
   };
 
-  const renderSonosPageCard = (cardId, dragProps, getControls, cardStyle, settingsKey) => {
-    const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
-    if (sonosEntities.length === 0) return null;
-
-    const activeSonos = sonosEntities.filter(isSonosActive);
-    const localActiveId = cardSettings[settingsKey]?.activeId;
-    let currentSonos = sonosEntities.find(e => e.entity_id === localActiveId) || activeSonos.find(e => e.state === 'playing') || activeSonos[0] || sonosEntities[0];
-    if (!currentSonos) return null;
-
-    const sId = currentSonos.entity_id;
-    const sIsPlaying = currentSonos.state === 'playing';
-    const isLydplanke = sId === 'media_player.sonos_lydplanke';
-    const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
-    const sTitle = isTV ? t('media.tvAudio') : getA(sId, 'media_title');
-    const sArtist = isTV ? t('media.livingRoom') : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
-    const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
-    const sName = customNames[sId] || getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '');
-
-    const volume = getA(sId, 'volume_level', 0);
-    const isMuted = getA(sId, 'is_volume_muted', false);
-    const shuffle = getA(sId, 'shuffle', false);
-    const repeat = getA(sId, 'repeat', 'off');
-    const rawMembers = getA(sId, 'group_members');
-    const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
-    const playlists = Array.isArray(getA(sId, 'source_list')) ? getA(sId, 'source_list') : [];
-    const currentSource = cardSettings[settingsKey]?.playlist || getA(sId, 'source');
-
-    const listPlayers = sonosEntities
-      .slice()
-      .sort((a, b) => {
-        const aActive = isSonosActive(a);
-        const bActive = isSonosActive(b);
-        if (aActive !== bActive) return aActive ? -1 : 1;
-        return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
-      });
-
-    return (
-      <div key={cardId} {...dragProps} className={`p-7 rounded-3xl flex flex-col transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer' : 'cursor-move'}`} style={cardStyle}>
-        {getControls(cardId)}
-        <div className="flex flex-col lg:flex-row gap-6 h-full">
-          <div className="flex-1 flex flex-col">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)]">
-                  <Speaker className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)]">SONOS</p>
-                  <p className="text-sm font-bold text-[var(--text-primary)] truncate">{sName}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-                <span className="text-xs tracking-widest uppercase font-bold">{sIsPlaying ? t('status.playing') : t('status.off')}</span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-col md:flex-row gap-6">
-              <div className="w-full md:w-56 h-56 rounded-3xl overflow-hidden border border-[var(--glass-border)] bg-[var(--glass-bg)] relative">
-                {sPicture ? (
-                  <img src={sPicture} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    {isTV ? <Tv className="w-12 h-12 text-gray-600" /> : <Speaker className="w-12 h-12 text-gray-600" />}
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 w-full p-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-gray-300 truncate">{sArtist || ''}</p>
-                  <h3 className="text-lg font-bold text-white truncate">{sTitle || t('common.unknown')}</h3>
-                </div>
-              </div>
-
-              <div className="flex-1 flex flex-col gap-4">
-                <div className="flex items-center justify-center gap-6">
-                  <button onClick={() => callService('media_player', 'shuffle_set', { entity_id: sId, shuffle: !shuffle })} className={`p-2 rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-4 h-4" /></button>
-
-                  <button onClick={() => callService('media_player', 'media_previous_track', { entity_id: sId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-[var(--text-secondary)]" /></button>
-                  <button onClick={() => callService('media_player', 'media_play_pause', { entity_id: sId })} className="w-12 h-12 flex items-center justify-center rounded-full transition-colors active:scale-95 shadow-lg" style={{backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)'}}>
-                    {sIsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-                  </button>
-                  <button onClick={() => callService('media_player', 'media_next_track', { entity_id: sId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-[var(--text-secondary)]" /></button>
-
-                  <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService('media_player', 'repeat_set', { entity_id: sId, repeat: nextMode }); }} className={`p-2 rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                    {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
-                  <button onClick={() => callService('media_player', 'volume_mute', { entity_id: sId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-                    {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
-                  </button>
-                  <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService('media_player', 'volume_set', { entity_id: sId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
-                </div>
-
-                {playlists.length > 0 ? (
-                  <div className="pt-2 border-t border-[var(--glass-border)]">
-                    <ModernDropdown
-                      label={t('sonos.playlist')}
-                      icon={Music}
-                      options={playlists}
-                      current={currentSource}
-                      onChange={(value) => {
-                        saveCardSetting(settingsKey, 'playlist', value);
-                        callService('media_player', 'select_source', { entity_id: sId, source: value });
-                      }}
-                      placeholder={t('sonos.playlistPlaceholder')}
-                    />
-                  </div>
-                ) : (
-                  <p className="text-xs text-[var(--text-muted)] italic">{t('sonos.noPlaylists')}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-[var(--glass-border)] pt-6 lg:pt-0 lg:pl-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{t('media.group.sonosPlayers')}</h3>
-              {listPlayers.length > 1 && (
-                <button
-                  onClick={() => {
-                    const allIds = listPlayers.map(p => p.entity_id);
-                    const unjoined = allIds.filter(id => !groupMembers.includes(id));
-                    if (unjoined.length > 0) {
-                      callService('media_player', 'join', { entity_id: sId, group_members: unjoined });
-                    } else {
-                      const others = groupMembers.filter(id => id !== sId);
-                      others.forEach(id => callService('media_player', 'unjoin', { entity_id: id }));
-                    }
-                  }}
-                  className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-white transition-colors"
-                >
-                  {listPlayers.every(p => groupMembers.includes(p.entity_id)) ? t('sonos.ungroupAll') : t('sonos.groupAll')}
-                </button>
-              )}
-            </div>
-            <div className="flex flex-col gap-3">
-              {listPlayers.length === 0 && <p className="text-gray-600 italic text-sm">{t('media.noPlayersFound')}</p>}
-              {listPlayers.map((p, idx) => {
-                const pPic = getEntityImageUrl(p.attributes?.entity_picture);
-                const isSelected = p.entity_id === sId;
-                const isMember = groupMembers.includes(p.entity_id);
-                const isSelf = p.entity_id === sId;
-                const isActivePlayer = isSonosActive(p);
-                const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
-
-                return (
-                  <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'} ${isActivePlayer ? '' : 'opacity-70'}`}>
-                    <button onClick={() => saveCardSetting(settingsKey, 'activeId', p.entity_id)} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
-                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
-                        {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Speaker className="w-5 h-5 text-gray-600" /></div>}
-                        {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
-                      </div>
-                      <div className="overflow-hidden">
-                        <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes?.friendly_name || '').replace(/^(Sonos)\s*/i, '')}</p>
-                        <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
-                      </div>
-                    </button>
-                    {!isSelf && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isMember) {
-                            callService('media_player', 'unjoin', { entity_id: p.entity_id });
-                          } else {
-                            callService('media_player', 'join', { entity_id: sId, group_members: [p.entity_id] });
-                          }
-                        }}
-                        className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                        title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
-                      >
-                        {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                      </button>
-                    )}
-                    {isSelf && groupMembers.length > 1 && (
-                      <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title="Linka">
-                        <Link className="w-4 h-4" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderVacuumCard = (vacuumId, dragProps, getControls, cardStyle, settingsKey) => {
     const entity = entities[vacuumId];
-    if (!entity) return null;
+    if (!entity) {
+      if (editMode) {
+        return (
+          <div key={vacuumId} {...dragProps} className="touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full" style={cardStyle}>
+            {getControls(vacuumId)}
+            <AlertTriangle className="w-8 h-8 text-red-500 mb-2 opacity-80" />
+            <p className="text-xs font-bold text-red-500 text-center uppercase tracking-widest">{t('common.missing')}</p>
+            <p className="text-[10px] text-red-400/70 text-center mt-1 font-mono break-all line-clamp-2">{vacuumId}</p>
+          </div>
+        );
+      }
+      return null;
+    }
 
     const settings = cardSettings[settingsKey] || cardSettings[vacuumId] || {};
     const isSmall = settings.size === 'small';
@@ -1759,7 +1346,19 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
   const renderMediaPlayerCard = (mpId, dragProps, getControls, cardStyle) => {
     const entity = entities[mpId];
-    if (!entity) return null;
+    if (!entity) {
+      if (editMode) {
+        return (
+          <div key={mpId} {...dragProps} className="touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full" style={cardStyle}>
+            {getControls(mpId)}
+            <AlertTriangle className="w-8 h-8 text-red-500 mb-2 opacity-80" />
+            <p className="text-xs font-bold text-red-500 text-center uppercase tracking-widest">{t('common.missing')}</p>
+            <p className="text-[10px] text-red-400/70 text-center mt-1 font-mono break-all line-clamp-2">{mpId}</p>
+          </div>
+        );
+      }
+      return null;
+    }
 
     const mpState = entity?.state;
     const isPlaying = mpState === 'playing';
@@ -1912,10 +1511,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       settingsKey={settingsKey}
       cardSettings={cardSettings}
       entities={entities}
-      tempHistory={tempHistory}
+      tempHistory={[]}
       tempHistoryById={tempHistoryById}
-      outsideTempId={OUTSIDE_TEMP_ID}
-      weatherEntityId={WEATHER_ENTITY}
+      outsideTempId={null}
+      weatherEntityId={null}
       editMode={editMode}
       t={t}
     />
@@ -1926,7 +1525,19 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     const entityId = settings.climateId;
     const entity = entityId ? entities[entityId] : null;
 
-    if (!entity || !entityId) return null;
+    if (!entity || !entityId) {
+      if (editMode) {
+        return (
+          <div key={cardId} {...dragProps} className="touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full" style={cardStyle}>
+            {getControls(cardId)}
+            <AlertTriangle className="w-8 h-8 text-red-500 mb-2 opacity-80" />
+            <p className="text-xs font-bold text-red-500 text-center uppercase tracking-widest">{t('common.missing')}</p>
+            <p className="text-[10px] text-red-400/70 text-center mt-1 font-mono break-all line-clamp-2">{cardId}</p>
+          </div>
+        );
+      }
+      return null;
+    }
 
     return (
       <GenericClimateCard
@@ -1998,13 +1609,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     );
   };
 
-  const resolveLightId = (cardId) => {
-    if (cardId === 'light_kjokken') return LIGHT_KJOKKEN;
-    if (cardId === 'light_stova') return LIGHT_STOVA;
-    if (cardId === 'light_studio') return LIGHT_STUDIO;
-    return cardId;
-  };
-
   const getCardGridSpan = (cardId) => {
     if (cardId.startsWith('automation.')) {
       const settingsKey = getCardSettingsKey(cardId);
@@ -2017,12 +1621,15 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return 1;
     }
 
-    if (cardId.startsWith('calendar_card_')) return 4;
+    if (cardId.startsWith('calendar_card_')) {
+      const settingsKey = getCardSettingsKey(cardId);
+      const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
+      return sizeSetting === 'small' ? 1 : (sizeSetting === 'medium' ? 2 : 4);
+    }
 
     if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
-      const resolvedId = resolveLightId(cardId);
       const settingsKey = getCardSettingsKey(cardId);
-      const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size || cardSettings[resolvedId]?.size;
+      const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
       return sizeSetting === 'small' ? 1 : 2;
     }
 
@@ -2038,7 +1645,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
     if (cardId.startsWith('weather_temp_')) return 2;
 
-    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('media_player')) {
       return 1;
     }
 
@@ -2125,11 +1732,11 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       const nextId = ids[i + 1];
       const nextSpan = nextId ? getCardGridSpan(nextId) : null;
 
-      if (span === 1 && nextSpan === 1) {
-        placePair(id, nextId);
-        i += 1;
-        continue;
-      }
+      // if (span === 1 && nextSpan === 1) {
+      //   placePair(id, nextId);
+      //   i += 1;
+      //   continue;
+      // }
 
       placeSingle(id, span);
     }
@@ -2187,7 +1794,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       const editId = targetId || cardId;
       const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
       const settings = cardSettings[settingsKey] || cardSettings[editId] || {};
-      const canToggleSize = (editId.startsWith('light_') || editId.startsWith('light.') || editId.startsWith('vacuum.') || editId.startsWith('automation.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('weather_temp_') || editId.startsWith('androidtv_card_') || editId === 'car' || editId.startsWith('car_card_') || settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor');
+      const canToggleSize = (editId.startsWith('light_') || editId.startsWith('light.') || editId.startsWith('vacuum.') || editId.startsWith('automation.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('weather_temp_') || editId.startsWith('androidtv_card_') || editId.startsWith('calendar_card_') || editId.startsWith('nordpool_card_') || editId === 'car' || editId.startsWith('car_card_') || settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor');
       return ( 
       <>
         <div className="absolute top-2 left-2 z-50 flex gap-2">
@@ -2224,10 +1831,17 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           </button>
           {canToggleSize && (
             <button 
-              onClick={(e) => { e.stopPropagation(); saveCardSetting(settingsKey, 'size', (cardSettings[settingsKey]?.size === 'small') ? 'large' : 'small'); }}
+              onClick={(e) => { 
+                e.stopPropagation();
+                const currentSize = cardSettings[settingsKey]?.size || 'large';
+                const nextSize = editId.startsWith('calendar_card_')
+                  ? (currentSize === 'small' ? 'medium' : (currentSize === 'medium' ? 'large' : 'small'))
+                  : (currentSize === 'small' ? 'large' : 'small');
+                saveCardSetting(settingsKey, 'size', nextSize); 
+              }}
               className="p-2 rounded-full transition-colors hover:bg-purple-500/80 text-white border border-white/20 shadow-lg"
               style={{backgroundColor: cardSettings[settingsKey]?.size === 'small' ? 'rgba(168, 85, 247, 0.8)' : 'rgba(0, 0, 0, 0.6)'}}
-              title={cardSettings[settingsKey]?.size === 'small' ? t('tooltip.largeSize') : t('tooltip.smallSize')}
+              title={editId.startsWith('calendar_card_') ? 'Bytt storleik' : (cardSettings[settingsKey]?.size === 'small' ? t('tooltip.largeSize') : t('tooltip.smallSize'))}
             >
               {cardSettings[settingsKey]?.size === 'small' ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
             </button>
@@ -2317,6 +1931,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }
 
     if (cardId.startsWith('calendar_card_')) {
+      const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
       return (
         <CalendarCard 
            key={cardId}
@@ -2329,6 +1944,9 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
            isEditMode={editMode}
            className="h-full"
            style={cardStyle}
+           size={sizeSetting}
+           iconName={customIcons[cardId] || null}
+           customName={customNames[cardId] || null}
            onClick={(e) => { e.stopPropagation(); if (editMode) { setShowEditCardModal(cardId); setEditCardSettingsKey(settingsKey); } }}
         />
       );
@@ -2381,194 +1999,40 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
     }
 
-    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player') && !cardId.startsWith('sonos')) {
+    if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player')) {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey);
+    }
+
+    if (editMode && cardId === 'media_player') {
+      // Legacy media_player placeholder for deletion
+      return (
+        <div key={cardId} {...dragProps} className="touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full" style={cardStyle}>
+          {getControls(cardId)}
+          <AlertTriangle className="w-8 h-8 text-red-500 mb-2 opacity-80" />
+          <p className="text-xs font-bold text-red-500 text-center uppercase tracking-widest">Legacy</p>
+          <p className="text-[10px] text-red-400/70 text-center mt-1 font-mono break-all line-clamp-2">media_player</p>
+        </div>
+      );
+    }
+    
+    // Check for empty/missing media groups in edit mode
+    // (In View Mode these are hidden by isCardHiddenByLogic)
+    if (editMode && cardId.startsWith('media_group_')) {
+       // Since it reached here, renderMediaGroupCard returned null (likely because activeEntities=0)
+       // We force a "Broken" state card so user can delete it
+       return (
+        <div key={cardId} {...dragProps} className="touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full" style={cardStyle}>
+          {getControls(cardId)}
+          <AlertTriangle className="w-8 h-8 text-red-500 mb-2 opacity-80" />
+          <p className="text-xs font-bold text-red-500 text-center uppercase tracking-widest">{t('common.missing')}</p>
+          <p className="text-[10px] text-red-400/70 text-center mt-1 font-mono break-all line-clamp-2">{cardId}</p>
+        </div>
+      );
     }
 
     switch(cardId) {
       case 'media_player':
-        const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.tunet'));
-        const mediaEntities = embyIds.map(id => entities[id]).filter(Boolean);
-        const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
-        const sessionActiveEntities = Array.isArray(sessions)
-          ? mediaEntities.filter((entity) => {
-              if (!isMediaActive(entity)) return false;
-              const name = (entity.attributes?.friendly_name || '').toLowerCase();
-              return sessions.some((s) => {
-                const device = (s?.device_name || '').toLowerCase();
-                if (!device) return false;
-                return name.includes(device) || device.includes(name);
-              });
-            })
-          : [];
-        const activeMediaEntities = sessionActiveEntities.length > 0 ? sessionActiveEntities : mediaEntities.filter(isMediaActive);
-        const activeCount = activeMediaEntities.length;
-
-        if (!editMode && activeCount === 0) return null;
-
-        const pool = (editMode && activeCount === 0) ? mediaEntities : (activeCount > 0 ? activeMediaEntities : mediaEntities);
-        const playingEntities = pool.filter(e => e.state === 'playing');
-        const playingCount = playingEntities.length;
-        
-        let currentMp = pool.find(e => e.entity_id === activeMediaId);
-        
-        if (!currentMp) {
-            if (playingCount > 0) currentMp = playingEntities[0];
-            else currentMp = pool[0];
-        } else if (playingCount > 0 && currentMp.state !== 'playing' && !activeMediaId) {
-             currentMp = playingEntities[0];
-        }
-        
-        if (!currentMp) return null;
-
-        const mpId = currentMp.entity_id;
-        const mpState = currentMp.state;
-        const contentType = getA(mpId, 'media_content_type');
-        const isChannel = contentType === 'channel';
-        const isPlaying = mpState === 'playing';
-        const isIdle = mpState === 'idle' || mpState === 'off' || mpState === 'unavailable' || !mpState || mpState === 'standby';
-        const mpTitle = getA(mpId, 'media_title');
-        
-        let mpSeries = getA(mpId, 'media_series_title');
-        if (contentType === 'episode') {
-             const season = getA(mpId, 'media_season');
-             if (mpSeries && season) mpSeries = `${mpSeries} • ${season}`;
-             else if (!mpSeries && season) mpSeries = season;
-        }
-        if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
-
-        const mpApp = getA(mpId, 'app_name');
-        const mpPicture = getEntityImageUrl(currentMp.attributes?.entity_picture);
-        
-        const mpFriendlyName = getA(mpId, 'friendly_name', '');
-        const activeSession = Array.isArray(sessions) ? sessions.find(s => s.device_name && mpFriendlyName.toLowerCase().includes(s.device_name.toLowerCase())) : null;
-        const activeUser = activeSession?.user_name;
-        const mpName = customNames[mpId] || getA(mpId, 'friendly_name', 'Media Player').replace(/^(Tunet|Bibliotek)\s*/i, '');
-
-        const cyclePlayers = (e) => {
-          e.stopPropagation();
-          const list = activeCount > 1 ? activeMediaEntities : (playingEntities.length > 1 ? playingEntities : pool);
-          const idx = list.findIndex(e => e.entity_id === mpId);
-          const next = list[(idx + 1) % list.length];
-          setActiveMediaId(next.entity_id);
-        };
-
-        const indicator = (!editMode && activeCount >= 2) ? (<button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-xs font-bold">{activeCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
-
-            if (isIdle) {
-          return (
-            <div key="media_player" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey('__emby__'); setActiveMediaModal('media'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
-              {getControls(mpId)}
-              {indicator}
-              <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
-                <Tv className="w-8 h-8 text-[var(--text-secondary)]" />
-              </div>
-              <div className="text-center w-full px-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMedia')}</p>
-                <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{mpName}</p></div>
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div key="media_player" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(mpId); setActiveMediaGroupKey('__emby__'); setActiveMediaModal('media'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-end transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: mpPicture ? 'white' : 'var(--text-primary)'}}>
-            {getControls(mpId)}
-            {indicator}
-            
-            {mpPicture ? (
-              <div className="absolute inset-0 z-0">
-                <img src={mpPicture} alt="" className={`w-full h-full object-cover transition-transform duration-[20s] ease-linear ${isPlaying ? 'scale-110' : 'scale-100'}`} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-              </div>
-            ) : (
-               <div className="absolute inset-0 z-0 flex items-center justify-center bg-[var(--glass-bg)]">
-                  {isChannel ? <Tv className="w-20 h-20 text-[var(--text-muted)]" /> : <Music className="w-20 h-20 text-[var(--text-muted)]" />}
-               </div>
-            )}
-            
-            <div className="relative z-10 flex flex-col">
-                {activeUser ? (
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate shadow-black drop-shadow-md">{activeUser}</p>
-                    <span className="text-white/40 text-[10px]">•</span>
-                    <p className={`text-[10px] font-bold uppercase tracking-widest ${mpPicture ? 'text-gray-300' : 'text-[var(--text-secondary)]'} truncate shadow-black drop-shadow-md`}>{mpApp || t('addCard.type.media')}</p>
-                  </div>
-                ) : (
-                  <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-1 truncate shadow-black drop-shadow-md">{mpApp || t('addCard.type.media')}</p>
-                )}
-                <h3 className="text-2xl font-bold leading-tight line-clamp-2 mb-1 shadow-black drop-shadow-lg">{mpTitle || t('common.unknown')}</h3>
-                <p className={`text-sm ${mpPicture ? 'text-gray-200' : 'text-[var(--text-secondary)]'} truncate font-medium shadow-black drop-shadow-md`}>{mpSeries || ''}</p>
-            </div>
-          </div>
-        );
-      case 'sonos':
-        const sonosEntities = SONOS_IDS.map(id => entities[id]).filter(Boolean);
-        const activeSonos = sonosEntities.filter(isSonosActive);
-        const sonosCount = activeSonos.length;
-        const sonosSettingsKey = settingsKey;
-        const localActiveSonosId = cardSettings[sonosSettingsKey]?.activeId;
-        
-        let currentSonos = sonosEntities.find(e => e.entity_id === localActiveSonosId) || sonosEntities.find(e => e.entity_id === activeMediaId);
-        
-        if (!currentSonos) {
-            if (sonosCount > 0) currentSonos = activeSonos[0];
-            else currentSonos = sonosEntities[0];
-        } else if (sonosCount > 0 && !isSonosActive(currentSonos) && !activeMediaId) {
-             currentSonos = activeSonos[0];
-        }
-        
-        if (!currentSonos) return null;
-
-        const sId = currentSonos.entity_id;
-        const sIsActive = isSonosActive(currentSonos);
-        const sIsPlaying = currentSonos.state === 'playing';
-        
-        const isLydplanke = sId === 'media_player.sonos_lydplanke';
-        const isTV = isLydplanke && (currentSonos.attributes?.source === 'TV' || currentSonos.attributes?.media_title === 'TV');
-
-        const sTitle = isTV ? t('media.tvAudio') : getA(sId, 'media_title');
-        const sArtist = isTV ? t('media.livingRoom') : (getA(sId, 'media_artist') || getA(sId, 'media_album_name'));
-        const sPicture = !isTV ? getEntityImageUrl(currentSonos.attributes?.entity_picture) : null;
-        const sName = customNames[sId] || getA(sId, 'friendly_name', 'Sonos').replace(/^(Sonos)\s*/i, '');
-
-        const cycleSonos = (e) => {
-          e.stopPropagation();
-          const list = sonosCount > 1 ? activeSonos : sonosEntities;
-          const idx = list.findIndex(e => e.entity_id === sId);
-          const next = list[(idx + 1) % list.length];
-          saveCardSetting(sonosSettingsKey, 'activeId', next.entity_id);
-        };
-
-        const sIndicator = (!editMode && sonosCount >= 2) ? (<button onClick={cycleSonos} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" /><span className="text-xs font-bold">{sonosCount}</span><ArrowLeftRight className="w-3 h-3 ml-0.5" /></button>) : null;
-
-        if (!sIsActive) {
-          return (
-            <div key="sonos" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(sId); setActiveMediaModal('sonos'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
-              {getControls(sId)}
-              {sIndicator}
-              <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}><Speaker className="w-8 h-8 text-[var(--text-secondary)]" /></div>
-              <div className="text-center w-full px-4"><p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMusic')}</p><div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{sName}</p></div></div>
-            </div>
-          );
-        }
-
-        return (
-          <div key="sonos" {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) { setActiveMediaId(sId); setActiveMediaModal('sonos'); } }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: sPicture ? 'white' : 'var(--text-primary)'}}>
-            {getControls(sId)}
-            {sIndicator}
-            {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.7]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
-            {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/10 via-transparent to-transparent opacity-50 animate-pulse pointer-events-none" />}
-            {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/40 via-transparent to-transparent animate-pulse pointer-events-none" />}
-            {sPicture && (<div className="absolute inset-0 z-0 opacity-20 pointer-events-none"><img src={sPicture} alt="" className={`w-full h-full object-cover blur-xl scale-150 transition-transform duration-[10s] ease-in-out ${sIsPlaying ? 'scale-[1.6]' : 'scale-150'}`} /><div className="absolute inset-0 bg-black/20" /></div>)}
-            {sIsPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/20 via-transparent to-transparent pointer-events-none" />}
-            <div className="relative z-10 flex gap-4 items-start">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-lg">{sPicture ? <img src={sPicture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isTV ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}</div>}</div>
-              <div className="flex flex-col overflow-hidden pt-1"><div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{sName}</p></div><h3 className="text-lg font-bold leading-tight truncate mb-0.5">{sTitle || t('common.unknown')}</h3><p className={`text-xs ${sPicture ? 'text-gray-400' : 'text-[var(--text-secondary)]'} truncate font-medium`}>{sArtist || ''}</p></div>
-            </div>
-            <div className="relative z-10 flex items-center justify-center gap-8 mt-2"><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: sId }); }} className={`${sPicture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipBack className="w-6 h-6" /></button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: sId }); }} className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95">{sIsPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}</button><button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: sId }); }} className={`${sPicture ? 'text-gray-400 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} transition-colors p-2 active:scale-90`}><SkipForward className="w-6 h-6" /></button></div>
-          </div>
-        );
+        return null;
       case 'car':
         return renderCarCard(cardId, dragProps, getControls, cardStyle, settingsKey);
       default: return null;
@@ -2590,7 +2054,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
   const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
   const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
-  const canEditIcon = !!editId && (isEditLight || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
+  const canEditIcon = !!editId && (isEditLight || isEditCalendar || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
   const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
   const isOnboardingActive = showOnboarding;
   const onboardingSteps = buildOnboardingSteps(t);
@@ -2805,8 +2269,14 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             background: rgba(0, 0, 0, 0.7);
           }
           .touch-feedback {
-            transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+            transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
             -webkit-tap-highlight-color: transparent;
+          }
+          .touch-feedback:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            z-index: 10;
           }
           .touch-feedback:active {
             transform: scale(0.98);
@@ -2839,7 +2309,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           <div className="flex items-center justify-between w-full mt-0 font-sans">
             <div className="flex flex-wrap gap-2.5 items-center min-w-0">
               {(pagesConfig.header || []).map(id => personStatus(id))}
-              {editMode && (pagesConfig.header || []).length === 0 && (
+              {editMode && (
                 <button 
                   onClick={() => { setAddCardTargetPage('header'); setShowAddCardModal(true); }} 
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-all text-xs font-bold uppercase tracking-widest"
@@ -2853,9 +2323,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               <StatusBar
                 entities={entities}
                 now={now}
-                setShowCameraModal={setShowCameraModal}
                 setActiveMediaId={setActiveMediaId}
                 setActiveMediaGroupKey={setActiveMediaGroupKey}
+                setActiveMediaGroupIds={setActiveMediaGroupIds}
+                setActiveMediaSessionSensorIds={setActiveMediaSessionSensorIds}
                 setActiveMediaModal={setActiveMediaModal}
                 setShowUpdateModal={setShowUpdateModal}
                 setShowStatusPillsConfig={setShowStatusPillsConfig}
@@ -2915,18 +2386,25 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             >
               <Edit2 className="w-5 h-5" />
             </button>
-            <button onClick={() => setShowConfigModal(true)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group`}><Settings className={`w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]`} /></button>
+            <div className="relative">
+              <button onClick={() => setShowConfigModal(true)} className={`p-2 rounded-full hover:bg-[var(--glass-bg)] transition-colors group`}><Settings className={`w-5 h-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]`} /></button>
+              {updateCount > 0 && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center border-2 border-[var(--bg-primary)] pointer-events-none shadow-sm">
+                  <span className="text-[11px] font-bold text-white leading-none pt-[1px]">{updateCount}</span>
+                </div>
+              )}
+            </div>
             {!connected && <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: '#ef4444'}} /></div>}
           </div>
         </div>
 
-        {isSonosPage(activePage) ? (
+        {isMediaPage(activePage) ? (
           <div key={activePage} className="fade-in-anim">
-            <SonosPage
+            <MediaPage
               pageId={activePage}
               entities={entities}
-              sonosIds={SONOS_IDS}
               pageSettings={pageSettings}
+              editMode={editMode}
               isSonosActive={isSonosActive}
               activeMediaId={activeMediaId}
               setActiveMediaId={setActiveMediaId}
@@ -2951,7 +2429,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               const index = (pagesConfig[activePage] || []).indexOf(id);
               const placement = gridLayout[id];
               const isCalendarCard = id.startsWith('calendar_card_');
-              const forcedSpan = isCalendarCard ? 4 : placement?.span;
+              const sizeSetting = isCalendarCard ? (cardSettings[getCardSettingsKey(id)]?.size || cardSettings[id]?.size) : null;
+              const forcedSpan = isCalendarCard
+                ? (sizeSetting === 'small' ? 1 : (sizeSetting === 'medium' ? 2 : 4))
+                : placement?.span;
               const settingsKey = getCardSettingsKey(id);
               const heading = cardSettings[settingsKey]?.heading;
 
@@ -2968,7 +2449,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                     gridRowStart: placement.row,
                     gridColumnStart: placement.col,
                     gridRowEnd: `span ${forcedSpan}`,
-                    minHeight: isCalendarCard ? '496px' : undefined
+                    minHeight: isCalendarCard && sizeSetting !== 'small' && sizeSetting !== 'medium' ? '496px' : undefined
                   }}
                 >
                   {heading && (
@@ -3016,6 +2497,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           inactivityTimeout={inactivityTimeout}
           setInactivityTimeout={setInactivityTimeout}
           entities={entities}
+          getEntityImageUrl={getEntityImageUrl}
           onClose={() => setShowConfigModal(false)}
           onFinishOnboarding={() => { setShowOnboarding(false); setShowConfigModal(false); }}
         />
@@ -3705,7 +3187,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           newPageIcon={newPageIcon}
           setNewPageIcon={setNewPageIcon}
           onCreate={createPage}
-          onCreateSonos={createSonosPage}
+          onCreateMedia={createMediaPage}
         />
 
         <EditCardModal 
@@ -3744,15 +3226,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           t={t}
         />
 
-        <CameraModal
-          show={showCameraModal}
-          onClose={() => setShowCameraModal(false)}
-          entities={entities}
-          getEntityImageUrl={getEntityImageUrl}
-          t={t}
-          cameraEntityId={CAMERA_PORTEN_ID}
-        />
-
         <EditHeaderModal
           show={showHeaderEditModal}
           onClose={() => setShowHeaderEditModal(false)}
@@ -3770,6 +3243,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           onClose={() => setActiveMediaModal(null)}
           activeMediaModal={activeMediaModal}
           activeMediaGroupKey={activeMediaGroupKey}
+          activeMediaGroupIds={activeMediaGroupIds}
+          activeMediaSessionSensorIds={activeMediaSessionSensorIds}
           activeMediaId={activeMediaId}
           setActiveMediaId={setActiveMediaId}
           entities={entities}
@@ -3784,10 +3259,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           t={t}
           formatDuration={formatDuration}
           getServerInfo={getServerInfo}
-          EmbyLogo={EmbyLogo}
-          JellyfinLogo={JellyfinLogo}
-          SONOS_IDS={SONOS_IDS}
-          BIBLIOTEK_SESSIONS_ID={BIBLIOTEK_SESSIONS_ID}
         />
 
         <StatusPillsConfigModal

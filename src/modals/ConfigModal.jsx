@@ -13,7 +13,8 @@ import {
   Palette,
   Monitor,
   Sparkles,
-  Download
+  Download,
+  ArrowRight
 } from '../icons';
 
 export default function ConfigModal({
@@ -47,6 +48,7 @@ export default function ConfigModal({
   inactivityTimeout,
   setInactivityTimeout,
   entities,
+  getEntityImageUrl,
   onClose,
   onFinishOnboarding
 }) {
@@ -203,43 +205,74 @@ export default function ConfigModal({
     }
 
     return (
-      <div className="space-y-4 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
-        {updates.map(update => (
-          <div key={update.entity_id} className="p-4 rounded-2xl bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:border-blue-500/50 transition-all">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h4 className="text-sm font-bold text-[var(--text-primary)] mb-1 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-blue-400" />
-                  {update.attributes?.friendly_name || update.entity_id}
-                </h4>
-                <p className="text-xs text-[var(--text-secondary)] mb-2">
-                  {update.attributes?.latest_version ? `Versjon: ${update.attributes.latest_version}` : ''}
-                </p>
-                {update.attributes?.release_summary && (
-                  <p className="text-xs text-[var(--text-muted)] line-clamp-2">{update.attributes.release_summary}</p>
-                )}
+      <div className="space-y-3 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
+        {updates.map(update => {
+          const installedVersion = update.attributes?.installed_version;
+          const latestVersion = update.attributes?.latest_version;
+          const entityPicture = update.attributes?.entity_picture ? getEntityImageUrl(update.attributes.entity_picture) : null;
+          
+          return (
+            <div key={update.entity_id} className="p-4 rounded-2xl bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:border-blue-500/50 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-[var(--glass-bg-hover)] flex items-center justify-center p-1.5 border border-[var(--glass-border)] flex-shrink-0 relative overflow-hidden">
+                  {entityPicture ? (
+                    <img src={entityPicture} alt="" className="w-full h-full object-contain" />
+                  ) : (
+                    <Download className="w-5 h-5 text-blue-400" />
+                  )}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-[var(--text-primary)] truncate">
+                    {update.attributes?.title || update.attributes?.friendly_name || update.entity_id}
+                  </h4>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    {installedVersion && (
+                      <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
+                        <span className="opacity-50 text-[10px] uppercase tracking-wider font-bold">Fra</span>
+                        <span className="text-[10px] font-mono bg-[var(--glass-bg)] px-1.5 py-0.5 rounded border border-[var(--glass-border)] opacity-80">{installedVersion}</span>
+                      </div>
+                    )}
+                    {installedVersion && latestVersion && (
+                        <ArrowRight className="w-3 h-3 text-[var(--text-muted)] opacity-30" />
+                    )}
+                    {latestVersion && (
+                      <div className="flex items-center gap-1.5 text-green-400">
+                         <span className="opacity-50 text-[10px] uppercase tracking-wider font-bold">Til</span>
+                         <span className="text-[10px] font-mono bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 font-bold">{latestVersion}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (window.HAWS && window.HAWS.conn) {
+                      const conn = window.HAWS.conn;
+                      const [domain, service] = update.entity_id.split('.');
+                      conn.sendMessage({
+                        type: 'call_service',
+                        domain: domain === 'update' ? 'update' : domain,
+                        service: 'install',
+                        service_data: { entity_id: update.entity_id }
+                      });
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                >
+                  {t('updates.update')}
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  // Call service to install update
-                  if (window.HAWS && window.HAWS.conn) {
-                    const conn = window.HAWS.conn;
-                    const [domain, service] = update.entity_id.split('.');
-                    conn.sendMessage({
-                      type: 'call_service',
-                      domain: domain === 'update' ? 'update' : domain,
-                      service: 'install',
-                      service_data: { entity_id: update.entity_id }
-                    });
-                  }
-                }}
-                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold uppercase tracking-wide transition-colors"
-              >
-                {t('updates.update')}
-              </button>
+              {update.attributes?.release_summary && (
+                <div className="mt-3 pt-3 border-t border-[var(--glass-border)]">
+                  <p className="text-[11px] text-[var(--text-secondary)] line-clamp-2 md:line-clamp-1 leading-relaxed opacity-80">
+                    {update.attributes.release_summary}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };

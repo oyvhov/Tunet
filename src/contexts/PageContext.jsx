@@ -22,7 +22,7 @@ const readNumber = (key, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const deprecatedCardIds = ['power', 'rocky', 'climate', 'shield', 'weather', 'car'];
+const deprecatedCardIds = ['power', 'rocky', 'climate', 'shield', 'weather', 'car', 'sonos'];
 
 const PageContext = createContext(null);
 
@@ -131,7 +131,18 @@ export const PageProvider = ({ children }) => {
     if (savedScale !== null) setHeaderScale(savedScale);
 
     const pageSettingsSaved = readJSON('tunet_page_settings', null);
-    if (pageSettingsSaved) setPageSettings(pageSettingsSaved);
+    if (pageSettingsSaved) {
+      let modified = false;
+      const nextSettings = { ...pageSettingsSaved };
+      Object.keys(nextSettings).forEach((pageId) => {
+        if (nextSettings[pageId]?.type === 'sonos') {
+          nextSettings[pageId] = { ...nextSettings[pageId], type: 'media' };
+          modified = true;
+        }
+      });
+      setPageSettings(nextSettings);
+      if (modified) writeJSON('tunet_page_settings', nextSettings);
+    }
 
     const cardSettingsSaved = readJSON('tunet_card_settings', null);
     if (cardSettingsSaved) setCardSettings(cardSettingsSaved);

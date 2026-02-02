@@ -18,11 +18,11 @@ import {
   Plus
 } from '../icons';
 
-export default function SonosPage({
+export default function MediaPage({
   pageId,
   entities,
-  sonosIds,
   pageSettings,
+  editMode,
   isSonosActive,
   activeMediaId,
   setActiveMediaId,
@@ -33,45 +33,57 @@ export default function SonosPage({
   formatDuration,
   t
 }) {
-  const sonosEntities = sonosIds.map(id => entities[id]).filter(Boolean);
-  if (sonosEntities.length === 0) {
-    return (
-      <div key={pageId} className="rounded-3xl popup-surface p-8 text-center text-[var(--text-secondary)]">
-        {t('media.noPlayersFound')}
-      </div>
-    );
-  }
-
+  const [mediaSearch, setMediaSearch] = useState('');
   const pageSetting = pageSettings[pageId] || {};
+  const allMediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.'));
+  const showAll = !Array.isArray(pageSetting.mediaIds);
+  const selectedIds = showAll ? allMediaIds : pageSetting.mediaIds;
+  const visibleIds = selectedIds.length > 0 ? selectedIds : [];
+  const mediaEntities = visibleIds.map(id => entities[id]).filter(Boolean);
+
+  const isSonosEntity = (entity) => {
+    if (!entity) return false;
+    const id = entity.entity_id || '';
+    const name = (entity.attributes?.friendly_name || '').toLowerCase();
+    const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
+    const platform = (entity.attributes?.platform || '').toLowerCase();
+    return id.includes('sonos') || name.includes('sonos') || manufacturer.includes('sonos') || platform.includes('sonos');
+  };
+
+  const sonosEntities = mediaEntities.filter(isSonosEntity);
+  const filteredMediaIds = allMediaIds.filter((id) => {
+    if (!mediaSearch) return true;
+    const lower = mediaSearch.toLowerCase();
+    const name = entities[id]?.attributes?.friendly_name || id;
+    return id.toLowerCase().includes(lower) || name.toLowerCase().includes(lower);
+  });
+
   const activeSonos = sonosEntities.filter(isSonosActive);
-  let currentMp = sonosEntities.find(e => e.entity_id === pageSetting.activeId) || sonosEntities.find(e => e.entity_id === activeMediaId);
-  if (!currentMp) currentMp = activeSonos[0] || sonosEntities[0];
+  let currentMp = mediaEntities.find(e => e.entity_id === pageSetting.activeId) || mediaEntities.find(e => e.entity_id === activeMediaId);
+  if (!currentMp) currentMp = activeSonos[0] || mediaEntities[0];
 
-  const mpId = currentMp.entity_id;
-  const mpState = currentMp.state;
+  const mpId = currentMp?.entity_id || null;
+  const mpState = currentMp?.state || null;
   const isPlaying = mpState === 'playing';
-  const isLydplanke = mpId === 'media_player.sonos_lydplanke';
-  const isTV = isLydplanke && (currentMp.attributes?.source === 'TV' || currentMp.attributes?.media_title === 'TV');
+  const mpTitle = mpId ? getA(mpId, 'media_title') : null;
+  const mpSeries = mpId ? (getA(mpId, 'media_artist') || getA(mpId, 'media_album_name')) : null;
+  const mpName = currentMp?.attributes?.friendly_name || mpId || '';
+  const isTV = mpId ? (getA(mpId, 'media_content_type') === 'channel' || getA(mpId, 'device_class') === 'tv') : false;
 
-  let mpTitle = getA(mpId, 'media_title');
-  if (isTV) mpTitle = t('media.tvAudio');
-  let mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_album_name');
-  if (isTV) mpSeries = t('media.livingRoom');
-
-  const mpPicture = !isTV ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
-  const duration = getA(mpId, 'media_duration');
-  const position = getA(mpId, 'media_position');
-  const positionUpdatedAt = getA(mpId, 'media_position_updated_at');
-  const volume = getA(mpId, 'volume_level', 0);
-  const isMuted = getA(mpId, 'is_volume_muted', false);
-  const shuffle = getA(mpId, 'shuffle', false);
-  const repeat = getA(mpId, 'repeat', 'off');
+  const mpPicture = currentMp ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
+  const duration = mpId ? getA(mpId, 'media_duration') : null;
+  const position = mpId ? getA(mpId, 'media_position') : null;
+  const positionUpdatedAt = mpId ? getA(mpId, 'media_position_updated_at') : null;
+  const volume = mpId ? getA(mpId, 'volume_level', 0) : 0;
+  const isMuted = mpId ? getA(mpId, 'is_volume_muted', false) : false;
+  const shuffle = mpId ? getA(mpId, 'shuffle', false) : false;
+  const repeat = mpId ? getA(mpId, 'repeat', 'off') : 'off';
 
   const [playheadNow, setPlayheadNow] = useState(() => Date.now());
 
   useEffect(() => {
     setPlayheadNow(Date.now());
-    if (!isPlaying) return;
+    if (!mpId || !isPlaying) return;
     const intervalId = setInterval(() => setPlayheadNow(Date.now()), 1000);
     return () => clearInterval(intervalId);
   }, [isPlaying, mpId]);
@@ -83,25 +95,106 @@ export default function SonosPage({
     : 0;
   const effectivePosition = Math.min(duration || basePosition, basePosition + elapsed);
 
-  const rawMembers = getA(mpId, 'group_members');
+  const isCurrentSonos = isSonosEntity(currentMp);
+  const rawMembers = isCurrentSonos ? getA(mpId, 'group_members') : null;
   const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
 
-  const listPlayers = sonosEntities
+  const listPlayers = mediaEntities
     .slice()
     .sort((a, b) => {
-      const aActive = isSonosActive(a);
-      const bActive = isSonosActive(b);
+      const aActive = isSonosEntity(a) ? isSonosActive(a) : a?.state === 'playing';
+      const bActive = isSonosEntity(b) ? isSonosActive(b) : b?.state === 'playing';
       if (aActive !== bActive) return aActive ? -1 : 1;
       return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
     });
 
   return (
-    <div key={pageId} className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.85fr] gap-8 font-sans fade-in-anim items-start">
-      <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-8 flex flex-col min-h-[480px]">
+    <div key={pageId} className="flex flex-col gap-8 font-sans fade-in-anim items-start">
+      {mediaEntities.length === 0 && (
+        <div className="w-full rounded-3xl popup-surface p-8 text-center text-[var(--text-secondary)]">
+          {t('media.noPlayersFound')}
+        </div>
+      )}
+      {editMode && (
+        <div className="w-full rounded-3xl border border-[var(--glass-border)] popup-surface p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{t('media.selectPlayers')}</h3>
+              <p className="text-[11px] text-[var(--text-muted)] mt-1">{t('media.selectPlayersHint')}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => savePageSetting(pageId, 'mediaIds', null)}
+                className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest popup-surface popup-surface-hover text-[var(--text-secondary)]"
+              >
+                {t('media.selectAll')}
+              </button>
+              <button
+                onClick={() => savePageSetting(pageId, 'mediaIds', [])}
+                className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest popup-surface popup-surface-hover text-[var(--text-secondary)]"
+              >
+                {t('media.clearSelection')}
+              </button>
+            </div>
+          </div>
+          <div className="mb-3 relative">
+            <input
+              type="text"
+              value={mediaSearch}
+              onChange={(e) => setMediaSearch(e.target.value)}
+              placeholder={t('addCard.search')}
+              className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-4 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors"
+            />
+          </div>
+          <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+            {filteredMediaIds.map((id) => {
+              const entity = entities[id];
+              const isSelected = showAll ? true : selectedIds.includes(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    if (showAll) {
+                      const next = allMediaIds.filter(item => item !== id);
+                      savePageSetting(pageId, 'mediaIds', next);
+                      return;
+                    }
+                    const next = selectedIds.includes(id)
+                      ? selectedIds.filter(item => item !== id)
+                      : [...selectedIds, id];
+                    savePageSetting(pageId, 'mediaIds', next);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl border transition-colors text-left ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] border-transparent hover:bg-[var(--glass-bg-hover)]'}`}
+                >
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-blue-500/70 border-blue-500/80' : 'border-[var(--glass-border)]'}`}>
+                    {isSelected && <div className="w-2 h-2 rounded-sm bg-white" />}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)] truncate">
+                      {entity?.attributes?.friendly_name || id}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)] truncate">{id}</span>
+                  </div>
+                </button>
+              );
+            })}
+            {filteredMediaIds.length === 0 && (
+              <div className="text-xs text-[var(--text-muted)] italic text-center py-2">
+                {t('form.noResults')}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {mediaEntities.length > 0 && (
+      <div className="w-full grid grid-cols-1 lg:grid-cols-[1.35fr_0.85fr] gap-8 items-stretch">
+      <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-8 flex flex-col min-h-[480px] w-full min-w-0">
         <div className="mb-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)]">
             <Music className="w-4 h-4 text-[var(--text-primary)]" />
-            <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">SONOS</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">{t('sonos.pageName')}</span>
           </div>
         </div>
 
@@ -118,6 +211,11 @@ export default function SonosPage({
 
           <div className="flex-1 w-full flex flex-col justify-center md:justify-between md:h-72 gap-6 min-w-0">
             <div className="space-y-2 text-center md:text-left">
+              {mpName && (
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+                  {mpName}
+                </p>
+              )}
               <h2 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] leading-none truncate">{mpTitle || t('common.unknown')}</h2>
               <p className="text-xl text-[var(--text-secondary)] font-medium truncate">{mpSeries || ''}</p>
             </div>
@@ -158,10 +256,11 @@ export default function SonosPage({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6 min-h-[480px] flex flex-col">
+      {mediaEntities.length > 0 && (
+      <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6 min-h-[480px] max-h-[480px] flex flex-col w-full min-w-0">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{t('media.group.sonosPlayers')}</h3>
-          {listPlayers.length > 1 && (
+          <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{t('media.group.selectedPlayers')}</h3>
+          {isCurrentSonos && listPlayers.length > 1 && (
             <button
               onClick={() => {
                 const allIds = listPlayers.map(p => p.entity_id);
@@ -179,13 +278,14 @@ export default function SonosPage({
             </button>
           )}
         </div>
-        <div className="flex flex-col gap-4 overflow-y-auto flex-1">
+        <div className="flex flex-col gap-4 overflow-y-auto flex-1 custom-scrollbar">
           {listPlayers.map((p, idx) => {
             const pPic = getEntityImageUrl(p.attributes?.entity_picture);
             const isSelected = p.entity_id === mpId;
             const isMember = groupMembers.includes(p.entity_id);
             const isSelf = p.entity_id === mpId;
-            const isActivePlayer = isSonosActive(p);
+            const isSonos = isSonosEntity(p);
+            const isActivePlayer = isSonos ? isSonosActive(p) : p?.state === 'playing';
             const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
 
             return (
@@ -196,11 +296,11 @@ export default function SonosPage({
                     {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
                   </div>
                   <div className="overflow-hidden">
-                    <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
+                    <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{p.attributes.friendly_name || p.entity_id}</p>
                     <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
                   </div>
                 </button>
-                {!isSelf && (
+                {!isSelf && isCurrentSonos && isSonos && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -216,7 +316,7 @@ export default function SonosPage({
                     {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </button>
                 )}
-                {isSelf && groupMembers.length > 1 && (
+                {isSelf && isCurrentSonos && groupMembers.length > 1 && (
                   <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title="Linka">
                     <Link className="w-4 h-4" />
                   </div>
@@ -226,6 +326,9 @@ export default function SonosPage({
           })}
         </div>
       </div>
+      )}
+    </div>
+    )}
     </div>
   );
 }

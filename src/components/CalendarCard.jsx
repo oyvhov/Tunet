@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar as CalendarIcon, Clock, MapPin, AlertCircle } from 'lucide-react';
+import { getIconComponent } from '../iconMap';
 import { getCalendarEvents } from '../services/haClient';
 
 class CalendarErrorBoundary extends React.Component {
@@ -43,7 +44,10 @@ function CalendarCard({
   dragProps,
   getControls,
   onClick,
-  isEditMode
+  isEditMode,
+  size,
+  iconName,
+  customName
 }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -166,33 +170,99 @@ function CalendarCard({
     return !!value.date && !value.dateTime && !value.date_time;
   };
 
+  const IconComp = iconName ? (getIconComponent(iconName) || CalendarIcon) : CalendarIcon;
+  const displayName = customName || settings?.name || t('calendar.title') || 'Calendar';
+  const isSmall = size === 'small';
+
+  const nextEvent = events.length > 0 ? events[0] : null;
+  const nextEventTitle = nextEvent
+    ? (nextEvent.summary || nextEvent.title || nextEvent.description || t('calendar.noEvents') || 'Event')
+    : '';
+  const nextEventStartRaw = nextEvent ? getEventDateValue(nextEvent.start) : null;
+  const nextEventStart = nextEventStartRaw ? new Date(nextEventStartRaw) : null;
+  const nextEventEndRaw = nextEvent ? getEventDateValue(nextEvent.end) : null;
+  const nextEventEnd = nextEventEndRaw ? new Date(nextEventEndRaw) : null;
+  const nextEventStartTime = formatEventTime(nextEventStart);
+  const nextEventEndTime = formatEventTime(nextEventEnd);
+  const nextIsAllDay = nextEvent ? isAllDayValue(nextEvent.start) : false;
+  const nextTimeString = nextEvent
+    ? (nextIsAllDay
+        ? (nextEventStart ? formatDateHeader(nextEventStart.toLocaleDateString('sv-SE')) : 'Heile dagen')
+        : (nextEventStartTime ? `${nextEventStartTime}${nextEventEndTime ? ` - ${nextEventEndTime}` : ''}` : ''))
+    : '';
+
+  if (isSmall) {
+    return (
+      <div 
+        {...dragProps} 
+        data-haptic={isEditMode ? undefined : 'card'}
+        onClick={onClick}
+        className={`touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${className}`}
+        style={style}
+      >
+        {getControls && getControls(cardId)}
+        <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-[var(--glass-bg)] text-[var(--text-secondary)]">
+          <IconComp className="w-6 h-6 stroke-[1.5px]" />
+        </div>
+        
+        <div className="flex flex-col min-w-0 justify-center">
+             {!selectedCalendars.length ? (
+                <p className="text-xs uppercase font-bold tracking-widest opacity-60 text-[var(--text-secondary)] truncate">{t('calendar.selectCalendars') || 'Select Calendars'}</p>
+            ) : loading && events.length === 0 ? (
+                <p className="text-xs uppercase font-bold tracking-widest opacity-60 text-[var(--text-secondary)] truncate">{t('common.loading') || 'Loading...'}</p>
+            ) : !nextEvent ? (
+                <>
+                <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">{displayName}</p>
+                <p className="text-sm font-bold text-[var(--text-primary)] leading-none opacity-80 truncate">{t('calendar.noEvents') || 'No events'}</p>
+                </>
+            ) : (
+                <>
+                   <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">
+                     <span>{nextTimeString}</span>
+                     {!nextIsAllDay && nextEventStart && (
+                        <span>
+                          {formatDateHeader(nextEventStart.toLocaleDateString('sv-SE')) !== (t('calendar.today') || 'Today') && 
+                           `• ${formatDateHeader(nextEventStart.toLocaleDateString('sv-SE'))}`}
+                        </span>
+                     )}
+                   </div>
+                   <p className="text-sm font-bold text-[var(--text-primary)] leading-tight line-clamp-2">
+                     {nextEventTitle}
+                   </p>
+                </>
+            )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       {...dragProps} 
       data-haptic={isEditMode ? undefined : 'card'}
       onClick={onClick}
-      className={`touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${className}`}
+      className={`touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
       style={style}
     >
       {getControls && getControls(cardId)}
       
-      {/* Header */}
-      <div className="p-5 pb-2 flex items-center justify-between z-10">
-        <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl bg-blue-500/10 text-blue-400`}>
-                <CalendarIcon className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-medium text-[var(--text-primary)] tracking-tight">
-                {settings?.name || t('calendar.title') || 'Calendar'}
-            </h3>
+        {/* Header */}
+        <div className="p-5 pb-2 flex items-center justify-between z-10">
+          <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl bg-blue-500/10 text-blue-400`}>
+                  <IconComp className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-medium text-[var(--text-primary)] tracking-tight">
+                {displayName}
+              </h3>
+          </div>
         </div>
-      </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-5 pt-0 hide-scrollbar space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         {selectedCalendars.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-60">
-                <CalendarIcon className="w-8 h-8 mb-2" />
+                <IconComp className="w-8 h-8 mb-2" />
                 <p className="text-xs uppercase font-bold tracking-widest">{t('calendar.selectCalendars') || 'Select Calendars'}</p>
             </div>
         ) : error ? (

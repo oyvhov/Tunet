@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   X, Plus, Trash2, Edit2, Eye, EyeOff, GripVertical, Check,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, Activity, Music, Clapperboard, Speaker
 } from '../icons';
 import { getAllIconKeys, getIconComponent } from '../iconMap';
 import ModernDropdown from '../components/ModernDropdown';
@@ -24,6 +24,18 @@ export default function StatusPillsConfigModal({
   const [entitySearch, setEntitySearch] = useState('');
   const [showEntityPicker, setShowEntityPicker] = useState(false);
   const [stateInputValue, setStateInputValue] = useState('');
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const addMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(event.target)) {
+        setShowAddMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (show) {
@@ -37,12 +49,21 @@ export default function StatusPillsConfigModal({
   if (!show) return null;
 
   const handleSave = () => {
-    onSave(pills);
+    const cleaned = pills.map((pill) => ({
+      ...pill,
+      icon: typeof pill.icon === 'string' ? pill.icon : 'Activity',
+      mediaFilter: typeof pill.mediaFilter === 'string' ? pill.mediaFilter : '',
+      mediaFilterMode: typeof pill.mediaFilterMode === 'string' ? pill.mediaFilterMode : 'startsWith',
+      mediaSelectionMode: typeof pill.mediaSelectionMode === 'string' ? pill.mediaSelectionMode : 'filter',
+      mediaEntityIds: Array.isArray(pill.mediaEntityIds) ? pill.mediaEntityIds : [],
+      sessionSensorIds: Array.isArray(pill.sessionSensorIds) ? pill.sessionSensorIds : []
+    }));
+    onSave(cleaned);
     onClose();
   };
 
   const addPill = (pillType = 'conditional') => {
-    const defaultCondition = (pillType === 'media_player' || pillType === 'sonos')
+    const defaultCondition = (pillType === 'media_player' || pillType === 'sonos' || pillType === 'emby')
       ? { type: 'state', states: ['playing'] }
       : { type: 'state', states: ['on'] };
     
@@ -52,7 +73,7 @@ export default function StatusPillsConfigModal({
       entityId: '',
       label: '',
       sublabel: '',
-      icon: 'Activity',
+      icon: pillType === 'emby' ? 'Clapperboard' : 'Activity',
       bgColor: 'rgba(255, 255, 255, 0.03)',
       iconBgColor: 'rgba(59, 130, 246, 0.1)',
       iconColor: 'text-blue-400',
@@ -63,7 +84,12 @@ export default function StatusPillsConfigModal({
       animated: true,
       visible: true,
       showCover: true,
-      showCount: false
+      showCount: false,
+      mediaFilter: '',
+      mediaFilterMode: 'startsWith',
+      mediaSelectionMode: 'filter',
+      mediaEntityIds: [],
+      sessionSensorIds: []
     };
     setPills([...pills, newPill]);
     setEditingPill(newPill.id);
@@ -95,6 +121,7 @@ export default function StatusPillsConfigModal({
   };
 
   const entityOptions = Object.keys(entities).sort();
+  const sessionSensorOptions = entityOptions.filter((id) => Array.isArray(entities[id]?.attributes?.sessions));
   
   const filteredIcons = getAllIconKeys().filter(name =>
     name.toLowerCase().includes(iconSearch.toLowerCase())
@@ -136,14 +163,32 @@ export default function StatusPillsConfigModal({
         <div className="flex-1 overflow-hidden flex">
           {/* Pills List */}
           <div className="w-1/3 border-r border-[var(--glass-border)] p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 relative" ref={addMenuRef}>
               <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Dine Pills</h3>
               <button
-                onClick={addPill}
+                onClick={() => setShowAddMenu(!showAddMenu)}
                 className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                title="Legg til ny pille"
               >
                 <Plus className="w-4 h-4" />
               </button>
+              
+              {showAddMenu && (
+                <div className="absolute top-full right-0 mt-2 w-48 bg-[#1e293b] border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col p-1">
+                  <button onClick={() => { addPill('conditional'); setShowAddMenu(false); }} className="text-left px-4 py-3 hover:bg-white/5 rounded-lg text-sm text-gray-200 font-medium transition-colors flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-blue-400" /> Sensor
+                  </button>
+                  <button onClick={() => { addPill('media_player'); setShowAddMenu(false); }} className="text-left px-4 py-3 hover:bg-white/5 rounded-lg text-sm text-gray-200 font-medium transition-colors flex items-center gap-2">
+                    <Music className="w-4 h-4 text-green-400" /> Media
+                  </button>
+                  <button onClick={() => { addPill('emby'); setShowAddMenu(false); }} className="text-left px-4 py-3 hover:bg-white/5 rounded-lg text-sm text-gray-200 font-medium transition-colors flex items-center gap-2">
+                    <Clapperboard className="w-4 h-4 text-purple-400" /> Emby
+                  </button>
+                  <button onClick={() => { addPill('sonos'); setShowAddMenu(false); }} className="text-left px-4 py-3 hover:bg-white/5 rounded-lg text-sm text-gray-200 font-medium transition-colors flex items-center gap-2">
+                    <Speaker className="w-4 h-4 text-orange-400" /> Sonos
+                  </button>
+                </div>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -166,7 +211,7 @@ export default function StatusPillsConfigModal({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-[var(--text-primary)] truncate">
-                          {pill.label || entity?.attributes?.friendly_name || pill.entityId || 'Ny pille'}
+                          {pill.name || pill.label || entity?.attributes?.friendly_name || pill.entityId || 'Ny pille'}
                         </p>
                       </div>
                     </button>
@@ -229,34 +274,30 @@ export default function StatusPillsConfigModal({
                     <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3">
                       Rediger Pille
                     </h3>
+
+                    {/* Internal Name */}
+                    <div className="mb-4">
+                      <label className="text-[10px] uppercase font-bold text-gray-600 tracking-wider mb-1 block">Navn (i editor)</label>
+                      <input
+                        type="text"
+                        value={pill.name || ''}
+                        onChange={(e) => updatePill(pill.id, { name: e.target.value })}
+                        placeholder="t.d. Stue Media"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0"
+                      />
+                    </div>
                     
-                    {/* Pill Type Selection */}
+                    {/* Pill Type Display (Correction: Type cannot be changed after creation) */}
                     <div className="mb-4">
                       <label className="text-[10px] uppercase font-bold text-gray-600 tracking-wider mb-2 block">Type Pille</label>
-                      <div className="flex gap-2">
-                        {['conditional', 'media_player', 'sonos'].map(type => (
-                          <button
-                            key={type}
-                            onClick={() => {
-                              // Update default condition when changing type
-                              const defaultCondition = (type === 'media_player' || type === 'sonos')
-                                ? { type: 'state', states: ['playing'] }
-                                : { type: 'state', states: ['on'] };
-                              
-                              updatePill(pill.id, { 
-                                type,
-                                condition: defaultCondition
-                              });
-                            }}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                              pill.type === type
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
-                            }`}
-                          >
-                            {type === 'conditional' ? 'Vilkår' : type === 'media_player' ? 'Media' : 'Sonos'}
-                          </button>
-                        ))}
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                         {pill.type === 'conditional' && <Activity className="w-4 h-4" />}
+                         {pill.type === 'media_player' && <Music className="w-4 h-4" />}
+                         {pill.type === 'emby' && <Clapperboard className="w-4 h-4" />}
+                         {pill.type === 'sonos' && <Speaker className="w-4 h-4" />}
+                         <span className="text-xs font-bold uppercase tracking-widest">
+                           {pill.type === 'conditional' ? 'Sensor' : pill.type === 'media_player' ? 'Media' : pill.type === 'emby' ? 'Emby' : 'Sonos'}
+                         </span>
                       </div>
                     </div>
                     
@@ -283,11 +324,144 @@ export default function StatusPillsConfigModal({
                     )}
                   </div>
 
-                  {/* Entity Selection (hidden only for sonos) */}
-                  {pill.type !== 'sonos' && (
+                  {/* Emby selection vs filter */}
+                  {pill.type === 'emby' && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-gray-600 tracking-wider">Emby val</label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => updatePill(pill.id, { mediaSelectionMode: 'select', mediaFilter: '', entityId: '' })}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                            (pill.mediaSelectionMode || 'filter') === 'select'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                          }`}
+                        >
+                          Vel spelarar
+                        </button>
+                        <button
+                          onClick={() => updatePill(pill.id, { mediaSelectionMode: 'filter', mediaEntityIds: [], entityId: '' })}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                            (pill.mediaSelectionMode || 'filter') === 'filter'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                          }`}
+                        >
+                          Filter
+                        </button>
+                      </div>
+                      {(pill.mediaSelectionMode || 'filter') === 'filter' ? (
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Filter (valfri)</label>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <input
+                              type="text"
+                              value={pill.mediaFilter || ''}
+                              onChange={(e) => updatePill(pill.id, { mediaFilter: e.target.value, mediaEntityIds: [], entityId: '' })}
+                              placeholder="media_player_midttunet*, media_player_bibliotek*"
+                              className="md:col-span-2 w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0 text-sm"
+                            />
+                            <select
+                              value={pill.mediaFilterMode || 'startsWith'}
+                              onChange={(e) => updatePill(pill.id, { mediaFilterMode: e.target.value })}
+                              className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0 text-sm font-bold"
+                            >
+                              <option value="startsWith">Startar med</option>
+                              <option value="contains">Inneheld</option>
+                              <option value="regex">Regex</option>
+                            </select>
+                          </div>
+                          <p className="text-[11px] text-[var(--text-muted)]">Bruk komma for fleire mønster. * fungerer som joker.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Vel media-spelarar</label>
+                          <input
+                            type="text"
+                            value={entitySearch}
+                            onChange={(e) => setEntitySearch(e.target.value)}
+                            placeholder="Søk media_player..."
+                            className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0 text-sm"
+                          />
+                          <div className="max-h-48 overflow-y-auto space-y-1 rounded-xl bg-[var(--glass-bg)] p-2">
+                            {entityOptions
+                              .filter(id => id.startsWith('media_player.'))
+                              .filter(id => {
+                                if (!entitySearch) return true;
+                                const search = entitySearch.toLowerCase();
+                                const name = (entities[id]?.attributes?.friendly_name || '').toLowerCase();
+                                return id.toLowerCase().includes(search) || name.includes(search);
+                              })
+                              .map(id => {
+                                const selected = Array.isArray(pill.mediaEntityIds) && pill.mediaEntityIds.includes(id);
+                                return (
+                                  <button
+                                    key={id}
+                                    onClick={() => {
+                                      const current = Array.isArray(pill.mediaEntityIds) ? pill.mediaEntityIds : [];
+                                      const next = current.includes(id)
+                                        ? current.filter(x => x !== id)
+                                        : [...current, id];
+                                      updatePill(pill.id, { mediaEntityIds: next, mediaFilter: '', entityId: '', mediaSelectionMode: 'select' });
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${selected ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                                  >
+                                    <div className="text-sm font-bold truncate">
+                                      {entities[id]?.attributes?.friendly_name || id}
+                                    </div>
+                                    <div className="text-xs opacity-60">{id}</div>
+                                  </button>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-[11px] text-[var(--text-muted)]">Vel anten spelarar eller filter.</p>
+                      <div className="space-y-2 pt-2 border-t border-[var(--glass-border)]">
+                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Sessions‑sensorar (valfri)</label>
+                        <div className="max-h-40 overflow-y-auto space-y-1 rounded-xl bg-[var(--glass-bg)] p-2">
+                          {sessionSensorOptions
+                            .filter((id) => {
+                              if (!entitySearch) return true;
+                              const search = entitySearch.toLowerCase();
+                              const name = (entities[id]?.attributes?.friendly_name || '').toLowerCase();
+                              return id.toLowerCase().includes(search) || name.includes(search);
+                            })
+                            .map((id) => {
+                              const selected = Array.isArray(pill.sessionSensorIds) && pill.sessionSensorIds.includes(id);
+                              return (
+                                <button
+                                  key={id}
+                                  onClick={() => {
+                                    const current = Array.isArray(pill.sessionSensorIds) ? pill.sessionSensorIds : [];
+                                    const next = current.includes(id)
+                                      ? current.filter((x) => x !== id)
+                                      : [...current, id];
+                                    updatePill(pill.id, { sessionSensorIds: next });
+                                  }}
+                                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${selected ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                                >
+                                  <div className="text-sm font-bold truncate">
+                                    {entities[id]?.attributes?.friendly_name || id}
+                                  </div>
+                                  <div className="text-xs opacity-60">{id}</div>
+                                </button>
+                              );
+                            })}
+                          {sessionSensorOptions.length === 0 && (
+                            <p className="text-xs text-[var(--text-muted)] text-center py-3">Ingen sessions‑sensorar funne</p>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-[var(--text-muted)]">Bruk sensorar med attributt <strong>sessions</strong>.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Entity Selection (hidden only for sonos/emby) */}
+                  {pill.type !== 'sonos' && pill.type !== 'emby' && (
                   <div className="space-y-1">
                     <label className="text-[10px] uppercase font-bold text-gray-600 tracking-wider">
-                      {pill.type === 'media_player' ? 'Media Spelar' : 'Entitet'}
+                      {pill.type === 'media_player' || pill.type === 'emby' ? 'Media Spelar' : 'Entitet'}
                     </label>
                     <div className="relative">
                       <input
@@ -323,7 +497,7 @@ export default function StatusPillsConfigModal({
                             {entityOptions
                               .filter(id => {
                                 // Filter by entity type
-                                if (pill.type === 'media_player' && !id.startsWith('media_player.')) return false;
+                                if ((pill.type === 'media_player' || pill.type === 'emby') && !id.startsWith('media_player.')) return false;
                                 // Filter by search term
                                 if (!entitySearch) return true;
                                 const search = entitySearch.toLowerCase();
@@ -373,14 +547,13 @@ export default function StatusPillsConfigModal({
                   </div>
                   )}
 
-                  {/* Labels (only for conditional pills) */}
-                  {pill.type === 'conditional' && (
+                  {/* Labels (available for all types) */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase font-bold text-gray-600 tracking-wider">Label</label>
                       <input
                         type="text"
-                        value={pill.label}
+                        value={pill.label || ''}
                         onChange={(e) => updatePill(pill.id, { label: e.target.value })}
                         placeholder="Automatisk"
                         className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0"
@@ -390,14 +563,13 @@ export default function StatusPillsConfigModal({
                       <label className="text-[10px] uppercase font-bold text-gray-600 tracking-wider">Sublabel</label>
                       <input
                         type="text"
-                        value={pill.sublabel}
+                        value={pill.sublabel || ''}
                         onChange={(e) => updatePill(pill.id, { sublabel: e.target.value })}
                         placeholder="Automatisk"
                         className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0"
                       />
                     </div>
                   </div>
-                  )}
 
                   {/* Icon (only for conditional pills) */}
                   {pill.type === 'conditional' && (
@@ -609,9 +781,36 @@ export default function StatusPillsConfigModal({
                   </div>
 
                   {/* Media Player Options */}
-                  {pill.type === 'media_player' && (
+                  {(pill.type === 'media_player' || pill.type === 'emby') && (
                     <div className="space-y-2 pt-2 border-t border-[var(--glass-border)]">
-                      <label className="text-[10px] uppercase font-bold text-gray-600 tracking-wider">Media Val</label>
+                      <label className="text-[10px] uppercase font-bold text-gray-600 tracking-wider">{pill.type === 'emby' ? 'Emby Val' : 'Media Val'}</label>
+                      {pill.type === 'media_player' && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Filter (valfri)</label>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <input
+                              type="text"
+                              value={pill.mediaFilter || ''}
+                              onChange={(e) => updatePill(pill.id, { mediaFilter: e.target.value })}
+                              placeholder="media_player_midttunet*, media_player_bibliotek*"
+                              className="md:col-span-2 w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0 text-sm"
+                            />
+                            <select
+                              value={pill.mediaFilterMode || 'startsWith'}
+                              onChange={(e) => updatePill(pill.id, { mediaFilterMode: e.target.value })}
+                              className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0 text-sm font-bold"
+                            >
+                              <option value="startsWith">Startar med</option>
+                              <option value="contains">Inneheld</option>
+                              <option value="regex">Regex</option>
+                            </select>
+                          </div>
+                          <p className="text-[11px] text-[var(--text-muted)]">Bruk komma for fleire mønster. * fungerer som joker.</p>
+                          {pill.entityId && (
+                            <p className="text-[11px] text-[var(--text-muted)]">Filter blir ignorert når ein spesifikk entitet er vald.</p>
+                          )}
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => updatePill(pill.id, { showCover: !(pill.showCover !== false) })}

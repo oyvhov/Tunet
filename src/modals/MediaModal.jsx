@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   X,
   Music,
@@ -18,6 +19,20 @@ import {
 } from '../icons';
 import M3Slider from '../components/M3Slider';
 
+const readJSON = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+};
+
+const writeJSON = (key, value) => {
+  localStorage.setItem(key, JSON.stringify(value));
+};
+
 /**
  * MediaModal - Unified media/sonos modal
  *
@@ -26,6 +41,8 @@ import M3Slider from '../components/M3Slider';
  * @param {Function} props.onClose - Close handler
  * @param {string|null} props.activeMediaModal - 'media' | 'sonos'
  * @param {string|null} props.activeMediaGroupKey - Group settings key
+ * @param {string[]|null} props.activeMediaGroupIds - Optional media ids override
+ * @param {string[]|null} props.activeMediaSessionSensorIds - Optional session sensor ids override
  * @param {string|null} props.activeMediaId - Active media player id
  * @param {Function} props.setActiveMediaId - Update active media id
  * @param {Object} props.entities - HA entities
@@ -40,16 +57,14 @@ import M3Slider from '../components/M3Slider';
  * @param {Function} props.t - Translation function
  * @param {Function} props.formatDuration - Format seconds to duration
  * @param {Function} props.getServerInfo - Media server metadata
- * @param {React.Component} props.EmbyLogo - Emby icon
- * @param {React.Component} props.JellyfinLogo - Jellyfin icon
- * @param {string[]} props.SONOS_IDS - Sonos media player ids
- * @param {string} props.BIBLIOTEK_SESSIONS_ID - Session sensor id
  */
 export default function MediaModal({
   show,
   onClose,
   activeMediaModal,
   activeMediaGroupKey,
+  activeMediaGroupIds,
+  activeMediaSessionSensorIds,
   activeMediaId,
   setActiveMediaId,
   entities,
@@ -63,31 +78,55 @@ export default function MediaModal({
   isSonosActive,
   t,
   formatDuration,
-  getServerInfo,
-  EmbyLogo,
-  JellyfinLogo,
-  SONOS_IDS,
-  BIBLIOTEK_SESSIONS_ID
+  getServerInfo
 }) {
   if (!show) return null;
+
+  const [sessionSensorIds, setSessionSensorIds] = useState(() => readJSON('tunet_media_session_sensors', []));
+  useEffect(() => {
+    if (Array.isArray(activeMediaSessionSensorIds)) {
+      setSessionSensorIds(activeMediaSessionSensorIds);
+      writeJSON('tunet_media_session_sensors', activeMediaSessionSensorIds);
+    }
+  }, [activeMediaSessionSensorIds]);
+
+  useEffect(() => {
+    writeJSON('tunet_media_session_sensors', sessionSensorIds);
+  }, [sessionSensorIds]);
+
+  const isSonosEntity = (entity) => {
+    if (!entity) return false;
+    const id = entity.entity_id || '';
+    const name = (entity.attributes?.friendly_name || '').toLowerCase();
+    const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
+    const platform = (entity.attributes?.platform || '').toLowerCase();
+    return id.includes('sonos') || name.includes('sonos') || manufacturer.includes('sonos') || platform.includes('sonos');
+  };
+
+  const sonosIds = Object.keys(entities)
+    .filter(id => id.startsWith('media_player.'))
+    .filter(id => isSonosEntity(entities[id]));
 
   const isSonos = activeMediaModal === 'sonos';
   const allMediaIds = Object.keys(entities).filter(id => id.startsWith('media_player.'));
   const fallbackId = allMediaIds.map(id => entities[id]).find(isMediaActive)?.entity_id;
   const groupSettings = activeMediaGroupKey ? cardSettings[activeMediaGroupKey] : null;
-  const embyIds = Object.keys(entities).filter(id => id.startsWith('media_player.bibliotek') || id.startsWith('media_player.midttunet'));
-  const isEmbyGroup = !isSonos && activeMediaGroupKey === '__emby__';
-  const groupIds = isEmbyGroup
-    ? embyIds
+  const groupIds = Array.isArray(activeMediaGroupIds) && activeMediaGroupIds.length > 0
+    ? activeMediaGroupIds
     : (Array.isArray(groupSettings?.mediaIds) ? groupSettings.mediaIds : []);
-  const mediaIds = isSonos ? SONOS_IDS : (groupIds.length > 0 ? groupIds : (activeMediaId ? [activeMediaId] : (fallbackId ? [fallbackId] : [])));
+  const mediaIds = isSonos ? sonosIds : (groupIds.length > 0 ? groupIds : (activeMediaId ? [activeMediaId] : (fallbackId ? [fallbackId] : [])));
   const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
-  const isAllSonos = !isSonos && mediaEntities.length > 0 && mediaEntities.every(p => p.entity_id.startsWith('media_player.sonos'));
-  const isGenericMedia = !isSonos && !isEmbyGroup;
+  const isAllSonos = !activeMediaGroupIds && !isSonos && mediaEntities.length > 0 && mediaEntities.every(p => p.entity_id.startsWith('media_player.sonos'));
+  const isGenericMedia = !isSonos;
   const treatAsSonos = isSonos || isAllSonos;
 
+  const sessions = sessionSensorIds
+    .map((id) => getA(id, 'sessions', []))
+    .filter((arr) => Array.isArray(arr))
+    .flat();
+
   const listPlayers = mediaEntities
-    .filter((p) => (isEmbyGroup ? isMediaActive(p) : true))
+    .filter((entity) => ['playing', 'paused'].includes(entity?.state))
     .slice()
     .sort((a, b) => {
       const aActive = treatAsSonos ? isSonosActive(a) : isMediaActive(a);
@@ -116,19 +155,11 @@ export default function MediaModal({
 
   const mpId = currentMp.entity_id;
   const mpState = currentMp.state;
-  const isLydplanke = mpId === 'media_player.sonos_lydplanke';
-  const isTV = isLydplanke && (currentMp.attributes?.source === 'TV' || currentMp.attributes?.media_title === 'TV');
   const contentType = getA(mpId, 'media_content_type');
-  const isChannel = contentType === 'channel' || isTV;
+  const isChannel = contentType === 'channel';
   const isPlaying = mpState === 'playing';
 
   let mpTitle = getA(mpId, 'media_title');
-  if (isTV) mpTitle = t('media.tvAudio');
-
-  const sessions = getA(BIBLIOTEK_SESSIONS_ID, 'sessions', []);
-  const mpFriendlyName = getA(mpId, 'friendly_name', '');
-  const activeSession = Array.isArray(sessions) ? sessions.find(s => s.device_name && mpFriendlyName.toLowerCase().includes(s.device_name.toLowerCase())) : null;
-  const activeUser = activeSession?.user_name;
 
   let mpSeries = getA(mpId, 'media_series_title');
   if (contentType === 'episode') {
@@ -137,18 +168,27 @@ export default function MediaModal({
     else if (!mpSeries && season) mpSeries = season;
   }
   if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
-  if (isTV) mpSeries = t('media.livingRoom');
 
   const mpApp = getA(mpId, 'app_name');
-  const mpPicture = !isTV ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
+  const mpPicture = getEntityImageUrl(currentMp.attributes?.entity_picture);
+  const activeUser = (() => {
+    const match = Array.isArray(sessions)
+      ? sessions.find((entry) => {
+          const device = entry?.device_name || '';
+          const name = currentMp?.attributes?.friendly_name || '';
+          if (!device || !name) return false;
+          return name.toLowerCase().includes(device.toLowerCase());
+        })
+      : null;
+    return match?.user_name || '';
+  })();
   const duration = getA(mpId, 'media_duration');
   const position = getA(mpId, 'media_position');
   const positionUpdatedAt = getA(mpId, 'media_position_updated_at');
   const serverInfo = getServerInfo(mpId);
-  const isMidttunet = mpId.includes('midttunet');
-  const serverLabel = isGenericMedia ? t('addCard.type.media') : (isMidttunet ? 'Jellyfin' : 'Emby');
-  const ServerBadgeIcon = isGenericMedia ? Music : (isMidttunet ? JellyfinLogo : EmbyLogo);
-  const groupCardId = (!isEmbyGroup && activeMediaGroupKey && activeMediaGroupKey.includes('::'))
+  const serverLabel = isGenericMedia ? (serverInfo.name || t('addCard.type.media')) : 'SONOS';
+  const ServerBadgeIcon = isGenericMedia ? (serverInfo.icon || Music) : Music;
+  const groupCardId = (activeMediaGroupKey && activeMediaGroupKey.includes('::'))
     ? activeMediaGroupKey.split('::').slice(1).join('::')
     : null;
   const popupHeading = (isGenericMedia && groupCardId && customNames[groupCardId])
@@ -179,25 +219,21 @@ export default function MediaModal({
           {!treatAsSonos && (
             <h3 className="text-sm font-bold uppercase tracking-[0.25em] text-gray-500 mb-4">{popupHeading}</h3>
           )}
-          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start mb-8 ${treatAsSonos ? 'bg-[var(--glass-bg)] border-[var(--glass-border)]' : (isGenericMedia ? 'bg-blue-500/10 border-blue-500/20' : (serverInfo.bg + ' ' + serverInfo.border))}`}>
-            {treatAsSonos ? <Music className="w-4 h-4 text-[var(--text-primary)]" /> : <ServerBadgeIcon className={`w-4 h-4 ${isGenericMedia ? 'text-blue-400' : serverInfo.color}`} />}
-            <span className={`text-xs font-bold uppercase tracking-widest ${treatAsSonos ? 'text-[var(--text-primary)]' : (isGenericMedia ? 'text-blue-400' : serverInfo.color)}`}>{treatAsSonos ? 'SONOS' : serverLabel}</span>
+          <div className="flex flex-col gap-2 mb-8">
+            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border self-start ${treatAsSonos ? 'bg-[var(--glass-bg)] border-[var(--glass-border)]' : (serverInfo.bg + ' ' + serverInfo.border)} `}>
+              {treatAsSonos ? <Music className="w-4 h-4 text-[var(--text-primary)]" /> : <ServerBadgeIcon className={`w-4 h-4 ${serverInfo.color}`} />}
+              <span className={`text-xs font-bold uppercase tracking-widest ${treatAsSonos ? 'text-[var(--text-primary)]' : serverInfo.color}`}>{treatAsSonos ? 'SONOS' : serverLabel}</span>
+            </div>
           </div>
 
           <div className="flex flex-col gap-6">
-            <div className={`${(isSonos || isGenericMedia) ? 'h-64 w-64 mx-auto' : 'aspect-video w-full'} rounded-3xl overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--glass-bg)] relative group`}>
+            <div className="aspect-[16/9] w-full rounded-3xl overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--glass-bg)] relative group">
               {mpPicture ? <img src={mpPicture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
               <div className="absolute bottom-0 left-0 w-full p-8">
-                {activeUser ? (
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm font-bold uppercase tracking-widest text-blue-400 truncate">{activeUser}</p>
-                    <span className="text-white/40 text-xs">•</span>
-                    <p className="text-sm font-bold uppercase tracking-widest text-gray-400 truncate">{mpApp || 'Media'}</p>
-                  </div>
-                ) : (
-                  <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-2">{mpApp || 'Media'}</p>
-                )}
+                <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-2">
+                  {activeUser ? `${activeUser} - ${currentMp.attributes?.friendly_name || mpId}` : (currentMp.attributes?.friendly_name || mpId)}
+                </p>
                 <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || t('common.unknown')}</h2>
                 <p className="text-xl text-gray-300 font-medium">{mpSeries}</p>
               </div>
@@ -256,7 +292,7 @@ export default function MediaModal({
 
         <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-[var(--glass-border)] pt-6 md:pt-24 pl-0 md:pl-12 flex flex-col gap-6 overflow-y-auto">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{(isSonos || isAllSonos) ? t('media.group.sonosPlayers') : (isEmbyGroup ? t('media.group.activePlayers') : t('media.group.selectedPlayers'))}</h3>
+            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-500">{(isSonos || isAllSonos) ? t('media.group.sonosPlayers') : t('media.group.selectedPlayers')}</h3>
             {canGroup && listPlayers.length > 1 && (
               <button
                 onClick={() => {
@@ -297,7 +333,7 @@ export default function MediaModal({
                       {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
                     </div>
                     <div className="overflow-hidden">
-                      <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{(p.attributes.friendly_name || '').replace(/^(Midttunet|Bibliotek|Sonos)\s*/i, '')}</p>
+                      <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{p.attributes.friendly_name || p.entity_id}</p>
                       <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
                       {pUser && <p className="text-[10px] text-gray-500 truncate">{pUser}</p>}
                     </div>

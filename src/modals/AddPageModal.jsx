@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import IconPicker from '../components/IconPicker';
 
-export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon, onCreate, onCreateSonos }) {
+export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon, onCreate, onCreateMedia }) {
   if (!isOpen) return null;
   const [activeTab, setActiveTab] = useState('standard');
 
@@ -29,8 +29,8 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('sonos')}
-            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'sonos' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+            onClick={() => setActiveTab('media')}
+            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'media' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
           >
             {t('addCard.type.sonos')}
           </button>
@@ -76,7 +76,7 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
                 <p className="leading-relaxed">{t('sonos.createDescription')}</p>
               </div>
               <button
-                onClick={onCreateSonos}
+                onClick={onCreateMedia}
                 className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" /> {t('sonos.createPage')}

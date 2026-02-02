@@ -36,7 +36,7 @@ export function NRKLogo(props) {
 export function getServerInfo(id) {
   if (!id || typeof id !== 'string') return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
   if (id.includes('nrk')) return { name: 'NRK', icon: NRKLogo, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' };
-  if (id.includes('tunet')) return { name: 'Jellyfin', icon: JellyfinLogo, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
-  if (id.includes('bibliotek')) return { name: 'Emby', icon: EmbyLogo, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' };
+  if (id.includes('jellyfin')) return { name: 'Jellyfin', icon: JellyfinLogo, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' };
+  if (id.includes('emby')) return { name: 'Emby', icon: EmbyLogo, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' };
   return { name: 'Media', icon: HardDrive, color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' };
 }

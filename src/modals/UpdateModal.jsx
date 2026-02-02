@@ -73,13 +73,16 @@ export default function UpdateModal({
             const inProgress = attr.in_progress;
             const isExpanded = expandedUpdate === id;
             
+            const installedVersion = attr.installed_version || attr.current_version;
+            const latestVersion = attr.latest_version;
+            
             return (
               <div 
                 key={id} 
                 className="rounded-3xl overflow-hidden transition-all duration-300 popup-surface"
               >
                 <div 
-                  className="p-4 flex flex-col md:flex-row items-center gap-4 cursor-pointer"
+                  className="p-4 flex flex-col md:flex-row items-center gap-4 cursor-pointer group"
                   onClick={() => {
                     if (isExpanded) {
                       setExpandedUpdate(null);
@@ -89,26 +92,34 @@ export default function UpdateModal({
                     }
                   }}
                 >
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0">
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/5 flex-shrink-0 flex items-center justify-center p-2 border border-white/5">
                     {picture ? (
-                      <img src={picture} alt="" className="w-full h-full object-cover" />
+                      <img src={picture} alt="" className="w-full h-full object-contain" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <RefreshCw className="w-6 h-6 text-[var(--text-secondary)]" />
-                      </div>
+                      <RefreshCw className="w-6 h-6 text-[var(--text-secondary)] opacity-50" />
                     )}
                   </div>
-                  <div className="flex-grow text-center md:text-left">
-                    <h4 className="text-base font-bold text-[var(--text-primary)]">
+                  <div className="flex-grow text-center md:text-left min-w-0">
+                    <h4 className="text-base font-bold text-[var(--text-primary)] truncate pr-2">
                       {attr.title || attr.friendly_name}
                     </h4>
-                    <div className="flex items-center justify-center md:justify-start gap-2 mt-0.5 text-xs">
-                      <span className="text-[var(--text-secondary)]">{attr.installed_version}</span>
-                      <ArrowRight className="w-3 h-3 text-[var(--text-muted)]" />
-                      <span className="text-green-400 font-bold">{attr.latest_version}</span>
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-1.5 text-xs">
+                      {installedVersion && (
+                        <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
+                          <span className="opacity-50 text-[10px] uppercase tracking-wider font-bold">Fra</span>
+                          <span className="font-mono bg-[var(--glass-bg)] px-1.5 py-0.5 rounded border border-[var(--glass-border)] opacity-80">{installedVersion}</span>
+                        </div>
+                      )}
+                      
+                      {installedVersion && <ArrowRight className="w-3 h-3 text-[var(--text-muted)] opacity-30" />}
+                      
+                      <div className="flex items-center gap-1.5 text-green-400">
+                         {installedVersion && <span className="opacity-50 text-[10px] uppercase tracking-wider font-bold">Til</span>}
+                         <span className="font-mono bg-green-500/10 px-1.5 py-0.5 rounded border border-green-500/20 font-bold">{latestVersion}</span>
+                      </div>
                     </div>
                     {!isExpanded && attr.release_summary && (
-                      <p className="text-[10px] text-[var(--text-muted)] mt-1 line-clamp-1">
+                      <p className="text-[10px] text-[var(--text-muted)] mt-1.5 line-clamp-1 opacity-60">
                         {attr.release_summary}
                       </p>
                     )}

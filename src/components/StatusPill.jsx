@@ -19,7 +19,8 @@ export default function StatusPill({
   t,
   getA,
   getEntityImageUrl,
-  isMediaActive
+  isMediaActive,
+  badge
 }) {
   if (!pill) return null;
   
@@ -62,8 +63,8 @@ export default function StatusPill({
     }
   };
   
-  // Handle media_player type differently
-  if (pill.type === 'media_player') {
+  // Handle media_player / emby / sonos type differently
+  if (pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos') {
     // entity should be an array of media player entities
     const mediaEntities = Array.isArray(entity) ? entity : (entity ? [entity] : []);
     const activeEntities = mediaEntities.filter(e => isMediaActive && isMediaActive(e));
@@ -91,9 +92,17 @@ export default function StatusPill({
     const picture = pill.showCover !== false && firstActive ? getEntityImageUrl(firstActive.attributes?.entity_picture) : null;
     const isPlaying = firstActive?.state === 'playing';
     
-    // Use media info directly, ignore pill.label/sublabel
-    const label = pill.showCount && count > 1 ? `${count} ${t('addCard.players')}` : (title || 'Media');
-    const sublabel = pill.showCount && count > 1 ? title : artist;
+    // Use pill.label if set, otherwise auto-generated
+    const autoLabel = pill.type === 'emby'
+      ? `${count} Spelar`
+      : (pill.showCount && count > 1 ? `${count} ${t('addCard.players')}` : (title || 'Media'));
+    
+    const autoSublabel = pill.type === 'emby'
+      ? (title || artist)
+      : (pill.showCount && count > 1 ? title : artist);
+
+    const label = pill.label || autoLabel;
+    const sublabel = pill.sublabel || autoSublabel;
     
     const IconComponent = pill.icon ? (getIconComponent(pill.icon) || Clapperboard) : Clapperboard;
     const bgColor = pill.bgColor || 'rgba(255, 255, 255, 0.03)';
@@ -107,17 +116,17 @@ export default function StatusPill({
     const Wrapper = pill.clickable && onClick ? 'button' : 'div';
     const wrapperProps = pill.clickable && onClick ? {
       onClick,
-      className: `flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95`,
+      className: `relative flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95`,
       style: { backgroundColor: bgColor }
     } : {
-      className: `flex items-center gap-2.5 px-3 py-1.5 rounded-2xl`,
+      className: `relative flex items-center gap-2.5 px-3 py-1.5 rounded-2xl`,
       style: { backgroundColor: bgColor }
     };
 
     return (
       <Wrapper {...wrapperProps}>
         {picture && pill.showCover !== false ? (
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--glass-bg)] relative flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl overflow-hidden bg-[var(--glass-bg)] relative flex-shrink-0">
             <img 
               src={picture} 
               alt="" 
@@ -140,6 +149,11 @@ export default function StatusPill({
             </span>
           )}
         </div>
+        {badge > 0 && (
+          <div className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1.5 bg-gray-600 text-white text-xs font-bold rounded-full flex items-center justify-center border border-[var(--bg-primary)] shadow-sm z-10">
+            {badge}
+          </div>
+        )}
       </Wrapper>
     );
   }
