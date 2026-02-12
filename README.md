@@ -2,7 +2,6 @@
 
 A modern React dashboard for home automation and energy monitoring with Home Assistant integration.
 
-> 💡 **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines
 
 ## Features
 
