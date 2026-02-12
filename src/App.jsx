@@ -1161,6 +1161,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
            settings={cardSettings[settingsKey] || cardSettings[cardId] || {}}
            conn={conn}
            t={t}
+           locale={language === 'en' ? 'en-US' : 'nb-NO'}
            dragProps={dragProps}
            getControls={getControls}
            isEditMode={editMode}

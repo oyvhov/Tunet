@@ -39,6 +39,7 @@ function CalendarCard({
   settings, 
   conn, 
   t, 
+  locale = 'nb-NO',
   className,
   style,
   dragProps,
@@ -173,24 +174,30 @@ function CalendarCard({
   }, [events]);
 
   const formatDateHeader = (dateStr) => {
-    const date = new Date(dateStr);
+    // dateStr is YYYY-MM-DD from sv-SE locale (local time)
+    // Create date as local time components to avoid UTC shift issues
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d); // Local time 00:00:00
+    
     const today = new Date();
-    const tomorrow = new Date();
+    today.setHours(0,0,0,0);
+    
+    const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    if (date.toDateString() === today.toDateString()) return t('calendar.today') || 'Today';
-    if (date.toDateString() === tomorrow.toDateString()) return t('calendar.tomorrow') || 'Tomorrow';
+    if (date.getTime() === today.getTime()) return t('calendar.today') || 'Today';
+    if (date.getTime() === tomorrow.getTime()) return t('calendar.tomorrow') || 'Tomorrow';
     
     // Format: "Monday 26. Jan"
-    return date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
+    return date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' });
   };
 
   const formatEventTime = (date) => {
     if (!date || Number.isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString('nb-NO', { 
+    return date.toLocaleTimeString(locale, { 
       hour: '2-digit', 
       minute: '2-digit', 
-      hour12: false 
+      hour12: locale === 'en-US' 
     });
   };
 
