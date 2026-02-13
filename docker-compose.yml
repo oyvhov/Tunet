@@ -2,13 +2,13 @@ services:
   app:
     build: .
     ports:
-      - "5173:5173"
+      - "5173:80"
     container_name: tunet-dashboard
     restart: unless-stopped
     environment:
       - NODE_ENV=production
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
