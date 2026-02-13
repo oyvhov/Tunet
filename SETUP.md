@@ -6,10 +6,10 @@
 
 | Requirement | Version |
 |---|---|
-| Node.js | 18+ |
+| Node.js | 20+ |
 | npm | 9+ |
 | Docker (optional) | 20+ |
-| Home Assistant | Any recent version with long-lived access tokens |
+| Home Assistant | Any recent version |
 
 ## Project Structure
 
@@ -17,104 +17,93 @@
 tunet/
 ├── src/
 │   ├── App.jsx              # Main dashboard component
-│   ├── main.jsx             # React entry point + error boundary
-│   ├── components/          # UI cards & widgets (30+ components)
-│   ├── modals/              # All dialog modals (20+ modals)
+│   ├── main.jsx             # React entry point
+│   ├── components/          # cards/, charts/, effects/, pages/, sidebars/, ui/
+│   ├── modals/              # All dialog modals
 │   ├── contexts/            # React contexts (Config, HA, Pages)
-│   ├── hooks/               # Custom hooks (modals, theme, energy, history)
-│   ├── services/            # Home Assistant WebSocket client + actions
+│   ├── hooks/               # Custom hooks (profiles, theme, energy, etc.)
+│   ├── services/            # HA WebSocket client, profile API, snapshots
+│   ├── rendering/           # Card renderer dispatch + ModalOrchestrator
 │   ├── i18n/                # Translations (en, nn)
-│   ├── layouts/             # Header, StatusBar
-│   ├── constants.js         # Timing & layout constants
-│   ├── cardUtils.js         # Card visibility & removal logic
-│   ├── gridLayout.js        # Grid layout algorithm
-│   ├── themes.js            # Theme definitions
-│   ├── icons.js             # Icon re-exports
-│   ├── iconMap.js           # MDI icon mapping
-│   ├── utils.js             # Shared utilities
-│   └── dashboard.css        # Dashboard-specific styles
-├── public/                  # Static assets & screenshots
-├── index.html               # HTML entry point
-├── package.json             # Dependencies & scripts
-├── vite.config.js           # Vite build config
-├── tailwind.config.js       # Tailwind CSS config
-├── eslint.config.js         # ESLint flat config
+│   ├── layouts/             # Header, StatusBar, EditToolbar
+│   ├── config/              # Constants, defaults, themes, onboarding
+│   ├── icons/               # Icon barrel exports + iconMap
+│   ├── utils/               # Formatting, grid layout, drag-and-drop
+│   └── styles/              # CSS (index, dashboard, animations)
+├── server/
+│   ├── index.js             # Express server (API + static files)
+│   ├── db.js                # SQLite setup (profiles table)
+│   └── routes/profiles.js   # Profiles CRUD API
 ├── Dockerfile               # Multi-stage Docker build
 ├── docker-compose.yml       # Docker Compose config
-├── .prettierrc              # Code formatting
-└── .editorconfig            # Editor settings
+└── vite.config.js           # Vite + dev proxy config
 ```
 
 ## Local Development
 
 ```bash
-# Install dependencies
 npm install
 
-# Start dev server at http://localhost:5173
-npm run dev
+# Start frontend + backend together
+npm run dev:all
 
-# Lint code
-npm run lint
-
-# Production build
-npm run build
-
-# Preview production build
-npm run preview
+# Or run separately:
+npm run dev          # Vite frontend on :5173
+npm run dev:server   # Express backend on :3002
 ```
+
+The Vite dev server proxies `/api` requests to the backend automatically.
 
 ## Docker
 
-### Using Docker Compose (recommended)
+### Docker Compose (recommended)
 
 ```bash
 docker-compose up -d
 ```
 
-Access at `http://localhost:5173`.
+Access at `http://localhost:5173`. Profile data is persisted in a Docker volume (`tunet-data`).
 
-### Using Docker directly
+### Docker directly
 
 ```bash
 docker build -t tunet-dashboard .
-docker run -d -p 5173:5173 --name tunet-dashboard tunet-dashboard
+docker run -d -p 5173:80 -v tunet-data:/app/data --name tunet-dashboard tunet-dashboard
 ```
 
-### Common Docker commands
+### Useful commands
 
 ```bash
-docker logs tunet-dashboard      # View logs
-docker stop tunet-dashboard      # Stop
-docker start tunet-dashboard     # Start
-docker rm tunet-dashboard        # Remove container
+docker logs tunet-dashboard       # View logs
+docker stop tunet-dashboard       # Stop
+docker start tunet-dashboard      # Start
+docker rm tunet-dashboard         # Remove container
 ```
 
 ## Configuration
 
 1. Open the dashboard in your browser
-2. Go to **Settings** (gear icon)
-3. Enter your Home Assistant URL (e.g. `https://homeassistant.local:8123`)
-4. Enter a **long-lived access token** (create one in HA → Profile → Security)
-5. Click **Test Connection** to verify
+2. Click the **gear icon** to open System settings
+3. Choose **OAuth2** (recommended) or **Token** authentication
+4. Enter your Home Assistant URL (e.g. `https://homeassistant.local:8123`)
+5. For token mode: paste a long-lived access token (HA → Profile → Security)
 
-All configuration is stored in `localStorage` — no server-side database needed.
+Dashboard layout is stored in `localStorage`. Profiles are stored server-side in SQLite.
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `80` (Docker) / `3002` (dev) | Backend server port |
+| `DATA_DIR` | `/app/data` | SQLite database directory |
+| `NODE_ENV` | `production` | Environment mode |
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---|---|
-| Port 5173 in use | Change the port in `docker-compose.yml`: `"5174:5173"` |
-| Build fails | Clear cache: `docker system prune -a` then rebuild |
-| Connection error | Verify HA URL and token. Check CORS settings if using external access. |
-| Docker daemon not running | Start Docker Desktop and wait for status indicator |
-
-## Environment Variables
-
-You can add environment variables in `docker-compose.yml`:
-
-```yaml
-environment:
-  - NODE_ENV=production
-```
+| Port in use | Change the port mapping in `docker-compose.yml` |
+| Build fails | `docker system prune -a` then rebuild |
+| Connection error | Check HA URL and token. Verify CORS if using external access |
+| Profiles not saving | Check that the backend is running (`/api/health`) |
 
