@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import ModernDropdown from '../components/ModernDropdown';
 import M3Slider from '../components/M3Slider';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
+import { hasOAuthTokens } from '../services/oauthStorage';
 import {
   X,
   Check,
@@ -46,6 +47,15 @@ const EyeIcon = (props) => (
 const ImageIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
 );
+const LogInIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+);
+const LogOutIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+);
+const KeyIcon = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+);
 
 export default function ConfigModal({
   open,
@@ -70,6 +80,8 @@ export default function ConfigModal({
   validateUrl,
   testConnection,
   testingConnection,
+  startOAuthLogin,
+  handleOAuthLogout,
   themes,
   currentTheme,
   setCurrentTheme,
@@ -158,9 +170,93 @@ export default function ConfigModal({
     }
   };
 
+  // ─── Auth Method Toggle (shared between connection tab & onboarding) ───
+  const authMethod = config.authMethod || 'oauth';
+  const isOAuth = authMethod === 'oauth';
+
+  const renderAuthMethodToggle = (showRecommended = false) => (
+    <div className="space-y-2">
+      <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.authMethod')}</label>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => { setConfig({ ...config, authMethod: 'oauth' }); setConnectionTestResult(null); }}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all relative ${isOAuth ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+        >
+          <LogInIcon className="w-3.5 h-3.5" />
+          OAuth2
+          {showRecommended && (
+            <span className="absolute -top-2 -right-1 text-[8px] font-bold uppercase tracking-wider bg-green-500 text-white px-1.5 py-0.5 rounded-full shadow-sm">{t('onboarding.recommended')}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setConfig({ ...config, authMethod: 'token' }); setConnectionTestResult(null); }}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${!isOAuth ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+        >
+          <KeyIcon className="w-3.5 h-3.5" />
+          Token
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderOAuthSection = () => {
+    const oauthActive = hasOAuthTokens() && connected;
+    const oauthConnecting = hasOAuthTokens() && !connected;
+    return (
+      <div className="space-y-4">
+        {oauthConnecting ? (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span className="font-bold text-sm">{t('system.oauth.connecting')}</span>
+          </div>
+        ) : oauthActive ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20">
+              <Check className="w-4 h-4" />
+              <span className="font-bold text-sm">{t('system.oauth.authenticated')}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleOAuthLogout}
+              className="w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
+            >
+              <LogOutIcon className="w-4 h-4" />
+              {t('system.oauth.logoutButton')}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={startOAuthLogin}
+            disabled={!config.url || !validateUrl(config.url)}
+            className={`w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-lg transition-all ${!config.url || !validateUrl(config.url) ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'}`}
+          >
+            <LogInIcon className="w-5 h-5" />
+            {t('system.oauth.loginButton')}
+          </button>
+        )}
+        {!config.url && (
+          <p className="text-xs text-[var(--text-muted)] ml-1">{t('system.oauth.urlRequired')}</p>
+        )}
+        {connectionTestResult && !connectionTestResult.success && isOAuth && (
+          <div className="p-3 rounded-xl flex items-center gap-2 bg-red-500/20 text-red-400 border border-red-500/30 animate-in fade-in slide-in-from-bottom-2">
+            <X className="w-4 h-4 flex-shrink-0" />
+            <span className="font-bold text-sm">{connectionTestResult.message}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ─── Connection Tab ───
   const renderConnectionTab = () => (
     <div className="space-y-6 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* Auth Method Toggle */}
+      {renderAuthMethodToggle()}
+
+      {/* URL — always shown */}
       <div className="space-y-3">
         <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex items-center gap-2">
           <Wifi className="w-4 h-4" />
@@ -185,45 +281,53 @@ export default function ConfigModal({
         )}
       </div>
 
-      <div className="space-y-3">
-        <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex items-center gap-2">
-          <Server className="w-4 h-4" />
-          {t('system.haUrlFallback')}
-          {connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}
-        </label>
-        <div className="relative group">
-          <input
-            type="text"
-            className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all placeholder:text-[var(--text-muted)]"
-            value={config.fallbackUrl}
-            onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
-            placeholder={t('common.optional')}
-          />
-          <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        </div>
-        {config.fallbackUrl && config.fallbackUrl.endsWith('/') && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/20">
-            <AlertCircle className="w-3 h-3" />
-            {t('onboarding.urlTrailingSlash')}
-          </div>
-        )}
-      </div>
+      {/* OAuth2 mode — login button */}
+      {isOAuth && renderOAuthSection()}
 
-      <div className="space-y-3">
-        <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex items-center gap-2">
-          <Lock className="w-4 h-4" />
-          {t('system.token')}
-        </label>
-        <div className="relative group">
-          <textarea
-            className="w-full px-4 py-3 h-32 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all font-mono text-xs leading-relaxed resize-none"
-            value={config.token}
-            onChange={(e) => setConfig({ ...config, token: e.target.value.trim() })}
-            placeholder="ey..."
-          />
-          <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        </div>
-      </div>
+      {/* Token mode — fallback URL + token */}
+      {!isOAuth && (
+        <>
+          <div className="space-y-3">
+            <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex items-center gap-2">
+              <Server className="w-4 h-4" />
+              {t('system.haUrlFallback')}
+              {connected && activeUrl === config.fallbackUrl && <span className="text-green-400 bg-green-500/10 px-2 py-0.5 rounded text-[10px] tracking-widest">{t('system.connected')}</span>}
+            </label>
+            <div className="relative group">
+              <input
+                type="text"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all placeholder:text-[var(--text-muted)]"
+                value={config.fallbackUrl}
+                onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
+                placeholder={t('common.optional')}
+              />
+              <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            </div>
+            {config.fallbackUrl && config.fallbackUrl.endsWith('/') && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/20">
+                <AlertCircle className="w-3 h-3" />
+                {t('onboarding.urlTrailingSlash')}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              {t('system.token')}
+            </label>
+            <div className="relative group">
+              <textarea
+                className="w-full px-4 py-3 h-32 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all font-mono text-xs leading-relaxed resize-none"
+                value={config.token}
+                onChange={(e) => setConfig({ ...config, token: e.target.value.trim() })}
+                placeholder="ey..."
+              />
+              <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -895,7 +999,11 @@ export default function ConfigModal({
 
                 {onboardingStep === 0 && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                    {/* Auth Method Toggle */}
+                    {renderAuthMethodToggle(true)}
+
                     <div className="space-y-3">
+                      {/* URL — always shown */}
                       <div className="space-y-1.5">
                         <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlPrimary')}</label>
                         <input
@@ -912,48 +1020,65 @@ export default function ConfigModal({
                         {onboardingUrlError && <p className="text-xs text-red-400 font-bold ml-1">{onboardingUrlError}</p>}
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.token')}</label>
-                        <textarea
-                          className={`w-full px-3 py-2 h-24 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-mono text-xs leading-tight ${onboardingTokenError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
-                          value={config.token}
-                          onChange={(e) => {
-                            setConfig({ ...config, token: e.target.value.trim() });
-                            setOnboardingTokenError('');
-                            setConnectionTestResult(null);
-                          }}
-                          placeholder={t('onboarding.tokenPlaceholder')}
-                        />
-                        {onboardingTokenError && <p className="text-xs text-red-400 font-bold ml-1">{onboardingTokenError}</p>}
-                      </div>
+                      {/* OAuth2 mode — show login button */}
+                      {isOAuth && (
+                        <div className="pt-2">
+                          {renderOAuthSection()}
+                        </div>
+                      )}
 
-                      <div className="space-y-1.5">
-                        <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlFallback')}</label>
-                        <input
-                          type="text"
-                          className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] text-sm focus:border-blue-500/50"
-                          value={config.fallbackUrl}
-                          onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
-                          placeholder={t('common.optional')}
-                        />
-                        <p className="text-[10px] text-[var(--text-muted)] ml-1 leading-tight">{t('onboarding.fallbackHint')}</p>
-                      </div>
+                      {/* Token mode — show token + fallback */}
+                      {!isOAuth && (
+                        <>
+                          <div className="space-y-1.5">
+                            <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.token')}</label>
+                            <textarea
+                              className={`w-full px-3 py-2 h-24 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-mono text-xs leading-tight ${onboardingTokenError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
+                              value={config.token}
+                              onChange={(e) => {
+                                setConfig({ ...config, token: e.target.value.trim() });
+                                setOnboardingTokenError('');
+                                setConnectionTestResult(null);
+                              }}
+                              placeholder={t('onboarding.tokenPlaceholder')}
+                            />
+                            {onboardingTokenError && <p className="text-xs text-red-400 font-bold ml-1">{onboardingTokenError}</p>}
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlFallback')}</label>
+                            <input
+                              type="text"
+                              className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] text-sm focus:border-blue-500/50"
+                              value={config.fallbackUrl}
+                              onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
+                              placeholder={t('common.optional')}
+                            />
+                            <p className="text-[10px] text-[var(--text-muted)] ml-1 leading-tight">{t('onboarding.fallbackHint')}</p>
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    <button
-                      onClick={testConnection}
-                      disabled={!config.url || !config.token || !validateUrl(config.url) || testingConnection}
-                      className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg text-sm ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'}`}
-                    >
-                      {testingConnection ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Wifi className="w-5 h-5" />}
-                      {testingConnection ? t('onboarding.testing') : t('onboarding.testConnection')}
-                    </button>
+                    {/* Test Connection — token mode only */}
+                    {!isOAuth && (
+                      <>
+                        <button
+                          onClick={testConnection}
+                          disabled={!config.url || !config.token || !validateUrl(config.url) || testingConnection}
+                          className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg text-sm ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'}`}
+                        >
+                          {testingConnection ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Wifi className="w-5 h-5" />}
+                          {testingConnection ? t('onboarding.testing') : t('onboarding.testConnection')}
+                        </button>
 
-                    {connectionTestResult && (
-                      <div className={`p-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 ${connectionTestResult.success ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-                        {connectionTestResult.success ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                        <span className="font-bold text-sm">{connectionTestResult.message}</span>
-                      </div>
+                        {connectionTestResult && (
+                          <div className={`p-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 ${connectionTestResult.success ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                            {connectionTestResult.success ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                            <span className="font-bold text-sm">{connectionTestResult.message}</span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}

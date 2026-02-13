@@ -4,6 +4,7 @@
         "Pop-Location": true,
         "git add": true,
         "npm install": true,
-        "git checkout": true
+        "git checkout": true,
+        "npx vite": true
     }
 }

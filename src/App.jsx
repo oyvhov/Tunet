@@ -101,6 +101,7 @@ import './dashboard.css';
 import { getIconComponent } from './iconMap';
 import { buildOnboardingSteps, validateUrl } from './onboarding';
 import { callService as haCallService, handleAddSelected, prepareNordpoolData } from './services';
+import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from './services/oauthStorage';
 import { isCardRemovable as _isCardRemovable, isCardHiddenByLogic as _isCardHiddenByLogic, isMediaPage as _isMediaPage } from './cardUtils';
 import { getCardGridSpan as _getCardGridSpan, buildGridLayout as _buildGridLayout } from './gridLayout';
 import { createDragAndDropHandlers } from './dragAndDrop';
@@ -172,8 +173,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     connected,
     haUnavailable,
     haUnavailableVisible,
+    oauthExpired,
     conn,
-    activeUrl
+    activeUrl,
+    authRef
   } = useHomeAssistant();
   const translations = useMemo(() => ({ en, nn }), []);
   const nnFallback = useMemo(() => ({
@@ -395,13 +398,22 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, []);
 
+  // Handle OAuth2 callback — auto-close onboarding when OAuth connects
   useEffect(() => {
-    if (!config.token && !showOnboarding && !showConfigModal) {
+    if (connected && config.authMethod === 'oauth' && showOnboarding) {
+      setShowOnboarding(false);
+      setShowConfigModal(false);
+    }
+  }, [connected, config.authMethod]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const hasAuth = config.token || (config.authMethod === 'oauth' && hasOAuthTokens());
+    if (!hasAuth && !showOnboarding && !showConfigModal) {
       setShowOnboarding(true);
       setOnboardingStep(0);
       setConfigTab('connection');
     }
-  }, [config.token, showOnboarding, showConfigModal]);
+  }, [config.token, config.authMethod, showOnboarding, showConfigModal]);
 
 
 
@@ -1338,7 +1350,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const onboardingSteps = buildOnboardingSteps(t);
 
   const testConnection = async () => {
-    if (!validateUrl(config.url) || !config.token) return;
+    if (!validateUrl(config.url)) return;
+    if (config.authMethod !== 'oauth' && !config.token) return;
     setTestingConnection(true);
     setConnectionTestResult(null);
     try {
@@ -1354,8 +1367,38 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     }
   };
 
+  const startOAuthLogin = () => {
+    if (!validateUrl(config.url) || !window.HAWS) return;
+    const cleanUrl = config.url.replace(/\/$/, '');
+    // Persist URL + auth method before redirecting
+    try {
+      localStorage.setItem('ha_url', cleanUrl);
+      localStorage.setItem('ha_auth_method', 'oauth');
+    } catch {}
+    // getAuth with no stored tokens will redirect the browser to HA login page
+    window.HAWS.getAuth({
+      hassUrl: cleanUrl,
+      saveTokens,
+      loadTokens: () => Promise.resolve(loadTokens()),
+    }).catch((err) => {
+      console.error('OAuth login redirect failed:', err);
+      setConnectionTestResult({ success: false, message: t('system.oauth.redirectFailed') });
+    });
+  };
+
+  const handleOAuthLogout = () => {
+    clearOAuthTokens();
+    setConfig({ ...config, authMethod: 'oauth', token: '' });
+    try {
+      localStorage.removeItem('ha_oauth_tokens');
+      localStorage.setItem('ha_auth_method', 'oauth');
+    } catch {}
+  };
+
   const canAdvanceOnboarding = onboardingStep === 0
-    ? Boolean(config.url && config.token && validateUrl(config.url) && connectionTestResult?.success)
+    ? config.authMethod === 'oauth'
+      ? Boolean(config.url && validateUrl(config.url) && hasOAuthTokens())
+      : Boolean(config.url && config.token && validateUrl(config.url) && connectionTestResult?.success)
     : true;
 
   return (
@@ -1444,8 +1487,16 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-100 px-4 sm:px-6 py-4 flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-300" />
             <div className="text-sm font-semibold">
-              {t('ha.unavailable')}
+              {oauthExpired ? t('system.oauth.expired') : t('ha.unavailable')}
             </div>
+            {oauthExpired && (
+              <button
+                onClick={() => { setShowConfigModal(true); setConfigTab('connection'); }}
+                className="ml-auto px-3 py-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 text-xs font-bold uppercase tracking-wider transition-colors border border-yellow-500/30"
+              >
+                {t('system.oauth.loginButton')}
+              </button>
+            )}
           </div>
         )}
 
@@ -1626,6 +1677,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           validateUrl={validateUrl}
           testConnection={testConnection}
           testingConnection={testingConnection}
+          startOAuthLogin={startOAuthLogin}
+          handleOAuthLogout={handleOAuthLogout}
           themes={themes}
           currentTheme={currentTheme}
           setCurrentTheme={setCurrentTheme}
@@ -1989,7 +2042,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           customName={customNames[showSensorInfoModal]}
           conn={conn}
           haUrl={activeUrl}
-          haToken={config.token}
+          haToken={config.authMethod === 'oauth' ? (authRef?.current?.accessToken || '') : config.token}
           t={t}
             />
           </ModalSuspense>
@@ -2147,10 +2200,16 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
 export default function App() {
   const { config } = useConfig();
-  const [showOnboarding, setShowOnboarding] = useState(() => !config.token);
+  // Detect if we're returning from an OAuth2 redirect
+  const isOAuthCallback = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('auth_callback');
+  const hasAuth = config.token || (config.authMethod === 'oauth' && (hasOAuthTokens() || isOAuthCallback));
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasAuth);
 
+  // During onboarding, block token connections but ALLOW OAuth (including callbacks)
   const haConfig = showOnboarding
-    ? { ...config, token: '' }
+    ? config.authMethod === 'oauth'
+      ? config                     // OAuth: pass config through so callback can be processed
+      : { ...config, token: '' }   // Token: block until onboarding finishes
     : config;
 
   return (

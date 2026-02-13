@@ -103,14 +103,15 @@ export const ConfigProvider = ({ children }) => {
         return {
           url: localStorage.getItem('ha_url') || '',
           fallbackUrl: localStorage.getItem('ha_fallback_url') || '',
-          token: localStorage.getItem('ha_token') || ''
+          token: localStorage.getItem('ha_token') || '',
+          authMethod: localStorage.getItem('ha_auth_method') || 'oauth',
         };
       } catch (error) {
         console.error('Failed to read config from localStorage:', error);
-        return { url: '', fallbackUrl: '', token: '' };
+        return { url: '', fallbackUrl: '', token: '', authMethod: 'oauth' };
       }
     }
-    return { url: '', fallbackUrl: '', token: '' };
+    return { url: '', fallbackUrl: '', token: '', authMethod: 'oauth' };
   });
 
   // Apply theme to DOM

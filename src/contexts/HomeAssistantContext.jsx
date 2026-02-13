@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
 
 const HomeAssistantContext = createContext(null);
 
@@ -15,9 +16,11 @@ export const HomeAssistantProvider = ({ children, config }) => {
   const [connected, setConnected] = useState(false);
   const [haUnavailable, setHaUnavailable] = useState(false);
   const [haUnavailableVisible, setHaUnavailableVisible] = useState(false);
+  const [oauthExpired, setOauthExpired] = useState(false);
   const [libLoaded, setLibLoaded] = useState(false);
   const [conn, setConn] = useState(null);
   const [activeUrl, setActiveUrl] = useState(config.url);
+  const authRef = useRef(null);
 
   // Load Home Assistant WebSocket library
   useEffect(() => {
@@ -34,15 +37,29 @@ export const HomeAssistantProvider = ({ children, config }) => {
 
   // Connect to Home Assistant
   useEffect(() => {
-    if (!libLoaded || !config.url || !config.token) {
-      if (!config.token && connected) {
-        setConnected(false);
-      }
+    const isOAuth = config.authMethod === 'oauth';
+    const hasToken = !!config.token;
+    const hasOAuth = hasOAuthTokens();
+    const isOAuthCallback = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('auth_callback');
+
+    if (!libLoaded || !config.url) {
+      return;
+    }
+
+    // For token mode, require token
+    if (!isOAuth && !hasToken) {
+      if (connected) setConnected(false);
+      return;
+    }
+    // For oauth mode, require stored tokens OR an active callback in the URL
+    if (isOAuth && !hasOAuth && !isOAuthCallback) {
+      if (connected) setConnected(false);
       return;
     }
 
     let connection;
     let cancelled = false;
+    setOauthExpired(false);
     
     if (!window.HAWS || !libLoaded) {
       console.error('HAWS library not loaded');
@@ -51,19 +68,20 @@ export const HomeAssistantProvider = ({ children, config }) => {
       return;
     }
     
-    const { createConnection, createLongLivedTokenAuth, subscribeEntities } = window.HAWS;
+    const { createConnection, createLongLivedTokenAuth, subscribeEntities, getAuth } = window.HAWS;
 
     const persistConfig = (urlUsed) => {
       try {
         localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
-        localStorage.setItem('ha_token', config.token);
+        if (!isOAuth) localStorage.setItem('ha_token', config.token);
+        localStorage.setItem('ha_auth_method', config.authMethod || 'token');
         if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl.replace(/\/$/, ''));
       } catch (error) {
         console.error('Failed to persist HA config to localStorage:', error);
       }
     };
 
-    async function connectWith(url) {
+    async function connectWithToken(url) {
       const auth = createLongLivedTokenAuth(url, config.token);
       const connInstance = await createConnection({ auth });
       if (cancelled) { 
@@ -71,6 +89,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
         return null; 
       }
       connection = connInstance;
+      authRef.current = auth;
       setConn(connInstance);
       setConnected(true);
       setHaUnavailable(false);
@@ -82,15 +101,59 @@ export const HomeAssistantProvider = ({ children, config }) => {
       return connInstance;
     }
 
+    async function connectWithOAuth(url) {
+      const auth = await getAuth({
+        hassUrl: url,
+        saveTokens,
+        loadTokens: () => Promise.resolve(loadTokens()),
+      });
+      // Clean up OAuth callback params from URL after successful auth
+      if (window.location.search.includes('auth_callback')) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+      const connInstance = await createConnection({ auth });
+      if (cancelled) {
+        connInstance.close();
+        return null;
+      }
+      connection = connInstance;
+      authRef.current = auth;
+      setConn(connInstance);
+      setConnected(true);
+      setHaUnavailable(false);
+      setActiveUrl(url);
+      persistConfig(url);
+      subscribeEntities(connInstance, (updatedEntities) => {
+        if (!cancelled) setEntities(updatedEntities);
+      });
+      return connInstance;
+    }
+
     async function connect() {
       try {
-        await connectWith(config.url);
+        if (isOAuth) {
+          await connectWithOAuth(config.url);
+        } else {
+          await connectWithToken(config.url);
+        }
       } catch (err) {
         if (cancelled) return;
+
+        // For OAuth, if auth is invalid, clear tokens and flag expiry
+        if (isOAuth && err?.message?.includes?.('INVALID_AUTH')) {
+          clearOAuthTokens();
+          if (!cancelled) {
+            setConnected(false);
+            setHaUnavailable(true);
+            setOauthExpired(true);
+          }
+          return;
+        }
         
-        if (config.fallbackUrl) {
+        // Try fallback URL (token mode only)
+        if (!isOAuth && config.fallbackUrl) {
           try {
-            await connectWith(config.fallbackUrl);
+            await connectWithToken(config.fallbackUrl);
             return;
           } catch (e) {
             if (cancelled) return;
@@ -109,7 +172,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       cancelled = true; 
       if (connection) connection.close(); 
     };
-  }, [libLoaded, config.url, config.fallbackUrl, config.token]);
+  }, [libLoaded, config.url, config.fallbackUrl, config.token, config.authMethod]);
 
   // Handle connection events
   useEffect(() => {
@@ -148,9 +211,11 @@ export const HomeAssistantProvider = ({ children, config }) => {
     connected,
     haUnavailable,
     haUnavailableVisible,
+    oauthExpired,
     libLoaded,
     conn,
     activeUrl,
+    authRef,
   };
 
   return (
