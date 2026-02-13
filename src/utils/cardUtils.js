@@ -6,16 +6,16 @@
 /** Prefixes for card types that can always be removed from user pages. */
 const REMOVABLE_PREFIXES = [
   'light_', 'light.', 'vacuum.', 'media_player.', 'media_group_',
-  'weather_temp_', 'calendar_card_', 'climate_card_', 'cost_card_',
+  'weather_temp_', 'calendar_card_', 'camera_card_', 'climate_card_', 'cost_card_',
   'androidtv_card_', 'car_card_', 'nordpool_card_', 'todo_card_', 'room_card_',
   'cover_card_',
 ];
 
 /** Prefixes for "special" composite cards that don't map 1:1 to an entity. */
 const SPECIAL_CARD_PREFIXES = [
-  'media_group_', 'weather_temp_', 'calendar_card_', 'climate_card_',
-  'cost_card_', 'androidtv_card_', 'car_card_', 'nordpool_card_',
-  'todo_card_', 'room_card_', 'cover_card_',
+  'media_group_', 'weather_temp_', 'calendar_card_', 'camera_card_',
+  'climate_card_', 'cost_card_', 'androidtv_card_', 'car_card_',
+  'nordpool_card_', 'todo_card_', 'room_card_', 'cover_card_',
 ];
 
 /**

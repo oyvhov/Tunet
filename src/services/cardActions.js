@@ -137,6 +137,21 @@ export const handleAddSelected = (ctx) => {
       return;
     }
 
+    case 'camera': {
+      if (selectedEntities.length === 0) return;
+      const newSettings = { ...cardSettings };
+      const newCardIds = selectedEntities.map((entityId) => {
+        const cardId = `camera_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+        newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), cameraId: entityId };
+        return cardId;
+      });
+      persistCardSettings(newSettings);
+      commitCards(newCardIds);
+      setSelectedEntities([]);
+      return;
+    }
+
     case 'androidtv': {
       if (!selectedAndroidTVMediaId) return;
       const cardId = `androidtv_card_${Date.now()}`;

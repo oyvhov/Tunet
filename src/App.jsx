@@ -142,6 +142,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setShowCalendarModal,
     setShowTodoModal,
     setShowRoomModal,
+    setShowCameraModal,
+    setShowCoverModal,
     setShowWeatherModal,
     activeMediaModal,
     setActiveMediaModal,
@@ -471,7 +473,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
       setShowCostModal, setActiveVacuumId, setShowVacuumModal,
       setShowAndroidTVModal, setActiveCarModal, setShowWeatherModal,
       setShowNordpoolModal, setShowCalendarModal, setShowTodoModal,
-      setShowRoomModal, setShowEditCardModal, setEditCardSettingsKey,
+      setShowRoomModal, setShowCameraModal, setShowCoverModal, setShowEditCardModal, setEditCardSettingsKey,
       openMediaModal: (mpId, groupKey, groupIds) => {
         setActiveMediaId(mpId);
         setActiveMediaGroupKey(groupKey);

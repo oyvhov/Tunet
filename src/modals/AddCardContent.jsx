@@ -3,6 +3,7 @@ import {
   ArrowUpDown,
   Bot,
   Calendar,
+  Camera,
   Car,
   Check,
   CloudSun,
@@ -220,6 +221,7 @@ export default function AddCardContent({
       }
       if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
       if (addCardType === 'cover') return id.startsWith('cover.');
+      if (addCardType === 'camera') return (id.startsWith('camera.') || id.startsWith('image.'));
       if (addCardType === 'climate') return id.startsWith('climate.');
       if (addCardType === 'androidtv') return id.startsWith('media_player.') || id.startsWith('remote.');
       if (addCardType === 'cost') return (id.startsWith('sensor.') || id.startsWith('input_number.'));
@@ -477,6 +479,7 @@ export default function AddCardContent({
                 <TypeButton type="vacuum" icon={Bot} label={t('addCard.type.vacuum')} isActive={addCardType === 'vacuum'} onSelect={setAddCardType} />
                 <TypeButton type="climate" icon={Thermometer} label={t('addCard.type.climate')} isActive={addCardType === 'climate'} onSelect={setAddCardType} />
                 <TypeButton type="cover" icon={ArrowUpDown} label={getLabel('addCard.type.cover', 'Cover')} isActive={addCardType === 'cover'} onSelect={setAddCardType} />
+                <TypeButton type="camera" icon={Camera} label={getLabel('addCard.type.camera', 'Camera')} isActive={addCardType === 'camera'} onSelect={setAddCardType} />
                 <TypeButton type="car" icon={Car} label={t('addCard.type.car')} isActive={addCardType === 'car'} onSelect={setAddCardType} />
                 <TypeButton type="androidtv" icon={Gamepad2} label={t('addCard.type.androidtv')} isActive={addCardType === 'androidtv'} onSelect={setAddCardType} />
                 <TypeButton type="cost" icon={Coins} label={t('addCard.type.cost')} isActive={addCardType === 'cost'} onSelect={setAddCardType} />

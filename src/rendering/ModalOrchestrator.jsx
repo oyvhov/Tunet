@@ -26,6 +26,7 @@ const EditPageModal = lazy(() => import('../modals/EditPageModal'));
 const GenericAndroidTVModal = lazy(() => import('../modals/GenericAndroidTVModal'));
 const GenericClimateModal = lazy(() => import('../modals/GenericClimateModal'));
 const CoverModal = lazy(() => import('../modals/CoverModal'));
+const CameraModal = lazy(() => import('../modals/CameraModal'));
 const WeatherModal = lazy(() => import('../modals/WeatherModal'));
 const LeafModal = lazy(() => import('../modals/LeafModal'));
 const LightModal = lazy(() => import('../modals/LightModal'));
@@ -64,6 +65,7 @@ export default function ModalOrchestrator({
     showCalendarModal, setShowCalendarModal,
     showTodoModal, setShowTodoModal,
     showRoomModal, setShowRoomModal,
+    showCameraModal, setShowCameraModal,
     showCoverModal, setShowCoverModal,
     showWeatherModal, setShowWeatherModal,
     activeMediaModal, setActiveMediaModal,
@@ -175,12 +177,13 @@ export default function ModalOrchestrator({
     const isEditCar = !!editId && (editId === 'car' || editId.startsWith('car_card_'));
     const isEditRoom = !!editId && editId.startsWith('room_card_');
     const isEditCover = !!editId && editId.startsWith('cover_card_');
+    const isEditCamera = !!editId && editId.startsWith('camera_card_');
     const editSettings = isEditCar ? resolveCarSettings(editId, rawEditSettings) : rawEditSettings;
     const isEditGenericType = (!!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor')) || isEditVacuum || isEditAutomation || isEditCar || isEditAndroidTV || isEditRoom;
     const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
     const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
     const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
-    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
+    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditCamera || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
     const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
     return {
       canEditName, canEditIcon, canEditStatus,
@@ -577,6 +580,29 @@ export default function ModalOrchestrator({
               entityId={coverEntityId}
               entity={coverEntity}
               callService={callService}
+              customIcons={customIcons}
+              t={t}
+            />
+          </ModalSuspense>
+        );
+      })()}
+
+      {showCameraModal && (() => {
+        const cameraSettingsKey = getCardSettingsKey(showCameraModal);
+        const cameraSettings = cardSettings[cameraSettingsKey] || cardSettings[showCameraModal] || {};
+        const cameraEntityId = cameraSettings.cameraId;
+        const cameraEntity = cameraEntityId ? entities[cameraEntityId] : null;
+        if (!cameraEntityId || !cameraEntity) return null;
+        return (
+          <ModalSuspense>
+            <CameraModal
+              show={true}
+              onClose={() => setShowCameraModal(null)}
+              entityId={cameraEntityId}
+              entity={cameraEntity}
+              callService={callService}
+              getEntityImageUrl={getEntityImageUrl}
+              conn={conn}
               customIcons={customIcons}
               t={t}
             />

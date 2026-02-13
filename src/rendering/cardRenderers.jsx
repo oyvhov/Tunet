@@ -10,6 +10,7 @@
  */
 import {
   CalendarCard,
+  CameraCard,
   CarCard,
   CoverCard,
   TodoCard,
@@ -394,6 +395,40 @@ export function renderNordpoolCard(cardId, dragProps, getControls, cardStyle, se
   );
 }
 
+export function renderCameraCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
+  const { entities, editMode, cardSettings, customNames, customIcons, callService, getEntityImageUrl, setShowCameraModal, t } = ctx;
+  const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const entityId = settings.cameraId;
+  const entity = entityId ? entities[entityId] : null;
+
+  if (!entity || !entityId) {
+    if (editMode) {
+      return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={t} />;
+    }
+    return null;
+  }
+
+  return (
+    <CameraCard
+      key={cardId}
+      cardId={cardId}
+      entityId={entityId}
+      entity={entity}
+      dragProps={dragProps}
+      controls={getControls(cardId)}
+      cardStyle={cardStyle}
+      editMode={editMode}
+      customNames={customNames}
+      customIcons={customIcons}
+      onOpen={() => setShowCameraModal(cardId)}
+      callService={callService}
+      getEntityImageUrl={getEntityImageUrl}
+      settings={settings}
+      t={t}
+    />
+  );
+}
+
 export function renderCoverCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const { entities, editMode, cardSettings, customNames, customIcons, callService, setShowCoverModal, t } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
@@ -481,6 +516,7 @@ const CARD_REGISTRY = [
   { prefix: 'androidtv_card_', renderer: renderGenericAndroidTVCard },
   { prefix: 'car_card_',       renderer: renderCarCard },
   { prefix: 'nordpool_card_',  renderer: renderNordpoolCard },
+  { prefix: 'camera_card_',    renderer: renderCameraCard },
   { prefix: 'cover_card_',     renderer: renderCoverCard },
   { prefix: 'room_card_',      renderer: renderRoomCard },
 ];

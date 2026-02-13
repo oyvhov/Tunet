@@ -148,4 +148,6 @@ export {
   FolderDown,
   UserCircle2,
   Undo2,
+  VideoOff,
+  PowerOff,
 } from 'lucide-react';

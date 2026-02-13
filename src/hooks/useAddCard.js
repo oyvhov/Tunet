@@ -100,6 +100,7 @@ export function useAddCard({
     if (addCardType === 'vacuum') return t('addCard.available.vacuums');
     if (addCardType === 'climate') return t('addCard.available.climates');
     if (addCardType === 'cover') return t('addCard.available.covers');
+    if (addCardType === 'camera') return t('addCard.available.cameras');
     if (addCardType === 'cost') return t('addCard.available.costs');
     if (addCardType === 'media') return t('addCard.available.players');
     if (addCardType === 'car') return t('addCard.available.cars');
@@ -119,6 +120,8 @@ export function useAddCard({
             ? 'addCard.item.climates'
             : addCardType === 'cover'
               ? 'addCard.item.covers'
+            : addCardType === 'camera'
+              ? 'addCard.item.cameras'
             : addCardType === 'cost'
               ? 'addCard.item.costs'
           : addCardType === 'media'

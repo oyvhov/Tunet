@@ -8,7 +8,7 @@ export {
   BarChart3, Eye, EyeOff, Play, Pause, SkipBack, SkipForward, Music, Clapperboard,
   Server, HardDrive, Tv, Coins, Speaker, Sofa, Utensils, AirVent, LampDesk, LayoutGrid,
   Trash2, Workflow, Home, Bed, Bath, ShowerHead, Droplets, Sun, Moon, Cloud, CloudRain,
-  Power, Wifi, Lock, Unlock, Shield, Video, Camera, Bell, Volume2, Mic, Radio, Gamepad2,
+  Power, Wifi, Lock, Unlock, Shield, Video, VideoOff, Camera, Bell, Volume2, Mic, Radio, Gamepad2,
   Laptop, Smartphone, Watch, Coffee, Beer, Armchair, ShoppingCart, Calendar, Activity,
   Heart, Star, AlertTriangle, Warehouse, Columns, Bot, Shuffle, Repeat, Repeat1, VolumeX,
   Volume1, Link, Unlink, Search, ListChecks, Palette, Download, ArrowRight, CloudSun,
@@ -17,6 +17,7 @@ export {
   Plug, Puzzle, Rocket, Router, Siren, Sprout, Sunrise, Sunset, Truck, Wrench,
   ToggleLeft, ToggleRight, Maximize2, Minimize2, Type, AlignLeft,
   LogIn, LogOut,
+  PowerOff,
   LayoutTemplate, Upload, Save, FolderDown, UserCircle2,
   Undo2,
 } from './lucide';

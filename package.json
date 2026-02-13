@@ -28,6 +28,7 @@
     "@mdi/react": "^1.6.1",
     "better-sqlite3": "^11.0.0",
     "express": "^4.21.0",
+    "hls.js": "^1.6.15",
     "home-assistant-js-websocket": "^9.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.263.1",
