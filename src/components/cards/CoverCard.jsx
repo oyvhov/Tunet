@@ -222,7 +222,7 @@ const ButtonControl = ({ onOpen, onClose, onStop, isUnavailable, accent, horizon
 
 /* -- Small Card Variant ---------------------------------------------- */
 const SmallCoverCard = (props) => {
-    const { cardId, dragProps, controls, cardStyle, editMode, onOpen, name, localPos, position, isMoving, isOpening, getStateLabel, accent, isUnavailable, handleToggleMode, Icon, mode, supportsPosition, handlePositionCommit, setLocalPos, handleOpenCover, handleCloseCover, handleStopCover } = props;
+    const { cardId, dragProps, controls, cardStyle, editMode, onOpen, name, localPos, position, isMoving, isOpening, getStateLabel, accent, isUnavailable, handleToggleMode, Icon, mode, supportsPosition, handlePositionCommit, setLocalPos, handleOpenCover, handleCloseCover, handleStopCover, translate } = props;
 
     return (
         <div
@@ -371,7 +371,7 @@ const CoverCard = ({
       cardId, dragProps, controls, cardStyle, editMode, onOpen, 
       name, localPos, position, isMoving, isOpening, getStateLabel, accent, isUnavailable,
       handleToggleMode, Icon, mode, supportsPosition, handlePositionCommit, setLocalPos,
-      handleOpenCover, handleCloseCover, handleStopCover
+      handleOpenCover, handleCloseCover, handleStopCover, translate
   };
 
   if (isSmall) {
@@ -434,7 +434,7 @@ const CoverCard = ({
            
            {isMoving && (
              <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-primary)] animate-pulse mt-1">
-               {isOpening ? 'Opening...' : 'Closing...'}
+               {isOpening ? `${translate('cover.opening')}...` : `${translate('cover.closing')}...`}
              </div>
            )}
         </div>

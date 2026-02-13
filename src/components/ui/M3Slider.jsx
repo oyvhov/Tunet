@@ -7,7 +7,8 @@ export default function M3Slider({
   variant = "default",
   trackClass,
   thumbClass,
-  height
+  height,
+  ariaLabel = "Slider",
 }) {
   const colorClass = propColorClass === "bg-blue-500" ? "bg-[var(--accent-color)]" : propColorClass;
   const [internalValue, setInternalValue] = useState(value);
@@ -31,6 +32,10 @@ export default function M3Slider({
 
   const commonInputProps = {
     type: "range", min, max, step, value: internalValue, disabled,
+    'aria-label': ariaLabel,
+    'aria-valuemin': min,
+    'aria-valuemax': max,
+    'aria-valuenow': internalValue,
     onMouseDown: () => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); },
     onTouchStart: () => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); },
     onMouseUp: () => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); },

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createConnection, createLongLivedTokenAuth, subscribeEntities, getAuth } from 'home-assistant-js-websocket';
 import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
 
 const HomeAssistantContext = createContext(null);
@@ -49,23 +50,9 @@ export const HomeAssistantProvider = ({ children, config }) => {
   const [haUnavailable, setHaUnavailable] = useState(false);
   const [haUnavailableVisible, setHaUnavailableVisible] = useState(false);
   const [oauthExpired, setOauthExpired] = useState(false);
-  const [libLoaded, setLibLoaded] = useState(false);
   const [conn, setConn] = useState(null);
   const [activeUrl, setActiveUrl] = useState(config.url);
   const authRef = useRef(null);
-
-  // Load Home Assistant WebSocket library
-  useEffect(() => {
-    if (window.HAWS) { 
-      setLibLoaded(true); 
-      return; 
-    }
-    const script = document.createElement('script');
-    script.src = "https://unpkg.com/home-assistant-js-websocket@9.6.0/dist/haws.umd.js";
-    script.async = true;
-    script.onload = () => setLibLoaded(true);
-    document.head.appendChild(script);
-  }, []);
 
   // Connect to Home Assistant
   useEffect(() => {
@@ -74,7 +61,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const hasOAuth = hasOAuthTokens();
     const isOAuthCallback = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('auth_callback');
 
-    if (!libLoaded || !config.url) {
+    if (!config.url) {
       return;
     }
 
@@ -93,14 +80,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     let cancelled = false;
     setOauthExpired(false);
     
-    if (!window.HAWS || !libLoaded) {
-      console.error('HAWS library not loaded');
-      setConnected(false);
-      setHaUnavailable(true);
-      return;
-    }
-    
-    const { createConnection, createLongLivedTokenAuth, subscribeEntities, getAuth } = window.HAWS;
+
 
     const persistConfig = (urlUsed) => {
       try {
@@ -204,7 +184,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       cancelled = true; 
       if (connection) connection.close(); 
     };
-  }, [libLoaded, config.url, config.fallbackUrl, config.token, config.authMethod]);
+  }, [config.url, config.fallbackUrl, config.token, config.authMethod]);
 
   // Handle connection events
   useEffect(() => {
@@ -244,7 +224,6 @@ export const HomeAssistantProvider = ({ children, config }) => {
     haUnavailable,
     haUnavailableVisible,
     oauthExpired,
-    libLoaded,
     conn,
     activeUrl,
     authRef,

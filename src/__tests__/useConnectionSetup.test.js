@@ -22,7 +22,15 @@ vi.mock('../services/oauthStorage', () => ({
   hasOAuthTokens: vi.fn(() => false),
 }));
 
+vi.mock('home-assistant-js-websocket', () => ({
+  createConnection: vi.fn(),
+  createLongLivedTokenAuth: vi.fn(() => ({ type: 'bearer' })),
+  getAuth: vi.fn(() => Promise.resolve()),
+  subscribeEntities: vi.fn(),
+}));
+
 import { hasOAuthTokens, clearOAuthTokens } from '../services/oauthStorage';
+import { createConnection, createLongLivedTokenAuth, getAuth } from 'home-assistant-js-websocket';
 
 const t = (key) => {
   const map = {
@@ -47,16 +55,9 @@ const makeProps = (overrides = {}) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Provide a stub for window.HAWS
-  window.HAWS = {
-    createConnection: vi.fn(),
-    createLongLivedTokenAuth: vi.fn(() => ({ type: 'bearer' })),
-    getAuth: vi.fn(() => Promise.resolve()),
-  };
 });
 
 afterEach(() => {
-  delete window.HAWS;
 });
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -84,9 +85,9 @@ describe('useConnectionSetup › initial state', () => {
 // testConnection
 // ═════════════════════════════════════════════════════════════════════════
 describe('useConnectionSetup › testConnection', () => {
-  it('succeeds when HAWS.createConnection resolves', async () => {
+  it('succeeds when createConnection resolves', async () => {
     const mockClose = vi.fn();
-    window.HAWS.createConnection.mockResolvedValueOnce({ close: mockClose });
+    createConnection.mockResolvedValueOnce({ close: mockClose });
 
     const { result } = renderHook(() => useConnectionSetup(makeProps()));
 
@@ -102,8 +103,8 @@ describe('useConnectionSetup › testConnection', () => {
     expect(result.current.testingConnection).toBe(false);
   });
 
-  it('fails when HAWS.createConnection rejects', async () => {
-    window.HAWS.createConnection.mockRejectedValueOnce(new Error('refused'));
+  it('fails when createConnection rejects', async () => {
+    createConnection.mockRejectedValueOnce(new Error('refused'));
 
     const { result } = renderHook(() => useConnectionSetup(makeProps()));
 
@@ -127,7 +128,7 @@ describe('useConnectionSetup › testConnection', () => {
     });
 
     expect(result.current.connectionTestResult).toBeNull();
-    expect(window.HAWS.createConnection).not.toHaveBeenCalled();
+    expect(createConnection).not.toHaveBeenCalled();
   });
 
   it('does nothing when token is missing (non-OAuth)', async () => {
@@ -138,7 +139,7 @@ describe('useConnectionSetup › testConnection', () => {
       await result.current.testConnection();
     });
 
-    expect(window.HAWS.createConnection).not.toHaveBeenCalled();
+    expect(createConnection).not.toHaveBeenCalled();
   });
 });
 
@@ -152,7 +153,7 @@ describe('useConnectionSetup › canAdvanceOnboarding', () => {
   });
 
   it('is true at step 0 with token auth after successful test', async () => {
-    window.HAWS.createConnection.mockResolvedValueOnce({ close: vi.fn() });
+    createConnection.mockResolvedValueOnce({ close: vi.fn() });
     const { result } = renderHook(() => useConnectionSetup(makeProps()));
 
     await act(async () => {

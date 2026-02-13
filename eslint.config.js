@@ -34,6 +34,7 @@ export default [
         ResizeObserver: 'readonly',
         requestAnimationFrame: 'readonly',
         cancelAnimationFrame: 'readonly',
+        __APP_VERSION__: 'readonly',
       }
     },
     rules: {

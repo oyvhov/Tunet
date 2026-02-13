@@ -462,78 +462,51 @@ export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settin
  * Routes a cardId to the correct renderer based on its type/prefix.
  * Returns JSX for the card, or null if the card should not be rendered.
  */
+/**
+ * Card type registry — maps prefix patterns to render functions.
+ * To add a new card type, simply add an entry here.
+ * Entries are checked in order; first match wins.
+ */
+const CARD_REGISTRY = [
+  { prefix: 'light_',          renderer: renderLightCard },
+  { prefix: 'light.',          renderer: renderLightCard },
+  { prefix: 'vacuum.',         renderer: renderVacuumCard },
+  { prefix: 'media_player.',   renderer: renderMediaPlayerCard },
+  { prefix: 'media_group_',    renderer: renderMediaGroupCard },
+  { prefix: 'calendar_card_',  renderer: renderCalendarCard },
+  { prefix: 'climate_card_',   renderer: renderGenericClimateCard },
+  { prefix: 'todo_card_',      renderer: renderTodoCard },
+  { prefix: 'cost_card_',      renderer: renderGenericCostCard },
+  { prefix: 'weather_temp_',   renderer: renderWeatherTempCard },
+  { prefix: 'androidtv_card_', renderer: renderGenericAndroidTVCard },
+  { prefix: 'car_card_',       renderer: renderCarCard },
+  { prefix: 'nordpool_card_',  renderer: renderNordpoolCard },
+  { prefix: 'cover_card_',     renderer: renderCoverCard },
+  { prefix: 'room_card_',      renderer: renderRoomCard },
+];
+
 export function dispatchCardRender(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const { editMode, cardSettings, activePage } = ctx;
 
-  // Lights (both legacy IDs and entity IDs)
-  if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
-    return renderLightCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  // Automations (may be overridden to entity/toggle/sensor type)
+  // Automations may be overridden to entity/toggle/sensor type
   if (cardId.startsWith('automation.')) {
     const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
-    if (settings.type === 'entity' || settings.type === 'toggle' || settings.type === 'sensor') {
+    if (['entity', 'toggle', 'sensor'].includes(settings.type)) {
       return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
     }
     return renderAutomationCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
   }
 
-  if (cardId.startsWith('vacuum.')) {
-    return renderVacuumCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('media_player.')) {
-    return renderMediaPlayerCard(cardId, dragProps, getControls, cardStyle, ctx);
-  }
-
-  if (cardId.startsWith('media_group_')) {
-    return renderMediaGroupCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('calendar_card_')) {
-    return renderCalendarCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('climate_card_')) {
-    return renderGenericClimateCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('todo_card_')) {
-    return renderTodoCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('cost_card_')) {
-    return renderGenericCostCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('weather_temp_')) {
-    return renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('androidtv_card_')) {
-    return renderGenericAndroidTVCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('car_card_')) {
-    return renderCarCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('nordpool_card_')) {
-    return renderNordpoolCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('cover_card_')) {
-    return renderCoverCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
-  }
-
-  if (cardId.startsWith('room_card_')) {
-    return renderRoomCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
+  // Registry-driven lookup
+  for (const { prefix, renderer } of CARD_REGISTRY) {
+    if (cardId.startsWith(prefix)) {
+      return renderer(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
+    }
   }
 
   // Generic entity/toggle/sensor type
   const genericSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
-  if (genericSettings.type === 'sensor' || genericSettings.type === 'entity' || genericSettings.type === 'toggle') {
+  if (['sensor', 'entity', 'toggle'].includes(genericSettings.type)) {
     return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
   }
 

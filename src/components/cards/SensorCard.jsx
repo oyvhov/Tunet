@@ -48,8 +48,8 @@ export default function SensorCard({
   const toggleDisplayState = isOnOffState && ['automation', 'input_boolean', 'switch', 'input_number'].includes(domain)
     ? translate(state === 'on' ? 'status.on' : 'status.off')
     : null;
-  const sceneDisplayState = domain === 'scene' ? 'Scene' : null;
-  const scriptDisplayState = domain === 'script' ? 'Script' : null;
+  const sceneDisplayState = domain === 'scene' ? translate('sensor.scene.label') : null;
+  const scriptDisplayState = domain === 'script' ? translate('sensor.script.label') : null;
   const displayState = isNumeric ? parseFloat(state) : (binaryDisplayState || toggleDisplayState || sceneDisplayState || scriptDisplayState || state);
   const iconToneClass = isBinaryLike
     ? (isUnavailable
@@ -330,13 +330,13 @@ export default function SensorCard({
               onClick={(e) => { e.stopPropagation(); if (state !== 'on') onControl('toggle'); }}
               className={`control-on px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${state === 'on' ? 'bg-blue-500/20 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
             >
-              På
+              {translate('common.on')}
             </button>
              <button 
               onClick={(e) => { e.stopPropagation(); if (state === 'on') onControl('toggle'); }}
               className={`control-off px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${state !== 'on' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
             >
-              Av
+              {translate('common.off')}
             </button>
           </div>
         ) : (
@@ -382,13 +382,13 @@ export default function SensorCard({
               onClick={(e) => { e.stopPropagation(); if (state === 'on') onControl('toggle'); }}
               className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${state !== 'on' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
             >
-              Av
+              {translate('common.off')}
             </button>
              <button 
               onClick={(e) => { e.stopPropagation(); if (state !== 'on') onControl('toggle'); }}
               className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${state === 'on' ? 'bg-blue-500/20 text-blue-400' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
             >
-              På
+              {translate('common.on')}
             </button>
           </div>
         ) : (

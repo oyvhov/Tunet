@@ -1,17 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { en, nn } from './i18n';
 import {
-  AlertTriangle,
-  Check,
-  Edit2,
   LayoutGrid,
-  Plus,
 } from './icons';
 
 
-import SettingsDropdown from './components/ui/SettingsDropdown';
-
-import { Header, StatusBar } from './layouts';
+import { Header, StatusBar, BackgroundLayer, ConnectionBanner, DragOverlaySVG, EditToolbar } from './layouts';
 
 import {
   MediaPage,
@@ -44,7 +38,6 @@ import { dispatchCardRender } from './rendering/cardRenderers';
 import ModalOrchestrator from './rendering/ModalOrchestrator';
 import CardErrorBoundary from './components/ui/CardErrorBoundary';
 import EditOverlay from './components/ui/EditOverlay';
-import AuroraBackground from './components/effects/AuroraBackground';
 
 function AppContent({ showOnboarding, setShowOnboarding }) {
   const {
@@ -469,31 +462,11 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
   return (
     <div className="min-h-screen font-sans selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-500" style={{backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)'}}>
-      {bgMode === 'animated' ? (
-        <AuroraBackground />
-      ) : (
-        <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute inset-0" style={{background: 'linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-primary), var(--bg-gradient-to))'}} />
-          <div className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)'}} />
-          <div className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none" style={{background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)'}} />
-        </div>
-      )}
-      {editMode && draggingId && touchPath && (
-        <svg className="fixed inset-0 pointer-events-none z-40">
-          <line
-            x1={touchPath.startX}
-            y1={touchPath.startY}
-            x2={touchPath.x}
-            y2={touchPath.y}
-            stroke="rgba(59, 130, 246, 0.6)"
-            strokeWidth="3"
-            strokeDasharray="6 6"
-          />
-          <circle cx={touchPath.startX} cy={touchPath.startY} r="6" fill="rgba(59, 130, 246, 0.6)" />
-          <circle cx={touchPath.x} cy={touchPath.y} r="8" fill="rgba(59, 130, 246, 0.9)" />
-        </svg>
-      )}
+      <BackgroundLayer bgMode={bgMode} />
+      {editMode && draggingId && touchPath && <DragOverlaySVG touchPath={touchPath} />}
       <div
+        role="main"
+        aria-label="Dashboard"
         className={`relative z-10 w-full max-w-[1600px] mx-auto py-6 md:py-10 ${
           isMobile ? 'px-5 mobile-grid' : (gridColCount === 1 ? 'px-10 sm:px-16 md:px-24' : 'px-6 md:px-20')
         } ${isCompactCards ? 'compact-cards' : ''}`}
@@ -550,20 +523,11 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
         </Header>
 
         {haUnavailableVisible && (
-          <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-100 px-4 sm:px-6 py-4 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-300" />
-            <div className="text-sm font-semibold">
-              {oauthExpired ? t('system.oauth.expired') : t('ha.unavailable')}
-            </div>
-            {oauthExpired && (
-              <button
-                onClick={() => { setShowConfigModal(true); setConfigTab('connection'); }}
-                className="ml-auto px-3 py-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 text-xs font-bold uppercase tracking-wider transition-colors border border-yellow-500/30"
-              >
-                {t('system.oauth.loginButton')}
-              </button>
-            )}
-          </div>
+          <ConnectionBanner
+            oauthExpired={oauthExpired}
+            onReconnect={() => { setShowConfigModal(true); setConfigTab('connection'); }}
+            t={t}
+          />
         )}
 
         <div
@@ -582,45 +546,22 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             setShowAddPageModal={setShowAddPageModal}
             t={t}
           />
-          <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 justify-end">
-            {editMode && <button onClick={() => setShowAddCardModal(true)} className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"><Plus className="w-4 h-4" /> {t('nav.addCard')}</button>}
-            {editMode && (
-              <button onClick={() => {
-                const currentSettings = pageSettings[activePage];
-                if (currentSettings?.hidden) setActivePage('home');
-                setEditMode(false);
-              }} className="group flex items-center gap-2 text-xs font-bold uppercase text-green-400 hover:text-white transition-all whitespace-nowrap">
-                <Check className="w-4 h-4" /> {t('nav.done')}
-              </button>
-            )}
-            
-            <button 
-              onClick={() => {
-                const currentSettings = pageSettings[activePage];
-                if (currentSettings?.hidden) setActivePage('home');
-                setEditMode(!editMode);
-              }} 
-              className={`p-2 rounded-full group ${editMode ? 'bg-blue-500/20 text-blue-400' : 'text-[var(--text-secondary)]'}`}
-              title={editMode ? t('nav.done') : t('menu.edit')}
-            >
-              <Edit2 className="w-5 h-5" />
-            </button>
-            <div className="relative">
-              <SettingsDropdown 
-                onOpenSettings={() => { setShowConfigModal(true); setConfigTab('connection'); }}
-                onOpenTheme={() => setShowThemeSidebar(true)}
-                onOpenLayout={() => setShowLayoutSidebar(true)}
-                onOpenHeader={() => setShowHeaderEditModal(true)}
-                t={t}
-              />
-              {updateCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center border-2 border-[var(--card-bg)] pointer-events-none shadow-sm">
-                  <span className="text-[11px] font-bold text-white leading-none pt-[1px]">{updateCount}</span>
-                </div>
-              )}
-            </div>
-            {!connected && <div className={`flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0`} style={{backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)'}}><div className="h-2 w-2 rounded-full" style={{backgroundColor: '#ef4444'}} /></div>}
-          </div>
+          <EditToolbar
+            editMode={editMode}
+            setEditMode={setEditMode}
+            activePage={activePage}
+            pageSettings={pageSettings}
+            setActivePage={setActivePage}
+            setShowAddCardModal={setShowAddCardModal}
+            setShowConfigModal={setShowConfigModal}
+            setConfigTab={setConfigTab}
+            setShowThemeSidebar={setShowThemeSidebar}
+            setShowLayoutSidebar={setShowLayoutSidebar}
+            setShowHeaderEditModal={setShowHeaderEditModal}
+            connected={connected}
+            updateCount={updateCount}
+            t={t}
+          />
         </div>
 
         {isMediaPage(activePage) ? (

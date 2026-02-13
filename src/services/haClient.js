@@ -1,6 +1,6 @@
 // Lightweight HA WebSocket client helpers
 // All functions assume a valid Home Assistant connection `conn`
-// via window.HAWS createConnection.
+// via home-assistant-js-websocket createConnection.
 
 export function callService(conn, domain, service, service_data) {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {

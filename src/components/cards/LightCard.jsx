@@ -1,6 +1,9 @@
+import { useRef, useEffect, useCallback } from 'react';
 import { getIconComponent } from '../../icons';
 import { Lightbulb } from '../../icons';
 import M3Slider from '../ui/M3Slider';
+
+const SLIDER_DEBOUNCE_MS = 200;
 
 const LightCard = ({
   cardId,
@@ -36,6 +39,19 @@ const LightCard = ({
   const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
   const isSmall = sizeSetting === 'small';
 
+  // Debounced brightness service call
+  const debounceRef = useRef(null);
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+  const handleBrightnessChange = useCallback((e) => {
+    const val = parseInt(e.target.value);
+    setOptimisticLightBrightness(prev => ({ ...prev, [cardId]: val }));
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      callService("light", "turn_on", { entity_id: cardId, brightness: val });
+    }, SLIDER_DEBOUNCE_MS);
+  }, [cardId, callService, setOptimisticLightBrightness]);
+
   if (isSmall) {
     return (
       <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
@@ -45,6 +61,7 @@ const LightCard = ({
           onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: cardId }); }} 
           className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`} 
           disabled={isUnavailable}
+          aria-label={`${name || t('common.light')}: ${isOn ? t('common.off') : t('common.on')}`}
         >
           <LightIcon className={`w-6 h-6 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} />
         </button>
@@ -55,7 +72,7 @@ const LightCard = ({
             <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? `${Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100)}%` : t('common.off')}</span>
           </div>
           <div className="w-full">
-             <M3Slider variant="thinLg" min={0} max={255} step={1} value={optimisticLightBrightness[cardId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [cardId]: val })); callService("light", "turn_on", { entity_id: cardId, brightness: val }); }} colorClass="bg-amber-500" />
+             <M3Slider variant="thinLg" min={0} max={255} step={1} value={optimisticLightBrightness[cardId] ?? br} disabled={!isOn || isUnavailable} onChange={handleBrightnessChange} colorClass="bg-amber-500" />
           </div>
         </div>
       </div>
@@ -66,7 +83,7 @@ const LightCard = ({
     <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={cardStyle}>
       {controls}
       <div className="flex justify-between items-start"><button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("light", isOn ? "turn_off" : "turn_on", { entity_id: cardId }); }} className={`p-3 rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'}`} disabled={isUnavailable}><LightIcon className={`w-5 h-5 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''}`} /></button><div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-500' : (isOn ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]')}`}><span className="text-xs tracking-widest uppercase font-bold">{isUnavailable ? t('status.unavailable') : (totalCount > 0 ? (activeCount > 0 ? `${activeCount}/${totalCount}` : t('common.off')) : (isOn ? t('common.on') : t('common.off')))}</span></div></div>
-      <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={optimisticLightBrightness[cardId] ?? br} disabled={!isOn || isUnavailable} onChange={(e) => { const val = parseInt(e.target.value); setOptimisticLightBrightness(prev => ({ ...prev, [cardId]: val })); callService("light", "turn_on", { entity_id: cardId, brightness: val }); }} colorClass="bg-amber-500" /></div>
+      <div className="mt-2 font-sans"><p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p><div className="flex items-baseline gap-1 leading-none"><span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{isUnavailable ? "--" : (isOn ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100) : "0")}</span><span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span></div><M3Slider min={0} max={255} step={1} value={optimisticLightBrightness[cardId] ?? br} disabled={!isOn || isUnavailable} onChange={handleBrightnessChange} colorClass="bg-amber-500" /></div>
     </div>
   );
 };

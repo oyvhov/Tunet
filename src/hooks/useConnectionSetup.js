@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createConnection, createLongLivedTokenAuth, getAuth } from 'home-assistant-js-websocket';
 import { validateUrl } from '../config/onboarding';
 import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
 
@@ -57,7 +58,6 @@ export function useConnectionSetup({
     setTestingConnection(true);
     setConnectionTestResult(null);
     try {
-      const { createConnection, createLongLivedTokenAuth } = window.HAWS;
       const auth = createLongLivedTokenAuth(config.url, config.token);
       const testConn = await createConnection({ auth });
       testConn.close();
@@ -71,13 +71,13 @@ export function useConnectionSetup({
 
   // ── OAuth login redirect ───────────────────────────────────────────────
   const startOAuthLogin = () => {
-    if (!validateUrl(config.url) || !window.HAWS) return;
+    if (!validateUrl(config.url)) return;
     const cleanUrl = config.url.replace(/\/$/, '');
     try {
       localStorage.setItem('ha_url', cleanUrl);
       localStorage.setItem('ha_auth_method', 'oauth');
     } catch {}
-    window.HAWS.getAuth({
+    getAuth({
       hassUrl: cleanUrl,
       saveTokens,
       loadTokens: () => Promise.resolve(loadTokens()),

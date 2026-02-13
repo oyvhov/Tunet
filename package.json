@@ -23,6 +23,7 @@
     "@fortawesome/react-fontawesome": "^3.1.1",
     "@mdi/js": "^7.4.47",
     "@mdi/react": "^1.6.1",
+    "home-assistant-js-websocket": "^9.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",

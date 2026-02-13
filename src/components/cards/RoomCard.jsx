@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { Home, Sun, ChevronUp, ChevronDown } from 'lucide-react';
 import { getIconComponent } from '../../icons';
+
+const SLIDER_DEBOUNCE_MS = 200;
 
 /**
  * RoomCard – shows a summary of a Home Assistant area (room).
@@ -111,23 +113,27 @@ export default function RoomCard({
   }
 
   // Handlers
-  const handleLightSliderChange = (e) => {
+  const sliderDebounceRef = useRef(null);
+  useEffect(() => () => clearTimeout(sliderDebounceRef.current), []);
+
+  const handleLightSliderChange = useCallback((e) => {
     e.stopPropagation();
     const val = parseInt(e.target.value);
     setLocalBrightness(val);
     
-    // Throttle actual resizing? For now we just fire.
-    // The "isNoteDragging" state prevents external updates from resetting the slider while we hold it.
     if (!conn) return;
-    
-    lightIds.forEach(id => {
-       if (val === 0) {
-         callService('light', 'turn_off', { entity_id: id });
-       } else {
-         callService('light', 'turn_on', { entity_id: id, brightness_pct: val });
-       }
-    });
-  };
+
+    clearTimeout(sliderDebounceRef.current);
+    sliderDebounceRef.current = setTimeout(() => {
+      lightIds.forEach(id => {
+        if (val === 0) {
+          callService('light', 'turn_off', { entity_id: id });
+        } else {
+          callService('light', 'turn_on', { entity_id: id, brightness_pct: val });
+        }
+      });
+    }, SLIDER_DEBOUNCE_MS);
+  }, [conn, lightIds, callService]);
 
   const handleSlideStart = (e) => {
       e.stopPropagation();

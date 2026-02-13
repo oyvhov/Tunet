@@ -1171,7 +1171,7 @@ export default function ConfigModal({
                   </button>
                   <div className="text-center pt-2">
                     <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest opacity-50">
-                      Tunet Dashboard v1.6.1
+                      Tunet Dashboard v{__APP_VERSION__}
                     </p>
                   </div>
                 </div>
@@ -1222,7 +1222,7 @@ export default function ConfigModal({
                   </button>
                   <div className="text-center pt-2">
                     <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest opacity-50">
-                      Tunet Dashboard v1.6.1
+                      Tunet Dashboard v{__APP_VERSION__}
                     </p>
                   </div>
                 </div>
