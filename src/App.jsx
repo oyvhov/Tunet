@@ -788,14 +788,6 @@ export default function App() {
       : { ...config, token: '' }   // Token: block until onboarding finishes
     : config;
 
-  console.log('[App] render:', { 
-    showOnboarding, 
-    hasToken: !!config.token, 
-    haConfigToken: !!haConfig.token,
-    isIngress: config.isIngress,
-    url: config.url,
-  });
-
   // Key forces HomeAssistantProvider to remount when onboarding completes,
   // ensuring the fresh credentials trigger a new connection attempt.
   const providerKey = showOnboarding ? 'onboarding' : 'live';

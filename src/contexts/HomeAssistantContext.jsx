@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { createConnection, createLongLivedTokenAuth, subscribeEntities, getAuth } from 'home-assistant-js-websocket';
-import { createIngressAuth } from '../services/haClient';
 import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
 
 const HomeAssistantContext = createContext(null);
@@ -63,28 +62,15 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const hasOAuth = hasOAuthTokens();
     const isOAuthCallback = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('auth_callback');
 
-    console.log('[HA] Connection effect fired:', {
-      url: config.url, 
-      hasToken, 
-      isOAuth, 
-      isIngress: config.isIngress,
-      authMethod: config.authMethod,
-    });
-
-    if (!config.url) {
-      console.log('[HA] No URL, skipping connection');
-      return;
-    }
+    if (!config.url) return;
 
     // For token mode, require token
     if (!isOAuth && !hasToken) {
-      console.log('[HA] Token mode but no token, skipping');
       if (connected) setConnected(false);
       return;
     }
     // For oauth mode, require stored tokens OR an active callback in the URL
     if (isOAuth && !hasOAuth && !isOAuthCallback && !config.isIngress) {
-      console.log('[HA] OAuth mode but no stored tokens, skipping');
       if (connected) setConnected(false);
       return;
     }
@@ -141,38 +127,6 @@ export const HomeAssistantProvider = ({ children, config }) => {
       return connInstance;
     }
 
-    async function connectWithIngress(url) {
-      const auth = createIngressAuth(url, config.token);
-      try {
-        const connInstance = await createConnection({ auth });
-        
-        if (cancelled) {
-          connInstance.close();
-          return null;
-        }
-
-        connection = connInstance;
-        authRef.current = auth;
-        setConn(connInstance);
-        setConnected(true);
-        setHaUnavailable(false);
-        setActiveUrl(url);
-        // Do not persist config for Ingress, as it is derived from environment
-        // persistConfig(url); 
-        
-        fetchCurrentUser(connInstance);
-        subscribeEntities(connInstance, (updatedEntities) => {
-          if (!cancelled) setEntities(updatedEntities);
-        });
-        return connInstance;
-      } catch (err) {
-        console.error('Ingress connection failed:', err);
-        setConnected(false);
-        setHaUnavailable(true);
-        throw err;
-      }
-    }
-
     async function connectWithOAuth(url) {
       const redirectUrl = typeof window !== 'undefined'
         ? `${window.location.origin}${window.location.pathname}`
@@ -208,26 +162,14 @@ export const HomeAssistantProvider = ({ children, config }) => {
     }
 
     async function connect() {
-      console.log('[HA] connect() called, attempting connection to:', config.url);
       try {
-        // If we have a token, connect directly using the standard token auth
-        // This works for both standalone and Ingress (if the user provides a token)
         if (config.token) {
-          console.log('[HA] Using token auth');
           await connectWithToken(config.url);
-        } else if (config.isIngress) {
-            console.log('[HA] Using ingress auth (no token)');
-            // Attempt magic Ingress auth (no token)
-            await connectWithIngress(config.url);
         } else if (isOAuth) {
-          console.log('[HA] Using OAuth');
           await connectWithOAuth(config.url);
         } else {
-          console.log('[HA] Fallback to token auth');
-          // Fallback
           await connectWithToken(config.url);
         }
-        console.log('[HA] Connection successful!');
       } catch (err) {
         console.error('[HA] Connection failed:', err);
         if (cancelled) return;
