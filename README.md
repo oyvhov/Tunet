@@ -39,6 +39,7 @@ npm run dev:all
 
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:3002/api`
+- Docker: `http://localhost:5173`
 
 See [SETUP.md](SETUP.md) for detailed setup and configuration.
 

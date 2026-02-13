@@ -2,24 +2,6 @@
 // All functions assume a valid Home Assistant connection `conn`
 // via home-assistant-js-websocket createConnection.
 
-/**
- * Create an auth object for Home Assistant Ingress connections.
- * Ingress handles authentication via the HA session cookie,
- * so no explicit token is needed.
- */
-export function createIngressAuth(url, token = '') {
-  // Strip any trailing /api or /api/ to prevent double /api/api/websocket
-  const cleanUrl = url.replace(/\/api\/?$/, '').replace(/\/$/, '');
-  const wsUrl = cleanUrl.replace(/^http/, 'ws') + '/api/websocket';
-  return {
-    data: { hassUrl: url, expires: -1 },
-    wsUrl,
-    accessToken: token,
-    expired: false,
-    refreshAccessToken: () => Promise.resolve(token),
-  };
-}
-
 export function callService(conn, domain, service, service_data) {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     return Promise.reject(new Error('Invalid or disconnected HA connection'));
