@@ -104,10 +104,17 @@ export const ConfigProvider = ({ children }) => {
       const path = window.location.pathname;
       const ingressMatch = path.match(/(.*\/api\/hassio_ingress\/[^/]+)/);
       if (ingressMatch && ingressMatch[1]) {
+        // Still load saved URL/token from localStorage so the user doesn't
+        // have to re-enter credentials on every page reload
+        let savedUrl, savedToken;
+        try {
+          savedUrl = localStorage.getItem('ha_url') || '';
+          savedToken = localStorage.getItem('ha_token') || '';
+        } catch { savedUrl = ''; savedToken = ''; }
         return {
-          url: window.location.origin,
+          url: savedUrl || window.location.origin,
           fallbackUrl: '',
-          token: '',
+          token: savedToken,
           authMethod: 'token',
           isIngress: true,
         };
