@@ -29,6 +29,55 @@ const DEFAULT_SECTION_SPACING = {
   navToGrid: 24,
 };
 
+/** Synchronously load & migrate pagesConfig from localStorage. */
+function loadPagesConfig() {
+  const parsed = readJSON('tunet_pages_config', null);
+  if (!parsed) return DEFAULT_PAGES_CONFIG;
+
+  let modified = false;
+
+  // Remove legacy automations/lights page config entirely
+  if (parsed.automations) { delete parsed.automations; modified = true; }
+  if (parsed.lights) { delete parsed.lights; modified = true; }
+
+  // Remove deprecated cards
+  Object.keys(parsed).forEach(pageKey => {
+    if (Array.isArray(parsed[pageKey])) {
+      const filtered = parsed[pageKey].filter(id =>
+        !deprecatedCardIds.includes(id) && !String(id).startsWith('energy_price_')
+      );
+      if (filtered.length !== parsed[pageKey].length) {
+        parsed[pageKey] = filtered;
+        modified = true;
+      }
+    }
+  });
+
+  // Ensure pages array exists
+  if (!Array.isArray(parsed.pages)) {
+    const detectedPages = Object.keys(parsed)
+      .filter(key => Array.isArray(parsed[key]) &&
+        !['header', 'settings', 'lights', 'automations'].includes(key));
+    parsed.pages = detectedPages.length > 0 ? detectedPages : ['home'];
+    modified = true;
+  }
+
+  // Filter out settings, automations, and lights from pages
+  parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'lights' && id !== 'automations');
+  if (parsed.pages.length === 0) { parsed.pages = ['home']; modified = true; }
+
+  // Ensure all pages have arrays
+  parsed.pages.forEach((pageId) => {
+    if (!Array.isArray(parsed[pageId])) { parsed[pageId] = []; modified = true; }
+  });
+
+  // Ensure header exists
+  if (!parsed.header) { parsed.header = []; modified = true; }
+
+  if (modified) writeJSON('tunet_pages_config', parsed);
+  return parsed;
+}
+
 const PageContext = createContext(null);
 
 export const usePages = () => {
@@ -40,7 +89,7 @@ export const usePages = () => {
 };
 
 export const PageProvider = ({ children }) => {
-  const [pagesConfig, setPagesConfig] = useState(DEFAULT_PAGES_CONFIG);
+  const [pagesConfig, setPagesConfig] = useState(loadPagesConfig);
   const [cardSettings, setCardSettings] = useState({});
   const [customNames, setCustomNames] = useState({});
   const [customIcons, setCustomIcons] = useState({});
@@ -56,71 +105,8 @@ export const PageProvider = ({ children }) => {
     localStorage.getItem('tunet_header_title') || ''
   );
 
-  // Load configuration from localStorage
+  // Load remaining configuration from localStorage
   useEffect(() => {
-    const parsed = readJSON('tunet_pages_config', null);
-    if (parsed) {
-      let modified = false;
-
-      // Remove legacy automations/lights page config entirely
-      if (parsed.automations) {
-        delete parsed.automations;
-        modified = true;
-      }
-      if (parsed.lights) {
-        delete parsed.lights;
-        modified = true;
-      }
-
-      // Remove deprecated cards
-      Object.keys(parsed).forEach(pageKey => {
-        if (Array.isArray(parsed[pageKey])) {
-          const filtered = parsed[pageKey].filter(id => 
-            !deprecatedCardIds.includes(id) && !String(id).startsWith('energy_price_')
-          );
-          if (filtered.length !== parsed[pageKey].length) {
-            parsed[pageKey] = filtered;
-            modified = true;
-          }
-        }
-      });
-
-      // Ensure pages array exists
-      if (!Array.isArray(parsed.pages)) {
-        const detectedPages = Object.keys(parsed)
-          .filter(key => Array.isArray(parsed[key]) && 
-            !['header', 'settings', 'lights', 'automations'].includes(key));
-        parsed.pages = detectedPages.length > 0 ? detectedPages : ['home'];
-        modified = true;
-      }
-
-      // Filter out settings, automations, and lights from pages (no separate lights/automations pages)
-      parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'lights' && id !== 'automations');
-      if (parsed.pages.length === 0) {
-        parsed.pages = ['home'];
-        modified = true;
-      }
-
-      // Ensure all pages have arrays
-      parsed.pages.forEach((pageId) => {
-        if (!Array.isArray(parsed[pageId])) {
-          parsed[pageId] = [];
-          modified = true;
-        }
-      });
-
-      // Ensure header exists
-      if (!parsed.header) {
-        parsed.header = [];
-        modified = true;
-      }
-
-      setPagesConfig(parsed);
-      if (modified) {
-        writeJSON('tunet_pages_config', parsed);
-      }
-    }
-
     const hidden = readJSON('tunet_hidden_cards', null);
     if (hidden) {
       const filteredHidden = hidden.filter(id => !deprecatedCardIds.includes(id));

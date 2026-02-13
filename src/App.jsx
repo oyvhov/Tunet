@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { en, nn } from './i18n';
 import {
   AlertTriangle,
@@ -170,7 +170,13 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const [editCardSettingsKey, setEditCardSettingsKey] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
-  const [activePage, setActivePage] = useState('home');
+  const [activePage, _setActivePage] = useState(() => {
+    try { return localStorage.getItem('tunet_active_page') || 'home'; } catch { return 'home'; }
+  });
+  const setActivePage = useCallback((page) => {
+    _setActivePage(page);
+    try { localStorage.setItem('tunet_active_page', page); } catch {}
+  }, []);
   const dragSourceRef = useRef(null);
   const touchTargetRef = useRef(null);
   const [touchTargetId, setTouchTargetId] = useState(null);
@@ -229,6 +235,14 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
   // Smart Theme Logic — only active when bgMode is 'theme'
   useSmartTheme({ currentTheme, bgMode, entities, now });
+
+  // ── Validate persisted activePage still exists in config ───────────────
+  useEffect(() => {
+    const pages = pagesConfig.pages || [];
+    if (activePage !== 'home' && !pages.includes(activePage)) {
+      setActivePage('home');
+    }
+  }, [pagesConfig.pages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Entity accessor helpers ────────────────────────────────────────────
   const {
