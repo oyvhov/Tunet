@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { createConnection, createLongLivedTokenAuth, subscribeEntities, getAuth } from 'home-assistant-js-websocket';
+import { createIngressAuth } from '../services/haClient';
 import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
 
 const HomeAssistantContext = createContext(null);
@@ -128,6 +129,38 @@ export const HomeAssistantProvider = ({ children, config }) => {
       return connInstance;
     }
 
+    async function connectWithIngress(url) {
+      const auth = createIngressAuth(url);
+      try {
+        const connInstance = await createConnection({ auth });
+        
+        if (cancelled) {
+          connInstance.close();
+          return null;
+        }
+
+        connection = connInstance;
+        authRef.current = auth;
+        setConn(connInstance);
+        setConnected(true);
+        setHaUnavailable(false);
+        setActiveUrl(url);
+        // Do not persist config for Ingress, as it is derived from environment
+        // persistConfig(url); 
+        
+        fetchCurrentUser(connInstance);
+        subscribeEntities(connInstance, (updatedEntities) => {
+          if (!cancelled) setEntities(updatedEntities);
+        });
+        return connInstance;
+      } catch (err) {
+        console.error('Ingress connection failed:', err);
+        setConnected(false);
+        setHaUnavailable(true);
+        throw err;
+      }
+    }
+
     async function connectWithOAuth(url) {
       const redirectUrl = typeof window !== 'undefined'
         ? `${window.location.origin}${window.location.pathname}`
@@ -164,7 +197,9 @@ export const HomeAssistantProvider = ({ children, config }) => {
 
     async function connect() {
       try {
-        if (isOAuth || config.isIngress) {
+        if (config.isIngress) {
+            await connectWithIngress(config.url);
+        } else if (isOAuth) {
           await connectWithOAuth(config.url);
         } else {
           await connectWithToken(config.url);

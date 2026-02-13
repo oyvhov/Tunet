@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { en, nn } from './i18n';
 import {
   LayoutGrid,
@@ -64,6 +65,9 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     config,
     setConfig
   } = useConfig();
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const {
     pagesConfig,
@@ -172,6 +176,23 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     _setActivePage(page);
     try { localStorage.setItem('tunet_active_page', page); } catch {}
   }, []);
+
+  // Sync activePage from URL hash (e.g. #settings -> settings)
+  useEffect(() => {
+    const hash = location.hash.replace(/^#/, '');
+    if (hash && hash !== activePage) {
+      _setActivePage(hash);
+    }
+  }, [location.hash, activePage]);
+
+  // Sync URL hash from activePage (e.g. settings -> #settings)
+  useEffect(() => {
+    const hash = location.hash.replace(/^#/, '');
+    if (activePage && activePage !== hash) {
+      navigate(`#${activePage}`, { replace: true });
+    }
+  }, [activePage, navigate, location.hash]);
+
   const dragSourceRef = useRef(null);
   const touchTargetRef = useRef(null);
   const [touchTargetId, setTouchTargetId] = useState(null);

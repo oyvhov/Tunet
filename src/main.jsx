@@ -1,5 +1,6 @@
 import { StrictMode, Component } from 'react'
 import ReactDOM from 'react-dom/client'
+import { HashRouter } from 'react-router-dom'
 import './styles/index.css'
 import App from './App.jsx'
 import { ConfigProvider } from './contexts/ConfigContext'
@@ -71,7 +72,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <ConfigProvider>
         <PageProvider>
-          <App />
+          <HashRouter>
+            <App />
+          </HashRouter>
         </PageProvider>
       </ConfigProvider>
     </ErrorBoundary>
