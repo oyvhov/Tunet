@@ -6,7 +6,6 @@ import {
   Edit2,
   LayoutGrid,
   Plus,
-  Settings,
 } from './icons';
 
 
@@ -15,9 +14,7 @@ import SettingsDropdown from './components/SettingsDropdown';
 import { Header, StatusBar } from './layouts';
 
 import {
-  M3Slider,
   MediaPage,
-  MissingEntityCard,
   PageNavigation,
   PersonStatus,
 } from './components';
@@ -53,7 +50,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const {
     currentTheme,
     setCurrentTheme,
-    toggleTheme,
     language,
     setLanguage,
     inactivityTimeout,
@@ -113,7 +109,6 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const {
     entities,
     connected,
-    haUnavailable,
     haUnavailableVisible,
     oauthExpired,
     conn,
@@ -136,39 +131,23 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   // Modal state management
   const modals = useModals();
   const {
-    showNordpoolModal,
     setShowNordpoolModal,
-    showCostModal,
     setShowCostModal,
-    activeClimateEntityModal,
     setActiveClimateEntityModal,
-    showLightModal,
     setShowLightModal,
-    activeCarModal,
     setActiveCarModal,
-    showPersonModal,
     setShowPersonModal,
-    showAndroidTVModal,
     setShowAndroidTVModal,
-    showVacuumModal,
     setShowVacuumModal,
-    showSensorInfoModal,
     setShowSensorInfoModal,
-    showCalendarModal,
     setShowCalendarModal,
-    showTodoModal,
     setShowTodoModal,
-    showRoomModal,
     setShowRoomModal,
-    showWeatherModal,
     setShowWeatherModal,
     activeMediaModal,
     setActiveMediaModal,
-    activeMediaGroupKey,
     setActiveMediaGroupKey,
-    activeMediaGroupIds,
     setActiveMediaGroupIds,
-    activeMediaSessionSensorIds,
     setActiveMediaSessionSensorIds,
     activeMediaId,
     setActiveMediaId,
@@ -178,11 +157,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setShowConfigModal,
     showAddPageModal,
     setShowAddPageModal,
-    showHeaderEditModal,
     setShowHeaderEditModal,
-    showEditCardModal,
     setShowEditCardModal,
-    showStatusPillsConfig,
     setShowStatusPillsConfig,
     hasOpenModal,
     closeAllModals,
@@ -202,7 +178,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const touchSwapCooldownRef = useRef(0);
   const pointerDragRef = useRef(false);
   const ignoreTouchRef = useRef(false);
-  const [tempHistoryById, setTempHistoryById] = useTempHistory(conn, cardSettings);
+  const [tempHistoryById, _setTempHistoryById] = useTempHistory(conn, cardSettings);
 
   // ── Responsive grid ────────────────────────────────────────────────────
   const { gridColCount, isCompactCards, isMobile } = useResponsiveGrid(gridColumns);
@@ -685,7 +661,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                 if (a.placement.row !== b.placement.row) return a.placement.row - b.placement.row;
                 return a.placement.col - b.placement.col;
               })
-              .map(({ id }, sortedIndex) => {
+              .map(({ id }, _sortedIndex) => {
               const index = (pagesConfig[activePage] || []).indexOf(id);
               const placement = gridLayout[id];
               const isCalendarCard = id.startsWith('calendar_card_');

@@ -14,7 +14,7 @@ const PersonStatus = ({
   onOpenPerson,
   onEditCard,
   onRemoveCard,
-  t
+  t: _t
 }) => {
   const entity = entities[id];
   if (!entity && !editMode) return null;

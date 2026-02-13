@@ -1,14 +1,8 @@
 import { getIconComponent } from '../iconMap';
 import {
-  AlertTriangle,
-  Battery,
-  Bot,
   Car,
   Flame,
-  Home,
   MapPin,
-  Pause,
-  Play,
   Thermometer,
   Zap
 } from '../icons';
@@ -43,9 +37,9 @@ const CarCard = ({
   customIcons,
   getS,
   getA,
-  callService,
+  _callService,
   onOpen,
-  isMobile,
+  _isMobile,
   t
 }) => {
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};

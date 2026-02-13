@@ -33,7 +33,7 @@ export const handleAddSelected = (ctx) => {
     setCostSelectionTarget,
     setSelectedNordpoolId,
     setNordpoolDecimals,
-    saveCardSetting,
+    saveCardSetting: _saveCardSetting,
     setShowEditCardModal,
     setEditCardSettingsKey
   } = ctx;

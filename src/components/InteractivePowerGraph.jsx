@@ -20,7 +20,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale })
   }));
 
   // Bezier smoothing helper
-  const getBezierPath = (points, isClosed = false) => {
+  const getBezierPath = (points, _isClosed = false) => {
     if (points.length === 0) return "";
     
     const controlPoint = (current, previous, next, reverse) => {

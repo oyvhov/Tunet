@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Clock, Calendar, Activity, Info } from 'lucide-react';
+import { X, Activity } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { getHistory, getHistoryRest, getStatistics } from '../services/haClient';
 import SensorHistoryGraph from '../components/SensorHistoryGraph';
@@ -11,9 +11,8 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
   const [history, setHistory] = useState([]);
   const [historyEvents, setHistoryEvents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [historyError, setHistoryError] = useState(null);
-  const [historyMeta, setHistoryMeta] = useState({ source: null, rawCount: 0 });
-  const [showAttributes, setShowAttributes] = useState(true); // Default open for large screens
+  const [_historyError, setHistoryError] = useState(null);
+  const [_historyMeta, setHistoryMeta] = useState({ source: null, rawCount: 0 });
   const [historyHours, setHistoryHours] = useState(24);
 
   // Keep track of window for the timeline
@@ -70,7 +69,6 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
           let events = [];
           
           // Determine if we need history data for activity/events display
-          const domain = entityId?.split('.')?.[0];
           const needsActivityData = getShouldShowActivity();
           
           // Try fetching history via REST first (recommended for full data)
@@ -156,7 +154,7 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
                   setHistoryError(restMessage);
                 }
               }
-            } catch (wsErr) {
+            } catch (_wsErr) {
               setHistoryError(restMessage);
             }
           }
@@ -202,15 +200,11 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
                time: start, 
                lastChanged: start.toISOString()
              }];
-          } else if (events.length > 0) {
-              const firstEvent = events[0];
-              // Note: Gaps handled in BinaryTimeline component
           }
-
           setHistory(points);
           setHistoryEvents(events);
-        } catch (e) {
-          console.error("Failed to load history", e);
+        } catch (_e) {
+          console.error("Failed to load history", _e);
         } finally {
           setLoading(false);
         }
@@ -232,8 +226,6 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
   const domain = entityId?.split('.')?.[0];
   const isNumeric = !['script', 'scene'].includes(domain) && !isNaN(parseFloat(state)) && !String(state).match(/^unavailable|unknown$/) && !entityId.startsWith('binary_sensor.');
   const deviceClass = attrs.device_class;
-  const isBinary = entity.entity_id?.startsWith('binary_sensor.') && (state === 'on' || state === 'off');
-  
   // Determine if entity should show activity timeline and log
   const shouldShowActivity = () => getShouldShowActivity();
   
@@ -256,7 +248,7 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
          if (!isNaN(d.getTime())) {
            return d.toLocaleString();
          }
-      } catch (e) {
+      } catch (_e) {
         // Silently ignore parse errors for non-date values
       }
     }
@@ -310,10 +302,6 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
     }
     
     return stateMap[normalized] || String(value);
-  };
-
-  const formatBinaryStateLabel = (value) => {
-    return formatStateLabel(value, deviceClass);
   };
 
   let displayState = isNumeric ? parseFloat(state) : formatStateLabel(state, deviceClass);

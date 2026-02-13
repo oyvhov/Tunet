@@ -1,4 +1,4 @@
-import { Home, Wifi, Settings, Check } from 'lucide-react';
+import { Wifi, Settings, Check } from 'lucide-react';
 
 export const buildOnboardingSteps = (t) => [
   { key: 'connection', label: t('onboarding.step.connection'), icon: Wifi },

@@ -54,7 +54,6 @@ export default function WeatherModal({
   const temperatureUnit = attrs.temperature_unit || '°C';
   const windUnit = attrs.wind_speed_unit || 'km/h';
   const pressureUnit = attrs.pressure_unit || 'hPa';
-  const visibilityUnit = attrs.visibility_unit || 'km';
   const precipitationUnit = attrs.precipitation_unit || 'mm';
 
   const windVal = formatValue(attrs.wind_speed, '');
@@ -89,7 +88,7 @@ export default function WeatherModal({
             : (Array.isArray(weatherEntity.attributes?.forecast) ? weatherEntity.attributes.forecast : []);
           setForecast(next);
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           const fallback = Array.isArray(weatherEntity.attributes?.forecast) ? weatherEntity.attributes.forecast : [];
           setForecast(fallback);
@@ -222,7 +221,7 @@ export default function WeatherModal({
 
             <div className="px-1">
               <div className="flex items-start justify-between overflow-x-auto scrollbar-hide pb-2 mask-linear gap-6">
-                {forecastList.map((item, index) => {
+                {forecastList.map((item, _index) => {
                   return (
                     <div
                       key={item.key}

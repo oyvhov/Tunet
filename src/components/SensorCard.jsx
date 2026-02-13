@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Minus, Plus, Activity, Power, ToggleLeft, ToggleRight, Play } from 'lucide-react';
+import { Minus, Plus, Activity, Play } from 'lucide-react';
 import { getHistory, getStatistics } from '../services/haClient';
 import SparkLine from './SparkLine';
 
@@ -33,7 +33,6 @@ export default function SensorCard({
   const isBinaryNumeric = isNumeric && (numericState === 0 || numericState === 1);
   const isBinaryLike = isOnOffState || isBinaryNumeric;
   const isActiveState = isOnOffState ? state === 'on' : (isBinaryNumeric ? numericState === 1 : false);
-  const isInactiveState = isOnOffState ? state === 'off' : (isBinaryNumeric ? numericState === 0 : false);
   const binaryStateKeys = {
     door: { on: 'binary.door.open', off: 'binary.door.closed' },
     window: { on: 'binary.window.open', off: 'binary.window.closed' },

@@ -113,7 +113,7 @@ export default function ModalOrchestrator({
     newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon,
     createPage, createMediaPage, deletePage,
     pageSettings, savePageSetting,
-    pagesConfig, persistConfig, activePage,
+    pagesConfig, persistConfig,
   } = pageManagement;
 
   const {

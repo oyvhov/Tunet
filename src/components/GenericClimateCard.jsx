@@ -1,4 +1,4 @@
-import { Minus, Plus, AirVent, Snowflake, Fan } from 'lucide-react';
+import { Minus, Plus, AirVent, Fan } from 'lucide-react';
 import { getIconComponent } from '../iconMap';
 
 const isCoolingState = (entity) => {
@@ -53,7 +53,6 @@ export default function GenericClimateCard({
   const stepTemp = (delta) => onSetTemperature((targetTemp || 21) + delta);
 
   if (isSmall) {
-    const hvacAction = entity.attributes?.hvac_action || 'idle';
     return (
       <div
         {...dragProps}

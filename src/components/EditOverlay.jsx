@@ -41,9 +41,9 @@ function getNextSize(editId, currentSize) {
 }
 
 function EditOverlay({
-  cardId,
+  _cardId,
   editId,
-  settingsKey,
+  _settingsKey,
   isHidden,
   currentSize,
   settings,

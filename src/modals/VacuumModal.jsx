@@ -36,7 +36,7 @@ export default function VacuumModal({
   // Status Color Logic similar to ClimateModal
   const statusColor = isCleaning ? '#60a5fa' : (isReturning ? '#c084fc' : (isError ? '#ef4444' : 'var(--text-secondary)'));
   const statusBg = isCleaning ? 'rgba(59, 130, 246, 0.1)' : (isReturning ? 'rgba(192, 132, 252, 0.1)' : (isError ? 'rgba(239, 68, 68, 0.1)' : 'var(--glass-bg)'));
-  const statusBorder = isCleaning ? 'rgba(59, 130, 246, 0.2)' : (isReturning ? 'rgba(192, 132, 252, 0.2)' : (isError ? 'rgba(239, 68, 68, 0.2)' : 'var(--glass-border)'));
+  const _statusBorder = isCleaning ? 'rgba(59, 130, 246, 0.2)' : (isReturning ? 'rgba(192, 132, 252, 0.2)' : (isError ? 'rgba(239, 68, 68, 0.2)' : 'var(--glass-border)'));
 
   return (
     <div 

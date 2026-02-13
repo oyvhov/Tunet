@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  X, Plus, Trash2, Edit2, Eye, EyeOff, GripVertical, Check,
+  X, Plus, Trash2, Eye, EyeOff, Check,
   ChevronDown, ChevronUp, Activity, Music, Clapperboard, Speaker
 } from '../icons';
 import { getAllIconKeys, getIconComponent } from '../iconMap';
-import ModernDropdown from '../components/ModernDropdown';
 
 /**
  * Modal for configuring status pills in the header

@@ -62,7 +62,7 @@ export function useConnectionSetup({
       const testConn = await createConnection({ auth });
       testConn.close();
       setConnectionTestResult({ success: true, message: t('onboarding.testSuccess') });
-    } catch (err) {
+    } catch {
       setConnectionTestResult({ success: false, message: t('onboarding.testFailed') });
     } finally {
       setTestingConnection(false);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, ChevronDown, Maximize2, Clock, Eye, RefreshCw, Type, AlignLeft, LayoutGrid } from '../icons';
+import { Palette, ChevronDown, Maximize2, Eye, RefreshCw, Type, AlignLeft, LayoutGrid } from '../icons';
 import M3Slider from './M3Slider';
 import SidebarContainer from './SidebarContainer';
 

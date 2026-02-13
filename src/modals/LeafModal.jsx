@@ -1,4 +1,4 @@
-import { X, Car, Clock, RefreshCw, Zap, MapPin, Thermometer, Flame } from '../icons';
+import { X, Car, Clock, RefreshCw, Zap, MapPin, Thermometer } from '../icons';
 import M3Slider from '../components/M3Slider';
 import { formatRelativeTime } from '../utils';
 

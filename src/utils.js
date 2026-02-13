@@ -14,7 +14,7 @@ export const formatRelativeTime = (timestamp, t) => {
     const remainingMins = diffMins % 60;
     if (remainingMins === 0) return translate('time.hoursAgo').replace('{hours}', diffHours);
     return translate('time.hoursMinutesAgo').replace('{hours}', diffHours).replace('{minutes}', remainingMins);
-  } catch (e) {
+  } catch (_e) {
     return translate('time.unknown');
   }
 };

@@ -14,7 +14,6 @@ class CalendarErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    // eslint-disable-next-line no-console
     console.error('CalendarCard crashed:', error, info);
   }
 
@@ -85,7 +84,7 @@ function CalendarCard({
         const value = eventDate.dateTime || eventDate.date || eventDate;
         const date = new Date(value);
         return Number.isNaN(date.getTime()) ? new Date(0) : date;
-      } catch (e) {
+      } catch {
         return new Date(0);
       }
   };

@@ -4,18 +4,6 @@ import ModernDropdown from '../components/ModernDropdown';
 
 const getDisplayName = (entity, fallback) => entity?.attributes?.friendly_name || fallback;
 
-const isCoolingState = (entity) => {
-  const action = entity?.attributes?.hvac_action;
-  const state = entity?.state;
-  return action === 'cooling' || state === 'cool';
-};
-
-const isHeatingState = (entity) => {
-  const action = entity?.attributes?.hvac_action;
-  const state = entity?.state;
-  return action === 'heating' || state === 'heat';
-};
-
 export default function GenericClimateModal({
   entityId,
   entity,

@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
 import { 
   X, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, 
   SkipBack, Play, Pause, SkipForward, Home, Settings, 
-  Gamepad2, Tv, Power, Volume2, Speaker
+  Gamepad2, Tv, Power, Volume2
 } from '../icons';
-import M3Slider from '../components/M3Slider';
 
 export default function GenericAndroidTVModal({ 
   show, 
@@ -71,7 +69,6 @@ export default function GenericAndroidTVModal({
   // Status Logic
   const statusColor = isPlaying ? '#60a5fa' : (isPaused ? '#fbbf24' : (isOn ? '#a78bfa' : 'var(--text-secondary)'));
   const statusBg = isPlaying ? 'rgba(59, 130, 246, 0.1)' : (isPaused ? 'rgba(251, 191, 36, 0.1)' : (isOn ? 'rgba(167, 139, 250, 0.1)' : 'var(--glass-bg)')); 
-  const statusBorder = isPlaying ? 'rgba(59, 130, 246, 0.2)' : (isPaused ? 'rgba(251, 191, 36, 0.2)' : (isOn ? 'rgba(167, 139, 250, 0.2)' : 'var(--glass-border)'));
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) onClose();

@@ -101,8 +101,7 @@ export function renderLightCard(cardId, dragProps, getControls, cardStyle, setti
 }
 
 export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, getA, callService, t } = ctx;
-  const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const { entities, editMode, customNames, customIcons, getA, callService, t } = ctx;
   const isOn = entities[cardId]?.state === 'on';
   const friendlyName = customNames[cardId] || getA(cardId, 'friendly_name') || cardId;
   const automationIconName = customIcons[cardId] || entities[cardId]?.attributes?.icon;
@@ -118,7 +117,7 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
         backgroundColor: isOn ? 'rgba(59, 130, 246, 0.03)' : 'rgba(15, 23, 42, 0.6)',
         borderColor: isOn ? 'rgba(59, 130, 246, 0.15)' : (editMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)')
       }}
-      onClick={(e) => { if (!editMode) callService('automation', 'toggle', { entity_id: cardId }); }}
+      onClick={(_e) => { if (!editMode) callService('automation', 'toggle', { entity_id: cardId }); }}
     >
       {getControls(cardId)}
       <div className="flex items-center gap-4">
@@ -430,7 +429,7 @@ export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settin
  * Returns JSX for the card, or null if the card should not be rendered.
  */
 export function dispatchCardRender(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, activePage, isCardHiddenByLogic } = ctx;
+  const { editMode, cardSettings, activePage } = ctx;
 
   // Lights (both legacy IDs and entity IDs)
   if (cardId.startsWith('light_') || cardId.startsWith('light.')) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { CheckSquare, Circle, CheckCircle2, Plus, AlertCircle, ListChecks, Trash2 } from 'lucide-react';
+import { Circle, CheckCircle2, Plus, AlertCircle, ListChecks, Trash2 } from 'lucide-react';
 import { getIconComponent } from '../iconMap';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../services/haClient';
 
@@ -57,7 +57,6 @@ function TodoCard({
   // Large card interactive state
   const [newItemText, setNewItemText] = useState('');
   const [adding, setAdding] = useState(false);
-  const inputRef = useRef(null);
 
   const todoEntityId = settings?.todoEntityId;
 

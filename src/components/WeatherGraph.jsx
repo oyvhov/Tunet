@@ -111,7 +111,6 @@ export default function WeatherGraph({ history, currentTemp }) {
 
   // Define color scale (Gradient Units UserSpaceOnUse maps temp directly to Y)
   // Gradient defined so that 0 degrees is the boundary between blue and green
-  const yZero = getY(0);
   const yTop = getY(30); // Hot
   const yBottom = getY(-15); // Cold
 

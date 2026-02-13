@@ -45,7 +45,7 @@ export async function getHistory(conn, { start, end, entityId, minimal_response 
   return Array.isArray(historyData) ? historyData : [];
 }
 
-export async function getHistoryRest(baseUrl, token, { start, end, entityId, minimal_response = false, no_attributes = false, significant_changes_only = false }) {
+export async function getHistoryRest(baseUrl, token, { start, end: _end, entityId, minimal_response = false, no_attributes = false, significant_changes_only = false }) {
   if (!baseUrl || !token) throw new Error('Missing HA url or token');
   const root = String(baseUrl).replace(/\/$/, '');
   const startIso = start.toISOString();
@@ -190,7 +190,7 @@ export async function getTodoItems(conn, entityId) {
     if (res && Array.isArray(res.items)) {
       return res.items;
     }
-  } catch (err) {
+  } catch {
     // If todo/item/list is not available or fails, fall back to service call
   }
 

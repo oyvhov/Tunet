@@ -173,7 +173,6 @@ export default function MediaModal({
   }
   if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
 
-  const mpApp = getA(mpId, 'app_name');
   const mpPicture = getEntityImageUrl(currentMp.attributes?.entity_picture);
   const activeUser = (() => {
     const match = Array.isArray(sessions)

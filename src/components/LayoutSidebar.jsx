@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import M3Slider from './M3Slider';
 import {
   LayoutGrid,
-  Monitor,
   RefreshCw,
   Columns,
   Eye,

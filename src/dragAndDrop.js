@@ -120,7 +120,7 @@ export const createDragAndDropHandlers = ({
     const targetId = cardElement.getAttribute('data-card-id');
     const targetIndex = parseInt(cardElement.getAttribute('data-index'));
     const targetColIndexStr = cardElement.getAttribute('data-col-index');
-    const targetColIndex = targetColIndexStr ? parseInt(targetColIndexStr) : undefined;
+    const _targetColIndex = targetColIndexStr ? parseInt(targetColIndexStr) : undefined;
 
     if (!targetId || targetId === dragSourceRef.current.cardId) return;
 

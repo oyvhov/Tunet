@@ -212,11 +212,6 @@ export const PageProvider = ({ children }) => {
     writeJSON('tunet_page_settings', newSettings);
   };
 
-  const persistCardSettings = (newSettings) => {
-    setCardSettings(newSettings);
-    writeJSON('tunet_card_settings', newSettings);
-  };
-
   const toggleCardVisibility = (cardId) => {
     const newHidden = hiddenCards.includes(cardId) 
       ? hiddenCards.filter(id => id !== cardId)

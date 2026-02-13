@@ -8,7 +8,7 @@ export default function GenericAndroidTVCard({
   editMode,
   entities,
   mediaPlayerId,
-  remoteId,
+  remoteId: _remoteId,
   linkedMediaPlayers,
   size,
   getA,

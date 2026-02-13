@@ -19,13 +19,13 @@ import StatusPill from '../components/StatusPill';
  */
 export default function StatusBar({ 
   entities, 
-  now,
+  _now,
   setActiveMediaId,
   setActiveMediaGroupKey,
   setActiveMediaGroupIds,
   setActiveMediaSessionSensorIds,
   setActiveMediaModal,
-  setShowUpdateModal,
+  _setShowUpdateModal,  
   setShowStatusPillsConfig,
   editMode,
   t, 

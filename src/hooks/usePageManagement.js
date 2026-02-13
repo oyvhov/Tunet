@@ -15,7 +15,7 @@ export function usePageManagement({
   setActivePage,
   showAddPageModal,
   setShowAddPageModal,
-  showAddCardModal,
+  showAddCardModal: _showAddCardModal,
   setShowAddCardModal,
   t,
 }) {

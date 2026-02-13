@@ -1,5 +1,5 @@
 import { getIconComponent } from '../iconMap';
-import { Activity, Music, Clapperboard } from '../icons';
+import { Activity, Clapperboard } from '../icons';
 
 /**
  * Generic configurable status pill

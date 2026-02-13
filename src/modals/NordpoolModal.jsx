@@ -22,7 +22,7 @@ import InteractivePowerGraph from '../components/InteractivePowerGraph';
 export default function NordpoolModal({
   show,
   onClose,
-  entity,
+  entity: _entity,
   fullPriceData,
   currentPriceIndex,
   priceStats,

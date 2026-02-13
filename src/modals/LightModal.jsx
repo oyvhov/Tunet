@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, AlertTriangle, Lightbulb, Zap, Utensils, Sofa, LampDesk, Palette, Thermometer, Sun } from '../icons';
+import { X, AlertTriangle, Lightbulb, Utensils, Sofa, LampDesk, Palette, Thermometer, Sun } from '../icons';
 import M3Slider from '../components/M3Slider';
 import { getIconComponent } from '../iconMap';
 

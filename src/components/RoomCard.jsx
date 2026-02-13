@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Home, Lightbulb, Eye, Flame, Sun, ChevronUp, ChevronDown, ArrowLeftRight } from 'lucide-react';
+import { Home, Sun, ChevronUp, ChevronDown } from 'lucide-react';
 import { getIconComponent } from '../iconMap';
 
 /**
@@ -61,8 +61,6 @@ export default function RoomCard({
   
   const currentTemp = tempEntity ? parseFloat(tempEntity.state).toFixed(1) : (climateEntity?.attributes?.current_temperature || null);
   const targetTemp = climateEntity?.attributes?.temperature;
-  const hvacAction = climateEntity?.attributes?.hvac_action || climateEntity?.state;
-  
   const isOccupied = motionEntity?.state === 'on';
 
   // Toggle state for which control to show (if both exist)

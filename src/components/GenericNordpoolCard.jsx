@@ -14,7 +14,7 @@ export default function GenericNordpoolCard({
   onOpen,
   t,
   settings = {},
-  saveCardSetting
+  saveCardSetting: _saveCardSetting
 }) {
   const translate = t || ((key) => key);
 

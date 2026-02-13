@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Check, Plus } from '../icons';
+import { X, Calendar, Check } from '../icons';
 import { getCalendarEvents } from '../services';
 
 /**
@@ -195,7 +195,6 @@ export default function CalendarModal({
                         .sort((a, b) => new Date(a.start) - new Date(b.start))
                         .map((event, idx) => {
                           const startTime = new Date(event.start);
-                          const endTime = new Date(event.end);
                           const isAllDay = event.start.length === 10; // Date only, no time
                           
                           return (
