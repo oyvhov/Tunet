@@ -184,7 +184,6 @@ export default function ModalOrchestrator({
     const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
     const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
     const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
-    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditCamera || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
     const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditCamera || isEditNordpool || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
     const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
     return {
