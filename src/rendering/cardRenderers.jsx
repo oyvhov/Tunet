@@ -10,6 +10,7 @@
  */
 import {
   CalendarCard,
+  CameraCard,
   CarCard,
   CoverCard,
   TodoCard,
@@ -455,6 +456,38 @@ export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settin
   );
 }
 
+export function renderCameraCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
+  const { entities, editMode, cardSettings, customNames, customIcons, getEntityImageUrl, setShowCameraModal, t } = ctx;
+  const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const entityId = settings.cameraId;
+  const entity = entityId ? entities[entityId] : null;
+
+  if (!entity || !entityId) {
+    if (editMode) {
+      return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={t} />;
+    }
+    return null;
+  }
+
+  return (
+    <CameraCard
+      key={cardId}
+      cardId={cardId}
+      entityId={entityId}
+      entity={entity}
+      dragProps={dragProps}
+      controls={getControls(cardId)}
+      cardStyle={cardStyle}
+      editMode={editMode}
+      customNames={customNames}
+      customIcons={customIcons}
+      getEntityImageUrl={getEntityImageUrl}
+      onOpen={() => setShowCameraModal(cardId)}
+      t={t}
+    />
+  );
+}
+
 // ─── Card Type Dispatch ──────────────────────────────────────────────────────
 
 /**
@@ -482,6 +515,7 @@ const CARD_REGISTRY = [
   { prefix: 'nordpool_card_',  renderer: renderNordpoolCard },
   { prefix: 'cover_card_',     renderer: renderCoverCard },
   { prefix: 'room_card_',      renderer: renderRoomCard },
+  { prefix: 'camera_card_',    renderer: renderCameraCard },
 ];
 
 export function dispatchCardRender(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {

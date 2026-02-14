@@ -1,5 +1,6 @@
 // ── Cards ────────────────────────────────────────────────────────────────
 export { default as CalendarCard } from './cards/CalendarCard';
+export { default as CameraCard } from './cards/CameraCard';
 export { default as CarCard } from './cards/CarCard';
 export { default as CoverCard } from './cards/CoverCard';
 export { default as GenericAndroidTVCard } from './cards/GenericAndroidTVCard';
