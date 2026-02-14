@@ -111,7 +111,7 @@ export default function Header({
         {/* Right column: Clock (aligned with heading Y) */}
         {headerSettings.showClock && !isMobile && (
           <h2 
-            className="font-light tracking-[0.1em] leading-none select-none hidden md:block" 
+            className="font-light tracking-[0.1em] leading-none select-none" 
             style={{ 
               fontSize: `calc(3.75rem * ${headerScale} * ${clockScale})`, 
               color: 'var(--text-muted)' 
