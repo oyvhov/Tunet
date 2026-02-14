@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.10] — 2026-02-14
+
+### Fixed
+- Android TV card service calls now use the correct Home Assistant connection wrapper.
+- Connection auth flow now respects selected auth method (OAuth vs token) without stale-token override.
+- Temp-history staggered fetch timers are now cleaned up correctly on unmount/update.
+- Add Card no longer allows mixed stale selections across card types.
+- Android TV Add Card now uses the same footer add-action pattern as other card types.
+- Header font selection now applies correctly from the saved settings key.
+- Clock size at 100% now follows header text size baseline, and clock is aligned to heading row only.
+
 ## [1.0.0-beta.9] — 2026-02-14
 
 ### Added

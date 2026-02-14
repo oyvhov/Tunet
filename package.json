@@ -1,7 +1,7 @@
 {
   "name": "tunet-dashboard",
   "private": true,
-  "version": "1.0.0-beta.9",
+  "version": "1.0.0-beta.10",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/oyvhov/tunet.git"
@@ -18,7 +18,10 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "release:prep": "node scripts/release.mjs prep",
+    "release:check": "node scripts/release.mjs check",
+    "release": "npm run release:check ; npm run test ; npm run build"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",

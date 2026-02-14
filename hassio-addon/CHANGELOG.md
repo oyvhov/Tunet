@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7
+
+- Synced release metadata with dashboard beta.10 fixes.
+- Added clearer update guidance for Docker, Add-on, and source installs.
+- Updated add-on build source tracking to follow `main` branch.
+
 ## 1.0.6
 
 - Simplified onboarding for add-on users (auto-detected URL, token-only auth).
