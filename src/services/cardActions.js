@@ -39,6 +39,23 @@ export const handleAddSelected = (ctx) => {
 
   const newConfig = { ...pagesConfig };
 
+  const selectedEntitiesForType = () => {
+    switch (addCardType) {
+      case 'light':
+        return selectedEntities.filter((id) => id.startsWith('light.'));
+      case 'vacuum':
+        return selectedEntities.filter((id) => id.startsWith('vacuum.'));
+      case 'climate':
+        return selectedEntities.filter((id) => id.startsWith('climate.'));
+      case 'cover':
+        return selectedEntities.filter((id) => id.startsWith('cover.'));
+      case 'media':
+        return selectedEntities.filter((id) => id.startsWith('media_player.'));
+      default:
+        return selectedEntities;
+    }
+  };
+
   // -- Helpers ---------------------------------------------------------------
 
   /** Append card(s) to page, persist config, and close the add-card modal. */
@@ -100,17 +117,19 @@ export const handleAddSelected = (ctx) => {
     }
 
     case 'media': {
-      if (selectedEntities.length === 0) return;
+      const mediaEntities = selectedEntitiesForType();
+      if (mediaEntities.length === 0) return;
       const cardId = `media_group_${Date.now()}`;
-      commitSingleCard(cardId, { mediaIds: selectedEntities });
+      commitSingleCard(cardId, { mediaIds: mediaEntities });
       setSelectedEntities([]);
       return;
     }
 
     case 'climate': {
-      if (selectedEntities.length === 0) return;
+      const climateEntities = selectedEntitiesForType();
+      if (climateEntities.length === 0) return;
       const newSettings = { ...cardSettings };
-      const newCardIds = selectedEntities.map((entityId) => {
+      const newCardIds = climateEntities.map((entityId) => {
         const cardId = `climate_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
         newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), climateId: entityId };
@@ -123,9 +142,10 @@ export const handleAddSelected = (ctx) => {
     }
 
     case 'cover': {
-      if (selectedEntities.length === 0) return;
+      const coverEntities = selectedEntitiesForType();
+      if (coverEntities.length === 0) return;
       const newSettings = { ...cardSettings };
-      const newCardIds = selectedEntities.map((entityId) => {
+      const newCardIds = coverEntities.map((entityId) => {
         const cardId = `cover_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
         newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), coverId: entityId };
@@ -191,9 +211,11 @@ export const handleAddSelected = (ctx) => {
 
     // entity / toggle / sensor — default path for plain HA entities
     default: {
+      const validSelectedEntities = selectedEntitiesForType();
+
       if (addCardType === 'entity' || addCardType === 'toggle' || addCardType === 'sensor') {
         const newSettings = { ...cardSettings };
-        selectedEntities.forEach((id) => {
+        validSelectedEntities.forEach((id) => {
           const settingsKey = getCardSettingsKey(id, addCardTargetPage);
           newSettings[settingsKey] = {
             ...(newSettings[settingsKey] || {}),
@@ -204,7 +226,7 @@ export const handleAddSelected = (ctx) => {
         persistCardSettings(newSettings);
       }
 
-      commitCards(selectedEntities);
+      commitCards(validSelectedEntities);
       setSelectedEntities([]);
     }
   }

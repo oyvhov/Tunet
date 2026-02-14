@@ -92,6 +92,7 @@ export default function EditCardModal({
   isEditCalendar,
   isEditTodo,
   isEditCost,
+  isEditNordpool,
   isEditCar,
   isEditRoom,
   isEditAndroidTV,
@@ -239,16 +240,28 @@ export default function EditCardModal({
           )}
 
           {isEditWeatherTemp && editSettingsKey && (
-            <div className="space-y-2">
-              <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-1 block">{t('weatherTemp.effects')}</label>
-              <div className="popup-surface rounded-2xl p-4 flex items-center justify-between">
-                <span className="text-sm font-medium text-[var(--text-primary)]">{t('weatherTemp.showEffects')}</span>
-                <button
-                  onClick={() => saveCardSetting(editSettingsKey, 'showEffects', editSettings.showEffects === false ? true : false)}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showEffects !== false ? 'bg-blue-500' : 'bg-gray-600'}`}
-                >
-                  <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`} />
-                </button>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('weatherTemp.subtitle') || 'Subtitle'}</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                  defaultValue={editSettings.subtitle || ''}
+                  onBlur={(e) => saveCardSetting(editSettingsKey, 'subtitle', e.target.value.trim() || null)}
+                  placeholder={t('weatherTemp.subtitlePlaceholder') || 'e.g. Oslo, Home'}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-1 block">{t('weatherTemp.effects')}</label>
+                <div className="popup-surface rounded-2xl p-4 flex items-center justify-between">
+                  <span className="text-sm font-medium text-[var(--text-primary)]">{t('weatherTemp.showEffects')}</span>
+                  <button
+                    onClick={() => saveCardSetting(editSettingsKey, 'showEffects', editSettings.showEffects === false ? true : false)}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showEffects !== false ? 'bg-blue-500' : 'bg-gray-600'}`}
+                  >
+                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -850,6 +863,29 @@ export default function EditCardModal({
 
           {isEditCost && (
             <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('energyCost.todayLabel') || 'Today label'}</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    defaultValue={editSettings.todayLabel || ''}
+                    onBlur={(e) => saveCardSetting(editSettingsKey, 'todayLabel', e.target.value.trim() || null)}
+                    placeholder={t('energyCost.today')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('energyCost.monthLabel') || 'Month label'}</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    defaultValue={editSettings.monthLabel || ''}
+                    onBlur={(e) => saveCardSetting(editSettingsKey, 'monthLabel', e.target.value.trim() || null)}
+                    placeholder={t('energyCost.thisMonth')}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-2 block">{t('energyCost.today') || 'Today'}</label>
                 <div className="popup-surface rounded-2xl p-4 max-h-40 overflow-y-auto custom-scrollbar space-y-2">

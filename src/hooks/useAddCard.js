@@ -93,6 +93,21 @@ export function useAddCard({
     setAddCardType('sensor');
   }, [showAddCardModal, addCardTargetPage]);
 
+  // ── Clear stale selections when card type changes ──────────────────────
+  useEffect(() => {
+    if (!showAddCardModal) return;
+    setSelectedEntities([]);
+    setSelectedWeatherId(null);
+    setSelectedTempId(null);
+    setSelectedAndroidTVMediaId(null);
+    setSelectedAndroidTVRemoteId(null);
+    setSelectedCostTodayId(null);
+    setSelectedCostMonthId(null);
+    setCostSelectionTarget('today');
+    setSelectedNordpoolId(null);
+    setNordpoolDecimals(2);
+  }, [addCardType, showAddCardModal]);
+
   // ── Labels ─────────────────────────────────────────────────────────────
   const getAddCardAvailableLabel = () => {
     if (addCardTargetPage === 'header') return t('addCard.available.people');

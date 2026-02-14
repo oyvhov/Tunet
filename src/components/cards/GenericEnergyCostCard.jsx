@@ -40,6 +40,8 @@ export default function GenericEnergyCostCard({
   const name = customNames[cardId] || t('energyCost.title');
   const Icon = customIcons[cardId] ? (getIconComponent(customIcons[cardId]) || Coins) : Coins;
   const translate = t || ((key) => key);
+  const todayLabel = settings?.todayLabel || translate('energyCost.today');
+  const monthLabel = settings?.monthLabel || translate('energyCost.thisMonth');
 
   if (isSmall) {
     return (
@@ -59,12 +61,12 @@ export default function GenericEnergyCostCard({
             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{name}</p>
             <div className="flex items-baseline gap-2">
               <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{getEntityValue(todayEntity, decimals)} kr</span>
-              <span className="text-xs text-[var(--text-secondary)]">{translate('energyCost.today')}</span>
+              <span className="text-xs text-[var(--text-secondary)]">{todayLabel}</span>
             </div>
           </div>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider opacity-60">{translate('energyCost.thisMonth')}</span>
+          <span className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider opacity-60">{monthLabel}</span>
           <span className="text-base font-medium text-[var(--text-primary)]">{formatMonthValue(monthEntity)} kr</span>
         </div>
       </div>
@@ -92,7 +94,7 @@ export default function GenericEnergyCostCard({
       </div>
       <div className="grid grid-cols-2 gap-y-2 relative z-10 mt-2">
         <div className="col-start-1 row-start-1">
-          <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{translate('energyCost.today')}</p>
+            <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{todayLabel}</p>
           <div className="flex items-baseline gap-1 mt-1">
             <span className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>{getEntityValue(todayEntity, decimals)}</span>
             <span className="text-lg text-[var(--text-secondary)]">kr</span>
@@ -100,7 +102,7 @@ export default function GenericEnergyCostCard({
         </div>
         <div className="col-span-2 row-start-2 h-px" style={{ backgroundColor: 'var(--glass-border)' }} />
         <div className="col-start-2 row-start-3 justify-self-end text-right">
-          <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{translate('energyCost.thisMonth')}</p>
+           <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{monthLabel}</p>
           <p className="text-2xl font-bold mt-1" style={{ color: 'var(--text-primary)' }}>{formatMonthValue(monthEntity)} kr</p>
         </div>
       </div>

@@ -20,6 +20,7 @@ export default function Header({
   headerSettings = { showTitle: true, showClock: true, showDate: true },
   setShowHeaderEditModal,
   t,
+  language,
   children,
   isMobile,
   sectionSpacing
@@ -29,21 +30,46 @@ export default function Header({
     : (isMobile ? 8 : 40);
 
   const fontWeight = headerSettings?.fontWeight || '300';
+  const selectedFontFamily = headerSettings?.fontFamily || headerSettings?.headerFont || 'sans';
+  const fontFamilyMap = {
+    sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
+    serif: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif',
+    mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    Inter: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+    Roboto: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+    Lato: 'Lato, "Helvetica Neue", Arial, sans-serif',
+    Montserrat: 'Montserrat, "Helvetica Neue", Arial, sans-serif',
+    'Open Sans': '"Open Sans", "Helvetica Neue", Arial, sans-serif',
+    Oswald: 'Oswald, "Arial Narrow", Arial, sans-serif',
+    'Playfair Display': '"Playfair Display", Georgia, serif',
+    Raleway: 'Raleway, "Helvetica Neue", Arial, sans-serif',
+    georgia: 'Georgia, serif',
+    courier: '"Courier New", monospace',
+    trebuchet: '"Trebuchet MS", sans-serif',
+    comic: '"Comic Sans MS", cursive',
+    times: '"Times New Roman", serif',
+    verdana: 'Verdana, sans-serif',
+  };
+  const resolvedFontFamily = fontFamilyMap[selectedFontFamily] || fontFamilyMap.sans;
   const letterSpacingMap = { tight: '0.05em', normal: '0.2em', wide: '0.5em', extraWide: '0.8em' };
   const letterSpacingMobile = { tight: '0.05em', normal: '0.2em', wide: '0.3em', extraWide: '0.5em' };
   const lsDesktop = letterSpacingMap[headerSettings?.letterSpacing || 'normal'] || '0.2em';
   const lsMobile = letterSpacingMobile[headerSettings?.letterSpacing || 'normal'] || '0.2em';
   const fontStyleVal = headerSettings?.fontStyle || 'normal';
   const clockFormat = headerSettings?.clockFormat || '24h';
+  const showClockOnMobile = headerSettings?.showClockOnMobile ?? true;
   const is12h = clockFormat === '12h';
   const clockScale = headerSettings?.clockScale ?? 1.0;
   const dateScale = headerSettings?.dateScale ?? 1.0;
+  const locale = language === 'nn' ? 'nn-NO' : 'en-US';
 
   const timeOptions = is12h
     ? { hour: 'numeric', minute: '2-digit', hour12: true }
     : { hour: '2-digit', minute: '2-digit', hour12: false };
 
-  const timeStr = now.toLocaleTimeString(is12h ? 'en-US' : 'nn-NO', timeOptions);
+  const timeStr = now.toLocaleTimeString(locale, timeOptions);
+  const headingFontSize = `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`;
+  const clockFontSize = `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale} * ${clockScale})`;
 
   return (
     <header
@@ -62,65 +88,66 @@ export default function Header({
         </div>
       )}
 
-      {/* Main flex: heading (left) & clock (right) aligned at same Y */}
+      {/* Top row: heading (left) and clock (right) aligned only with heading */}
       <div className={`flex justify-between items-start gap-10 leading-none ${isMobile ? 'flex-col items-center text-center' : ''}`}>
-        {/* Left column: Heading and Date (same X) */}
-        <div className="flex flex-col gap-1">
-          <div className={`flex items-center gap-4 ${isMobile ? 'justify-center w-full' : ''}`}>
-            {headerSettings.showTitle && (
-              <>
-                <h1 
-                  className={`leading-none select-none ${
-                    headerSettings?.headerFont === 'serif' ? 'font-serif' :
-                    headerSettings?.headerFont === 'mono' ? 'font-mono' :
-                    'font-sans'
-                  }`}
-                  style={{
-                    color: 'var(--text-muted)', 
-                    fontSize: `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`,
-                    fontWeight: fontWeight,
-                    letterSpacing: isMobile ? lsMobile : lsDesktop,
-                    fontStyle: fontStyleVal === 'italic' ? 'italic' : 'normal',
-                    textTransform: fontStyleVal === 'uppercase' ? 'uppercase' : 'none',
-                    fontFamily: 
-                      headerSettings?.headerFont === 'georgia' ? 'Georgia, serif' :
-                      headerSettings?.headerFont === 'courier' ? '"Courier New", monospace' :
-                      headerSettings?.headerFont === 'trebuchet' ? '"Trebuchet MS", sans-serif' :
-                      headerSettings?.headerFont === 'comic' ? '"Comic Sans MS", cursive' :
-                      headerSettings?.headerFont === 'times' ? '"Times New Roman", serif' :
-                      headerSettings?.headerFont === 'verdana' ? 'Verdana, sans-serif' :
-                      undefined
-                  }}
-                >
-                  {headerTitle || 'Tunet'}
-                </h1>
-              </>
-            )}
-          </div>
-          
-          {headerSettings.showDate && !isMobile && (
-            <p 
-              className="text-gray-500 font-medium uppercase leading-none opacity-50 tracking-[0.2em] md:tracking-[0.6em]"
-              style={{ fontSize: `calc(0.75rem * ${dateScale})` }}
+        <div className={`flex items-center gap-4 ${isMobile ? 'justify-center w-full' : ''}`}>
+          {headerSettings.showTitle && (
+            <h1 
+              className="leading-none select-none"
+              style={{
+                color: 'var(--text-muted)', 
+                fontSize: headingFontSize,
+                fontWeight: fontWeight,
+                letterSpacing: isMobile ? lsMobile : lsDesktop,
+                fontStyle: fontStyleVal === 'italic' ? 'italic' : 'normal',
+                textTransform: fontStyleVal === 'uppercase' ? 'uppercase' : 'none',
+                fontFamily: resolvedFontFamily
+              }}
             >
-              {now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
+              {headerTitle || 'Tunet'}
+            </h1>
           )}
         </div>
 
-        {/* Right column: Clock (aligned with heading Y) */}
         {headerSettings.showClock && !isMobile && (
           <h2 
-            className="font-light tracking-[0.1em] leading-none select-none hidden md:block" 
+            className="font-light tracking-[0.1em] leading-none select-none" 
             style={{ 
-              fontSize: `calc(3.75rem * ${headerScale} * ${clockScale})`, 
-              color: 'var(--text-muted)' 
+              fontSize: clockFontSize,
+              color: 'var(--text-muted)',
+              fontFamily: resolvedFontFamily,
+            }}
+          >
+            {timeStr}
+          </h2>
+        )}
+
+        {headerSettings.showClock && isMobile && showClockOnMobile && (
+          <h2
+            className="font-light tracking-[0.08em] leading-none select-none"
+            style={{
+              fontSize: clockFontSize,
+              color: 'var(--text-muted)',
+              fontFamily: resolvedFontFamily,
             }}
           >
             {timeStr}
           </h2>
         )}
       </div>
+
+      {/* Date row: independent from heading/clock alignment */}
+      {headerSettings.showDate && !isMobile && (
+        <p 
+          className="text-gray-500 font-medium uppercase leading-none opacity-50 tracking-[0.2em] md:tracking-[0.6em] mt-1"
+          style={{
+            fontSize: `calc(0.75rem * ${dateScale})`,
+            fontFamily: resolvedFontFamily,
+          }}
+        >
+          {now.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
+      )}
 
       {/* Children (content below heading & clock) */}
       <div className="flex flex-col gap-6 md:gap-3 w-full pt-6 md:pt-3">

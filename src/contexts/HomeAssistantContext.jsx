@@ -128,15 +128,15 @@ export const HomeAssistantProvider = ({ children, config }) => {
     }
 
     async function connectWithOAuth(url) {
-      const redirectUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}${window.location.pathname}`
-        : undefined;
+      // Let HAWS compute default clientId and redirectUrl so they match
+      // the values used during the initial getAuth() redirect in startOAuthLogin.
+      // Overriding clientId here (e.g. window.location.origin without trailing
+      // slash) caused a mismatch with the HAWS default (origin + '/') and
+      // made the token exchange fail.
       const auth = await getAuth({
         hassUrl: url,
         saveTokens,
         loadTokens: () => Promise.resolve(loadTokens()),
-        clientId: typeof window !== 'undefined' ? window.location.origin : undefined,
-        redirectUrl,
       });
       // Clean up OAuth callback params from URL after successful auth
       if (window.location.search.includes('auth_callback')) {
@@ -163,9 +163,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
 
     async function connect() {
       try {
-        if (config.token) {
-          await connectWithToken(config.url);
-        } else if (isOAuth) {
+        if (isOAuth) {
           await connectWithOAuth(config.url);
         } else {
           await connectWithToken(config.url);

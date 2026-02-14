@@ -16,6 +16,7 @@ Brief description of the changes in this PR.
 - [ ] The build passes (`npm run build`)
 - [ ] I have updated documentation if needed
 - [ ] I have added i18n keys for any new UI strings (both `en.json` and `nn.json`)
+- [ ] If this is a release/update PR, `npm run release:check` passes and versions/changelogs are synced
 
 ## Screenshots (if applicable)
 

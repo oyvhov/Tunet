@@ -201,17 +201,6 @@ export default function AddCardContent({
       })
       .sort((a, b) => (entities[a]?.attributes?.friendly_name || a).localeCompare(entities[b]?.attributes?.friendly_name || b));
 
-  /** Primary action button. */
-  const AddButton = ({ onClick, disabled, children }) => (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-    >
-      {children}
-    </button>
-  );
-
   // --- Entity filter logic for the generic entity list ---
   const getFilteredEntityIds = () => {
     return Object.keys(entities).filter(id => {
@@ -314,11 +303,6 @@ export default function AddCardContent({
             <EntityItem key={id} id={id} isSelected={selectedAndroidTVRemoteId === id} onClick={() => setSelectedAndroidTVRemoteId(prev => prev === id ? null : id)} />
           ))}
         </div>
-      </div>
-      <div className="mt-8 pt-6 border-t border-gray-700">
-        <AddButton onClick={() => onAddSelected()} disabled={!selectedAndroidTVMediaId}>
-          {t('addCard.add')}
-        </AddButton>
       </div>
     </div>
   );
@@ -456,6 +440,8 @@ export default function AddCardContent({
     );
   };
 
+  const usesEntityMultiSelect = ['sensor', 'light', 'vacuum', 'climate', 'cover', 'media', 'toggle', 'entity'].includes(addCardType);
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={onClose}>
       <div className="border w-full max-w-xl lg:max-w-4xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}} onClick={(e) => e.stopPropagation()}>
@@ -517,7 +503,7 @@ export default function AddCardContent({
         </div>
 
         <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
-          {addCardType !== 'weather' && addCardType !== 'cost' && selectedEntities.length > 0 && (
+          {usesEntityMultiSelect && selectedEntities.length > 0 && (
             <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" /> {addCardType === 'media' ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}` : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
             </button>
@@ -535,6 +521,11 @@ export default function AddCardContent({
           {addCardType === 'nordpool' && selectedNordpoolId && (
             <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" /> {t('addCard.nordpoolCard')}
+            </button>
+          )}
+          {addCardType === 'androidtv' && selectedAndroidTVMediaId && (
+            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+              <Plus className="w-5 h-5" /> {t('addCard.add')}
             </button>
           )}
           {addCardType === 'room' && selectedRoomArea && (

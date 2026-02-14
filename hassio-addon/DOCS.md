@@ -23,6 +23,21 @@ real-time entity updates, and drag-and-drop customisation.
 - Energy graphs, Nordpool pricing, weather forecasts.
 - Works on desktop, tablet, and mobile.
 
+## Updating
+
+### Home Assistant Add-on update
+
+1. Go to **Settings → Add-ons → Tunet**.
+2. Click **Update** (when a new version is available).
+3. Restart the add-on after update.
+4. Hard-refresh browser (`Ctrl+Shift+R`) if old UI is still cached.
+
+### If update is not shown yet
+
+- Open your add-on repository settings and click **Reload**.
+- Ensure you are using the latest repository branch/revision.
+- Check add-on logs after restart.
+
 ## Troubleshooting
 
 ### "Connection failed" after entering the token

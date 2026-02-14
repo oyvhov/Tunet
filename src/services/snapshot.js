@@ -113,6 +113,10 @@ export function applySnapshot(snapshot, contextSetters = {}) {
   // PageContext setters
   if (s.persistConfig && layout.pagesConfig)         s.persistConfig(layout.pagesConfig);
   if (s.persistCardSettings && layout.cardSettings)   s.persistCardSettings(layout.cardSettings);
+  if (s.persistPageSettings && layout.pageSettings)   s.persistPageSettings(layout.pageSettings);
+  if (s.persistCustomNames && layout.customNames)     s.persistCustomNames(layout.customNames);
+  if (s.persistCustomIcons && layout.customIcons)     s.persistCustomIcons(layout.customIcons);
+  if (s.persistHiddenCards && layout.hiddenCards)      s.persistHiddenCards(layout.hiddenCards);
   if (s.setGridColumns && layout.gridColumns !== undefined)       s.setGridColumns(layout.gridColumns);
   if (s.setGridGapH && layout.gridGapH !== undefined)            s.setGridGapH(layout.gridGapH);
   if (s.setGridGapV && layout.gridGapV !== undefined)            s.setGridGapV(layout.gridGapV);

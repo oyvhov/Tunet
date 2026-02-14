@@ -30,7 +30,6 @@ import {
 
 import { Activity, Hash, ToggleRight, Power, Workflow } from '../icons';
 import { getIconComponent } from '../icons';
-import { callService as haCallService } from '../services';
 
 // ─── Individual Card Renderers ───────────────────────────────────────────────
 
@@ -278,7 +277,7 @@ export function renderGenericCostCard(cardId, dragProps, getControls, cardStyle,
 }
 
 export function renderGenericAndroidTVCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, getA, getEntityImageUrl, setShowAndroidTVModal, t } = ctx;
+  const { entities, editMode, cardSettings, customNames, getA, getEntityImageUrl, setShowAndroidTVModal, callService, t } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const mediaPlayerId = settings.mediaPlayerId;
   const remoteId = settings.remoteId;
@@ -303,7 +302,7 @@ export function renderGenericAndroidTVCard(cardId, dragProps, getControls, cardS
       onOpen={() => setShowAndroidTVModal(cardId)}
       customNames={customNames}
       t={t}
-      callService={haCallService}
+      callService={callService}
     />
   );
 }

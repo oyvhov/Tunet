@@ -118,7 +118,7 @@ export default function ModalOrchestrator({
     pageDefaults, editingPage, setEditingPage,
     newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon,
     createPage, createMediaPage, deletePage,
-    pageSettings, savePageSetting,
+    pageSettings, savePageSetting, persistPageSettings,
     pagesConfig, persistConfig,
   } = pageManagement;
 
@@ -148,9 +148,9 @@ export default function ModalOrchestrator({
 
   const {
     cardSettings, saveCardSetting, persistCardSettings,
-    customNames, saveCustomName,
-    customIcons, saveCustomIcon,
-    hiddenCards, toggleCardVisibility,
+    customNames, saveCustomName, persistCustomNames,
+    customIcons, saveCustomIcon, persistCustomIcons,
+    hiddenCards, toggleCardVisibility, persistHiddenCards,
     getCardSettingsKey,
     statusPillsConfig, saveStatusPillsConfig,
   } = cardConfig;
@@ -178,16 +178,18 @@ export default function ModalOrchestrator({
     const isEditRoom = !!editId && editId.startsWith('room_card_');
     const isEditCover = !!editId && editId.startsWith('cover_card_');
     const isEditCamera = !!editId && editId.startsWith('camera_card_');
+    const isEditNordpool = !!editId && editId.startsWith('nordpool_card_');
     const editSettings = isEditCar ? resolveCarSettings(editId, rawEditSettings) : rawEditSettings;
     const isEditGenericType = (!!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor')) || isEditVacuum || isEditAutomation || isEditCar || isEditAndroidTV || isEditRoom;
     const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
     const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
     const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
     const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditCamera || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
+    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditCamera || isEditNordpool || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
     const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
     return {
       canEditName, canEditIcon, canEditStatus,
-      isEditLight, isEditCalendar, isEditTodo, isEditCost, isEditGenericType,
+      isEditLight, isEditCalendar, isEditTodo, isEditCost, isEditNordpool, isEditGenericType,
       isEditAndroidTV, isEditCar, isEditRoom, isEditSensor, isEditWeatherTemp,
       editSettingsKey, editSettings,
     };
@@ -203,6 +205,10 @@ export default function ModalOrchestrator({
       // PageContext setters
       persistConfig,
       persistCardSettings,
+      persistPageSettings,
+      persistCustomNames,
+      persistCustomIcons,
+      persistHiddenCards,
       setGridColumns,
       setGridGapH,
       setGridGapV,
@@ -513,6 +519,7 @@ export default function ModalOrchestrator({
               conn={conn}
               weatherEntity={weatherEntity}
               tempEntity={tempEntity}
+              language={language}
               t={t}
             />
           </ModalSuspense>

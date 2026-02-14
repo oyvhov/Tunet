@@ -16,6 +16,7 @@ export default function useTempHistory(conn, cardSettings) {
   useEffect(() => {
     if (!conn) return;
     let cancelled = false;
+    const timeoutIds = [];
     const tempIds = Object.keys(cardSettings)
       .filter(key => key.includes('::weather_temp_'))
       .map(key => cardSettings[key]?.tempId)
@@ -46,7 +47,8 @@ export default function useTempHistory(conn, cardSettings) {
     // Fetch all temperature histories immediately
     uniqueIds.forEach((tempId, index) => {
       // Stagger fetches to prevent main thread blocking
-      setTimeout(() => fetchHistoryFor(tempId), index * FETCH_STAGGER_BASE + Math.random() * FETCH_STAGGER_RANDOM);
+      const timeoutId = setTimeout(() => fetchHistoryFor(tempId), index * FETCH_STAGGER_BASE + Math.random() * FETCH_STAGGER_RANDOM);
+      timeoutIds.push(timeoutId);
     });
 
     // Refresh every 5 minutes
@@ -60,6 +62,7 @@ export default function useTempHistory(conn, cardSettings) {
 
     return () => { 
       cancelled = true;
+      timeoutIds.forEach((id) => clearTimeout(id));
       clearInterval(refreshInterval);
     };
   }, [conn, cardSettings]);

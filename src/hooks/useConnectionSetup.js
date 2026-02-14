@@ -43,6 +43,12 @@ export function useConnectionSetup({
 
   // ── Re-open onboarding when auth is lost ───────────────────────────────
   useEffect(() => {
+    // Don't re-open during an active OAuth callback — tokens haven't been
+    // saved yet so hasOAuthTokens() is false, but the exchange is in flight.
+    const isOAuthCallback = typeof window !== 'undefined'
+      && new URLSearchParams(window.location.search).has('auth_callback');
+    if (isOAuthCallback) return;
+
     const hasAuth = config.token || (config.authMethod === 'oauth' && hasOAuthTokens());
     if (!hasAuth && !showOnboarding && !showConfigModal) {
       setShowOnboarding(true);

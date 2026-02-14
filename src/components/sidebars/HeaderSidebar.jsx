@@ -357,6 +357,11 @@ export default function HeaderSidebar({
                onChange={(v) => update('showClock', v)}
              />
              <Toggle
+               label={t('header.showClockOnMobile')}
+               value={setting('showClockOnMobile', true)}
+               onChange={(v) => update('showClockOnMobile', v)}
+             />
+             <Toggle
                label={t('header.showDate')}
                value={setting('showDate', true)}
                onChange={(v) => update('showDate', v)}

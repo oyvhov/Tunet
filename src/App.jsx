@@ -83,6 +83,9 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     toggleCardVisibility,
     pageSettings,
     persistPageSettings,
+    persistCustomNames,
+    persistCustomIcons,
+    persistHiddenCards,
     savePageSetting,
     gridColumns,
     setGridColumns,
@@ -182,18 +185,23 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   // Sync activePage from URL hash (e.g. #settings -> settings)
   useEffect(() => {
     const hash = location.hash.replace(/^#/, '');
-    if (hash && hash !== activePage) {
-      _setActivePage(hash);
+    if (hash) {
+      _setActivePage(prev => {
+        if (prev !== hash) {
+          try { localStorage.setItem('tunet_active_page', hash); } catch {}
+          return hash;
+        }
+        return prev;
+      });
     }
-  }, [location.hash, activePage]);
+  }, [location.hash]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync URL hash from activePage (e.g. settings -> #settings)
   useEffect(() => {
-    const hash = location.hash.replace(/^#/, '');
-    if (activePage && activePage !== hash) {
+    if (activePage) {
       navigate(`#${activePage}`, { replace: true });
     }
-  }, [activePage, navigate, location.hash]);
+  }, [activePage, navigate]);
 
   const dragSourceRef = useRef(null);
   const touchTargetRef = useRef(null);
@@ -504,6 +512,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           headerSettings={headerSettings}
           setShowHeaderEditModal={setShowHeaderEditModal}
           t={t}
+          language={language}
           isMobile={isMobile}
           sectionSpacing={sectionSpacing}
         >
@@ -736,7 +745,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             pageDefaults, editingPage, setEditingPage,
             newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon,
             createPage, createMediaPage, deletePage,
-            pageSettings, savePageSetting,
+            pageSettings, savePageSetting, persistPageSettings,
             pagesConfig, persistConfig, activePage,
           }}
           entityHelpers={{
@@ -763,9 +772,9 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           }}
           cardConfig={{
             cardSettings, saveCardSetting, persistCardSettings,
-            customNames, saveCustomName,
-            customIcons, saveCustomIcon,
-            hiddenCards, toggleCardVisibility,
+            customNames, saveCustomName, persistCustomNames,
+            customIcons, saveCustomIcon, persistCustomIcons,
+            hiddenCards, toggleCardVisibility, persistHiddenCards,
             getCardSettingsKey,
             statusPillsConfig, saveStatusPillsConfig,
           }}

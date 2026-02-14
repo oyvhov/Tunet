@@ -46,6 +46,57 @@ npm run dev:all
 - Local dev UI (Vite): `http://localhost:5173`
 - Local dev API (Express): `http://localhost:3002/api`
 
+## Updating
+
+### Docker Compose
+
+```bash
+git pull
+docker compose build --no-cache
+docker compose up -d
+```
+
+### Docker (manual)
+
+```bash
+git pull
+docker build --no-cache -t tunet-dashboard .
+docker stop tunet-dashboard || true
+docker rm tunet-dashboard || true
+docker run -d -p 3002:3002 -v tunet-data:/app/data --name tunet-dashboard tunet-dashboard
+```
+
+### Source install
+
+```bash
+git pull
+npm install
+npm run build
+npm run server
+```
+
+## Release Workflow (Maintainers)
+
+1. Prepare synchronized versions/changelogs:
+
+```bash
+npm run release:prep -- --app-version 1.0.0-beta.11 --addon-version 1.0.8
+```
+
+2. Validate metadata consistency:
+
+```bash
+npm run release:check
+```
+
+3. Run full release sanity checks:
+
+```bash
+npm run release
+```
+
+The `release:check` step is also enforced in CI on `main` PRs/pushes.
+
 See [SETUP.md](SETUP.md) for detailed setup and configuration.
 
 ## Light Control
