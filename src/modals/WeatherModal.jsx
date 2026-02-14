@@ -38,11 +38,13 @@ export default function WeatherModal({
   conn,
   weatherEntity,
   tempEntity,
+  language,
   t
 }) {
   if (!show || !weatherEntity) return null;
 
   const translate = t || ((key) => key);
+  const locale = language === 'nn' ? 'nn-NO' : 'en-US';
   const condition = weatherEntity.state;
   const info = getWeatherInfo(condition, t);
   const MainIcon = info.Icon;
@@ -120,8 +122,8 @@ export default function WeatherModal({
       const time = new Date(f.datetime || f.datetime_local || f.time || f.start || f.forecast_time);
       const temp = Number.isFinite(parseFloat(f.temperature)) ? parseFloat(f.temperature) : '--';
       const label = forecastType === 'hourly'
-        ? time.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })
-        : time.toLocaleDateString('nb-NO', { weekday: 'short', day: 'numeric' });
+        ? time.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+        : time.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' });
       const itemCondition = f.condition || condition;
       const itemInfo = getWeatherInfo(itemCondition, t);
       const precip = f.precipitation ?? f.precipitation_probability ?? f.precipitation_amount;
@@ -210,9 +212,9 @@ export default function WeatherModal({
                     noDataLabel={translate('weather.noForecast')} 
                     formatXLabel={(date) => {
                       if (forecastType === 'daily') {
-                        return date.toLocaleDateString('nb-NO', { weekday: 'short' }).replace('.', '');
+                        return date.toLocaleDateString(locale, { weekday: 'short' }).replace('.', '');
                       }
-                      return date.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+                      return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
                     }}
                   />
                 )}

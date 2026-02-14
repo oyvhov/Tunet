@@ -515,6 +515,7 @@ export default function ModalOrchestrator({
               conn={conn}
               weatherEntity={weatherEntity}
               tempEntity={tempEntity}
+              language={language}
               t={t}
             />
           </ModalSuspense>

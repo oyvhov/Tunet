@@ -510,6 +510,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           headerSettings={headerSettings}
           setShowHeaderEditModal={setShowHeaderEditModal}
           t={t}
+          language={language}
           isMobile={isMobile}
           sectionSpacing={sectionSpacing}
         >

@@ -20,6 +20,7 @@ export default function Header({
   headerSettings = { showTitle: true, showClock: true, showDate: true },
   setShowHeaderEditModal,
   t,
+  language,
   children,
   isMobile,
   sectionSpacing
@@ -60,12 +61,13 @@ export default function Header({
   const is12h = clockFormat === '12h';
   const clockScale = headerSettings?.clockScale ?? 1.0;
   const dateScale = headerSettings?.dateScale ?? 1.0;
+  const locale = language === 'nn' ? 'nn-NO' : 'en-US';
 
   const timeOptions = is12h
     ? { hour: 'numeric', minute: '2-digit', hour12: true }
     : { hour: '2-digit', minute: '2-digit', hour12: false };
 
-  const timeStr = now.toLocaleTimeString(is12h ? 'en-US' : 'nn-NO', timeOptions);
+  const timeStr = now.toLocaleTimeString(locale, timeOptions);
   const headingFontSize = `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`;
   const clockFontSize = `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale} * ${clockScale})`;
 
@@ -143,7 +145,7 @@ export default function Header({
             fontFamily: resolvedFontFamily,
           }}
         >
-          {now.toLocaleDateString('nn-NO', { weekday: 'long', day: 'numeric', month: 'long' })}
+          {now.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
       )}
 
