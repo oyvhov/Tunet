@@ -47,6 +47,8 @@ export const handleAddSelected = (ctx) => {
         return selectedEntities.filter((id) => id.startsWith('vacuum.'));
       case 'climate':
         return selectedEntities.filter((id) => id.startsWith('climate.'));
+      case 'personmap':
+        return selectedEntities.filter((id) => id.startsWith('person.'));
       case 'cover':
         return selectedEntities.filter((id) => id.startsWith('cover.'));
       case 'media':
@@ -133,6 +135,22 @@ export const handleAddSelected = (ctx) => {
         const cardId = `climate_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
         newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), climateId: entityId };
+        return cardId;
+      });
+      persistCardSettings(newSettings);
+      commitCards(newCardIds);
+      setSelectedEntities([]);
+      return;
+    }
+
+    case 'personmap': {
+      const selectedPeople = selectedEntitiesForType();
+      if (selectedPeople.length === 0) return;
+      const newSettings = { ...cardSettings };
+      const newCardIds = selectedPeople.map((personId) => {
+        const cardId = `person_map_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+        newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), personId, size: 'medium' };
         return cardId;
       });
       persistCardSettings(newSettings);

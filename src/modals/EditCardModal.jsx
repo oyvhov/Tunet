@@ -95,6 +95,7 @@ export default function EditCardModal({
   isEditNordpool,
   isEditCar,
   isEditRoom,
+  isEditPersonMap,
   isEditAndroidTV,
   editSettingsKey,
   editSettings,
@@ -158,6 +159,8 @@ export default function EditCardModal({
   const calendarOptions = sortByName(byDomain('calendar'));
   const todoOptions = sortByName(byDomain('todo'));
   const mediaPlayerOptions = sortByName(byDomain('media_player'));
+  const personOptions = sortByName(byDomain('person'));
+  const deviceTrackerOptions = sortByName(byDomain('device_tracker'));
 
   const lastUpdatedOptions = sortByName(entityEntries
     .filter(([id]) => id.startsWith('sensor.') && id.toLowerCase().includes('update'))
@@ -480,6 +483,29 @@ export default function EditCardModal({
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {isEditPersonMap && editSettingsKey && (
+            <div className="space-y-4">
+              <SearchableSelect
+                label={t('map.personEntity') || 'Person'}
+                value={editSettings.personId || null}
+                options={personOptions}
+                onChange={(value) => saveCardSetting(editSettingsKey, 'personId', value)}
+                placeholder={t('map.selectPerson') || 'Select person'}
+                entities={entities}
+                t={t}
+              />
+              <SearchableSelect
+                label={t('person.deviceTracker') || 'Device Tracker (Map)'}
+                value={editSettings.deviceTracker || null}
+                options={deviceTrackerOptions}
+                onChange={(value) => saveCardSetting(editSettingsKey, 'deviceTracker', value)}
+                placeholder={t('map.selectTracker') || 'Auto (from person)'}
+                entities={entities}
+                t={t}
+              />
             </div>
           )}
 

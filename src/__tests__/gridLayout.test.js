@@ -30,6 +30,15 @@ describe('getCardGridSpan', () => {
     expect(getCardGridSpan('calendar_card_1', identity, {}, 'home')).toBe(4);
   });
 
+  it('returns 2 for medium person map cards', () => {
+    const settings = { 'person_map_1': { size: 'medium' } };
+    expect(getCardGridSpan('person_map_1', identity, settings, 'home')).toBe(2);
+  });
+
+  it('returns 4 for default person map cards', () => {
+    expect(getCardGridSpan('person_map_1', identity, {}, 'home')).toBe(4);
+  });
+
   it('returns 1 for small car cards', () => {
     const settings = { 'car_card_1': { size: 'small' } };
     expect(getCardGridSpan('car_card_1', identity, settings, 'home')).toBe(1);

@@ -28,7 +28,7 @@ describe('isCardRemovable', () => {
   });
 
   it('allows removable-prefix cards on any page', () => {
-    const prefixes = ['light_', 'vacuum.', 'media_player.', 'weather_temp_', 'calendar_card_', 'climate_card_', 'cover_card_'];
+    const prefixes = ['light_', 'vacuum.', 'media_player.', 'weather_temp_', 'calendar_card_', 'climate_card_', 'cover_card_', 'person_map_'];
     prefixes.forEach(prefix => {
       expect(isCardRemovable(`${prefix}test`, 'home', { getCardSettingsKey: identity, cardSettings: {} })).toBe(true);
     });
@@ -95,6 +95,12 @@ describe('isCardHiddenByLogic', () => {
 
   it('does not hide special cards even if no entity exists', () => {
     expect(isCardHiddenByLogic('calendar_card_1', {
+      activePage: 'home', getCardSettingsKey: identity, cardSettings: {}, entities: {}
+    })).toBe(false);
+  });
+
+  it('does not hide person map cards even if no direct entity matches card id', () => {
+    expect(isCardHiddenByLogic('person_map_1', {
       activePage: 'home', getCardSettingsKey: identity, cardSettings: {}, entities: {}
     })).toBe(false);
   });

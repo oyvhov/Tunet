@@ -26,6 +26,7 @@ const EditPageModal = lazy(() => import('../modals/EditPageModal'));
 const GenericAndroidTVModal = lazy(() => import('../modals/GenericAndroidTVModal'));
 const GenericClimateModal = lazy(() => import('../modals/GenericClimateModal'));
 const CoverModal = lazy(() => import('../modals/CoverModal'));
+const PersonMapModal = lazy(() => import('../modals/PersonMapModal'));
 const WeatherModal = lazy(() => import('../modals/WeatherModal'));
 const LeafModal = lazy(() => import('../modals/LeafModal'));
 const LightModal = lazy(() => import('../modals/LightModal'));
@@ -65,6 +66,7 @@ export default function ModalOrchestrator({
     showTodoModal, setShowTodoModal,
     showRoomModal, setShowRoomModal,
     showCoverModal, setShowCoverModal,
+    showPersonMapModal, setShowPersonMapModal,
     showWeatherModal, setShowWeatherModal,
     activeMediaModal, setActiveMediaModal,
     activeMediaGroupKey, setActiveMediaGroupKey,
@@ -179,14 +181,15 @@ export default function ModalOrchestrator({
     const isEditGenericType = (!!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor')) || isEditVacuum || isEditAutomation || isEditCar || isEditAndroidTV || isEditRoom;
     const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
     const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
+    const isEditPersonMap = !!editId && editId.startsWith('person_map_');
     const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
     const isEditNordpool = !!editId && editId.startsWith('nordpool_card_');
-    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditNordpool || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
+    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditNordpool || isEditPersonMap || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
     const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
     return {
       canEditName, canEditIcon, canEditStatus,
       isEditLight, isEditCalendar, isEditTodo, isEditCost, isEditNordpool, isEditGenericType,
-      isEditAndroidTV, isEditCar, isEditRoom, isEditSensor, isEditWeatherTemp,
+      isEditAndroidTV, isEditCar, isEditRoom, isEditSensor, isEditWeatherTemp, isEditPersonMap,
       editSettingsKey, editSettings,
     };
   }, [showEditCardModal, editSettingsKey, cardSettings, entities]);
@@ -583,6 +586,26 @@ export default function ModalOrchestrator({
               entity={coverEntity}
               callService={callService}
               customIcons={customIcons}
+              t={t}
+            />
+          </ModalSuspense>
+        );
+      })()}
+
+      {showPersonMapModal && (() => {
+        const personMapSettingsKey = getCardSettingsKey(showPersonMapModal);
+        const personMapSettings = cardSettings[personMapSettingsKey] || cardSettings[showPersonMapModal] || {};
+        const personId = personMapSettings.personId;
+        if (!personId) return null;
+        return (
+          <ModalSuspense>
+            <PersonMapModal
+              show={true}
+              onClose={() => setShowPersonMapModal(null)}
+              personId={personId}
+              settings={personMapSettings}
+              entities={entities}
+              customName={customNames?.[showPersonMapModal]}
               t={t}
             />
           </ModalSuspense>
