@@ -49,6 +49,8 @@ export const handleAddSelected = (ctx) => {
         return selectedEntities.filter((id) => id.startsWith('climate.'));
       case 'cover':
         return selectedEntities.filter((id) => id.startsWith('cover.'));
+      case 'camera':
+        return selectedEntities.filter((id) => id.startsWith('camera.'));
       case 'media':
         return selectedEntities.filter((id) => id.startsWith('media_player.'));
       default:
@@ -158,9 +160,10 @@ export const handleAddSelected = (ctx) => {
     }
 
     case 'camera': {
-      if (selectedEntities.length === 0) return;
+      const cameraEntities = selectedEntitiesForType();
+      if (cameraEntities.length === 0) return;
       const newSettings = { ...cardSettings };
-      const newCardIds = selectedEntities.map((entityId) => {
+      const newCardIds = cameraEntities.map((entityId) => {
         const cardId = `camera_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
         newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), cameraId: entityId };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Video, VideoOff, Eye, EyeOff, Power, PowerOff, RefreshCw, Maximize2, X } from '../icons';
+import { Camera, Video, VideoOff, Eye, EyeOff, Power, PowerOff, RefreshCw, X } from '../icons';
 import { getIconComponent } from '../icons';
 
 export default function CameraModal({
@@ -53,11 +53,26 @@ export default function CameraModal({
   // HLS live stream
   const [streamUrl, setStreamUrl] = useState(null);
   const [viewMode, setViewMode] = useState('snapshot'); // 'snapshot' | 'live'
+  const [isStartingLive, setIsStartingLive] = useState(false);
   const videoRef = useRef(null);
 
   const requestStream = useCallback(async () => {
     if (!conn || !supportsStream) return;
+
+    setIsStartingLive(true);
+
     try {
+      if (callService) {
+        try {
+          await callService('camera', 'play_stream', {
+            entity_id: entityId,
+            format: 'hls',
+          });
+        } catch {
+          // Not all cameras support play_stream; continue with direct stream request.
+        }
+      }
+
       const result = await conn.sendMessagePromise({
         type: 'camera/stream',
         entity_id: entityId,
@@ -67,11 +82,59 @@ export default function CameraModal({
         const base = activeUrl.replace(/\/$/, '');
         setStreamUrl(`${base}${result.url}`);
         setViewMode('live');
+        return true;
       }
+      return false;
     } catch (err) {
       console.error('[CameraModal] Stream request failed:', err);
+      return false;
+    } finally {
+      setIsStartingLive(false);
     }
-  }, [conn, entityId, supportsStream, getEntityImageUrl]);
+  }, [conn, entityId, supportsStream, getEntityImageUrl, callService]);
+
+  useEffect(() => {
+    if (!show || !supportsStream) return;
+
+    let cancelled = false;
+
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const startLiveWithFallback = async () => {
+      setViewMode('live');
+
+      let streamReady = await requestStream();
+      if (cancelled || streamReady) return;
+
+      if (supportsOnOff && state === 'off' && callService) {
+        try {
+          await callService('camera', 'turn_on', { entity_id: entityId });
+          await wait(1200);
+          streamReady = await requestStream();
+          if (cancelled || streamReady) return;
+        } catch {
+          // Continue to retries below
+        }
+      }
+
+      for (const delayMs of [1500, 2500]) {
+        if (cancelled || streamReady) return;
+        await wait(delayMs);
+        streamReady = await requestStream();
+      }
+
+      if (!cancelled && !streamReady) {
+        setViewMode('snapshot');
+      }
+    };
+
+    startLiveWithFallback();
+
+    return () => {
+      cancelled = true;
+      setIsStartingLive(false);
+    };
+  }, [show, supportsStream, supportsOnOff, state, entityId, callService, requestStream]);
 
   // Load HLS.js dynamically when switching to live view
   useEffect(() => {
@@ -193,6 +256,14 @@ export default function CameraModal({
                 <span className="text-xs text-white/30 font-bold uppercase tracking-wider">
                   {translate('camera.unavailable')}
                 </span>
+              </div>
+            )}
+
+            {isStartingLive && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                <div className="text-xs font-bold uppercase tracking-wider text-white/85">
+                  {translate('camera.live')}
+                </div>
               </div>
             )}
           </div>

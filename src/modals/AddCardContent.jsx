@@ -210,7 +210,7 @@ export default function AddCardContent({
       }
       if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
       if (addCardType === 'cover') return id.startsWith('cover.');
-      if (addCardType === 'camera') return (id.startsWith('camera.') || id.startsWith('image.'));
+      if (addCardType === 'camera') return id.startsWith('camera.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
       if (addCardType === 'climate') return id.startsWith('climate.');
       if (addCardType === 'androidtv') return id.startsWith('media_player.') || id.startsWith('remote.');
       if (addCardType === 'cost') return (id.startsWith('sensor.') || id.startsWith('input_number.'));
@@ -440,7 +440,7 @@ export default function AddCardContent({
     );
   };
 
-  const usesEntityMultiSelect = ['sensor', 'light', 'vacuum', 'climate', 'cover', 'media', 'toggle', 'entity'].includes(addCardType);
+  const usesEntityMultiSelect = ['sensor', 'light', 'vacuum', 'climate', 'cover', 'camera', 'media', 'toggle', 'entity'].includes(addCardType);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={onClose}>
