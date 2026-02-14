@@ -46,6 +46,7 @@ export default function WeatherTempCard({
   const tempEntity = tempId ? entities[tempId] : null;
 
   const showEffects = settings.showEffects !== false;
+  const subtitle = settings.subtitle || null;
 
   if (!weatherEntity) return null;
 
@@ -75,6 +76,7 @@ export default function WeatherTempCard({
           <div className="flex flex-col min-w-0">
             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{info.label}</p>
             <span className="text-2xl font-medium text-[var(--text-primary)] leading-none">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
+            {subtitle && <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold mt-1 truncate opacity-60">{subtitle}</p>}
           </div>
         </div>
       </div>
@@ -89,6 +91,7 @@ export default function WeatherTempCard({
         <div className="flex justify-between items-start">
           <div className="w-20 h-20 -ml-2 -mt-2 filter drop-shadow-lg transition-transform duration-500 group-hover:scale-110">
             <img src={iconUrl} alt={info.label} className="w-full h-full object-contain" />
+            {subtitle && <p className="text-[10px] text-[var(--text-muted)] text-center uppercase tracking-widest font-bold mt-0.5 truncate opacity-70">{subtitle}</p>}
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">

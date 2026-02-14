@@ -185,12 +185,14 @@ export const PageProvider = ({ children }) => {
   };
 
   const savePageSetting = (id, setting, value) => {
-    const newSettings = { 
-      ...pageSettings, 
-      [id]: { ...(pageSettings[id] || {}), [setting]: value } 
-    };
-    setPageSettings(newSettings);
-    writeJSON('tunet_page_settings', newSettings);
+    setPageSettings(prev => {
+      const newSettings = { 
+        ...prev, 
+        [id]: { ...(prev[id] || {}), [setting]: value } 
+      };
+      writeJSON('tunet_page_settings', newSettings);
+      return newSettings;
+    });
   };
 
   const persistPageSettings = (newSettings) => {
