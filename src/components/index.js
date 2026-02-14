@@ -10,6 +10,7 @@ export { default as LightCard } from './cards/LightCard';
 export { default as MissingEntityCard } from './cards/MissingEntityCard';
 export { MediaPlayerCard, MediaGroupCard } from './cards/MediaCards';
 export { default as PersonStatus } from './cards/PersonStatus';
+export { default as PersonMapCard } from './cards/PersonMapCard';
 export { default as RoomCard } from './cards/RoomCard';
 export { default as SensorCard } from './cards/SensorCard';
 export { default as StatusPill } from './cards/StatusPill';

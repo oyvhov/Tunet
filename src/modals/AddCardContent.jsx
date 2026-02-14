@@ -12,6 +12,7 @@ import {
   Lightbulb,
   ListChecks,
   Music,
+  MapPin,
   Plus,
   Search,
   Thermometer,
@@ -208,6 +209,7 @@ export default function AddCardContent({
         return !(pagesConfig.settings || []).includes(id);
       }
       if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+      if (addCardType === 'personmap') return id.startsWith('person.');
       if (addCardType === 'cover') return id.startsWith('cover.');
       if (addCardType === 'climate') return id.startsWith('climate.');
       if (addCardType === 'androidtv') return id.startsWith('media_player.') || id.startsWith('remote.');
@@ -438,7 +440,7 @@ export default function AddCardContent({
     );
   };
 
-  const usesEntityMultiSelect = ['sensor', 'light', 'vacuum', 'climate', 'cover', 'media', 'toggle', 'entity'].includes(addCardType);
+  const usesEntityMultiSelect = ['sensor', 'light', 'vacuum', 'personmap', 'climate', 'cover', 'media', 'toggle', 'entity'].includes(addCardType);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={onClose}>
@@ -461,6 +463,7 @@ export default function AddCardContent({
                 <TypeButton type="sensor" icon={Activity} label={t('addCard.type.sensor')} isActive={addCardType === 'sensor'} onSelect={setAddCardType} />
                 <TypeButton type="light" icon={Lightbulb} label={t('addCard.type.light')} isActive={addCardType === 'light'} onSelect={setAddCardType} />
                 <TypeButton type="vacuum" icon={Bot} label={t('addCard.type.vacuum')} isActive={addCardType === 'vacuum'} onSelect={setAddCardType} />
+                <TypeButton type="personmap" icon={MapPin} label={getLabel('addCard.type.personMap', 'Person Map')} isActive={addCardType === 'personmap'} onSelect={setAddCardType} />
                 <TypeButton type="climate" icon={Thermometer} label={t('addCard.type.climate')} isActive={addCardType === 'climate'} onSelect={setAddCardType} />
                 <TypeButton type="cover" icon={ArrowUpDown} label={getLabel('addCard.type.cover', 'Cover')} isActive={addCardType === 'cover'} onSelect={setAddCardType} />
                 <TypeButton type="car" icon={Car} label={t('addCard.type.car')} isActive={addCardType === 'car'} onSelect={setAddCardType} />
@@ -502,7 +505,11 @@ export default function AddCardContent({
         <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
           {usesEntityMultiSelect && selectedEntities.length > 0 && (
             <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-              <Plus className="w-5 h-5" /> {addCardType === 'media' ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}` : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
+              <Plus className="w-5 h-5" /> {addCardType === 'media'
+                ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
+                : addCardType === 'personmap'
+                    ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.personMapCard') || 'person maps'}`
+                  : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
             </button>
           )}
           {addCardType === 'cost' && selectedCostTodayId && selectedCostMonthId && (

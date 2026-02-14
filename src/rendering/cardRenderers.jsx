@@ -21,6 +21,7 @@ import {
   MediaPlayerCard,
   MediaGroupCard,
   MissingEntityCard,
+  PersonMapCard,
   RoomCard,
   SensorCard,
   VacuumCard,
@@ -455,6 +456,37 @@ export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settin
   );
 }
 
+export function renderPersonMapCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
+  const { entities, editMode, cardSettings, customNames, setShowPersonMapModal, t } = ctx;
+  const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const personId = settings.personId;
+  const personEntity = personId ? entities[personId] : null;
+
+  if (!personId || !personEntity) {
+    if (editMode) {
+      return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={t} />;
+    }
+    return null;
+  }
+
+  return (
+    <PersonMapCard
+      key={cardId}
+      cardId={cardId}
+      personId={personId}
+      settings={settings}
+      entities={entities}
+      dragProps={dragProps}
+      controls={getControls(cardId)}
+      cardStyle={cardStyle}
+      editMode={editMode}
+      customNames={customNames}
+      onOpen={() => setShowPersonMapModal(cardId)}
+      t={t}
+    />
+  );
+}
+
 // ─── Card Type Dispatch ──────────────────────────────────────────────────────
 
 /**
@@ -482,6 +514,7 @@ const CARD_REGISTRY = [
   { prefix: 'nordpool_card_',  renderer: renderNordpoolCard },
   { prefix: 'cover_card_',     renderer: renderCoverCard },
   { prefix: 'room_card_',      renderer: renderRoomCard },
+  { prefix: 'person_map_',     renderer: renderPersonMapCard },
 ];
 
 export function dispatchCardRender(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {

@@ -23,6 +23,7 @@ const CARD_SPAN_RULES = [
   // prefix match → category  (checked in order)
   { prefix: 'calendar_card_', category: 'triSize' },
   { prefix: 'todo_card_',     category: 'triSize' },
+  { prefix: 'person_map_',    category: 'triSize' },
   { prefix: 'light_',         category: 'dualSize' },
   { prefix: 'light.',         category: 'dualSize' },
   { prefix: 'car_card_',      category: 'dualSize' },
