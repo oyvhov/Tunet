@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.12
+
+- Includes dashboard release `1.0.0-beta.15` with profile-load hardening for page navigation state.
+- Fixes an issue where loading incomplete profile data could leave only the Home tab visible.
+- Adds a small in-app summary when profile page data is repaired on load.
+
 ## 1.0.11
 
 - Includes dashboard release `1.0.0-beta.14` with Home Assistant camera cards and popup stream/snapshot modal.

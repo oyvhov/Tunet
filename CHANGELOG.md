@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.15] — 2026-02-15
+
+### Fixed
+- Profile loading now preserves and repairs page navigation data when profile snapshots are incomplete.
+- Prevents dashboards from collapsing to only the Home tab after loading malformed/partial profiles.
+
+### Changed
+- Added a small Profiles-tab summary message when fallback page recovery is applied during profile load.
+
+
 ## [1.0.0-beta.14] — 2026-02-15
 
 ### Added
