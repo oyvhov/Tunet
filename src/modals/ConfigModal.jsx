@@ -355,7 +355,7 @@ export default function ConfigModal({
 
     const {
       profiles: profileList,
-      loading, error: profileError, backendAvailable,
+      loading, error: profileError, loadSummary, backendAvailable,
       saveProfile, editProfile, loadProfile, removeProfile,
       startBlank,
       haUser,
@@ -422,6 +422,10 @@ export default function ConfigModal({
 
               {profileError && (
                 <p className="text-xs text-red-400 font-bold">{profileError}</p>
+              )}
+
+              {loadSummary && (
+                <p className="text-xs text-amber-300 font-bold">{loadSummary}</p>
               )}
 
               {/* Profile list */}
