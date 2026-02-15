@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 - Profile loading now preserves and repairs page navigation data when profile snapshots are incomplete.
 - Prevents dashboards from collapsing to only the Home tab after loading malformed/partial profiles.
+- Home Assistant auth sessions now persist correctly after closing and reopening the web page (OAuth and long-lived token modes).
 
 ### Changed
 - Added a small Profiles-tab summary message when fallback page recovery is applied during profile load.
