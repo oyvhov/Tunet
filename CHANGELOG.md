@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.0-beta.17] — 2026-02-15
+
+### Changed
+- Release metadata sync.
+
+
 ## [1.0.0-beta.16] — 2026-02-15
 
 ### Fixed

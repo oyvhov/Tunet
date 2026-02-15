@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.14
+
+- Release metadata sync.
+
 ## 1.0.13
 
 - Includes dashboard release `1.0.0-beta.16`.
