@@ -126,7 +126,17 @@ export const ConfigProvider = ({ children }) => {
         let savedUrl, savedToken;
         try {
           savedUrl = localStorage.getItem('ha_url') || '';
-          savedToken = localStorage.getItem('ha_token') || '';
+          const sessionToken = sessionStorage.getItem('ha_token') || '';
+          const legacyToken = localStorage.getItem('ha_token') || '';
+          if (sessionToken) {
+            savedToken = sessionToken;
+          } else if (legacyToken) {
+            savedToken = legacyToken;
+            sessionStorage.setItem('ha_token', legacyToken);
+            localStorage.removeItem('ha_token');
+          } else {
+            savedToken = '';
+          }
         } catch { savedUrl = ''; savedToken = ''; }
         return {
           url: savedUrl || window.location.origin,
@@ -138,10 +148,17 @@ export const ConfigProvider = ({ children }) => {
       }
 
       try {
+        const sessionToken = sessionStorage.getItem('ha_token') || '';
+        const legacyToken = localStorage.getItem('ha_token') || '';
+        const token = sessionToken || legacyToken || '';
+        if (!sessionToken && legacyToken) {
+          sessionStorage.setItem('ha_token', legacyToken);
+          localStorage.removeItem('ha_token');
+        }
         return {
           url: localStorage.getItem('ha_url') || '',
           fallbackUrl: localStorage.getItem('ha_fallback_url') || '',
-          token: localStorage.getItem('ha_token') || '',
+          token,
           authMethod: localStorage.getItem('ha_auth_method') || 'oauth',
         };
       } catch (error) {

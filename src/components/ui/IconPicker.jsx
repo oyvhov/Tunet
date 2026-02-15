@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { getAllIconKeys, getIconComponent } from '../../icons';
+import { getAllIconKeys, getIconComponent, preloadMdiIcons } from '../../icons';
 
 export default function IconPicker({
   value,
@@ -13,13 +13,27 @@ export default function IconPicker({
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   const [open, setOpen] = useState(false);
+  const [mdiLoadedVersion, setMdiLoadedVersion] = useState(0);
   const scrollRef = useRef(null);
   const translate = t || ((key) => key);
 
   const COLUMN_COUNT = 6;
   const ROW_HEIGHT = 52;
 
-  const iconKeys = useMemo(() => getAllIconKeys().slice().sort((a, b) => a.localeCompare(b)), []);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    preloadMdiIcons()
+      .then(() => {
+        if (!cancelled) setMdiLoadedVersion((prev) => prev + 1);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const iconKeys = useMemo(() => getAllIconKeys().slice().sort((a, b) => a.localeCompare(b)), [mdiLoadedVersion]);
   const filteredKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return iconKeys;
@@ -103,7 +117,7 @@ export default function IconPicker({
           <div
             ref={scrollRef}
             onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-            className={`grid grid-cols-5 sm:grid-cols-6 gap-2 overflow-y-auto custom-scrollbar pr-2 h-60 sm:h-72 ${maxHeightClass}`}
+            className={`grid grid-cols-5 sm:grid-cols-6 gap-2 content-start items-start overflow-y-auto custom-scrollbar pr-2 h-60 sm:h-72 ${maxHeightClass}`}
           >
             {filteredKeys.length === 0 ? (
               <div className="col-span-6 text-center text-xs text-[var(--text-secondary)] py-2">

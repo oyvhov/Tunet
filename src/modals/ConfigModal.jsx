@@ -329,8 +329,11 @@ export default function ConfigModal({
               {t('system.token')}
             </label>
             <div className="relative group">
-              <textarea
-                className="w-full px-4 py-3 h-32 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all font-mono text-xs leading-relaxed resize-none"
+              <input
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all font-mono text-xs leading-relaxed"
                 value={config.token}
                 onChange={(e) => setConfig({ ...config, token: e.target.value.trim() })}
                 placeholder="ey..."

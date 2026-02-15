@@ -3,7 +3,7 @@ import { Coins, X, TrendingUp, BarChart3 } from '../icons';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import { getHistory, getStatistics } from '../services/haClient';
 import { getIconComponent } from '../icons';
-import { useHomeAssistant } from '../contexts/HomeAssistantContext';
+import { useHomeAssistantMeta } from '../contexts';
 
 const parseNumeric = (value) => {
   const num = parseFloat(value);
@@ -129,7 +129,7 @@ export default function CostModal({
 }) {
   if (!show) return null;
 
-  const { haConfig } = useHomeAssistant();
+  const { haConfig } = useHomeAssistantMeta();
   const currency = propCurrency || haConfig?.currency || 'kr';
 
   const translate = t || ((key) => key);

@@ -26,9 +26,6 @@
     "release": "npm run release:check ; npm run test ; npm run build"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.1.0",
-    "@fortawesome/fontawesome-svg-core": "^7.1.0",
-    "@fortawesome/react-fontawesome": "^3.1.1",
     "@mdi/js": "^7.4.47",
     "@mdi/react": "^1.6.1",
     "better-sqlite3": "^11.0.0",

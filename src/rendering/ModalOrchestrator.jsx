@@ -12,7 +12,7 @@ import { themes } from '../config/themes';
 import { formatDuration } from '../utils';
 import { buildOnboardingSteps, validateUrl } from '../config/onboarding';
 import { prepareNordpoolData } from '../services';
-import { useHomeAssistant } from '../contexts';
+import { useHomeAssistantMeta } from '../contexts';
 import { useProfiles } from '../hooks/useProfiles';
 
 // Lazy load all modals
@@ -197,7 +197,7 @@ export default function ModalOrchestrator({
   const onboardingSteps = buildOnboardingSteps(t);
 
   // ── Profiles & templates ───────────────────────────────────────────────
-  const { haUser } = useHomeAssistant();
+  const { haUser } = useHomeAssistantMeta();
   const profilesHook = useProfiles({
     haUser,
     contextSetters: {

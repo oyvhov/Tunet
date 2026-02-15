@@ -25,21 +25,9 @@ export default function EditToolbar({
       {editMode && (
         <button
           onClick={() => setShowAddCardModal(true)}
-          className="group flex items-center gap-2 text-xs font-bold uppercase text-blue-400 hover:text-white transition-all whitespace-nowrap"
+          className="group flex items-center gap-2 text-xs font-bold text-blue-400 hover:text-white transition-all whitespace-nowrap"
         >
           <Plus className="w-4 h-4" /> {t('nav.addCard')}
-        </button>
-      )}
-      {editMode && (
-        <button
-          onClick={() => {
-            const currentSettings = pageSettings[activePage];
-            if (currentSettings?.hidden) setActivePage('home');
-            setEditMode(false);
-          }}
-          className="group flex items-center gap-2 text-xs font-bold uppercase text-green-400 hover:text-white transition-all whitespace-nowrap"
-        >
-          <Check className="w-4 h-4" /> {t('nav.done')}
         </button>
       )}
 
@@ -54,7 +42,7 @@ export default function EditToolbar({
         aria-label={editMode ? t('nav.done') : t('menu.edit')}
         aria-pressed={editMode}
       >
-        <Edit2 className="w-5 h-5" />
+        {editMode ? <Check className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
       </button>
 
       <div className="relative">

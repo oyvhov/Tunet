@@ -11,16 +11,17 @@ import { logger } from '../utils/logger';
  */
 export function useEntityHelpers({ entities, conn, activeUrl, language, now, t }) {
   // ── Attribute / state accessors ────────────────────────────────────────
-  const getS = (id, fallback = '--') => {
+  const getS = useCallback((id, fallback = '--') => {
     const state = entities[id]?.state;
     if (!state || state === 'unavailable' || state === 'unknown') return fallback;
     if (state === 'home') return t('status.home');
     if (state === 'not_home') return t('status.notHome');
     return state.charAt(0).toUpperCase() + state.slice(1);
-  };
+  }, [entities, t]);
 
-  const getA = (id, attr, fallback = null) =>
-    entities[id]?.attributes?.[attr] ?? fallback;
+  const getA = useCallback((id, attr, fallback = null) =>
+    entities[id]?.attributes?.[attr] ?? fallback,
+  [entities]);
 
   const getEntityImageUrl = useCallback(
     (rawUrl) => {

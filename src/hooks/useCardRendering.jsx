@@ -87,7 +87,7 @@ export function useCardRendering({
     return _buildGridLayout(visibleIds, gridColCount, getCardGridSpan);
   }, [pagesConfig, activePage, gridColCount, hiddenCards, editMode, isCardHiddenByLogic, getCardGridSpan]);
 
-  const dragAndDrop = createDragAndDropHandlers({
+  const dragAndDrop = useMemo(() => createDragAndDropHandlers({
     editMode,
     pagesConfig,
     setPagesConfig,
@@ -102,7 +102,15 @@ export function useCardRendering({
     setTouchTargetId,
     setDraggingId,
     ignoreTouchRef,
-  });
+  }), [
+    editMode,
+    pagesConfig,
+    setPagesConfig,
+    persistConfig,
+    activePage,
+    touchPath,
+    touchTargetId,
+  ]);
 
   const renderCard = useCallback((cardId, index, colIndex) => {
     const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);

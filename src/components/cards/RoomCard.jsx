@@ -26,6 +26,11 @@ export default function RoomCard({
   const areaName = customNames?.[cardId] || settings?.areaName || t('room.defaultName');
   const roomIconName = customIcons?.[cardId] || settings?.icon;
   const RoomIcon = roomIconName ? (getIconComponent(roomIconName) || Home) : Home;
+  const showLights = settings?.showLights !== false;
+  const showTemp = settings?.showTemp !== false;
+  const showMotion = settings?.showMotion !== false;
+  const showHumidity = settings?.showHumidity === true;
+  const showClimate = settings?.showClimate === true;
   
   // -- Data Gathering -- //
   const roomEntityIds = useMemo(() => Array.isArray(settings?.entityIds) ? settings.entityIds : [], [settings?.entityIds]);
@@ -51,6 +56,11 @@ export default function RoomCard({
      return e && (e.attributes?.device_class === 'motion' || e.attributes?.device_class === 'occupancy' || e.attributes?.device_class === 'presence');
   }), [roomEntityIds, entities, settings]);
 
+  const humidityId = useMemo(() => settings?.humidityEntityId || roomEntityIds.find(id => {
+    const e = entities[id];
+    return e && (e.attributes?.device_class === 'humidity' || id.includes('humidity'));
+  }), [roomEntityIds, entities, settings]);
+
   // States
   const lightCount = lightIds.length;
   // If specific light is selected, "lightsOnCount" is 1 or 0
@@ -60,14 +70,41 @@ export default function RoomCard({
   const climateEntity = climateId ? entities[climateId] : null;
   const tempEntity = tempId ? entities[tempId] : null;
   const motionEntity = motionId ? entities[motionId] : null;
+  const humidityEntity = humidityId ? entities[humidityId] : null;
   
-  const currentTemp = tempEntity ? parseFloat(tempEntity.state).toFixed(1) : (climateEntity?.attributes?.current_temperature || null);
+  const currentTemp = useMemo(() => {
+    if (tempEntity) {
+      const parsed = Number.parseFloat(tempEntity.state);
+      if (Number.isFinite(parsed)) return parsed.toFixed(1);
+    }
+
+    const climateTemp = climateEntity?.attributes?.current_temperature;
+    if (Number.isFinite(climateTemp)) return String(climateTemp);
+
+    return null;
+  }, [tempEntity, climateEntity]);
+  const [stableTemp, setStableTemp] = useState(currentTemp);
+
+  useEffect(() => {
+    if (currentTemp !== null) {
+      setStableTemp(currentTemp);
+    }
+  }, [currentTemp]);
+
+  const displayTemp = stableTemp ?? currentTemp;
   const targetTemp = climateEntity?.attributes?.temperature;
   const isOccupied = motionEntity?.state === 'on';
+  const displayHumidity = useMemo(() => {
+    if (!humidityEntity) return null;
+    const parsed = Number.parseFloat(humidityEntity.state);
+    if (!Number.isFinite(parsed)) return null;
+    const unit = humidityEntity.attributes?.unit_of_measurement || '%';
+    return `${Math.round(parsed)}${unit}`;
+  }, [humidityEntity]);
 
   // Toggle state for which control to show (if both exist)
-  const isCapableOfLight = lightCount > 0;
-  const isCapableOfClimate = !!climateId;
+  const isCapableOfLight = showLights && lightCount > 0;
+  const isCapableOfClimate = showClimate && !!climateId;
   const canSwitchControl = isCapableOfLight && isCapableOfClimate;
 
   // Initialize mode: only default to climate if we HAVE climate but NO lights
@@ -76,12 +113,23 @@ export default function RoomCard({
      return 'light';
   });
 
+  useEffect(() => {
+    if (!isCapableOfLight && isCapableOfClimate && controlMode !== 'climate') {
+      setControlMode('climate');
+      return;
+    }
+    if (!isCapableOfClimate && isCapableOfLight && controlMode !== 'light') {
+      setControlMode('light');
+    }
+  }, [isCapableOfLight, isCapableOfClimate, controlMode]);
+
   // Optimistic UI state for dragging
   const [isNoteDragging, setIsNoteDragging] = useState(false);
   const [localBrightness, setLocalBrightness] = useState(0);
 
   const handleControlToggle = (e) => {
     e.stopPropagation();
+    if (!canSwitchControl) return;
     setControlMode(prev => prev === 'light' ? 'climate' : 'light');
   };
 
@@ -102,15 +150,14 @@ export default function RoomCard({
     return on > 0 ? (total / on) : 0;
   }, [lightIds, entities, lightCount]);
 
-  // Sync local state if not dragging
-  if (!isNoteDragging && Math.abs(avgBrightness - localBrightness) > 1) {
-     if (anyLightOn) {
-         // Only sync if the prop value is different enough, to avoid jitter
-         setLocalBrightness(avgBrightness);
-     } else {
-         setLocalBrightness(0);
-     }
-  }
+  // Sync local slider state from entity updates when user is not dragging.
+  useEffect(() => {
+    if (isNoteDragging) return;
+    const next = anyLightOn ? avgBrightness : 0;
+    if (Math.abs(next - localBrightness) > 1) {
+      setLocalBrightness(next);
+    }
+  }, [isNoteDragging, anyLightOn, avgBrightness, localBrightness]);
 
   // Handlers
   const sliderDebounceRef = useRef(null);
@@ -154,7 +201,7 @@ export default function RoomCard({
 
 
   // -- ANIMATION STATES --
-  const lightActive = controlMode === 'light';
+  const lightActive = controlMode === 'light' && isCapableOfLight;
 
   // Render Helpers
   const renderSlider = () => (
@@ -252,7 +299,7 @@ export default function RoomCard({
            </div>
            
            {/* Occupancy Pill */}
-           {isOccupied && (
+           {showMotion && isOccupied && (
              <div className="bg-green-500/15 border border-green-500/20 rounded-full px-2.5 py-1 flex items-center gap-2 backdrop-blur-md">
                  <div className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -270,34 +317,48 @@ export default function RoomCard({
            {lightActive ? (
               // LIGHT MODE STATS
               <>
-                <div className="flex items-baseline gap-1">
-                   <span className="text-4xl font-medium leading-none tabular-nums transition-colors duration-300">
-                      {currentTemp ? currentTemp : '--'}
-                   </span>
-                   <span className="text-xl text-[var(--text-secondary)] font-medium leading-none">°</span>
-                </div>
-                <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-80 pl-1">
-                   {anyLightOn ? t('common.on') : t('common.off')}
-                </div>
+                {showTemp && (
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-medium leading-none tabular-nums transition-colors duration-300">
+                      {displayTemp ? displayTemp : '--'}
+                    </span>
+                    <span className="text-xl text-[var(--text-secondary)] font-medium leading-none">°</span>
+                  </div>
+                )}
+                {showLights && (
+                  <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-80 pl-1">
+                    {anyLightOn ? t('common.on') : t('common.off')}
+                  </div>
+                )}
               </>
            ) : (
               // CLIMATE MODE STATS
               <>
-                 <div className="flex items-baseline gap-1">
+                {showTemp && (
+                  <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-medium leading-none tabular-nums transition-colors duration-300">
-                      {currentTemp ? currentTemp : '--'}
+                      {displayTemp ? displayTemp : '--'}
                     </span>
                     <span className="text-xl text-[var(--text-secondary)] font-medium leading-none">°</span>
-                 </div>
-                 <div className="flex items-center gap-2 pl-1">
-                      <span className="text-xs font-bold text-[var(--text-primary)]">
-                         {currentTemp}°
-                      </span>
-                      <span className="text-[10px] text-[var(--text-secondary)] font-medium">
-                         → {targetTemp ? targetTemp : '--'}°
-                      </span>
-                 </div>
+                  </div>
+                )}
+                {showClimate && (
+                  <div className="flex items-center gap-2 pl-1">
+                    <span className="text-xs font-bold text-[var(--text-primary)]">
+                      {displayTemp ? `${displayTemp}°` : '--'}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-secondary)] font-medium">
+                      → {targetTemp ? targetTemp : '--'}°
+                    </span>
+                  </div>
+                )}
               </>
+           )}
+
+           {showHumidity && displayHumidity && (
+             <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-80 pl-1">
+               {displayHumidity}
+             </div>
            )}
            
            <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-60 pl-1 mt-1 truncate">
@@ -307,31 +368,37 @@ export default function RoomCard({
       </div>
 
       {/* RIGHT COLUMN: Animated Controls */}
+      {(isCapableOfLight || isCapableOfClimate) && (
       <div className="w-14 pl-3 relative z-0">
          <div className="h-full w-full rounded-[2.5rem] overflow-hidden relative shadow-inner bg-black/5 border border-[var(--glass-border)] ring-1 ring-white/5">
             
             {/* Light Slider Container */}
-            <div 
-                className={`
-                    absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
-                    ${lightActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-full scale-90 pointer-events-none'}
-                `}
-            >
-                {renderSlider()}
-            </div>
+            {isCapableOfLight && (
+              <div 
+                  className={`
+                      absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
+                      ${lightActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-full scale-90 pointer-events-none'}
+                  `}
+              >
+                  {renderSlider()}
+              </div>
+            )}
 
             {/* Climate Control Container */}
-            <div 
-                className={`
-                    absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-                    ${!lightActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-full scale-90 pointer-events-none'}
-                `}
-            >
-                {renderClimate()}
-            </div>
+            {isCapableOfClimate && (
+              <div 
+                  className={`
+                      absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                      ${!lightActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-full scale-90 pointer-events-none'}
+                  `}
+              >
+                  {renderClimate()}
+              </div>
+            )}
 
          </div>
       </div>
+      )}
     </div>
   );
 }

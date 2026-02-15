@@ -133,11 +133,12 @@ export function useProfiles({ haUser, contextSetters }) {
 
   // ── Overwrite an existing profile with current dashboard ──
   const overwriteProfile = useCallback(async (profileId, name) => {
+    if (!haUser?.id) throw new Error('No HA user');
     setLoading(true);
     setError(null);
     try {
       const snapshot = collectSnapshot();
-      const updated = await apiUpdateProfile(profileId, { name, data: snapshot });
+      const updated = await apiUpdateProfile(profileId, { ha_user_id: haUser.id, name, data: snapshot });
       setProfiles(prev => prev.map(p => p.id === profileId ? updated : p));
       return updated;
     } catch (err) {
@@ -146,7 +147,7 @@ export function useProfiles({ haUser, contextSetters }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [haUser?.id]);
 
   // ── Load a profile onto this device ──
   const loadProfile = useCallback((profile) => {
@@ -184,10 +185,11 @@ export function useProfiles({ haUser, contextSetters }) {
 
   // ── Edit profile name/label (no data change) ──
   const editProfile = useCallback(async (profileId, name, deviceLabel) => {
+    if (!haUser?.id) throw new Error('No HA user');
     setLoading(true);
     setError(null);
     try {
-      const updated = await apiUpdateProfile(profileId, { name, device_label: deviceLabel || null });
+      const updated = await apiUpdateProfile(profileId, { ha_user_id: haUser.id, name, device_label: deviceLabel || null });
       setProfiles(prev => prev.map(p => p.id === profileId ? updated : p));
       return updated;
     } catch (err) {
@@ -196,14 +198,15 @@ export function useProfiles({ haUser, contextSetters }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [haUser?.id]);
 
   // ── Delete a profile ──
   const removeProfile = useCallback(async (profileId) => {
+    if (!haUser?.id) throw new Error('No HA user');
     setLoading(true);
     setError(null);
     try {
-      await apiDeleteProfile(profileId);
+      await apiDeleteProfile(profileId, haUser.id);
       setProfiles(prev => prev.filter(p => p.id !== profileId));
     } catch (err) {
       setError(err.message);
@@ -211,7 +214,7 @@ export function useProfiles({ haUser, contextSetters }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [haUser?.id]);
 
   // ── Start blank (reset dashboard layout) ──
   const startBlank = useCallback(() => {

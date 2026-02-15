@@ -3,7 +3,7 @@ import {
   X, Plus, Trash2, Eye, EyeOff, Check,
   ChevronDown, ChevronUp, Activity, Music, Clapperboard, Speaker
 } from '../icons';
-import { getAllIconKeys, getIconComponent } from '../icons';
+import { getAllIconKeys, getIconComponent, preloadMdiIcons } from '../icons';
 
 /**
  * Modal for configuring status pills in the header
@@ -24,6 +24,7 @@ export default function StatusPillsConfigModal({
   const [showEntityPicker, setShowEntityPicker] = useState(false);
   const [stateInputValue, setStateInputValue] = useState('');
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [mdiLoadedVersion, setMdiLoadedVersion] = useState(0);
   const addMenuRef = useRef(null);
 
   useEffect(() => {
@@ -42,6 +43,17 @@ export default function StatusPillsConfigModal({
       setEditingPill(null);
       setEntitySearch('');
       setShowEntityPicker(false);
+
+      let cancelled = false;
+      preloadMdiIcons()
+        .then(() => {
+          if (!cancelled) setMdiLoadedVersion((prev) => prev + 1);
+        })
+        .catch(() => {});
+
+      return () => {
+        cancelled = true;
+      };
     }
   }, [show, statusPillsConfig]);
 
@@ -123,7 +135,7 @@ export default function StatusPillsConfigModal({
   const sessionSensorOptions = entityOptions.filter((id) => Array.isArray(entities[id]?.attributes?.sessions));
   
   const filteredIcons = getAllIconKeys().filter(name =>
-    name.toLowerCase().includes(iconSearch.toLowerCase())
+    (mdiLoadedVersion >= 0) && name.toLowerCase().includes(iconSearch.toLowerCase())
   );
 
   const colorPresets = [

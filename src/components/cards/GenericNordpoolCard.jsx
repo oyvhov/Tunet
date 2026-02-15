@@ -1,7 +1,7 @@
 import SparkLine from '../charts/SparkLine';
 import { Zap } from '../../icons';
 import { getIconComponent } from '../../icons';
-import { useHomeAssistant } from '../../contexts/HomeAssistantContext';
+import { useHomeAssistantMeta } from '../../contexts';
 
 export default function GenericNordpoolCard({
   cardId,
@@ -16,7 +16,7 @@ export default function GenericNordpoolCard({
   t,
   settings = {},
 }) {
-  const { haConfig } = useHomeAssistant();
+  const { haConfig } = useHomeAssistantMeta();
   const translate = t || ((key) => key);
   const currency = settings?.currency || haConfig?.currency || 'kr';
 

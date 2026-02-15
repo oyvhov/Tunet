@@ -21,4 +21,4 @@ export {
   Undo2,
 } from './lucide';
 
-export { ICON_MAP, getAllIconKeys, getIconComponent } from './iconMap';
+export { ICON_MAP, getAllIconKeys, getIconComponent, preloadMdiIcons } from './iconMap';

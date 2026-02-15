@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Zap, ToggleLeft, ToggleRight } from '../icons';
 import InteractivePowerGraph from '../components/charts/InteractivePowerGraph';
-import { useHomeAssistant } from '../contexts/HomeAssistantContext';
+import { useHomeAssistantMeta } from '../contexts';
 
 /**
  * NordpoolModal - Modal for displaying Nordpool price information and graph
@@ -36,7 +36,7 @@ export default function NordpoolModal({
 }) {
   if (!show) return null;
 
-  const { haConfig } = useHomeAssistant();
+  const { haConfig } = useHomeAssistantMeta();
   const translate = t || ((key) => key);
   const currency = settings?.currency || haConfig?.currency || 'kr';
   const [showWithSupport, setShowWithSupport] = useState(settings?.showWithSupport ?? false);

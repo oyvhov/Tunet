@@ -85,7 +85,6 @@ import {
   MdOutlineWaterfallChart, MdOutlineEmojiNature
 } from 'react-icons/md';
 import { Icon as MdiIcon } from '@mdi/react';
-import * as mdiIcons from '@mdi/js';
 
 export const ICON_MAP = {
   Zap, Wind, Car, Settings, Flame, User, UserCheck, MapPin, TrendingUp, Clock, 
@@ -170,32 +169,79 @@ export const ICON_MAP = {
   MdOutlineWaterfallChart, MdOutlineEmojiNature
 };
 
-const toKebab = (name) => name
-  .replace(/^mdi/, '')
-  .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-  .replace(/_/g, '-')
-  .toLowerCase();
+const FALLBACK_ICON = ICON_MAP.Activity || ICON_MAP.Settings || (() => null);
 
-let cachedMdiEntries = null;
-let cachedMdiPathByName = null;
-let cachedMdiKeys = null;
+const mdiPathByName = new Map();
+const mdiKnownNames = new Set();
+const mdiMissingNames = new Set();
+const mdiPendingByName = new Map();
 let cachedAllIconKeys = null;
 
-const ensureMdiCache = () => {
-  if (cachedMdiEntries) return;
-  const entries = Object.entries(mdiIcons)
-    .filter(([key, value]) => key.startsWith('mdi') && typeof value === 'string');
-  cachedMdiEntries = entries;
-  cachedMdiPathByName = new Map(
-    entries.map(([key, value]) => [`mdi:${toKebab(key)}`, value])
-  );
-  cachedMdiKeys = entries.map(([key]) => `mdi:${toKebab(key)}`);
+const addMdiPath = (iconName, path) => {
+  if (!iconName || typeof path !== 'string') return;
+  mdiPathByName.set(iconName, path);
+  mdiKnownNames.add(iconName);
+  mdiMissingNames.delete(iconName);
+  cachedAllIconKeys = null;
 };
+
+const fetchMdiPath = async (iconName) => {
+  if (!iconName || !iconName.startsWith('mdi:')) return null;
+  if (mdiPathByName.has(iconName)) return mdiPathByName.get(iconName);
+  if (mdiMissingNames.has(iconName)) return null;
+  const existing = mdiPendingByName.get(iconName);
+  if (existing) return existing;
+
+  const iconSlug = iconName.slice(4).trim().toLowerCase();
+  const promise = fetch(`./api/icons/mdi/${encodeURIComponent(iconSlug)}`)
+    .then(async (res) => {
+      if (!res.ok) {
+        mdiMissingNames.add(iconName);
+        return null;
+      }
+      const body = await res.json().catch(() => null);
+      const path = body?.path;
+      if (typeof path === 'string' && path.length > 0) {
+        addMdiPath(iconName, path);
+        return path;
+      }
+      mdiMissingNames.add(iconName);
+      return null;
+    })
+    .catch(() => {
+      mdiMissingNames.add(iconName);
+      return null;
+    })
+    .finally(() => {
+      mdiPendingByName.delete(iconName);
+    });
+
+  mdiPendingByName.set(iconName, promise);
+  return promise;
+};
+
+export async function preloadMdiIcons() {
+  try {
+    const res = await fetch('./api/icons/mdi');
+    if (!res.ok) return getAllIconKeys();
+    const body = await res.json().catch(() => null);
+    const icons = Array.isArray(body?.icons) ? body.icons : [];
+    icons.forEach((iconName) => {
+      if (typeof iconName === 'string' && iconName.startsWith('mdi:')) {
+        mdiKnownNames.add(iconName);
+      }
+    });
+    cachedAllIconKeys = null;
+  } catch {
+    // Keep graceful fallback when backend icon listing is unavailable.
+  }
+  return getAllIconKeys();
+}
 
 export function getAllIconKeys() {
   if (!cachedAllIconKeys) {
-    ensureMdiCache();
-    cachedAllIconKeys = [...Object.keys(ICON_MAP), ...cachedMdiKeys];
+    const mdiKeys = Array.from(mdiKnownNames);
+    cachedAllIconKeys = [...Object.keys(ICON_MAP), ...mdiKeys];
   }
   return cachedAllIconKeys;
 }
@@ -204,10 +250,32 @@ export function getIconComponent(iconName) {
   if (!iconName) return null;
   if (ICON_MAP[iconName]) return ICON_MAP[iconName];
   if (iconName.startsWith('mdi:')) {
-    ensureMdiCache();
-    const path = cachedMdiPathByName.get(iconName);
-    if (!path) return null;
-    return (props) => React.createElement(MdiIcon, { path, size: '1.4em', ...props });
+    const initialPath = mdiPathByName.get(iconName);
+    if (initialPath) {
+      return (props) => React.createElement(MdiIcon, { path: initialPath, size: '1.4em', ...props });
+    }
+
+    return function LazyMdiIcon(props) {
+      const [path, setPath] = React.useState(() => mdiPathByName.get(iconName) || null);
+
+      React.useEffect(() => {
+        let cancelled = false;
+        if (path) return () => { cancelled = true; };
+
+        fetchMdiPath(iconName).then((resolvedPath) => {
+          if (!cancelled) {
+            setPath(resolvedPath || null);
+          }
+        });
+
+        return () => {
+          cancelled = true;
+        };
+      }, [path]);
+
+      if (!path) return React.createElement(FALLBACK_ICON, props);
+      return React.createElement(MdiIcon, { path, size: '1.4em', ...props });
+    };
   }
-  return null;
+  return FALLBACK_ICON;
 }

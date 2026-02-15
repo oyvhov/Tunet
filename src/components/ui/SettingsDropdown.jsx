@@ -92,7 +92,7 @@ export default function SettingsDropdown({
               <Server className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[var(--text-primary)] group-hover:text-white">{t('system.tabConnection')}</p>
+              <p className="text-sm font-bold text-[var(--text-primary)] group-hover:text-white">{t('menu.system')}</p>
             </div>
           </button>
         </div>

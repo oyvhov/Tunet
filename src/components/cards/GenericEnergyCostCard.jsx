@@ -1,6 +1,6 @@
 import { Coins } from '../../icons';
 import { getIconComponent } from '../../icons';
-import { useHomeAssistant } from '../../contexts/HomeAssistantContext';
+import { useHomeAssistantMeta } from '../../contexts';
 
 const getEntityValue = (entity, decimals = 0) => {
   const state = entity?.state;
@@ -34,7 +34,7 @@ export default function GenericEnergyCostCard({
   onOpen,
   t
 }) {
-  const { haConfig } = useHomeAssistant();
+  const { haConfig } = useHomeAssistantMeta();
   const currency = settings?.currency || haConfig?.currency || 'kr';
 
   const isSmall = settings?.size === 'small';

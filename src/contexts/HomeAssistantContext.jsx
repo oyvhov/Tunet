@@ -1,21 +1,40 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createConnection, createLongLivedTokenAuth, subscribeEntities, getAuth } from 'home-assistant-js-websocket';
 import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
 
 /** @typedef {import('../types/dashboard').EntityMap} EntityMap */
 /** @typedef {import('../types/dashboard').HomeAssistantContextValue} HomeAssistantContextValue */
 /** @typedef {import('../types/dashboard').HomeAssistantProviderProps} HomeAssistantProviderProps */
+/** @typedef {Omit<HomeAssistantContextValue, 'entities'>} HomeAssistantMetaValue */
 
-/** @type {import('react').Context<HomeAssistantContextValue | null>} */
-const HomeAssistantContext = createContext(null);
+/** @type {import('react').Context<EntityMap | null>} */
+const HomeAssistantEntitiesContext = createContext(null);
+/** @type {import('react').Context<HomeAssistantMetaValue | null>} */
+const HomeAssistantMetaContext = createContext(null);
+
+/** @returns {EntityMap} */
+export const useHomeAssistantEntities = () => {
+  const context = useContext(HomeAssistantEntitiesContext);
+  if (!context) {
+    throw new Error('useHomeAssistantEntities must be used within HomeAssistantProvider');
+  }
+  return context;
+};
+
+/** @returns {HomeAssistantMetaValue} */
+export const useHomeAssistantMeta = () => {
+  const context = useContext(HomeAssistantMetaContext);
+  if (!context) {
+    throw new Error('useHomeAssistantMeta must be used within HomeAssistantProvider');
+  }
+  return context;
+};
 
 /** @returns {HomeAssistantContextValue} */
 export const useHomeAssistant = () => {
-  const context = useContext(HomeAssistantContext);
-  if (!context) {
-    throw new Error('useHomeAssistant must be used within HomeAssistantProvider');
-  }
-  return context;
+  const entities = useHomeAssistantEntities();
+  const meta = useHomeAssistantMeta();
+  return useMemo(() => ({ entities, ...meta }), [entities, meta]);
 };
 
 /**
@@ -154,7 +173,10 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const persistConfig = (urlUsed) => {
       try {
         localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
-        if (!isOAuth) localStorage.setItem('ha_token', config.token);
+        if (!isOAuth) {
+          sessionStorage.setItem('ha_token', config.token || '');
+          localStorage.removeItem('ha_token');
+        }
         localStorage.setItem('ha_auth_method', config.authMethod || 'token');
         if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl.replace(/\/$/, ''));
       } catch (error) {
@@ -314,9 +336,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
     return () => clearTimeout(timer);
   }, [haUnavailable]);
 
-  /** @type {HomeAssistantContextValue} */
-  const value = {
-    entities,
+  /** @type {HomeAssistantMetaValue} */
+  const metaValue = useMemo(() => ({
     connected,
     haUnavailable,
     haUnavailableVisible,
@@ -326,11 +347,13 @@ export const HomeAssistantProvider = ({ children, config }) => {
     haConfig,
     authRef,
     haUser,
-  };
+  }), [connected, haUnavailable, haUnavailableVisible, oauthExpired, conn, activeUrl, haConfig, haUser]);
 
   return (
-    <HomeAssistantContext.Provider value={value}>
-      {children}
-    </HomeAssistantContext.Provider>
+    <HomeAssistantMetaContext.Provider value={metaValue}>
+      <HomeAssistantEntitiesContext.Provider value={entities}>
+        {children}
+      </HomeAssistantEntitiesContext.Provider>
+    </HomeAssistantMetaContext.Provider>
   );
 };
