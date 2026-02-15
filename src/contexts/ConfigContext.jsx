@@ -126,14 +126,14 @@ export const ConfigProvider = ({ children }) => {
         let savedUrl, savedToken;
         try {
           savedUrl = localStorage.getItem('ha_url') || '';
+          const persistentToken = localStorage.getItem('ha_token') || '';
           const sessionToken = sessionStorage.getItem('ha_token') || '';
-          const legacyToken = localStorage.getItem('ha_token') || '';
-          if (sessionToken) {
+          if (persistentToken) {
+            savedToken = persistentToken;
+          } else if (sessionToken) {
             savedToken = sessionToken;
-          } else if (legacyToken) {
-            savedToken = legacyToken;
-            sessionStorage.setItem('ha_token', legacyToken);
-            localStorage.removeItem('ha_token');
+            localStorage.setItem('ha_token', sessionToken);
+            sessionStorage.removeItem('ha_token');
           } else {
             savedToken = '';
           }
@@ -148,12 +148,12 @@ export const ConfigProvider = ({ children }) => {
       }
 
       try {
+        const persistentToken = localStorage.getItem('ha_token') || '';
         const sessionToken = sessionStorage.getItem('ha_token') || '';
-        const legacyToken = localStorage.getItem('ha_token') || '';
-        const token = sessionToken || legacyToken || '';
-        if (!sessionToken && legacyToken) {
-          sessionStorage.setItem('ha_token', legacyToken);
-          localStorage.removeItem('ha_token');
+        const token = persistentToken || sessionToken || '';
+        if (!persistentToken && sessionToken) {
+          localStorage.setItem('ha_token', sessionToken);
+          sessionStorage.removeItem('ha_token');
         }
         return {
           url: localStorage.getItem('ha_url') || '',

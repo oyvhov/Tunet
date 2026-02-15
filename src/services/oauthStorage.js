@@ -24,8 +24,8 @@ export function saveTokens(tokenInfo) {
     const sessionStore = getSessionStorage();
     const localStore = getLocalStorage();
     const payload = JSON.stringify(tokenInfo);
-    sessionStore?.setItem(OAUTH_TOKENS_KEY, payload);
-    localStore?.removeItem(OAUTH_TOKENS_KEY);
+    localStore?.setItem(OAUTH_TOKENS_KEY, payload);
+    sessionStore?.removeItem(OAUTH_TOKENS_KEY);
   } catch (error) {
     console.error('Failed to save OAuth tokens to localStorage:', error);
   }
@@ -35,14 +35,14 @@ export function loadTokens() {
   try {
     const sessionStore = getSessionStorage();
     const localStore = getLocalStorage();
-    const sessionRaw = sessionStore?.getItem(OAUTH_TOKENS_KEY);
-    if (sessionRaw) return JSON.parse(sessionRaw);
+    const localRaw = localStore?.getItem(OAUTH_TOKENS_KEY);
+    if (localRaw) return JSON.parse(localRaw);
 
-    const legacyRaw = localStore?.getItem(OAUTH_TOKENS_KEY);
-    if (legacyRaw) {
-      const parsed = JSON.parse(legacyRaw);
-      sessionStore?.setItem(OAUTH_TOKENS_KEY, legacyRaw);
-      localStore?.removeItem(OAUTH_TOKENS_KEY);
+    const sessionRaw = sessionStore?.getItem(OAUTH_TOKENS_KEY);
+    if (sessionRaw) {
+      const parsed = JSON.parse(sessionRaw);
+      localStore?.setItem(OAUTH_TOKENS_KEY, sessionRaw);
+      sessionStore?.removeItem(OAUTH_TOKENS_KEY);
       return parsed;
     }
   } catch (error) {

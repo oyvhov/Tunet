@@ -174,8 +174,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
       try {
         localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
         if (!isOAuth) {
-          sessionStorage.setItem('ha_token', config.token || '');
-          localStorage.removeItem('ha_token');
+          localStorage.setItem('ha_token', config.token || '');
+          sessionStorage.removeItem('ha_token');
         }
         localStorage.setItem('ha_auth_method', config.authMethod || 'token');
         if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl.replace(/\/$/, ''));
