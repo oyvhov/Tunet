@@ -1,6 +1,6 @@
 ARG BUILD_FROM
 # ── Stage 1: Build from source ────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 
 WORKDIR /src
 COPY package*.json ./
