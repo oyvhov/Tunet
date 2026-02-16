@@ -1,2 +1,4 @@
 configuration:
-  {}
+  branch:
+    name: Branch
+    description: "Select which branch to build and run. Changing this will trigger a rebuild on next startup."
