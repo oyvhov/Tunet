@@ -127,6 +127,8 @@
   "car.climate": "Climate",
   "car.defaultName": "Car",
   "car.heating": "Heating",
+  "car.imageHint": "Place images in HA config/www/ folder, use /local/filename.png",
+  "car.imageUrl": "Car Image URL",
   "car.mappingHint": "Connect your entities to show data in the card",
   "car.mappingTitle": "Car mapping",
   "car.noSensorsMapped": "No sensors selected. Click \"Add sensor\" to get started.",

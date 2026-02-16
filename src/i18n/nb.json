@@ -419,6 +419,8 @@
   "car.defaultName": "Bil",
   "car.charging": "Lader",
   "car.heating": "Varmer",
+  "car.imageHint": "Legg bilder i HA config/www/ mappe, bruk /local/filnavn.png",
+  "car.imageUrl": "Bilbilde-URL",
   "car.battery": "Batteri",
   "car.range": "Rekkevidde",
   "car.tempInside": "Temp inne",
