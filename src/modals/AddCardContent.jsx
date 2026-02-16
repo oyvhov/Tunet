@@ -336,20 +336,28 @@ export default function AddCardContent({
       <div className="space-y-6">
         <p className="text-xs uppercase font-bold text-gray-500 ml-4">{getLabel('addCard.spacer.selectVariant', 'Select variant')}</p>
         <div className="space-y-2">
-          {variants.map(v => (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() => setSelectedSpacerVariant(v.key)}
-              className={`w-full text-left p-4 rounded-2xl transition-colors border ${selectedSpacerVariant === v.key ? 'bg-blue-500/15 border-blue-500/30' : 'popup-surface popup-surface-hover border-transparent'}`}
-            >
-              <span className={`text-sm font-bold ${selectedSpacerVariant === v.key ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`}>{v.label}</span>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{v.desc}</p>
-            </button>
-          ))}
+          {variants.map(v => {
+            const isActive = selectedSpacerVariant === v.key;
+            return (
+              <button
+                key={v.key}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setSelectedSpacerVariant(v.key); }}
+                className={`w-full text-left p-4 rounded-2xl transition-colors border flex items-center gap-3 ${isActive ? 'bg-blue-500/20 border-blue-500/40' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] hover:border-blue-500/30'}`}
+              >
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isActive ? 'border-blue-500 bg-blue-500' : 'border-gray-500'}`}>
+                  {isActive && <Check className="w-3 h-3 text-white" />}
+                </div>
+                <div>
+                  <span className={`text-sm font-bold ${isActive ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`}>{v.label}</span>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{v.desc}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
         <button
-          onClick={() => onAddSelected()}
+          onClick={(e) => { e.stopPropagation(); onAddSelected(); }}
           className="w-full py-3 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" /> {getLabel('addCard.add', 'Add')}
