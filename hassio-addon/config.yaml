@@ -19,5 +19,7 @@ ports:
   3002/tcp: null
 ports_description:
   3002/tcp: "Tunet Web Interface (not needed when using Ingress)"
-options: {}
-schema: {}
+options:
+  branch: "main"
+schema:
+  branch: "list(main|feature/car-card-image|feature/calendar-week-view|feature/spacer-cards|fix/car-card-range-units)"
