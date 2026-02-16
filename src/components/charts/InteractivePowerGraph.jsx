@@ -13,9 +13,15 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, u
   const range = max - min || 1;
   const width = 800;
   const height = 300;
+  const lineStrokeWidth = 3;
+  const hoverDotRadius = 5;
+  const verticalPadding = Math.max(6, Math.ceil(hoverDotRadius + lineStrokeWidth / 2));
+  const chartTop = verticalPadding;
+  const chartBottom = height - verticalPadding;
+  const chartHeight = Math.max(1, chartBottom - chartTop);
   const points = values.map((v, i) => ({
-    x: (i / (values.length - 1)) * width,
-    y: height - ((v - min) / range) * height,
+    x: values.length === 1 ? width / 2 : (i / (values.length - 1)) * width,
+    y: chartBottom - ((v - min) / range) * chartHeight,
     val: v,
     time: new Date(data[i].start).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' })
   }));
@@ -56,7 +62,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, u
   };
 
   const pathData = getBezierPath(points);
-  const areaData = `${pathData} L ${width},${height} L 0,${height} Z`;
+  const areaData = `${pathData} L ${width},${chartBottom} L 0,${chartBottom} Z`;
   const currentPointData = points[currentIndex] || points[0];
   const hoverPointData = (hoverIndex !== null ? points[hoverIndex] : currentPointData) || points[0];
 

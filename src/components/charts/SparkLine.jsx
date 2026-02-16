@@ -25,6 +25,9 @@ const createBezierPath = (points, smoothing = 0.3) => {
 
 export default function SparkLine({ data, currentIndex, height = 40, fade = false }) {
   if (!data || data.length === 0) return null;
+  const lineStrokeWidth = 2.5;
+  const pointRadius = 3.5;
+  const verticalPadding = Math.max(4, Math.ceil(pointRadius + lineStrokeWidth / 2));
   
   const idSuffix = useMemo(() => Math.random().toString(36).substr(2, 9), []);
   const areaId = `cardAreaGrad-${idSuffix}`;
@@ -40,13 +43,16 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
   }
   const range = max - min || 1;
   const width = 300;
+  const chartTop = verticalPadding;
+  const chartBottom = height - verticalPadding;
+  const chartHeight = Math.max(1, chartBottom - chartTop);
   const points = values.map((v, i) => [
     values.length === 1 ? width / 2 : (i / (values.length - 1)) * width,
-    height - ((v - min) / range) * height
+    chartBottom - ((v - min) / range) * chartHeight
   ]);
 
-  const pathData = useMemo(() => createBezierPath(points, 0.3), [data]);
-  const areaData = useMemo(() => `${pathData} L ${width},${height} L 0,${height} Z`, [pathData]);
+  const pathData = useMemo(() => createBezierPath(points, 0.3), [points]);
+  const areaData = useMemo(() => `${pathData} L ${width},${chartBottom} L 0,${chartBottom} Z`, [pathData, width, chartBottom]);
   const currentPoint = points[currentIndex] || points[0];
 
   const getDotColor = (val) => {
@@ -90,10 +96,10 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
         <path d={areaData} fill={`url(#${areaId})`} mask={`url(#${maskId}-use)`} />
         
         {/* Bezier line with gradient */}
-        <path d={pathData} fill="none" stroke={`url(#${lineId})`} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathData} fill="none" stroke={`url(#${lineId})`} strokeWidth={lineStrokeWidth} strokeLinecap="round" strokeLinejoin="round" />
         
         {/* Current point marker */}
-        <circle cx={currentPoint[0]} cy={currentPoint[1]} r="3.5" fill={getDotColor(values[currentIndex])} className="animate-pulse" />
+        <circle cx={currentPoint[0]} cy={currentPoint[1]} r={pointRadius} fill={getDotColor(values[currentIndex])} className="animate-pulse" />
       </svg>
       {fade && (
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--glass-bg)] opacity-60" />

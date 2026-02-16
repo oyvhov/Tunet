@@ -43,6 +43,9 @@ const smoothData = (data, windowSize = 3) => {
 export default function WeatherGraph({ history, currentTemp }) {
   const width = 800;
   const height = 200;
+  const lineStrokeWidth = 4.5;
+  const currentDotOuterRadius = 8;
+  const verticalPadding = Math.max(10, Math.ceil(currentDotOuterRadius + lineStrokeWidth / 2));
 
   const data = useMemo(() => {
     if (!history || history.length === 0) return [];
@@ -97,8 +100,11 @@ export default function WeatherGraph({ history, currentTemp }) {
   const timeRange = maxTime - minTime || 1;
 
   const paddingX = 0;
+  const chartTop = verticalPadding;
+  const chartBottom = height - verticalPadding;
+  const chartHeight = Math.max(1, chartBottom - chartTop);
   const getX = (t) => paddingX + ((t.getTime() - minTime) / timeRange) * (width - paddingX * 2);
-  const getY = (temp) => height - ((temp - yMin) / yRange) * height;
+  const getY = (temp) => chartBottom - ((temp - yMin) / yRange) * chartHeight;
 
   // Generate points and smooth path
   const points = plotData.map(p => [getX(p.time), getY(p.temp)]);
@@ -106,7 +112,7 @@ export default function WeatherGraph({ history, currentTemp }) {
 
   // Generate fill area
   // Extend way below height to cover rounded corners fully
-  const extendedHeight = height + 40; 
+  const extendedHeight = chartBottom + 40;
   const dArea = `${smoothPath} L ${points[points.length-1][0]},${extendedHeight} L ${points[0][0]},${extendedHeight} Z`;
 
   // Define color scale (Gradient Units UserSpaceOnUse maps temp directly to Y)

@@ -19,6 +19,7 @@ const t = (key) => {
     'addCard.available.costs': 'Cost sensors',
     'addCard.available.players': 'Media players',
     'addCard.available.cars': 'Cars',
+    'addCard.available.sensors': 'Available sensors',
     'addCard.available.toggles': 'Toggles',
     'addCard.available.entities': 'Entities',
     'addCard.available.lights': 'Lights',
@@ -30,6 +31,7 @@ const t = (key) => {
     'addCard.item.costs': 'costs',
     'addCard.item.players': 'players',
     'addCard.item.cars': 'cars',
+    'addCard.item.sensors': 'sensors',
     'addCard.item.toggles': 'toggles',
     'addCard.item.lights': 'lights',
   };
@@ -141,12 +143,11 @@ describe('useAddCard › labels', () => {
     expect(result.current.getAddCardAvailableLabel()).toBe('Available people');
   });
 
-  it('getAddCardAvailableLabel returns lights for default sensor type', () => {
+  it('getAddCardAvailableLabel returns sensors for default sensor type', () => {
     const { result } = renderHook(() =>
       useAddCard(makeProps({ showAddCardModal: true })),
     );
-    // default type for home page is 'sensor', which falls through to 'lights'
-    expect(result.current.getAddCardAvailableLabel()).toBe('Lights');
+    expect(result.current.getAddCardAvailableLabel()).toBe('Available sensors');
   });
 
   it('getAddCardAvailableLabel returns correct label for vacuum type', () => {

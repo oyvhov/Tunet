@@ -111,6 +111,7 @@ export function useAddCard({
     if (addCardType === 'media') return t('addCard.available.players');
     if (addCardType === 'car') return t('addCard.available.cars');
     if (addCardType === 'toggle') return t('addCard.available.toggles');
+    if (addCardType === 'sensor') return t('addCard.available.sensors');
     if (addCardType === 'entity') return t('addCard.available.entities');
     return t('addCard.available.lights');
   };
@@ -136,6 +137,8 @@ export function useAddCard({
               ? 'addCard.item.cars'
             : addCardType === 'toggle'
               ? 'addCard.item.toggles'
+            : addCardType === 'sensor'
+              ? 'addCard.item.sensors'
               : addCardType === 'entity'
                 ? 'addCard.item.entities'
                 : 'addCard.item.lights';

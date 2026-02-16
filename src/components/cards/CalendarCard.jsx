@@ -322,7 +322,7 @@ function CalendarCard({
         ) : events.length === 0 ? (
            <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-60">
                 <Clock className="w-8 h-8 mb-2" />
-                <p className="text-xs uppercase font-bold tracking-widest">{t('calendar.noEvents') || 'No upcoming events'}</p>
+            <p className="text-xs uppercase font-bold tracking-widest text-center px-3 leading-relaxed">{t('calendar.noEvents') || 'No upcoming events'}</p>
             </div>
         ) : (
             Object.entries(groupedEvents).map(([dateKey, dayEvents]) => (

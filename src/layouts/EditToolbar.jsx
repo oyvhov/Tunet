@@ -25,9 +25,12 @@ export default function EditToolbar({
       {editMode && (
         <button
           onClick={() => setShowAddCardModal(true)}
-          className="group flex items-center gap-2 text-xs font-bold text-blue-400 hover:text-white transition-all whitespace-nowrap"
+          className="group flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-transparent hover:border-[var(--glass-border)] hover:bg-white/10 text-xs font-bold text-blue-400 hover:text-white transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
         >
-          <Plus className="w-4 h-4" /> {t('nav.addCard')}
+          <span className="p-2 rounded-full bg-blue-500/15 text-blue-400 transition-all duration-300 group-hover:bg-blue-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-blue-500/20">
+            <Plus className="w-4 h-4 transition-transform duration-300 group-hover:rotate-90" />
+          </span>
+          <span className="transition-colors duration-200">{t('nav.addCard')}</span>
         </button>
       )}
 
@@ -37,12 +40,12 @@ export default function EditToolbar({
           if (currentSettings?.hidden) setActivePage('home');
           setEditMode(!editMode);
         }}
-        className={`p-2 rounded-full group ${editMode ? 'bg-blue-500/20 text-blue-400' : 'text-[var(--text-secondary)]'}`}
+        className={`p-2 rounded-full group border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${editMode ? 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30 hover:text-white hover:shadow-lg hover:shadow-blue-500/20' : 'text-[var(--text-secondary)] border-transparent hover:border-[var(--glass-border)] hover:bg-white/10 hover:text-white'}`}
         title={editMode ? t('nav.done') : t('menu.edit')}
         aria-label={editMode ? t('nav.done') : t('menu.edit')}
         aria-pressed={editMode}
       >
-        {editMode ? <Check className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
+        {editMode ? <Check className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" /> : <Edit2 className="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" />}
       </button>
 
       <div className="relative">
