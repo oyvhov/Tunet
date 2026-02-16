@@ -54,6 +54,7 @@ function CalendarCard({
   const [error, setError] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef(null);
+  const gridScrollRef = useRef(null);
 
   // Parse check status ("It should be checked when the card is selected")
   // So settings.calendars = ['calendar.personal', 'calendar.work']
@@ -217,6 +218,18 @@ function CalendarCard({
   const isSmall = size === 'small';
   const isLarge = size === 'large';
 
+  const HOUR_HEIGHT = 48;
+  const START_HOUR = 0;
+
+  // Auto-scroll week grid to current hour on mount
+  useEffect(() => {
+    if (isLarge && gridScrollRef.current && events.length > 0) {
+      const now = new Date();
+      const scrollTo = Math.max(0, (now.getHours() - 1 - START_HOUR) * HOUR_HEIGHT);
+      gridScrollRef.current.scrollTop = scrollTo;
+    }
+  }, [isLarge, events.length]);
+
   const weekDays = useMemo(() => {
     const days = [];
     const today = new Date();
@@ -293,22 +306,9 @@ function CalendarCard({
   }
 
   if (isLarge) {
-    const HOUR_HEIGHT = 48;
-    const START_HOUR = 0;
     const END_HOUR = 24;
     const TOTAL_HOURS = END_HOUR - START_HOUR;
     const GUTTER_W = 'w-10';
-
-    const gridScrollRef = useRef(null);
-
-    // Auto-scroll to current hour on mount
-    useEffect(() => {
-      if (gridScrollRef.current && events.length > 0) {
-        const now = new Date();
-        const scrollTo = Math.max(0, (now.getHours() - 1 - START_HOUR) * HOUR_HEIGHT);
-        gridScrollRef.current.scrollTop = scrollTo;
-      }
-    }, [events.length]);
 
     const formatShortDay = (dateStr) => {
       const [y, m, d] = dateStr.split('-').map(Number);
