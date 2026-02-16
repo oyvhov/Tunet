@@ -222,11 +222,9 @@ export async function addTodoItem(conn, entityId, summary) {
     throw new Error('Invalid or disconnected HA connection');
   }
   return conn.sendMessagePromise({
-    type: 'call_service',
-    domain: 'todo',
-    service: 'add_item',
-    target: { entity_id: entityId },
-    service_data: { item: summary },
+    type: 'todo/item/create',
+    entity_id: entityId,
+    summary,
   });
 }
 
@@ -235,11 +233,10 @@ export async function updateTodoItem(conn, entityId, uid, status) {
     throw new Error('Invalid or disconnected HA connection');
   }
   return conn.sendMessagePromise({
-    type: 'call_service',
-    domain: 'todo',
-    service: 'update_item',
-    target: { entity_id: entityId },
-    service_data: { item: uid, status },
+    type: 'todo/item/update',
+    entity_id: entityId,
+    uid,
+    status,
   });
 }
 
@@ -248,11 +245,9 @@ export async function removeTodoItem(conn, entityId, uid) {
     throw new Error('Invalid or disconnected HA connection');
   }
   return conn.sendMessagePromise({
-    type: 'call_service',
-    domain: 'todo',
-    service: 'remove_item',
-    target: { entity_id: entityId },
-    service_data: { item: uid },
+    type: 'todo/item/delete',
+    entity_id: entityId,
+    uids: [uid],
   });
 }
 
