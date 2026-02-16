@@ -12,6 +12,7 @@ import {
   Home,
   Lightbulb,
   ListChecks,
+  Minus,
   Music,
   Plus,
   Search,
@@ -158,6 +159,8 @@ export default function AddCardContent({
   setSelectedNordpoolId,
   nordpoolDecimals,
   setNordpoolDecimals,
+  selectedSpacerVariant,
+  setSelectedSpacerVariant,
   onAddSelected,
   onAddRoom,
   conn,
@@ -322,6 +325,39 @@ export default function AddCardContent({
     </div>
   );
 
+  const renderSpacerSection = () => {
+    const variants = [
+      { key: 'spacer', label: getLabel('addCard.spacer.spacer', 'Spacer'), desc: getLabel('addCard.spacer.spacerDesc', 'Empty space to create gaps between cards') },
+      { key: 'divider', label: getLabel('addCard.spacer.divider', 'Divider'), desc: getLabel('addCard.spacer.dividerDesc', 'Horizontal line to separate sections') },
+      { key: 'title', label: getLabel('addCard.spacer.title', 'Title'), desc: getLabel('addCard.spacer.titleDesc', 'Section heading to label groups of cards') },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <p className="text-xs uppercase font-bold text-gray-500 ml-4">{getLabel('addCard.spacer.selectVariant', 'Select variant')}</p>
+        <div className="space-y-2">
+          {variants.map(v => (
+            <button
+              key={v.key}
+              type="button"
+              onClick={() => setSelectedSpacerVariant(v.key)}
+              className={`w-full text-left p-4 rounded-2xl transition-colors border ${selectedSpacerVariant === v.key ? 'bg-blue-500/15 border-blue-500/30' : 'popup-surface popup-surface-hover border-transparent'}`}
+            >
+              <span className={`text-sm font-bold ${selectedSpacerVariant === v.key ? 'text-blue-400' : 'text-[var(--text-secondary)]'}`}>{v.label}</span>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{v.desc}</p>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => onAddSelected()}
+          className="w-full py-3 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+        >
+          <Plus className="w-4 h-4" /> {getLabel('addCard.add', 'Add')}
+        </button>
+      </div>
+    );
+  };
+
   const renderNordpoolSection = () => (
     <div className="space-y-8">
       <div>
@@ -475,6 +511,7 @@ export default function AddCardContent({
                 <TypeButton type="todo" icon={ListChecks} label={getLabel('addCard.type.todo', 'Todo')} isActive={addCardType === 'todo'} onSelect={setAddCardType} />
                 <TypeButton type="nordpool" icon={Zap} label={t('addCard.type.nordpool')} isActive={addCardType === 'nordpool'} onSelect={setAddCardType} />
                 <TypeButton type="room" icon={Home} label={getLabel('addCard.type.room', 'Room')} isActive={addCardType === 'room'} onSelect={setAddCardType} />
+                <TypeButton type="spacer" icon={Minus} label={getLabel('addCard.type.spacer', 'Spacer')} isActive={addCardType === 'spacer'} onSelect={setAddCardType} />
               </div>
             </div>
           )}
@@ -484,6 +521,7 @@ export default function AddCardContent({
               : addCardType === 'androidtv' ? renderAndroidTVSection()
               : addCardType === 'calendar' ? renderSimpleAddSection(Calendar, t('addCard.calendarDescription') || 'Add a calendar card. You can select calendars after adding the card.', t('addCard.add'))
               : addCardType === 'todo' ? renderSimpleAddSection(ListChecks, t('addCard.todoDescription') || 'Add a to-do card. You can select which list to use after adding.', t('addCard.add'))
+              : addCardType === 'spacer' ? renderSpacerSection()
               : addCardType === 'car' ? renderSimpleAddSection(Car, t('addCard.carDescription'), t('addCard.carCard'))
               : addCardType === 'nordpool' ? renderNordpoolSection()
               : addCardType === 'room' ? (

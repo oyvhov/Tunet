@@ -19,6 +19,7 @@ export const handleAddSelected = (ctx) => {
     selectedCostMonthId,
     selectedNordpoolId,
     nordpoolDecimals,
+    selectedSpacerVariant,
     cardSettings,
     persistCardSettings,
     getCardSettingsKey,
@@ -209,6 +210,13 @@ export const handleAddSelected = (ctx) => {
     case 'car': {
       const cardId = `car_card_${Date.now()}`;
       commitSingleCard(cardId, { type: 'car', size: 'large' }, { openEdit: true });
+      return;
+    }
+
+    case 'spacer': {
+      const cardId = `spacer_card_${Date.now()}`;
+      const openEdit = selectedSpacerVariant === 'title';
+      commitSingleCard(cardId, { variant: selectedSpacerVariant || 'spacer' }, { openEdit });
       return;
     }
 
