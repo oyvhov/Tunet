@@ -335,7 +335,7 @@ export default function AddCardContent({
     return (
       <div className="space-y-6">
         <p className="text-xs uppercase font-bold text-gray-500 ml-4">{getLabel('addCard.spacer.selectVariant', 'Select variant')}</p>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {variants.map(v => {
             const isActive = selectedSpacerVariant === v.key;
             return (
@@ -343,11 +343,11 @@ export default function AddCardContent({
                 key={v.key}
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setSelectedSpacerVariant(v.key); }}
-                className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group border ${isActive ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}
+                className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isActive ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}
               >
                 <div className="flex flex-col overflow-hidden mr-4">
                   <span className={`text-sm font-bold transition-colors truncate ${isActive ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{v.label}</span>
-                  <p className={`text-[11px] font-medium truncate ${isActive ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{v.desc}</p>
+                  <span className={`text-[11px] font-medium truncate ${isActive ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{v.desc}</span>
                 </div>
                 <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isActive ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                   {isActive ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
