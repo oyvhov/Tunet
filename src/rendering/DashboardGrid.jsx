@@ -104,6 +104,7 @@ export default function DashboardGrid({
             : placement?.span;
           const settingsKey = getCardSettingsKey(id);
           const heading = cardSettings[settingsKey]?.heading;
+          const colSpan = placement?.colSpan || 1;
 
           if (!editMode && (hiddenCards.includes(id) || isCardHiddenByLogic(id))) return null;
 
@@ -118,6 +119,7 @@ export default function DashboardGrid({
                 gridRowStart: placement.row,
                 gridColumnStart: placement.col,
                 gridRowEnd: `span ${forcedSpan}`,
+                gridColumnEnd: colSpan > 1 ? `span ${colSpan}` : undefined,
                 minHeight: isLargeCard && sizeSetting !== 'small' && sizeSetting !== 'medium'
                   ? `${(4 * 100) + (3 * (isMobile ? 12 : gridGapV))}px`
                   : undefined,

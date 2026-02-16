@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { getCardGridSpan as _getCardGridSpan, buildGridLayout as _buildGridLayout } from '../utils/gridLayout';
+import { getCardGridSpan as _getCardGridSpan, getCardColSpan as _getCardColSpan, buildGridLayout as _buildGridLayout } from '../utils/gridLayout';
 import { createDragAndDropHandlers } from '../utils/dragAndDrop';
 import { dispatchCardRender } from '../rendering/cardRenderers';
 import EditOverlay from '../components/ui/EditOverlay';
@@ -68,6 +68,10 @@ export function useCardRendering({
     return _getCardGridSpan(cardId, getCardSettingsKey, cardSettings, activePage);
   }, [getCardSettingsKey, cardSettings, activePage]);
 
+  const getCardColSpan = useCallback((cardId) => {
+    return _getCardColSpan(cardId, getCardSettingsKey, cardSettings);
+  }, [getCardSettingsKey, cardSettings]);
+
   const moveCardInArray = useCallback((cardId, direction) => {
     const newConfig = { ...pagesConfig };
     const pageCards = newConfig[activePage];
@@ -84,8 +88,8 @@ export function useCardRendering({
   const gridLayout = useMemo(() => {
     const ids = pagesConfig[activePage] || [];
     const visibleIds = editMode ? ids : ids.filter(id => !(hiddenCards.includes(id) || isCardHiddenByLogic(id)));
-    return _buildGridLayout(visibleIds, gridColCount, getCardGridSpan);
-  }, [pagesConfig, activePage, gridColCount, hiddenCards, editMode, isCardHiddenByLogic, getCardGridSpan]);
+    return _buildGridLayout(visibleIds, gridColCount, getCardGridSpan, getCardColSpan);
+  }, [pagesConfig, activePage, gridColCount, hiddenCards, editMode, isCardHiddenByLogic, getCardGridSpan, getCardColSpan]);
 
   const dragAndDrop = useMemo(() => createDragAndDropHandlers({
     editMode,
