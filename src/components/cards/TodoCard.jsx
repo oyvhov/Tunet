@@ -117,7 +117,7 @@ function TodoCard({
     try {
       // Optimistic update
       setItems(prev => prev.map(i => (i.uid === item.uid ? { ...i, status: newStatus } : i)));
-      await updateTodoItem(conn, todoEntityId, item.uid, newStatus);
+      await updateTodoItem(conn, todoEntityId, item.summary, newStatus);
       setTimeout(fetchItems, 500);
     } catch (err) {
       console.error('TodoCard: Failed to toggle item', err);
@@ -131,7 +131,7 @@ function TodoCard({
     if (!conn || !todoEntityId) return;
     try {
         setItems(prev => prev.filter(i => i.uid !== item.uid));
-        await removeTodoItem(conn, todoEntityId, item.uid);
+        await removeTodoItem(conn, todoEntityId, item.summary);
         setTimeout(fetchItems, 500);
     } catch (err) {
         console.error('TodoCard: Failed to remove item', err);
