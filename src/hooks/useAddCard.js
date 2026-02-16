@@ -39,6 +39,7 @@ export function useAddCard({
   const [costSelectionTarget, setCostSelectionTarget] = useState('today');
   const [selectedNordpoolId, setSelectedNordpoolId] = useState(null);
   const [nordpoolDecimals, setNordpoolDecimals] = useState(2);
+  const [selectedSpacerVariant, setSelectedSpacerVariant] = useState('spacer');
 
   // ── Sync target page to active page ────────────────────────────────────
   useEffect(() => {
@@ -67,6 +68,7 @@ export function useAddCard({
       setCostSelectionTarget('today');
       setSelectedNordpoolId(null);
       setNordpoolDecimals(2);
+      setSelectedSpacerVariant('spacer');
     }
   }, [showAddCardModal]);
 
@@ -150,6 +152,7 @@ export function useAddCard({
     selectedAndroidTVMediaId, selectedAndroidTVRemoteId,
     selectedCostTodayId, selectedCostMonthId,
     selectedNordpoolId, nordpoolDecimals,
+    selectedSpacerVariant,
     cardSettings, persistCardSettings, getCardSettingsKey,
     setSelectedEntities, setShowAddCardModal,
     setSelectedWeatherId, setSelectedTempId,
@@ -174,6 +177,7 @@ export function useAddCard({
     costSelectionTarget, setCostSelectionTarget,
     selectedNordpoolId, setSelectedNordpoolId,
     nordpoolDecimals, setNordpoolDecimals,
+    selectedSpacerVariant, setSelectedSpacerVariant,
     onAddSelected,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,

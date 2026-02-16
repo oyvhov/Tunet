@@ -27,6 +27,7 @@ const CARD_SPAN_RULES = [
   { prefix: 'light.',         category: 'dualSize' },
   { prefix: 'car_card_',      category: 'dualSize' },
   { prefix: 'room_card_',     category: 'dualSize' },
+  { prefix: 'spacer_card_',   category: 'dualSize' },
 ];
 
 export const getCardGridSpan = (cardId, getCardSettingsKey, cardSettings, activePage) => {

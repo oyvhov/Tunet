@@ -94,6 +94,7 @@ export default function EditCardModal({
   isEditCost,
   isEditNordpool,
   isEditCar,
+  isEditSpacer,
   isEditRoom,
   isEditAndroidTV,
   editSettingsKey,
@@ -292,6 +293,42 @@ export default function EditCardModal({
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {isEditSpacer && editSettingsKey && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('spacer.variant') || 'Variant'}</label>
+                <div className="flex gap-2">
+                  {[
+                    { key: 'spacer', label: t('spacer.spacer') || 'Spacer' },
+                    { key: 'divider', label: t('spacer.divider') || 'Divider' },
+                    { key: 'title', label: t('spacer.title') || 'Title' },
+                  ].map(v => (
+                    <button
+                      key={v.key}
+                      onClick={() => saveCardSetting(editSettingsKey, 'variant', v.key)}
+                      className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${(editSettings.variant || 'spacer') === v.key ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(editSettings.variant === 'title') && (
+                <div className="space-y-2">
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('spacer.titleText') || 'Title Text'}</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    defaultValue={editSettings.heading || ''}
+                    onBlur={(e) => saveCardSetting(editSettingsKey, 'heading', e.target.value.trim() || null)}
+                    placeholder={t('spacer.titlePlaceholder') || 'Section title...'}
+                  />
+                </div>
+              )}
             </div>
           )}
 
