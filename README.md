@@ -59,6 +59,10 @@ See [SETUP.md](SETUP.md) for detailed setup, configuration, and troubleshooting.
 - Home Assistant WebSocket API
 - Lucide Icons + MDI
 
+## 🗺️ Roadmap
+
+See our [ROADMAP.md](ROADMAP.md) for planned features and future development.
+
 ## License
 
 GNU General Public License v3.0 — See [LICENSE](LICENSE)

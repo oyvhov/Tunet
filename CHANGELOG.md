@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-02-16
+
+### Changed
+- **BREAKING**: Synchronized application and addon versions to move in lockstep
+- Graduated from beta status to stable release
+- Unified version numbering across all components
+
+### Migration
+- Both the application and Home Assistant addon now use the same version number
+- This ensures consistency and easier tracking of releases
+
 ## [1.0.0-beta.19] — 2026-02-16
 
 ### Changed

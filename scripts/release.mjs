@@ -17,7 +17,7 @@ const paths = {
 };
 
 function usage() {
-  console.log(`\nUsage:\n  npm run release:check\n  npm run release:prep -- --app-version 1.0.0-beta.11 --addon-version 1.0.8 [--date 2026-02-14]\n  npm run release:publish\n`);
+  console.log(`\nUsage:\n  npm run release:check\n  npm run release:prep -- --version 1.1.0 [--date 2026-02-14]\n  npm run release:publish\n`);
 }
 
 function fail(message) {
@@ -164,6 +164,9 @@ async function runCheck() {
   if (!addonVersion) {
     errors.push('Could not read hassio-addon/config.yaml version.');
   } else {
+    if (pkgVersion !== addonVersion) {
+      errors.push(`package.json version (${pkgVersion}) must equal hassio-addon/config.yaml version (${addonVersion}) for lockstep versioning.`);
+    }
     if (!addonChangelog.includes(`## ${addonVersion}`)) {
       errors.push(`hassio-addon/CHANGELOG.md is missing entry for ${addonVersion}.`);
     }
@@ -183,13 +186,12 @@ async function runCheck() {
 }
 
 async function runPrep(args) {
-  const appVersion = args['app-version'] || args.app;
-  const addonVersion = args['addon-version'] || args.addon;
+  const version = args.version;
   const releaseDate = args.date || new Date().toISOString().slice(0, 10);
 
-  if (!appVersion || !addonVersion) {
+  if (!version) {
     usage();
-    fail('release:prep requires --app-version and --addon-version.');
+    fail('release:prep requires --version.');
   }
 
   const [pkg, lock, mainChangelog, addonConfig, addonChangelog] = await Promise.all([
@@ -200,17 +202,17 @@ async function runPrep(args) {
     readFile(paths.addonChangelog, 'utf8'),
   ]);
 
-  pkg.version = appVersion;
-  lock.version = appVersion;
+  pkg.version = version;
+  lock.version = version;
   if (!lock.packages) lock.packages = {};
   if (!lock.packages['']) lock.packages[''] = {};
-  lock.packages[''].version = appVersion;
+  lock.packages[''].version = version;
 
-  const nextAddonConfig = addonConfig.replace(/^version:\s*"[^"]+"/m, `version: "${addonVersion}"`);
-  const nextMainChangelog = upsertMainChangelogEntry(mainChangelog, appVersion, releaseDate);
+  const nextAddonConfig = addonConfig.replace(/^version:\s*"[^"]+"/m, `version: "${version}"`);
+  const nextMainChangelog = upsertMainChangelogEntry(mainChangelog, version, releaseDate);
   const nextAddonChangelog = upsertTopSection(
     addonChangelog,
-    `## ${addonVersion}`,
+    `## ${version}`,
     '- Release metadata sync.'
   );
 
@@ -222,7 +224,7 @@ async function runPrep(args) {
     writeFile(paths.addonChangelog, nextAddonChangelog, 'utf8'),
   ]);
 
-  console.log(`✅ Prepared release files: app=${appVersion}, addon=${addonVersion}, date=${releaseDate}`);
+  console.log(`✅ Prepared release files: version=${version}, date=${releaseDate}`);
 }
 
 async function main() {

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0
+
+### Changed
+- **BREAKING**: Synchronized application and addon versions to move in lockstep
+- Graduated from beta status to stable release
+- Unified version numbering across all components
+
+### Migration
+- Both the application and Home Assistant addon now use the same version number
+- This ensures consistency and easier tracking of releases
+
 ## 1.0.16
 
 - Release metadata sync.
