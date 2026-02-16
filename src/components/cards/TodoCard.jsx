@@ -51,12 +51,20 @@ function TodoCard({
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef(null);
+  const actionErrorTimer = useRef(null);
 
   // Large card interactive state
   const [newItemText, setNewItemText] = useState('');
   const [adding, setAdding] = useState(false);
+
+  const showActionError = useCallback((msg) => {
+    setActionError(msg);
+    if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current);
+    actionErrorTimer.current = setTimeout(() => setActionError(null), 4000);
+  }, []);
 
   const todoEntityId = settings?.todoEntityId;
 
@@ -71,7 +79,10 @@ function TodoCard({
       { rootMargin: '200px' }
     );
     if (cardRef.current) observer.observe(cardRef.current);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (actionErrorTimer.current) clearTimeout(actionErrorTimer.current);
+    };
   }, []);
 
   const fetchItems = useCallback(async () => {
@@ -115,13 +126,17 @@ function TodoCard({
     if (!conn || !todoEntityId) return;
     const newStatus = item.status === 'completed' ? 'needs_action' : 'completed';
     try {
-      // Optimistic update
       setItems(prev => prev.map(i => (i.uid === item.uid ? { ...i, status: newStatus } : i)));
       await updateTodoItem(conn, todoEntityId, item.uid, newStatus);
       setTimeout(fetchItems, 500);
     } catch (err) {
       console.error('TodoCard: Failed to toggle item', err);
-      // Revert on error
+      const msg = err?.message || '';
+      if (msg.includes('does not support')) {
+        showActionError(t('todo.updateNotSupported') || 'This todo list does not support toggling items');
+      } else {
+        showActionError(t('todo.toggleFailed') || 'Failed to update item');
+      }
       fetchItems();
     }
   };
@@ -135,6 +150,7 @@ function TodoCard({
         setTimeout(fetchItems, 500);
     } catch (err) {
         console.error('TodoCard: Failed to remove item', err);
+        showActionError(t('todo.deleteFailed') || 'Failed to remove item');
         fetchItems();
     }
   }
@@ -152,6 +168,7 @@ function TodoCard({
             await fetchItems();
         } catch (err) {
             console.error('TodoCard: Failed to add item', err);
+            showActionError(t('todo.addFailed') || 'Failed to add item');
         } finally {
             setAdding(false);
         }
@@ -351,6 +368,16 @@ function TodoCard({
           </>
         )}
       </div>
+
+      {/* Action error banner */}
+      {actionError && (
+        <div className="px-5 pb-1">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{actionError}</span>
+          </div>
+        </div>
+      )}
 
        {/* Quick Add */}
        <div className="px-5 pb-5 pt-2">
