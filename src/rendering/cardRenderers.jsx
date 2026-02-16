@@ -24,6 +24,7 @@ import {
   MissingEntityCard,
   RoomCard,
   SensorCard,
+  SpacerCard,
   VacuumCard,
   WeatherTempCard,
 } from '../components';
@@ -490,6 +491,22 @@ export function renderCameraCard(cardId, dragProps, getControls, cardStyle, sett
   );
 }
 
+export function renderSpacerCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
+  const { editMode, cardSettings } = ctx;
+  return (
+    <SpacerCard
+      key={cardId}
+      cardId={cardId}
+      dragProps={dragProps}
+      controls={getControls(cardId)}
+      cardStyle={cardStyle}
+      cardSettings={cardSettings}
+      settingsKey={settingsKey}
+      editMode={editMode}
+    />
+  );
+}
+
 // ─── Card Type Dispatch ──────────────────────────────────────────────────────
 
 /**
@@ -518,6 +535,7 @@ const CARD_REGISTRY = [
   { prefix: 'cover_card_',     renderer: renderCoverCard },
   { prefix: 'room_card_',      renderer: renderRoomCard },
   { prefix: 'camera_card_',    renderer: renderCameraCard },
+  { prefix: 'spacer_card_',    renderer: renderSpacerCard },
 ];
 
 export function dispatchCardRender(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {

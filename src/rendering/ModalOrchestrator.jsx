@@ -143,6 +143,7 @@ export default function ModalOrchestrator({
     costSelectionTarget, setCostSelectionTarget,
     selectedNordpoolId, setSelectedNordpoolId,
     nordpoolDecimals, setNordpoolDecimals,
+    selectedSpacerVariant, setSelectedSpacerVariant,
     onAddSelected,
     getAddCardAvailableLabel, getAddCardNoneLeftLabel,
   } = addCard;
@@ -178,18 +179,19 @@ export default function ModalOrchestrator({
     const isEditCar = !!editId && (editId === 'car' || editId.startsWith('car_card_'));
     const isEditRoom = !!editId && editId.startsWith('room_card_');
     const isEditCover = !!editId && editId.startsWith('cover_card_');
+    const isEditSpacer = !!editId && editId.startsWith('spacer_card_');
     const editSettings = isEditCar ? resolveCarSettings(editId, rawEditSettings) : rawEditSettings;
     const isEditGenericType = (!!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor')) || isEditVacuum || isEditAutomation || isEditCar || isEditAndroidTV || isEditRoom;
     const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
     const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
-    const canEditName = !!editId && !isEditWeatherTemp && editId !== 'media_player' && editId !== 'sonos';
+    const canEditName = !!editId && !isEditWeatherTemp && !isEditSpacer && editId !== 'media_player' && editId !== 'sonos';
     const isEditNordpool = !!editId && editId.startsWith('nordpool_card_');
     const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditNordpool || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('camera_card_') || !!editEntity || editId === 'car' || editId.startsWith('car_card_'));
     const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
     return {
       canEditName, canEditIcon, canEditStatus,
       isEditLight, isEditCalendar, isEditTodo, isEditCost, isEditNordpool, isEditGenericType,
-      isEditAndroidTV, isEditCar, isEditRoom, isEditSensor, isEditWeatherTemp,
+      isEditAndroidTV, isEditCar, isEditRoom, isEditSpacer, isEditSensor, isEditWeatherTemp,
       editSettingsKey, editSettings,
     };
   }, [showEditCardModal, editSettingsKey, cardSettings, entities]);
@@ -653,6 +655,8 @@ export default function ModalOrchestrator({
             setSelectedNordpoolId={setSelectedNordpoolId}
             nordpoolDecimals={nordpoolDecimals}
             setNordpoolDecimals={setNordpoolDecimals}
+            selectedSpacerVariant={selectedSpacerVariant}
+            setSelectedSpacerVariant={setSelectedSpacerVariant}
             onAddSelected={onAddSelected}
             onAddRoom={(area, areaEntityIds) => {
               const cardId = `room_card_${Date.now()}`;
