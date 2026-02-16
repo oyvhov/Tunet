@@ -215,6 +215,19 @@ function CalendarCard({
   const IconComp = iconName ? (getIconComponent(iconName) || CalendarIcon) : CalendarIcon;
   const displayName = customName || settings?.name || t('calendar.title') || 'Calendar';
   const isSmall = size === 'small';
+  const isLarge = size === 'large';
+
+  const weekDays = useMemo(() => {
+    const days = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      days.push(d.toLocaleDateString('sv-SE'));
+    }
+    return days;
+  }, []);
 
   const nextEvent = events.length > 0 ? events[0] : null;
   const nextEventTitle = nextEvent
@@ -275,6 +288,221 @@ function CalendarCard({
                 </>
             )}
         </div>
+      </div>
+    );
+  }
+
+  if (isLarge) {
+    const HOUR_HEIGHT = 48;
+    const START_HOUR = 0;
+    const END_HOUR = 24;
+    const TOTAL_HOURS = END_HOUR - START_HOUR;
+    const GUTTER_W = 'w-10';
+
+    const gridScrollRef = useRef(null);
+
+    // Auto-scroll to current hour on mount
+    useEffect(() => {
+      if (gridScrollRef.current && events.length > 0) {
+        const now = new Date();
+        const scrollTo = Math.max(0, (now.getHours() - 1 - START_HOUR) * HOUR_HEIGHT);
+        gridScrollRef.current.scrollTop = scrollTo;
+      }
+    }, [events.length]);
+
+    const formatShortDay = (dateStr) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const date = new Date(y, m - 1, d);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return {
+        dayName: date.toLocaleDateString(locale, { weekday: 'short' }),
+        dayNum: d,
+        isToday: date.getTime() === today.getTime(),
+      };
+    };
+
+    const getTimePosition = (date) => {
+      if (!date) return 0;
+      return ((date.getHours() - START_HOUR) + date.getMinutes() / 60) * HOUR_HEIGHT;
+    };
+
+    const getEventBlock = (evt) => {
+      const startRaw = getEventDateValue(evt.start);
+      const endRaw = getEventDateValue(evt.end);
+      const start = startRaw ? new Date(startRaw) : null;
+      const end = endRaw ? new Date(endRaw) : null;
+      if (!start) return null;
+      const top = Math.max(0, getTimePosition(start));
+      const duration = end ? (end - start) / 3600000 : 1;
+      const height = Math.max(20, duration * HOUR_HEIGHT);
+      return { top, height, start, end };
+    };
+
+    // Separate all-day vs timed events per day
+    const weekData = weekDays.map((dateKey) => {
+      const dayEvts = groupedEvents[dateKey] || [];
+      const allDay = [];
+      const timed = [];
+      dayEvts.forEach(evt => {
+        if (isAllDayValue(evt.start)) allDay.push(evt);
+        else timed.push(evt);
+      });
+      return { dateKey, allDay, timed, ...formatShortDay(dateKey) };
+    });
+
+    const hasAnyAllDay = weekData.some(d => d.allDay.length > 0);
+
+    // Now indicator position
+    const now = new Date();
+    const nowDateKey = now.toLocaleDateString('sv-SE');
+    const nowTop = getTimePosition(now);
+
+    const hours = [];
+    for (let h = START_HOUR; h < END_HOUR; h++) hours.push(h);
+
+    return (
+      <div
+        ref={cardRef}
+        {...dragProps}
+        data-haptic={isEditMode ? undefined : 'card'}
+        onClick={onClick}
+        className={`touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
+        style={style}
+      >
+        {getControls && getControls(cardId)}
+
+        {/* Header */}
+        <div className="px-5 pt-4 pb-1 flex items-center gap-3 shrink-0">
+          <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+            <IconComp className="w-4 h-4" />
+          </div>
+          <h3 className="text-base font-medium text-[var(--text-primary)] tracking-tight">
+            {displayName}
+          </h3>
+        </div>
+
+        {selectedCalendars.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
+            <IconComp className="w-8 h-8 mb-2" />
+            <p className="text-xs uppercase font-bold tracking-widest">{t('calendar.selectCalendars') || 'Select Calendars'}</p>
+          </div>
+        ) : error ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-red-400">
+            <AlertCircle className="w-8 h-8 mb-2" />
+            <p className="text-xs uppercase font-bold tracking-widest text-center px-4">{error}</p>
+          </div>
+        ) : loading && events.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)]">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-2" />
+            <p className="text-xs uppercase font-bold tracking-widest">{t('common.loading') || 'Loading...'}</p>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Day column headers */}
+            <div className="flex shrink-0 px-2 pb-1">
+              <div className={GUTTER_W + ' shrink-0'} />
+              {weekData.map(({ dateKey, dayName, dayNum, isToday }) => (
+                <div key={dateKey} className={`flex-1 text-center py-1 rounded-lg ${isToday ? 'bg-blue-500/15' : ''}`}>
+                  <p className={`text-[9px] font-bold uppercase tracking-widest leading-none ${isToday ? 'text-blue-400' : 'text-[var(--text-secondary)] opacity-50'}`}>
+                    {dayName}
+                  </p>
+                  <p className={`text-xs font-semibold leading-none mt-0.5 ${isToday ? 'text-blue-400' : 'text-[var(--text-primary)]'}`}>
+                    {dayNum}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* All-day events banner */}
+            {hasAnyAllDay && (
+              <div className="flex shrink-0 px-2 pb-1 border-b border-[var(--glass-border)]/30">
+                <div className={GUTTER_W + ' shrink-0 flex items-center justify-end pr-1.5'}>
+                  <span className="text-[8px] font-bold text-[var(--text-secondary)] opacity-40 uppercase">{t('calendar.allDay') || 'All day'}</span>
+                </div>
+                {weekData.map(({ dateKey, allDay }) => (
+                  <div key={dateKey} className="flex-1 px-0.5 space-y-0.5 min-h-[1.25rem]">
+                    {allDay.map((evt, idx) => (
+                      <div key={`ad-${idx}`} className="px-1 py-0.5 rounded bg-blue-500/15 border-l-2 border-blue-400 truncate">
+                        <p className="text-[9px] font-medium text-blue-300 leading-tight truncate">{evt.summary}</p>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Scrollable time grid */}
+            <div
+              ref={gridScrollRef}
+              className="flex-1 overflow-y-auto overflow-x-hidden px-2 hide-scrollbar [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+            >
+              <div className="flex relative" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
+                {/* Time gutter with hour labels */}
+                <div className={GUTTER_W + ' shrink-0 relative'}>
+                  {hours.map(h => (
+                    <div
+                      key={h}
+                      className="absolute right-0 pr-1.5 flex items-start"
+                      style={{ top: (h - START_HOUR) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+                    >
+                      <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 leading-none -mt-[5px]">
+                        {h === 0 ? '' : `${h.toString().padStart(2, '0')}:00`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Day columns */}
+                {weekData.map(({ dateKey, timed, isToday }) => (
+                  <div key={dateKey} className="flex-1 relative border-l border-[var(--glass-border)]/20">
+                    {/* Hour grid lines */}
+                    {hours.map(h => (
+                      <div
+                        key={h}
+                        className="absolute left-0 right-0 border-t border-[var(--glass-border)]/15"
+                        style={{ top: (h - START_HOUR) * HOUR_HEIGHT }}
+                      />
+                    ))}
+
+                    {/* Now indicator */}
+                    {dateKey === nowDateKey && (
+                      <div className="absolute left-0 right-0 z-20 flex items-center" style={{ top: nowTop }}>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 -ml-[3px]" />
+                        <div className="flex-1 h-[1.5px] bg-red-500/70" />
+                      </div>
+                    )}
+
+                    {/* Event blocks */}
+                    {timed.map((evt, idx) => {
+                      const block = getEventBlock(evt);
+                      if (!block) return null;
+                      const timeStr = formatEventTime(block.start);
+                      return (
+                        <div
+                          key={`${evt.uid || evt.id || evt.summary || 'evt'}-${idx}`}
+                          className="absolute left-0.5 right-0.5 rounded-md bg-blue-500/20 border-l-2 border-blue-400 overflow-hidden z-10 hover:bg-blue-500/30 transition-colors"
+                          style={{ top: block.top, height: Math.max(block.height, 18) }}
+                        >
+                          <div className="px-1 py-0.5 h-full">
+                            {block.height >= 28 && timeStr && (
+                              <p className="text-[8px] font-bold text-blue-300/80 leading-none truncate">
+                                {timeStr}
+                              </p>
+                            )}
+                            <p className="text-[10px] font-medium text-[var(--text-primary)] leading-tight line-clamp-2 mt-px">
+                              {evt.summary}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
