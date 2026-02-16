@@ -1,8 +1,8 @@
 name: "Tunet Dashboard (Jaburges)"
 description: "A modern, responsive dashboard for Home Assistant"
 version: "1.0.15"
-slug: "tunet"
-url: "https://github.com/oyvhov/Tunet"
+slug: "tunet-jaburges"
+url: "https://github.com/jaburges/Tunet"
 init: false
 startup: application
 arch:
