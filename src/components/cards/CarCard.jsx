@@ -55,6 +55,7 @@ const CarCard = ({
 
   const batteryValue = getNumberState(entities, batteryId);
   const rangeValue = getNumberState(entities, rangeId);
+  const rangeUnit = rangeId ? (entities[rangeId]?.attributes?.unit_of_measurement || 'km') : 'km';
   const climateTempValueRaw = climateId ? getA(climateId, 'current_temperature') : null;
   const climateTempValue = climateTempValueRaw !== null && climateTempValueRaw !== undefined
     ? parseFloat(climateTempValueRaw)
@@ -90,7 +91,7 @@ const CarCard = ({
                 {batteryValue !== null ? `${Math.round(batteryValue)}%` : '--'}
               </span>
               {rangeValue !== null && (
-                <span className="text-xs text-[var(--text-secondary)]">{Math.round(rangeValue)} km</span>
+                <span className="text-xs text-[var(--text-secondary)]">{Math.round(rangeValue)} {rangeUnit}</span>
               )}
             </div>
           </div>
@@ -123,7 +124,7 @@ const CarCard = ({
             </span>
             {isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}
             {rangeValue !== null && (
-              <span className="text-[var(--text-muted)] font-medium text-base ml-1">{Math.round(rangeValue)}km</span>
+              <span className="text-[var(--text-muted)] font-medium text-base ml-1">{Math.round(rangeValue)}{rangeUnit}</span>
             )}
           </div>
           {pluggedId && (
