@@ -53,6 +53,7 @@ function CalendarCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [visibleDays, setVisibleDays] = useState(7);
   const cardRef = useRef(null);
   const gridScrollRef = useRef(null);
 
@@ -77,6 +78,19 @@ function CalendarCard({
     }
 
     return () => observer.disconnect();
+  }, []);
+
+  // Adapt visible day count based on card width
+  useEffect(() => {
+    if (!cardRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect?.width || 0;
+      if (w < 300) setVisibleDays(2);
+      else if (w < 500) setVisibleDays(4);
+      else setVisibleDays(7);
+    });
+    ro.observe(cardRef.current);
+    return () => ro.disconnect();
   }, []);
 
   const getEventDate = (eventDate) => {
@@ -339,8 +353,8 @@ function CalendarCard({
       return { top, height, start, end };
     };
 
-    // Separate all-day vs timed events per day
-    const weekData = weekDays.map((dateKey) => {
+    // Separate all-day vs timed events per day (limited by visible day count)
+    const weekData = weekDays.slice(0, visibleDays).map((dateKey) => {
       const dayEvts = groupedEvents[dateKey] || [];
       const allDay = [];
       const timed = [];
