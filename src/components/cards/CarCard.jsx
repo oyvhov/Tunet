@@ -37,6 +37,7 @@ const CarCard = ({
   customIcons,
   getS,
   getA,
+  getEntityImageUrl,
   _callService,
   onOpen,
   _isMobile,
@@ -71,6 +72,7 @@ const CarCard = ({
   const isCharging = chargingState === 'on' || chargingState === 'charging';
   const isPlugged = pluggedState === 'on' || pluggedState === 'plugged' || pluggedState === 'true';
   const isHtg = climateEntity && !['off', 'unavailable', 'unknown'].includes(climateEntity.state);
+  const resolvedImageUrl = imageUrl ? (getEntityImageUrl ? getEntityImageUrl(imageUrl) : imageUrl) : null;
 
   const name = customNames[cardId] || t('car.defaultName');
   const Icon = customIcons[cardId] ? (getIconComponent(customIcons[cardId]) || Car) : Car;
@@ -134,9 +136,9 @@ const CarCard = ({
             </p>
           )}
         </div>
-        {imageUrl && (
+        {resolvedImageUrl && (
           <img
-            src={imageUrl}
+            src={resolvedImageUrl}
             alt=""
             className="h-20 w-auto max-w-[45%] object-contain opacity-80 pointer-events-none select-none drop-shadow-lg"
             onError={(e) => { e.target.style.display = 'none'; }}
