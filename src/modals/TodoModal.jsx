@@ -19,6 +19,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
 
   const translate = t || ((key) => key);
   const todoEntityId = settings?.todoEntityId;
+  const todoIntegration = settings?.todoIntegration || 'standard';
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -63,7 +64,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
     if (!text || !conn || !todoEntityId) return;
     setAdding(true);
     try {
-      await addTodoItem(conn, todoEntityId, text);
+      await addTodoItem(conn, todoEntityId, text, todoIntegration);
       setNewItemText('');
       await fetchItems();
       inputRef.current?.focus();
@@ -79,7 +80,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
     if (!conn || !todoEntityId) return;
     const newStatus = item.status === 'completed' ? 'needs_action' : 'completed';
     try {
-      await updateTodoItem(conn, todoEntityId, item.uid, newStatus);
+      await updateTodoItem(conn, todoEntityId, item.uid, newStatus, todoIntegration);
       // Optimistic update
       setItems(prev =>
         prev.map(i => (i.uid === item.uid ? { ...i, status: newStatus } : i))
@@ -96,7 +97,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
   const handleDelete = async (item) => {
     if (!conn || !todoEntityId) return;
     try {
-      await removeTodoItem(conn, todoEntityId, item.uid);
+      await removeTodoItem(conn, todoEntityId, item.uid, todoIntegration);
       setItems(prev => prev.filter(i => i.uid !== item.uid));
       setTimeout(fetchItems, 500);
     } catch (err) {
