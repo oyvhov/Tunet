@@ -1,6 +1,6 @@
 name: "Tunet Dashboard (Jaburges)"
 description: "A modern, responsive dashboard for Home Assistant"
-version: "1.0.17"
+version: "1.0.18"
 slug: "tunet-jaburges"
 url: "https://github.com/jaburges/Tunet"
 init: false
@@ -22,4 +22,4 @@ ports_description:
 options:
   branch: "main"
 schema:
-  branch: "list(main|feature/car-card-image|feature/calendar-week-view|feature/spacer-cards|fix/car-card-range-units)"
+  branch: "str"
