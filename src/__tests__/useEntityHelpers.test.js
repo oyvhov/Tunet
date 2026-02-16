@@ -182,11 +182,17 @@ describe('useEntityHelpers › callService', () => {
   });
 
   it('re-throws errors from haClient', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     haCallService.mockRejectedValueOnce(new Error('timeout'));
     const { result } = renderHook(() => useEntityHelpers(baseProps()));
     await expect(
       result.current.callService('switch', 'turn_off', {}),
     ).rejects.toThrow('timeout');
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Service call failed: switch.turn_off',
+      expect.any(Error),
+    );
+    errorSpy.mockRestore();
   });
 });
 
