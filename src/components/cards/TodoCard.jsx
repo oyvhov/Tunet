@@ -67,6 +67,7 @@ function TodoCard({
   }, []);
 
   const todoEntityId = settings?.todoEntityId;
+  const todoIntegration = settings?.todoIntegration || 'standard';
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -127,7 +128,7 @@ function TodoCard({
     const newStatus = item.status === 'completed' ? 'needs_action' : 'completed';
     try {
       setItems(prev => prev.map(i => (i.uid === item.uid ? { ...i, status: newStatus } : i)));
-      await updateTodoItem(conn, todoEntityId, item.uid, newStatus);
+      await updateTodoItem(conn, todoEntityId, item.uid, newStatus, todoIntegration);
       setTimeout(fetchItems, 500);
     } catch (err) {
       console.error('TodoCard: Failed to toggle item', err);
@@ -146,7 +147,7 @@ function TodoCard({
     if (!conn || !todoEntityId) return;
     try {
         setItems(prev => prev.filter(i => i.uid !== item.uid));
-        await removeTodoItem(conn, todoEntityId, item.uid);
+        await removeTodoItem(conn, todoEntityId, item.uid, todoIntegration);
         setTimeout(fetchItems, 500);
     } catch (err) {
         console.error('TodoCard: Failed to remove item', err);
@@ -163,7 +164,7 @@ function TodoCard({
         if (!text || !conn || !todoEntityId) return;
         setAdding(true);
         try {
-            await addTodoItem(conn, todoEntityId, text);
+            await addTodoItem(conn, todoEntityId, text, todoIntegration);
             setNewItemText('');
             await fetchItems();
         } catch (err) {

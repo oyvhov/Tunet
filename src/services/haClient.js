@@ -217,9 +217,18 @@ export async function getTodoItems(conn, entityId) {
   return extract(res?.service_response) || extract(res?.response) || extract(res?.result) || extract(res) || [];
 }
 
-export async function addTodoItem(conn, entityId, summary) {
+export async function addTodoItem(conn, entityId, summary, integration = 'standard') {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
+  }
+  if (integration === 'ms365') {
+    return conn.sendMessagePromise({
+      type: 'call_service',
+      domain: 'ms365_todo',
+      service: 'new_todo',
+      target: { entity_id: entityId },
+      service_data: { subject: summary },
+    });
   }
   return conn.sendMessagePromise({
     type: 'call_service',
@@ -230,9 +239,18 @@ export async function addTodoItem(conn, entityId, summary) {
   });
 }
 
-export async function updateTodoItem(conn, entityId, uid, status) {
+export async function updateTodoItem(conn, entityId, uid, status, integration = 'standard') {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
+  }
+  if (integration === 'ms365') {
+    return conn.sendMessagePromise({
+      type: 'call_service',
+      domain: 'ms365_todo',
+      service: 'complete_todo',
+      target: { entity_id: entityId },
+      service_data: { todo_id: uid, completed: status === 'completed' },
+    });
   }
   return conn.sendMessagePromise({
     type: 'call_service',
@@ -243,9 +261,18 @@ export async function updateTodoItem(conn, entityId, uid, status) {
   });
 }
 
-export async function removeTodoItem(conn, entityId, uid) {
+export async function removeTodoItem(conn, entityId, uid, integration = 'standard') {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
+  }
+  if (integration === 'ms365') {
+    return conn.sendMessagePromise({
+      type: 'call_service',
+      domain: 'ms365_todo',
+      service: 'delete_todo',
+      target: { entity_id: entityId },
+      service_data: { todo_id: uid },
+    });
   }
   return conn.sendMessagePromise({
     type: 'call_service',

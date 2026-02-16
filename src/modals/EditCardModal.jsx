@@ -296,28 +296,49 @@ export default function EditCardModal({
           )}
 
           {isEditTodo && editSettingsKey && (
-            <div className="space-y-3">
-              <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('todo.selectList') || 'Select Todo List'}</label>
-              <div className="popup-surface rounded-2xl p-4 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
-                {todoOptions.length === 0 && (
-                  <p className="text-xs text-[var(--text-muted)] text-center py-4">{t('todo.noListsFound') || 'No todo lists found'}</p>
-                )}
-                {todoOptions.map((id) => {
-                  const selected = editSettings.todoEntityId === id;
-                  return (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('todo.integration') || 'Integration'}</label>
+                <div className="flex gap-2">
+                  {[
+                    { key: 'standard', label: t('todo.integrationStandard') || 'Standard' },
+                    { key: 'ms365', label: t('todo.integrationMs365') || 'MS365 To-Do' },
+                  ].map(v => (
                     <button
-                      key={id}
-                      type="button"
-                      onClick={() => {
-                        saveCardSetting(editSettingsKey, 'todoEntityId', selected ? null : id);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                      key={v.key}
+                      onClick={() => saveCardSetting(editSettingsKey, 'todoIntegration', v.key)}
+                      className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${(editSettings.todoIntegration || 'standard') === v.key ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
                     >
-                      <div className="text-sm font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
-                      <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
+                      {v.label}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+                <p className="text-[10px] text-gray-500 ml-1">{t('todo.integrationHint') || 'Select MS365 if using the MS365 To-Do custom integration'}</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('todo.selectList') || 'Select Todo List'}</label>
+                <div className="popup-surface rounded-2xl p-4 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
+                  {todoOptions.length === 0 && (
+                    <p className="text-xs text-[var(--text-muted)] text-center py-4">{t('todo.noListsFound') || 'No todo lists found'}</p>
+                  )}
+                  {todoOptions.map((id) => {
+                    const selected = editSettings.todoEntityId === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => {
+                          saveCardSetting(editSettingsKey, 'todoEntityId', selected ? null : id);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                      >
+                        <div className="text-sm font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
+                        <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
