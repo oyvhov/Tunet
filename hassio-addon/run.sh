@@ -4,16 +4,22 @@ BRANCH=$(bashio::config 'branch')
 REPO="https://github.com/jaburges/Tunet.git"
 BUILD_DIR="/data/build"
 NODE_VER=$(node --version)
-CACHE_KEY="${BRANCH}|${NODE_VER}"
+
+# Check the latest commit on the remote branch
+REMOTE_HASH=$(git ls-remote "${REPO}" "refs/heads/${BRANCH}" 2>/dev/null | cut -f1)
+REMOTE_HASH=${REMOTE_HASH:-unknown}
+
+CACHE_KEY="${BRANCH}|${NODE_VER}|${REMOTE_HASH}"
 LAST_KEY=$(cat "${BUILD_DIR}/.cache_key" 2>/dev/null || echo "")
 
 echo "─────────────────────────────────────────"
 echo "  Tunet Dashboard (Jaburges)"
 echo "  Branch: ${BRANCH}  Node: ${NODE_VER}"
+echo "  Commit: ${REMOTE_HASH:0:8}"
 echo "─────────────────────────────────────────"
 
 if [ "${LAST_KEY}" != "${CACHE_KEY}" ] || [ ! -d "${BUILD_DIR}/dist" ]; then
-  echo "Building branch ${BRANCH}..."
+  echo "Building branch ${BRANCH} (${REMOTE_HASH:0:8})..."
   rm -rf "${BUILD_DIR}"
   mkdir -p "${BUILD_DIR}"
 
