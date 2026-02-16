@@ -108,9 +108,9 @@ const CarCard = ({
       {controls}
       <div className="flex justify-between items-start font-sans">
         <div className={`p-3 rounded-2xl transition-all ${isHtg ? 'bg-orange-500/20 text-orange-400 animate-pulse' : (isCharging ? 'bg-green-500/15 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]')}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-2 max-w-[65%]">
           {locationLabel && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{String(locationLabel)}</span></div>
+            <div className="flex items-start gap-1.5 px-3 py-1.5 rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] max-w-full"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" /><span className="text-xs tracking-widest font-bold uppercase break-words whitespace-normal leading-tight">{String(locationLabel)}</span></div>
           )}
           {tempValue !== null && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{Math.round(tempValue)}°</span></div>

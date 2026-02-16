@@ -193,9 +193,14 @@ export const PageProvider = ({ children }) => {
   };
 
   const saveCardSetting = (id, setting, value) => {
-    const newSettings = { ...cardSettings, [id]: { ...cardSettings[id], [setting]: value } };
-    setCardSettings(newSettings);
-    writeJSON('tunet_card_settings', newSettings);
+    setCardSettings((prev) => {
+      const newSettings = {
+        ...prev,
+        [id]: { ...(prev[id] || {}), [setting]: value }
+      };
+      writeJSON('tunet_card_settings', newSettings);
+      return newSettings;
+    });
   };
 
   const savePageSetting = (id, setting, value) => {

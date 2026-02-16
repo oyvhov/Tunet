@@ -3,6 +3,149 @@ import { X, Check, Plus, RefreshCw } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import { getEntitiesForArea } from '../services/haClient';
 
+function GraphLimitsSlider({ values, onChange, min = -15, max = 35 }) {
+  const trackRef = React.useRef(null);
+  const safeValues = Array.isArray(values) ? values : [0, 10, 20, 28];
+  const normalized = [...safeValues].slice(0, 4).map((value, index) => {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : [0, 10, 20, 28][index];
+  }).sort((a, b) => a - b);
+
+  while (normalized.length < 4) {
+    normalized.push([0, 10, 20, 28][normalized.length]);
+  }
+
+  const toPercent = (value) => ((value - min) / (max - min)) * 100;
+  const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+  const toStep = (value) => Math.round(value * 2) / 2;
+
+  const updateIndex = (index, value) => {
+    const next = [...normalized];
+    const prevLimit = index > 0 ? next[index - 1] + 0.5 : min;
+    const nextLimit = index < next.length - 1 ? next[index + 1] - 0.5 : max;
+    next[index] = toStep(clamp(value, prevLimit, nextLimit));
+    onChange(next);
+  };
+
+  const valueFromClientX = (clientX) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return null;
+    const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
+    return min + ratio * (max - min);
+  };
+
+  const startDrag = (index, event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const move = (moveEvent) => {
+      const nextValue = valueFromClientX(moveEvent.clientX);
+      if (nextValue === null) return;
+      updateIndex(index, nextValue);
+    };
+
+    const end = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+    };
+
+    const startValue = valueFromClientX(event.clientX);
+    if (startValue !== null) updateIndex(index, startValue);
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+  };
+
+  const onTrackPointerDown = (event) => {
+    const clickedValue = valueFromClientX(event.clientX);
+    if (clickedValue === null) return;
+
+    let nearestIndex = 0;
+    let nearestDistance = Math.abs(normalized[0] - clickedValue);
+    for (let index = 1; index < normalized.length; index++) {
+      const distance = Math.abs(normalized[index] - clickedValue);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = index;
+      }
+    }
+
+    startDrag(nearestIndex, event);
+  };
+
+  const segments = [
+    { from: min, to: normalized[0], color: '#3b82f6' },
+    { from: normalized[0], to: normalized[1], color: '#06b6d4' },
+    { from: normalized[1], to: normalized[2], color: '#22c55e' },
+    { from: normalized[2], to: normalized[3], color: '#eab308' },
+    { from: normalized[3], to: max, color: '#ef4444' },
+  ];
+
+  return (
+    <div className="popup-surface rounded-2xl p-5">
+      <div className="relative h-16 px-2">
+        <div
+          ref={trackRef}
+          className="absolute left-2 right-2 top-7 h-3 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--glass-bg)] cursor-pointer"
+          onPointerDown={onTrackPointerDown}
+        >
+          {segments.map((segment, idx) => {
+            const left = `${toPercent(segment.from)}%`;
+            const width = `${Math.max(0, toPercent(segment.to) - toPercent(segment.from))}%`;
+            return (
+              <div
+                key={`segment-${idx}`}
+                className="absolute top-0 h-full"
+                style={{ left, width, backgroundColor: segment.color }}
+              />
+            );
+          })}
+        </div>
+
+        {normalized.map((value, index) => {
+          const left = `calc(${toPercent(value)}% + 0.5rem)`;
+          const thumbColors = ['#3b82f6', '#06b6d4', '#22c55e', '#eab308'];
+          return (
+            <React.Fragment key={`thumb-${index}`}>
+              <div
+                className="absolute top-0 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide text-[var(--text-primary)] border"
+                style={{
+                  left,
+                  backgroundColor: 'var(--glass-bg)',
+                  borderColor: 'var(--glass-border)'
+                }}
+              >
+                {value.toFixed(1)}°
+              </div>
+
+              <button
+                type="button"
+                aria-label={`Graph color limit ${index + 1}`}
+                onPointerDown={(event) => startDrag(index, event)}
+                className="absolute top-[1.25rem] -translate-x-1/2 w-[1.15rem] h-[1.15rem] rounded-full border-2 transition-transform active:scale-110"
+                style={{
+                  left,
+                  backgroundColor: 'white',
+                  borderColor: 'rgba(255,255,255,0.75)',
+                  boxShadow: `0 0 0 4px ${thumbColors[index]}33, 0 4px 12px rgba(0,0,0,0.35)`,
+                  zIndex: 30 + index,
+                  touchAction: 'none'
+                }}
+              />
+            </React.Fragment>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-70 px-1">
+        <span>{min}°</span>
+        <span>{max}°</span>
+      </div>
+    </div>
+  );
+}
+
 function SearchableSelect({ label, value, options, onChange, placeholder, entities, t }) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
@@ -252,6 +395,44 @@ export default function EditCardModal({
                   placeholder={t('weatherTemp.subtitlePlaceholder') || 'e.g. Oslo, Home'}
                 />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('weatherTemp.graphHistory') || 'Graph history'}</label>
+                <div className="popup-surface rounded-2xl p-3 flex items-center gap-2 flex-wrap">
+                  {[6, 12, 24, 48].map((hours) => {
+                    const active = (editSettings.graphHistoryHours || 12) === hours;
+                    return (
+                      <button
+                        key={hours}
+                        type="button"
+                        onClick={() => saveCardSetting(editSettingsKey, 'graphHistoryHours', hours)}
+                        className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${active ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      >
+                        {hours}h
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('weatherTemp.graphLimits') || 'Graph color limits (°C)'}</label>
+                <GraphLimitsSlider
+                  values={[
+                    Number.isFinite(editSettings.graphLimit1) ? editSettings.graphLimit1 : 0,
+                    Number.isFinite(editSettings.graphLimit2) ? editSettings.graphLimit2 : 10,
+                    Number.isFinite(editSettings.graphLimit3) ? editSettings.graphLimit3 : 20,
+                    Number.isFinite(editSettings.graphLimit4) ? editSettings.graphLimit4 : 28,
+                  ]}
+                  onChange={(next) => {
+                    saveCardSetting(editSettingsKey, 'graphLimit1', next[0]);
+                    saveCardSetting(editSettingsKey, 'graphLimit2', next[1]);
+                    saveCardSetting(editSettingsKey, 'graphLimit3', next[2]);
+                    saveCardSetting(editSettingsKey, 'graphLimit4', next[3]);
+                  }}
+                />
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-1 block">{t('weatherTemp.effects')}</label>
                 <div className="popup-surface rounded-2xl p-4 flex items-center justify-between">

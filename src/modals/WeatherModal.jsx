@@ -3,7 +3,7 @@ import {
   X, Cloud, CloudRain, Sun, Moon, CloudSun, Wind, Snowflake, Zap, AlertTriangle 
 } from '../icons';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
-import { getForecast } from '../services/haClient';
+import { getForecast, getHistory, getStatistics } from '../services/haClient';
 import { getIconComponent } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
 
@@ -76,6 +76,81 @@ export default function WeatherModal({
   const [forecastType, setForecastType] = useState('hourly');
   const [forecast, setForecast] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [historyPeriodHours, setHistoryPeriodHours] = useState(12);
+  const [historySeries, setHistorySeries] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const hasTempSensor = !!tempEntity?.entity_id;
+
+  useEffect(() => {
+    if (!conn || !tempEntity?.entity_id) {
+      setHistorySeries([]);
+      return;
+    }
+
+    let cancelled = false;
+    const fetchHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        const end = new Date();
+        const start = new Date();
+        start.setHours(start.getHours() - historyPeriodHours);
+
+        const statsPeriod = historyPeriodHours <= 12 ? '5minute' : (historyPeriodHours <= 24 ? '15minute' : 'hour');
+        const stats = await getStatistics(conn, {
+          start,
+          end,
+          statisticId: tempEntity.entity_id,
+          period: statsPeriod
+        });
+
+        if (!cancelled && Array.isArray(stats) && stats.length > 0) {
+          const mappedStats = stats
+            .map((point) => {
+              const value = Number.isFinite(point.mean) ? point.mean : parseFloat(point.state);
+              const time = new Date(point.start || point.end);
+              if (!Number.isFinite(value) || Number.isNaN(time.getTime())) return null;
+              return { value, time };
+            })
+            .filter(Boolean);
+
+          if (mappedStats.length > 0) {
+            setHistorySeries(mappedStats);
+            return;
+          }
+        }
+
+        const rawHistory = await getHistory(conn, {
+          start,
+          end,
+          entityId: tempEntity.entity_id,
+          minimal_response: false,
+          no_attributes: true
+        });
+
+        if (!cancelled) {
+          const mappedHistory = (Array.isArray(rawHistory) ? rawHistory : [])
+            .map((entry) => {
+              const value = parseFloat(entry.state);
+              const time = new Date(entry.last_updated || entry.last_changed);
+              if (!Number.isFinite(value) || Number.isNaN(time.getTime())) return null;
+              return { value, time };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.time - b.time);
+          setHistorySeries(mappedHistory);
+        }
+      } catch {
+        if (!cancelled) setHistorySeries([]);
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    };
+
+    fetchHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [conn, tempEntity?.entity_id, historyPeriodHours]);
 
   useEffect(() => {
     if (!conn || !weatherEntity?.entity_id) return;
@@ -116,6 +191,20 @@ export default function WeatherModal({
       }))
       .filter((p) => p.value !== null && p.time instanceof Date && !Number.isNaN(p.time.getTime()));
   }, [forecast]);
+
+  const historyColor = useMemo(() => {
+    if (!historySeries.length) return '#60a5fa';
+    const last = historySeries[historySeries.length - 1]?.value;
+    if (!Number.isFinite(last)) return '#60a5fa';
+    if (last <= 0) return '#3b82f6';
+    if (last <= 10) return '#06b6d4';
+    if (last <= 20) return '#22c55e';
+    if (last <= 28) return '#eab308';
+    return '#ef4444';
+  }, [historySeries]);
+
+  const graphSeries = hasTempSensor ? historySeries : forecastSeries;
+  const graphLoading = hasTempSensor ? historyLoading : loading;
 
   const forecastList = useMemo(() => {
     const sliced = forecastType === 'hourly' ? forecast.slice(0, 12) : forecast.slice(0, 7);
@@ -186,33 +275,47 @@ export default function WeatherModal({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setForecastType('hourly')}
-                    className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${forecastType === 'hourly' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                  >
-                    {translate('weather.view.hourly')}
-                  </button>
-                  <button
-                    onClick={() => setForecastType('daily')}
-                    className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${forecastType === 'daily' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                  >
-                    {translate('weather.view.daily')}
-                  </button>
+                  {hasTempSensor ? (
+                    [6, 12, 24].map((hours) => (
+                      <button
+                        key={hours}
+                        onClick={() => setHistoryPeriodHours(hours)}
+                        className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${historyPeriodHours === hours ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      >
+                        {hours}h
+                      </button>
+                    ))
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setForecastType('hourly')}
+                        className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${forecastType === 'hourly' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      >
+                        {translate('weather.view.hourly')}
+                      </button>
+                      <button
+                        onClick={() => setForecastType('daily')}
+                        className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${forecastType === 'daily' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      >
+                        {translate('weather.view.daily')}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="mt-4">
-                {loading ? (
+                {graphLoading ? (
                   <div className="h-[140px] flex items-center justify-center text-[var(--text-secondary)] text-sm">{translate('common.loading')}</div>
-                ) : forecastSeries.length === 0 ? (
-                  <div className="h-[140px] flex items-center justify-center text-[var(--text-secondary)] text-sm">{translate('weather.noForecast')}</div>
+                ) : graphSeries.length === 0 ? (
+                  <div className="h-[140px] flex items-center justify-center text-[var(--text-secondary)] text-sm">{hasTempSensor ? (translate('sensorInfo.noHistory') || 'No history data available') : translate('weather.noForecast')}</div>
                 ) : (
                   <SensorHistoryGraph 
-                    data={forecastSeries} 
+                    data={graphSeries} 
                     height={140} 
-                    color="#60a5fa" 
-                    noDataLabel={translate('weather.noForecast')} 
+                    color={hasTempSensor ? historyColor : '#60a5fa'}
+                    noDataLabel={hasTempSensor ? (translate('sensorInfo.noHistory') || 'No history data available') : translate('weather.noForecast')}
                     formatXLabel={(date) => {
-                      if (forecastType === 'daily') {
+                      if (!hasTempSensor && forecastType === 'daily') {
                         return date.toLocaleDateString(locale, { weekday: 'short' }).replace('.', '');
                       }
                       return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });

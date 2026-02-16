@@ -32,6 +32,7 @@ export default function WeatherTempCard({
   entities,
   tempHistory,
   tempHistoryById,
+  forecastsById,
   outsideTempId,
   weatherEntityId,
   editMode,
@@ -57,9 +58,36 @@ export default function WeatherTempCard({
   const tempValueRaw = tempEntity?.state ?? weatherEntity?.attributes?.temperature;
   const tempValue = parseFloat(tempValueRaw);
   const currentTemp = Number.isFinite(tempValue) ? tempValue : NaN;
-  const history = tempId
-    ? (tempId === outsideTempId ? tempHistory : (tempHistoryById[tempId] || []))
-    : (weatherId === weatherEntityId ? tempHistory : []);
+  const graphHistoryHours = Number.isFinite(settings.graphHistoryHours) ? settings.graphHistoryHours : 12;
+  const graphColorLimits = [
+    Number.isFinite(settings.graphLimit1) ? settings.graphLimit1 : 0,
+    Number.isFinite(settings.graphLimit2) ? settings.graphLimit2 : 10,
+    Number.isFinite(settings.graphLimit3) ? settings.graphLimit3 : 20,
+    Number.isFinite(settings.graphLimit4) ? settings.graphLimit4 : 28,
+  ].sort((a, b) => a - b);
+
+  // Try to use history first (sensor), fallback to forecast (weather entity)
+  let history = [];
+  if (tempId) {
+    history = tempId === outsideTempId ? tempHistory : (tempHistoryById[tempId] || []);
+  } else if (weatherId === weatherEntityId) {
+    history = tempHistory;
+  }
+
+  // Fallback: Use forecast data if history not available/empty
+  // Use explicit forecast from weather.get_forecasts service (forecastsById) if available,
+  // otherwise fallback to deprecated attributes.forecast
+  const forecast = forecastsById?.[weatherId] || weatherEntity?.attributes?.forecast;
+
+  if ((!history || history.length < 2) && forecast) {
+    // Convert HA forecast format to match history format expected by WeatherGraph
+    // Forecast: [{ datetime: '...', temperature: 20 }, ...]
+    // History target: { last_updated: '...', state: 20 }
+    history = forecast.map(entry => ({
+      last_updated: entry.datetime || entry.time,
+      state: entry.temperature
+    }));
+  }
 
   if (isSmall) {
     return (
@@ -67,7 +95,7 @@ export default function WeatherTempCard({
         {getControls(cardId)}
         {showEffects && <WeatherEffects condition={state} />}
         <div className="absolute inset-0 opacity-30 z-0">
-          <WeatherGraph history={history} currentTemp={currentTemp} />
+          <WeatherGraph history={history} currentTemp={currentTemp} historyHours={graphHistoryHours} colorLimits={graphColorLimits} />
         </div>
         <div className="flex items-center gap-4 flex-1 min-w-0 relative z-10">
           <div className="w-12 h-12 flex items-center justify-center -ml-1 filter drop-shadow-md">
@@ -102,7 +130,7 @@ export default function WeatherTempCard({
         </div>
       </div>
       <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
-        <WeatherGraph history={history} currentTemp={currentTemp} />
+        <WeatherGraph history={history} currentTemp={currentTemp} historyHours={graphHistoryHours} colorLimits={graphColorLimits} />
       </div>
     </div>
   );

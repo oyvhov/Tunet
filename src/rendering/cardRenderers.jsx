@@ -201,7 +201,7 @@ export function renderMediaGroupCard(cardId, dragProps, getControls, cardStyle, 
 }
 
 export function renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, tempHistoryById, setShowWeatherModal, t } = ctx;
+  const { entities, editMode, cardSettings, tempHistoryById, forecastsById, setShowWeatherModal, t } = ctx;
   return (
     <WeatherTempCard
       cardId={cardId}
@@ -213,6 +213,7 @@ export function renderWeatherTempCard(cardId, dragProps, getControls, cardStyle,
       entities={entities}
       tempHistory={[]}
       tempHistoryById={tempHistoryById}
+      forecastsById={forecastsById}
       outsideTempId={null}
       weatherEntityId={null}
       editMode={editMode}

@@ -23,7 +23,7 @@ import {
 } from './contexts';
 
 import {
-  useModals, useSmartTheme, useTempHistory,
+  useModals, useSmartTheme, useTempHistory, useWeatherForecast,
   useAddCard, useConnectionSetup,
   useResponsiveGrid, useEntityHelpers,
   usePageManagement, useDashboardEffects, usePageRouting, useCardRendering,
@@ -167,6 +167,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const { activePage, setActivePage } = usePageRouting();
 
   const [tempHistoryById, _setTempHistoryById] = useTempHistory(conn, cardSettings);
+  const [forecastsById, _setForecastsById] = useWeatherForecast(conn, cardSettings);
 
   // ── Responsive grid ────────────────────────────────────────────────────
   const { gridColCount, isCompactCards, isMobile } = useResponsiveGrid(gridColumns, dynamicGridColumns);
@@ -333,6 +334,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     optimisticLightBrightness,
     setOptimisticLightBrightness,
     tempHistoryById,
+    forecastsById,
     setShowLightModal,
     setShowSensorInfoModal,
     setActiveClimateEntityModal,

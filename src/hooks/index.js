@@ -2,6 +2,7 @@ export { default as useEnergyData } from './useEnergyData';
 export { useModals } from './useModals';
 export { useSmartTheme } from './useSmartTheme';
 export { default as useTempHistory } from './useTempHistory';
+export { default as useWeatherForecast } from './useWeatherForecast';
 export { useAddCard } from './useAddCard';
 export { useConnectionSetup } from './useConnectionSetup';
 export { useProfiles } from './useProfiles';

@@ -27,7 +27,7 @@ export default function useTempHistory(conn, cardSettings) {
     const fetchHistoryFor = async (tempId) => {
       const end = new Date();
       const start = new Date();
-      start.setHours(start.getHours() - 12);
+      start.setHours(start.getHours() - 48);
       try {
         const stats = await getStatistics(conn, { start, end, statisticId: tempId, period: '5minute' });
         if (!cancelled && Array.isArray(stats) && stats.length > 0) {

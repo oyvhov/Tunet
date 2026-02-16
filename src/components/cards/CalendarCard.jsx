@@ -260,7 +260,7 @@ function CalendarCard({
                 </>
             ) : (
                 <>
-                   <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">
+                   <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 leading-tight mb-1.5 min-w-0 flex-wrap">
                      <span>{nextTimeString}</span>
                      {!nextIsAllDay && nextEventStart && (
                         <span>
@@ -358,17 +358,17 @@ function CalendarCard({
                                     )}
                                     <div className="relative pl-4 pr-3 py-2.5 rounded-xl border border-transparent bg-transparent hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg)] transition-colors">
                                       <span className={`absolute left-0 top-2 bottom-2 w-1 rounded-full ${isAllDay ? 'bg-blue-400/70' : 'bg-[var(--glass-border)] group-hover:bg-blue-400/70 transition-colors'}`} />
-                                      <p className="text-sm font-medium text-[var(--text-primary)] leading-snug">
+                                      <p className="text-sm font-medium text-[var(--text-primary)] leading-snug break-words whitespace-normal">
                                         {evt.summary}
                                       </p>
                                       {evt.location && (
-                                        <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-[var(--text-secondary)]">
-                                          <MapPin className="w-3 h-3" />
-                                          <span className="truncate opacity-80">{evt.location}</span>
+                                        <div className="flex items-start gap-1.5 mt-1.5 text-[10px] text-[var(--text-secondary)]">
+                                          <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                          <span className="opacity-80 break-words whitespace-normal">{evt.location}</span>
                                         </div>
                                       )}
                                       {evt.description && (
-                                        <p className="text-[10px] text-[var(--text-secondary)] mt-1.5 line-clamp-1 opacity-60">
+                                        <p className="text-[10px] text-[var(--text-secondary)] mt-1.5 opacity-60 break-words whitespace-normal">
                                           {evt.description}
                                         </p>
                                       )}
