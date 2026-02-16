@@ -483,6 +483,20 @@ export default function EditCardModal({
             </div>
           )}
 
+          {isEditCar && editSettingsKey && (
+            <div className="space-y-2">
+              <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('car.imageUrl') || 'Car Image URL'}</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                defaultValue={editSettings.imageUrl || ''}
+                onBlur={(e) => saveCardSetting(editSettingsKey, 'imageUrl', e.target.value.trim() || null)}
+                placeholder="/local/car.png"
+              />
+              <p className="text-[10px] text-gray-500 ml-1">{t('car.imageHint') || 'Place images in HA config/www/ folder, use /local/filename.png'}</p>
+            </div>
+          )}
+
           {isEditCar && editSettingsKey && (() => {
             const [showAddSensor, setShowAddSensor] = React.useState(false);
             const [sensorType, setSensorType] = React.useState('');

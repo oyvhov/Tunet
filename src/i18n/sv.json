@@ -127,6 +127,8 @@
   "car.climate": "Klimat",
   "car.defaultName": "Bil",
   "car.heating": "Värmer",
+  "car.imageHint": "Placera bilder i HA config/www/ mapp, använd /local/filnamn.png",
+  "car.imageUrl": "Bilbild-URL",
   "car.mappingHint": "Koppla dina enheter för att visa data i kortet",
   "car.mappingTitle": "Bilinställningar",
   "car.noSensorsMapped": "Inga sensorer valda. Klicka på \"Lägg till sensor\" för att börja.",
