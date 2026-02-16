@@ -65,14 +65,28 @@ export const getCardGridSpan = (cardId, getCardSettingsKey, cardSettings, active
 };
 
 /**
+ * Determine how many grid columns a card should occupy horizontally.
+ *
+ * @param {string}   cardId
+ * @param {Function} getCardSettingsKey  (cardId) => settingsKey
+ * @param {Object}   cardSettings        Full card-settings map
+ * @returns {number} 1–4
+ */
+export const getCardColSpan = (cardId, getCardSettingsKey, cardSettings) => {
+  const settings = cardSettings[getCardSettingsKey(cardId)] || cardSettings[cardId] || {};
+  return settings.colSpan || 1;
+};
+
+/**
  * Build a position map for a list of card ids.
  *
  * @param {string[]}  ids       Ordered card ids
  * @param {number}    columns   Number of grid columns
- * @param {Function}  spanFn    (cardId) => number  – pre-bound getCardGridSpan
- * @returns {Object}  { [cardId]: { row, col, span } }
+ * @param {Function}  spanFn    (cardId) => number  – pre-bound getCardGridSpan (row span)
+ * @param {Function}  [colSpanFn] (cardId) => number  – pre-bound getCardColSpan
+ * @returns {Object}  { [cardId]: { row, col, span, colSpan } }
  */
-export const buildGridLayout = (ids, columns, spanFn) => {
+export const buildGridLayout = (ids, columns, spanFn, colSpanFn) => {
   if (!columns || columns < 1) return {};
   const occupancy = [];
   const positions = {};
@@ -81,30 +95,35 @@ export const buildGridLayout = (ids, columns, spanFn) => {
     if (!occupancy[row]) occupancy[row] = Array(columns).fill(false);
   };
 
-  const canPlace = (row, col, span) => {
-    for (let r = row; r < row + span; r += 1) {
+  const canPlace = (row, col, rowSpan, colSpan) => {
+    if (col + colSpan > columns) return false;
+    for (let r = row; r < row + rowSpan; r += 1) {
       ensureRow(r);
-      if (occupancy[r][col]) return false;
+      for (let c = col; c < col + colSpan; c += 1) {
+        if (occupancy[r][c]) return false;
+      }
     }
     return true;
   };
 
-  const place = (row, col, span) => {
-    for (let r = row; r < row + span; r += 1) {
+  const place = (row, col, rowSpan, colSpan) => {
+    for (let r = row; r < row + rowSpan; r += 1) {
       ensureRow(r);
-      occupancy[r][col] = true;
+      for (let c = col; c < col + colSpan; c += 1) {
+        occupancy[r][c] = true;
+      }
     }
   };
 
-  const placeSingle = (id, span) => {
+  const placeSingle = (id, rowSpan, colSpan) => {
     let placed = false;
     let row = 0;
     while (!placed) {
       ensureRow(row);
       for (let col = 0; col < columns; col += 1) {
-        if (canPlace(row, col, span)) {
-          place(row, col, span);
-          positions[id] = { row: row + 1, col: col + 1, span };
+        if (canPlace(row, col, rowSpan, colSpan)) {
+          place(row, col, rowSpan, colSpan);
+          positions[id] = { row: row + 1, col: col + 1, span: rowSpan, colSpan };
           placed = true;
           break;
         }
@@ -115,8 +134,9 @@ export const buildGridLayout = (ids, columns, spanFn) => {
 
   for (let i = 0; i < ids.length; i += 1) {
     const id = ids[i];
-    const span = spanFn(id);
-    placeSingle(id, span);
+    const rowSpan = spanFn(id);
+    const colSpan = colSpanFn ? Math.min(colSpanFn(id), columns) : 1;
+    placeSingle(id, rowSpan, colSpan);
   }
 
   return positions;

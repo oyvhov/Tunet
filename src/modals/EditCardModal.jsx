@@ -317,6 +317,26 @@ export default function EditCardModal({
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{'Column Width'}</label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => saveCardSetting(editSettingsKey, 'colSpan', Math.max(1, (editSettings.colSpan || 1) - 1))}
+                    className="w-10 h-10 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] font-bold text-lg flex items-center justify-center border border-[var(--glass-border)]"
+                  >&minus;</button>
+                  <div className="flex-1 text-center">
+                    <span className="text-lg font-bold text-[var(--text-primary)]">{editSettings.colSpan || 1}</span>
+                    <span className="text-xs text-[var(--text-muted)] ml-1">{(editSettings.colSpan || 1) === 1 ? 'column' : 'columns'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveCardSetting(editSettingsKey, 'colSpan', Math.min(4, (editSettings.colSpan || 1) + 1))}
+                    className="w-10 h-10 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] font-bold text-lg flex items-center justify-center border border-[var(--glass-border)]"
+                  >+</button>
+                </div>
+              </div>
+
               {(editSettings.variant === 'title') && (
                 <div className="space-y-2">
                   <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('spacer.titleText') || 'Title Text'}</label>
