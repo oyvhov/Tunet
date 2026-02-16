@@ -3,14 +3,16 @@
 BRANCH=$(bashio::config 'branch')
 REPO="https://github.com/jaburges/Tunet.git"
 BUILD_DIR="/data/build"
-LAST_BRANCH=$(cat "${BUILD_DIR}/.branch" 2>/dev/null || echo "")
+NODE_VER=$(node --version)
+CACHE_KEY="${BRANCH}|${NODE_VER}"
+LAST_KEY=$(cat "${BUILD_DIR}/.cache_key" 2>/dev/null || echo "")
 
 echo "─────────────────────────────────────────"
 echo "  Tunet Dashboard (Jaburges)"
-echo "  Branch: ${BRANCH}"
+echo "  Branch: ${BRANCH}  Node: ${NODE_VER}"
 echo "─────────────────────────────────────────"
 
-if [ "${LAST_BRANCH}" != "${BRANCH}" ] || [ ! -d "${BUILD_DIR}/dist" ]; then
+if [ "${LAST_KEY}" != "${CACHE_KEY}" ] || [ ! -d "${BUILD_DIR}/dist" ]; then
   echo "Building branch ${BRANCH}..."
   rm -rf "${BUILD_DIR}"
   mkdir -p "${BUILD_DIR}"
@@ -28,7 +30,7 @@ if [ "${LAST_BRANCH}" != "${BRANCH}" ] || [ ! -d "${BUILD_DIR}/dist" ]; then
   cd "${BUILD_DIR}"
   npm ci --omit=dev
   rm -rf "${BUILD_DIR}/src"
-  echo "${BRANCH}" > "${BUILD_DIR}/.branch"
+  echo "${CACHE_KEY}" > "${BUILD_DIR}/.cache_key"
   echo "Build complete."
 else
   echo "Using cached build for branch ${BRANCH}."
