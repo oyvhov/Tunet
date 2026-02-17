@@ -25,6 +25,32 @@ export default function StatusPill({
   isMobile
 }) {
   if (!pill) return null;
+  const isConditionEnabled = pill.conditionEnabled !== false;
+
+  const capitalizeFirst = (value) => {
+    if (!value) return value;
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
+  const getDefaultSublabelWithUnit = () => {
+    const stateValue = entity?.state;
+    const normalizedState = stateValue === undefined || stateValue === null ? '' : String(stateValue);
+    if (!normalizedState) return '';
+
+    const unitSource = pill?.unitSource === 'custom' ? 'custom' : 'ha';
+    const customUnit = typeof pill?.customUnit === 'string' ? pill.customUnit.trim() : '';
+    const haUnit = typeof entity?.attributes?.unit_of_measurement === 'string'
+      ? entity.attributes.unit_of_measurement.trim()
+      : '';
+
+    const selectedUnit = unitSource === 'custom' ? customUnit : capitalizeFirst(haUnit);
+    if (!selectedUnit) return normalizedState;
+
+    const lowerState = normalizedState.toLowerCase();
+    const lowerUnit = selectedUnit.toLowerCase();
+    const alreadyContainsUnit = lowerState.endsWith(` ${lowerUnit}`) || lowerState === lowerUnit;
+    return alreadyContainsUnit ? normalizedState : `${normalizedState} ${selectedUnit}`;
+  };
 
   // Handle media_player / emby / sonos type differently
   if (pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos') {
@@ -33,7 +59,7 @@ export default function StatusPill({
     const activeEntities = mediaEntities.filter(e => isMediaActive && isMediaActive(e));
     
     // Check condition if specified
-    if (pill.condition && pill.condition.type) {
+    if (isConditionEnabled && pill.condition && pill.condition.type) {
       // For media_player, check if ANY entity meets condition
       const meetsCondition = activeEntities.some(e => {
         const tempEntity = e;
@@ -41,13 +67,14 @@ export default function StatusPill({
         return true;
       });
       if (!meetsCondition && activeEntities.length === 0) return null;
-    } else {
+    } else if (isConditionEnabled) {
       // No condition specified, only show if there are active entities
       if (activeEntities.length === 0) return null;
     }
-    
-    const count = activeEntities.length;
-    const firstActive = activeEntities[0];
+
+    const displayEntities = isConditionEnabled ? activeEntities : mediaEntities;
+    const count = displayEntities.length;
+    const firstActive = displayEntities[0] || mediaEntities[0];
     
     // Get display info from first active player
     const title = firstActive ? getA(firstActive.entity_id, 'media_title') : null;
@@ -112,7 +139,7 @@ export default function StatusPill({
             {label}
           </span>
           {sublabel && (
-            <span className={`${textSize} font-medium uppercase tracking-widest italic ${sublabelColor}`}>
+            <span className={`${textSize} font-medium italic ${sublabelColor}`}>
               {sublabel}
             </span>
           )}
@@ -129,11 +156,12 @@ export default function StatusPill({
   // Original conditional pill logic
   if (!entity) return null;
 
-  if (!evaluateEntityCondition({ condition: pill.condition, entity, getAttribute: getA })) return null;
+  if (isConditionEnabled && !evaluateEntityCondition({ condition: pill.condition, entity, getAttribute: getA })) return null;
 
   // Get display values
   const label = pill.label || entity.attributes?.friendly_name || entity.entity_id;
-  const sublabel = pill.sublabel || entity.state;
+  const hasCustomSublabel = typeof pill.sublabel === 'string' && pill.sublabel.trim().length > 0;
+  const sublabel = hasCustomSublabel ? pill.sublabel : getDefaultSublabelWithUnit();
   
   // Get icon
   const IconComponent = pill.icon ? (getIconComponent(pill.icon) || Activity) : Activity;
@@ -175,7 +203,7 @@ export default function StatusPill({
         <span className={`${textSize} uppercase font-bold leading-tight ${labelColor}`}>
           {label}
         </span>
-        <span className={`${textSize} font-medium uppercase tracking-widest italic ${sublabelColor}`}>
+        <span className={`${textSize} font-medium italic ${sublabelColor}`}>
           {sublabel}
         </span>
       </div>
