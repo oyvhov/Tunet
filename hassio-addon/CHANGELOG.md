@@ -2,7 +2,10 @@
 
 ## 1.3.0
 
-- Release metadata sync.
+- Includes dashboard release `1.3.0`.
+- Improved Status Pills configurator with unit source override, conditional controls, mobile-friendly editing, and cleaner UI.
+- Fixed conditional visibility handling consistency across cards (including media groups and mapped entities).
+- Fixed persistence/restore for custom page named `lights`.
 
 ## 1.2.1
 

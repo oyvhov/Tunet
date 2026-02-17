@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [1.3.0] — 2026-02-17
 
+### Added
+- Status Pills configurator enhancements: per-pill unit source (`Home Assistant` or custom override), conditional toggle support, and improved mobile editing flow.
+- Real-time preview for Status Pills in the configurator using current pill settings.
+
 ### Changed
-- Release metadata sync.
+- Refined Status Pills configurator UX with improved left/right pane consistency, cleaner section grouping, and better large-list usability.
+- Improved modal visual consistency to match other dashboard popups.
+
+### Fixed
+- Conditional visibility now resolves entity IDs reliably across card types, including mapped/special-card entity keys.
+- Media group cards now correctly apply visibility conditions.
+- Custom page named `lights` no longer disappears after refresh and now restores correctly from profiles.
 
 
 ## [1.2.1] — 2026-02-17
