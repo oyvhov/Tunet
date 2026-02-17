@@ -53,21 +53,20 @@ function loadPagesConfig() {
 
   let modified = false;
 
-  // Remove legacy automations/lights page config entirely
+  // Remove legacy automations page config entirely
   if (parsed.automations) { delete parsed.automations; modified = true; }
-  if (parsed.lights) { delete parsed.lights; modified = true; }
 
   // Ensure pages array exists
   if (!Array.isArray(parsed.pages)) {
     const detectedPages = Object.keys(parsed)
       .filter(key => Array.isArray(parsed[key]) &&
-        !['header', 'settings', 'lights', 'automations'].includes(key));
+        !['header', 'settings', 'automations'].includes(key));
     parsed.pages = detectedPages.length > 0 ? detectedPages : ['home'];
     modified = true;
   }
 
-  // Filter out settings, automations, and lights from pages
-  parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'lights' && id !== 'automations');
+  // Filter out settings and legacy automations from pages
+  parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'automations');
   if (parsed.pages.length === 0) { parsed.pages = ['home']; modified = true; }
 
   // Ensure all pages have arrays

@@ -36,7 +36,7 @@ function normalizePagesConfig(candidate, fallback) {
   }
 
   const detectedPages = Object.keys(next)
-    .filter((key) => Array.isArray(next[key]) && !['header', 'settings', 'lights', 'automations'].includes(key));
+    .filter((key) => Array.isArray(next[key]) && !['header', 'settings', 'automations'].includes(key));
 
   if (!Array.isArray(next.pages) || next.pages.length === 0) {
     next.pages = detectedPages.length > 0
@@ -45,7 +45,7 @@ function normalizePagesConfig(candidate, fallback) {
     notes.push('Profile page list was rebuilt.');
   }
 
-  next.pages = next.pages.filter((id) => !['settings', 'lights', 'automations'].includes(id));
+  next.pages = next.pages.filter((id) => !['settings', 'automations'].includes(id));
 
   if (!next.pages.includes('home')) {
     next.pages = ['home', ...next.pages];
