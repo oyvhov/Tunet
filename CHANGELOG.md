@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] — 2026-02-17
+
+### Fixed
+- Status Pills configurator: stabilized Icon and Data Source pickers to avoid layering/interaction regressions in the modal editor.
+- Improved inline picker behavior with reliable outside-click close handling and consistent open/reset state.
+
+### Changed
+- Updated release metadata and synchronized application/add-on versioning to `1.3.1`.
+
+
 ## [1.3.0] — 2026-02-17
 
 ### Added

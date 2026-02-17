@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1
+
+- Includes dashboard release `1.3.1`.
+- Fixed Status Pills configurator picker behavior for Icon and Data Source editing in the modal.
+- Keeps app and add-on versions synchronized at `1.3.1`.
+
 ## 1.3.0
 
 - Includes dashboard release `1.3.0`.

@@ -30,6 +30,8 @@ export default function StatusPillsConfigModal({
   const [mobilePane, setMobilePane] = useState('list');
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
   const addMenuRef = useRef(null);
+  const iconPickerRef = useRef(null);
+  const entityPickerRef = useRef(null);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -41,6 +43,12 @@ export default function StatusPillsConfigModal({
     const handleClickOutside = (event) => {
       if (addMenuRef.current && !addMenuRef.current.contains(event.target)) {
         setShowAddMenu(false);
+      }
+      if (iconPickerRef.current && !iconPickerRef.current.contains(event.target)) {
+        setShowIconPicker(false);
+      }
+      if (entityPickerRef.current && !entityPickerRef.current.contains(event.target)) {
+        setShowEntityPicker(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -55,6 +63,7 @@ export default function StatusPillsConfigModal({
       setPillSearch('');
       setEntitySearch('');
       setShowEntityPicker(false);
+      setShowIconPicker(false);
 
       let cancelled = false;
       preloadMdiIcons()
@@ -212,7 +221,7 @@ export default function StatusPillsConfigModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col md:flex-row">
           {isMobile && (
             <div className="px-4 pt-3 pb-2 border-b border-[var(--glass-border)] flex items-center gap-2">
               <button
@@ -231,7 +240,7 @@ export default function StatusPillsConfigModal({
           )}
 
           {/* Pills List */}
-          <div className={`w-full md:w-[360px] h-[300px] md:h-full border-r-0 border-b md:border-b-0 md:border-r border-[var(--glass-border)] p-4 overflow-y-auto shrink-0 ${isMobile && mobilePane !== 'list' ? 'hidden' : ''}`}>
+          <div className={`w-full md:w-[360px] h-[300px] md:h-full min-h-0 border-r-0 border-b md:border-b-0 md:border-r border-[var(--glass-border)] p-4 overflow-y-auto shrink-0 ${isMobile && mobilePane !== 'list' ? 'hidden' : ''}`}>
             <div className="flex items-center justify-between mb-3 relative" ref={addMenuRef}>
               <div className="flex items-center gap-2 min-w-0">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">{t('statusPills.yourPills')}</h3>
@@ -376,7 +385,7 @@ export default function StatusPillsConfigModal({
 
 
           {/* Editor */}
-          <div className={`flex-1 p-4 md:p-6 overflow-y-auto w-full ${isMobile && mobilePane !== 'editor' ? 'hidden' : ''}`}>
+          <div className={`flex-1 min-h-0 p-4 md:p-6 overflow-y-auto overflow-x-visible w-full ${isMobile && mobilePane !== 'editor' ? 'hidden' : ''}`}>
             {editingPill ? (() => {
               const pill = pills.find(p => p.id === editingPill);
               if (!pill) return null;
@@ -477,7 +486,7 @@ export default function StatusPillsConfigModal({
                         <div className="flex flex-col sm:flex-row gap-3">
                           <div className="flex-1 space-y-1">
                             <label className="text-[10px] uppercase font-bold text-gray-600">{t('statusPills.icon')}</label>
-                            <div className="relative">
+                            <div className="relative" ref={iconPickerRef}>
                               <button
                                 onClick={() => setShowIconPicker(!showIconPicker)}
                                 className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] flex items-center justify-between border-0"
@@ -490,7 +499,7 @@ export default function StatusPillsConfigModal({
                               </button>
                               
                               {showIconPicker && (
-                                <div className="absolute top-full left-0 right-0 mt-2 p-2 rounded-xl bg-[var(--modal-bg)] shadow-2xl z-50 max-h-64 overflow-y-auto w-64">
+                                <div className="mt-2 p-2 rounded-xl bg-[var(--modal-bg)] shadow-2xl border border-[var(--glass-border)] max-h-64 overflow-y-auto w-full sm:w-64">
                                   <input
                                     type="text"
                                     placeholder={t('statusPills.searchIcon')}
@@ -645,7 +654,7 @@ export default function StatusPillsConfigModal({
 
                       {/* Standard Entity Select (Conditional) */}
                       {pill.type === 'conditional' && (
-                        <div className="relative">
+                        <div className="relative" ref={entityPickerRef}>
                           <input
                             type="text"
                             value={entitySearch}
@@ -661,9 +670,7 @@ export default function StatusPillsConfigModal({
                             className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0 text-sm"
                           />
                           {showEntityPicker && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => { setShowEntityPicker(false); setEntitySearch(''); }} />
-                              <div className="absolute top-full left-0 right-0 mt-1 p-1 rounded-xl bg-[var(--modal-bg)] shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
+                              <div className="mt-1 p-1 rounded-xl bg-[var(--modal-bg)] shadow-2xl border border-[var(--glass-border)] max-h-48 overflow-y-auto custom-scrollbar">
                                 {entityOptions
                                   .filter(id => {
                                     if (!entitySearch) return true;
@@ -689,7 +696,6 @@ export default function StatusPillsConfigModal({
                                     </button>
                                   ))}
                               </div>
-                            </>
                           )}
                           {pill.entityId && (
                             <div className="mt-2 px-1 flex items-center justify-between text-[10px] text-[var(--text-muted)]">
