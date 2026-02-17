@@ -29,6 +29,8 @@ const ENTITY_ARRAY_SETTING_KEYS = [
   'calendars',
 ];
 
+const ENTITY_ID_PATTERN = /^[a-z0-9_]+\.[a-z0-9_]+(?:[a-z0-9_\-.]*)$/i;
+
 const DOMAIN_PREFIXES = [
   'light',
   'switch',
@@ -231,6 +233,31 @@ function toEntityIdFromDomainPrefix(cardId) {
   return null;
 }
 
+function isLikelyEntityId(value) {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (!trimmed || !trimmed.includes('.')) return false;
+  return ENTITY_ID_PATTERN.test(trimmed);
+}
+
+function pickEntityLikeValue(value, entities) {
+  if (typeof value === 'string') {
+    const candidate = value.trim();
+    if (!candidate || !isLikelyEntityId(candidate)) return null;
+    if (entities && Object.keys(entities).length > 0 && !entities[candidate]) return null;
+    return candidate;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = pickEntityLikeValue(item, entities);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
 export function resolveConditionEntityId(cardId, cardSettings = {}, entities = {}) {
   const condition = cardSettings?.visibilityCondition;
   if (typeof condition?.entityId === 'string' && condition.entityId.trim()) {
@@ -249,6 +276,13 @@ export function resolveConditionEntityId(cardId, cardSettings = {}, entities = {
     if (!Array.isArray(list)) continue;
     const first = list.find((item) => typeof item === 'string' && item.trim());
     if (first) return first.trim();
+  }
+
+  if (cardSettings && typeof cardSettings === 'object') {
+    for (const value of Object.values(cardSettings)) {
+      const fromSetting = pickEntityLikeValue(value, entities);
+      if (fromSetting) return fromSetting;
+    }
   }
 
   if (typeof cardId === 'string' && cardId.includes('.')) {

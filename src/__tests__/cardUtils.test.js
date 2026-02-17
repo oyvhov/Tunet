@@ -166,6 +166,22 @@ describe('isCardHiddenByLogic', () => {
     })).toBe(true);
   });
 
+  it('uses configured entity key mappings for special cards', () => {
+    expect(isCardHiddenByLogic('climate_card_living', {
+      activePage: 'home',
+      getCardSettingsKey: identity,
+      cardSettings: {
+        'climate_card_living': {
+          climateId: 'climate.living_room',
+          visibilityCondition: { type: 'state', states: ['heat'] },
+        },
+      },
+      entities: {
+        'climate.living_room': { entity_id: 'climate.living_room', state: 'off', attributes: {} },
+      },
+    })).toBe(true);
+  });
+
   it('applies AND logic across two visibility rules', () => {
     expect(isCardHiddenByLogic('switch.lamp', {
       activePage: 'home',
