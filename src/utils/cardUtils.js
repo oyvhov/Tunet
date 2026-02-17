@@ -43,6 +43,7 @@ export function isCardRemovable(cardId, pageId, { getCardSettingsKey, cardSettin
 export function isCardHiddenByLogic(cardId, { activePage, getCardSettingsKey, cardSettings, entities }) {
   const settingsKey = getCardSettingsKey(cardId);
   const cardConfig = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  let hiddenByBaseLogic = false;
 
   if (cardId === 'media_player') {
     return true;
@@ -52,11 +53,11 @@ export function isCardHiddenByLogic(cardId, { activePage, getCardSettingsKey, ca
     const groupSettings = cardConfig;
     const selectedIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
     const hasEntities = selectedIds.some(id => entities[id]);
-    return !hasEntities;
+    hiddenByBaseLogic = !hasEntities;
   }
 
   if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player')) {
-      return !entities[cardId];
+    hiddenByBaseLogic = hiddenByBaseLogic || !entities[cardId];
   }
 
   const isSpecialCard = cardId === 'car' || 
@@ -64,7 +65,11 @@ export function isCardHiddenByLogic(cardId, { activePage, getCardSettingsKey, ca
 
   if (!isSpecialCard && !entities[cardId]) {
      if (cardId.startsWith('light_') || cardId.startsWith('light.')) return false;
-     return true;
+     hiddenByBaseLogic = true;
+  }
+
+  if (hiddenByBaseLogic) {
+    return true;
   }
 
   if (isConditionConfigured(cardConfig.visibilityCondition)) {

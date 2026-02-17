@@ -80,6 +80,25 @@ describe('isCardHiddenByLogic', () => {
     })).toBe(false);
   });
 
+  it('applies visibilityCondition to media_group_ cards', () => {
+    const settings = {
+      'media_group_1': {
+        mediaIds: ['media_player.living_room'],
+        visibilityCondition: { type: 'state', states: ['off'] },
+      },
+    };
+    const entities = {
+      'media_player.living_room': {
+        entity_id: 'media_player.living_room',
+        state: 'playing',
+        attributes: {},
+      },
+    };
+    expect(isCardHiddenByLogic('media_group_1', {
+      activePage: 'home', getCardSettingsKey: identity, cardSettings: settings, entities
+    })).toBe(true);
+  });
+
   it('hides non-existent entities on settings page', () => {
     expect(isCardHiddenByLogic('sensor.temp', {
       activePage: 'settings', getCardSettingsKey: identity, cardSettings: {}, entities: {}
