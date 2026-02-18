@@ -246,6 +246,7 @@ export default function EditCardModal({
   editSettingsKey,
   editSettings,
   isEditWeatherTemp,
+  gridColumns,
   conn,
   customNames,
   saveCustomName,
@@ -257,6 +258,7 @@ export default function EditCardModal({
 
   if (!isOpen) return null;
 
+  const maxColSpan = gridColumns || 4;
   const isPerson = entityId?.startsWith('person.');
   const personDisplay = editSettings?.personDisplay || 'photo';
 
@@ -490,6 +492,43 @@ export default function EditCardModal({
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Week View toggle */}
+              <div className="popup-surface rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-bold text-[var(--text-primary)]">{t('calendar.largeCalendar') || 'Week View'}</label>
+                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t('calendar.largeCalendarHint') || 'Show Outlook-style week time-grid view'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveCardSetting(editSettingsKey, 'largeCalendar', !editSettings.largeCalendar)}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.largeCalendar ? 'bg-blue-500' : 'bg-gray-600'}`}
+                  >
+                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('editCard.columnWidth') || 'Column Width'}</label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => saveCardSetting(editSettingsKey, 'colSpan', Math.max(1, (editSettings.colSpan || 1) - 1))}
+                    className="w-10 h-10 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] font-bold text-lg flex items-center justify-center border border-[var(--glass-border)]"
+                  >−</button>
+                  <div className="flex-1 text-center">
+                    <span className="text-lg font-bold text-[var(--text-primary)]">{editSettings.colSpan || 1}</span>
+                    <span className="text-xs text-[var(--text-muted)] ml-1">{(editSettings.colSpan || 1) === 1 ? t('editCard.column') || 'column' : t('editCard.columns') || 'columns'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveCardSetting(editSettingsKey, 'colSpan', Math.min(maxColSpan, (editSettings.colSpan || 1) + 1))}
+                    className="w-10 h-10 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] font-bold text-lg flex items-center justify-center border border-[var(--glass-border)]"
+                  >+</button>
+                </div>
               </div>
             </div>
           )}
