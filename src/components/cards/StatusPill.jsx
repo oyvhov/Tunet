@@ -105,8 +105,8 @@ export default function StatusPill({
     const rawPicture = firstActive
       ? (firstActive.attributes?.entity_picture || firstActive.attributes?.media_image_url)
       : null;
-    const picture = pill.showCover !== false && rawPicture ? getEntityImageUrl(rawPicture) : null;
     const isPlaying = firstActive?.state === 'playing';
+    const picture = pill.showCover !== false && rawPicture && isPlaying ? getEntityImageUrl(rawPicture) : null;
     
     // Use pill.label if set, otherwise auto-generated
     const autoLabel = pill.type === 'emby'
@@ -128,7 +128,7 @@ export default function StatusPill({
     const sonosAutoLabel = isPlaying ? (title || friendlyName || 'Media') : (t('media.noMedia') || 'No media');
 
     const label = pill.label || autoLabel;
-    const sublabel = pill.sublabel || autoSublabel;
+    const sublabel = (pill.type === 'sonos' && !isPlaying) ? null : (pill.sublabel || autoSublabel);
     const displayLabel = pill.type === 'sonos' && !pill.label ? sonosAutoLabel : label;
     
     const IconComponent = pill.icon ? (getIconComponent(pill.icon) || Clapperboard) : Clapperboard;
