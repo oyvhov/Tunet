@@ -61,6 +61,8 @@ export function useAppComposition({
   setCardTransparency,
   cardBorderOpacity,
   setCardBorderOpacity,
+  cardBgColor,
+  setCardBgColor,
   inactivityTimeout,
   setInactivityTimeout,
   setGridGapH,
@@ -255,6 +257,8 @@ export function useAppComposition({
     setCardTransparency,
     cardBorderOpacity,
     setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
     inactivityTimeout,
     setInactivityTimeout,
   }), [
@@ -272,6 +276,8 @@ export function useAppComposition({
     setCardTransparency,
     cardBorderOpacity,
     setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
     inactivityTimeout,
     setInactivityTimeout,
   ]);

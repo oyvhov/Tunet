@@ -59,6 +59,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setCardTransparency,
     cardBorderOpacity,
     setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
     config,
     setConfig
   } = useConfig();
@@ -440,6 +442,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setCardTransparency,
     cardBorderOpacity,
     setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
     inactivityTimeout,
     setInactivityTimeout,
     setGridGapH,

@@ -148,6 +148,13 @@ export default function ConfigModal({
     { key: 'updates', icon: Download, label: t('updates.title') },
   ];
 
+  useEffect(() => {
+    const supportedTabs = new Set(['connection', 'profiles', 'updates']);
+    if (!isLayoutPreview && !supportedTabs.has(configTab)) {
+      setConfigTab('connection');
+    }
+  }, [configTab, isLayoutPreview, setConfigTab]);
+
   const availableTabs = isLayoutPreview
     ? [{ key: 'layout', icon: LayoutGrid, label: t('system.tabLayout') }]
     : TABS;
@@ -1341,10 +1348,6 @@ export default function ConfigModal({
                     <div className="space-y-4">
                       <p className="text-xs uppercase font-bold text-gray-500 ml-1">{t('settings.language')}</p>
                       <ModernDropdown label={t('settings.language')} icon={Globe} options={['en', 'nb', 'nn', 'sv', 'de']} current={language} onChange={setLanguage} map={{ en: t('language.en'), nb: t('language.nb'), nn: t('language.nn'), sv: t('language.sv'), de: t('language.de') }} placeholder={t('dropdown.noneSelected')} />
-                    </div>
-                    <div className="space-y-4">
-                      <p className="text-xs uppercase font-bold text-gray-500 ml-1">{t('settings.theme')}</p>
-                      <ModernDropdown label={t('settings.theme')} icon={Palette} options={Object.keys(themes)} current={currentTheme} onChange={setCurrentTheme} map={{ dark: t('theme.dark'), light: t('theme.light') }} placeholder={t('dropdown.noneSelected')} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs uppercase font-bold text-gray-500 ml-1 flex justify-between">

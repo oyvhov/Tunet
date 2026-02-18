@@ -92,6 +92,7 @@ export default function ModalOrchestrator({
     bgGradient, setBgGradient, bgImage, setBgImage,
     cardTransparency, setCardTransparency,
     cardBorderOpacity, setCardBorderOpacity,
+    cardBgColor, setCardBgColor,
     inactivityTimeout, setInactivityTimeout,
   } = appearance;
 
@@ -232,6 +233,7 @@ export default function ModalOrchestrator({
       setBgImage,
       setCardTransparency,
       setCardBorderOpacity,
+      setCardBgColor,
       setInactivityTimeout,
     },
   });
@@ -272,37 +274,10 @@ export default function ModalOrchestrator({
             testingConnection={testingConnection}
             startOAuthLogin={startOAuthLogin}
             handleOAuthLogout={handleOAuthLogout}
-            themes={themes}
-            currentTheme={currentTheme}
-            setCurrentTheme={setCurrentTheme}
             language={language}
             setLanguage={setLanguage}
             inactivityTimeout={inactivityTimeout}
             setInactivityTimeout={setInactivityTimeout}
-            gridGapH={gridGapH}
-            setGridGapH={setGridGapH}
-            gridGapV={gridGapV}
-            setGridGapV={setGridGapV}
-            gridColumns={gridColumns}
-            setGridColumns={setGridColumns}
-            dynamicGridColumns={dynamicGridColumns}
-            setDynamicGridColumns={setDynamicGridColumns}
-            cardBorderRadius={cardBorderRadius}
-            setCardBorderRadius={setCardBorderRadius}
-            bgMode={bgMode}
-            setBgMode={setBgMode}
-            bgColor={bgColor}
-            setBgColor={setBgColor}
-            bgGradient={bgGradient}
-            setBgGradient={setBgGradient}
-            bgImage={bgImage}
-            setBgImage={setBgImage}
-            cardTransparency={cardTransparency}
-            setCardTransparency={setCardTransparency}
-            cardBorderOpacity={cardBorderOpacity}
-            setCardBorderOpacity={setCardBorderOpacity}
-            sectionSpacing={sectionSpacing}
-            updateSectionSpacing={updateSectionSpacing}
             entities={entities}
             getEntityImageUrl={getEntityImageUrl}
             callService={callService}
@@ -361,6 +336,8 @@ export default function ModalOrchestrator({
           setCardTransparency={setCardTransparency}
           cardBorderOpacity={cardBorderOpacity}
           setCardBorderOpacity={setCardBorderOpacity}
+          cardBgColor={cardBgColor}
+          setCardBgColor={setCardBgColor}
           sectionSpacing={sectionSpacing}
           updateSectionSpacing={updateSectionSpacing}
           activePage={activePage}

@@ -37,6 +37,8 @@
  * @property {import('react').Dispatch<import('react').SetStateAction<number>>} setCardTransparency
  * @property {number} cardBorderOpacity
  * @property {import('react').Dispatch<import('react').SetStateAction<number>>} setCardBorderOpacity
+ * @property {string} cardBgColor
+ * @property {import('react').Dispatch<import('react').SetStateAction<string>>} setCardBgColor
  * @property {HomeAssistantConfig} config
  * @property {import('react').Dispatch<import('react').SetStateAction<HomeAssistantConfig>>} setConfig
  */

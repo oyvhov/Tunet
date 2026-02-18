@@ -38,6 +38,8 @@ export default function LayoutSidebar({
   setCardTransparency,
   cardBorderOpacity,
   setCardBorderOpacity,
+  cardBgColor,
+  setCardBgColor,
   sectionSpacing,
   updateSectionSpacing,
   activePage,
@@ -123,6 +125,38 @@ export default function LayoutSidebar({
   const hts = sectionSpacing?.headerToStatus ?? 16;
   const stn = sectionSpacing?.statusToNav ?? 24;
   const ntg = sectionSpacing?.navToGrid ?? 24;
+
+  const parseHexColor = (value) => {
+    const fallback = { r: 31, g: 41, b: 55 };
+    if (!value || typeof value !== 'string') return fallback;
+
+    const raw = value.trim().replace(/^#/, '');
+    const normalized = raw.length === 3
+      ? raw.split('').map((char) => char + char).join('')
+      : raw;
+
+    if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return fallback;
+
+    return {
+      r: parseInt(normalized.slice(0, 2), 16),
+      g: parseInt(normalized.slice(2, 4), 16),
+      b: parseInt(normalized.slice(4, 6), 16),
+    };
+  };
+
+  const toHexColor = ({ r, g, b }) => {
+    const clamp = (channel) => Math.max(0, Math.min(255, channel));
+    const toHex = (channel) => clamp(channel).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+
+  const effectiveCardColor = cardBgColor || '#1f2937';
+  const rgb = parseHexColor(effectiveCardColor);
+
+  const updateCardColorChannel = (channel, value) => {
+    const next = { ...rgb, [channel]: value };
+    setCardBgColor(toHexColor(next));
+  };
 
   return (
     <SidebarContainer
@@ -378,6 +412,80 @@ export default function LayoutSidebar({
               onChange={(e) => setCardBorderOpacity(parseInt(e.target.value, 10))}
               colorClass="bg-blue-500"
             />
+          </div>
+          {/* Card Background Color */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.cardBackgroundColor')}</span>
+              {cardBgColor && <ResetButton onClick={() => setCardBgColor('')} />}
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl border shadow-lg" style={{ borderColor: 'var(--glass-border)', backgroundColor: effectiveCardColor }} />
+                <div className="flex-1 space-y-0.5">
+                <input
+                  type="text"
+                  value={cardBgColor}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    if (val === '' || /^#[0-9a-fA-F]{1,6}$/.test(val)) setCardBgColor(val);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border font-mono text-sm outline-none transition-colors uppercase focus:border-[var(--accent-color)]"
+                  style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                  placeholder="#1f2937"
+                  maxLength={7}
+                />
+                {!cardBgColor && (
+                  <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('settings.useThemeDefault')}</p>
+                )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>R</span>
+                    <span className="text-[10px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{rgb.r}</span>
+                  </div>
+                  <M3Slider
+                    min={0}
+                    max={255}
+                    step={1}
+                    value={rgb.r}
+                    onChange={(e) => updateCardColorChannel('r', parseInt(e.target.value, 10))}
+                    colorClass="bg-[var(--accent-color)]"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>G</span>
+                    <span className="text-[10px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{rgb.g}</span>
+                  </div>
+                  <M3Slider
+                    min={0}
+                    max={255}
+                    step={1}
+                    value={rgb.g}
+                    onChange={(e) => updateCardColorChannel('g', parseInt(e.target.value, 10))}
+                    colorClass="bg-[var(--accent-color)]"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>B</span>
+                    <span className="text-[10px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{rgb.b}</span>
+                  </div>
+                  <M3Slider
+                    min={0}
+                    max={255}
+                    step={1}
+                    value={rgb.b}
+                    onChange={(e) => updateCardColorChannel('b', parseInt(e.target.value, 10))}
+                    colorClass="bg-[var(--accent-color)]"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </Section>
       </div>

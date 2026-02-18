@@ -14,6 +14,8 @@ export default function M3Slider({
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
   const timeoutRef = useRef(null);
+  const frameRef = useRef(null);
+  const pendingValueRef = useRef(value);
 
   useEffect(() => {
     if (!isInteracting) setInternalValue(value);
@@ -23,11 +25,34 @@ export default function M3Slider({
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
+  }, []);
+
   const percentage = max === min ? 0 : Math.min(100, Math.max(0, ((internalValue - min) / (max - min)) * 100));
+
+  const beginInteraction = () => {
+    setIsInteracting(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  };
+
+  const endInteraction = () => {
+    timeoutRef.current = setTimeout(() => setIsInteracting(false), 120);
+  };
   
   const handleInputChange = (e) => {
-    setInternalValue(parseFloat(e.target.value));
-    onChange(e);
+    const nextValue = parseFloat(e.target.value);
+    setInternalValue(nextValue);
+    pendingValueRef.current = nextValue;
+
+    if (frameRef.current) return;
+
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      onChange({ target: { value: String(pendingValueRef.current) } });
+    });
   };
 
   const commonInputProps = {
@@ -36,13 +61,17 @@ export default function M3Slider({
     'aria-valuemin': min,
     'aria-valuemax': max,
     'aria-valuenow': internalValue,
-    onMouseDown: () => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); },
-    onTouchStart: () => { setIsInteracting(true); if (timeoutRef.current) clearTimeout(timeoutRef.current); },
-    onMouseUp: () => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); },
-    onTouchEnd: () => { timeoutRef.current = setTimeout(() => setIsInteracting(false), 1000); },
+    onPointerDown: beginInteraction,
+    onPointerUp: endInteraction,
+    onPointerCancel: endInteraction,
+    onMouseDown: beginInteraction,
+    onMouseUp: endInteraction,
+    onTouchStart: beginInteraction,
+    onTouchEnd: endInteraction,
+    onInput: handleInputChange,
     onChange: handleInputChange,
-    className: "absolute w-full h-full opacity-0 cursor-pointer z-20",
-    style: { touchAction: 'pan-x' }
+    className: "absolute w-full h-full opacity-0 cursor-pointer z-20 select-none",
+    style: { touchAction: 'pan-x', WebkitTapHighlightColor: 'transparent' }
   };
 
   if (variant === "thin") {

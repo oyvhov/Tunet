@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from '../../icons';
 
 export default function SidebarContainer({ 
@@ -8,6 +8,9 @@ export default function SidebarContainer({
   children,
   icon: Icon
 }) {
+  const panelRef = useRef(null);
+  const [isColorPickerActive, setIsColorPickerActive] = useState(false);
+
   // Close on escape key
   useEffect(() => {
     const handleEsc = (e) => {
@@ -16,6 +19,40 @@ export default function SidebarContainer({
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open || !panelRef.current) return;
+
+    const panel = panelRef.current;
+
+    const updateColorPickerState = () => {
+      const active = document.activeElement;
+      const isColorInputActive =
+        active instanceof HTMLInputElement
+        && active.type === 'color'
+        && panel.contains(active);
+      setIsColorPickerActive(isColorInputActive);
+    };
+
+    const handleFocusIn = () => updateColorPickerState();
+    const handleFocusOut = () => {
+      setTimeout(updateColorPickerState, 0);
+    };
+
+    panel.addEventListener('focusin', handleFocusIn);
+    panel.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      panel.removeEventListener('focusin', handleFocusIn);
+      panel.removeEventListener('focusout', handleFocusOut);
+      setIsColorPickerActive(false);
+    };
+  }, [open]);
+
+  const handleBackdropClick = () => {
+    if (isColorPickerActive) return;
+    onClose();
+  };
 
   // Prevent scroll on body when open - DISABLED for better live preview
   /* 
@@ -33,27 +70,33 @@ export default function SidebarContainer({
     <>
       {/* Backdrop - Removed blur and reduced opacity so changes can be seen clearly */}
       <div 
-        className={`fixed inset-0 z-[100] bg-black/5 transition-opacity duration-300 ${
-          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 z-[100] transition-opacity duration-300 ${
+          open ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
-        onClick={onClose}
+        style={{
+          backgroundColor: 'var(--modal-backdrop, rgba(0, 0, 0, 0.45))',
+          opacity: open ? 0.5 : 0,
+        }}
+        onClick={handleBackdropClick}
       />
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed inset-y-0 right-0 z-[101] w-full max-w-[360px] backdrop-blur-xl border-l shadow-2xl transform transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) ${
+        ref={panelRef}
+        className={`fixed inset-y-0 right-0 z-[101] w-full max-w-[360px] popup-anim backdrop-blur-xl border-l shadow-2xl transform transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ 
-          backgroundColor: 'var(--modal-bg)', 
-          borderColor: 'var(--card-border)' 
+          backgroundColor: 'var(--modal-surface, var(--glass-bg))',
+          borderColor: 'var(--modal-border, var(--glass-border))',
+          borderLeftWidth: 'var(--modal-border-width, 1px)'
         }}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
           <div 
              className="flex items-center justify-between px-6 py-5 border-b"
-             style={{ borderColor: 'var(--card-border)' }}
+             style={{ borderColor: 'color-mix(in srgb, var(--glass-border) 45%, transparent)' }}
           >
             <div className="flex items-center gap-3">
                {Icon && (
@@ -67,7 +110,7 @@ export default function SidebarContainer({
             </div>
             <button 
               onClick={onClose}
-              className="p-2 rounded-full transition-colors"
+              className="modal-close transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
             >
               <X className="w-5 h-5" />
