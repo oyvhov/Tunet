@@ -746,6 +746,7 @@ export default function ModalOrchestrator({
             saveCardSetting={saveCardSetting}
             hiddenCards={hiddenCards}
             toggleCardVisibility={toggleCardVisibility}
+            gridColumns={gridColumns}
             {...editModalProps}
           />
         </ModalSuspense>
