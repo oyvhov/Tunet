@@ -300,6 +300,7 @@
   "media.tab.media": "Media",
   "media.tab.manage": "Manage",
   "media.queue": "Kø",
+  "media.noMedia": "Ingen media",
   "media.noPlayerFound": "Ingen mediaspiller funnet",
   "media.noPlayersFound": "Ingen spillere funnet",
   "media.group.sonosPlayers": "Sonos Spillere",
