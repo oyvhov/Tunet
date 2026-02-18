@@ -240,6 +240,7 @@ export default function EditCardModal({
   isEditNordpool,
   isEditCar,
   isEditSpacer,
+  isEditCamera,
   isEditRoom,
   isEditAndroidTV,
   editSettingsKey,
@@ -611,6 +612,85 @@ export default function EditCardModal({
               })()}
             </div>
           )}
+
+          {isEditCamera && editSettingsKey && (() => {
+            const refreshMode = editSettings.cameraRefreshMode || 'interval';
+            const refreshInterval = editSettings.cameraRefreshInterval || 10;
+            const motionSensorId = editSettings.cameraMotionSensor || '';
+            const binarySensorOptions = sortByName(entityEntries
+              .filter(([id, e]) => id.startsWith('binary_sensor.') && (
+                e?.attributes?.device_class === 'motion' ||
+                e?.attributes?.device_class === 'occupancy' ||
+                id.toLowerCase().includes('motion')
+              ))
+              .map(([id]) => id));
+
+            return (
+              <div className="space-y-4">
+                {/* Refresh mode */}
+                <div className="space-y-2">
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.refreshMode') || 'Refresh Mode'}</label>
+                  <div className="flex gap-2">
+                    {[
+                      { key: 'interval', label: t('camera.refreshInterval') || 'Timer' },
+                      { key: 'motion', label: t('camera.refreshMotion') || 'Motion' },
+                    ].map(v => (
+                      <button
+                        key={v.key}
+                        onClick={() => saveCardSetting(editSettingsKey, 'cameraRefreshMode', v.key)}
+                        className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${refreshMode === v.key ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                      >
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Interval seconds */}
+                {refreshMode === 'interval' && (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.intervalSeconds') || 'Refresh every (seconds)'}</label>
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => saveCardSetting(editSettingsKey, 'cameraRefreshInterval', Math.max(2, refreshInterval - 1))}
+                        className="w-10 h-10 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] font-bold text-lg flex items-center justify-center border border-[var(--glass-border)]"
+                      >−</button>
+                      <div className="flex-1 text-center">
+                        <span className="text-lg font-bold text-[var(--text-primary)]">{refreshInterval}</span>
+                        <span className="text-xs text-[var(--text-muted)] ml-1">s</span>
+                      </div>
+                      <button type="button" onClick={() => saveCardSetting(editSettingsKey, 'cameraRefreshInterval', Math.min(60, refreshInterval + 1))}
+                        className="w-10 h-10 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] font-bold text-lg flex items-center justify-center border border-[var(--glass-border)]"
+                      >+</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Motion sensor entity */}
+                {refreshMode === 'motion' && (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.motionSensor') || 'Motion Sensor'}</label>
+                    <div className="popup-surface rounded-2xl p-4 max-h-44 overflow-y-auto custom-scrollbar space-y-2">
+                      {binarySensorOptions.length === 0 && (
+                        <p className="text-xs text-[var(--text-muted)] text-center py-4">{t('camera.noMotionSensors') || 'No motion sensors found'}</p>
+                      )}
+                      {binarySensorOptions.map((id) => {
+                        const selected = motionSensorId === id;
+                        return (
+                          <button key={id} type="button"
+                            onClick={() => saveCardSetting(editSettingsKey, 'cameraMotionSensor', selected ? null : id)}
+                            className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-blue-500/15 border-blue-500/30 text-blue-400' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                          >
+                            <div className="text-sm font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
+                            <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {isEditTodo && editSettingsKey && (
             <div className="space-y-3">

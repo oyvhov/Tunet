@@ -466,6 +466,7 @@ export function renderCameraCard(cardId, dragProps, getControls, cardStyle, sett
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const entityId = settings.cameraId;
   const entity = entityId ? entities[entityId] : null;
+  const sizeSetting = settings.size;
 
   if (!entity || !entityId) {
     if (editMode) {
@@ -480,6 +481,8 @@ export function renderCameraCard(cardId, dragProps, getControls, cardStyle, sett
       cardId={cardId}
       entityId={entityId}
       entity={entity}
+      settings={settings}
+      entities={entities}
       dragProps={dragProps}
       controls={getControls(cardId)}
       cardStyle={cardStyle}
@@ -488,6 +491,7 @@ export function renderCameraCard(cardId, dragProps, getControls, cardStyle, sett
       customIcons={customIcons}
       getEntityImageUrl={getEntityImageUrl}
       onOpen={() => setShowCameraModal(cardId)}
+      size={sizeSetting}
       t={t}
     />
   );

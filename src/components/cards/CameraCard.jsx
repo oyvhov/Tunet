@@ -1,23 +1,24 @@
-import { useMemo, useState } from 'react';
-import { Camera } from '../../icons';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Camera, AlertCircle } from '../../icons';
 import { getIconComponent } from '../../icons';
-import { RefreshCw } from 'lucide-react';
 
-function buildCameraSnapshotPath(entityId, accessToken) {
+function buildCameraUrl(basePath, entityId, accessToken) {
   const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : '';
-  return `/api/camera_proxy/${entityId}${tokenQuery}`;
+  return `${basePath}/${entityId}${tokenQuery}`;
 }
 
 function appendTs(url, ts) {
   if (!url) return '';
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}_ts=${ts}`;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}_ts=${ts}`;
 }
 
 export default function CameraCard({
   cardId,
   entityId,
   entity,
+  settings,
+  entities,
   dragProps,
   controls,
   cardStyle,
@@ -26,20 +27,97 @@ export default function CameraCard({
   customIcons,
   getEntityImageUrl,
   onOpen,
+  size,
   t,
 }) {
   const [refreshTs, setRefreshTs] = useState(Date.now());
+  const [streamFailed, setStreamFailed] = useState(false);
+  const intervalRef = useRef(null);
+
   const attrs = entity?.attributes || {};
   const isOffline = !entity || entity.state === 'unavailable' || entity.state === 'unknown' || entity.state === 'off';
   const name = customNames?.[cardId] || attrs.friendly_name || entityId;
-
   const iconName = customIcons?.[cardId] || attrs.icon;
   const Icon = iconName ? (getIconComponent(iconName) || Camera) : Camera;
+  const isSmall = size === 'small';
 
   const accessToken = attrs.access_token;
-  const snapshotPath = buildCameraSnapshotPath(entityId, accessToken);
-  const entityPicture = attrs.entity_picture || null;
-  const previewUrl = useMemo(() => getEntityImageUrl(appendTs(entityPicture || snapshotPath, refreshTs)), [entityPicture, snapshotPath, refreshTs, getEntityImageUrl]);
+
+  const streamUrl = useMemo(
+    () => getEntityImageUrl(buildCameraUrl('/api/camera_proxy_stream', entityId, accessToken)),
+    [entityId, accessToken, getEntityImageUrl],
+  );
+
+  const snapshotUrl = useMemo(() => {
+    const base = attrs.entity_picture || buildCameraUrl('/api/camera_proxy', entityId, accessToken);
+    return getEntityImageUrl(appendTs(base, refreshTs));
+  }, [entityId, accessToken, attrs.entity_picture, refreshTs, getEntityImageUrl]);
+
+  const previewUrl = streamFailed ? snapshotUrl : streamUrl;
+
+  const refreshMode = settings?.cameraRefreshMode || 'interval';
+  const refreshInterval = Math.max(2, Number(settings?.cameraRefreshInterval) || 10);
+  const motionSensorId = settings?.cameraMotionSensor || null;
+
+  const doRefresh = useCallback(() => {
+    setRefreshTs(Date.now());
+    setStreamFailed(false);
+  }, []);
+
+  // Interval-based snapshot refresh (only used when stream has failed)
+  useEffect(() => {
+    if (isOffline || !streamFailed || refreshMode !== 'interval') return;
+    intervalRef.current = setInterval(doRefresh, refreshInterval * 1000);
+    return () => clearInterval(intervalRef.current);
+  }, [isOffline, streamFailed, refreshMode, refreshInterval, doRefresh]);
+
+  // Motion-sensor-based refresh
+  useEffect(() => {
+    if (isOffline || refreshMode !== 'motion' || !motionSensorId) return;
+    const motionEntity = entities?.[motionSensorId];
+    if (!motionEntity) return;
+    const motionState = motionEntity.state;
+    if (motionState === 'on' || motionState === 'detected') {
+      doRefresh();
+    }
+  }, [isOffline, refreshMode, motionSensorId, entities, doRefresh]);
+
+  if (isSmall) {
+    return (
+      <div
+        key={cardId}
+        {...dragProps}
+        data-haptic={editMode ? undefined : 'card'}
+        className="touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300"
+        style={cardStyle}
+        onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
+      >
+        {controls}
+        <div className="w-12 h-12 rounded-2xl flex-shrink-0 overflow-hidden bg-[var(--glass-bg)]">
+          {!isOffline ? (
+            <img
+              src={previewUrl}
+              alt={name}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={() => setStreamFailed(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)]">
+              <Icon className="w-6 h-6 stroke-[1.5px]" />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col min-w-0 justify-center">
+          <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">
+            {isOffline ? (t?.('camera.unavailable') || 'Unavailable') : (t?.('camera.live') || 'Live')}
+          </p>
+          <p className="text-sm font-bold text-[var(--text-primary)] leading-none truncate">{name}</p>
+        </div>
+        <span className={`ml-auto w-2.5 h-2.5 rounded-full shrink-0 ${isOffline ? 'bg-red-400' : 'bg-emerald-400'}`} />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -48,49 +126,48 @@ export default function CameraCard({
       data-haptic={editMode ? undefined : 'card'}
       className={`touch-feedback relative h-full rounded-3xl overflow-hidden border bg-[var(--card-bg)] group transition-all duration-300 ${editMode ? 'cursor-move' : 'cursor-pointer active:scale-[0.98]'}`}
       style={cardStyle}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!editMode) onOpen?.();
-      }}
+      onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
     >
       {controls}
 
-      {previewUrl && !isOffline ? (
+      {!isOffline ? (
         <img
           src={previewUrl}
           alt={name}
           className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
-          decoding="async"
           referrerPolicy="no-referrer"
+          onError={() => setStreamFailed(true)}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-[var(--glass-bg)]">
-          <Icon className="w-12 h-12 text-[var(--text-secondary)] opacity-70" />
+          <div className="flex flex-col items-center gap-2 text-[var(--text-secondary)] opacity-70">
+            <AlertCircle className="w-10 h-10" />
+            <p className="text-xs font-bold uppercase tracking-widest">{t?.('camera.unavailable') || 'Unavailable'}</p>
+          </div>
         </div>
       )}
 
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.10) 35%, rgba(0,0,0,0.45) 100%)' }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.20) 0%, transparent 35%, rgba(0,0,0,0.45) 100%)' }} />
 
-      <div className="absolute top-3 right-3">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setRefreshTs(Date.now());
-          }}
-          className="p-2 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] transition-colors"
-          title={t?.('camera.refresh') || 'Refresh'}
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
-
+      {/* Status badge */}
       <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest popup-surface text-[var(--text-primary)] border border-[var(--glass-border)]">
         <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-red-400' : 'bg-emerald-400'}`} />
         {isOffline ? (t?.('camera.unavailable') || 'Unavailable') : (t?.('camera.live') || 'Live')}
       </div>
 
+      {/* Motion indicator */}
+      {refreshMode === 'motion' && motionSensorId && (() => {
+        const motionEntity = entities?.[motionSensorId];
+        const isMotion = motionEntity?.state === 'on' || motionEntity?.state === 'detected';
+        if (!isMotion) return null;
+        return (
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-red-500/60 text-white border border-red-400/40 animate-pulse">
+            {t?.('camera.motion') || 'Motion'}
+          </div>
+        );
+      })()}
+
+      {/* Name overlay */}
       <div className="absolute left-3 right-3 bottom-3 flex items-end justify-between gap-3">
         <div className="min-w-0 max-w-[75%] px-3 py-2 rounded-xl popup-surface border border-[var(--glass-border)]">
           <p className="text-xs font-bold text-[var(--text-primary)] truncate tracking-wide uppercase">{name}</p>

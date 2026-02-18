@@ -183,6 +183,7 @@ export default function ModalOrchestrator({
     const isEditRoom = !!editId && editId.startsWith('room_card_');
     const isEditCover = !!editId && editId.startsWith('cover_card_');
     const isEditSpacer = !!editId && editId.startsWith('spacer_card_');
+    const isEditCamera = !!editId && editId.startsWith('camera_card_');
     const editSettings = isEditCar ? resolveCarSettings(editId, rawEditSettings) : rawEditSettings;
     const isEditGenericType = (!!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor')) || isEditVacuum || isEditAutomation || isEditCar || isEditAndroidTV || isEditRoom;
     const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
@@ -194,7 +195,7 @@ export default function ModalOrchestrator({
     return {
       canEditName, canEditIcon, canEditStatus,
       isEditLight, isEditMedia, isEditCalendar, isEditTodo, isEditCost, isEditNordpool, isEditGenericType,
-      isEditAndroidTV, isEditCar, isEditRoom, isEditSpacer, isEditSensor, isEditWeatherTemp,
+      isEditAndroidTV, isEditCar, isEditRoom, isEditSpacer, isEditCamera, isEditSensor, isEditWeatherTemp,
       editSettingsKey, editSettings,
     };
   }, [showEditCardModal, editSettingsKey, cardSettings, entities]);
