@@ -171,6 +171,19 @@ export default function AddCardContent({
   const [selectedRoomArea, setSelectedRoomArea] = useState(null);
   const [selectedRoomEntities, setSelectedRoomEntities] = useState([]);
   const [localSpacerVariant, setLocalSpacerVariant] = useState(selectedSpacerVariant || 'divider');
+  const [calendarOptionsSnapshot, setCalendarOptionsSnapshot] = useState([]);
+
+  useEffect(() => {
+    if (addCardType !== 'calendar') return;
+    const snapshot = Object.keys(entities)
+      .filter((id) => id.startsWith('calendar.'))
+      .map((id) => ({
+        id,
+        name: entities[id]?.attributes?.friendly_name || id,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setCalendarOptionsSnapshot(snapshot);
+  }, [addCardType]);
 
   useEffect(() => {
     if (addCardType === 'spacer') {
@@ -332,6 +345,50 @@ export default function AddCardContent({
     </div>
   );
 
+  const renderCalendarSection = () => {
+    const lowerSearch = searchTerm.toLowerCase();
+    const visibleCalendars = calendarOptionsSnapshot.filter(({ id, name }) => {
+      if (!searchTerm) return true;
+      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
+    });
+
+    return (
+      <div className="space-y-3">
+        <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-1">{t('calendar.selectCalendars') || 'Select Calendars'}</p>
+        <div className="space-y-3">
+          {visibleCalendars.map(({ id, name }) => {
+            const isSelected = selectedEntities.includes(id);
+            return (
+              <button
+                type="button"
+                key={id}
+                onClick={() => {
+                  if (isSelected) setSelectedEntities((prev) => prev.filter((x) => x !== id));
+                  else setSelectedEntities((prev) => [...prev, id]);
+                }}
+                className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}
+              >
+                <div className="flex flex-col overflow-hidden mr-4">
+                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{name}</span>
+                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+                </div>
+                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                  {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </div>
+              </button>
+            );
+          })}
+          {calendarOptionsSnapshot.length === 0 && (
+            <p className="text-gray-500 italic text-sm text-center py-4">{t('calendar.noCalendarsFound') || 'No calendars found'}</p>
+          )}
+          {calendarOptionsSnapshot.length > 0 && visibleCalendars.length === 0 && (
+            <p className="text-gray-500 italic text-sm text-center py-4">{t('form.noResults') || 'No results'}</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderSpacerSection = () => (
     <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
       <div className="p-4 rounded-full bg-blue-500/10 text-blue-400">
@@ -489,6 +546,7 @@ export default function AddCardContent({
   };
 
   const usesEntityMultiSelect = ['sensor', 'light', 'vacuum', 'camera', 'climate', 'cover', 'media', 'toggle', 'entity'].includes(addCardType);
+  const usesMultiSelectWithCalendar = usesEntityMultiSelect || addCardType === 'calendar';
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={onClose}>
@@ -531,7 +589,7 @@ export default function AddCardContent({
           <div className="space-y-6">
             {addCardType === 'weather' ? renderWeatherSection()
               : addCardType === 'androidtv' ? renderAndroidTVSection()
-              : addCardType === 'calendar' ? renderSimpleAddSection(Calendar, t('addCard.calendarDescription') || 'Add a calendar card. You can select calendars after adding the card.', t('addCard.add'))
+              : addCardType === 'calendar' ? renderCalendarSection()
               : addCardType === 'todo' ? renderSimpleAddSection(ListChecks, t('addCard.todoDescription') || 'Add a to-do card. You can select which list to use after adding.', t('addCard.add'))
               : addCardType === 'spacer' ? renderSpacerSection()
               : addCardType === 'car' ? renderSimpleAddSection(Car, t('addCard.carDescription'), t('addCard.carCard'))
@@ -553,10 +611,12 @@ export default function AddCardContent({
         </div>
 
         <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
-          {usesEntityMultiSelect && selectedEntities.length > 0 && (
+          {usesMultiSelectWithCalendar && selectedEntities.length > 0 && (
             <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" /> {addCardType === 'media'
                 ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
+                : addCardType === 'calendar'
+                  ? `${t('addCard.add')} ${t('addCard.type.calendar') || 'Calendar'} ${t('addCard.cards')}`
                 : addCardType === 'camera'
                   ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cameraCard') || 'camera cards'}`
                   : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}

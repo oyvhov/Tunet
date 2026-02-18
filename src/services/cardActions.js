@@ -106,10 +106,11 @@ export const handleAddSelected = (ctx) => {
     }
 
     case 'calendar': {
-      const cardId = selectedEntities.length === 1 && selectedEntities[0].startsWith('calendar_card_')
-        ? selectedEntities[0]
-        : `calendar_card_${Date.now()}`;
-      commitCards([cardId]);
+      const calendars = selectedEntities.filter((id) => id.startsWith('calendar.'));
+      if (calendars.length === 0) return;
+      const cardId = `calendar_card_${Date.now()}`;
+      commitSingleCard(cardId, { calendars });
+      setSelectedEntities([]);
       return;
     }
 
