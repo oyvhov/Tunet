@@ -33,6 +33,7 @@ export default function CameraCard({
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [streamFailed, setStreamFailed] = useState(false);
   const intervalRef = useRef(null);
+  const previousMotionActiveRef = useRef(false);
 
   const attrs = entity?.attributes || {};
   const isOffline = !entity || entity.state === 'unavailable' || entity.state === 'unknown' || entity.state === 'off';
@@ -73,13 +74,21 @@ export default function CameraCard({
 
   // Motion-sensor-based refresh
   useEffect(() => {
-    if (isOffline || refreshMode !== 'motion' || !motionSensorId) return;
+    if (isOffline || refreshMode !== 'motion' || !motionSensorId) {
+      previousMotionActiveRef.current = false;
+      return;
+    }
     const motionEntity = entities?.[motionSensorId];
-    if (!motionEntity) return;
+    if (!motionEntity) {
+      previousMotionActiveRef.current = false;
+      return;
+    }
     const motionState = motionEntity.state;
-    if (motionState === 'on' || motionState === 'detected') {
+    const isMotionActive = motionState === 'on' || motionState === 'detected';
+    if (isMotionActive && !previousMotionActiveRef.current) {
       doRefresh();
     }
+    previousMotionActiveRef.current = isMotionActive;
   }, [isOffline, refreshMode, motionSensorId, entities, doRefresh]);
 
   if (isSmall) {
