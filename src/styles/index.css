@@ -8,6 +8,11 @@
 /* Card border radius — controlled from settings */
 :root {
   --card-border-radius: 16px;
+  --color-blue-200: color-mix(in srgb, var(--text-primary) 35%, transparent);
+  --color-blue-300: color-mix(in srgb, var(--text-primary) 45%, transparent);
+  --color-blue-400: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  --color-blue-500: color-mix(in srgb, var(--text-secondary) 96%, transparent);
+  --color-blue-600: color-mix(in srgb, var(--text-primary) 74%, transparent);
 }
 
 /* When custom bg image is active, add overlay for readability */

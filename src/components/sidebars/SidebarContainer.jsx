@@ -100,7 +100,7 @@ export default function SidebarContainer({
           >
             <div className="flex items-center gap-3">
                {Icon && (
-                 <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}>
+                 <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }}>
                    <Icon className="w-5 h-5" />
                  </div>
                )}

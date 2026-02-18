@@ -70,7 +70,7 @@ export default function ThemeSidebar({
           <div className="flex p-1 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
              <button
                 className="w-12 h-9 rounded-xl flex items-center justify-center transition-all shadow-md relative z-10 text-white"
-                style={{ backgroundColor: 'var(--accent-color)' }}
+               style={{ backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }}
                 disabled
                 title={t('system.tabAppearance')}
              >
@@ -132,7 +132,7 @@ export default function ThemeSidebar({
             <button 
               type="button"
               onClick={resetBackground}
-              className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-color)] hover:bg-[var(--accent-bg)] rounded-sm transition-colors"
+              className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] rounded-sm transition-colors"
             >
               {t('settings.reset')}
             </button>
@@ -149,7 +149,7 @@ export default function ThemeSidebar({
                   onClick={() => setBgMode(mode.key)}
                   className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all text-center border ${
                     active
-                      ? 'bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)]'
+                      ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)] text-[var(--text-primary)]'
                       : 'border-transparent hover:bg-white/10 text-[var(--text-secondary)]'
                   }`}
                   style={!active ? { backgroundColor: 'var(--glass-bg)' } : {}}
@@ -190,7 +190,7 @@ export default function ThemeSidebar({
                     const val = e.target.value;
                     if (/^#[0-9a-fA-F]{0,6}$/.test(val)) setBgColor(val);
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border font-mono text-sm outline-none transition-colors uppercase focus:border-[var(--accent-color)]"
+                  className="w-full px-3 py-2.5 rounded-xl border font-mono text-sm outline-none transition-colors uppercase focus:border-[var(--glass-border)]"
                   style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
                   placeholder="#0f172a"
                   maxLength={7}
@@ -212,7 +212,7 @@ export default function ThemeSidebar({
                   >
                     <div
                       className={`w-12 h-12 rounded-xl transition-all ${
-                        active ? 'ring-2 ring-[var(--accent-color)] scale-105' : 'hover:scale-105 opacity-80 hover:opacity-100'
+                        active ? 'ring-2 ring-[var(--glass-border)] scale-105' : 'hover:scale-105 opacity-80 hover:opacity-100'
                       }`}
                       style={{ background: `linear-gradient(135deg, ${preset.from}, ${preset.to})` }}
                     />
@@ -230,7 +230,7 @@ export default function ThemeSidebar({
                     type="url"
                     value={bgImage}
                     onChange={(e) => setBgImage(e.target.value)}
-                    className="w-full px-4 py-3 pl-10 rounded-xl border text-xs outline-none transition-colors placeholder:text-[var(--text-secondary)] focus:border-[var(--accent-color)]"
+                    className="w-full px-4 py-3 pl-10 rounded-xl border text-xs outline-none transition-colors placeholder:text-[var(--text-secondary)] focus:border-[var(--glass-border)]"
                     style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
                     placeholder={t('settings.bgUrl')}
                   />
@@ -247,7 +247,7 @@ export default function ThemeSidebar({
         <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <label className="text-xs uppercase font-bold tracking-widest flex items-center gap-2 pl-1" style={{ color: 'var(--text-secondary)' }}>
-                  <Home className="w-4 h-4" style={{ color: 'var(--accent-color)' }} />
+                  <Home className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                   {t('settings.inactivity')}
                 </label>
                 <div className="flex items-center gap-3">
@@ -257,7 +257,7 @@ export default function ThemeSidebar({
                       setInactivityTimeout(newVal);
                       try { localStorage.setItem('tunet_inactivity_timeout', String(newVal)); } catch {}
                     }}
-                    className={`w-10 h-6 rounded-full p-1 transition-colors relative ${inactivityTimeout > 0 ? 'bg-[var(--accent-color)]' : 'bg-gray-500/30'}`}
+                    className={`w-10 h-6 rounded-full p-1 transition-colors relative ${inactivityTimeout > 0 ? 'bg-[var(--glass-bg-hover)]' : 'bg-gray-500/30'}`}
                   >
                     <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${inactivityTimeout > 0 ? 'translate-x-4' : 'translate-x-0'}`} />
                   </button>
@@ -279,7 +279,7 @@ export default function ThemeSidebar({
                       setInactivityTimeout(val);
                       try { localStorage.setItem('tunet_inactivity_timeout', String(val)); } catch {}
                     }}
-                    colorClass="bg-blue-500"
+                    colorClass="bg-[var(--text-secondary)]"
                   />
                 </div>
               )}

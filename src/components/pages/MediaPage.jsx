@@ -388,17 +388,27 @@ export default function MediaPage({
                           : [...selectedIds, id];
                         savePageSetting(pageId, 'mediaIds', next);
                       }}
-                      className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}
+                      className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? '' : 'popup-surface popup-surface-hover border-transparent'}`}
+                      style={isSelected ? {
+                        backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
+                        borderColor: 'color-mix(in srgb, var(--accent-color) 32%, transparent)'
+                      } : undefined}
                     >
                       <div className="flex flex-col overflow-hidden mr-4">
-                        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                           {entity?.attributes?.friendly_name || id}
                         </span>
-                        <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                        <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--accent-color)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
                           {id}
                         </span>
                       </div>
-                      <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                      <div
+                        className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? '' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}
+                        style={isSelected ? {
+                          backgroundColor: 'color-mix(in srgb, var(--accent-color) 22%, transparent)',
+                          color: 'var(--accent-color)'
+                        } : undefined}
+                      >
                         {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                       </div>
                     </button>
@@ -461,7 +471,15 @@ export default function MediaPage({
               </div>
 
               <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 lg:gap-2 xl:gap-3">
-                <button onClick={() => callService('media_player', 'shuffle_set', { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-all active:scale-95 ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`} title="Shuffle">
+                <button
+                  onClick={() => callService('media_player', 'shuffle_set', { entity_id: mpId, shuffle: !shuffle })}
+                  className={`p-2 rounded-full transition-all active:scale-95 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                  style={shuffle ? {
+                    color: 'var(--accent-color)',
+                    backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)'
+                  } : undefined}
+                  title="Shuffle"
+                >
                   <Shuffle className="w-4 h-4" />
                 </button>
                 <div className="min-w-0 flex items-center justify-center gap-1.5 lg:gap-2 xl:gap-4">
@@ -471,7 +489,15 @@ export default function MediaPage({
                   </button>
                   <button onClick={() => callService('media_player', 'media_next_track', { entity_id: mpId })} className="p-1.5 lg:p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipForward className="w-5 h-5 xl:w-6 xl:h-6 text-[var(--text-secondary)]" /></button>
                 </div>
-                <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService('media_player', 'repeat_set', { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-all active:scale-95 ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`} title="Repeat">
+                <button
+                  onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService('media_player', 'repeat_set', { entity_id: mpId, repeat: nextMode }); }}
+                  className={`p-2 rounded-full transition-all active:scale-95 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                  style={repeat !== 'off' ? {
+                    color: 'var(--accent-color)',
+                    backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)'
+                  } : undefined}
+                  title="Repeat"
+                >
                   {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
                 </button>
               </div>
@@ -489,49 +515,64 @@ export default function MediaPage({
 
       {mediaEntities.length > 0 && (
       <div className="rounded-3xl border border-[var(--glass-border)] popup-surface p-6 min-h-[480px] max-h-[480px] flex flex-col w-full min-w-0">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-2">
           <div className="inline-flex items-center gap-1 p-1 rounded-xl popup-surface border border-[var(--glass-border)]">
             <button
               type="button"
               onClick={() => setRightPanelView('players')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${rightPanelView === 'players' ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-              style={rightPanelView === 'players' ? { backgroundColor: 'var(--accent-color)' } : undefined}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${rightPanelView === 'players' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              style={rightPanelView === 'players' ? {
+                color: 'var(--accent-color)',
+                backgroundColor: 'color-mix(in srgb, var(--accent-color) 16%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--accent-color) 30%, transparent)'
+              } : undefined}
             >
               {t('media.tab.players')}
             </button>
             <button
               type="button"
               onClick={() => setRightPanelView('choose')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${rightPanelView === 'choose' ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-              style={rightPanelView === 'choose' ? { backgroundColor: 'var(--accent-color)' } : undefined}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${rightPanelView === 'choose' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              style={rightPanelView === 'choose' ? {
+                color: 'var(--accent-color)',
+                backgroundColor: 'color-mix(in srgb, var(--accent-color) 16%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--accent-color) 30%, transparent)'
+              } : undefined}
             >
               {t('media.tab.media')}
             </button>
             <button
               type="button"
               onClick={() => setRightPanelView('manage')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${rightPanelView === 'manage' ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-              style={rightPanelView === 'manage' ? { backgroundColor: 'var(--accent-color)' } : undefined}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${rightPanelView === 'manage' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              style={rightPanelView === 'manage' ? {
+                color: 'var(--accent-color)',
+                backgroundColor: 'color-mix(in srgb, var(--accent-color) 16%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--accent-color) 30%, transparent)'
+              } : undefined}
             >
               {t('media.tab.manage')}
             </button>
           </div>
+          {rightPanelView === 'players' && listPlayers.length > 1 && (
+            <button
+              onClick={toggleGroupAll}
+              className="px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest border transition-colors"
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--accent-color) 28%, transparent)',
+                color: 'var(--accent-color)'
+              }}
+              title={hasGroupedOthers ? t('sonos.ungroupAll') : t('sonos.groupAll')}
+              aria-label={hasGroupedOthers ? t('sonos.ungroupAll') : t('sonos.groupAll')}
+            >
+              <Link className="w-4 h-4" />
+              <span>{hasGroupedOthers ? t('sonos.ungroupShort') : t('sonos.groupShort')}</span>
+            </button>
+          )}
         </div>
         {rightPanelView === 'players' && (
           <>
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-                {listPlayers.length > 1 && (
-                  <button
-                    onClick={toggleGroupAll}
-                    className="px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-white transition-colors"
-                    title={hasGroupedOthers ? t('sonos.ungroupAll') : t('sonos.groupAll')}
-                    aria-label={hasGroupedOthers ? t('sonos.ungroupAll') : t('sonos.groupAll')}
-                  >
-                    <Link className="w-4 h-4" />
-                    <span>{hasGroupedOthers ? t('sonos.ungroupAll') : t('sonos.groupAll')}</span>
-                  </button>
-                )}
-            </div>
             <div className="flex flex-col gap-4 overflow-y-auto flex-1 custom-scrollbar">
               {listPlayers.map((p, idx) => {
             const pPic = getEntityImageUrl(p.attributes?.entity_picture);
@@ -564,7 +605,12 @@ export default function MediaPage({
                         callService('media_player', 'join', { entity_id: mpId, group_members: [p.entity_id] });
                       }
                     }}
-                    className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    className={`p-2.5 rounded-full transition-all ${isMember ? '' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                    style={isMember ? {
+                      backgroundColor: 'color-mix(in srgb, var(--accent-color) 22%, transparent)',
+                      color: 'var(--accent-color)',
+                      boxShadow: 'none'
+                    } : undefined}
                     title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
                   >
                     {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -577,7 +623,11 @@ export default function MediaPage({
                       e.stopPropagation();
                       toggleGroupAll();
                     }}
-                    className="p-2.5 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                    className="p-2.5 rounded-full transition-colors"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
+                      color: 'var(--accent-color)'
+                    }}
                     title={hasGroupedOthers ? t('sonos.ungroupAll') : t('sonos.groupAll')}
                   >
                     <Link className="w-4 h-4" />

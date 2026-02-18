@@ -43,11 +43,11 @@ const SegmentedControl = ({ options, value, onChange }) => (
         onClick={() => onChange(opt.value)}
         className={`flex-1 py-1.5 px-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all text-center ${
           value === opt.value
-            ? 'text-white shadow-lg'
+            ? ''
             : 'hover:text-white'
         }`}
         style={value === opt.value 
-          ? { backgroundColor: 'var(--accent-color)' }
+          ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }
           : { color: 'var(--text-secondary)', backgroundColor: 'transparent' }
         }
       >
@@ -63,7 +63,7 @@ const Toggle = ({ label, value, onChange }) => (
     className="w-full flex items-center justify-between py-2 group"
   >
     <span className="text-[12px] font-medium transition-colors group-hover:text-white" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-    <div className="w-9 h-5 rounded-full relative transition-all duration-300" style={{ backgroundColor: value ? 'var(--accent-color)' : 'var(--glass-bg)' }}>
+    <div className="w-9 h-5 rounded-full relative transition-all duration-300" style={{ backgroundColor: value ? 'var(--glass-bg-hover)' : 'var(--glass-bg)' }}>
       <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all duration-300 shadow-sm ${value ? 'left-[calc(100%-16px)]' : 'left-1'}`} />
     </div>
   </button>
@@ -90,7 +90,7 @@ const Section = ({ id, icon: Icon, title, children, isOpen, toggle }) => (
       onClick={() => toggle(id)}
       className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors group"
     >
-      <div className="p-2 rounded-xl transition-colors" style={isOpen ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' } : { color: 'var(--text-secondary)' }}>
+      <div className="p-2 rounded-xl transition-colors" style={isOpen ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}>
         <Icon className="w-4.5 h-4.5" />
       </div>
       <span className="flex-1 text-[13px] font-semibold transition-colors" style={{ color: isOpen ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{title}</span>
@@ -171,7 +171,7 @@ export default function HeaderSidebar({
 
              <button
                 className="w-12 h-9 rounded-xl flex items-center justify-center transition-all text-white shadow-md relative z-10"
-                style={{ backgroundColor: 'var(--accent-color)' }}
+               style={{ backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }}
                 disabled
                 title={t('system.tabHeader')}
              >
@@ -246,11 +246,11 @@ export default function HeaderSidebar({
                    onClick={() => update('fontStyle', s)}
                    className={`flex-1 py-1.5 px-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all ${
                      fontStyle === s
-                       ? 'text-white'
+                       ? ''
                        : 'hover:border-white/20'
                    }`}
                    style={fontStyle === s 
-                      ? { backgroundColor: 'var(--accent-color)', borderColor: 'var(--accent-color)' }
+                      ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }
                       : { backgroundColor: 'transparent', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }
                    }
                  >
@@ -274,7 +274,7 @@ export default function HeaderSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.scale')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{(headerScale * 100).toFixed(0)}%</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{(headerScale * 100).toFixed(0)}%</span>
                 {headerScale !== 1 && <ResetButton onClick={() => updateHeaderScale(1)} t={t} />}
               </div>
             </div>
@@ -284,7 +284,7 @@ export default function HeaderSidebar({
                 step={0.1} 
                 value={headerScale} 
                 onChange={(e) => updateHeaderScale(parseFloat(e.target.value))} 
-                colorClass="bg-blue-500" 
+                colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
 
@@ -303,7 +303,7 @@ export default function HeaderSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.clockScale')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{(clockScale * 100).toFixed(0)}%</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{(clockScale * 100).toFixed(0)}%</span>
                 {clockScale !== 1 && <ResetButton onClick={() => update('clockScale', 1)} t={t} />}
               </div>
             </div>
@@ -313,7 +313,7 @@ export default function HeaderSidebar({
                 step={0.1} 
                 value={clockScale} 
                 onChange={(e) => update('clockScale', parseFloat(e.target.value))} 
-                colorClass="bg-blue-500" 
+                colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
 
@@ -322,7 +322,7 @@ export default function HeaderSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.dateScale')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{(dateScale * 100).toFixed(0)}%</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{(dateScale * 100).toFixed(0)}%</span>
                 {dateScale !== 1 && <ResetButton onClick={() => update('dateScale', 1)} t={t} />}
               </div>
             </div>
@@ -332,7 +332,7 @@ export default function HeaderSidebar({
                 step={0.1} 
                 value={dateScale} 
                 onChange={(e) => update('dateScale', parseFloat(e.target.value))} 
-                colorClass="bg-blue-500" 
+                colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
         </Section>
@@ -374,10 +374,10 @@ export default function HeaderSidebar({
                <button
                  onClick={() => update('clockFormat', '24h')}
                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                   clockFormat === '24h' ? 'text-white' : 'hover:text-white'
+                   clockFormat === '24h' ? '' : 'hover:text-white'
                  }`}
                  style={clockFormat === '24h' 
-                    ? { backgroundColor: 'var(--accent-color)' } 
+                    ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } 
                     : { backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)' }
                  }
                >
@@ -386,10 +386,10 @@ export default function HeaderSidebar({
                <button
                  onClick={() => update('clockFormat', '12h')}
                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                   clockFormat === '12h' ? 'text-white' : 'hover:text-white'
+                   clockFormat === '12h' ? '' : 'hover:text-white'
                  }`}
                  style={clockFormat === '12h' 
-                    ? { backgroundColor: 'var(--accent-color)' } 
+                    ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } 
                     : { backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)' }
                  }
                >

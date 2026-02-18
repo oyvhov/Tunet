@@ -117,14 +117,20 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
       className={`touch-feedback w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
       style={{
         ...cardStyle,
-        backgroundColor: isOn ? 'rgba(59, 130, 246, 0.03)' : 'rgba(15, 23, 42, 0.6)',
-        borderColor: isOn ? 'rgba(59, 130, 246, 0.15)' : (editMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)')
+        backgroundColor: isOn ? 'color-mix(in srgb, var(--accent-color) 8%, transparent)' : 'rgba(15, 23, 42, 0.6)',
+        borderColor: isOn ? 'color-mix(in srgb, var(--accent-color) 24%, transparent)' : (editMode ? 'color-mix(in srgb, var(--accent-color) 26%, transparent)' : 'rgba(255, 255, 255, 0.04)')
       }}
       onClick={(_e) => { if (!editMode) callService('automation', 'toggle', { entity_id: cardId }); }}
     >
       {getControls(cardId)}
       <div className="flex items-center gap-4">
-        <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
+        <div
+          className={`p-3 rounded-2xl transition-all ${isOn ? '' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+          style={isOn ? {
+            backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
+            color: 'var(--accent-color)'
+          } : undefined}
+        >
           <Icon className="w-5 h-5 stroke-[1.5px]" />
         </div>
         <div className="flex flex-col">
@@ -136,7 +142,10 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
           </span>
         </div>
       </div>
-      <div className={`w-10 h-6 rounded-full relative transition-all ${isOn ? 'bg-blue-500/80' : 'bg-[var(--glass-bg-hover)]'}`}>
+      <div
+        className={`w-10 h-6 rounded-full relative transition-all ${isOn ? '' : 'bg-[var(--glass-bg-hover)]'}`}
+        style={isOn ? { backgroundColor: 'color-mix(in srgb, var(--accent-color) 68%, transparent)' } : undefined}
+      >
         <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`} />
       </div>
     </div>
