@@ -201,7 +201,6 @@
  * @property {(pageId: string) => void} setActivePage
  * @property {boolean} showAddPageModal
  * @property {(show: boolean) => void} setShowAddPageModal
- * @property {(show: boolean) => void} setShowAddCardModal
  * @property {(key: string) => string} t
  */
 

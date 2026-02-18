@@ -21,7 +21,6 @@ export function usePageManagement({
   setActivePage,
   showAddPageModal,
   setShowAddPageModal,
-  setShowAddCardModal,
   t,
 }) {
   const [newPageLabel, setNewPageLabel] = useState('');

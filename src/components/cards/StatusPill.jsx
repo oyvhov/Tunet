@@ -110,7 +110,7 @@ export default function StatusPill({
     
     // Use pill.label if set, otherwise auto-generated
     const autoLabel = pill.type === 'emby'
-      ? `${count} Spelar`
+      ? `${count} ${t('statusBar.nowPlaying') || t('media.playing') || 'Playing'}`
       : pill.type === 'sonos'
         ? (title || 'Media')
         : pill.type === 'media_player'
