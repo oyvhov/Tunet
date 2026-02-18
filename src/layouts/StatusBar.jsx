@@ -155,7 +155,12 @@ export default function StatusBar({
             }
             
             if (pill.type === 'sonos') {
-              const sonosEntities = getSonosEntities();
+              const sonosIds = pill.mediaFilter
+                ? Object.keys(entities)
+                    .filter(id => id.startsWith('media_player.'))
+                    .filter(id => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode))
+                : getSonosEntities().map(e => e.entity_id);
+              const sonosEntities = sonosIds.map(id => entities[id]).filter(Boolean);
               
               return (
                 <StatusPill

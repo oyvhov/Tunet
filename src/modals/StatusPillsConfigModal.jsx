@@ -584,8 +584,8 @@ export default function StatusPillsConfigModal({
                         </div>
                       )}
 
-                      {/* Emby Filter or Media Player Filter Logic */}
-                      {((pill.type === 'emby' && (pill.mediaSelectionMode || 'filter') === 'filter') || pill.type === 'media_player') && (
+                      {/* Emby / Media Player / Sonos Filter Logic */}
+                      {((pill.type === 'emby' && (pill.mediaSelectionMode || 'filter') === 'filter') || pill.type === 'media_player' || pill.type === 'sonos') && (
                          <div className="space-y-2 bg-[var(--glass-bg)] p-3 rounded-xl">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 <input
@@ -875,7 +875,7 @@ export default function StatusPillsConfigModal({
                               >
                                 {pill.clickable ? '✓ ' : ''}{t('statusPills.clickable')}
                             </button>
-                            {(pill.type === 'media_player' || pill.type === 'emby') && (
+                            {(pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos') && (
                               <>
                                 <button
                                   onClick={() => updatePill(pill.id, { showCover: !(pill.showCover !== false) })}
