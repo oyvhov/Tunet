@@ -17,21 +17,33 @@ const readJSON = (key, fallback) => {
 };
 
 const writeJSON = (key, value) => {
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`Failed to save ${key}:`, error);
+  }
 };
 
 const readNumber = (key, fallback) => {
-  const raw = localStorage.getItem(key);
-  const parsed = raw === null ? NaN : Number(raw);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw === null ? NaN : Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
 };
 
 const readBoolean = (key, fallback) => {
-  const raw = localStorage.getItem(key);
-  if (raw === null) return fallback;
-  if (raw === '1' || raw === 'true') return true;
-  if (raw === '0' || raw === 'false') return false;
-  return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    if (raw === '1' || raw === 'true') return true;
+    if (raw === '0' || raw === 'false') return false;
+    return fallback;
+  } catch {
+    return fallback;
+  }
 };
 
 const DEFAULT_SECTION_SPACING = {

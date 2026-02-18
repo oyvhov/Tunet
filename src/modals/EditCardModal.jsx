@@ -223,6 +223,296 @@ function SearchableSelect({ label, value, options, onChange, placeholder, entiti
   );
 };
 
+function CarMappingsSection({
+  t,
+  editSettings,
+  editSettingsKey,
+  saveCardSetting,
+  entities,
+  batteryOptions,
+  rangeOptions,
+  locationOptions,
+  chargingOptions,
+  pluggedOptions,
+  climateOptions,
+  lastUpdatedOptions,
+  updateButtonOptions,
+}) {
+  const [showAddSensor, setShowAddSensor] = React.useState(false);
+  const [sensorType, setSensorType] = React.useState('');
+  const [sensorEntity, setSensorEntity] = React.useState('');
+
+  const sensorTypes = [
+    { key: 'batteryId', label: t('car.select.battery'), options: batteryOptions },
+    { key: 'rangeId', label: t('car.select.range'), options: rangeOptions },
+    { key: 'locationId', label: t('car.select.location'), options: locationOptions },
+    { key: 'chargingId', label: t('car.select.charging'), options: chargingOptions },
+    { key: 'pluggedId', label: t('car.select.plugged'), options: pluggedOptions },
+    { key: 'climateId', label: t('car.select.climate'), options: climateOptions },
+    { key: 'lastUpdatedId', label: t('car.select.lastUpdated'), options: lastUpdatedOptions },
+    { key: 'updateButtonId', label: t('car.select.updateButton'), options: updateButtonOptions }
+  ];
+
+  const mappedSensors = sensorTypes.filter(st => editSettings[st.key]);
+  const availableTypes = sensorTypes.filter(st => !editSettings[st.key]);
+
+  const handleAddSensor = () => {
+    if (sensorType && sensorEntity) {
+      saveCardSetting(editSettingsKey, sensorType, sensorEntity);
+      setSensorType('');
+      setSensorEntity('');
+      setShowAddSensor(false);
+    }
+  };
+
+  const handleRemoveSensor = (key) => {
+    saveCardSetting(editSettingsKey, key, null);
+  };
+
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      <div className="text-xs font-bold uppercase tracking-widest text-gray-500">
+        {t('car.mappingTitle')}: {t('car.mappingHint')}
+      </div>
+
+      {mappedSensors.length === 0 && (
+        <div className="text-center py-8 text-gray-500 text-sm">
+          {t('car.noSensorsMapped')}
+        </div>
+      )}
+
+      {mappedSensors.length > 0 && (
+        <div className="space-y-2 sm:space-y-3">
+          {mappedSensors.map(st => {
+            const entityId = editSettings[st.key];
+            const entityName = entities[entityId]?.attributes?.friendly_name || entityId;
+            return (
+              <div key={st.key} className="flex items-center justify-between px-3.5 sm:px-4 py-2.5 popup-surface rounded-xl">
+                <div className="flex-1 min-w-0 mr-4">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xs font-bold text-gray-500 tracking-wide">{st.label}:</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)] truncate">{entityName}</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 font-mono truncate block mt-0.5">{entityId}</span>
+                </div>
+                <button
+                  onClick={() => handleRemoveSensor(st.key)}
+                  className="p-2 rounded-lg bg-red-500/10 text-red-400 transition-colors flex-shrink-0"
+                  title={t('tooltip.removeCard')}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!showAddSensor && availableTypes.length > 0 && (
+        <button
+          onClick={() => setShowAddSensor(true)}
+          className="w-full py-3.5 px-4 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          {t('car.addSensor')}
+        </button>
+      )}
+
+      {showAddSensor && (
+        <div className="space-y-4 px-4 sm:px-5 py-4 popup-surface rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('car.addSensor')}</span>
+            <button
+              onClick={() => {
+                setShowAddSensor(false);
+                setSensorType('');
+                setSensorEntity('');
+              }}
+              className="p-1.5 rounded-lg hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)] transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div>
+            <label className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2 block">{t('car.sensorType') || 'Sensortype'}</label>
+            <select
+              value={sensorType}
+              onChange={(e) => {
+                setSensorType(e.target.value);
+                setSensorEntity('');
+              }}
+              className="w-full px-4 py-3 rounded-xl popup-surface text-sm outline-none focus:border-blue-500/50 transition-colors"
+              style={{color: 'var(--text-primary)'}}
+            >
+              <option value="" style={{backgroundColor: 'var(--modal-bg)', color: 'var(--text-primary)'}}>{t('car.selectSensorType') || 'Vel sensortype...'}</option>
+              {availableTypes.map(st => (
+                <option key={st.key} value={st.key} style={{backgroundColor: 'var(--modal-bg)', color: 'var(--text-primary)'}}>{st.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {sensorType && (() => {
+            const selectedType = sensorTypes.find(st => st.key === sensorType);
+            if (!selectedType) return null;
+
+            return (
+              <SearchableSelect
+                label={t('car.selectEntity')}
+                value={sensorEntity}
+                options={selectedType.options}
+                onChange={(value) => setSensorEntity(value)}
+                placeholder={t('car.selectEntityPlaceholder')}
+                entities={entities}
+                t={t}
+              />
+            );
+          })()}
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleAddSensor}
+              disabled={!sensorType || !sensorEntity}
+              className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold uppercase tracking-widest text-xs transition-colors"
+            >
+              {t('car.add')}
+            </button>
+            <button
+              onClick={() => {
+                setShowAddSensor(false);
+                setSensorType('');
+                setSensorEntity('');
+              }}
+              className="px-4 py-3 rounded-xl popup-surface popup-surface-hover text-[var(--text-secondary)] font-bold uppercase tracking-widest text-xs transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {availableTypes.length === 0 && !showAddSensor && (
+        <div className="text-center py-4 text-gray-500 text-xs">
+          {t('car.allSensorsMapped')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSetting, entities, t }) {
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const roomEntityIds = Array.isArray(editSettings.entityIds) ? editSettings.entityIds : [];
+
+  const handleRefresh = async () => {
+    if (!conn || !editSettings.areaId) return;
+    setRefreshing(true);
+    try {
+      const newEntities = await getEntitiesForArea(conn, editSettings.areaId);
+      saveCardSetting(editSettingsKey, 'entityIds', newEntities);
+    } catch (err) {
+      console.error('Failed to refresh room entities:', err);
+    }
+    setRefreshing(false);
+  };
+
+  const toggleOptions = [
+    { key: 'showLights', label: t('room.showLights'), defaultVal: true },
+    { key: 'showTemp', label: t('room.showTemp'), defaultVal: true },
+    { key: 'showMotion', label: t('room.showMotion'), defaultVal: true },
+    { key: 'showHumidity', label: t('room.showHumidity'), defaultVal: false },
+    { key: 'showClimate', label: t('room.showClimate'), defaultVal: false },
+  ];
+
+  const sensorOptions = [
+    { key: 'tempEntityId', label: t('room.tempSensor'), filter: (id) => {
+      const e = entities[id];
+      return e && (e.attributes?.device_class === 'temperature' || id.includes('temperature') || id.includes('temp'));
+    }},
+    { key: 'motionEntityId', label: t('room.motionSensor'), filter: (id) => {
+      const e = entities[id];
+      return e && (e.attributes?.device_class === 'motion' || e.attributes?.device_class === 'occupancy');
+    }},
+    { key: 'humidityEntityId', label: t('room.humiditySensor'), filter: (id) => {
+      const e = entities[id];
+      return e && e.attributes?.device_class === 'humidity';
+    }},
+    { key: 'climateEntityId', label: t('room.climateSensor'), filter: (id) => id.startsWith('climate.') },
+    { key: 'mainLightEntityId', label: t('room.mainLight'), filter: (id) => id.startsWith('light.') },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
+          {roomEntityIds.length} {t('room.entityCount')}
+        </span>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing || !conn}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          {t('room.refreshEntities')}
+        </button>
+      </div>
+
+      <div className="popup-surface rounded-2xl p-4 space-y-4">
+        {toggleOptions.map(opt => {
+          const value = editSettings[opt.key] !== undefined ? editSettings[opt.key] : opt.defaultVal;
+          return (
+            <div key={opt.key} className="flex items-center justify-between">
+              <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{opt.label}</span>
+              <button
+                onClick={() => saveCardSetting(editSettingsKey, opt.key, !value)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${value ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${value ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="space-y-3">
+        <span className="text-xs font-bold uppercase tracking-widest text-gray-500 ml-1">
+          {t('room.tempSensor')} / {t('room.motionSensor')}
+        </span>
+        {sensorOptions.map(opt => {
+          const matching = roomEntityIds.filter(opt.filter);
+          if (matching.length === 0) return null;
+          return (
+            <div key={opt.key}>
+              <label className="text-[10px] uppercase font-bold text-gray-500 ml-4 block mb-1">{opt.label}</label>
+              <div className="popup-surface rounded-2xl p-3 max-h-32 overflow-y-auto custom-scrollbar space-y-1">
+                <button
+                  type="button"
+                  onClick={() => saveCardSetting(editSettingsKey, opt.key, null)}
+                  className={`w-full text-left px-3 py-2 rounded-xl transition-colors text-xs font-bold uppercase tracking-widest ${!editSettings[opt.key] ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                >
+                  Auto
+                </button>
+                {matching.map(id => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => saveCardSetting(editSettingsKey, opt.key, id)}
+                    className={`w-full text-left px-3 py-2 rounded-xl transition-colors ${editSettings[opt.key] === id ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div className="text-xs font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
+                    <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function EditCardModal({ 
   isOpen, 
   onClose, 
@@ -955,169 +1245,23 @@ export default function EditCardModal({
             </div>
           )}
 
-          {isEditCar && editSettingsKey && (() => {
-            const [showAddSensor, setShowAddSensor] = React.useState(false);
-            const [sensorType, setSensorType] = React.useState('');
-            const [sensorEntity, setSensorEntity] = React.useState('');
-
-            const sensorTypes = [
-              { key: 'batteryId', label: t('car.select.battery'), options: batteryOptions },
-              { key: 'rangeId', label: t('car.select.range'), options: rangeOptions },
-              { key: 'locationId', label: t('car.select.location'), options: locationOptions },
-              { key: 'chargingId', label: t('car.select.charging'), options: chargingOptions },
-              { key: 'pluggedId', label: t('car.select.plugged'), options: pluggedOptions },
-              { key: 'climateId', label: t('car.select.climate'), options: climateOptions },
-              { key: 'lastUpdatedId', label: t('car.select.lastUpdated'), options: lastUpdatedOptions },
-              { key: 'updateButtonId', label: t('car.select.updateButton'), options: updateButtonOptions }
-            ];
-
-            const mappedSensors = sensorTypes.filter(st => editSettings[st.key]);
-
-            const availableTypes = sensorTypes.filter(st => !editSettings[st.key]);
-
-            const handleAddSensor = () => {
-              if (sensorType && sensorEntity) {
-                saveCardSetting(editSettingsKey, sensorType, sensorEntity);
-                setSensorType('');
-                setSensorEntity('');
-                setShowAddSensor(false);
-              }
-            };
-
-            const handleRemoveSensor = (key) => {
-              saveCardSetting(editSettingsKey, key, null);
-            };
-
-            return (
-              <div className="space-y-3 sm:space-y-4">
-                <div className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                  {t('car.mappingTitle')}: {t('car.mappingHint')}
-                </div>
-
-                {mappedSensors.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 text-sm">
-                    {t('car.noSensorsMapped')}
-                  </div>
-                )}
-
-                {mappedSensors.length > 0 && (
-                  <div className="space-y-2 sm:space-y-3">
-                    {mappedSensors.map(st => {
-                      const entityId = editSettings[st.key];
-                      const entityName = entities[entityId]?.attributes?.friendly_name || entityId;
-                      return (
-                        <div key={st.key} className="flex items-center justify-between px-3.5 sm:px-4 py-2.5 popup-surface rounded-xl">
-                          <div className="flex-1 min-w-0 mr-4">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-xs font-bold text-gray-500 tracking-wide">{st.label}:</span>
-                              <span className="text-sm font-medium text-[var(--text-primary)] truncate">{entityName}</span>
-                            </div>
-                            <span className="text-[10px] text-gray-500 font-mono truncate block mt-0.5">{entityId}</span>
-                          </div>
-                          <button
-                            onClick={() => handleRemoveSensor(st.key)}
-                            className="p-2 rounded-lg bg-red-500/10 text-red-400 transition-colors flex-shrink-0"
-                            title={t('tooltip.removeCard')}
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {!showAddSensor && availableTypes.length > 0 && (
-                  <button
-                    onClick={() => setShowAddSensor(true)}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    {t('car.addSensor')}
-                  </button>
-                )}
-
-                {showAddSensor && (
-                  <div className="space-y-4 px-4 sm:px-5 py-4 popup-surface rounded-xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('car.addSensor')}</span>
-                      <button
-                        onClick={() => {
-                          setShowAddSensor(false);
-                          setSensorType('');
-                          setSensorEntity('');
-                        }}
-                        className="p-1.5 rounded-lg hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)] transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div>
-                      <label className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2 block">{t('car.sensorType') || 'Sensortype'}</label>
-                      <select
-                        value={sensorType}
-                        onChange={(e) => {
-                          setSensorType(e.target.value);
-                          setSensorEntity('');
-                        }}
-                        className="w-full px-4 py-3 rounded-xl popup-surface text-sm outline-none focus:border-blue-500/50 transition-colors"
-                        style={{color: 'var(--text-primary)'}}
-                      >
-                        <option value="" style={{backgroundColor: 'var(--modal-bg)', color: 'var(--text-primary)'}}>{t('car.selectSensorType') || 'Vel sensortype...'}</option>
-                        {availableTypes.map(st => (
-                          <option key={st.key} value={st.key} style={{backgroundColor: 'var(--modal-bg)', color: 'var(--text-primary)'}}>{st.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {sensorType && (() => {
-                      const selectedType = sensorTypes.find(st => st.key === sensorType);
-                      if (!selectedType) return null;
-
-                      return (
-                        <SearchableSelect
-                          label={t('car.selectEntity')}
-                          value={sensorEntity}
-                          options={selectedType.options}
-                          onChange={(value) => setSensorEntity(value)}
-                          placeholder={t('car.selectEntityPlaceholder')}
-                          entities={entities}
-                          t={t}
-                        />
-                      );
-                    })()}
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleAddSensor}
-                        disabled={!sensorType || !sensorEntity}
-                        className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold uppercase tracking-widest text-xs transition-colors"
-                      >
-                        {t('car.add')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowAddSensor(false);
-                          setSensorType('');
-                          setSensorEntity('');
-                        }}
-                        className="px-4 py-3 rounded-xl popup-surface popup-surface-hover text-[var(--text-secondary)] font-bold uppercase tracking-widest text-xs transition-colors"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {availableTypes.length === 0 && !showAddSensor && (
-                  <div className="text-center py-4 text-gray-500 text-xs">
-                    {t('car.allSensorsMapped')}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {isEditCar && editSettingsKey && (
+            <CarMappingsSection
+              t={t}
+              editSettings={editSettings}
+              editSettingsKey={editSettingsKey}
+              saveCardSetting={saveCardSetting}
+              entities={entities}
+              batteryOptions={batteryOptions}
+              rangeOptions={rangeOptions}
+              locationOptions={locationOptions}
+              chargingOptions={chargingOptions}
+              pluggedOptions={pluggedOptions}
+              climateOptions={climateOptions}
+              lastUpdatedOptions={lastUpdatedOptions}
+              updateButtonOptions={updateButtonOptions}
+            />
+          )}
 
           {canEditStatus && !isEditSensor && (
             <div className="p-4 popup-surface rounded-2xl space-y-4">
@@ -1244,121 +1388,16 @@ export default function EditCardModal({
             </div>
           )}
 
-          {isEditRoom && editSettingsKey && (() => {
-            const [refreshing, setRefreshing] = React.useState(false);
-
-            const roomEntityIds = Array.isArray(editSettings.entityIds) ? editSettings.entityIds : [];
-
-            const handleRefresh = async () => {
-              if (!conn || !editSettings.areaId) return;
-              setRefreshing(true);
-              try {
-                const newEntities = await getEntitiesForArea(conn, editSettings.areaId);
-                saveCardSetting(editSettingsKey, 'entityIds', newEntities);
-              } catch (err) {
-                console.error('Failed to refresh room entities:', err);
-              }
-              setRefreshing(false);
-            };
-
-            const toggleOptions = [
-              { key: 'showLights', label: t('room.showLights'), defaultVal: true },
-              { key: 'showTemp', label: t('room.showTemp'), defaultVal: true },
-              { key: 'showMotion', label: t('room.showMotion'), defaultVal: true },
-              { key: 'showHumidity', label: t('room.showHumidity'), defaultVal: false },
-              { key: 'showClimate', label: t('room.showClimate'), defaultVal: false },
-            ];
-
-            const sensorOptions = [
-              { key: 'tempEntityId', label: t('room.tempSensor'), filter: (id) => {
-                const e = entities[id];
-                return e && (e.attributes?.device_class === 'temperature' || id.includes('temperature') || id.includes('temp'));
-              }},
-              { key: 'motionEntityId', label: t('room.motionSensor'), filter: (id) => {
-                const e = entities[id];
-                return e && (e.attributes?.device_class === 'motion' || e.attributes?.device_class === 'occupancy');
-              }},
-              { key: 'humidityEntityId', label: t('room.humiditySensor'), filter: (id) => {
-                const e = entities[id];
-                return e && e.attributes?.device_class === 'humidity';
-              }},
-              { key: 'climateEntityId', label: t('room.climateSensor'), filter: (id) => id.startsWith('climate.') },
-              { key: 'mainLightEntityId', label: t('room.mainLight'), filter: (id) => id.startsWith('light.') },
-            ];
-
-            return (
-              <div className="space-y-5">
-                {/* Refresh entities from HA */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                    {roomEntityIds.length} {t('room.entityCount')}
-                  </span>
-                  <button
-                    onClick={handleRefresh}
-                    disabled={refreshing || !conn}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-                    {t('room.refreshEntities')}
-                  </button>
-                </div>
-
-                {/* Badge toggles */}
-                <div className="popup-surface rounded-2xl p-4 space-y-4">
-                  {toggleOptions.map(opt => {
-                    const value = editSettings[opt.key] !== undefined ? editSettings[opt.key] : opt.defaultVal;
-                    return (
-                      <div key={opt.key} className="flex items-center justify-between">
-                        <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{opt.label}</span>
-                        <button
-                          onClick={() => saveCardSetting(editSettingsKey, opt.key, !value)}
-                          className={`w-12 h-6 rounded-full transition-colors relative ${value ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${value ? 'left-7' : 'left-1'}`} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Specific sensor overrides */}
-                <div className="space-y-3">
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-500 ml-1">
-                    {t('room.tempSensor')} / {t('room.motionSensor')}
-                  </span>
-                  {sensorOptions.map(opt => {
-                    const matching = roomEntityIds.filter(opt.filter);
-                    if (matching.length === 0) return null;
-                    return (
-                      <div key={opt.key}>
-                        <label className="text-[10px] uppercase font-bold text-gray-500 ml-4 block mb-1">{opt.label}</label>
-                        <div className="popup-surface rounded-2xl p-3 max-h-32 overflow-y-auto custom-scrollbar space-y-1">
-                          <button
-                            type="button"
-                            onClick={() => saveCardSetting(editSettingsKey, opt.key, null)}
-                            className={`w-full text-left px-3 py-2 rounded-xl transition-colors text-xs font-bold uppercase tracking-widest ${!editSettings[opt.key] ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                          >
-                            Auto
-                          </button>
-                          {matching.map(id => (
-                            <button
-                              key={id}
-                              type="button"
-                              onClick={() => saveCardSetting(editSettingsKey, opt.key, id)}
-                              className={`w-full text-left px-3 py-2 rounded-xl transition-colors ${editSettings[opt.key] === id ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                            >
-                              <div className="text-xs font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
-                              <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
+          {isEditRoom && editSettingsKey && (
+            <RoomSettingsSection
+              conn={conn}
+              editSettings={editSettings}
+              editSettingsKey={editSettingsKey}
+              saveCardSetting={saveCardSetting}
+              entities={entities}
+              t={t}
+            />
+          )}
 
           {isEditNordpool && (
             <div className="space-y-6">
