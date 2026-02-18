@@ -40,13 +40,58 @@ export default function StatusBar({
     if (!entity) return false;
     const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
     const platform = (entity.attributes?.platform || '').toLowerCase();
-    return manufacturer.includes('sonos') || platform.includes('sonos');
+    if (manufacturer.includes('sonos') || platform.includes('sonos')) return true;
+    const entityId = (entity.entity_id || '').toLowerCase();
+    const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
+    return entityId.includes('sonos') || friendlyName.includes('sonos');
   };
 
   const getSonosEntities = () => Object.keys(entities)
     .filter(id => id.startsWith('media_player.'))
     .map(id => entities[id])
     .filter(isSonosEntity);
+
+  const getConnectedPlayingGroupCount = (playerEntities = []) => {
+    const playingEntities = playerEntities.filter((entity) => entity?.state === 'playing');
+    if (playingEntities.length === 0) return 0;
+
+    const membershipSets = playingEntities.map((entity) => {
+      const members = Array.isArray(entity.attributes?.group_members)
+        ? entity.attributes.group_members
+        : [];
+      return new Set([entity.entity_id, ...members].filter(Boolean));
+    });
+
+    const visited = new Array(membershipSets.length).fill(false);
+    let componentCount = 0;
+
+    const hasOverlap = (setA, setB) => {
+      for (const member of setA) {
+        if (setB.has(member)) return true;
+      }
+      return false;
+    };
+
+    for (let index = 0; index < membershipSets.length; index += 1) {
+      if (visited[index]) continue;
+      componentCount += 1;
+      const queue = [index];
+      visited[index] = true;
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        for (let next = 0; next < membershipSets.length; next += 1) {
+          if (visited[next]) continue;
+          if (hasOverlap(membershipSets[current], membershipSets[next])) {
+            visited[next] = true;
+            queue.push(next);
+          }
+        }
+      }
+    }
+
+    return componentCount;
+  };
 
   const normalizePattern = (pattern) => pattern.trim();
 
@@ -160,11 +205,9 @@ export default function StatusBar({
             }
             
             if (pill.type === 'sonos') {
-              const sonosIds = pill.mediaFilter
-                ? Object.keys(entities)
-                    .filter(id => id.startsWith('media_player.'))
-                    .filter(id => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode))
-                : getSonosEntities().map(e => e.entity_id);
+              const sonosIds = getSonosEntities()
+                .map((entity) => entity.entity_id)
+                .filter((id) => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode));
               const sonosEntities = sonosIds.map(id => entities[id]).filter(Boolean);
               const sonosPlayingCount = sonosEntities.filter(e => e.state === 'playing').length;
               
@@ -180,6 +223,19 @@ export default function StatusBar({
                   isMobile={isMobile}
                   badge={pill.showCount && sonosPlayingCount > 0 ? sonosPlayingCount : undefined}
                   onClick={pill.clickable ? () => {
+                    const activeEntities = sonosEntities.filter(isSonosActive);
+                    const playingEntities = activeEntities.filter((entity) => entity.state === 'playing');
+                    const preferredEntity = playingEntities[0] || activeEntities[0] || sonosEntities[0];
+                    const selectedIds = activeEntities
+                      .map((entity) => entity?.entity_id)
+                      .filter(Boolean);
+
+                    if (!preferredEntity) return;
+
+                    setActiveMediaId(preferredEntity.entity_id);
+                    setActiveMediaGroupKey(null);
+                    setActiveMediaGroupIds(selectedIds.length > 0 ? selectedIds : [preferredEntity.entity_id]);
+                    setActiveMediaSessionSensorIds(null);
                     setActiveMediaModal('sonos');
                   } : undefined}
                 />

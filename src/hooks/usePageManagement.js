@@ -38,11 +38,17 @@ export function usePageManagement({
   // ── Create a regular page ──────────────────────────────────────────────
   const createPage = () => {
     const label = newPageLabel.trim() || t('page.newDefault');
-    const slugBase =
+    let slugBase =
       label
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, '') || 'side';
+
+    const isReservedMediaLikeSlug = /^(media|sonos)(_|$)/.test(slugBase);
+    if (isReservedMediaLikeSlug) {
+      slugBase = `page_${slugBase}`;
+    }
+
     let pageId = slugBase;
     const existing = new Set(pagesConfig.pages || []);
     let counter = 1;
@@ -101,9 +107,10 @@ export function usePageManagement({
     savePageSetting(pageId, 'label', label);
     savePageSetting(pageId, 'icon', 'Speaker');
     savePageSetting(pageId, 'type', 'media');
+    savePageSetting(pageId, 'mediaIds', []);
 
     setActivePage(pageId);
-    setShowAddCardModal(false);
+    setShowAddPageModal(false);
   };
 
   // ── Delete a page ──────────────────────────────────────────────────────

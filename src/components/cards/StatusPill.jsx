@@ -74,12 +74,38 @@ export default function StatusPill({
 
     const displayEntities = isConditionEnabled ? activeEntities : mediaEntities;
     const count = displayEntities.length;
-    const firstActive = displayEntities[0] || mediaEntities[0];
+    const pickBestDisplayEntity = (candidates) => {
+      if (!Array.isArray(candidates) || candidates.length === 0) return null;
+      const scored = candidates
+        .filter(Boolean)
+        .map((candidate) => {
+          const attrs = candidate.attributes || {};
+          const hasTitle = Boolean(attrs.media_title || attrs.media_channel || attrs.media_album_name);
+          const hasImage = Boolean(attrs.entity_picture || attrs.media_image_url);
+          const hasArtist = Boolean(attrs.media_artist || attrs.media_album_name);
+          const isPlayingState = candidate.state === 'playing';
+          const score = (isPlayingState ? 100 : 0) + (hasTitle ? 10 : 0) + (hasImage ? 5 : 0) + (hasArtist ? 2 : 0);
+          return { candidate, score };
+        })
+        .sort((a, b) => b.score - a.score);
+      return scored[0]?.candidate || null;
+    };
+    const firstActive = pickBestDisplayEntity(displayEntities) || pickBestDisplayEntity(mediaEntities);
+    const friendlyName = firstActive?.attributes?.friendly_name || null;
     
     // Get display info from first active player
-    const title = firstActive ? getA(firstActive.entity_id, 'media_title') : null;
-    const artist = firstActive ? (getA(firstActive.entity_id, 'media_artist') || getA(firstActive.entity_id, 'media_album_name')) : null;
-    const picture = pill.showCover !== false && firstActive ? getEntityImageUrl(firstActive.attributes?.entity_picture) : null;
+    const title = firstActive
+      ? (getA(firstActive.entity_id, 'media_title')
+        || getA(firstActive.entity_id, 'media_channel')
+        || getA(firstActive.entity_id, 'media_album_name'))
+      : null;
+    const artist = firstActive
+      ? (getA(firstActive.entity_id, 'media_artist') || getA(firstActive.entity_id, 'media_album_name'))
+      : null;
+    const rawPicture = firstActive
+      ? (firstActive.attributes?.entity_picture || firstActive.attributes?.media_image_url)
+      : null;
+    const picture = pill.showCover !== false && rawPicture ? getEntityImageUrl(rawPicture) : null;
     const isPlaying = firstActive?.state === 'playing';
     
     // Use pill.label if set, otherwise auto-generated
@@ -94,13 +120,16 @@ export default function StatusPill({
     const autoSublabel = pill.type === 'emby'
       ? (title || artist)
       : pill.type === 'sonos'
-        ? artist
+        ? ([friendlyName, artist].filter(Boolean).join(' • ') || artist || friendlyName)
         : pill.type === 'media_player'
           ? artist
         : (pill.showCount && count > 1 ? title : artist);
 
+    const sonosAutoLabel = title || friendlyName || 'Media';
+
     const label = pill.label || autoLabel;
     const sublabel = pill.sublabel || autoSublabel;
+    const displayLabel = pill.type === 'sonos' && !pill.label ? sonosAutoLabel : label;
     
     const IconComponent = pill.icon ? (getIconComponent(pill.icon) || Clapperboard) : Clapperboard;
     const bgColor = pill.bgColor || 'rgba(255, 255, 255, 0.03)';
@@ -144,7 +173,7 @@ export default function StatusPill({
         )}
         <div className="flex flex-col items-start">
           <span className={`${textSize} uppercase font-bold leading-tight ${labelColor}`}>
-            {label}
+            {displayLabel}
           </span>
           {sublabel && (
             <span className={`${textSize} font-medium italic ${sublabelColor}`}>

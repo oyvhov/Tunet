@@ -80,6 +80,23 @@ describe('usePageManagement › createPage', () => {
       }),
     );
   });
+
+  it('creates a standard page named Media without using media special page id', () => {
+    const props = makeProps({ showAddPageModal: true });
+    const { result } = renderHook(() => usePageManagement(props));
+
+    act(() => result.current.setNewPageLabel('Media'));
+    act(() => result.current.createPage());
+
+    expect(props.persistConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pages: ['home', 'page_media'],
+        page_media: [],
+      }),
+    );
+    expect(props.savePageSetting).toHaveBeenCalledWith('page_media', 'label', 'Media');
+    expect(props.setActivePage).toHaveBeenCalledWith('page_media');
+  });
 });
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -100,7 +117,8 @@ describe('usePageManagement › createMediaPage', () => {
     expect(props.savePageSetting).toHaveBeenCalledWith('media', 'label', 'Media');
     expect(props.savePageSetting).toHaveBeenCalledWith('media', 'icon', 'Speaker');
     expect(props.savePageSetting).toHaveBeenCalledWith('media', 'type', 'media');
-    expect(props.setShowAddCardModal).toHaveBeenCalledWith(false);
+    expect(props.savePageSetting).toHaveBeenCalledWith('media', 'mediaIds', []);
+    expect(props.setShowAddPageModal).toHaveBeenCalledWith(false);
   });
 
   it('increments label number when media page already exists', () => {

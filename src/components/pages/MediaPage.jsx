@@ -4,6 +4,9 @@ import {
   Music,
   Tv,
   Speaker,
+  Check,
+  ChevronDown,
+  ChevronUp,
   Shuffle,
   Repeat,
   Repeat1,
@@ -36,6 +39,7 @@ export default function MediaPage({
   t
 }) {
   const [mediaSearch, setMediaSearch] = useState('');
+  const [showPlayerSelector, setShowPlayerSelector] = useState(false);
   const [rightPanelView, setRightPanelView] = useState('players');
   const [chooseQuery, setChooseQuery] = useState('');
   const [favoritesByPlayer, setFavoritesByPlayer] = useState({});
@@ -333,6 +337,13 @@ export default function MediaPage({
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setShowPlayerSelector((prev) => !prev)}
+                className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest popup-surface popup-surface-hover text-[var(--text-secondary)] inline-flex items-center gap-1.5"
+              >
+                {showPlayerSelector ? (t('common.hide') || 'Hide') : (t('common.show') || 'Show')}
+                {showPlayerSelector ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+              <button
                 onClick={() => savePageSetting(pageId, 'mediaIds', null)}
                 className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest popup-surface popup-surface-hover text-[var(--text-secondary)]"
               >
@@ -346,54 +357,65 @@ export default function MediaPage({
               </button>
             </div>
           </div>
-          <div className="mb-3 relative">
-            <input
-              type="text"
-              value={mediaSearch}
-              onChange={(e) => setMediaSearch(e.target.value)}
-              placeholder={t('addCard.search')}
-              className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-4 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors"
-            />
-          </div>
-          <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-            {filteredMediaIds.map((id) => {
-              const entity = entities[id];
-              const isSelected = showAll ? true : selectedIds.includes(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => {
-                    if (showAll) {
-                      const next = allMediaIds.filter(item => item !== id);
-                      savePageSetting(pageId, 'mediaIds', next);
-                      return;
-                    }
-                    const next = selectedIds.includes(id)
-                      ? selectedIds.filter(item => item !== id)
-                      : [...selectedIds, id];
-                    savePageSetting(pageId, 'mediaIds', next);
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl border transition-colors text-left ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] border-transparent hover:bg-[var(--glass-bg-hover)]'}`}
-                >
-                  <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-blue-500/70 border-blue-500/80' : 'border-[var(--glass-border)]'}`}>
-                    {isSelected && <div className="w-2 h-2 rounded-sm bg-white" />}
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)] truncate">
-                      {entity?.attributes?.friendly_name || id}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-muted)] truncate">{id}</span>
-                  </div>
-                </button>
-              );
-            })}
-            {filteredMediaIds.length === 0 && (
-              <div className="text-xs text-[var(--text-muted)] italic text-center py-2">
-                {t('form.noResults')}
+
+          {showPlayerSelector ? (
+            <div className="w-full lg:max-w-2xl lg:mx-auto">
+              <div className="mb-3 relative">
+                <input
+                  type="text"
+                  value={mediaSearch}
+                  onChange={(e) => setMediaSearch(e.target.value)}
+                  placeholder={t('addCard.search')}
+                  className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-4 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors"
+                />
               </div>
-            )}
-          </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                {filteredMediaIds.map((id) => {
+                  const entity = entities[id];
+                  const isSelected = showAll ? true : selectedIds.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        if (showAll) {
+                          const next = allMediaIds.filter(item => item !== id);
+                          savePageSetting(pageId, 'mediaIds', next);
+                          return;
+                        }
+                        const next = selectedIds.includes(id)
+                          ? selectedIds.filter(item => item !== id)
+                          : [...selectedIds, id];
+                        savePageSetting(pageId, 'mediaIds', next);
+                      }}
+                      className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}
+                    >
+                      <div className="flex flex-col overflow-hidden mr-4">
+                        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                          {entity?.attributes?.friendly_name || id}
+                        </span>
+                        <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                          {id}
+                        </span>
+                      </div>
+                      <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                        {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                      </div>
+                    </button>
+                  );
+                })}
+                {filteredMediaIds.length === 0 && (
+                  <div className="text-xs text-[var(--text-muted)] italic text-center py-2">
+                    {t('form.noResults')}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="w-full lg:max-w-2xl lg:mx-auto text-[11px] text-[var(--text-muted)] text-center">
+              {(showAll ? allMediaIds.length : selectedIds.length)} {t('addCard.players')} {t('common.selected') || 'selected'}
+            </div>
+          )}
         </div>
       )}
 

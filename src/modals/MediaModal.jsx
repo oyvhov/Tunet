@@ -326,7 +326,9 @@ export default function MediaModal({
   const groupIds = Array.isArray(activeMediaGroupIds) && activeMediaGroupIds.length > 0
     ? activeMediaGroupIds
     : (Array.isArray(groupSettings?.mediaIds) ? groupSettings.mediaIds : []);
-  const baseMediaIds = isSonos ? sonosIds : (groupIds.length > 0 ? groupIds : (activeMediaId ? [activeMediaId] : (fallbackId ? [fallbackId] : [])));
+  const baseMediaIds = isSonos
+    ? (groupIds.length > 0 ? groupIds : (activeMediaId ? [activeMediaId] : sonosIds))
+    : (groupIds.length > 0 ? groupIds : (activeMediaId ? [activeMediaId] : (fallbackId ? [fallbackId] : [])));
   // Determine if we are primarily looking at Sonos
   // We need a temporary check before including extras to avoid polluting generic cards
   const isBaseSonos = isSonos || (baseMediaIds.length > 0 && baseMediaIds.every(id => isStrictSonosEntity(entities[id])));
