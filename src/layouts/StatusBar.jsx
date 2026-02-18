@@ -51,48 +51,6 @@ export default function StatusBar({
     .map(id => entities[id])
     .filter(isSonosEntity);
 
-  const getConnectedPlayingGroupCount = (playerEntities = []) => {
-    const playingEntities = playerEntities.filter((entity) => entity?.state === 'playing');
-    if (playingEntities.length === 0) return 0;
-
-    const membershipSets = playingEntities.map((entity) => {
-      const members = Array.isArray(entity.attributes?.group_members)
-        ? entity.attributes.group_members
-        : [];
-      return new Set([entity.entity_id, ...members].filter(Boolean));
-    });
-
-    const visited = new Array(membershipSets.length).fill(false);
-    let componentCount = 0;
-
-    const hasOverlap = (setA, setB) => {
-      for (const member of setA) {
-        if (setB.has(member)) return true;
-      }
-      return false;
-    };
-
-    for (let index = 0; index < membershipSets.length; index += 1) {
-      if (visited[index]) continue;
-      componentCount += 1;
-      const queue = [index];
-      visited[index] = true;
-
-      while (queue.length > 0) {
-        const current = queue.shift();
-        for (let next = 0; next < membershipSets.length; next += 1) {
-          if (visited[next]) continue;
-          if (hasOverlap(membershipSets[current], membershipSets[next])) {
-            visited[next] = true;
-            queue.push(next);
-          }
-        }
-      }
-    }
-
-    return componentCount;
-  };
-
   const normalizePattern = (pattern) => pattern.trim();
 
   const buildWildcardRegex = (pattern) => {
