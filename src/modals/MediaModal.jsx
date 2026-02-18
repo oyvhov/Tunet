@@ -16,6 +16,7 @@ import {
   Volume2,
   Link,
   Plus,
+  Minus,
   Heart
 } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
@@ -427,6 +428,11 @@ export default function MediaModal({
   const isMuted = getA(mpId, 'is_volume_muted', false);
   const shuffle = getA(mpId, 'shuffle', false);
   const repeat = getA(mpId, 'repeat', 'off');
+  const VOLUME_STEP = 0.03;
+  const changeVolumeByStep = (delta) => {
+    const nextVolume = Math.min(1, Math.max(0, (Number(volume) || 0) + delta));
+    callService("media_player", "volume_set", { entity_id: mpId, volume_level: nextVolume });
+  };
   const rawMembers = getA(mpId, 'group_members');
   const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
   const canGroup = isCurrentSonos;
@@ -798,11 +804,32 @@ export default function MediaModal({
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
-                    <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                  <div className="flex items-center gap-2 px-1 pt-2 border-t border-[var(--glass-border)]">
+                    <button
+                      onClick={() => changeVolumeByStep(-VOLUME_STEP)}
+                      className="w-10 h-10 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] active:scale-95 flex items-center justify-center"
+                      aria-label="Volume down"
+                      title="Volume down"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })}
+                      className="w-10 h-10 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] active:scale-95 flex items-center justify-center"
+                    >
                       {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
                     </button>
-                    <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
+                    <div className="flex-1 px-1">
+                      <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
+                    </div>
+                    <button
+                      onClick={() => changeVolumeByStep(VOLUME_STEP)}
+                      className="w-10 h-10 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] active:scale-95 flex items-center justify-center"
+                      aria-label="Volume up"
+                      title="Volume up"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -814,11 +841,32 @@ export default function MediaModal({
                     </button>
                     <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-[var(--text-secondary)]" /></button>
                   </div>
-                  <div className="flex items-center gap-3 px-2 pt-2 border-t border-[var(--glass-border)]">
-                    <button onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                  <div className="flex items-center gap-2 px-1 pt-2 border-t border-[var(--glass-border)]">
+                    <button
+                      onClick={() => changeVolumeByStep(-VOLUME_STEP)}
+                      className="w-10 h-10 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] active:scale-95 flex items-center justify-center"
+                      aria-label="Volume down"
+                      title="Volume down"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => callService("media_player", "volume_mute", { entity_id: mpId, is_volume_muted: !isMuted })}
+                      className="w-10 h-10 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] active:scale-95 flex items-center justify-center"
+                    >
                       {isMuted ? <VolumeX className="w-4 h-4" /> : (volume < 0.5 ? <Volume1 className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />)}
                     </button>
-                    <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
+                    <div className="flex-1 px-1">
+                      <M3Slider variant="volume" min={0} max={100} step={1} value={volume * 100} onChange={(e) => callService("media_player", "volume_set", { entity_id: mpId, volume_level: parseFloat(e.target.value) / 100 })} colorClass="bg-white" />
+                    </div>
+                    <button
+                      onClick={() => changeVolumeByStep(VOLUME_STEP)}
+                      className="w-10 h-10 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)] active:scale-95 flex items-center justify-center"
+                      aria-label="Volume up"
+                      title="Volume up"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               )}
