@@ -120,7 +120,7 @@ export default function StatusPill({
     const autoSublabel = pill.type === 'emby'
       ? (title || artist)
       : pill.type === 'sonos'
-        ? ([friendlyName, artist].filter(Boolean).join(' • ') || artist || friendlyName)
+        ? ([artist, friendlyName ? `"${friendlyName}"` : null].filter(Boolean).join(' - ') || artist || friendlyName)
         : pill.type === 'media_player'
           ? artist
         : (pill.showCount && count > 1 ? title : artist);
