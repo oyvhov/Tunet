@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0
+
+- Includes dashboard release `1.4.0`.
+- Added dedicated fan card and fan modal with strict Home Assistant feature-flag handling.
+- Added on-card fan controls for speed, oscillation, and direction with state-reflective icons.
+- Added fan card support in Add Card flow and rendering pipeline.
+- Added fan animation toggle in card edit settings and completed fan translation coverage.
+- Keeps app and add-on versions synchronized at `1.4.0`.
+
 ## 1.3.3
 
 - Release metadata sync.

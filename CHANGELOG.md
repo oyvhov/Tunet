@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] — 2026-02-19
+
+### Added
+- New dedicated fan card with direct on-card controls for speed, oscillation, and direction.
+- New fan details modal with strict Home Assistant feature-flag support for power, speed, oscillation, direction, and presets.
+- Added fan card type support in Add Card flow and rendering registry.
+
+### Changed
+- Improved fan card layouts for both large and small sizes with cleaner climate-aligned typography and spacing.
+- Added edit-modal option to disable fan icon animation (`fan.disableAnimation`).
+- Updated icon exports/mapping for fan direction and oscillation interactions.
+
+### Fixed
+- Fixed fan card crash caused by undefined oscillation capability reference.
+- Fixed fan card feature-bitmask mapping to match Home Assistant fan feature flags.
+- Restored/ensured edit-mode resize support for fan cards.
+- Expanded fan i18n coverage and parity checks across supported locales.
+
+
 ## [1.3.3] — 2026-02-18
 
 ### Changed
