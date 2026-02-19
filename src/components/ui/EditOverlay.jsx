@@ -22,6 +22,7 @@ const RESIZABLE_PREFIXES = [
   'light_', 'light.', 'vacuum.', 'automation.', 'climate_card_',
   'cost_card_', 'weather_temp_', 'androidtv_card_', 'calendar_card_',
   'todo_card_', 'nordpool_card_', 'car_card_', 'cover_card_', 'camera_card_',
+  'fan_', 'fan.',
 ];
 
 /** Prefixes that cycle through 3 sizes (small → medium → large). */

@@ -13,6 +13,7 @@ import {
   CameraCard,
   CarCard,
   CoverCard,
+  FanCard,
   TodoCard,
   GenericAndroidTVCard,
   GenericClimateCard,
@@ -432,6 +433,39 @@ export function renderCoverCard(cardId, dragProps, getControls, cardStyle, setti
   );
 }
 
+export function renderFanCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
+  const { entities, editMode, cardSettings, customNames, customIcons, getA, callService, t } = ctx;
+  const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const entityId = settings.fanId;
+  const entity = entityId ? entities[entityId] : null;
+
+  const handleCardClick = () => {
+    if (editMode || !entity) return;
+    const isOn = entity.state === 'on';
+    callService("fan", isOn ? "turn_off" : "turn_on", { entity_id: entityId });
+  };
+
+  if (!entity || !entityId) {
+    if (editMode) {
+      return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={t} />;
+    }
+    return null;
+  }
+
+  return (
+    <FanCard
+      key={cardId} cardId={cardId} entityId={entityId} entity={entity}
+      dragProps={dragProps} controls={getControls(cardId)}
+      cardStyle={cardStyle} entities={entities} editMode={editMode}
+      cardSettings={cardSettings} settingsKey={settingsKey}
+      customNames={customNames} customIcons={customIcons}
+      getA={getA} callService={callService}
+      onOpen={handleCardClick}
+      t={t}
+    />
+  );
+}
+
 export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const { entities, editMode, conn, cardSettings, customNames, customIcons, callService, setShowRoomModal, setShowEditCardModal, setEditCardSettingsKey, t } = ctx;
   const roomSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
@@ -539,6 +573,8 @@ const CARD_REGISTRY = [
   { prefix: 'car_card_',       renderer: renderCarCard },
   { prefix: 'nordpool_card_',  renderer: renderNordpoolCard },
   { prefix: 'cover_card_',     renderer: renderCoverCard },
+  { prefix: 'fan_card_',       renderer: renderFanCard },
+  { prefix: 'fan.',            renderer: renderFanCard },
   { prefix: 'room_card_',      renderer: renderRoomCard },
   { prefix: 'camera_card_',    renderer: renderCameraCard },
   { prefix: 'spacer_card_',    renderer: renderSpacerCard },
