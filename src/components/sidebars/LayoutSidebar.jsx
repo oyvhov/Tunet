@@ -424,6 +424,8 @@ export default function LayoutSidebar({
                 <div className="w-12 h-12 rounded-xl border shadow-lg" style={{ borderColor: 'var(--glass-border)', backgroundColor: effectiveCardColor }} />
                 <div className="flex-1 space-y-0.5">
                 <input
+                  id="card-bg-color-input"
+                  name="card_bg_color"
                   type="text"
                   value={cardBgColor}
                   onChange={(e) => {

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0
+
+- Release metadata sync.
+
 ## 1.4.0
 
 - Includes dashboard release `1.4.0`.

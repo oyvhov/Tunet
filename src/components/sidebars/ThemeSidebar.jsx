@@ -246,10 +246,10 @@ export default function ThemeSidebar({
         {/* Behavior */}
         <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
-                <label className="text-xs uppercase font-bold tracking-widest flex items-center gap-2 pl-1" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-xs uppercase font-bold tracking-widest flex items-center gap-2 pl-1" style={{ color: 'var(--text-secondary)' }}>
                   <Home className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
                   {t('settings.inactivity')}
-                </label>
+                </span>
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => {

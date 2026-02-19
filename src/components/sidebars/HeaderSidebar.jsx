@@ -190,8 +190,10 @@ export default function HeaderSidebar({
         >
           {/* Title Input */}
           <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.titleLabel')}</label>
+            <label htmlFor="header-title-input" className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.titleLabel')}</label>
             <input
+              id="header-title-input"
+              name="header_title"
               type="text"
               value={headerTitle}
               onChange={(e) => updateHeaderTitle(e.target.value)}
@@ -207,8 +209,10 @@ export default function HeaderSidebar({
 
           {/* Font Family */}
           <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.fontFamily')}</label>
+            <label htmlFor="header-font-family" className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.fontFamily')}</label>
             <select
+              id="header-font-family"
+              name="header_font_family"
               value={setting('fontFamily', 'sans')}
               onChange={(e) => update('fontFamily', e.target.value)}
               className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none appearance-none border"
@@ -227,7 +231,7 @@ export default function HeaderSidebar({
           {/* Weight */}
           <div className="space-y-2">
             <div className="flex justify-between">
-                <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.fontWeight')}</label>
+                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.fontWeight')}</span>
             </div>
             <SegmentedControl
               options={FONT_WEIGHTS}
@@ -238,7 +242,7 @@ export default function HeaderSidebar({
 
           {/* Style */}
           <div className="space-y-2">
-             <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.fontStyle')}</label>
+             <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.fontStyle')}</span>
              <div className="flex gap-2">
                {['normal', 'italic', 'uppercase'].map(s => (
                  <button
@@ -290,7 +294,7 @@ export default function HeaderSidebar({
 
           {/* Letter Spacing */}
           <div className="space-y-2">
-             <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.letterSpacing')}</label>
+             <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.letterSpacing')}</span>
              <SegmentedControl
                options={LETTER_SPACINGS.map(l => ({ value: l.value, label: t(`header.letterSpacing.${l.value}`) || l.value }))}
                value={letterSpacing}
@@ -369,7 +373,7 @@ export default function HeaderSidebar({
           </div>
 
           <div className="space-y-2 mt-4 pt-4 border-t" style={{ borderColor: 'var(--glass-border)' }}>
-             <label className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.clockFormat')}</label>
+             <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('header.clockFormat')}</span>
              <div className="flex gap-2">
                <button
                  onClick={() => update('clockFormat', '24h')}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 
 export default function M3Slider({ 
   min, max, step, value, onChange, 
@@ -9,7 +9,12 @@ export default function M3Slider({
   thumbClass,
   height,
   ariaLabel = "Slider",
+  id,
+  name,
 }) {
+  const generatedId = useId();
+  const inputId = id || `m3-slider-${generatedId.replace(/:/g, '')}`;
+  const inputName = name || inputId;
   const colorClass = propColorClass === "bg-blue-500" ? "bg-[var(--accent-color)]" : propColorClass;
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -57,6 +62,8 @@ export default function M3Slider({
 
   const commonInputProps = {
     type: "range", min, max, step, value: internalValue, disabled,
+    id: inputId,
+    name: inputName,
     'aria-label': ariaLabel,
     'aria-valuemin': min,
     'aria-valuemax': max,
