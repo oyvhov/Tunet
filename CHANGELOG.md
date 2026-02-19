@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.1] — 2026-02-19
+
+### Changed
+- Improved camera handling with a more robust fallback chain (WebRTC → Home Assistant stream → snapshot) across card and modal flows.
+- Added camera stream-engine configuration in the card editor and wired settings through modal orchestration.
+- Updated Add Card/Add Page/Edit Card modal styling to remove bright blue accents in favor of the existing muted glass theme.
+
+### Fixed
+- Restored generic camera behavior to always attempt Home Assistant stream before snapshot fallback when direct stream support is unavailable.
+- Added missing camera-related translation keys across supported locales.
+
+
 ## [1.5.0] — 2026-02-19
 
 ### Changed

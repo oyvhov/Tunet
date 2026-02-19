@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.1
+
+- Includes dashboard release `1.5.1`.
+- Improves camera reliability with fallback from WebRTC to Home Assistant stream and snapshot.
+- Adds camera stream-engine settings in card edit flow and related translation coverage updates.
+- Updates modal styling consistency by replacing bright blue accents with the dashboard glass theme.
+- Keeps app and add-on versions synchronized at `1.5.1`.
+
 ## 1.5.0
 
 - Release metadata sync.
