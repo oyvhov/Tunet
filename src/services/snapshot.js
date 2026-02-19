@@ -70,6 +70,7 @@ export function collectSnapshot() {
       bgColor:            localStorage.getItem('tunet_bg_color') || '#0f172a',
       bgGradient:         localStorage.getItem('tunet_bg_gradient') || 'midnight',
       bgImage:            localStorage.getItem('tunet_bg_image') || '',
+      cardBgColor:        localStorage.getItem('tunet_card_bg_color') || '',
       cardTransparency:   readNumber('tunet_card_transparency', 40),
       cardBorderOpacity:  readNumber('tunet_card_border_opacity', 5),
       inactivityTimeout:  readNumber('tunet_inactivity_timeout', 60),
@@ -117,6 +118,13 @@ export function applySnapshot(snapshot, contextSetters = {}) {
   if (appearance.bgColor)            localStorage.setItem('tunet_bg_color',           appearance.bgColor);
   if (appearance.bgGradient)         localStorage.setItem('tunet_bg_gradient',        appearance.bgGradient);
   if (appearance.bgImage !== undefined) localStorage.setItem('tunet_bg_image',        appearance.bgImage);
+  if (appearance.cardBgColor !== undefined) {
+    if (appearance.cardBgColor) {
+      localStorage.setItem('tunet_card_bg_color', appearance.cardBgColor);
+    } else {
+      localStorage.removeItem('tunet_card_bg_color');
+    }
+  }
   if (appearance.cardTransparency !== undefined)  localStorage.setItem('tunet_card_transparency',  String(appearance.cardTransparency));
   if (appearance.cardBorderOpacity !== undefined) localStorage.setItem('tunet_card_border_opacity', String(appearance.cardBorderOpacity));
   if (appearance.inactivityTimeout !== undefined) localStorage.setItem('tunet_inactivity_timeout', String(appearance.inactivityTimeout));
@@ -149,6 +157,7 @@ export function applySnapshot(snapshot, contextSetters = {}) {
   if (s.setBgColor && appearance.bgColor)                        s.setBgColor(appearance.bgColor);
   if (s.setBgGradient && appearance.bgGradient)                  s.setBgGradient(appearance.bgGradient);
   if (s.setBgImage && appearance.bgImage !== undefined)          s.setBgImage(appearance.bgImage);
+  if (s.setCardBgColor && appearance.cardBgColor !== undefined)  s.setCardBgColor(appearance.cardBgColor);
   if (s.setCardTransparency && appearance.cardTransparency !== undefined)  s.setCardTransparency(appearance.cardTransparency);
   if (s.setCardBorderOpacity && appearance.cardBorderOpacity !== undefined) s.setCardBorderOpacity(appearance.cardBorderOpacity);
   if (s.setInactivityTimeout && appearance.inactivityTimeout !== undefined) s.setInactivityTimeout(appearance.inactivityTimeout);

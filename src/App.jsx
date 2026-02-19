@@ -59,6 +59,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setCardTransparency,
     cardBorderOpacity,
     setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
     config,
     setConfig
   } = useConfig();
@@ -294,6 +296,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     costSelectionTarget, setCostSelectionTarget,
     selectedNordpoolId, setSelectedNordpoolId,
     nordpoolDecimals, setNordpoolDecimals,
+    selectedSpacerVariant, setSelectedSpacerVariant,
     onAddSelected,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
@@ -439,6 +442,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setCardTransparency,
     cardBorderOpacity,
     setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
     inactivityTimeout,
     setInactivityTimeout,
     setGridGapH,
@@ -517,6 +522,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setSelectedNordpoolId,
     nordpoolDecimals,
     setNordpoolDecimals,
+    selectedSpacerVariant,
+    setSelectedSpacerVariant,
     onAddSelected,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
@@ -573,7 +580,12 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
               {editMode && (
                 <button 
                   onClick={() => { setAddCardTargetPage('header'); setShowAddCardModal(true); }} 
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-all text-[10px] font-bold uppercase tracking-[0.2em]"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-[10px] font-bold uppercase tracking-[0.2em]"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
+                    borderColor: 'color-mix(in srgb, var(--accent-color) 28%, transparent)',
+                    color: 'var(--accent-color)'
+                  }}
                 >
                   <Plus className="w-3 h-3" /> {t('addCard.type.entity')}
                 </button>

@@ -30,6 +30,30 @@ describe('snapshot service', () => {
     expect(setCardBorderRadius).toHaveBeenCalledWith(34);
   });
 
+  it('collectSnapshot includes card background color from storage', () => {
+    localStorage.setItem('tunet_card_bg_color', '#223344');
+
+    const snapshot = collectSnapshot();
+
+    expect(snapshot.appearance.cardBgColor).toBe('#223344');
+  });
+
+  it('applySnapshot persists and applies card background color', () => {
+    const setCardBgColor = vi.fn();
+
+    applySnapshot(
+      {
+        version: 1,
+        layout: {},
+        appearance: { cardBgColor: '#445566' },
+      },
+      { setCardBgColor },
+    );
+
+    expect(localStorage.getItem('tunet_card_bg_color')).toBe('#445566');
+    expect(setCardBgColor).toHaveBeenCalledWith('#445566');
+  });
+
   it('collectSnapshot includes spacer/divider card settings from tunet_card_settings', () => {
     const cardSettings = {
       'home::spacer_card_123': {

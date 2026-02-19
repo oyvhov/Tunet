@@ -84,7 +84,7 @@ export const createDragAndDropHandlers = ({
     });
 
     dragSourceRef.current = source;
-    saveConfig(newConfig);
+    setPagesConfig(newConfig);
     if (navigator.vibrate) navigator.vibrate(10);
   };
 

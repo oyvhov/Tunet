@@ -41,6 +41,7 @@ export default function DashboardGrid({
   }
 
   const hasVisiblePlacement = (pagesConfig[activePage] || []).filter(id => gridLayout[id]).length > 0;
+  const cardIndexMap = new Map((pagesConfig[activePage] || []).map((id, index) => [id, index]));
   if (!hasVisiblePlacement) {
     const allPages = pagesConfig.pages || [];
     const totalCards = allPages.reduce((sum, p) => sum + (pagesConfig[p] || []).length, 0) + (pagesConfig.header || []).length;
@@ -94,7 +95,7 @@ export default function DashboardGrid({
           return a.placement.col - b.placement.col;
         })
         .map(({ id }) => {
-          const index = (pagesConfig[activePage] || []).indexOf(id);
+          const index = cardIndexMap.get(id) ?? -1;
           const placement = gridLayout[id];
           const isCalendarCard = id.startsWith('calendar_card_');
           const isTodoCard = id.startsWith('todo_card_');

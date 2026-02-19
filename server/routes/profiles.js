@@ -4,6 +4,14 @@ import db from '../db.js';
 
 const router = Router();
 
+const safeParseJson = (raw, fallback = null) => {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+};
+
 const getRequestUserId = (req) => {
   const headerUserId = req.get('x-ha-user-id');
   if (typeof headerUserId === 'string' && headerUserId.trim()) return headerUserId.trim();
@@ -39,7 +47,7 @@ router.get('/', (req, res) => {
   // Parse data JSON for each profile
   const parsed = profiles.map(p => ({
     ...p,
-    data: JSON.parse(p.data),
+    data: safeParseJson(p.data, {}),
   }));
 
   res.json(parsed);
@@ -58,7 +66,7 @@ router.get('/:id', (req, res) => {
     return res.status(404).json({ error: 'Profile not found' });
   }
 
-  res.json({ ...profile, data: JSON.parse(profile.data) });
+  res.json({ ...profile, data: safeParseJson(profile.data, {}) });
 });
 
 // Create a new profile
@@ -116,7 +124,7 @@ router.put('/:id', (req, res) => {
     'SELECT id, ha_user_id, name, device_label, data, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
   ).get(req.params.id, requestUserId);
 
-  res.json({ ...updated, data: JSON.parse(updated.data) });
+  res.json({ ...updated, data: safeParseJson(updated.data, {}) });
 });
 
 // Delete a profile

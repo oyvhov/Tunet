@@ -95,7 +95,7 @@ export const MediaPlayerCard = ({
           </div>
         )}
         <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'mt-auto pt-8' : 'pt-1'}`}>
-          <div className="flex items-center gap-2 mb-1"><p className={`text-xs font-bold uppercase tracking-widest truncate ${isCoverMode ? 'text-blue-300' : 'text-blue-400'}`}>{name}</p></div>
+          <div className="flex items-center gap-2 mb-1"><p className={`text-xs font-bold uppercase tracking-widest truncate ${isCoverMode ? 'text-gray-300' : 'text-[var(--text-secondary)]'}`}>{name}</p></div>
           <h3 className={`text-lg font-bold leading-tight truncate mb-0.5 ${isCoverMode ? 'text-white' : ''}`}>{title || t('common.unknown')}</h3>
           {subtitle && <p className={`${(picture || isCoverMode) ? 'text-gray-300' : 'text-[var(--text-secondary)]'} text-xs truncate font-medium`}>{subtitle}</p>}
         </div>
@@ -185,14 +185,14 @@ export const MediaGroupCard = ({
     <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, settingsKey, null); }} className={`touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: (picture && isCoverMode) ? 'white' : ((picture && !isCoverMode) ? 'white' : 'var(--text-primary)')}}>
       {controls}
       {cyclePool.length > 1 && (
-        <button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-colors backdrop-blur-md">
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+        <button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors backdrop-blur-md" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)] animate-pulse" />
           <span className="text-xs font-bold">{cyclePool.length}</span>
           <ArrowLeftRight className="w-3 h-3 ml-0.5" />
         </button>
       )}
-      {isPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/10 via-transparent to-transparent opacity-50 animate-pulse pointer-events-none" />}
-      {isPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-blue-500/40 via-transparent to-transparent animate-pulse pointer-events-none" />}
+      {isPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-[var(--glass-bg-hover)] via-transparent to-transparent opacity-50 animate-pulse pointer-events-none" />}
+      {isPlaying && <div className="absolute inset-0 z-0 bg-gradient-to-t from-black/25 via-transparent to-transparent animate-pulse pointer-events-none" />}
       
       {/* Background artwork */}
       {picture && (
@@ -222,7 +222,7 @@ export const MediaGroupCard = ({
           </div>
         )}
         <div className={`flex flex-col overflow-hidden pt-1 ${isCoverMode ? 'w-full' : ''}`}>
-          <div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-blue-400 truncate">{name}</p></div>
+          <div className="flex items-center gap-2 mb-1"><p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] truncate">{name}</p></div>
           <h3 className={`text-lg font-bold leading-tight truncate mb-0.5 ${isCoverMode ? 'text-2xl' : ''}`}>{title || t('common.unknown')}</h3>
           {subtitle && <p className={`${(picture || isCoverMode) ? 'text-gray-300' : 'text-[var(--text-secondary)]'} text-xs truncate font-medium`}>{subtitle}</p>}
         </div>

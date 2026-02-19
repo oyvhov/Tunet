@@ -270,13 +270,23 @@ export default function StatusPillsConfigModal({
             <div className="px-4 pt-3 pb-2 border-b border-[var(--glass-border)] flex items-center gap-2">
               <button
                 onClick={() => setMobilePane('list')}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${mobilePane === 'list' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]'}`}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${mobilePane === 'list' ? '' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]'}`}
+                style={mobilePane === 'list' ? {
+                  backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
+                  color: 'var(--accent-color)',
+                  border: '1px solid color-mix(in srgb, var(--accent-color) 28%, transparent)'
+                } : undefined}
               >
                 {t('statusPills.yourPills')}
               </button>
               <button
                 onClick={() => setMobilePane('editor')}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${mobilePane === 'editor' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]'}`}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${mobilePane === 'editor' ? '' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]'}`}
+                style={mobilePane === 'editor' ? {
+                  backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
+                  color: 'var(--accent-color)',
+                  border: '1px solid color-mix(in srgb, var(--accent-color) 28%, transparent)'
+                } : undefined}
               >
                 {t('statusPills.editor') || 'Editor'}
               </button>
@@ -294,7 +304,12 @@ export default function StatusPillsConfigModal({
               </div>
               <button
                 onClick={() => setShowAddMenu(!showAddMenu)}
-                className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+                className="p-2 rounded-lg transition-colors"
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--accent-color) 85%, black 15%)',
+                  color: '#fff',
+                  boxShadow: 'none'
+                }}
                 title={t('statusPills.addNewPill')}
               >
                 <Plus className="w-4 h-4" />

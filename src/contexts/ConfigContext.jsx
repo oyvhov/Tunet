@@ -113,6 +113,14 @@ export const ConfigProvider = ({ children }) => {
     } catch { return 5; }
   });
 
+  const [cardBgColor, setCardBgColor] = useState(() => {
+    try {
+      return localStorage.getItem('tunet_card_bg_color') || '';
+    } catch {
+      return '';
+    }
+  });
+
 
   const [config, setConfig] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -244,35 +252,55 @@ export const ConfigProvider = ({ children }) => {
     }
   }, [bgMode, bgColor, bgGradient, bgImage, currentTheme]);
 
-  // Apply card transparency to DOM
-  useEffect(() => {
-    const themeKey = themes[currentTheme] ? currentTheme : 'dark';
-    const baseColor = themes[themeKey].colors['--card-bg'];
-    
-    // Parse base color to RGB
-    let r, g, b;
-    if (baseColor && baseColor.startsWith('#')) {
-      const hex = baseColor.substring(1);
-      r = parseInt(hex.substring(0, 2), 16);
-      g = parseInt(hex.substring(2, 4), 16);
-      b = parseInt(hex.substring(4, 6), 16);
-    } else if (baseColor && (baseColor.startsWith('rgba') || baseColor.startsWith('rgb'))) {
-      const parts = baseColor.match(/(\d+)/g);
+  const parseColorToRgb = (color) => {
+    if (!color || typeof color !== 'string') return null;
+
+    if (color.startsWith('#')) {
+      const hex = color.slice(1);
+      if (hex.length === 3) {
+        const r = parseInt(hex[0] + hex[0], 16);
+        const g = parseInt(hex[1] + hex[1], 16);
+        const b = parseInt(hex[2] + hex[2], 16);
+        if ([r, g, b].every((value) => Number.isFinite(value))) return { r, g, b };
+      }
+      if (hex.length === 6) {
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        if ([r, g, b].every((value) => Number.isFinite(value))) return { r, g, b };
+      }
+      return null;
+    }
+
+    if (color.startsWith('rgba') || color.startsWith('rgb')) {
+      const parts = color.match(/\d+(\.\d+)?/g);
       if (parts && parts.length >= 3) {
-        [r, g, b] = parts;
+        const r = Number(parts[0]);
+        const g = Number(parts[1]);
+        const b = Number(parts[2]);
+        if ([r, g, b].every((value) => Number.isFinite(value))) return { r, g, b };
       }
     }
 
-    if (r !== undefined) {
+    return null;
+  };
+
+  // Apply card transparency to DOM
+  useEffect(() => {
+    const themeKey = themes[currentTheme] ? currentTheme : 'dark';
+    const baseColor = cardBgColor || themes[themeKey].colors['--card-bg'];
+    const parsed = parseColorToRgb(baseColor);
+
+    if (parsed) {
       // transparency 0-100: 0 = solid, 100 = invisible
       // alpha = 1 - (transparency / 100)
       const alpha = Math.max(0, Math.min(1, 1 - (cardTransparency / 100)));
-      document.documentElement.style.setProperty('--card-bg', `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(2)})`);
+      document.documentElement.style.setProperty('--card-bg', `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${alpha.toFixed(2)})`);
     } else {
       // Fallback
       document.documentElement.style.setProperty('--card-bg', baseColor);
     }
-  }, [cardTransparency, currentTheme]);
+  }, [cardTransparency, currentTheme, cardBgColor]);
 
   // Apply card border opacity to DOM
   useEffect(() => {
@@ -326,6 +354,15 @@ export const ConfigProvider = ({ children }) => {
   useEffect(() => {
     try { localStorage.setItem('tunet_card_border_opacity', String(cardBorderOpacity)); } catch {}
   }, [cardBorderOpacity]);
+  useEffect(() => {
+    try {
+      if (cardBgColor) {
+        localStorage.setItem('tunet_card_bg_color', cardBgColor);
+      } else {
+        localStorage.removeItem('tunet_card_bg_color');
+      }
+    } catch {}
+  }, [cardBgColor]);
 
   // Save language to localStorage
   useEffect(() => {
@@ -367,6 +404,8 @@ export const ConfigProvider = ({ children }) => {
     setCardTransparency,
     cardBorderOpacity,
     setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
     config,
     setConfig,
   };

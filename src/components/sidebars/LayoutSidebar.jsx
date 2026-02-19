@@ -38,6 +38,8 @@ export default function LayoutSidebar({
   setCardTransparency,
   cardBorderOpacity,
   setCardBorderOpacity,
+  cardBgColor,
+  setCardBgColor,
   sectionSpacing,
   updateSectionSpacing,
   activePage,
@@ -91,7 +93,7 @@ export default function LayoutSidebar({
         >
           <div 
               className={`p-2 rounded-xl transition-colors ${isOpen ? '' : 'group-hover:bg-white/5'}`}
-              style={isOpen ? { backgroundColor: 'color-mix(in srgb, var(--accent-color), transparent 90%)', color: 'var(--accent-color)' } : { color: 'var(--text-secondary)' }}
+              style={isOpen ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}
           >
             <Icon className="w-4.5 h-4.5" />
           </div>
@@ -124,6 +126,38 @@ export default function LayoutSidebar({
   const stn = sectionSpacing?.statusToNav ?? 24;
   const ntg = sectionSpacing?.navToGrid ?? 24;
 
+  const parseHexColor = (value) => {
+    const fallback = { r: 31, g: 41, b: 55 };
+    if (!value || typeof value !== 'string') return fallback;
+
+    const raw = value.trim().replace(/^#/, '');
+    const normalized = raw.length === 3
+      ? raw.split('').map((char) => char + char).join('')
+      : raw;
+
+    if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return fallback;
+
+    return {
+      r: parseInt(normalized.slice(0, 2), 16),
+      g: parseInt(normalized.slice(2, 4), 16),
+      b: parseInt(normalized.slice(4, 6), 16),
+    };
+  };
+
+  const toHexColor = ({ r, g, b }) => {
+    const clamp = (channel) => Math.max(0, Math.min(255, channel));
+    const toHex = (channel) => clamp(channel).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+
+  const effectiveCardColor = cardBgColor || '#1f2937';
+  const rgb = parseHexColor(effectiveCardColor);
+
+  const updateCardColorChannel = (channel, value) => {
+    const next = { ...rgb, [channel]: value };
+    setCardBgColor(toHexColor(next));
+  };
+
   return (
     <SidebarContainer
       open={open}
@@ -148,7 +182,7 @@ export default function LayoutSidebar({
 
              <button
                 className="w-12 h-9 rounded-xl flex items-center justify-center transition-all shadow-md relative z-10 text-white"
-                style={{ backgroundColor: 'var(--accent-color)' }}
+               style={{ backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }}
                 disabled
                 title={t('system.tabLayout')}
              >
@@ -181,16 +215,16 @@ export default function LayoutSidebar({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(false)}
-                  className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${!dynamicGridColumns ? 'text-white' : ''}`}
-                  style={!dynamicGridColumns ? { backgroundColor: 'var(--accent-color)' } : { color: 'var(--text-secondary)' }}
+                  className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all"
+                  style={!dynamicGridColumns ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('settings.manual')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(true)}
-                  className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${dynamicGridColumns ? 'text-white' : ''}`}
-                  style={dynamicGridColumns ? { backgroundColor: 'var(--accent-color)' } : { color: 'var(--text-secondary)' }}
+                  className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all"
+                  style={dynamicGridColumns ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('common.auto')}
                 </button>
@@ -202,12 +236,12 @@ export default function LayoutSidebar({
               </p>
             )}
             {hasPageOverride && (
-              <div className="mb-3 px-3 py-2 rounded-xl border" style={{ backgroundColor: 'var(--accent-bg)', borderColor: 'var(--accent-color)', color: 'var(--accent-color)' }}>
+              <div className="mb-3 px-3 py-2 rounded-xl border" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
                 <div className="flex items-center gap-2">
                   <Eye className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="text-[10px] font-bold uppercase tracking-wider">{t('settings.pageOverride')}</span>
                 </div>
-                <p className="text-[9px] mt-1 leading-relaxed" style={{ color: 'color-mix(in srgb, var(--accent-color), var(--text-muted) 30%)' }}>
+                <p className="text-[9px] mt-1 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                   {t('settings.pageOverrideHint')}
                 </p>
               </div>
@@ -217,7 +251,7 @@ export default function LayoutSidebar({
                 {hasPageOverride ? t('settings.gridColumnsPage') : t('settings.gridColumns')}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{computedEffectiveGridColumns}</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{computedEffectiveGridColumns}</span>
                 {hasPageOverride && (
                   <button
                     onClick={() => savePageSetting(activePage, 'gridColumns', null)}
@@ -237,7 +271,7 @@ export default function LayoutSidebar({
               step={1} 
               value={effectiveGridColumns}
               onChange={(e) => setGridColumns(parseInt(e.target.value, 10))} 
-              colorClass="bg-blue-500" 
+              colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
           {/* Gap H */}
@@ -245,7 +279,7 @@ export default function LayoutSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.gridGapH')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{gridGapH}px</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{gridGapH}px</span>
                 {gridGapH !== 16 && <ResetButton onClick={() => setGridGapH(16)} />}
               </div>
             </div>
@@ -255,7 +289,7 @@ export default function LayoutSidebar({
               step={4} 
               value={gridGapH} 
               onChange={(e) => setGridGapH(parseInt(e.target.value, 10))} 
-              colorClass="bg-blue-500" 
+              colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
           {/* Gap V */}
@@ -263,7 +297,7 @@ export default function LayoutSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.gridGapV')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{gridGapV}px</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{gridGapV}px</span>
                 {gridGapV !== 16 && <ResetButton onClick={() => setGridGapV(16)} />}
               </div>
             </div>
@@ -273,7 +307,7 @@ export default function LayoutSidebar({
               step={4} 
               value={gridGapV} 
               onChange={(e) => setGridGapV(parseInt(e.target.value, 10))} 
-              colorClass="bg-blue-500" 
+              colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
         </Section>
@@ -289,33 +323,33 @@ export default function LayoutSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.sectionSpacingHeader')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{hts}px</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{hts}px</span>
                 {hts !== 16 && <ResetButton onClick={() => updateSectionSpacing({ headerToStatus: 16 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={hts} onChange={(e) => updateSectionSpacing({ headerToStatus: parseInt(e.target.value, 10) })} colorClass="bg-blue-500" />
+            <M3Slider min={0} max={64} step={4} value={hts} onChange={(e) => updateSectionSpacing({ headerToStatus: parseInt(e.target.value, 10) })} colorClass="bg-[var(--text-secondary)]" />
           </div>
           {/* Status -> Nav */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.sectionSpacingNav')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{stn}px</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{stn}px</span>
                 {stn !== 24 && <ResetButton onClick={() => updateSectionSpacing({ statusToNav: 24 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={stn} onChange={(e) => updateSectionSpacing({ statusToNav: parseInt(e.target.value, 10) })} colorClass="bg-blue-500" />
+            <M3Slider min={0} max={64} step={4} value={stn} onChange={(e) => updateSectionSpacing({ statusToNav: parseInt(e.target.value, 10) })} colorClass="bg-[var(--text-secondary)]" />
           </div>
           {/* Nav -> Grid */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.sectionSpacingGrid')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{ntg}px</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{ntg}px</span>
                 {ntg !== 24 && <ResetButton onClick={() => updateSectionSpacing({ navToGrid: 24 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={ntg} onChange={(e) => updateSectionSpacing({ navToGrid: parseInt(e.target.value, 10) })} colorClass="bg-blue-500" />
+            <M3Slider min={0} max={64} step={4} value={ntg} onChange={(e) => updateSectionSpacing({ navToGrid: parseInt(e.target.value, 10) })} colorClass="bg-[var(--text-secondary)]" />
           </div>
         </Section>
 
@@ -330,7 +364,7 @@ export default function LayoutSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.cardRadius')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{cardBorderRadius}px</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{cardBorderRadius}px</span>
                 {cardBorderRadius !== 16 && <ResetButton onClick={() => setCardBorderRadius(16)} />}
               </div>
             </div>
@@ -340,7 +374,7 @@ export default function LayoutSidebar({
               step={2}
               value={cardBorderRadius}
               onChange={(e) => setCardBorderRadius(parseInt(e.target.value, 10))}
-              colorClass="bg-blue-500"
+              colorClass="bg-[var(--text-secondary)]"
             />
           </div>
           {/* Transparency */}
@@ -348,7 +382,7 @@ export default function LayoutSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.transparency')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{cardTransparency}%</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{cardTransparency}%</span>
                 {cardTransparency !== 40 && <ResetButton onClick={() => setCardTransparency(40)} />}
               </div>
             </div>
@@ -358,7 +392,7 @@ export default function LayoutSidebar({
               step={5}
               value={cardTransparency}
               onChange={(e) => setCardTransparency(parseInt(e.target.value, 10))}
-              colorClass="bg-blue-500"
+              colorClass="bg-[var(--text-secondary)]"
             />
           </div>
           {/* Border Opacity */}
@@ -366,7 +400,7 @@ export default function LayoutSidebar({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.borderOpacity')}</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--accent-color)' }}>{cardBorderOpacity}%</span>
+                <span className="text-[11px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{cardBorderOpacity}%</span>
                 {cardBorderOpacity !== 5 && <ResetButton onClick={() => setCardBorderOpacity(5)} />}
               </div>
             </div>
@@ -376,8 +410,82 @@ export default function LayoutSidebar({
               step={5}
               value={cardBorderOpacity}
               onChange={(e) => setCardBorderOpacity(parseInt(e.target.value, 10))}
-              colorClass="bg-blue-500"
+              colorClass="bg-[var(--text-secondary)]"
             />
+          </div>
+          {/* Card Background Color */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{t('settings.cardBackgroundColor')}</span>
+              {cardBgColor && <ResetButton onClick={() => setCardBgColor('')} />}
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl border shadow-lg" style={{ borderColor: 'var(--glass-border)', backgroundColor: effectiveCardColor }} />
+                <div className="flex-1 space-y-0.5">
+                <input
+                  type="text"
+                  value={cardBgColor}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    if (val === '' || /^#[0-9a-fA-F]{1,6}$/.test(val)) setCardBgColor(val);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border font-mono text-sm outline-none transition-colors uppercase focus:border-[var(--glass-border)]"
+                  style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                  placeholder="#1f2937"
+                  maxLength={7}
+                />
+                {!cardBgColor && (
+                  <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('settings.useThemeDefault')}</p>
+                )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>R</span>
+                    <span className="text-[10px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{rgb.r}</span>
+                  </div>
+                  <M3Slider
+                    min={0}
+                    max={255}
+                    step={1}
+                    value={rgb.r}
+                    onChange={(e) => updateCardColorChannel('r', parseInt(e.target.value, 10))}
+                    colorClass="bg-[var(--text-secondary)]"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>G</span>
+                    <span className="text-[10px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{rgb.g}</span>
+                  </div>
+                  <M3Slider
+                    min={0}
+                    max={255}
+                    step={1}
+                    value={rgb.g}
+                    onChange={(e) => updateCardColorChannel('g', parseInt(e.target.value, 10))}
+                    colorClass="bg-[var(--text-secondary)]"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>B</span>
+                    <span className="text-[10px] tabular-nums font-mono" style={{ color: 'var(--text-primary)' }}>{rgb.b}</span>
+                  </div>
+                  <M3Slider
+                    min={0}
+                    max={255}
+                    step={1}
+                    value={rgb.b}
+                    onChange={(e) => updateCardColorChannel('b', parseInt(e.target.value, 10))}
+                    colorClass="bg-[var(--text-secondary)]"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </Section>
       </div>
