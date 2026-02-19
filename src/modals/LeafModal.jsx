@@ -2,6 +2,15 @@ import { X, Car, Clock, RefreshCw, Zap, MapPin, Thermometer } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import { formatRelativeTime } from '../utils';
 
+const formatValue = (val) => {
+  if (val === null || val === undefined) return '--';
+  const strVal = String(val).replace(',', '.');
+  const num = parseFloat(strVal);
+  if (isNaN(num)) return val;
+  // Maximum 1 decimal
+  return Math.round(num * 10) / 10;
+};
+
 /**
  * LeafModal - Generic car modal for car information and controls
  * 
@@ -153,7 +162,7 @@ export default function LeafModal({
                     </div>
                     <div className="flex items-baseline gap-2">
                         <span className={`text-4xl font-light italic ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
-                          {String(getS(batteryId))}
+                          {batteryId ? formatValue(getS(batteryId)) : '--'}
                         </span>
                         <span className="text-xl text-gray-500 font-medium">%</span>
                     </div>
@@ -171,7 +180,7 @@ export default function LeafModal({
                     <div className="p-4 rounded-2xl popup-surface flex flex-col items-center justify-center gap-1">
                         <span className="text-[10px] text-gray-400 uppercase font-bold tracking-[0.2em] mb-1">{t('car.range')}</span>
                         <div className="flex items-baseline gap-1">
-                             <span className="text-2xl font-light text-[var(--text-primary)]">{String(getS(rangeId))}</span>
+                             <span className="text-2xl font-light text-[var(--text-primary)]">{formatValue(getS(rangeId))}</span>
                              <span className="text-xs text-gray-500 font-bold">km</span>
                         </div>
                     </div>
@@ -180,7 +189,7 @@ export default function LeafModal({
                     <div className="p-4 rounded-2xl popup-surface flex flex-col items-center justify-center gap-1">
                         <span className="text-[10px] text-gray-400 uppercase font-bold tracking-[0.2em] mb-1">Temp</span>
                         <div className="flex items-baseline gap-1">
-                             <span className="text-2xl font-light text-[var(--text-primary)]">{tempValue}</span>
+                             <span className="text-2xl font-light text-[var(--text-primary)]">{formatValue(tempValue)}</span>
                              <span className="text-xs text-gray-500 font-bold">°C</span>
                         </div>
                     </div>

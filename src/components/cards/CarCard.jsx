@@ -22,6 +22,14 @@ const getNumberState = (entities, id) => {
   return Number.isFinite(value) ? value : null;
 };
 
+const formatValue = (num) => {
+  if (num === null || num === undefined) return null;
+  const strVal = String(num).replace(',', '.');
+  const parsed = parseFloat(strVal);
+  if (isNaN(parsed)) return num;
+  return Math.round(parsed * 10) / 10;
+};
+
 /* ─── CarCard ─── */
 
 const CarCard = ({
@@ -91,10 +99,10 @@ const CarCard = ({
             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">{name}</p>
             <div className="flex flex-col leading-tight gap-0.5">
               <span className={`text-sm font-bold ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
-                {batteryValue !== null ? `${Math.round(batteryValue)}%` : '--'}
+                {batteryValue !== null ? `${formatValue(batteryValue)}%` : '--'}
               </span>
               {rangeValue !== null && (
-                <span className="text-xs text-[var(--text-secondary)]">{Math.round(rangeValue)} {rangeUnit}</span>
+                <span className="text-xs text-[var(--text-secondary)]">{formatValue(rangeValue)} {rangeUnit}</span>
               )}
             </div>
           </div>
@@ -113,7 +121,7 @@ const CarCard = ({
             <div className="flex items-start gap-1.5 px-3 py-1.5 rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] max-w-full"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" /><span className="text-xs tracking-widest font-bold uppercase break-words whitespace-normal leading-tight">{String(locationLabel)}</span></div>
           )}
           {tempValue !== null && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{Math.round(tempValue)}°</span></div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{formatValue(tempValue)}°</span></div>
           )}
           {isHtg && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{t('car.heating')}</span></div>}
         </div>
@@ -123,11 +131,11 @@ const CarCard = ({
           <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
           <div className="flex items-baseline gap-2 leading-none font-sans">
             <span className={`text-2xl font-medium leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
-              {batteryValue !== null ? `${Math.round(batteryValue)}%` : '--'}
+              {batteryValue !== null ? `${formatValue(batteryValue)}%` : '--'}
             </span>
             {isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}
             {rangeValue !== null && (
-              <span className="text-[var(--text-muted)] font-medium text-base ml-1">{Math.round(rangeValue)}{rangeUnit}</span>
+              <span className="text-[var(--text-muted)] font-medium text-base ml-1">{formatValue(rangeValue)}{rangeUnit}</span>
             )}
           </div>
           {pluggedId && (
