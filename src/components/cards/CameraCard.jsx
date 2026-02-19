@@ -13,6 +13,22 @@ function appendTs(url, ts) {
   return `${url}${sep}_ts=${ts}`;
 }
 
+function resolveCameraTemplate(urlTemplate, entityId) {
+  if (!urlTemplate) return '';
+  const objectId = (entityId || '').includes('.') ? entityId.split('.').slice(1).join('.') : entityId;
+  return urlTemplate
+    .replaceAll('{entity_id}', entityId || '')
+    .replaceAll('{entity_object_id}', objectId || '');
+}
+
+function normalizeStreamEngine(value) {
+  const raw = String(value || '').toLowerCase();
+  if (raw === 'webrtc') return 'webrtc';
+  if (raw === 'snapshot') return 'snapshot';
+  if (raw === 'ha' || raw === 'ha_stream' || raw === 'hastream' || raw === 'ha-stream') return 'ha';
+  return 'auto';
+}
+
 export default function CameraCard({
   cardId,
   entityId,
@@ -31,7 +47,7 @@ export default function CameraCard({
   t,
 }) {
   const [refreshTs, setRefreshTs] = useState(Date.now());
-  const [streamFailed, setStreamFailed] = useState(false);
+  const [streamSource, setStreamSource] = useState('ha');
   const intervalRef = useRef(null);
   const previousMotionActiveRef = useRef(false);
 
@@ -44,17 +60,53 @@ export default function CameraCard({
 
   const accessToken = attrs.access_token;
 
-  const streamUrl = useMemo(
+  const haStreamUrl = useMemo(
     () => getEntityImageUrl(buildCameraUrl('/api/camera_proxy_stream', entityId, accessToken)),
     [entityId, accessToken, getEntityImageUrl],
   );
 
   const snapshotUrl = useMemo(() => {
-    const base = attrs.entity_picture || buildCameraUrl('/api/camera_proxy', entityId, accessToken);
+    const base = buildCameraUrl('/api/camera_proxy', entityId, accessToken) || attrs.entity_picture;
     return getEntityImageUrl(appendTs(base, refreshTs));
   }, [entityId, accessToken, attrs.entity_picture, refreshTs, getEntityImageUrl]);
 
-  const previewUrl = streamFailed ? snapshotUrl : streamUrl;
+  const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
+  const webrtcTemplate = (settings?.cameraWebrtcUrl || '').trim();
+  const webrtcUrl = useMemo(() => {
+    const resolved = resolveCameraTemplate(webrtcTemplate, entityId);
+    return resolved ? getEntityImageUrl(resolved) : null;
+  }, [webrtcTemplate, entityId, getEntityImageUrl]);
+
+  const preferredSource = useMemo(() => {
+    if (streamEngine === 'snapshot') return 'snapshot';
+    if (streamEngine === 'webrtc') {
+      if (webrtcUrl) return 'webrtc';
+      return 'ha';
+    }
+    if (streamEngine === 'ha') return 'ha';
+    if (webrtcUrl) return 'webrtc';
+    return 'ha';
+  }, [streamEngine, webrtcUrl]);
+
+  useEffect(() => {
+    setStreamSource(preferredSource);
+  }, [preferredSource]);
+
+  const previewUrl = streamSource === 'webrtc'
+    ? webrtcUrl
+    : streamSource === 'ha'
+      ? haStreamUrl
+      : snapshotUrl;
+
+  const handleStreamError = useCallback(() => {
+    setStreamSource((current) => {
+      if (current === 'webrtc') return haStreamUrl ? 'ha' : 'snapshot';
+      if (current === 'ha') return 'snapshot';
+      return current;
+    });
+  }, [haStreamUrl]);
+
+  const usingSnapshotFallback = streamSource === 'snapshot' && preferredSource !== 'snapshot';
 
   const refreshMode = settings?.cameraRefreshMode || 'interval';
   const refreshInterval = Math.max(2, Number(settings?.cameraRefreshInterval) || 10);
@@ -62,15 +114,15 @@ export default function CameraCard({
 
   const doRefresh = useCallback(() => {
     setRefreshTs(Date.now());
-    setStreamFailed(false);
-  }, []);
+    setStreamSource(preferredSource);
+  }, [preferredSource]);
 
   // Interval-based snapshot refresh (only used when stream has failed)
   useEffect(() => {
-    if (isOffline || !streamFailed || refreshMode !== 'interval') return;
+    if (isOffline || !usingSnapshotFallback || refreshMode !== 'interval') return;
     intervalRef.current = setInterval(doRefresh, refreshInterval * 1000);
     return () => clearInterval(intervalRef.current);
-  }, [isOffline, streamFailed, refreshMode, refreshInterval, doRefresh]);
+  }, [isOffline, usingSnapshotFallback, refreshMode, refreshInterval, doRefresh]);
 
   // Motion-sensor-based refresh
   useEffect(() => {
@@ -109,7 +161,7 @@ export default function CameraCard({
               alt={name}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
-              onError={() => setStreamFailed(true)}
+              onError={handleStreamError}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)]">
@@ -145,7 +197,7 @@ export default function CameraCard({
           alt={name}
           className="absolute inset-0 w-full h-full object-cover"
           referrerPolicy="no-referrer"
-          onError={() => setStreamFailed(true)}
+          onError={handleStreamError}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-[var(--glass-bg)]">

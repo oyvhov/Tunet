@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, RefreshCw, Video, Camera } from '../icons';
 import { getIconComponent } from '../icons';
 
@@ -13,6 +13,22 @@ function buildCameraUrl(basePath, entityId, accessToken) {
   return `${basePath}/${entityId}${tokenQuery}`;
 }
 
+function resolveCameraTemplate(urlTemplate, entityId) {
+  if (!urlTemplate) return '';
+  const objectId = (entityId || '').includes('.') ? entityId.split('.').slice(1).join('.') : entityId;
+  return urlTemplate
+    .replaceAll('{entity_id}', entityId || '')
+    .replaceAll('{entity_object_id}', objectId || '');
+}
+
+function normalizeStreamEngine(value) {
+  const raw = String(value || '').toLowerCase();
+  if (raw === 'webrtc') return 'webrtc';
+  if (raw === 'snapshot') return 'snapshot';
+  if (raw === 'ha' || raw === 'ha_stream' || raw === 'hastream' || raw === 'ha-stream') return 'ha';
+  return 'auto';
+}
+
 export default function CameraModal({
   show,
   onClose,
@@ -21,11 +37,12 @@ export default function CameraModal({
   customName,
   customIcon,
   getEntityImageUrl,
+  settings,
   t,
 }) {
   const [viewMode, setViewMode] = useState('stream');
   const [refreshTs, setRefreshTs] = useState(Date.now());
-  const [streamFailed, setStreamFailed] = useState(false);
+  const [streamSource, setStreamSource] = useState('ha');
 
   if (!show || !entityId || !entity) return null;
 
@@ -37,12 +54,50 @@ export default function CameraModal({
 
   const streamBase = useMemo(() => buildCameraUrl('/api/camera_proxy_stream', entityId, accessToken), [entityId, accessToken]);
   const snapshotBase = useMemo(() => {
-    if (attrs.entity_picture) return attrs.entity_picture;
-    return buildCameraUrl('/api/camera_proxy', entityId, accessToken);
+    return buildCameraUrl('/api/camera_proxy', entityId, accessToken) || attrs.entity_picture;
   }, [entityId, accessToken, attrs.entity_picture]);
 
   const streamUrl = getEntityImageUrl(appendTs(streamBase, refreshTs));
   const snapshotUrl = getEntityImageUrl(appendTs(snapshotBase, refreshTs));
+  const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
+  const webrtcTemplate = (settings?.cameraWebrtcUrl || '').trim();
+  const webrtcUrl = useMemo(() => {
+    const resolved = resolveCameraTemplate(webrtcTemplate, entityId);
+    return resolved ? getEntityImageUrl(appendTs(resolved, refreshTs)) : null;
+  }, [webrtcTemplate, entityId, refreshTs, getEntityImageUrl]);
+
+  const preferredSource = useMemo(() => {
+    if (streamEngine === 'snapshot') return 'snapshot';
+    if (streamEngine === 'webrtc') {
+      if (webrtcUrl) return 'webrtc';
+      return 'ha';
+    }
+    if (streamEngine === 'ha') return 'ha';
+    if (webrtcUrl) return 'webrtc';
+    return 'ha';
+  }, [streamEngine, webrtcUrl]);
+
+  useEffect(() => {
+    if (viewMode === 'stream') {
+      setStreamSource(preferredSource);
+    }
+  }, [preferredSource, viewMode]);
+
+  const activeStreamUrl = streamSource === 'webrtc'
+    ? webrtcUrl
+    : streamSource === 'ha'
+      ? streamUrl
+      : snapshotUrl;
+
+  const handleStreamError = () => {
+    setStreamSource((current) => {
+      if (current === 'webrtc') return streamUrl ? 'ha' : 'snapshot';
+      if (current === 'ha') return 'snapshot';
+      return 'snapshot';
+    });
+  };
+
+  const isFallbackActive = viewMode === 'stream' && streamSource === 'snapshot' && preferredSource !== 'snapshot';
 
   return (
     <div
@@ -70,19 +125,19 @@ export default function CameraModal({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setViewMode('stream'); setStreamFailed(false); setRefreshTs(Date.now()); }}
+              onClick={() => { setViewMode('stream'); setStreamSource(preferredSource); setRefreshTs(Date.now()); }}
               className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border ${viewMode === 'stream' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)]'}`}
             >
               <span className="inline-flex items-center gap-1"><Video className="w-3.5 h-3.5" /> {t?.('camera.stream') || 'Stream'}</span>
             </button>
             <button
-              onClick={() => { setViewMode('snapshot'); setStreamFailed(false); setRefreshTs(Date.now()); }}
+              onClick={() => { setViewMode('snapshot'); setRefreshTs(Date.now()); }}
               className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border ${viewMode === 'snapshot' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)]'}`}
             >
               <span className="inline-flex items-center gap-1"><Camera className="w-3.5 h-3.5" /> {t?.('camera.snapshot') || 'Snapshot'}</span>
             </button>
             <button
-              onClick={() => { setStreamFailed(false); setRefreshTs(Date.now()); }}
+              onClick={() => { setStreamSource(preferredSource); setRefreshTs(Date.now()); }}
               className="p-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               title={t?.('camera.refresh') || 'Refresh'}
             >
@@ -94,11 +149,11 @@ export default function CameraModal({
         <div className="relative flex-1 min-h-[320px] rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-black/70">
           {viewMode === 'stream' ? (
             <img
-              src={streamUrl}
+              src={activeStreamUrl}
               alt={name}
               className="w-full h-full object-contain"
               referrerPolicy="no-referrer"
-              onError={() => setStreamFailed(true)}
+              onError={handleStreamError}
             />
           ) : (
             <img
@@ -109,7 +164,7 @@ export default function CameraModal({
             />
           )}
 
-          {streamFailed && viewMode === 'stream' && (
+          {isFallbackActive && (
             <div className="absolute inset-x-0 bottom-0 p-3 text-sm text-amber-200 bg-amber-500/10 border-t border-amber-500/20 text-center">
               {t?.('camera.streamUnavailable') || 'Stream unavailable, showing snapshots may work better.'}
             </div>

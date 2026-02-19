@@ -210,7 +210,7 @@ function SearchableSelect({ label, value, options, onChange, placeholder, entiti
                 key={id}
                 type="button"
                 onClick={() => { onChange(id); setOpen(false); }}
-                className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all ${value === id ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                className={`w-full text-left px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all ${value === id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
               >
                 {getLabel(id)}
                 <span className="block text-[10px] font-normal text-[var(--text-muted)] normal-case tracking-normal truncate">{id}</span>
@@ -311,7 +311,7 @@ function CarMappingsSection({
       {!showAddSensor && availableTypes.length > 0 && (
         <button
           onClick={() => setShowAddSensor(true)}
-          className="w-full py-3.5 px-4 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3.5 px-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest text-xs transition-colors flex items-center justify-center gap-2"
         >
           <Plus className="w-4 h-4" />
           {t('car.addSensor')}
@@ -342,7 +342,7 @@ function CarMappingsSection({
                 setSensorType(e.target.value);
                 setSensorEntity('');
               }}
-              className="w-full px-4 py-3 rounded-xl popup-surface text-sm outline-none focus:border-blue-500/50 transition-colors"
+              className="w-full px-4 py-3 rounded-xl popup-surface text-sm outline-none focus:border-[var(--glass-border)] transition-colors"
               style={{color: 'var(--text-primary)'}}
             >
               <option value="" style={{backgroundColor: 'var(--modal-bg)', color: 'var(--text-primary)'}}>{t('car.selectSensorType') || 'Vel sensortype...'}</option>
@@ -373,7 +373,7 @@ function CarMappingsSection({
             <button
               onClick={handleAddSensor}
               disabled={!sensorType || !sensorEntity}
-              className="flex-1 py-3 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:bg-gray-700 disabled:text-gray-500 text-white font-bold uppercase tracking-widest text-xs transition-colors"
+              className="flex-1 py-3 px-4 rounded-xl popup-surface popup-surface-hover border border-[var(--glass-border)] disabled:bg-gray-700 disabled:text-gray-500 text-[var(--text-primary)] font-bold uppercase tracking-widest text-xs transition-colors"
             >
               {t('car.add')}
             </button>
@@ -451,7 +451,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
         <button
           onClick={handleRefresh}
           disabled={refreshing || !conn}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
           {t('room.refreshEntities')}
@@ -466,7 +466,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
               <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{opt.label}</span>
               <button
                 onClick={() => saveCardSetting(editSettingsKey, opt.key, !value)}
-                className={`w-12 h-6 rounded-full transition-colors relative ${value ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${value ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${value ? 'left-7' : 'left-1'}`} />
               </button>
@@ -489,7 +489,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
                 <button
                   type="button"
                   onClick={() => saveCardSetting(editSettingsKey, opt.key, null)}
-                  className={`w-full text-left px-3 py-2 rounded-xl transition-colors text-xs font-bold uppercase tracking-widest ${!editSettings[opt.key] ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                  className={`w-full text-left px-3 py-2 rounded-xl transition-colors text-xs font-bold uppercase tracking-widest ${!editSettings[opt.key] ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                 >
                   Auto
                 </button>
@@ -498,7 +498,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
                     key={id}
                     type="button"
                     onClick={() => saveCardSetting(editSettingsKey, opt.key, id)}
-                    className={`w-full text-left px-3 py-2 rounded-xl transition-colors ${editSettings[opt.key] === id ? 'text-blue-400' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                    className={`w-full text-left px-3 py-2 rounded-xl transition-colors ${editSettings[opt.key] === id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   >
                     <div className="text-xs font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
                     <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
@@ -642,7 +642,7 @@ export default function EditCardModal({
                   <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('form.name')}</label>
                   <input 
                     type="text" 
-                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors" 
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors" 
                     defaultValue={customNames[entityId] || (entities[entityId]?.attributes?.friendly_name || '')}
                     onBlur={(e) => saveCustomName(entityId, e.target.value)}
                     placeholder={t('form.defaultName')}
@@ -655,7 +655,7 @@ export default function EditCardModal({
                   <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('form.heading')}</label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
                     defaultValue={editSettings.heading || ''}
                     onBlur={(e) => saveCardSetting(editSettingsKey, 'heading', e.target.value.trim() || null)}
                     placeholder={t('form.headingPlaceholder')}
@@ -699,7 +699,7 @@ export default function EditCardModal({
                 <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('weatherTemp.subtitle') || 'Subtitle'}</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                  className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
                   defaultValue={editSettings.subtitle || ''}
                   onBlur={(e) => saveCardSetting(editSettingsKey, 'subtitle', e.target.value.trim() || null)}
                   placeholder={t('weatherTemp.subtitlePlaceholder') || 'e.g. Oslo, Home'}
@@ -749,7 +749,7 @@ export default function EditCardModal({
                   <span className="text-sm font-medium text-[var(--text-primary)]">{t('weatherTemp.showEffects')}</span>
                   <button
                     onClick={() => saveCardSetting(editSettingsKey, 'showEffects', editSettings.showEffects === false ? true : false)}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showEffects !== false ? 'bg-blue-500' : 'bg-gray-600'}`}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showEffects !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-gray-600'}`}
                   >
                     <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`} />
                   </button>
@@ -776,7 +776,7 @@ export default function EditCardModal({
                         const next = selected ? current.filter((x) => x !== id) : [...current, id];
                         saveCardSetting(editSettingsKey, 'calendars', next);
                       }}
-                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-blue-500/15 border-blue-500/30 text-blue-400' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)] text-[var(--text-primary)]' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
                     >
                       <div className="text-sm font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
                       <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
@@ -795,7 +795,7 @@ export default function EditCardModal({
                   <button
                     type="button"
                     onClick={() => saveCardSetting(editSettingsKey, 'largeCalendar', !editSettings.largeCalendar)}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.largeCalendar ? 'bg-blue-500' : 'bg-gray-600'}`}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.largeCalendar ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-gray-600'}`}
                   >
                     <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`} />
                   </button>
@@ -851,7 +851,8 @@ export default function EditCardModal({
                           saveCardSetting(editSettingsKey, 'heightPx', 40);
                         }
                       }}
-                      className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${(editSettings.variant || 'spacer') === v.key ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                      className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${(editSettings.variant || 'spacer') === v.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                      style={(editSettings.variant || 'spacer') === v.key ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
                     >
                       {v.label}
                     </button>
@@ -871,7 +872,8 @@ export default function EditCardModal({
                       key={opt.key}
                       type="button"
                       onClick={() => saveCardSetting(editSettingsKey, 'headingAlign', opt.key)}
-                      className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${currentHeadingAlign === opt.key ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                      className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${currentHeadingAlign === opt.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                      style={currentHeadingAlign === opt.key ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
                     >
                       {opt.label}
                     </button>
@@ -885,14 +887,16 @@ export default function EditCardModal({
                   <button
                     type="button"
                     onClick={() => saveCardSetting(editSettingsKey, 'colSpan', 'full')}
-                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${isFullWidth ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${isFullWidth ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    style={isFullWidth ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
                   >
                     {'Full Width'}
                   </button>
                   <button
                     type="button"
                     onClick={() => saveCardSetting(editSettingsKey, 'colSpan', currentColSpan)}
-                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${!isFullWidth ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${!isFullWidth ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    style={!isFullWidth ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
                   >
                     {'Custom'}
                   </button>
@@ -944,6 +948,9 @@ export default function EditCardModal({
           )}
 
           {isEditCamera && editSettingsKey && (() => {
+            const streamEngine = String(editSettings.cameraStreamEngine || 'auto').toLowerCase();
+            const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
+            const recommendedWebrtc = '/api/webrtc?src={entity_object_id}';
             const refreshMode = editSettings.cameraRefreshMode || 'interval';
             const refreshInterval = editSettings.cameraRefreshInterval || 10;
             const motionSensorId = editSettings.cameraMotionSensor || '';
@@ -957,6 +964,56 @@ export default function EditCardModal({
 
             return (
               <div className="space-y-4">
+                {/* Stream engine */}
+                <div className="space-y-2">
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.streamEngine') || 'Stream Engine'}</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: 'auto', label: t('camera.streamEngineAuto') || 'Auto' },
+                      { key: 'webrtc', label: t('camera.streamEngineWebrtc') || 'WebRTC' },
+                      { key: 'ha', label: t('camera.streamEngineHa') || 'HA Stream' },
+                      { key: 'snapshot', label: t('camera.streamEngineSnapshot') || 'Snapshot' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => saveCardSetting(editSettingsKey, 'cameraStreamEngine', opt.key)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${streamEngine === opt.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                        style={streamEngine === opt.key ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Optional WebRTC URL */}
+                {(streamEngine === 'webrtc' || streamEngine === 'auto') && (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.webrtcUrlOptional') || 'WebRTC URL (optional)'}</label>
+                    <input
+                      type="text"
+                      value={webrtcTemplate}
+                      onChange={(e) => saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', e.target.value)}
+                      placeholder={recommendedWebrtc}
+                      className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-colors"
+                      style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', recommendedWebrtc)}
+                        className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest popup-surface popup-surface-hover text-[var(--text-secondary)] border border-[var(--glass-border)]"
+                      >
+                        {t('camera.useRecommended') || 'Use Recommended'}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-[var(--text-muted)] px-1">
+                      {t('camera.webrtcHint') || 'Use {entity_object_id} or {entity_id}. Leave empty to skip WebRTC.'}
+                    </p>
+                  </div>
+                )}
+
                 {/* Refresh mode */}
                 <div className="space-y-2">
                   <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.refreshMode') || 'Refresh Mode'}</label>
@@ -968,7 +1025,8 @@ export default function EditCardModal({
                       <button
                         key={v.key}
                         onClick={() => saveCardSetting(editSettingsKey, 'cameraRefreshMode', v.key)}
-                        className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${refreshMode === v.key ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                        className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${refreshMode === v.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                        style={refreshMode === v.key ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
                       >
                         {v.label}
                       </button>
@@ -1008,7 +1066,8 @@ export default function EditCardModal({
                         return (
                           <button key={id} type="button"
                             onClick={() => saveCardSetting(editSettingsKey, 'cameraMotionSensor', selected ? null : id)}
-                            className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-blue-500/15 border-blue-500/30 text-blue-400' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                            className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'text-[var(--text-primary)]' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                            style={selected ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
                           >
                             <div className="text-sm font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
                             <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
@@ -1056,13 +1115,15 @@ export default function EditCardModal({
                 <div className="flex gap-2">
                   <button
                     onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'photo')}
-                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'photo' ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'photo' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    style={personDisplay === 'photo' ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
                   >
                     {t('person.display.photo')}
                   </button>
                   <button
                     onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'icon')}
-                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'icon' ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${personDisplay === 'icon' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                    style={personDisplay === 'icon' ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
                   >
                     {t('person.display.icon')}
                   </button>
@@ -1074,7 +1135,7 @@ export default function EditCardModal({
                   <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showName') || 'Show Name'}</span>
                   <button
                     onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showName', !(editSettings.showName !== false))}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showName !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showName !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                   >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`} />
                   </button>
@@ -1084,7 +1145,7 @@ export default function EditCardModal({
                   <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showState') || 'Show State'}</span>
                   <button
                     onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showState', !(editSettings.showState !== false))}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showState !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showState !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                   >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showState !== false ? 'left-7' : 'left-1'}`} />
                   </button>
@@ -1106,7 +1167,7 @@ export default function EditCardModal({
                               <div key={sensorId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
                                   saveCardSetting(editSettingsKey, 'batteryEntity', isSelected ? null : sensorId);
                               }}>
-                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'border-gray-500 bg-transparent'}`}>
                                       {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
                                   </div>
                                   <div className="flex flex-col">
@@ -1135,7 +1196,7 @@ export default function EditCardModal({
                               <div key={trackerId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
                                   saveCardSetting(editSettingsKey, 'deviceTracker', isSelected ? null : trackerId);
                               }}>
-                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'border-gray-500 bg-transparent'}`}>
                                       {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
                                   </div>
                                   <div className="flex flex-col">
@@ -1154,7 +1215,7 @@ export default function EditCardModal({
                 <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showHistory') || 'Show History on Map'}</span>
                   <button 
                     onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showHistory', !(editSettings.showHistory))}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showHistory ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showHistory ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                   >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showHistory ? 'left-7' : 'left-1'}`} />
                   </button>
@@ -1170,7 +1231,7 @@ export default function EditCardModal({
               {Array.isArray(editSettings.linkedMediaPlayers) && editSettings.linkedMediaPlayers.length > 0 && (
                  <div className="flex flex-wrap gap-2 mb-2">
                     {editSettings.linkedMediaPlayers.map(id => (
-                       <div key={id} className="flex items-center gap-1 pl-3 pr-1 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400">
+                       <div key={id} className="flex items-center gap-1 pl-3 pr-1 py-1 rounded-full popup-surface border border-[var(--glass-border)] text-[var(--text-primary)]">
                           <span className="text-xs font-bold">{entities[id]?.attributes?.friendly_name || id}</span>
                           <button 
                              onClick={() => {
@@ -1191,7 +1252,7 @@ export default function EditCardModal({
                 placeholder={t('androidtv.searchPlayers')} 
                 value={mediaSearch} 
                 onChange={(e) => setMediaSearch(e.target.value)} 
-                className="w-full px-3 py-2 rounded-xl popup-surface text-sm focus:border-blue-500/50 outline-none mb-2 text-[var(--text-primary)]"
+                className="w-full px-3 py-2 rounded-xl popup-surface text-sm focus:border-[var(--glass-border)] outline-none mb-2 text-[var(--text-primary)]"
               />
 
               <div className="popup-surface rounded-2xl p-4 max-h-56 overflow-y-auto custom-scrollbar space-y-2">
@@ -1221,7 +1282,7 @@ export default function EditCardModal({
                         const next = selected ? current.filter((x) => x !== id) : [...current, id];
                         saveCardSetting(editSettingsKey, 'linkedMediaPlayers', next);
                       }}
-                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-blue-500/15 border-blue-500/30 text-blue-400' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                      className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)] text-[var(--text-primary)]' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
                     >
                       <div className="text-sm font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
                       <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
@@ -1237,7 +1298,7 @@ export default function EditCardModal({
               <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('car.imageUrl') || 'Car Image URL'}</label>
               <input
                 type="text"
-                className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
                 defaultValue={editSettings.imageUrl || ''}
                 onBlur={(e) => saveCardSetting(editSettingsKey, 'imageUrl', e.target.value.trim() || null)}
                 placeholder="/local/car.png"
@@ -1270,7 +1331,7 @@ export default function EditCardModal({
                 <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showStatus')}</span>
                 <button 
                   onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showStatus', !(editSettings.showStatus !== false))}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`} />
                 </button>
@@ -1280,7 +1341,7 @@ export default function EditCardModal({
                 <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showLastChanged')}</span>
                 <button 
                   onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastChanged', !(editSettings.showLastChanged !== false))}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
                 </button>
@@ -1303,7 +1364,7 @@ export default function EditCardModal({
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showName') || 'Show Name'}</span>
                       <button 
                         onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showName', !(editSettings.showName !== false))}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showName !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showName !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                       >
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`} />
                       </button>
@@ -1313,7 +1374,7 @@ export default function EditCardModal({
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showStatus') || 'Show Status'}</span>
                       <button 
                         onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showStatus', !(editSettings.showStatus !== false))}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showStatus !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                       >
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`} />
                       </button>
@@ -1323,7 +1384,7 @@ export default function EditCardModal({
                     <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('form.showLastChanged') || 'Show Last Changed'}</span>
                     <button 
                       onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastChanged', !(editSettings.showLastChanged !== false))}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastChanged !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`} />
                     </button>
@@ -1337,7 +1398,7 @@ export default function EditCardModal({
                         </div>
                         <button 
                         onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showControls', !editSettings.showControls)}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showControls ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showControls ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                         >
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`} />
                         </button>
@@ -1352,7 +1413,7 @@ export default function EditCardModal({
                     </div>
                     <button 
                         onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showGraph', !(editSettings.showGraph !== false))}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showGraph !== false ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                        className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showGraph !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showGraph !== false ? 'left-7' : 'left-1'}`} />
                     </button>
@@ -1372,7 +1433,7 @@ export default function EditCardModal({
                 <button
                   type="button"
                   onClick={() => saveCardSetting(editSettingsKey, 'disable_animation', !editSettings.disable_animation)}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.disable_animation ? 'bg-blue-500' : 'bg-gray-600'}`}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.disable_animation ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-gray-600'}`}
                 >
                   <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editSettings.disable_animation ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
@@ -1388,14 +1449,16 @@ export default function EditCardModal({
                   <button
                     type="button"
                     onClick={() => saveCardSetting(editSettingsKey, 'artworkMode', 'default')}
-                    className={`flex-1 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${!editSettings.artworkMode || editSettings.artworkMode === 'default' ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)] border-transparent'}`}
+                    className={`flex-1 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${!editSettings.artworkMode || editSettings.artworkMode === 'default' ? 'popup-surface text-[var(--text-primary)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)] border-transparent'}`}
+                    style={!editSettings.artworkMode || editSettings.artworkMode === 'default' ? { backgroundColor: 'var(--glass-bg-hover)' } : undefined}
                   >
                     {t('media.artwork.default') || 'Default'}
                   </button>
                   <button
                     type="button"
                     onClick={() => saveCardSetting(editSettingsKey, 'artworkMode', 'cover')}
-                    className={`flex-1 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${editSettings.artworkMode === 'cover' ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)] border-transparent'}`}
+                    className={`flex-1 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${editSettings.artworkMode === 'cover' ? 'popup-surface text-[var(--text-primary)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)] border-transparent'}`}
+                    style={editSettings.artworkMode === 'cover' ? { backgroundColor: 'var(--glass-bg-hover)' } : undefined}
                   >
                     {t('media.artwork.cover') || 'Cover'}
                   </button>
@@ -1425,7 +1488,7 @@ export default function EditCardModal({
                   <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('cost.currency') || 'Currency'}</label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
                     defaultValue={editSettings.currency || ''}
                     onBlur={(e) => saveCardSetting(editSettingsKey, 'currency', e.target.value.trim() || null)}
                     placeholder={t('cost.currencyPlaceholder') || 'Auto (from HA)'}
@@ -1439,7 +1502,7 @@ export default function EditCardModal({
                   <span className="text-sm font-medium text-[var(--text-primary)]">{t('nordpool.withSupport') || 'Show electricity support'}</span>
                   <button
                     onClick={() => saveCardSetting(editSettingsKey, 'showWithSupport', !editSettings.showWithSupport)}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showWithSupport ? 'bg-blue-500' : 'bg-gray-600'}`}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showWithSupport ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-gray-600'}`}
                   >
                     <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editSettings.showWithSupport ? 'translate-x-6' : 'translate-x-0'}`} />
                   </button>
@@ -1473,7 +1536,7 @@ export default function EditCardModal({
                   <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('energyCost.todayLabel') || 'Today label'}</label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
                     defaultValue={editSettings.todayLabel || ''}
                     onBlur={(e) => saveCardSetting(editSettingsKey, 'todayLabel', e.target.value.trim() || null)}
                     placeholder={t('energyCost.today')}
@@ -1483,7 +1546,7 @@ export default function EditCardModal({
                   <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('energyCost.monthLabel') || 'Month label'}</label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
                     defaultValue={editSettings.monthLabel || ''}
                     onBlur={(e) => saveCardSetting(editSettingsKey, 'monthLabel', e.target.value.trim() || null)}
                     placeholder={t('energyCost.thisMonth')}
@@ -1493,7 +1556,7 @@ export default function EditCardModal({
                   <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('cost.currency') || 'Currency'}</label>
                   <input
                     type="text"
-                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                    className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
                     defaultValue={editSettings.currency || ''}
                     onBlur={(e) => saveCardSetting(editSettingsKey, 'currency', e.target.value.trim() || null)}
                     placeholder={t('cost.currencyPlaceholder') || 'Auto (from HA)'}
@@ -1515,7 +1578,7 @@ export default function EditCardModal({
                           <div key={sensorId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
                             saveCardSetting(editSettingsKey, 'todayId', isSelected ? null : sensorId);
                           }}>
-                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'border-gray-500 bg-transparent'}`}>
                               {isSelected && <Check className="w-3.5 h-3.5 text-white" /> }
                             </div>
                             <div className="flex flex-col">
@@ -1543,7 +1606,7 @@ export default function EditCardModal({
                           <div key={sensorId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
                             saveCardSetting(editSettingsKey, 'monthId', isSelected ? null : sensorId);
                           }}>
-                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-500 bg-transparent'}`}>
+                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'border-gray-500 bg-transparent'}`}>
                               {isSelected && <Check className="w-3.5 h-3.5 text-white" /> }
                             </div>
                             <div className="flex flex-col">

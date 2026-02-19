@@ -618,6 +618,7 @@ export default function ModalOrchestrator({
               customName={customNames?.[showCameraModal]}
               customIcon={customIcons?.[showCameraModal]}
               getEntityImageUrl={getEntityImageUrl}
+              settings={cameraSettings}
               t={t}
             />
           </ModalSuspense>

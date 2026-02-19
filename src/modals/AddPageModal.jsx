@@ -43,7 +43,7 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
                 <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
                 <input
                   type="text"
-                  className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+                  className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
                   value={newPageLabel}
                   onChange={(e) => setNewPageLabel(e.target.value)}
                   placeholder={t('form.exampleName')}
@@ -64,7 +64,7 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
 
               <button
                 onClick={onCreate}
-                className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" /> {t('page.create')}
               </button>
@@ -77,7 +77,7 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
               </div>
               <button
                 onClick={onCreateMedia}
-                className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" /> {t('sonos.createPage')}
               </button>

@@ -105,18 +105,18 @@ function RoomSection({ conn, searchTerm, selectedArea, setSelectedArea, setAreaE
               type="button"
               key={area.area_id}
               onClick={() => setSelectedArea(isSelected ? null : area)}
-              className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}
+              className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}
             >
               <div className="flex flex-col overflow-hidden mr-4">
-                <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                   {area.name || area.area_id}
                 </span>
-                <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
                   {area.area_id}
                   {isSelected && !loadingEntities && ` — ${areaEntities.length} ${t('addCard.roomEntitiesFound')}`}
                 </span>
               </div>
-              <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+              <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                 {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               </div>
             </button>
@@ -199,15 +199,15 @@ export default function AddCardContent({
 
   /** Reusable entity list item button. */
   const EntityItem = ({ id, isSelected, onClick, badgeText }) => (
-    <button type="button" key={id} onClick={onClick} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}>
+    <button type="button" key={id} onClick={onClick} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}>
       <div className="flex flex-col overflow-hidden mr-4">
-        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id]?.attributes?.friendly_name || id}</span>
-        <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id]?.attributes?.friendly_name || id}</span>
+        <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
       </div>
       {badgeText ? (
         <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400">{badgeText}</span>
       ) : (
-        <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+        <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
           {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
         </div>
       )}
@@ -268,12 +268,12 @@ export default function AddCardContent({
       <div>
         <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{t('addCard.tempSensorOptional')}</p>
         <div className="space-y-3">
-          <button type="button" onClick={() => setSelectedTempId(null)} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${!selectedTempId ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}>
+          <button type="button" onClick={() => setSelectedTempId(null)} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${!selectedTempId ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}>
             <div className="flex flex-col overflow-hidden mr-4">
-              <span className={`text-sm font-bold transition-colors truncate ${!selectedTempId ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.useWeatherTemp')}</span>
-              <span className={`text-[11px] font-medium truncate ${!selectedTempId ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>weather.temperature</span>
+              <span className={`text-sm font-bold transition-colors truncate ${!selectedTempId ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.useWeatherTemp')}</span>
+              <span className={`text-[11px] font-medium truncate ${!selectedTempId ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>weather.temperature</span>
             </div>
-            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedTempId ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedTempId ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
               {!selectedTempId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             </div>
           </button>
@@ -315,12 +315,12 @@ export default function AddCardContent({
       <div>
         <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{t('addCard.remoteOptional')}</p>
         <div className="space-y-3">
-          <button type="button" onClick={() => setSelectedAndroidTVRemoteId(null)} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${!selectedAndroidTVRemoteId ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}>
+          <button type="button" onClick={() => setSelectedAndroidTVRemoteId(null)} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${!selectedAndroidTVRemoteId ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}>
             <div className="flex flex-col overflow-hidden mr-4">
-              <span className={`text-sm font-bold transition-colors truncate ${!selectedAndroidTVRemoteId ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.noRemote')}</span>
-              <span className={`text-[11px] font-medium truncate ${!selectedAndroidTVRemoteId ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{t('addCard.mediaControlOnly')}</span>
+              <span className={`text-sm font-bold transition-colors truncate ${!selectedAndroidTVRemoteId ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.noRemote')}</span>
+              <span className={`text-[11px] font-medium truncate ${!selectedAndroidTVRemoteId ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{t('addCard.mediaControlOnly')}</span>
             </div>
-            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedAndroidTVRemoteId ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedAndroidTVRemoteId ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
               {!selectedAndroidTVRemoteId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             </div>
           </button>
@@ -334,13 +334,13 @@ export default function AddCardContent({
 
   const renderSimpleAddSection = (Icon, description, buttonLabel) => (
     <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
-      <div className="p-4 rounded-full bg-blue-500/10 text-blue-400">
+      <div className="p-4 rounded-full popup-surface text-[var(--text-primary)] border border-[var(--glass-border)]">
         <Icon className="w-8 h-8" />
       </div>
       <p className="text-gray-400 max-w-xs text-sm">{description}</p>
       <button
         onClick={() => onAddSelected()}
-        className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+        className="px-6 py-3 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors"
       >
         {buttonLabel}
       </button>
@@ -368,13 +368,13 @@ export default function AddCardContent({
                   if (isSelected) setSelectedEntities((prev) => prev.filter((x) => x !== id));
                   else setSelectedEntities((prev) => [...prev, id]);
                 }}
-                className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}
+                className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}
               >
                 <div className="flex flex-col overflow-hidden mr-4">
-                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{name}</span>
-                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{name}</span>
+                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
                 </div>
-                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                   {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 </div>
               </button>
@@ -393,7 +393,7 @@ export default function AddCardContent({
 
   const renderSpacerSection = () => (
     <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
-      <div className="p-4 rounded-full bg-blue-500/10 text-blue-400">
+      <div className="p-4 rounded-full popup-surface text-[var(--text-primary)] border border-[var(--glass-border)]">
         <Minus className="w-8 h-8" />
       </div>
       <p className="text-gray-400 max-w-xs text-sm">
@@ -413,7 +413,8 @@ export default function AddCardContent({
                 setLocalSpacerVariant(variant.key);
                 setSelectedSpacerVariant(variant.key);
               }}
-              className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${localSpacerVariant === variant.key ? 'bg-blue-500 text-white border-blue-500' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+              className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${localSpacerVariant === variant.key ? 'popup-surface text-[var(--text-primary)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+              style={localSpacerVariant === variant.key ? { backgroundColor: 'var(--glass-bg-hover)' } : undefined}
             >
               {variant.label}
             </button>
@@ -422,7 +423,7 @@ export default function AddCardContent({
       </div>
       <button
         onClick={() => onAddSelected({ spacerVariant: localSpacerVariant })}
-        className="px-6 py-3 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+        className="px-6 py-3 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors"
       >
         {t('addCard.add')}
       </button>
@@ -449,7 +450,8 @@ export default function AddCardContent({
             <button
               key={dec}
               onClick={() => setNordpoolDecimals(dec)}
-              className={`px-4 py-2 rounded-lg transition-colors font-bold ${nordpoolDecimals === dec ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+              className={`px-4 py-2 rounded-lg transition-colors font-bold ${nordpoolDecimals === dec ? 'popup-surface text-[var(--text-primary)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+              style={nordpoolDecimals === dec ? { backgroundColor: 'var(--glass-bg-hover)' } : undefined}
             >
               {dec}
             </button>
@@ -512,10 +514,10 @@ export default function AddCardContent({
                 }
                 if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
                 else setSelectedEntities(prev => [...prev, id]);
-              }} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}>
+              }} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}>
                 <div className="flex flex-col overflow-hidden mr-4">
-                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
-                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
                 </div>
                 {addCardType === 'cost' ? (
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -532,7 +534,7 @@ export default function AddCardContent({
                     )}
                   </div>
                 ) : (
-                  <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                  <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                     {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </div>
                 )}
@@ -560,7 +562,7 @@ export default function AddCardContent({
           {(addCardTargetPage !== 'header') && (
             <div className="mb-4 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input type="text" placeholder={t('addCard.search')} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <input type="text" placeholder={t('addCard.search')} className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-2.5 text-[var(--text-primary)] text-sm outline-none focus:border-[var(--glass-border)] transition-colors" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
           )}
           
@@ -572,7 +574,7 @@ export default function AddCardContent({
                 <TypeButton type="light" icon={Lightbulb} label={t('addCard.type.light')} isActive={addCardType === 'light'} onSelect={setAddCardType} />
                 <TypeButton type="vacuum" icon={Bot} label={t('addCard.type.vacuum')} isActive={addCardType === 'vacuum'} onSelect={setAddCardType} />
                 <TypeButton type="fan" icon={Fan} label={t('addCard.type.fan')} isActive={addCardType === 'fan'} onSelect={setAddCardType} />
-                <TypeButton type="camera" icon={Camera} label={getLabel('addCard.type.camera', 'Camera')} isActive={addCardType === 'camera'} onSelect={setAddCardType} />
+                <TypeButton type="camera" icon={Camera} label={`${getLabel('addCard.type.camera', 'Camera')} (beta)`} isActive={addCardType === 'camera'} onSelect={setAddCardType} />
                 <TypeButton type="climate" icon={Thermometer} label={t('addCard.type.climate')} isActive={addCardType === 'climate'} onSelect={setAddCardType} />
                 <TypeButton type="cover" icon={ArrowUpDown} label={getLabel('addCard.type.cover', 'Cover')} isActive={addCardType === 'cover'} onSelect={setAddCardType} />
                 <TypeButton type="car" icon={Car} label={t('addCard.type.car')} isActive={addCardType === 'car'} onSelect={setAddCardType} />
@@ -615,7 +617,7 @@ export default function AddCardContent({
 
         <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
           {usesMultiSelectWithCalendar && selectedEntities.length > 0 && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" /> {addCardType === 'media'
                 ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
                 : addCardType === 'calendar'
@@ -626,29 +628,29 @@ export default function AddCardContent({
             </button>
           )}
           {addCardType === 'cost' && selectedCostTodayId && selectedCostMonthId && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" /> {t('addCard.costCard')}
             </button>
           )}
           {addCardType === 'weather' && selectedWeatherId && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" /> {t('addCard.weatherCard')}
             </button>
           )}
           {addCardType === 'nordpool' && selectedNordpoolId && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" /> {t('addCard.nordpoolCard')}
             </button>
           )}
           {addCardType === 'androidtv' && selectedAndroidTVMediaId && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" /> {t('addCard.add')}
             </button>
           )}
           {addCardType === 'room' && selectedRoomArea && (
             <button 
               onClick={() => onAddRoom && onAddRoom(selectedRoomArea, selectedRoomEntities)} 
-              className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" /> {selectedRoomArea.name || t('room.defaultName') || 'Room'}
             </button>
