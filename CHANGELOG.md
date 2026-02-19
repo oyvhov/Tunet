@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Fixed fan card crash caused by undefined oscillation capability reference.
 - Fixed fan card feature-bitmask mapping to match Home Assistant fan feature flags.
 - Restored/ensured edit-mode resize support for fan cards.
+- Restored on-card delete button visibility for fan cards in edit mode.
 - Expanded fan i18n coverage and parity checks across supported locales.
 
 

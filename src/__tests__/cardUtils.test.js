@@ -28,7 +28,7 @@ describe('isCardRemovable', () => {
   });
 
   it('allows removable-prefix cards on any page', () => {
-    const prefixes = ['light_', 'vacuum.', 'media_player.', 'weather_temp_', 'calendar_card_', 'climate_card_', 'cover_card_', 'camera_card_'];
+    const prefixes = ['light_', 'vacuum.', 'fan.', 'media_player.', 'weather_temp_', 'calendar_card_', 'climate_card_', 'cover_card_', 'camera_card_'];
     prefixes.forEach(prefix => {
       expect(isCardRemovable(`${prefix}test`, 'home', { getCardSettingsKey: identity, cardSettings: {} })).toBe(true);
     });
