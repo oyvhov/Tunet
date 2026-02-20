@@ -60,6 +60,15 @@ export const ConfigProvider = ({ children }) => {
     }
   });
 
+  const [unitsMode, setUnitsMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tunet_units_mode');
+      return saved && ['follow_ha', 'metric', 'imperial'].includes(saved) ? saved : 'follow_ha';
+    } catch {
+      return 'follow_ha';
+    }
+  });
+
   const [inactivityTimeout, setInactivityTimeout] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -375,6 +384,12 @@ export const ConfigProvider = ({ children }) => {
     }
   }, [language]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('tunet_units_mode', unitsMode);
+    } catch {}
+  }, [unitsMode]);
+
 
   const toggleTheme = () => {
     const themeKeys = Object.keys(themes);
@@ -390,6 +405,8 @@ export const ConfigProvider = ({ children }) => {
     toggleTheme,
     language,
     setLanguage,
+    unitsMode,
+    setUnitsMode,
     inactivityTimeout,
     setInactivityTimeout,
     bgMode,

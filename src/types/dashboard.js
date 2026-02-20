@@ -23,6 +23,8 @@
  * @property {() => void} toggleTheme
  * @property {string} language
  * @property {import('react').Dispatch<import('react').SetStateAction<string>>} setLanguage
+ * @property {'follow_ha' | 'metric' | 'imperial'} unitsMode
+ * @property {import('react').Dispatch<import('react').SetStateAction<'follow_ha' | 'metric' | 'imperial'>>} setUnitsMode
  * @property {number} inactivityTimeout
  * @property {import('react').Dispatch<import('react').SetStateAction<number>>} setInactivityTimeout
  * @property {string} bgMode

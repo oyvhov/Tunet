@@ -6,6 +6,8 @@ import {
   Thermometer,
   Zap
 } from '../../icons';
+import { useConfig, useHomeAssistantMeta } from '../../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode } from '../../utils';
 
 /* ─── Helpers (pure, no React) ─── */
 
@@ -51,6 +53,9 @@ const CarCard = ({
   _isMobile,
   t
 }) => {
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
+
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const {
     batteryId,
@@ -65,12 +70,28 @@ const CarCard = ({
 
   const batteryValue = getNumberState(entities, batteryId);
   const rangeValue = getNumberState(entities, rangeId);
-  const rangeUnit = rangeId ? (entities[rangeId]?.attributes?.unit_of_measurement || 'km') : 'km';
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+  const sourceRangeUnit = rangeId ? (entities[rangeId]?.attributes?.unit_of_measurement || 'km') : 'km';
+  const rangeUnit = getDisplayUnitForKind('length', effectiveUnitMode);
+  const displayRangeValue = convertValueByKind(rangeValue, {
+    kind: 'length',
+    fromUnit: sourceRangeUnit,
+    unitMode: effectiveUnitMode,
+  });
   const climateTempValueRaw = climateId ? getA(climateId, 'current_temperature') : null;
   const climateTempValue = climateTempValueRaw !== null && climateTempValueRaw !== undefined
     ? parseFloat(climateTempValueRaw)
     : null;
+  const sourceTempUnit = tempId
+    ? (entities[tempId]?.attributes?.unit_of_measurement || haConfig?.unit_system?.temperature || '°C')
+    : (climateId ? (entities[climateId]?.attributes?.temperature_unit || haConfig?.unit_system?.temperature || '°C') : (haConfig?.unit_system?.temperature || '°C'));
+  const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
   const tempValue = getNumberState(entities, tempId) ?? (Number.isFinite(climateTempValue) ? climateTempValue : null);
+  const displayTempValue = convertValueByKind(tempValue, {
+    kind: 'temperature',
+    fromUnit: sourceTempUnit,
+    unitMode: effectiveUnitMode,
+  });
   const locationLabel = locationId ? getS(locationId) : null;
 
   const chargingState = getSafeState(entities, chargingId);
@@ -101,8 +122,8 @@ const CarCard = ({
               <span className={`text-sm font-bold ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
                 {batteryValue !== null ? `${formatValue(batteryValue)}%` : '--'}
               </span>
-              {rangeValue !== null && (
-                <span className="text-xs text-[var(--text-secondary)]">{formatValue(rangeValue)} {rangeUnit}</span>
+              {displayRangeValue !== null && (
+                <span className="text-xs text-[var(--text-secondary)]">{formatUnitValue(displayRangeValue, { fallback: '--' })} {rangeUnit}</span>
               )}
             </div>
           </div>
@@ -121,7 +142,7 @@ const CarCard = ({
             <div className="flex items-start gap-1.5 px-3 py-1.5 rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] max-w-full"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" /><span className="text-xs tracking-widest font-bold uppercase break-words whitespace-normal leading-tight">{String(locationLabel)}</span></div>
           )}
           {tempValue !== null && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{formatValue(tempValue)}°</span></div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><Thermometer className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{formatUnitValue(displayTempValue, { fallback: '--' })}{displayTempUnit}</span></div>
           )}
           {isHtg && <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-orange-500/10 border-orange-500/20 text-orange-400 animate-pulse"><Flame className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{t('car.heating')}</span></div>}
         </div>
@@ -134,8 +155,8 @@ const CarCard = ({
               {batteryValue !== null ? `${formatValue(batteryValue)}%` : '--'}
             </span>
             {isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}
-            {rangeValue !== null && (
-              <span className="text-[var(--text-muted)] font-medium text-base ml-1">{formatValue(rangeValue)}{rangeUnit}</span>
+            {displayRangeValue !== null && (
+              <span className="text-[var(--text-muted)] font-medium text-base ml-1">{formatUnitValue(displayRangeValue, { fallback: '--' })}{rangeUnit}</span>
             )}
           </div>
           {pluggedId && (

@@ -1,6 +1,8 @@
 import { getIconComponent } from '../../icons';
 import { Activity, Clapperboard } from '../../icons';
 import { evaluateEntityCondition } from '../../utils/conditionUtils';
+import { useConfig, useHomeAssistantMeta } from '../../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode, inferUnitKind } from '../../utils';
 
 /**
  * Generic configurable status pill
@@ -24,7 +26,10 @@ export default function StatusPill({
   badge,
   isMobile
 }) {
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
   if (!pill) return null;
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
   const isConditionEnabled = pill.conditionEnabled !== false;
   const textMaxWidthClass = isMobile ? 'max-w-[16ch]' : 'max-w-[26ch]';
 
@@ -45,6 +50,21 @@ export default function StatusPill({
       : '';
 
     const selectedUnit = unitSource === 'custom' ? customUnit : capitalizeFirst(haUnit);
+    const inferredUnitKind = inferUnitKind(entity?.attributes?.device_class, haUnit);
+    const parsedNumericState = parseFloat(normalizedState.replace(',', '.'));
+
+    if (unitSource === 'ha' && inferredUnitKind && Number.isFinite(parsedNumericState)) {
+      const converted = convertValueByKind(parsedNumericState, {
+        kind: inferredUnitKind,
+        fromUnit: haUnit,
+        unitMode: effectiveUnitMode,
+      });
+      const convertedUnit = getDisplayUnitForKind(inferredUnitKind, effectiveUnitMode);
+      if (Number.isFinite(converted) && convertedUnit) {
+        return `${formatUnitValue(converted, { fallback: normalizedState })} ${convertedUnit}`;
+      }
+    }
+
     if (!selectedUnit) return normalizedState;
 
     const lowerState = normalizedState.toLowerCase();

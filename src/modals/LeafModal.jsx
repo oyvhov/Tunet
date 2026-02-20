@@ -1,6 +1,8 @@
 import { X, Car, Clock, RefreshCw, Zap, MapPin, Thermometer } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import { formatRelativeTime } from '../utils';
+import { useConfig, useHomeAssistantMeta } from '../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode } from '../utils';
 
 const formatValue = (val) => {
   if (val === null || val === undefined) return '--';
@@ -37,6 +39,10 @@ export default function LeafModal({
 }) {
   if (!show) return null;
 
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+
   const {
     name,
     batteryId,
@@ -55,6 +61,31 @@ export default function LeafModal({
     ? parseFloat(climateTempRaw)
     : null;
   const tempValue = tempId ? getS(tempId) : (Number.isFinite(climateTemp) ? climateTemp : null);
+  const rangeRaw = rangeId ? getS(rangeId) : null;
+  const rangeNumber = rangeRaw !== null && rangeRaw !== undefined ? parseFloat(String(rangeRaw).replace(',', '.')) : null;
+  const sourceRangeUnit = rangeId ? (entities[rangeId]?.attributes?.unit_of_measurement || 'km') : 'km';
+  const sourceTempUnit = tempId
+    ? (entities[tempId]?.attributes?.unit_of_measurement || haConfig?.unit_system?.temperature || '°C')
+    : (climateId ? (entities[climateId]?.attributes?.temperature_unit || haConfig?.unit_system?.temperature || '°C') : (haConfig?.unit_system?.temperature || '°C'));
+  const climateTargetRaw = climateId ? getA(climateId, 'temperature', 20) : 20;
+  const climateTargetValue = parseFloat(String(climateTargetRaw).replace(',', '.'));
+  const displayRangeUnit = getDisplayUnitForKind('length', effectiveUnitMode);
+  const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
+  const displayRangeValue = convertValueByKind(rangeNumber, {
+    kind: 'length',
+    fromUnit: sourceRangeUnit,
+    unitMode: effectiveUnitMode,
+  });
+  const displayTempValue = convertValueByKind(tempValue, {
+    kind: 'temperature',
+    fromUnit: sourceTempUnit,
+    unitMode: effectiveUnitMode,
+  });
+  const displayTargetTempValue = convertValueByKind(climateTargetValue, {
+    kind: 'temperature',
+    fromUnit: sourceTempUnit,
+    unitMode: effectiveUnitMode,
+  });
 
   const isCharging = entities[chargingId]?.state === 'on' || entities[chargingId]?.state === 'charging';
   const isHeating = entities[climateId]?.state && !['off', 'unknown', 'unavailable'].includes(entities[climateId]?.state);
@@ -180,8 +211,8 @@ export default function LeafModal({
                     <div className="p-4 rounded-2xl popup-surface flex flex-col items-center justify-center gap-1">
                         <span className="text-[10px] text-gray-400 uppercase font-bold tracking-[0.2em] mb-1">{t('car.range')}</span>
                         <div className="flex items-baseline gap-1">
-                             <span className="text-2xl font-light text-[var(--text-primary)]">{formatValue(getS(rangeId))}</span>
-                             <span className="text-xs text-gray-500 font-bold">km</span>
+                       <span className="text-2xl font-light text-[var(--text-primary)]">{formatUnitValue(displayRangeValue, { kind: 'length', fallback: '--' })}</span>
+                       <span className="text-xs text-gray-500 font-bold">{displayRangeUnit}</span>
                         </div>
                     </div>
                  )}
@@ -189,8 +220,8 @@ export default function LeafModal({
                     <div className="p-4 rounded-2xl popup-surface flex flex-col items-center justify-center gap-1">
                         <span className="text-[10px] text-gray-400 uppercase font-bold tracking-[0.2em] mb-1">Temp</span>
                         <div className="flex items-baseline gap-1">
-                             <span className="text-2xl font-light text-[var(--text-primary)]">{formatValue(tempValue)}</span>
-                             <span className="text-xs text-gray-500 font-bold">°C</span>
+                       <span className="text-2xl font-light text-[var(--text-primary)]">{formatUnitValue(displayTempValue, { kind: 'temperature', fallback: '--' })}</span>
+                       <span className="text-xs text-gray-500 font-bold">{displayTempUnit}</span>
                         </div>
                     </div>
                  )}
@@ -220,7 +251,7 @@ export default function LeafModal({
                     <div className="space-y-3 pt-2 border-t border-[var(--glass-border)]/50">
                         <div className="flex justify-between items-end">
                             <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">{t('car.target')}</span>
-                            <span className="text-lg font-light text-[var(--text-primary)]">{getA(climateId, "temperature", 20)}°C</span>
+                          <span className="text-lg font-light text-[var(--text-primary)]">{formatUnitValue(displayTargetTempValue, { kind: 'temperature', fallback: '--' })}{displayTempUnit}</span>
                         </div>
                         <M3Slider 
                           min={16} max={30} step={0.5} 

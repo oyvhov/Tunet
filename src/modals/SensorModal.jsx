@@ -6,8 +6,12 @@ import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import BinaryTimeline from '../components/charts/BinaryTimeline';
 import { formatRelativeTime } from '../utils';
 import { getIconComponent } from '../icons';
+import { useConfig, useHomeAssistantMeta } from '../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode, inferUnitKind } from '../utils';
 
 export default function SensorModal({ isOpen, onClose, entityId, entity, customName, conn, haUrl, haToken, t = (key) => key }) {
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
   const [history, setHistory] = useState([]);
   const [historyEvents, setHistoryEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -226,6 +230,8 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
   const domain = entityId?.split('.')?.[0];
   const isNumeric = !['script', 'scene'].includes(domain) && !isNaN(parseFloat(state)) && !String(state).match(/^unavailable|unknown$/) && !entityId.startsWith('binary_sensor.');
   const deviceClass = attrs.device_class;
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+  const inferredUnitKind = inferUnitKind(deviceClass, unit);
   // Determine if entity should show activity timeline and log
   const shouldShowActivity = () => getShouldShowActivity();
   
@@ -304,7 +310,21 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
     return stateMap[normalized] || String(value);
   };
 
-  let displayState = isNumeric ? parseFloat(state) : formatStateLabel(state, deviceClass);
+  const numericState = isNumeric ? parseFloat(state) : null;
+  const convertedNumericState = isNumeric && inferredUnitKind
+    ? convertValueByKind(numericState, {
+      kind: inferredUnitKind,
+      fromUnit: unit,
+      unitMode: effectiveUnitMode,
+    })
+    : numericState;
+  const displayUnit = isNumeric && inferredUnitKind
+    ? getDisplayUnitForKind(inferredUnitKind, effectiveUnitMode)
+    : unit;
+
+  let displayState = isNumeric
+    ? formatUnitValue(convertedNumericState, { fallback: '--' })
+    : formatStateLabel(state, deviceClass);
   // Add prefix for Scene timestamps
   if (domain === 'scene' && String(state).match(/^\d{4}-\d{2}-\d{2}T/)) {
     displayState = `${t('state.sceneSet')} ${formatRelativeTime(state, t)}`;
@@ -361,7 +381,7 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
                  <div className={`mt-2 px-3 py-1 rounded-full border inline-flex items-center gap-2 ${entity.state === 'unavailable' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
                  <div className={`w-1.5 h-1.5 rounded-full ${entity.state === 'unavailable' ? 'bg-red-500' : 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]'}`} />
                  <span className="text-[10px] font-bold uppercase tracking-widest leading-none pt-[1px]">
-                   {String(displayState)} {unit}
+                   {String(displayState)} {displayUnit}
                  </span>
                </div>
              </div>

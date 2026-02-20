@@ -1,5 +1,7 @@
 import WeatherGraph from '../charts/WeatherGraph';
 import WeatherEffects from '../effects/WeatherEffects';
+import { useConfig, useHomeAssistantMeta } from '../../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode } from '../../utils';
 
 const getWeatherInfo = (condition, t) => {
   const map = {
@@ -39,6 +41,9 @@ export default function WeatherTempCard({
   onOpen,
   t
 }) {
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
+
   const settings = cardSettings[settingsKey] || {};
   const isSmall = settings.size === 'small';
   const weatherId = settings.weatherId;
@@ -58,6 +63,17 @@ export default function WeatherTempCard({
   const tempValueRaw = tempEntity?.state ?? weatherEntity?.attributes?.temperature;
   const tempValue = parseFloat(tempValueRaw);
   const currentTemp = Number.isFinite(tempValue) ? tempValue : NaN;
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+  const sourceTempUnit = tempEntity?.attributes?.unit_of_measurement
+    || weatherEntity?.attributes?.temperature_unit
+    || haConfig?.unit_system?.temperature
+    || '°C';
+  const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
+  const displayTempValue = convertValueByKind(currentTemp, {
+    kind: 'temperature',
+    fromUnit: sourceTempUnit,
+    unitMode: effectiveUnitMode,
+  });
   const graphHistoryHours = Number.isFinite(settings.graphHistoryHours) ? settings.graphHistoryHours : 12;
   const graphColorLimits = [
     Number.isFinite(settings.graphLimit1) ? settings.graphLimit1 : 0,
@@ -89,13 +105,26 @@ export default function WeatherTempCard({
     }));
   }
 
+  const historyForDisplay = Array.isArray(history)
+    ? history.map((entry) => {
+      const raw = parseFloat(entry?.state);
+      if (!Number.isFinite(raw)) return entry;
+      const converted = convertValueByKind(raw, {
+        kind: 'temperature',
+        fromUnit: sourceTempUnit,
+        unitMode: effectiveUnitMode,
+      });
+      return Number.isFinite(converted) ? { ...entry, state: converted } : entry;
+    })
+    : [];
+
   if (isSmall) {
     return (
       <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode && onOpen) onOpen(); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={cardStyle}>
         {getControls(cardId)}
         {showEffects && <WeatherEffects condition={state} />}
         <div className="absolute inset-0 opacity-30 z-0">
-          <WeatherGraph history={history} currentTemp={currentTemp} historyHours={graphHistoryHours} colorLimits={graphColorLimits} />
+          <WeatherGraph history={historyForDisplay} currentTemp={displayTempValue} historyHours={graphHistoryHours} colorLimits={graphColorLimits} />
         </div>
         <div className="flex items-center gap-4 flex-1 min-w-0 relative z-10">
           <div className="w-12 h-12 flex items-center justify-center -ml-1 filter drop-shadow-md">
@@ -103,7 +132,7 @@ export default function WeatherTempCard({
           </div>
           <div className="flex flex-col min-w-0">
             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{info.label}</p>
-            <span className="text-2xl font-medium text-[var(--text-primary)] leading-none">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
+            <span className="text-2xl font-medium text-[var(--text-primary)] leading-none">{formatUnitValue(displayTempValue, { fallback: '--' })}{displayTempUnit}</span>
             {subtitle && <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate mt-1">{subtitle}</p>}
           </div>
         </div>
@@ -125,12 +154,12 @@ export default function WeatherTempCard({
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
               <span className="text-xs tracking-widest uppercase font-bold">{info.label}</span>
             </div>
-            <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{Number.isFinite(currentTemp) ? currentTemp : '--'}°</span>
+            <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{formatUnitValue(displayTempValue, { fallback: '--' })}{displayTempUnit}</span>
           </div>
         </div>
       </div>
       <div className="h-32 mt-auto relative z-0 -mb-7 -mx-7 opacity-80 overflow-hidden rounded-b-3xl">
-        <WeatherGraph history={history} currentTemp={currentTemp} historyHours={graphHistoryHours} colorLimits={graphColorLimits} />
+        <WeatherGraph history={historyForDisplay} currentTemp={displayTempValue} historyHours={graphHistoryHours} colorLimits={graphColorLimits} />
       </div>
     </div>
   );

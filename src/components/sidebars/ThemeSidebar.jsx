@@ -3,6 +3,7 @@ import React from 'react';
 import ModernDropdown from '../ui/ModernDropdown';
 import M3Slider from '../ui/M3Slider';
 import { GRADIENT_PRESETS } from '../../contexts/ConfigContext';
+import { useConfig } from '../../contexts';
 import {
   Sparkles,
   Sun,
@@ -42,6 +43,7 @@ export default function ThemeSidebar({
   inactivityTimeout,
   setInactivityTimeout
 }) {
+  const { unitsMode, setUnitsMode } = useConfig();
   const bgModes = [
     { key: 'theme', icon: Sparkles, label: t('settings.bgFollowTheme') },
     { key: 'solid', icon: Sun, label: t('settings.bgSolid') },
@@ -118,6 +120,19 @@ export default function ThemeSidebar({
               current={language}
               onChange={setLanguage}
               map={{ en: t('language.en'), nb: t('language.nb'), nn: t('language.nn'), sv: t('language.sv'), de: t('language.de') }}
+              placeholder={t('dropdown.noneSelected')}
+            />
+            <ModernDropdown
+              label={t('settings.unitSystem')}
+              icon={RefreshCw}
+              options={['follow_ha', 'metric', 'imperial']}
+              current={unitsMode}
+              onChange={setUnitsMode}
+              map={{
+                follow_ha: t('settings.unitSystem.followHa'),
+                metric: t('settings.unitSystem.metric'),
+                imperial: t('settings.unitSystem.imperial')
+              }}
               placeholder={t('dropdown.noneSelected')}
             />
           </div>

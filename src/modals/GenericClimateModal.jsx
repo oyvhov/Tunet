@@ -1,6 +1,8 @@
 import { AirVent, ArrowUpDown, Fan, Flame, Minus, Plus, Snowflake, X } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import ModernDropdown from '../components/ui/ModernDropdown';
+import { useConfig, useHomeAssistantMeta } from '../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode } from '../utils';
 
 const getDisplayName = (entity, fallback) => entity?.attributes?.friendly_name || fallback;
 
@@ -16,12 +18,28 @@ export default function GenericClimateModal({
 }) {
   if (!entityId || !entity) return null;
 
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
+
   const hvacAction = entity.attributes?.hvac_action || 'idle';
   const isCooling = hvacAction === 'cooling';
   const isHeating = hvacAction === 'heating';
   const clTheme = isCooling ? 'blue' : isHeating ? 'orange' : 'gray';
   const currentTemp = entity.attributes?.current_temperature;
   const targetTemp = entity.attributes?.temperature;
+  const sourceTempUnit = entity.attributes?.temperature_unit || haConfig?.unit_system?.temperature || '°C';
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+  const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
+  const displayCurrentTemp = convertValueByKind(currentTemp, {
+    kind: 'temperature',
+    fromUnit: sourceTempUnit,
+    unitMode: effectiveUnitMode,
+  });
+  const displayTargetTemp = convertValueByKind(targetTemp, {
+    kind: 'temperature',
+    fromUnit: sourceTempUnit,
+    unitMode: effectiveUnitMode,
+  });
   const minTemp = entity.attributes?.min_temp ?? 16;
   const maxTemp = entity.attributes?.max_temp ?? 30;
 
@@ -80,14 +98,14 @@ export default function GenericClimateModal({
                 <div className="flex justify-between items-center mb-6 px-4 italic">
                   <p className="text-xs text-gray-400 uppercase font-bold" style={{ letterSpacing: '0.5em' }}>{t('climate.indoorTemp')}</p>
                   <span className="text-xs uppercase font-bold" style={{ letterSpacing: '0.3em', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af' }}>
-                    {typeof currentTemp === 'number' ? `${currentTemp}°C` : '--'}
+                    {typeof displayCurrentTemp === 'number' ? `${formatUnitValue(displayCurrentTemp, { fallback: '--' })}${displayTempUnit}` : '--'}
                   </span>
                 </div>
                 <div className="flex items-center justify-center gap-4 mb-10">
                   <span className="text-6xl md:text-9xl font-light italic text-[var(--text-primary)] tracking-tighter leading-none select-none" style={{ textShadow: '0 10px 25px rgba(0,0,0,0.1)', color: isHeating ? '#fef2f2' : isCooling ? '#f0f9ff' : 'var(--text-primary)' }}>
-                    {String(tempValue)}
+                    {formatUnitValue(displayTargetTemp, { fallback: '--' })}
                   </span>
-                  <span className="text-5xl font-medium leading-none mt-10 italic text-gray-700">°C</span>
+                  <span className="text-5xl font-medium leading-none mt-10 italic text-gray-700">{displayTempUnit}</span>
                 </div>
                 <div className="flex items-center gap-8 px-4">
                   <button onClick={() => callService('climate', 'set_temperature', { entity_id: entityId, temperature: tempValue - 0.5 })} className="p-6 rounded-full transition-all active:scale-90 shadow-lg border" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
