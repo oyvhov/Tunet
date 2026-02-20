@@ -80,7 +80,14 @@ export default function WeatherTempCard({
     Number.isFinite(settings.graphLimit2) ? settings.graphLimit2 : 10,
     Number.isFinite(settings.graphLimit3) ? settings.graphLimit3 : 20,
     Number.isFinite(settings.graphLimit4) ? settings.graphLimit4 : 28,
-  ].sort((a, b) => a - b);
+  ]
+    .map((limit) => convertValueByKind(limit, {
+      kind: 'temperature',
+      fromUnit: '°C',
+      unitMode: effectiveUnitMode,
+    }))
+    .filter((limit) => Number.isFinite(limit))
+    .sort((a, b) => a - b);
 
   // Try to use history first (sensor), fallback to forecast (weather entity)
   let history = [];

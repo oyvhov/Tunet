@@ -3,6 +3,8 @@ import { X, Check, Plus, RefreshCw } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
 import { getEntitiesForArea } from '../services/haClient';
+import { useConfig, useHomeAssistantMeta } from '../contexts';
+import { convertValueByKind, getDisplayUnitForKind, getEffectiveUnitMode } from '../utils';
 
 function GraphLimitsSlider({ values, onChange, min = -15, max = 35 }) {
   const trackRef = React.useRef(null);
@@ -546,10 +548,17 @@ export default function EditCardModal({
   saveCardSetting,
 }) {
   const [mediaSearch, setMediaSearch] = React.useState('');
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
 
   if (!isOpen) return null;
 
   const maxColSpan = gridColumns || 4;
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+  const tempDisplayUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
+  const graphLimitRange = effectiveUnitMode === 'imperial'
+    ? { min: 5, max: 95 }
+    : { min: -15, max: 35 };
   const isPerson = entityId?.startsWith('person.');
   const personDisplay = editSettings?.personDisplay || 'photo';
 
@@ -726,19 +735,30 @@ export default function EditCardModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('weatherTemp.graphLimits') || 'Graph color limits'}</label>
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('weatherTemp.graphLimits') || 'Graph color limits'} ({tempDisplayUnit})</label>
                 <GraphLimitsSlider
                   values={[
                     Number.isFinite(editSettings.graphLimit1) ? editSettings.graphLimit1 : 0,
                     Number.isFinite(editSettings.graphLimit2) ? editSettings.graphLimit2 : 10,
                     Number.isFinite(editSettings.graphLimit3) ? editSettings.graphLimit3 : 20,
                     Number.isFinite(editSettings.graphLimit4) ? editSettings.graphLimit4 : 28,
-                  ]}
+                  ].map((limit) => convertValueByKind(limit, {
+                    kind: 'temperature',
+                    fromUnit: '°C',
+                    unitMode: effectiveUnitMode,
+                  }))}
+                  min={graphLimitRange.min}
+                  max={graphLimitRange.max}
                   onChange={(next) => {
-                    saveCardSetting(editSettingsKey, 'graphLimit1', next[0]);
-                    saveCardSetting(editSettingsKey, 'graphLimit2', next[1]);
-                    saveCardSetting(editSettingsKey, 'graphLimit3', next[2]);
-                    saveCardSetting(editSettingsKey, 'graphLimit4', next[3]);
+                    const canonicalLimits = next.map((limit) => convertValueByKind(limit, {
+                      kind: 'temperature',
+                      fromUnit: tempDisplayUnit,
+                      unitMode: 'metric',
+                    }));
+                    saveCardSetting(editSettingsKey, 'graphLimit1', canonicalLimits[0]);
+                    saveCardSetting(editSettingsKey, 'graphLimit2', canonicalLimits[1]);
+                    saveCardSetting(editSettingsKey, 'graphLimit3', canonicalLimits[2]);
+                    saveCardSetting(editSettingsKey, 'graphLimit4', canonicalLimits[3]);
                   }}
                 />
               </div>
@@ -1220,6 +1240,46 @@ export default function EditCardModal({
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showHistory ? 'left-7' : 'left-1'}`} />
                   </button>
               </div>
+
+               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showLastUpdated') || 'Show Last Updated'}</span>
+                  <button
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastUpdated', !(editSettings.showLastUpdated !== false))}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastUpdated !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastUpdated !== false ? 'left-7' : 'left-1'}`} />
+                  </button>
+               </div>
+
+               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showTrackerTelemetry') || 'Show GPS/Speed/Heading'}</span>
+                  <button
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showTrackerTelemetry', !(editSettings.showTrackerTelemetry !== false))}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showTrackerTelemetry !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showTrackerTelemetry !== false ? 'left-7' : 'left-1'}`} />
+                  </button>
+               </div>
+
+               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showDistanceFromHome') || 'Show Distance from Home'}</span>
+                  <button
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showDistanceFromHome', !(editSettings.showDistanceFromHome !== false))}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showDistanceFromHome !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showDistanceFromHome !== false ? 'left-7' : 'left-1'}`} />
+                  </button>
+               </div>
+
+               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
+                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.emphasizeZone') || 'Emphasize zone/state'}</span>
+                  <button
+                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'emphasizeZone', !(editSettings.emphasizeZone !== false))}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.emphasizeZone !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.emphasizeZone !== false ? 'left-7' : 'left-1'}`} />
+                  </button>
+               </div>
             </div>
           )}
 

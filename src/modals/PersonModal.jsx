@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { X, MapPin, Battery, Clock } from '../icons';
@@ -19,6 +19,10 @@ export default function PersonModal({
   const name = customName || entity?.attributes?.friendly_name || personId;
   const picture = getEntityImageUrl ? getEntityImageUrl(entity?.attributes?.entity_picture) : null;
   const showHistory = settings?.showHistory || false;
+  const showLastUpdated = settings?.showLastUpdated !== false;
+  const showTrackerTelemetry = settings?.showTrackerTelemetry !== false;
+  const showDistanceFromHome = settings?.showDistanceFromHome !== false;
+  const emphasizeZone = settings?.emphasizeZone !== false;
 
   // Settings overrides
   const manualTrackerId = settings?.deviceTracker;
@@ -73,6 +77,49 @@ export default function PersonModal({
   const currentState = entity?.state;
   let batteryLevel = entity?.attributes?.battery_level;
   let batteryState = entity?.attributes?.battery_state;
+  const trackedEntity = entities?.[trackedEntityId];
+  const gpsAccuracy = trackedEntity?.attributes?.gps_accuracy;
+  const speed = trackedEntity?.attributes?.speed;
+  const heading = trackedEntity?.attributes?.course ?? trackedEntity?.attributes?.heading;
+  const speedUnit = trackedEntity?.attributes?.unit_of_measurement || 'km/h';
+  const lastUpdatedRaw = trackedEntity?.last_updated || entity?.last_updated;
+
+  const homeLat = entities?.['zone.home']?.attributes?.latitude;
+  const homeLon = entities?.['zone.home']?.attributes?.longitude;
+
+  const distanceFromHomeKm = useMemo(() => {
+    if (!showDistanceFromHome || !currentLat || !currentLon || !homeLat || !homeLon) return null;
+
+    const toRadians = (value) => (value * Math.PI) / 180;
+    const earthRadiusKm = 6371;
+    const latDelta = toRadians(homeLat - currentLat);
+    const lonDelta = toRadians(homeLon - currentLon);
+    const fromLat = toRadians(currentLat);
+    const toLat = toRadians(homeLat);
+
+    const a = (Math.sin(latDelta / 2) ** 2)
+      + (Math.cos(fromLat) * Math.cos(toLat) * Math.sin(lonDelta / 2) ** 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadiusKm * c;
+  }, [showDistanceFromHome, currentLat, currentLon, homeLat, homeLon]);
+
+  const formattedLastUpdated = useMemo(() => {
+    if (!lastUpdatedRaw) return null;
+    const parsed = new Date(lastUpdatedRaw);
+    if (Number.isNaN(parsed.getTime())) return null;
+
+    const day = String(parsed.getDate()).padStart(2, '0');
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const hours = String(parsed.getHours()).padStart(2, '0');
+    const minutes = String(parsed.getMinutes()).padStart(2, '0');
+    return `${day}.${month} ${hours}:${minutes}`;
+  }, [lastUpdatedRaw]);
+
+  const isLightTheme = typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light';
+  const tileUrl = isLightTheme
+    ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 
   // 1. Manual Override
   if (manualBatteryId && entities?.[manualBatteryId]) {
@@ -113,6 +160,7 @@ export default function PersonModal({
   const [historyPoints, setHistoryPoints] = useState([]);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const tileLayerRef = useRef(null);
   const markerRef = useRef(null);
   const pathRef = useRef(null);
   
@@ -162,7 +210,7 @@ export default function PersonModal({
                attributionControl: false
            }).setView([currentLat, currentLon], 14);
            
-           L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+           tileLayerRef.current = L.tileLayer(tileUrl, {
                subdomains: 'abcd',
                maxZoom: 19
            }).addTo(map);
@@ -171,6 +219,14 @@ export default function PersonModal({
            // Invalidate size to ensure it fills container
            setTimeout(() => map.invalidateSize(), 100);
        } else {
+            const hasDifferentLayer = tileLayerRef.current?._url !== tileUrl;
+            if (hasDifferentLayer) {
+              tileLayerRef.current?.remove();
+              tileLayerRef.current = L.tileLayer(tileUrl, {
+                subdomains: 'abcd',
+                maxZoom: 19
+              }).addTo(mapInstanceRef.current);
+            }
             // Only update view if we are not fitting bounds to history
             if (!showHistory || historyPoints.length === 0) {
                  mapInstanceRef.current.setView([currentLat, currentLon]);
@@ -221,7 +277,7 @@ export default function PersonModal({
     }, 200); // Slight delay for modal animation
 
     return () => clearTimeout(timer);
-  }, [show, currentLat, currentLon, showHistory, historyPoints]);
+  }, [show, currentLat, currentLon, showHistory, historyPoints, tileUrl]);
 
   useEffect(() => {
      if (!show && mapInstanceRef.current) {
@@ -229,6 +285,7 @@ export default function PersonModal({
          mapInstanceRef.current = null;
          markerRef.current = null;
          pathRef.current = null;
+         tileLayerRef.current = null;
      }
   }, [show]);
 
@@ -242,12 +299,13 @@ export default function PersonModal({
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-        .compact-map { height: 200px; }
-        @media (min-width: 640px) { .compact-map { height: 300px; } }
-        .leaflet-container { background: #1a1a1a !important; font-family: inherit; }
+        .dynamic-map { height: min(52vh, 460px); min-height: 260px; }
+        @media (min-width: 640px) { .dynamic-map { min-height: 320px; } }
+        @media (min-width: 1024px) { .dynamic-map { height: min(58vh, 520px); min-height: 420px; } }
+        .leaflet-container { font-family: inherit; }
       `}</style>
       {/* Compact Container */}
-      <div className="border w-full max-w-lg max-h-[80vh] rounded-3xl shadow-2xl relative font-sans flex flex-col overflow-hidden popup-anim"
+      <div className="border w-full max-w-[1240px] max-h-[82vh] rounded-3xl shadow-2xl relative font-sans flex flex-col overflow-hidden popup-anim"
            style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)'}}
            onClick={(e) => e.stopPropagation()}>
         
@@ -267,9 +325,9 @@ export default function PersonModal({
             </div>
             <div className="min-w-0">
               <h3 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none truncate">{name}</h3>
-              <div className="mt-2 px-3 py-1 rounded-full border inline-flex items-center gap-2" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+              <div className={`mt-2 px-3 py-1 rounded-full border inline-flex items-center gap-2 ${emphasizeZone ? 'text-[11px]' : 'text-[10px]'}`} style={{ backgroundColor: emphasizeZone ? 'var(--glass-bg-hover)' : 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
                 <MapPin className="w-3 h-3" />
-                <span className="text-[10px] uppercase font-bold italic tracking-widest">
+                <span className={`uppercase font-bold italic tracking-widest ${emphasizeZone ? 'text-[11px]' : 'text-[10px]'}`}>
                   {currentState === 'home' ? t('status.home') : currentState === 'not_home' ? t('status.notHome') : currentState}
                 </span>
               </div>
@@ -282,53 +340,83 @@ export default function PersonModal({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <div className="space-y-4">
-              
-              {/* Battery Card (Compact) */}
+          <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-4 lg:items-start">
+            <div className="space-y-4 lg:col-span-3 lg:max-h-[58vh] lg:overflow-y-auto custom-scrollbar lg:pr-2">
               {batteryLevel !== undefined && (
                 <div className="px-4 py-3 rounded-xl popup-surface flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                      <Battery className={`w-4 h-4 ${batteryLevel < 20 ? 'text-red-400' : 'text-green-400'}`} />
-                      <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{t('person.battery')}</span>
-                   </div>
-                   <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-bold">{batteryLevel}%</span>
-                      {batteryState && <span className="text-[10px] text-gray-400 font-mono">({batteryState})</span>}
-                   </div>
+                  <div className="flex items-center gap-3">
+                    <Battery className={`w-4 h-4 ${batteryLevel < 20 ? 'text-red-400' : 'text-green-400'}`} />
+                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{t('person.battery')}</span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-bold">{batteryLevel}%</span>
+                    {batteryState && <span className="text-[10px] text-gray-400 font-mono">({batteryState})</span>}
+                  </div>
                 </div>
               )}
 
-              {/* Map */}
-              {currentLat && currentLon ? (
-                <div className="w-full compact-map rounded-xl overflow-hidden relative group border border-[var(--glass-border)] bg-[var(--glass-bg)] z-0">
-                   <div ref={mapRef} className="w-full h-full z-0" />
-                </div>
-              ) : (
-                <div className="p-6 rounded-xl border border-[var(--glass-border)] text-center text-sm text-[var(--text-secondary)] italic">
-                    {t('map.locationUnknown') || 'Posisjon ukjend'}
+              {showLastUpdated && formattedLastUpdated && (
+                <div className="px-4 py-3 rounded-xl popup-surface flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-4 h-4 text-[var(--text-secondary)]" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{t('person.lastUpdated')}</span>
+                  </div>
+                  <span className="text-xs text-[var(--text-primary)] font-mono">
+                    {formattedLastUpdated}
+                  </span>
                 </div>
               )}
 
-              {/* History List (if enabled) */}
+              {showTrackerTelemetry && (gpsAccuracy !== undefined || speed !== undefined || heading !== undefined) && (
+                <div className="px-4 py-3 rounded-xl popup-surface">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">{t('person.trackerTelemetry')}</p>
+                  <div className="grid grid-cols-1 gap-2 text-xs">
+                    {gpsAccuracy !== undefined && <div><span className="text-[var(--text-secondary)]">{t('person.gpsAccuracy')}: </span><span className="font-semibold">{gpsAccuracy} m</span></div>}
+                    {speed !== undefined && <div><span className="text-[var(--text-secondary)]">{t('person.speed')}: </span><span className="font-semibold">{speed} {speedUnit}</span></div>}
+                    {heading !== undefined && <div><span className="text-[var(--text-secondary)]">{t('person.heading')}: </span><span className="font-semibold">{heading}°</span></div>}
+                  </div>
+                </div>
+              )}
+
+              {showDistanceFromHome && Number.isFinite(distanceFromHomeKm) && (
+                <div className="px-4 py-3 rounded-xl popup-surface flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{t('person.distanceFromHome')}</span>
+                  <span className="text-sm font-semibold">{distanceFromHomeKm < 1 ? `${Math.round(distanceFromHomeKm * 1000)} m` : `${distanceFromHomeKm.toFixed(1)} km`}</span>
+                </div>
+              )}
+
               {showHistory && historyPoints.length > 0 && (
-                <div className="space-y-2 pt-2">
-                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] ml-1 flex items-center gap-2">
-                      <Clock className="w-3 h-3" /> {t('person.historyTitle')}
-                   </h4>
-                   <div className="space-y-1">
-                      {historyPoints.map((pt, i) => (
-                          <div key={pt.last_updated || i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500/50"></div>
-                              <span className="text-xs font-mono text-gray-400">{new Date(pt.last_updated).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                              <span className="text-xs text-gray-300 truncate">
-                                  {pt.state === 'home' ? t('status.home') : pt.state === 'not_home' ? t('status.notHome') : pt.state}
-                              </span>
-                          </div>
-                      ))}
-                   </div>
+                <div className="space-y-2 pt-1">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] ml-1 flex items-center gap-2">
+                    <Clock className="w-3 h-3" /> {t('person.historyTitle')}
+                  </h4>
+                  <div className="space-y-1">
+                    {historyPoints.map((pt, i) => (
+                      <div key={pt.last_updated || i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500/50"></div>
+                        <span className="text-xs font-mono text-gray-400">{new Date(pt.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-xs text-gray-300 truncate">
+                          {pt.state === 'home' ? t('status.home') : pt.state === 'not_home' ? t('status.notHome') : pt.state}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
+
+            <div className="lg:col-span-9">
+              {currentLat && currentLon ? (
+                <div className="w-full dynamic-map rounded-xl overflow-hidden relative group border border-[var(--glass-border)] bg-[var(--glass-bg)] z-0">
+                  <div ref={mapRef} className="w-full h-full z-0" />
+                </div>
+              ) : (
+                <div className="p-6 rounded-xl border border-[var(--glass-border)] text-center text-sm text-[var(--text-secondary)] italic">
+                  {t('map.locationUnknown')}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
