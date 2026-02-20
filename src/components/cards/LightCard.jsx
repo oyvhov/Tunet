@@ -92,10 +92,19 @@ const LightCard = ({
       <div className="mt-2 font-sans">
         <p className="text-[var(--text-secondary)] text-[10px] tracking-[0.2em] uppercase mb-0.5 font-bold opacity-60 leading-none">{String(name || t('common.light'))}</p>
         <div className="flex items-baseline gap-1 leading-none mt-1">
-          <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">
-            {isUnavailable ? "--" : (isOn ? (isDimmable ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100) : t('common.on')) : (isDimmable ? "0" : t('common.off')))}
-          </span>
-          {isDimmable && <span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span>}
+          {isDimmable ? (
+            <>
+              <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">
+                {isUnavailable ? "--" : (isOn ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100) : "0")}
+              </span>
+              <span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span>
+            </>
+          ) : (
+            /* Layout: maintain 4xl height but show nothing unless UNAVAILABLE */
+            <span className="text-4xl font-medium text-transparent leading-none select-none">
+              {isUnavailable ? <span className="text-[var(--text-primary)]">--</span> : "0"}
+            </span>
+          )}
         </div>
         {/* Helper to keep layout consistent. For non-dimmable, we keep the empty space where slider would be. */}
         <div className={`w-full flex items-center mt-3 ${isDimmable ? '' : 'h-12'}`}> 
