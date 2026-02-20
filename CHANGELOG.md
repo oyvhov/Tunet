@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.1] — 2026-02-21
+
+### Fixed
+- Fixed Person popup units not following HA configuration (Imperial/Metric switching) ([#66](https://github.com/oyvhov/Tunet/issues/66)).
+- Fixed logic where lights always showed brightness ([#64](https://github.com/oyvhov/Tunet/issues/64)).
+
+### Changed
+- Redesigned Person popup to align with Car modal aesthetics (glassmorphism/rounded) ([#65](https://github.com/oyvhov/Tunet/issues/65)).
+- Implemented strict sensor configuration for Person popups (no more unconfigured "ghost" sensors).
+- Dynamic map layout in Person popup: map expands to full width when no sensors are present.
+- Improved Editor experience for Person card: unrestricted entity selection and removed count badges.
+
+
 ## [1.6.0] — 2026-02-20
 
 ### Changed

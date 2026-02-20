@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+
+- Release metadata sync.
+
 ## 1.6.0
 
 - Includes dashboard release `1.6.0`.
