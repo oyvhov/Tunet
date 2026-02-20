@@ -22,10 +22,16 @@ export default function LightModal({
   const isOn = entity?.state === 'on';
 
   // --- Feature Detection ---
+  const supportedColorModes = entity?.attributes?.supported_color_modes;
+  const isDimmable = supportedColorModes
+    ? !supportedColorModes.includes('onoff') || supportedColorModes.length > 1
+    : (entity?.attributes?.supported_features & 1) === 1;
+
   const colorModes = entity?.attributes?.supported_color_modes || [];
   const supportsColorTemp = colorModes.includes('color_temp') || colorModes.includes('color_temp_kelvin');
   const supportsColor = colorModes.some((mode) => ['hs', 'rgb', 'xy'].includes(mode));
-  const showPills = supportsColorTemp || supportsColor;
+  const showPills = isDimmable && (supportsColorTemp || supportsColor);
+  const showRightPanel = isDimmable || getA(lightId, "entity_id", []).length > 0;
 
   // --- Icon ---
   let DefaultIcon = Lightbulb;
@@ -105,7 +111,7 @@ export default function LightModal({
       onClick={onClose}
     >
       <div 
-        className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] overflow-hidden flex flex-col lg:grid lg:grid-cols-5 backdrop-blur-xl shadow-2xl popup-anim relative max-h-[90vh] md:h-auto md:min-h-[550px]"
+        className={`border w-full ${showRightPanel ? 'max-w-5xl' : 'max-w-xl'} rounded-3xl md:rounded-[3rem] overflow-hidden flex flex-col ${showRightPanel ? 'lg:grid lg:grid-cols-5' : ''} backdrop-blur-xl shadow-2xl popup-anim relative max-h-[90vh] md:min-h-[550px]`}
         style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -117,7 +123,7 @@ export default function LightModal({
         </div>
 
         {/* LEFT PANEL: Visuals & Ambient (3 cols) */}
-        <div className="lg:col-span-3 relative p-4 md:p-10 flex flex-col justify-between overflow-hidden border-b lg:border-b-0 lg:border-r shrink-0" style={{borderColor: 'var(--glass-border)'}}>
+        <div className={`${showRightPanel ? 'lg:col-span-3 border-b lg:border-b-0 lg:border-r' : 'w-full h-full flex-1'} relative p-4 md:p-10 flex flex-col justify-between overflow-hidden shrink-0`} style={{borderColor: 'var(--glass-border)'}}>
              
              {/* Dynamic Ambient Glow - Subtler */}
              <div 
@@ -208,10 +214,12 @@ export default function LightModal({
         </div>
 
         {/* RIGHT PANEL: Controls (2 cols) */}
+        {showRightPanel && (
         <div className="lg:col-span-2 flex flex-col h-full">
             <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:pt-16 space-y-4 md:space-y-8 custom-scrollbar">
               
               {/* Dynamic Control Area - Simplified */}
+              {isDimmable && (
               <div className="min-h-[100px] md:min-h-[140px] flex flex-col justify-center">
                    {/* Brightness Slider */}
                    {activeTab === 'brightness' && (
@@ -315,6 +323,7 @@ export default function LightModal({
                      </div>
                    )}
               </div>
+              )}
 
               {/* Sub Entities - Cleaner list */}
               {getA(lightId, "entity_id", []).length > 0 && (
@@ -377,6 +386,7 @@ export default function LightModal({
             
             {/* Quick Actions Footer (Right Column) - Removed redundant toggle */}
         </div>
+        )}
       </div>
     </div>
   );
