@@ -726,7 +726,7 @@ export default function EditCardModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('weatherTemp.graphLimits') || 'Graph color limits (°C)'}</label>
+                <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('weatherTemp.graphLimits') || 'Graph color limits'}</label>
                 <GraphLimitsSlider
                   values={[
                     Number.isFinite(editSettings.graphLimit1) ? editSettings.graphLimit1 : 0,

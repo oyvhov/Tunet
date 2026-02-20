@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Minus, Plus, Activity, Play } from 'lucide-react';
 import { getHistory, getStatistics } from '../../services/haClient';
 import SparkLine from '../charts/SparkLine';
+import { useConfig, useHomeAssistantMeta } from '../../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode, inferUnitKind } from '../../utils';
 
 export default function SensorCard({ 
   entity, 
@@ -18,6 +20,8 @@ export default function SensorCard({
   t
 }) {
   const translate = t || ((key) => key);
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
   const state = entity?.state;
   const unit = entity?.attributes?.unit_of_measurement || '';
   const isNumeric = typeof state === 'string'
@@ -30,6 +34,18 @@ export default function SensorCard({
   const numericState = isNumeric ? parseFloat(state) : null;
   const isBinaryNumeric = isNumeric && (numericState === 0 || numericState === 1);
   const isBinaryLike = isOnOffState || isBinaryNumeric;
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+  const inferredUnitKind = inferUnitKind(deviceClass, unit);
+  const convertedNumericState = isNumeric && !isBinaryNumeric && inferredUnitKind
+    ? convertValueByKind(numericState, {
+      kind: inferredUnitKind,
+      fromUnit: unit,
+      unitMode: effectiveUnitMode,
+    })
+    : numericState;
+  const displayNumericUnit = isNumeric && !isBinaryNumeric && inferredUnitKind
+    ? getDisplayUnitForKind(inferredUnitKind, effectiveUnitMode)
+    : unit;
   const isActiveState = isOnOffState ? state === 'on' : (isBinaryNumeric ? numericState === 1 : false);
   const binaryStateKeys = {
     door: { on: 'binary.door.open', off: 'binary.door.closed' },
@@ -50,7 +66,9 @@ export default function SensorCard({
     : null;
   const sceneDisplayState = domain === 'scene' ? translate('sensor.scene.label') : null;
   const scriptDisplayState = domain === 'script' ? translate('sensor.script.label') : null;
-  const displayState = isNumeric ? parseFloat(state) : (binaryDisplayState || toggleDisplayState || sceneDisplayState || scriptDisplayState || state);
+  const displayState = isNumeric
+    ? formatUnitValue(convertedNumericState, { fallback: '--' })
+    : (binaryDisplayState || toggleDisplayState || sceneDisplayState || scriptDisplayState || state);
   const iconToneClass = isBinaryLike
     ? (isUnavailable
       ? 'bg-red-500/10 text-red-400'
@@ -282,10 +300,10 @@ export default function SensorCard({
           </button>
           <div className="flex items-baseline gap-1">
             <span className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
-              {isNumeric ? parseFloat(state) : state}
+              {isNumeric ? formatUnitValue(convertedNumericState, { fallback: '--' }) : state}
             </span>
             <span className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider ml-1">
-              {unit}
+              {displayNumericUnit}
             </span>
           </div>
           <button 
@@ -319,7 +337,7 @@ export default function SensorCard({
                 {showStatus && <span className="text-sm font-bold text-[var(--text-primary)] leading-none">
                   {displayState}
                 </span>}
-                {showStatus && unit && <span className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider leading-none">{unit}</span>}
+                {showStatus && displayNumericUnit && <span className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-wider leading-none">{displayNumericUnit}</span>}
             </div>
           </div>
         </div>
@@ -370,7 +388,7 @@ export default function SensorCard({
           <span className="text-xs tracking-widest uppercase font-bold">
             {displayState}
           </span>
-          {unit && <span className="text-[10px] font-medium uppercase tracking-wider">{unit}</span>}
+          {displayNumericUnit && <span className="text-[10px] font-medium uppercase tracking-wider">{displayNumericUnit}</span>}
         </div>
       </div>
 

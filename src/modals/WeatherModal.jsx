@@ -6,6 +6,8 @@ import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import { getForecast, getHistory, getStatistics } from '../services/haClient';
 import { getIconComponent } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
+import { useConfig, useHomeAssistantMeta } from '../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode } from '../utils';
 
 const getWeatherInfo = (condition, t) => {
   const map = {
@@ -46,6 +48,9 @@ export default function WeatherModal({
 
   const translate = t || ((key) => key);
   const locale = getLocaleForLanguage(language);
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
   const condition = weatherEntity.state;
   const info = getWeatherInfo(condition, t);
   const MainIcon = info.Icon;
@@ -54,23 +59,59 @@ export default function WeatherModal({
   const currentTemp = Number.isFinite(parseFloat(currentTempRaw)) ? parseFloat(currentTempRaw) : null;
 
   const attrs = weatherEntity.attributes || {};
-  const temperatureUnit = attrs.temperature_unit || '°C';
-  const windUnit = attrs.wind_speed_unit || 'km/h';
-  const pressureUnit = attrs.pressure_unit || 'hPa';
-  const precipitationUnit = attrs.precipitation_unit || 'mm';
+  const sourceTemperatureUnit = attrs.temperature_unit || haConfig?.unit_system?.temperature || '°C';
+  const sourceWindUnit = attrs.wind_speed_unit || 'km/h';
+  const sourcePressureUnit = attrs.pressure_unit || 'hPa';
+  const sourcePrecipitationUnit = attrs.precipitation_unit || 'mm';
 
-  const windVal = formatValue(attrs.wind_speed, '');
-  const gustVal = formatValue(attrs.wind_gust_speed, '');
-  const windDisplay = (gustVal && gustVal !== '--' && gustVal !== windVal)
+  const temperatureUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
+  const windUnit = getDisplayUnitForKind('wind', effectiveUnitMode);
+  const pressureUnit = getDisplayUnitForKind('pressure', effectiveUnitMode);
+  const precipitationUnit = getDisplayUnitForKind('precipitation', effectiveUnitMode);
+
+  const currentTempDisplay = convertValueByKind(currentTemp, {
+    kind: 'temperature',
+    fromUnit: sourceTemperatureUnit,
+    unitMode: effectiveUnitMode,
+  });
+
+  const windDisplayValue = convertValueByKind(attrs.wind_speed, {
+    kind: 'wind',
+    fromUnit: sourceWindUnit,
+    unitMode: effectiveUnitMode,
+  });
+  const gustDisplayValue = convertValueByKind(attrs.wind_gust_speed, {
+    kind: 'wind',
+    fromUnit: sourceWindUnit,
+    unitMode: effectiveUnitMode,
+  });
+  const windVal = formatUnitValue(windDisplayValue, { fallback: '--' });
+  const gustVal = formatUnitValue(gustDisplayValue, { fallback: '--' });
+  const windDisplay = (gustVal !== '--' && gustVal !== windVal)
     ? `${windVal} (${gustVal}) ${windUnit}`
     : `${windVal} ${windUnit}`;
 
   const details = [
     { key: 'humidity', label: translate('weather.detail.humidity'), value: formatValue(attrs.humidity, '%'), iconName: 'mdi:water-percent' },
-    { key: 'pressure', label: translate('weather.detail.pressure'), value: formatValue(attrs.pressure, ` ${pressureUnit}`), iconName: 'mdi:gauge' },
+    {
+      key: 'pressure',
+      label: translate('weather.detail.pressure'),
+      value: `${formatUnitValue(convertValueByKind(attrs.pressure, { kind: 'pressure', fromUnit: sourcePressureUnit, unitMode: effectiveUnitMode }), { fallback: '--' })} ${pressureUnit}`,
+      iconName: 'mdi:gauge'
+    },
     { key: 'wind', label: `${translate('weather.detail.wind')} / ${translate('weather.detail.gust')}`, value: windDisplay, iconName: 'mdi:weather-windy' },
-    { key: 'dew', label: translate('weather.detail.dewPoint'), value: formatValue(attrs.dew_point, ` ${temperatureUnit}`), iconName: 'mdi:thermometer' },
-    { key: 'precip', label: translate('weather.detail.precip'), value: formatValue(attrs.precipitation, ` ${precipitationUnit}`), iconName: 'mdi:weather-rainy' }
+    {
+      key: 'dew',
+      label: translate('weather.detail.dewPoint'),
+      value: `${formatUnitValue(convertValueByKind(attrs.dew_point, { kind: 'temperature', fromUnit: sourceTemperatureUnit, unitMode: effectiveUnitMode }), { fallback: '--' })} ${temperatureUnit}`,
+      iconName: 'mdi:thermometer'
+    },
+    {
+      key: 'precip',
+      label: translate('weather.detail.precip'),
+      value: `${formatUnitValue(convertValueByKind(attrs.precipitation, { kind: 'precipitation', fromUnit: sourcePrecipitationUnit, unitMode: effectiveUnitMode }), { fallback: '--' })} ${precipitationUnit}`,
+      iconName: 'mdi:weather-rainy'
+    }
   ];
 
   const [forecastType, setForecastType] = useState('hourly');
@@ -210,7 +251,10 @@ export default function WeatherModal({
     const sliced = forecastType === 'hourly' ? forecast.slice(0, 12) : forecast.slice(0, 7);
     return sliced.map((f, index) => {
       const time = new Date(f.datetime || f.datetime_local || f.time || f.start || f.forecast_time);
-      const temp = Number.isFinite(parseFloat(f.temperature)) ? parseFloat(f.temperature) : '--';
+      const sourceTemp = Number.isFinite(parseFloat(f.temperature)) ? parseFloat(f.temperature) : null;
+      const temp = Number.isFinite(sourceTemp)
+        ? convertValueByKind(sourceTemp, { kind: 'temperature', fromUnit: sourceTemperatureUnit, unitMode: effectiveUnitMode })
+        : null;
       const label = forecastType === 'hourly'
         ? time.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
         : time.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' });
@@ -225,7 +269,7 @@ export default function WeatherModal({
         precip
       };
     });
-  }, [forecast, forecastType, condition, t]);
+  }, [forecast, forecastType, condition, t, locale, sourceTemperatureUnit, effectiveUnitMode]);
 
   return (
     <div
@@ -269,7 +313,7 @@ export default function WeatherModal({
                   <p className="text-[11px] uppercase tracking-widest text-[var(--text-secondary)]">{translate('weather.detail.temperature')}</p>
                   <div className="flex items-baseline gap-2 mt-1">
                     <span className="text-4xl font-light text-[var(--text-primary)]">
-                      {currentTemp !== null ? `${currentTemp}` : '--'}
+                      {currentTemp !== null ? formatUnitValue(currentTempDisplay, { fallback: '--' }) : '--'}
                     </span>
                     <span className="text-lg text-[var(--text-secondary)]">{temperatureUnit}</span>
                   </div>
@@ -339,10 +383,10 @@ export default function WeatherModal({
                          {/* <img src={item.iconUrl} alt="" className="w-8 h-8 md:w-10 md:h-10 drop-shadow-md transform group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-500" /> */}
                       </div>
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-lg md:text-xl font-light text-[var(--text-primary)] tracking-tight">{item.temp}°</span>
+                        <span className="text-lg md:text-xl font-light text-[var(--text-primary)] tracking-tight">{Number.isFinite(item.temp) ? formatUnitValue(item.temp, { fallback: '--' }) : '--'} {temperatureUnit}</span>
                         {(parseFloat(item.precip) > 0) && (
                           <div className="flex items-center gap-0.5 text-blue-400 mt-1">
-                            <span className="text-[9px] font-bold">{item.precip}</span>
+                            <span className="text-[9px] font-bold">{formatUnitValue(convertValueByKind(item.precip, { kind: 'precipitation', fromUnit: sourcePrecipitationUnit, unitMode: effectiveUnitMode }), { fallback: '--' })}</span>
                             <span className="text-[7px] opacity-70">{precipitationUnit}</span>
                           </div>
                         )}

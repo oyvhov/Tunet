@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { X, Lightbulb, Thermometer, Eye, Droplets, Flame, Power, ChevronRight } from 'lucide-react';
+import { useConfig, useHomeAssistantMeta } from '../contexts';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode, inferUnitKind } from '../utils';
 
 /**
  * RoomModal – Detailed view of a room / area.
@@ -15,6 +17,9 @@ export default function RoomModal({
   t,
 }) {
   const [filter, setFilter] = useState('all');
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
 
   if (!show) return null;
 
@@ -190,9 +195,20 @@ export default function RoomModal({
                     const name = entity.attributes?.friendly_name || id;
                     const state = entity.state;
                     const unit = entity.attributes?.unit_of_measurement || '';
+                    const inferredUnitKind = inferUnitKind(entity.attributes?.device_class, unit);
                     const isToggleable = ['light', 'switch', 'fan', 'cover'].includes(domain);
                     const isOn = state === 'on';
                     const isNumeric = /^\s*-?\d+(\.\d+)?\s*$/.test(state);
+                    const convertedNumericValue = isNumeric && inferredUnitKind
+                      ? convertValueByKind(parseFloat(state), {
+                        kind: inferredUnitKind,
+                        fromUnit: unit,
+                        unitMode: effectiveUnitMode,
+                      })
+                      : (isNumeric ? parseFloat(state) : null);
+                    const displayUnit = isNumeric && inferredUnitKind
+                      ? getDisplayUnitForKind(inferredUnitKind, effectiveUnitMode)
+                      : unit;
 
                     return (
                       <div
@@ -205,7 +221,7 @@ export default function RoomModal({
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className={`text-xs font-bold uppercase tracking-widest ${isOn ? 'text-green-400' : 'text-[var(--text-muted)]'}`}>
-                            {isNumeric ? `${parseFloat(state).toFixed(1)}${unit}` : state}
+                            {isNumeric ? `${formatUnitValue(convertedNumericValue, { fallback: '--' })}${displayUnit}` : state}
                           </span>
                           {isToggleable && (
                             <button
