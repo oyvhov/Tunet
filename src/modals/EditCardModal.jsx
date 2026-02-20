@@ -968,135 +968,24 @@ export default function EditCardModal({
           )}
 
           {isEditCamera && editSettingsKey && (() => {
-            const streamEngine = String(editSettings.cameraStreamEngine || 'auto').toLowerCase();
-            const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
-            const recommendedWebrtc = '/api/webrtc?src={entity_object_id}';
-            const refreshMode = editSettings.cameraRefreshMode || 'interval';
-            const refreshInterval = editSettings.cameraRefreshInterval || 10;
-            const motionSensorId = editSettings.cameraMotionSensor || '';
-            const binarySensorOptions = sortByName(entityEntries
-              .filter(([id, e]) => id.startsWith('binary_sensor.') && (
-                e?.attributes?.device_class === 'motion' ||
-                e?.attributes?.device_class === 'occupancy' ||
-                id.toLowerCase().includes('motion')
-              ))
-              .map(([id]) => id));
+            const streamUrl = editSettings.cameraStreamUrl || '';
 
             return (
               <div className="space-y-4">
-                {/* Stream engine */}
                 <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.streamEngine') || 'Stream Engine'}</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { key: 'auto', label: t('camera.streamEngineAuto') || 'Auto' },
-                      { key: 'webrtc', label: t('camera.streamEngineWebrtc') || 'WebRTC' },
-                      { key: 'ha', label: t('camera.streamEngineHa') || 'HA Stream' },
-                      { key: 'snapshot', label: t('camera.streamEngineSnapshot') || 'Snapshot' },
-                    ].map((opt) => (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        onClick={() => saveCardSetting(editSettingsKey, 'cameraStreamEngine', opt.key)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${streamEngine === opt.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                        style={streamEngine === opt.key ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                  <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.streamUrl') || 'Stream URL (optional)'}</label>
+                  <input
+                    type="text"
+                    value={streamUrl}
+                    onChange={(e) => saveCardSetting(editSettingsKey, 'cameraStreamUrl', e.target.value)}
+                    placeholder="https://ha.example.com/api/hassio_ingress/.../stream.html?src=kamera"
+                    className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-colors"
+                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                  />
+                  <p className="text-[11px] text-[var(--text-muted)] px-1">
+                    {t('camera.streamUrlHint') || 'Provide a direct stream URL (e.g. go2rtc stream.html). Leave empty to use Home Assistant default stream.'}
+                  </p>
                 </div>
-
-                {/* Optional WebRTC URL */}
-                {(streamEngine === 'webrtc' || streamEngine === 'auto') && (
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.webrtcUrlOptional') || 'WebRTC URL (optional)'}</label>
-                    <input
-                      type="text"
-                      value={webrtcTemplate}
-                      onChange={(e) => saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', e.target.value)}
-                      placeholder={recommendedWebrtc}
-                      className="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-colors"
-                      style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
-                    />
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', recommendedWebrtc)}
-                        className="px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest popup-surface popup-surface-hover text-[var(--text-secondary)] border border-[var(--glass-border)]"
-                      >
-                        {t('camera.useRecommended') || 'Use Recommended'}
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-[var(--text-muted)] px-1">
-                      {t('camera.webrtcHint') || 'Use {entity_object_id} or {entity_id}. Leave empty to skip WebRTC.'}
-                    </p>
-                  </div>
-                )}
-
-                {/* Refresh mode */}
-                <div className="space-y-2">
-                  <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.refreshMode') || 'Refresh Mode'}</label>
-                  <div className="flex gap-2">
-                    {[
-                      { key: 'interval', label: t('camera.refreshInterval') || 'Timer' },
-                      { key: 'motion', label: t('camera.refreshMotion') || 'Motion' },
-                    ].map(v => (
-                      <button
-                        key={v.key}
-                        onClick={() => saveCardSetting(editSettingsKey, 'cameraRefreshMode', v.key)}
-                        className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${refreshMode === v.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                        style={refreshMode === v.key ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
-                      >
-                        {v.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Interval seconds */}
-                {refreshMode === 'interval' && (
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.intervalSeconds') || 'Refresh every (seconds)'}</label>
-                    <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => saveCardSetting(editSettingsKey, 'cameraRefreshInterval', Math.max(2, refreshInterval - 1))}
-                        className="w-10 h-10 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] font-bold text-lg flex items-center justify-center border border-[var(--glass-border)]"
-                      >−</button>
-                      <div className="flex-1 text-center">
-                        <span className="text-lg font-bold text-[var(--text-primary)]">{refreshInterval}</span>
-                        <span className="text-xs text-[var(--text-muted)] ml-1">s</span>
-                      </div>
-                      <button type="button" onClick={() => saveCardSetting(editSettingsKey, 'cameraRefreshInterval', Math.min(60, refreshInterval + 1))}
-                        className="w-10 h-10 rounded-xl popup-surface popup-surface-hover text-[var(--text-primary)] font-bold text-lg flex items-center justify-center border border-[var(--glass-border)]"
-                      >+</button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Motion sensor entity */}
-                {refreshMode === 'motion' && (
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('camera.motionSensor') || 'Motion Sensor'}</label>
-                    <div className="popup-surface rounded-2xl p-4 max-h-44 overflow-y-auto custom-scrollbar space-y-2">
-                      {binarySensorOptions.length === 0 && (
-                        <p className="text-xs text-[var(--text-muted)] text-center py-4">{t('camera.noMotionSensors') || 'No motion sensors found'}</p>
-                      )}
-                      {binarySensorOptions.map((id) => {
-                        const selected = motionSensorId === id;
-                        return (
-                          <button key={id} type="button"
-                            onClick={() => saveCardSetting(editSettingsKey, 'cameraMotionSensor', selected ? null : id)}
-                            className={`w-full text-left px-3 py-2 rounded-xl transition-colors border ${selected ? 'text-[var(--text-primary)]' : 'border-transparent hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
-                            style={selected ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' } : undefined}
-                          >
-                            <div className="text-sm font-bold truncate">{entities[id]?.attributes?.friendly_name || id}</div>
-                            <div className="text-[10px] text-[var(--text-muted)] truncate">{id}</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })()}
