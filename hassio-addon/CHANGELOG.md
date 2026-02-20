@@ -2,7 +2,13 @@
 
 ## 1.6.0
 
-- Release metadata sync.
+- Includes dashboard release `1.6.0`.
+- Adds settings/edit lock with PIN-protected unlock flow (touch keypad + keyboard entry support).
+- Improves Person popup layout on desktop with larger map-focused presentation and configurable telemetry/info rows.
+- Adds Person card edit options for last updated, GPS/speed/heading, distance from home, and zone emphasis.
+- Fixes climate unit follow behavior so cards and modal correctly reflect Home Assistant metric/imperial changes.
+- Makes WeatherTemp graph color limits follow active unit mode in both display and editor.
+- Keeps app and add-on versions synchronized at `1.6.0`.
 
 ## 1.5.1
 

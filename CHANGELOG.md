@@ -8,7 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.6.0] — 2026-02-20
 
 ### Changed
-- Release metadata sync.
+- Added PIN-protected settings/edit lock flow, including touch-friendly numeric unlock popup and keyboard-focused PIN entry.
+- Improved Person popup with larger responsive desktop layout and configurable info blocks (battery, last updated, telemetry, distance from home).
+- Updated Person popup map behavior and desktop composition to prioritize map visibility while keeping info controls accessible.
+- Added new Person edit settings for optional info visibility and zone emphasis.
+- Made WeatherTemp graph color limits unit-aware in both card rendering and Edit Card slider when switching Metric/Imperial.
+
+### Fixed
+- Climate card and climate modal now correctly follow Home Assistant unit-system changes in `follow_ha` mode (Imperial ↔ Metric).
+- Person popup last-updated timestamp formatting now renders consistently without locale punctuation artifacts.
 
 
 ## [1.5.1] — 2026-02-19

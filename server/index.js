@@ -36,12 +36,32 @@ app.get('/api/health', (_req, res) => {
 if (isProduction) {
   const distPath = join(__dirname, '..', 'dist');
   if (existsSync(distPath)) {
-    app.use(express.static(distPath));
+    const assetsPath = join(distPath, 'assets');
+
+    app.use('/assets', express.static(assetsPath, {
+      fallthrough: false,
+      immutable: true,
+      maxAge: '1y',
+    }));
+
+    app.use(express.static(distPath, {
+      index: false,
+    }));
+
+    app.get('/index.html', (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache');
+      res.sendFile(join(distPath, 'index.html'));
+    });
+
     // SPA fallback — serve index.html for all non-API routes
     app.get('*', (req, res) => {
       if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'Not found' });
       }
+      if (req.path.includes('.')) {
+        return res.status(404).end();
+      }
+      res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(join(distPath, 'index.html'));
     });
   } else {
