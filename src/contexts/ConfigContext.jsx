@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { themes } from '../config/themes';
 import { DEFAULT_LANGUAGE, LEGACY_NN_MIGRATION_FLAG, normalizeLanguage } from '../i18n';
+import { hashPin, verifyPin } from '../utils';
 
 /** @typedef {import('../types/dashboard').ConfigContextValue} ConfigContextValue */
 /** @typedef {import('../types/dashboard').ConfigProviderProps} ConfigProviderProps */
@@ -66,6 +67,30 @@ export const ConfigProvider = ({ children }) => {
       return saved && ['follow_ha', 'metric', 'imperial'].includes(saved) ? saved : 'follow_ha';
     } catch {
       return 'follow_ha';
+    }
+  });
+
+  const [settingsLockEnabled, setSettingsLockEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('tunet_settings_lock_enabled') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const [settingsLockPinHash, setSettingsLockPinHash] = useState(() => {
+    try {
+      return localStorage.getItem('tunet_settings_lock_pin_hash') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [settingsLockSessionUnlocked, setSettingsLockSessionUnlocked] = useState(() => {
+    try {
+      return sessionStorage.getItem('tunet_settings_lock_unlocked') === '1';
+    } catch {
+      return false;
     }
   });
 
@@ -390,6 +415,60 @@ export const ConfigProvider = ({ children }) => {
     } catch {}
   }, [unitsMode]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('tunet_settings_lock_enabled', settingsLockEnabled ? '1' : '0');
+    } catch {}
+  }, [settingsLockEnabled]);
+
+  useEffect(() => {
+    try {
+      if (settingsLockPinHash) {
+        localStorage.setItem('tunet_settings_lock_pin_hash', settingsLockPinHash);
+      } else {
+        localStorage.removeItem('tunet_settings_lock_pin_hash');
+      }
+    } catch {}
+  }, [settingsLockPinHash]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('tunet_settings_lock_unlocked', settingsLockSessionUnlocked ? '1' : '0');
+    } catch {}
+  }, [settingsLockSessionUnlocked]);
+
+  const enableSettingsLock = (pin) => {
+    const pinHash = hashPin(pin);
+    setSettingsLockPinHash(pinHash);
+    setSettingsLockEnabled(true);
+    setSettingsLockSessionUnlocked(false);
+  };
+
+  const disableSettingsLock = () => {
+    setSettingsLockEnabled(false);
+    setSettingsLockPinHash('');
+    setSettingsLockSessionUnlocked(false);
+  };
+
+  const unlockSettingsLock = (pin) => {
+    if (!settingsLockEnabled) return true;
+    const unlocked = verifyPin(pin, settingsLockPinHash);
+    if (unlocked) setSettingsLockSessionUnlocked(true);
+    return unlocked;
+  };
+
+  const unlockSettingsSession = () => {
+    if (settingsLockEnabled) {
+      setSettingsLockSessionUnlocked(true);
+    }
+  };
+
+  const lockSettingsSession = () => {
+    if (settingsLockEnabled) {
+      setSettingsLockSessionUnlocked(false);
+    }
+  };
+
 
   const toggleTheme = () => {
     const themeKeys = Object.keys(themes);
@@ -407,6 +486,13 @@ export const ConfigProvider = ({ children }) => {
     setLanguage,
     unitsMode,
     setUnitsMode,
+    settingsLockEnabled,
+    settingsLockSessionUnlocked,
+    enableSettingsLock,
+    disableSettingsLock,
+    unlockSettingsLock,
+    unlockSettingsSession,
+    lockSettingsSession,
     inactivityTimeout,
     setInactivityTimeout,
     bgMode,
