@@ -183,7 +183,6 @@ function SearchableSelect({ label, value, options, onChange, placeholder, entiti
         <span className="text-xs font-bold uppercase tracking-widest truncate text-[var(--text-secondary)]">
           {display}
         </span>
-        <span className="text-[10px] text-[var(--text-muted)]">{options.length}</span>
       </button>
       {open && (
         <div className="mt-2 rounded-2xl overflow-hidden border" style={{backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)'}}>
@@ -614,6 +613,40 @@ export default function EditCardModal({
 
   const updateButtonOptions = sortByName(byDomain('button'));
   const visibilityCondition = editSettings?.visibilityCondition || null;
+  const personEntity = isPerson ? entities?.[entityId] : null;
+  const personNameParts = (personEntity?.attributes?.friendly_name || '')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((part) => part.length > 2);
+  const personSourceObjectId = (personEntity?.attributes?.source || '')
+    .toLowerCase()
+    .split('.')
+    .pop();
+  const matchesPersonContext = (id, stateObj) => {
+    const lowerId = id.toLowerCase();
+    const lowerName = (stateObj?.attributes?.friendly_name || '').toLowerCase();
+    const sourceMatch = personSourceObjectId && (lowerId.includes(personSourceObjectId) || lowerName.includes(personSourceObjectId));
+    const nameMatch = personNameParts.some((part) => lowerId.includes(part) || lowerName.includes(part));
+    return sourceMatch || nameMatch;
+  };
+  const personBatteryOptions = batteryOptions; // Show all batteries always
+  
+  const allPersonCandidateSensors = sortByName(entityEntries
+    .filter(([id]) => id.startsWith('sensor.') || id.startsWith('binary_sensor.') || id.startsWith('input_boolean.'))
+    .map(([id]) => id));
+  
+  // Show all sensors always, filtering happens inside searchable select by user typing
+  const personExtraSensorOptions = allPersonCandidateSensors;
+  
+  const personExtraSensors = Array.isArray(editSettings?.personExtraSensors)
+    ? editSettings.personExtraSensors.filter((id) => typeof id === 'string')
+    : [];
+  const availablePersonExtraSensorOptions = personExtraSensorOptions.filter((id) => !personExtraSensors.includes(id));
+  const personTrackerOptions = (() => {
+    const trackers = sortByName(byDomain('device_tracker'));
+    // Always show all trackers too, to be safe
+    return trackers;
+  })();
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4" style={{
@@ -1172,114 +1205,71 @@ export default function EditCardModal({
                 </div>
               </div>
 
-               {/* Mobile App / Battery Sensor */}
-               <div>
-                 <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-2 block">{t('person.mobileAppBattery') || 'Mobile App Battery'}</label>
-                 <div className="popup-surface rounded-2xl p-4 max-h-40 overflow-y-auto custom-scrollbar space-y-2">
-                    {Object.keys(entities).filter(id => id.startsWith('sensor.') && (id.includes('battery_level') || id.includes('battery'))).length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-4">{t('addCard.noSensors') || 'No sensors found'}</p>
-                    ) : (
-                        Object.keys(entities).filter(id => id.startsWith('sensor.') && (id.includes('battery_level') || id.includes('battery')))
-                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
-                          .map(sensorId => {
-                          const isSelected = editSettings.batteryEntity === sensorId;
-                          return (
-                              <div key={sensorId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
-                                  saveCardSetting(editSettingsKey, 'batteryEntity', isSelected ? null : sensorId);
-                              }}>
-                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'border-gray-500 bg-transparent'}`}>
-                                      {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
-                                  </div>
-                                  <div className="flex flex-col">
-                                      <span className="text-sm font-medium text-[var(--text-primary)]">{entities[sensorId].attributes?.friendly_name || sensorId}</span>
-                                      <span className="text-[10px] text-gray-500 font-mono">{sensorId}</span>
-                                  </div>
-                              </div>
-                          );
-                        })
-                    )}
-                 </div>
-               </div>
+              <div className="space-y-3">
+                <SearchableSelect
+                  label={t('person.phoneBattery')}
+                  value={editSettings.phoneBatteryEntity || editSettings.batteryEntity || null}
+                  options={personBatteryOptions}
+                  onChange={(id) => {
+                    saveCardSetting(editSettingsKey, 'phoneBatteryEntity', id);
+                    saveCardSetting(editSettingsKey, 'batteryEntity', id);
+                  }}
+                  placeholder={t('dropdown.noneSelected')}
+                  entities={entities}
+                  t={t}
+                />
 
-               {/* Device Tracker */}
-               <div>
-                 <label className="text-xs uppercase font-bold text-gray-500 ml-4 pb-2 block">{t('person.deviceTracker') || 'Device Tracker (Map)'}</label>
-                 <div className="popup-surface rounded-2xl p-4 max-h-40 overflow-y-auto custom-scrollbar space-y-2">
-                    {Object.keys(entities).filter(id => id.startsWith('device_tracker.')).length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-4">{t('addCard.noSensors') || 'No trackers found'}</p>
-                    ) : (
-                        Object.keys(entities).filter(id => id.startsWith('device_tracker.'))
-                          .sort((a, b) => (entities[a].attributes?.friendly_name || a).localeCompare(entities[b].attributes?.friendly_name || b))
-                          .map(trackerId => {
-                          const isSelected = editSettings.deviceTracker === trackerId;
-                          return (
-                              <div key={trackerId} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl cursor-pointer transition-colors" onClick={() => {
-                                  saveCardSetting(editSettingsKey, 'deviceTracker', isSelected ? null : trackerId);
-                              }}>
-                                  <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all duration-200 ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'border-gray-500 bg-transparent'}`}>
-                                      {isSelected && <Check className="w-3.5 h-3.5 text-white" /> } 
-                                  </div>
-                                  <div className="flex flex-col">
-                                      <span className="text-sm font-medium text-[var(--text-primary)]">{entities[trackerId].attributes?.friendly_name || trackerId}</span>
-                                      <span className="text-[10px] text-gray-500 font-mono">{trackerId}</span>
-                                  </div>
-                              </div>
-                          );
-                        })
-                    )}
-                 </div>
-               </div>
+                <SearchableSelect
+                  label={t('person.watchBattery')}
+                  value={editSettings.watchBatteryEntity || null}
+                  options={personBatteryOptions}
+                  onChange={(id) => saveCardSetting(editSettingsKey, 'watchBatteryEntity', id)}
+                  placeholder={t('dropdown.noneSelected')}
+                  entities={entities}
+                  t={t}
+                />
 
-               {/* Show History Toggle */}
-               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
-                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showHistory') || 'Show History on Map'}</span>
-                  <button 
-                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showHistory', !(editSettings.showHistory))}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showHistory ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showHistory ? 'left-7' : 'left-1'}`} />
-                  </button>
+                <SearchableSelect
+                  label={t('person.deviceTracker')}
+                  value={editSettings.deviceTracker || null}
+                  options={personTrackerOptions}
+                  onChange={(id) => saveCardSetting(editSettingsKey, 'deviceTracker', id)}
+                  placeholder={t('dropdown.noneSelected')}
+                  entities={entities}
+                  t={t}
+                />
               </div>
 
-               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
-                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showLastUpdated') || 'Show Last Updated'}</span>
-                  <button
-                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showLastUpdated', !(editSettings.showLastUpdated !== false))}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showLastUpdated !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showLastUpdated !== false ? 'left-7' : 'left-1'}`} />
-                  </button>
-               </div>
+              <div className="space-y-2">
+                <SearchableSelect
+                  label={t('person.addRelatedSensor')}
+                  value={null}
+                  options={availablePersonExtraSensorOptions}
+                  onChange={(id) => {
+                    if (!id) return;
+                    saveCardSetting(editSettingsKey, 'personExtraSensors', [...personExtraSensors, id]);
+                  }}
+                  placeholder={t('form.search') || 'Search'}
+                  entities={entities}
+                  t={t}
+                />
+                {personExtraSensors.length > 0 && (
+                  <div className="popup-surface rounded-2xl p-3 flex flex-wrap gap-2">
+                    {personExtraSensors.map((sensorId) => (
+                      <div key={sensorId} className="flex items-center gap-1 pl-3 pr-1 py-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-primary)]">
+                        <span className="text-[11px] font-bold truncate max-w-[180px]">{entities[sensorId]?.attributes?.friendly_name || sensorId}</span>
+                        <button
+                          onClick={() => saveCardSetting(editSettingsKey, 'personExtraSensors', personExtraSensors.filter((id) => id !== sensorId))}
+                          className="p-1 rounded-full hover:bg-[var(--glass-bg-hover)] transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
-                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showTrackerTelemetry') || 'Show GPS/Speed/Heading'}</span>
-                  <button
-                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showTrackerTelemetry', !(editSettings.showTrackerTelemetry !== false))}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showTrackerTelemetry !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showTrackerTelemetry !== false ? 'left-7' : 'left-1'}`} />
-                  </button>
-               </div>
-
-               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
-                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.showDistanceFromHome') || 'Show Distance from Home'}</span>
-                  <button
-                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'showDistanceFromHome', !(editSettings.showDistanceFromHome !== false))}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.showDistanceFromHome !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.showDistanceFromHome !== false ? 'left-7' : 'left-1'}`} />
-                  </button>
-               </div>
-
-               <div className="flex items-center justify-between p-4 popup-surface rounded-2xl">
-                <span className="text-xs uppercase font-bold text-gray-500 tracking-widest">{t('person.emphasizeZone') || 'Emphasize zone/state'}</span>
-                  <button
-                    onClick={() => editSettingsKey && saveCardSetting(editSettingsKey, 'emphasizeZone', !(editSettings.emphasizeZone !== false))}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${editSettings.emphasizeZone !== false ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editSettings.emphasizeZone !== false ? 'left-7' : 'left-1'}`} />
-                  </button>
-               </div>
             </div>
           )}
 

@@ -44,6 +44,11 @@ src/
 - **Hooks**: `useEnergyData(entity, now)` expects a single entity object.
 - **Icons**: selection stored as string names; mapped via `src/icons/iconMap.js`.
 - **i18n**: keys in `src/i18n/{en,nn}.json`. Setup is manual (no i18next).
+- **Units (Metric/Imperial)**:
+  - Never hard-code units in UI logic.
+  - Read Home Assistant unit preferences from `useHomeAssistantMeta()` (`haConfig`) and resolve final mode with `getEffectiveUnitMode(unitsMode, haConfig)`.
+  - Use shared helpers from `src/utils/units` (`inferUnitKind`, `convertValueByKind`, `getDisplayUnitForKind`, `formatUnitValue`) for display values.
+  - For numeric sensor/modal values, convert from entity unit to active HA mode before rendering.
 - **Styling**:
   - **Modals**: Use `.popup-surface` for boxed content (lists, groups) inside modals. Avoid manual `bg-[var(--glass-bg)]` where `.popup-surface` works.
   - **Cards**: Keep minimal. No heavy borders.
