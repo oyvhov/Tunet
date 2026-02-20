@@ -1,9 +1,10 @@
 // Similar imports to ConfigModal
-import React from 'react';
+import React, { useState } from 'react';
 import ModernDropdown from '../ui/ModernDropdown';
 import M3Slider from '../ui/M3Slider';
 import { GRADIENT_PRESETS } from '../../contexts/ConfigContext';
 import { useConfig } from '../../contexts';
+import { isValidPin } from '../../utils';
 import {
   Sparkles,
   Sun,
@@ -43,7 +44,20 @@ export default function ThemeSidebar({
   inactivityTimeout,
   setInactivityTimeout
 }) {
-  const { unitsMode, setUnitsMode } = useConfig();
+  const {
+    unitsMode,
+    setUnitsMode,
+    settingsLockEnabled,
+    settingsLockSessionUnlocked,
+    enableSettingsLock,
+    disableSettingsLock,
+    unlockSettingsLock,
+    lockSettingsSession,
+  } = useConfig();
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [unlockPin, setUnlockPin] = useState('');
+  const [lockError, setLockError] = useState('');
   const bgModes = [
     { key: 'theme', icon: Sparkles, label: t('settings.bgFollowTheme') },
     { key: 'solid', icon: Sun, label: t('settings.bgSolid') },
@@ -56,6 +70,50 @@ export default function ThemeSidebar({
     setBgColor('#0f172a');
     setBgGradient('midnight');
     setBgImage('');
+  };
+
+  const handleEnableLock = () => {
+    if (!isValidPin(newPin) || !isValidPin(confirmPin)) {
+      setLockError(t('settings.lock.pinInvalid'));
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setLockError(t('settings.lock.pinMismatch'));
+      return;
+    }
+    enableSettingsLock(newPin);
+    setNewPin('');
+    setConfirmPin('');
+    setUnlockPin('');
+    setLockError('');
+  };
+
+  const handleUnlock = () => {
+    if (!isValidPin(unlockPin)) {
+      setLockError(t('settings.lock.pinInvalid'));
+      return;
+    }
+    const unlocked = unlockSettingsLock(unlockPin);
+    if (!unlocked) {
+      setLockError(t('settings.lock.pinIncorrect'));
+      return;
+    }
+    setUnlockPin('');
+    setLockError('');
+  };
+
+  const handleDisableLock = () => {
+    const pin = window.prompt(t('settings.lock.enterPinToDisable'));
+    if (pin === null) return;
+    if (!unlockSettingsLock(pin)) {
+      setLockError(t('settings.lock.pinIncorrect'));
+      return;
+    }
+    disableSettingsLock();
+    setNewPin('');
+    setConfirmPin('');
+    setUnlockPin('');
+    setLockError('');
   };
 
   return (
@@ -139,6 +197,103 @@ export default function ThemeSidebar({
         </div>
 
         <div className="h-px" style={{ backgroundColor: 'var(--glass-border)' }} />
+
+        <div className="space-y-4">
+          <p className="text-xs uppercase font-bold tracking-widest pl-1" style={{ color: 'var(--text-secondary)' }}>
+            {t('settings.lock.title')}
+          </p>
+          <div className="popup-surface rounded-xl p-3 space-y-3">
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('settings.lock.description')}</p>
+            {settingsLockEnabled ? (
+              <>
+                <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {settingsLockSessionUnlocked ? t('settings.lock.statusUnlocked') : t('settings.lock.statusLocked')}
+                </p>
+                {!settingsLockSessionUnlocked && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      value={unlockPin}
+                      onChange={(e) => setUnlockPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
+                      style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                      placeholder={t('settings.lock.pin')}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleUnlock}
+                      className="px-3 py-2 rounded-lg text-xs font-semibold border"
+                      style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    >
+                      {t('settings.lock.unlock')}
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  {settingsLockSessionUnlocked && (
+                    <button
+                      type="button"
+                      onClick={lockSettingsSession}
+                      className="px-3 py-2 rounded-lg text-xs font-semibold border"
+                      style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    >
+                      {t('settings.lock.lockNow')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleDisableLock}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold border"
+                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                  >
+                    {t('settings.lock.disable')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-2">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    placeholder={t('settings.lock.pin')}
+                  />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    placeholder={t('settings.lock.pinConfirm')}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleEnableLock}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold border"
+                  style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                >
+                  {t('settings.lock.enable')}
+                </button>
+              </>
+            )}
+            {lockError && (
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{lockError}</p>
+            )}
+          </div>
+        </div>
 
         {/* Background */}
         <div className="space-y-4">

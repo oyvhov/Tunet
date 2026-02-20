@@ -25,6 +25,13 @@
  * @property {import('react').Dispatch<import('react').SetStateAction<string>>} setLanguage
  * @property {'follow_ha' | 'metric' | 'imperial'} unitsMode
  * @property {import('react').Dispatch<import('react').SetStateAction<'follow_ha' | 'metric' | 'imperial'>>} setUnitsMode
+ * @property {boolean} settingsLockEnabled
+ * @property {boolean} settingsLockSessionUnlocked
+ * @property {(pin: string) => void} enableSettingsLock
+ * @property {() => void} disableSettingsLock
+ * @property {(pin: string) => boolean} unlockSettingsLock
+ * @property {() => void} unlockSettingsSession
+ * @property {() => void} lockSettingsSession
  * @property {number} inactivityTimeout
  * @property {import('react').Dispatch<import('react').SetStateAction<number>>} setInactivityTimeout
  * @property {string} bgMode
