@@ -36,7 +36,7 @@ export default function GenericClimateCard({
   const isSmall = settings?.size === 'small';
   const currentTemp = entity.attributes?.current_temperature ?? '--';
   const targetTemp = entity.attributes?.temperature ?? '--';
-  const sourceTempUnit = entity.attributes?.temperature_unit || haConfig?.unit_system?.temperature || '°C';
+  const sourceTempUnit = haConfig?.unit_system?.temperature || entity.attributes?.temperature_unit || '°C';
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
   const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
   const displayCurrentTemp = convertValueByKind(currentTemp, {
