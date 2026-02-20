@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from '../../icons';
 
 export default function PinLockModal({
@@ -9,8 +9,18 @@ export default function PinLockModal({
   error,
 }) {
   const [pin, setPin] = useState('');
+  const inputRef = useRef(null);
 
   const digits = useMemo(() => ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'], []);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [open]);
 
   if (!open) return null;
 
@@ -58,6 +68,25 @@ export default function PinLockModal({
               />
             ))}
           </div>
+          <input
+            ref={inputRef}
+            type="password"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={4}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            className="w-full px-3 py-2 rounded-lg border text-sm text-center tracking-[0.35em] outline-none"
+            style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+            placeholder={t('settings.lock.pin')}
+            aria-label={t('settings.lock.pin')}
+          />
           {error && <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>{error}</p>}
         </div>
 
