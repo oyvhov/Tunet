@@ -10,6 +10,7 @@ A modern React dashboard for Home Assistant with real-time entity control, energ
 - **Server-side profiles** — save/load dashboard layouts per HA user, sync across devices
 - **Live entity updates** — real-time WebSocket connection to Home Assistant
 - **OAuth2 & token auth** — browser login or long-lived access tokens
+- **Settings Lock** — PIN-protected edit mode and settings
 - **Dark/Light/Graphite themes** — with glassmorphism and weather effects
 - **Multi-language** — English, German, Norwegian (Bokmål), Norwegian (Nynorsk), and Swedish
 - **Drag-and-drop layout** — resize, reorder, and customize cards

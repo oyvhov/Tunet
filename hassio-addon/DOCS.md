@@ -17,6 +17,7 @@ real-time entity updates, and drag-and-drop customisation.
 ## Features
 
 - **Real-time updates** via Home Assistant WebSocket API.
+- **PIN Protection** for settings and edit mode.
 - **Drag-and-drop** card layout with multiple pages.
 - **Glassmorphism** UI with multiple themes.
 - Cards for lights, climate, sensors, media, calendars, vacuums, covers, cameras, and more.
