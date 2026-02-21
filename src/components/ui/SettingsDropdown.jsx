@@ -25,7 +25,7 @@ export default function SettingsDropdown({
 
   const handleSelect = (action) => {
     setIsOpen(false);
-    action();
+    if (typeof action === 'function') action();
   };
 
   return (
