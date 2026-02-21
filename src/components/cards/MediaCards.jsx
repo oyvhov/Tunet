@@ -3,11 +3,13 @@ import {
   ArrowLeftRight,
   Pause,
   Play,
+  Power,
   SkipBack,
   SkipForward,
   Speaker,
   Tv
 } from '../../icons';
+import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 /* ─── Single media player card ─── */
 
@@ -52,6 +54,9 @@ export const MediaPlayerCard = ({
   const subtitle = getA(mpId, 'media_artist') || getA(mpId, 'media_series_title') || getA(mpId, 'media_album_name') || '';
   const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
   const isChannel = getA(mpId, 'media_content_type') === 'channel';
+  const powerAction = getMediaPlayerPowerAction(entity);
+  const canTogglePower = Boolean(powerAction);
+  const isPowerOffAction = powerAction === 'turn_off';
   
   const settings = (cardSettings && settingsKey) ? (cardSettings[settingsKey] || cardSettings[cardId] || {}) : {};
   const artworkMode = settings.artworkMode || 'default';
@@ -68,6 +73,18 @@ export const MediaPlayerCard = ({
           <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMusic')}</p>
           <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{name}</p></div>
         </div>
+        {canTogglePower && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              callService('media_player', powerAction, { entity_id: mpId });
+            }}
+            className={`mt-4 p-2.5 rounded-full transition-colors active:scale-95 ${isPowerOffAction ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'}`}
+            title={isPowerOffAction ? t('status.off') : t('status.on')}
+          >
+            <Power className="w-4 h-4" />
+          </button>
+        )}
       </div>
     );
   }
@@ -100,10 +117,22 @@ export const MediaPlayerCard = ({
           {subtitle && <p className={`${(picture || isCoverMode) ? 'text-gray-300' : 'text-[var(--text-secondary)]'} text-xs truncate font-medium`}>{subtitle}</p>}
         </div>
       </div>
-      <div className="relative z-10 flex items-center justify-center gap-2 sm:gap-6 mt-1 sm:mt-2 px-1 sm:px-0">
-        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: mpId }); }} className={`${(picture || isCoverMode) ? 'text-gray-300 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 transition-colors p-1 sm:p-2 active:scale-90`}><SkipBack className="w-4 h-4 sm:w-6 sm:h-6" /></button>
-        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: mpId }); }} className={`w-9 h-9 sm:w-12 sm:h-12 shrink-0 flex items-center justify-center rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95 ${isCoverMode ? 'bg-white/20 backdrop-blur-md text-white border border-white/30' : 'bg-white text-black'}`}>{isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />}</button>
-        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: mpId }); }} className={`${(picture || isCoverMode) ? 'text-gray-300 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 transition-colors p-1 sm:p-2 active:scale-90`}><SkipForward className="w-4 h-4 sm:w-6 sm:h-6" /></button>
+      <div className="relative z-10 flex items-center justify-center mt-1 sm:mt-2 px-0.5 sm:px-0 gap-[clamp(0.125rem,1.5vw,1.5rem)]">
+        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: mpId }); }} className={`${(picture || isCoverMode) ? 'text-gray-300 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 transition-colors p-[clamp(0.15rem,0.9vw,0.5rem)] active:scale-90`}><SkipBack className="w-[clamp(0.85rem,2.2vw,1.5rem)] h-[clamp(0.85rem,2.2vw,1.5rem)]" /></button>
+        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: mpId }); }} className={`w-[clamp(1.9rem,5.8vw,3rem)] h-[clamp(1.9rem,5.8vw,3rem)] shrink-0 flex items-center justify-center rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95 ${isCoverMode ? 'bg-white/20 backdrop-blur-md text-white border border-white/30' : 'bg-white text-black'}`}>{isPlaying ? <Pause className="w-[clamp(0.85rem,2vw,1.25rem)] h-[clamp(0.85rem,2vw,1.25rem)] fill-current" /> : <Play className="w-[clamp(0.85rem,2vw,1.25rem)] h-[clamp(0.85rem,2vw,1.25rem)] fill-current ml-0.5" />}</button>
+        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: mpId }); }} className={`${(picture || isCoverMode) ? 'text-gray-300 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 transition-colors p-[clamp(0.15rem,0.9vw,0.5rem)] active:scale-90`}><SkipForward className="w-[clamp(0.85rem,2.2vw,1.5rem)] h-[clamp(0.85rem,2.2vw,1.5rem)]" /></button>
+        {canTogglePower && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              callService('media_player', powerAction, { entity_id: mpId });
+            }}
+            className={`${(picture || isCoverMode) ? (isPowerOffAction ? 'text-red-300 hover:text-red-100' : 'text-emerald-300 hover:text-emerald-100') : (isPowerOffAction ? 'text-red-400 hover:text-red-500' : 'text-emerald-500 hover:text-emerald-600')} shrink-0 transition-colors p-[clamp(0.15rem,0.9vw,0.5rem)] active:scale-90`}
+            title={isPowerOffAction ? t('status.off') : t('status.on')}
+          >
+            <Power className="w-[clamp(0.85rem,2.2vw,1.5rem)] h-[clamp(0.85rem,2.2vw,1.5rem)]" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -157,6 +186,9 @@ export const MediaGroupCard = ({
   const subtitle = getA(mpId, 'media_artist') || getA(mpId, 'media_series_title') || getA(mpId, 'media_album_name') || '';
   const picture = getEntityImageUrl(currentMp.attributes?.entity_picture);
   const isChannel = getA(mpId, 'media_content_type') === 'channel';
+  const powerAction = getMediaPlayerPowerAction(currentMp);
+  const canTogglePower = Boolean(powerAction);
+  const isPowerOffAction = powerAction === 'turn_off';
 
   const cyclePlayers = (e) => {
     e.stopPropagation();
@@ -177,6 +209,18 @@ export const MediaGroupCard = ({
           <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMusic')}</p>
           <div className="flex items-center justify-center gap-2 mt-1"><p className="text-xs uppercase tracking-widest text-[var(--text-muted)] opacity-40 truncate">{name}</p></div>
         </div>
+        {canTogglePower && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              callService('media_player', powerAction, { entity_id: mpId });
+            }}
+            className={`mt-4 p-2.5 rounded-full transition-colors active:scale-95 ${isPowerOffAction ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'}`}
+            title={isPowerOffAction ? t('status.off') : t('status.on')}
+          >
+            <Power className="w-4 h-4" />
+          </button>
+        )}
       </div>
     );
   }
@@ -227,10 +271,22 @@ export const MediaGroupCard = ({
           {subtitle && <p className={`${(picture || isCoverMode) ? 'text-gray-300' : 'text-[var(--text-secondary)]'} text-xs truncate font-medium`}>{subtitle}</p>}
         </div>
       </div>
-      <div className="relative z-10 flex items-center justify-center gap-2 sm:gap-6 mt-1 sm:mt-2 px-1 sm:px-0">
-        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: mpId }); }} className={`${(picture || isCoverMode) ? 'text-gray-300 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 transition-colors p-1 sm:p-2 active:scale-90`}><SkipBack className="w-4 h-4 sm:w-6 sm:h-6" /></button>
-        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: mpId }); }} className={`w-9 h-9 sm:w-12 sm:h-12 shrink-0 flex items-center justify-center rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95 ${isCoverMode ? 'bg-white/20 backdrop-blur-md text-white border border-white/30' : 'bg-white text-black'}`}>{isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />}</button>
-        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: mpId }); }} className={`${(picture || isCoverMode) ? 'text-gray-300 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 transition-colors p-1 sm:p-2 active:scale-90`}><SkipForward className="w-4 h-4 sm:w-6 sm:h-6" /></button>
+      <div className="relative z-10 flex items-center justify-center mt-1 sm:mt-2 px-0.5 sm:px-0 gap-[clamp(0.125rem,1.5vw,1.5rem)]">
+        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_previous_track", { entity_id: mpId }); }} className={`${(picture || isCoverMode) ? 'text-gray-300 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 transition-colors p-[clamp(0.15rem,0.9vw,0.5rem)] active:scale-90`}><SkipBack className="w-[clamp(0.85rem,2.2vw,1.5rem)] h-[clamp(0.85rem,2.2vw,1.5rem)]" /></button>
+        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_play_pause", { entity_id: mpId }); }} className={`w-[clamp(1.9rem,5.8vw,3rem)] h-[clamp(1.9rem,5.8vw,3rem)] shrink-0 flex items-center justify-center rounded-full hover:scale-105 transition-transform shadow-lg active:scale-95 ${isCoverMode ? 'bg-white/20 backdrop-blur-md text-white border border-white/30' : 'bg-white text-black'}`}>{isPlaying ? <Pause className="w-[clamp(0.85rem,2vw,1.25rem)] h-[clamp(0.85rem,2vw,1.25rem)] fill-current" /> : <Play className="w-[clamp(0.85rem,2vw,1.25rem)] h-[clamp(0.85rem,2vw,1.25rem)] fill-current ml-0.5" />}</button>
+        <button onClick={(e) => { e.stopPropagation(); callService("media_player", "media_next_track", { entity_id: mpId }); }} className={`${(picture || isCoverMode) ? 'text-gray-300 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 transition-colors p-[clamp(0.15rem,0.9vw,0.5rem)] active:scale-90`}><SkipForward className="w-[clamp(0.85rem,2.2vw,1.5rem)] h-[clamp(0.85rem,2.2vw,1.5rem)]" /></button>
+        {canTogglePower && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              callService('media_player', powerAction, { entity_id: mpId });
+            }}
+            className={`${(picture || isCoverMode) ? (isPowerOffAction ? 'text-red-300 hover:text-red-100' : 'text-emerald-300 hover:text-emerald-100') : (isPowerOffAction ? 'text-red-400 hover:text-red-500' : 'text-emerald-500 hover:text-emerald-600')} shrink-0 transition-colors p-[clamp(0.15rem,0.9vw,0.5rem)] active:scale-90`}
+            title={isPowerOffAction ? t('status.off') : t('status.on')}
+          >
+            <Power className="w-[clamp(0.85rem,2.2vw,1.5rem)] h-[clamp(0.85rem,2.2vw,1.5rem)]" />
+          </button>
+        )}
       </div>
     </div>
   );
