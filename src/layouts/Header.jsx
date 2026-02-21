@@ -81,7 +81,7 @@ export default function Header({
         <div className="absolute top-0 left-1/2 -translate-x-1/2 z-50 edit-controls-anim">
           <button
             onClick={() => setShowHeaderEditModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 hover:bg-blue-500/30 transition-all shadow-lg backdrop-blur-md"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent-bg)] border border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)] transition-all shadow-lg backdrop-blur-md"
           >
             <Edit2 className="w-4 h-4 animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-widest">{t('header.addHeader')}</span>

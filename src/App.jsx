@@ -611,7 +611,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   });
 
   return (
-    <div className="min-h-screen font-sans selection:bg-blue-500/30 overflow-x-hidden transition-colors duration-500" style={{backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)'}}>
+    <div className="min-h-screen font-sans selection:bg-[var(--accent-bg)] overflow-x-hidden transition-colors duration-500" style={{backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)'}}>
       <BackgroundLayer bgMode={bgMode} />
       {editMode && draggingId && touchPath && <DragOverlaySVG touchPath={touchPath} />}
       <div

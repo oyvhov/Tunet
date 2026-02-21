@@ -11,15 +11,15 @@ import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiv
 
 const getWeatherInfo = (condition, t) => {
   const map = {
-    'clear-night': { label: t?.('weather.condition.clearNight') || 'Clear', Icon: Moon, color: 'text-blue-200' },
+    'clear-night': { label: t?.('weather.condition.clearNight') || 'Clear', Icon: Moon, color: 'text-[var(--accent-color)]' },
     'cloudy': { label: t?.('weather.condition.cloudy') || 'Cloudy', Icon: Cloud, color: 'text-gray-400' },
     'fog': { label: t?.('weather.condition.fog') || 'Fog', Icon: Cloud, color: 'text-gray-400' },
-    'hail': { label: t?.('weather.condition.hail') || 'Hail', Icon: CloudRain, color: 'text-blue-300' },
+    'hail': { label: t?.('weather.condition.hail') || 'Hail', Icon: CloudRain, color: 'text-[var(--accent-color)]' },
     'lightning': { label: t?.('weather.condition.lightning') || 'Lightning', Icon: Zap, color: 'text-yellow-400' },
     'lightning-rainy': { label: t?.('weather.condition.lightning') || 'Lightning', Icon: Zap, color: 'text-yellow-400' },
     'partlycloudy': { label: t?.('weather.condition.partlyCloudy') || 'Partly cloudy', Icon: CloudSun, color: 'text-yellow-200' },
-    'pouring': { label: t?.('weather.condition.pouring') || 'Heavy rain', Icon: CloudRain, color: 'text-blue-500' },
-    'rainy': { label: t?.('weather.condition.rainy') || 'Rain', Icon: CloudRain, color: 'text-blue-400' },
+    'pouring': { label: t?.('weather.condition.pouring') || 'Heavy rain', Icon: CloudRain, color: 'text-[var(--accent-color)]' },
+    'rainy': { label: t?.('weather.condition.rainy') || 'Rain', Icon: CloudRain, color: 'text-[var(--accent-color)]' },
     'snowy': { label: t?.('weather.condition.snowy') || 'Snow', Icon: Snowflake, color: 'text-white' },
     'snowy-rainy': { label: t?.('weather.condition.snowy') || 'Snow', Icon: Snowflake, color: 'text-white' },
     'sunny': { label: t?.('weather.condition.sunny') || 'Sunny', Icon: Sun, color: 'text-yellow-400' },
@@ -385,7 +385,7 @@ export default function WeatherModal({
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="text-lg md:text-xl font-light text-[var(--text-primary)] tracking-tight">{Number.isFinite(item.temp) ? formatUnitValue(item.temp, { fallback: '--' }) : '--'} {temperatureUnit}</span>
                         {(parseFloat(item.precip) > 0) && (
-                          <div className="flex items-center gap-0.5 text-blue-400 mt-1">
+                          <div className="flex items-center gap-0.5 text-[var(--accent-color)] mt-1">
                             <span className="text-[9px] font-bold">{formatUnitValue(convertValueByKind(item.precip, { kind: 'precipitation', fromUnit: sourcePrecipitationUnit, unitMode: effectiveUnitMode }), { fallback: '--' })}</span>
                             <span className="text-[7px] opacity-70">{precipitationUnit}</span>
                           </div>

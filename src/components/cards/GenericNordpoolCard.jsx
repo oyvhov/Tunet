@@ -78,7 +78,7 @@ export default function GenericNordpoolCard({
 
   // Determine price level
   let levelText = translate('power.level.normal');
-  let levelColor = 'text-blue-400';
+  let levelColor = 'text-[var(--accent-color)]';
 
   if (!Number.isNaN(currentPrice) && priceStats.avg > 0) {
     if (currentPrice >= priceStats.avg * 1.4) {
@@ -97,7 +97,7 @@ export default function GenericNordpoolCard({
   const priceDisplay = currentPrice > 0 ? currentPrice.toFixed(decimals) : '0';
 
   if (settings.size === 'small') {
-    let indicatorClass = 'bg-blue-400 ring-blue-400/30 shadow-blue-500/40';
+    let indicatorClass = 'bg-[var(--accent-color)] ring-[var(--accent-color)] ';
     if (levelColor.includes('red')) indicatorClass = 'bg-red-400 ring-red-400/30 shadow-red-500/40';
     else if (levelColor.includes('orange')) indicatorClass = 'bg-orange-400 ring-orange-400/30 shadow-orange-500/40';
     else if (levelColor.includes('green')) indicatorClass = 'bg-green-400 ring-green-400/30 shadow-green-500/40';

@@ -203,7 +203,7 @@ export default function GenericClimateCard({
                       className={`w-1 rounded-sm transition-all duration-300 ${
                         level <= fanSpeedLevel
                           ? clTheme === 'blue'
-                            ? 'bg-blue-400'
+                            ? 'bg-[var(--accent-color)]'
                             : clTheme === 'orange'
                             ? 'bg-orange-400'
                             : 'bg-[var(--text-primary)]'

@@ -58,7 +58,7 @@ export default function DashboardGrid({
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setShowAddCardModal(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-blue-500 hover:bg-blue-600 active:scale-95 text-white rounded-2xl shadow-lg shadow-blue-500/20 transition-all duration-200 font-bold uppercase tracking-widest text-sm"
+            className="flex items-center gap-3 px-8 py-4 bg-[var(--accent-color)] hover:bg-[var(--accent-color)] active:scale-95 text-white rounded-2xl shadow-lg  transition-all duration-200 font-bold uppercase tracking-widest text-sm"
           >
             <Plus className="w-5 h-5" />
             {t('welcome.addCard')}

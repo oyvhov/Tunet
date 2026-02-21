@@ -102,7 +102,7 @@ export default function StatusBar({
         {editMode && (
           <button
             onClick={() => setShowStatusPillsConfig(true)}
-            className={`flex items-center gap-1.5 rounded-full border transition-all bg-blue-500/20 border-blue-500/30 text-blue-400 hover:bg-blue-500/30 ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1'}`}
+            className={`flex items-center gap-1.5 rounded-full border transition-all bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)] ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1'}`}
             title={t('statusBar.editPills')}
           >
             <Edit2 className="w-3 h-3" />

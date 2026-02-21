@@ -19,8 +19,8 @@ export const themes = {
       '--glass-border': 'rgba(255, 255, 255, 0.08)',
       '--modal-bg': '#0f172a',
       '--modal-backdrop': 'rgba(0,0,0,0.7)',
-      '--accent-color': '#60a5fa', // Softer blue
-      '--accent-bg': 'rgba(96, 165, 250, 0.15)',
+      '--accent-color': '#7393b3', // Dampened blue
+      '--accent-bg': 'rgba(115, 147, 179, 0.15)',
       '--modal-border': 'rgba(255, 255, 255, 0.05)',
       '--modal-border-width': '0px',
       '--modal-shadow': '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
@@ -48,8 +48,8 @@ export const themes = {
       '--glass-border': 'rgba(255, 255, 255, 0.1)',
       '--modal-bg': '#0d0d0f',
       '--modal-backdrop': 'rgba(0,0,0,0.7)',
-      '--accent-color': '#3b82f6', // blue-500
-      '--accent-bg': 'rgba(59, 130, 246, 0.1)',
+      '--accent-color': '#5c80a6', // Dampened blue
+      '--accent-bg': 'rgba(92, 128, 166, 0.15)',
       '--modal-border': 'transparent',
       '--modal-border-width': '0px',
       '--modal-shadow': 'none',
@@ -77,8 +77,8 @@ export const themes = {
       '--glass-border': '#cbd5e1',
       '--modal-bg': '#ffffff',
       '--modal-backdrop': 'rgba(0,0,0,0.2)',
-      '--accent-color': '#2563eb', // blue-600
-      '--accent-bg': '#eff6ff',
+      '--accent-color': '#4a6b8c', // Dampened blue
+      '--accent-bg': 'rgba(74, 107, 140, 0.1)',
       '--modal-border': '#e2e8f0',
       '--modal-shadow': '0 20px 40px rgba(15, 23, 42, 0.12)',
       '--modal-surface': '#f3f4f6',

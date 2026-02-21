@@ -72,7 +72,7 @@ export default function RoomModal({
 
   const domainLabels = {
     light: { label: t('room.domain.light'), icon: Lightbulb, color: 'text-amber-400' },
-    sensor: { label: t('room.domain.sensor'), icon: Thermometer, color: 'text-blue-400' },
+    sensor: { label: t('room.domain.sensor'), icon: Thermometer, color: 'text-[var(--accent-color)]' },
     binary_sensor: { label: t('room.domain.binarySensor'), icon: Eye, color: 'text-green-400' },
     climate: { label: t('room.domain.climate'), icon: Flame, color: 'text-red-400' },
     switch: { label: t('room.domain.switch'), icon: Power, color: 'text-purple-400' },
@@ -226,7 +226,7 @@ export default function RoomModal({
                           {isToggleable && (
                             <button
                               onClick={() => handleToggleEntity(id, domain)}
-                              className={`w-10 h-5 rounded-full transition-colors relative ${isOn ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                              className={`w-10 h-5 rounded-full transition-colors relative ${isOn ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
                             >
                               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${isOn ? 'left-5' : 'left-0.5'}`} />
                             </button>

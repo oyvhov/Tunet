@@ -778,7 +778,7 @@ export default function MediaModal({
               {mpPicture ? <img src={mpPicture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
               <div className="absolute bottom-0 left-0 w-full p-8">
-                <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-2">
+                <p className="text-sm font-bold uppercase tracking-widest text-[var(--accent-color)] mb-2">
                   {activeUser ? `${activeUser} - ${currentMp.attributes?.friendly_name || mpId}` : (currentMp.attributes?.friendly_name || mpId)}
                 </p>
                 <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || t('common.unknown')}</h2>
@@ -796,7 +796,7 @@ export default function MediaModal({
               {isSonos ? (
                 <div className="flex flex-col gap-4 pt-2">
                   <div className="flex items-center justify-center gap-[clamp(0.25rem,1.6vw,1.5rem)]">
-                    <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" /></button>
+                    <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-colors ${shuffle ? 'text-[var(--accent-color)] bg-[var(--accent-bg)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" /></button>
 
                     <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-[clamp(0.25rem,1vw,0.5rem)] hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-[clamp(1.1rem,2.6vw,1.25rem)] h-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" /></button>
                     <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-[clamp(0.35rem,1.2vw,0.75rem)] rounded-full transition-colors active:scale-95 shadow-lg bg-[var(--text-primary)]">
@@ -804,7 +804,7 @@ export default function MediaModal({
                     </button>
                     <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-[clamp(0.25rem,1vw,0.5rem)] hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-[clamp(1.1rem,2.6vw,1.25rem)] h-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" /></button>
 
-                    <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+                    <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-colors ${repeat !== 'off' ? 'text-[var(--accent-color)] bg-[var(--accent-bg)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                       {repeat === 'one' ? <Repeat1 className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" /> : <Repeat className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" />}
                     </button>
                     {canTogglePower && (
@@ -913,7 +913,7 @@ export default function MediaModal({
                     others.forEach(id => callService("media_player", "unjoin", { entity_id: id }));
                   }
                 }}
-                className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-white transition-colors"
+                className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-color)] hover:text-white transition-colors"
               >
                 {listPlayers.every(p => groupMembers.includes(p.entity_id)) ? t('sonos.ungroupAll') : t('sonos.groupAll')}
               </button>
@@ -957,14 +957,14 @@ export default function MediaModal({
                           callService("media_player", "join", { entity_id: mpId, group_members: [p.entity_id] });
                         }
                       }}
-                      className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      className={`p-2.5 rounded-full transition-all ${isMember ? 'bg-[var(--accent-color)] text-white shadow-lg ' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                       title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
                     >
                       {isMember ? <Link className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     </button>
                   )}
                   {canGroup && isSelf && groupMembers.length > 1 && (
-                    <div className="p-2.5 rounded-full bg-blue-500/20 text-blue-400" title={t('tooltip.linked')}>
+                    <div className="p-2.5 rounded-full bg-[var(--accent-bg)] text-[var(--accent-color)]" title={t('tooltip.linked')}>
                       <Link className="w-4 h-4" />
                     </div>
                   )}
@@ -1061,7 +1061,7 @@ export default function MediaModal({
                 value={chooseQuery}
                 onChange={(event) => setChooseQuery(event.target.value)}
                 placeholder={t('addCard.search')}
-                className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-[var(--text-primary)] text-sm outline-none focus:border-blue-500/50 transition-colors"
+                className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-[var(--text-primary)] text-sm outline-none focus:border-[var(--accent-color)] transition-colors"
               />
             )}
 

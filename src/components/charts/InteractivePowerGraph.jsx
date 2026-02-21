@@ -92,10 +92,10 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, u
         {/* "Now" indicator */}
         <div className="absolute left-0 top-0 h-full pointer-events-none" style={{ width: '100%' }}>
           <div 
-            className="absolute top-0 h-full border-l border-blue-400 opacity-60" 
+            className="absolute top-0 h-full border-l border-[var(--accent-color)] opacity-60" 
             style={{ left: `${(currentPointData.x / width) * 100}%` }}
           >
-            <span className="absolute -top-6 -left-8 text-[10px] font-bold text-blue-400 uppercase tracking-widest bg-[var(--card-bg)] px-2 py-0.5 rounded">Now</span>
+            <span className="absolute -top-6 -left-8 text-[10px] font-bold text-[var(--accent-color)] uppercase tracking-widest bg-[var(--card-bg)] px-2 py-0.5 rounded">Now</span>
           </div>
         </div>
         <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible cursor-crosshair" onMouseMove={handleMouseMove} onTouchMove={(e) => handleMouseMove(e.touches[0])}>

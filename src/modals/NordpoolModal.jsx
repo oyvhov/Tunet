@@ -145,9 +145,9 @@ export default function NordpoolModal({
               {displayPriceStats && (
                   <>
                      <div className="p-8 rounded-3xl popup-surface flex flex-col items-center gap-2 transition-all">
-                        <p className="text-xs text-blue-400 uppercase font-bold tracking-[0.2em]">{translate('power.avg')}</p>
+                        <p className="text-xs text-[var(--accent-color)] uppercase font-bold tracking-[0.2em]">{translate('power.avg')}</p>
                         <div className="flex items-baseline gap-2">
-                           <span className="text-6xl font-light italic text-blue-400 leading-none">{displayPriceStats.avg.toFixed(2)}</span>
+                           <span className="text-6xl font-light italic text-[var(--accent-color)] leading-none">{displayPriceStats.avg.toFixed(2)}</span>
                            <span className="text-xl text-gray-500 font-medium">{currency}</span>
                         </div>
                      </div>
