@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import M3Slider from '../ui/M3Slider';
 import {
   Music,
@@ -111,13 +111,12 @@ export default function MediaPage({
     : 0;
   const effectivePosition = Math.min(duration || basePosition, basePosition + elapsed);
 
-  const isCurrentSonos = isSonosEntity(currentMp);
   const rawMembers = getA(mpId, 'group_members');
   const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
   const groupedOthers = groupMembers.filter((id) => id !== mpId);
   const hasGroupedOthers = groupedOthers.length > 0;
 
-  const normalizeChoice = (item, fallbackType) => {
+  const normalizeChoice = useCallback((item, fallbackType) => {
     if (!item) return null;
     if (typeof item === 'string') {
       const value = item.trim();
@@ -138,9 +137,9 @@ export default function MediaPage({
     const source = item.provider || item.source || item.app_name || item.domain || '';
     const image = item.thumbnail || item.thumb || item.image || item.icon || null;
     return { id, label: String(label), type: String(type), source, image };
-  };
+  }, []);
 
-  const normalizeChoiceArray = (raw, fallbackType) => {
+  const normalizeChoiceArray = useCallback((raw, fallbackType) => {
     const array = Array.isArray(raw) ? raw : [];
     const deduped = new Map();
     array.forEach((item) => {
@@ -150,7 +149,7 @@ export default function MediaPage({
       if (!deduped.has(key)) deduped.set(key, normalized);
     });
     return [...deduped.values()];
-  };
+  }, [normalizeChoice]);
 
   const attrFavoriteChoices = normalizeChoiceArray(getA(mpId, 'sonos_favorites', []), 'music');
   const sourceListChoices = normalizeChoiceArray(
@@ -300,6 +299,7 @@ export default function MediaPage({
     mpId,
     conn,
     favoritesByPlayer,
+    normalizeChoiceArray,
     attrFavoriteChoices,
     sourceListChoices,
     playlistFallbackChoices,

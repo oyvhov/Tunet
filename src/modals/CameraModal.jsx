@@ -44,27 +44,27 @@ export default function CameraModal({
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [streamSource, setStreamSource] = useState('ha');
 
-  if (!show || !entityId || !entity) return null;
-
-  const attrs = entity.attributes || {};
+  const activeEntity = entity || { attributes: {} };
+  const activeEntityId = entityId || '';
+  const attrs = activeEntity.attributes || {};
   const accessToken = attrs.access_token || '';
-  const name = customName || attrs.friendly_name || entityId;
+  const name = customName || attrs.friendly_name || activeEntityId;
   const iconName = customIcon || attrs.icon;
   const Icon = iconName ? (getIconComponent(iconName) || Camera) : Camera;
 
-  const streamBase = useMemo(() => buildCameraUrl('/api/camera_proxy_stream', entityId, accessToken), [entityId, accessToken]);
+  const streamBase = useMemo(() => buildCameraUrl('/api/camera_proxy_stream', activeEntityId, accessToken), [activeEntityId, accessToken]);
   const snapshotBase = useMemo(() => {
-    return buildCameraUrl('/api/camera_proxy', entityId, accessToken) || attrs.entity_picture;
-  }, [entityId, accessToken, attrs.entity_picture]);
+    return buildCameraUrl('/api/camera_proxy', activeEntityId, accessToken) || attrs.entity_picture;
+  }, [activeEntityId, accessToken, attrs.entity_picture]);
 
   const streamUrl = getEntityImageUrl(appendTs(streamBase, refreshTs));
   const snapshotUrl = getEntityImageUrl(appendTs(snapshotBase, refreshTs));
   const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
   const webrtcTemplate = (settings?.cameraWebrtcUrl || '').trim();
   const webrtcUrl = useMemo(() => {
-    const resolved = resolveCameraTemplate(webrtcTemplate, entityId);
+    const resolved = resolveCameraTemplate(webrtcTemplate, activeEntityId);
     return resolved ? getEntityImageUrl(appendTs(resolved, refreshTs)) : null;
-  }, [webrtcTemplate, entityId, refreshTs, getEntityImageUrl]);
+  }, [webrtcTemplate, activeEntityId, refreshTs, getEntityImageUrl]);
 
   const preferredSource = useMemo(() => {
     if (streamEngine === 'snapshot') return 'snapshot';
@@ -98,6 +98,8 @@ export default function CameraModal({
   };
 
   const isFallbackActive = viewMode === 'stream' && streamSource === 'snapshot' && preferredSource !== 'snapshot';
+
+  if (!show || !entityId || !entity) return null;
 
   return (
     <div

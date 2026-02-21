@@ -25,13 +25,14 @@ export default function GenericFanModal({
   callService,
   t,
 }) {
-  if (!show || !entityId || !entity) return null;
+  const activeEntityId = entityId || '';
+  const activeEntity = entity || { state: 'unknown', attributes: {} };
 
-  const state = String(entity.state || 'unknown').toLowerCase();
+  const state = String(activeEntity.state || 'unknown').toLowerCase();
   const isOn = state === 'on';
   const isUnavailable = state === 'unavailable' || state === 'unknown';
 
-  const supportedFeatures = Number(entity.attributes?.supported_features || 0);
+  const supportedFeatures = Number(activeEntity.attributes?.supported_features || 0);
   const canTurnOn = supportsFeature(supportedFeatures, FAN_FEATURE.TURN_ON);
   const canTurnOff = supportsFeature(supportedFeatures, FAN_FEATURE.TURN_OFF);
   const hasPowerControl = canTurnOn || canTurnOff;
@@ -40,31 +41,32 @@ export default function GenericFanModal({
   const hasDirectionControl = supportsFeature(supportedFeatures, FAN_FEATURE.DIRECTION);
   const hasPresetControl = supportsFeature(supportedFeatures, FAN_FEATURE.PRESET_MODE);
 
-  const percentageStep = Number(entity.attributes?.percentage_step || 1);
+  const percentageStep = Number(activeEntity.attributes?.percentage_step || 1);
   const minimumStep = Number.isFinite(percentageStep) && percentageStep > 0 ? percentageStep : 1;
-  const percentageRaw = Number(entity.attributes?.percentage ?? 0);
+  const percentageRaw = Number(activeEntity.attributes?.percentage ?? 0);
   const percentage = Number.isFinite(percentageRaw) ? Math.max(0, Math.min(100, Math.round(percentageRaw))) : 0;
-  const oscillating = entity.attributes?.oscillating === true || entity.attributes?.oscillating === 'on';
-  const direction = entity.attributes?.direction || null;
-  const presetMode = entity.attributes?.preset_mode || null;
-  const presetModes = Array.isArray(entity.attributes?.preset_modes) ? entity.attributes.preset_modes : [];
-  const fanName = entity.attributes?.friendly_name || entityId;
+  const oscillating = activeEntity.attributes?.oscillating === true || activeEntity.attributes?.oscillating === 'on';
+  const direction = activeEntity.attributes?.direction || null;
+  const presetMode = activeEntity.attributes?.preset_mode || null;
+  const presetModes = Array.isArray(activeEntity.attributes?.preset_modes) ? activeEntity.attributes.preset_modes : [];
+  const fanName = activeEntity.attributes?.friendly_name || activeEntityId;
 
   const [sliderValue, setSliderValue] = useState(percentage);
 
   useEffect(() => {
+    if (!show) return;
     setSliderValue(percentage);
-  }, [percentage]);
+  }, [percentage, show]);
 
   useEffect(() => {
-    if (!hasPercentageControl) return undefined;
+    if (!show || !activeEntityId || !entity || !hasPercentageControl) return undefined;
     const timeoutId = setTimeout(() => {
       if (sliderValue !== percentage) {
-        callService('fan', 'set_percentage', { entity_id: entityId, percentage: sliderValue });
+        callService('fan', 'set_percentage', { entity_id: activeEntityId, percentage: sliderValue });
       }
     }, 180);
     return () => clearTimeout(timeoutId);
-  }, [sliderValue, percentage, hasPercentageControl, entityId, callService]);
+  }, [sliderValue, percentage, hasPercentageControl, activeEntityId, callService, show, entity]);
 
   const statusText = useMemo(() => {
     if (isUnavailable) return t('common.unknown');
@@ -72,23 +74,25 @@ export default function GenericFanModal({
     if (hasPresetControl && presetMode) return String(presetMode);
     if (hasPercentageControl) return `${percentage}%`;
     return t('status.on');
-  }, [isUnavailable, isOn, presetMode, percentage, t]);
+  }, [isUnavailable, isOn, presetMode, percentage, t, hasPresetControl, hasPercentageControl]);
 
   const handlePowerToggle = () => {
-    if (!hasPowerControl || isUnavailable) return;
+    if (!activeEntityId || !entity || !hasPowerControl || isUnavailable) return;
     if (isOn) {
       if (!canTurnOff) return;
-      callService('fan', 'turn_off', { entity_id: entityId });
+      callService('fan', 'turn_off', { entity_id: activeEntityId });
       return;
     }
     if (!canTurnOn) return;
-    callService('fan', 'turn_on', { entity_id: entityId });
+    callService('fan', 'turn_on', { entity_id: activeEntityId });
   };
 
   const directionMap = {
     forward: t('fan.direction.forward'),
     reverse: t('fan.direction.reverse'),
   };
+
+  if (!show || !activeEntityId || !entity) return null;
 
   return (
     <div
@@ -136,7 +140,7 @@ export default function GenericFanModal({
                 )}
                 {hasOscillationControl && (
                   <button
-                    onClick={() => callService('fan', 'oscillate', { entity_id: entityId, oscillating: !oscillating })}
+                    onClick={() => callService('fan', 'oscillate', { entity_id: activeEntityId, oscillating: !oscillating })}
                     className={`py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${hasPowerControl ? 'flex-1' : 'w-full'} ${oscillating ? 'bg-[var(--accent-color)] text-white shadow-lg  hover:bg-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   >
                     <MoveHorizontal className="w-5 h-5" />
@@ -171,7 +175,7 @@ export default function GenericFanModal({
                 icon={RotateCw}
                 options={['forward', 'reverse']}
                 current={direction}
-                onChange={(value) => callService('fan', 'set_direction', { entity_id: entityId, direction: value })}
+                onChange={(value) => callService('fan', 'set_direction', { entity_id: activeEntityId, direction: value })}
                 placeholder={t('dropdown.noneSelected')}
                 map={directionMap}
               />
@@ -183,7 +187,7 @@ export default function GenericFanModal({
                 icon={RefreshCw}
                 options={presetModes}
                 current={presetMode}
-                onChange={(value) => callService('fan', 'set_preset_mode', { entity_id: entityId, preset_mode: value })}
+                onChange={(value) => callService('fan', 'set_preset_mode', { entity_id: activeEntityId, preset_mode: value })}
                 placeholder={t('dropdown.noneSelected')}
                 map={{}}
               />

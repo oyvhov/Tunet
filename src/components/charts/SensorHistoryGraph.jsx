@@ -24,13 +24,8 @@ const createBezierPath = (points, smoothing = 0.3) => {
 };
 
 export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f6", noDataLabel = "No history data available", formatXLabel }) {
-  if (!data || data.length === 0) {
-    return (
-      <div className="h-[200px] flex items-center justify-center text-gray-500 text-sm">
-        {noDataLabel}
-      </div>
-    );
-  }
+  const hasData = Array.isArray(data) && data.length > 0;
+  const safeData = hasData ? data : [];
 
   // Determine graph dimensions
   const padding = { top: 20, right: 20, bottom: 30, left: 40 };
@@ -39,7 +34,7 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
   const graphHeight = height - padding.top - padding.bottom;
 
   // Calculate min/max values
-  const values = data.map(d => d.value);
+  const values = safeData.map(d => d.value);
   let min = Math.min(...values);
   let max = Math.max(...values);
   
@@ -55,13 +50,13 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
   const renderRange = renderMax - renderMin;
 
   // Create points for Bezier curve
-  const pointsArray = data.map((d, i) => [
-    padding.left + (i / (data.length - 1)) * graphWidth,
+  const pointsArray = safeData.map((d, i) => [
+    padding.left + (i / Math.max(safeData.length - 1, 1)) * graphWidth,
     padding.top + graphHeight - ((d.value - renderMin) / renderRange) * graphHeight
   ]);
 
-  const pathData = useMemo(() => createBezierPath(pointsArray, 0.3), [data]);
-  const areaData = useMemo(() => `${pathData} L ${padding.left + graphWidth},${height} L ${padding.left},${height} Z`, [pathData]);
+  const pathData = useMemo(() => createBezierPath(pointsArray, 0.3), [pointsArray]);
+  const areaData = useMemo(() => `${pathData} L ${padding.left + graphWidth},${height} L ${padding.left},${height} Z`, [pathData, padding.left, graphWidth, height]);
 
   // Generate Y-axis labels (Max, Mid, Min)
   const yLabels = [
@@ -76,8 +71,8 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
   const numLabels = 5;
   for (let i = 0; i < numLabels; i++) {
     const fraction = i / (numLabels - 1);
-    const index = Math.round(fraction * (data.length - 1));
-    const point = data[index];
+    const index = Math.round(fraction * (safeData.length - 1));
+    const point = safeData[index];
     if (point) {
       const x = padding.left + fraction * graphWidth;
       const label = formatXLabel 
@@ -92,6 +87,14 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
   const areaGradientId = `area-gradient-${Math.random().toString(36).substr(2, 9)}`;
   const fadeGradientId = `fade-gradient-${Math.random().toString(36).substr(2, 9)}`;
   const maskId = `mask-${Math.random().toString(36).substr(2, 9)}`;
+
+  if (!hasData) {
+    return (
+      <div className="h-[200px] flex items-center justify-center text-gray-500 text-sm">
+        {noDataLabel}
+      </div>
+    );
+  }
 
   return (
     <div className="w-full relative select-none">

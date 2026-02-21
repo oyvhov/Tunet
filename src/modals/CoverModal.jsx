@@ -165,9 +165,10 @@ export default function CoverModal({
   customIcons,
   t,
 }) {
-  if (!show || !entityId || !entity) return null;
+  const activeEntityId = entityId || '';
+  const activeEntity = entity || { state: 'unknown', attributes: {} };
 
-  const state = entity.state;
+  const state = activeEntity.state;
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isOpen = state === 'open';
   const isClosed = state === 'closed';
@@ -175,22 +176,22 @@ export default function CoverModal({
   const isClosing = state === 'closing';
   const isMoving = isOpening || isClosing;
 
-  const position = entity.attributes?.current_position;
+  const position = activeEntity.attributes?.current_position;
   const hasPosition = typeof position === 'number';
-  const tiltPosition = entity.attributes?.current_tilt_position;
+  const tiltPosition = activeEntity.attributes?.current_tilt_position;
   const hasTilt = typeof tiltPosition === 'number';
 
-  const supportedFeatures = entity.attributes?.supported_features ?? 0;
+  const supportedFeatures = activeEntity.attributes?.supported_features ?? 0;
   const supportsPosition = (supportedFeatures & 4) !== 0;
   const supportsOpenClose = (supportedFeatures & 3) !== 0;
   const supportsStop = (supportedFeatures & 8) !== 0;
   const supportsTilt = (supportedFeatures & 128) !== 0;
   const supportsTiltPosition = (supportedFeatures & 256) !== 0;
 
-  const deviceClass = entity.attributes?.device_class || 'cover';
-  const name = entity.attributes?.friendly_name || entityId;
+  const deviceClass = activeEntity.attributes?.device_class || 'cover';
+  const name = activeEntity.attributes?.friendly_name || activeEntityId;
 
-  const coverIconName = customIcons?.[entityId] || entity.attributes?.icon;
+  const coverIconName = customIcons?.[activeEntityId] || activeEntity.attributes?.icon;
   const Icon = coverIconName ? (getIconComponent(coverIconName) || ArrowUpDown) : ArrowUpDown;
 
   const [localPosition, setLocalPosition] = useState(position ?? 0);
@@ -199,12 +200,14 @@ export default function CoverModal({
   const commitTimerTilt = useRef(null);
 
   useEffect(() => {
+    if (!show) return;
     if (typeof position === 'number') setLocalPosition(position);
-  }, [position]);
+  }, [position, show]);
 
   useEffect(() => {
+    if (!show) return;
     if (typeof tiltPosition === 'number') setLocalTilt(tiltPosition);
-  }, [tiltPosition]);
+  }, [tiltPosition, show]);
 
   const translate = t || ((key) => key);
 
@@ -232,20 +235,22 @@ export default function CoverModal({
   };
 
   const handleSetPosition = useCallback((val) => {
+    if (!show || !activeEntityId || !entity) return;
     setLocalPosition(val);
     clearTimeout(commitTimerPos.current);
     commitTimerPos.current = setTimeout(() => {
-      callService('cover', 'set_cover_position', { entity_id: entityId, position: val });
+      callService('cover', 'set_cover_position', { entity_id: activeEntityId, position: val });
     }, 200);
-  }, [callService, entityId]);
+  }, [callService, activeEntityId, show, entity]);
 
   const handleSetTilt = useCallback((val) => {
+    if (!show || !activeEntityId || !entity) return;
     setLocalTilt(val);
     clearTimeout(commitTimerTilt.current);
     commitTimerTilt.current = setTimeout(() => {
-      callService('cover', 'set_cover_tilt_position', { entity_id: entityId, tilt_position: val });
+      callService('cover', 'set_cover_tilt_position', { entity_id: activeEntityId, tilt_position: val });
     }, 200);
-  }, [callService, entityId]);
+  }, [callService, activeEntityId, show, entity]);
 
   const presets = [
     { label: translate('cover.presetClosed'), value: 0 },
@@ -254,6 +259,8 @@ export default function CoverModal({
     { label: '75%', value: 75 },
     { label: translate('cover.presetOpen'), value: 100 },
   ];
+
+  if (!show || !activeEntityId || !entity) return null;
 
   return (
     <div
@@ -351,7 +358,7 @@ export default function CoverModal({
             <div className="flex p-1 bg-[var(--glass-bg)] rounded-xl border border-[var(--glass-border)] w-full">
               {supportsOpenClose && (
                 <button
-                  onClick={() => !isUnavailable && callService('cover', 'open_cover', { entity_id: entityId })}
+                  onClick={() => !isUnavailable && callService('cover', 'open_cover', { entity_id: activeEntityId })}
                   disabled={isUnavailable}
                   className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 text-xs font-bold uppercase tracking-wider
                     ${isOpen ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
@@ -362,7 +369,7 @@ export default function CoverModal({
               )}
               {supportsStop && (
                 <button
-                  onClick={() => !isUnavailable && callService('cover', 'stop_cover', { entity_id: entityId })}
+                  onClick={() => !isUnavailable && callService('cover', 'stop_cover', { entity_id: activeEntityId })}
                   disabled={isUnavailable}
                   className="flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]"
                 >
@@ -372,7 +379,7 @@ export default function CoverModal({
               )}
               {supportsOpenClose && (
                 <button
-                  onClick={() => !isUnavailable && callService('cover', 'close_cover', { entity_id: entityId })}
+                  onClick={() => !isUnavailable && callService('cover', 'close_cover', { entity_id: activeEntityId })}
                   disabled={isUnavailable}
                   className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 text-xs font-bold uppercase tracking-wider
                     ${isClosed ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}

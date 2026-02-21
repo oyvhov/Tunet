@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { X, MapPin, Battery } from '../icons';
@@ -75,7 +75,6 @@ export default function PersonModal({
   // Resolve Battery
   const currentState = entity?.state;
   let batteryLevel = entity?.attributes?.battery_level;
-  let batteryState = entity?.attributes?.battery_state;
   const phoneBatteryEntityId = settings?.phoneBatteryEntity || manualBatteryId || null;
   const watchBatteryEntityId = settings?.watchBatteryEntity || null;
   const personExtraSensorIds = Array.isArray(settings?.personExtraSensors)
@@ -153,7 +152,6 @@ export default function PersonModal({
       const val = parseInt(batEntity.state);
       if (!isNaN(val)) {
           batteryLevel = val;
-          batteryState = batEntity.attributes?.battery_state;
       } else if (batEntity.attributes.battery_level !== undefined) {
           batteryLevel = batEntity.attributes.battery_level;
       }

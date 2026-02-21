@@ -46,7 +46,7 @@ export function useAddCard({
     if (showAddCardModal && addCardTargetPage !== 'header') {
       setAddCardTargetPage(activePage);
     }
-  }, [showAddCardModal, activePage]);
+  }, [showAddCardModal, activePage, addCardTargetPage]);
 
   // ── Reset search when modal closes ─────────────────────────────────────
   useEffect(() => {
@@ -55,7 +55,7 @@ export function useAddCard({
       // Reset target page so it doesn't stay stuck on 'header' or 'settings'
       setAddCardTargetPage(activePage);
     }
-  }, [showAddCardModal]);
+  }, [showAddCardModal, activePage]);
 
   // ── Reset selections when modal opens ──────────────────────────────────
   useEffect(() => {
@@ -84,7 +84,7 @@ export function useAddCard({
       return;
     }
     setAddCardType('sensor');
-  }, [showAddCardModal, addCardTargetPage]);
+  }, [showAddCardModal, addCardTargetPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Clear stale selections when card type changes ──────────────────────
   useEffect(() => {

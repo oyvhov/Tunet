@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { getIconComponent } from '../../icons';
 import { ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -162,7 +162,7 @@ const HorizontalBlindSlider = ({ position, onChange, onCommit, accent, isUnavail
 };
 
 /* -- Button Control Component ---------------------------------------- */
-const ButtonControl = ({ onOpen, onClose, onStop, isUnavailable, accent, horizontal = false }) => {
+const ButtonControl = ({ onOpen, onClose, onStop, isUnavailable, horizontal = false }) => {
   if (horizontal) {
        return (
         <div className={`w-full h-full flex items-center justify-between p-1.5 gap-1.5 rounded-2xl ${CONTROL_STYLE}`}>
@@ -222,7 +222,7 @@ const ButtonControl = ({ onOpen, onClose, onStop, isUnavailable, accent, horizon
 
 /* -- Small Card Variant ---------------------------------------------- */
 const SmallCoverCard = (props) => {
-    const { cardId, dragProps, controls, cardStyle, editMode, onOpen, name, localPos, position, isMoving, isOpening, getStateLabel, accent, isUnavailable, handleToggleMode, Icon, mode, supportsPosition, handlePositionCommit, setLocalPos, handleOpenCover, handleCloseCover, handleStopCover, translate } = props;
+  const { cardId, dragProps, controls, cardStyle, editMode, onOpen, localPos, position, isMoving, getStateLabel, accent, isUnavailable, handleToggleMode, Icon, mode, supportsPosition, handlePositionCommit, setLocalPos, handleOpenCover, handleCloseCover, handleStopCover } = props;
 
     return (
         <div
@@ -301,21 +301,22 @@ const CoverCard = ({
   settings,
   t,
 }) => {
-  if (!entity || !entityId) return null;
+  const activeEntityId = entityId || '';
+  const activeEntity = entity || { state: 'unknown', attributes: {} };
 
   const isSmall = settings?.size === 'small';
-  const state = entity.state;
+  const state = activeEntity.state;
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isOpening = state === 'opening';
   const isClosing = state === 'closing';
   const isMoving = isOpening || isClosing;
   
   // Features
-  const supportedFeatures = entity.attributes?.supported_features ?? 0;
+  const supportedFeatures = activeEntity.attributes?.supported_features ?? 0;
   const supportsPosition = (supportedFeatures & 4) !== 0;
 
-  const name = customNames[cardId] || entity.attributes?.friendly_name || entityId;
-  const coverIconName = customIcons[cardId] || entity?.attributes?.icon;
+  const name = customNames[cardId] || activeEntity.attributes?.friendly_name || activeEntityId;
+  const coverIconName = customIcons[cardId] || activeEntity?.attributes?.icon;
   const Icon = coverIconName ? (getIconComponent(coverIconName) || ArrowUpDown) : ArrowUpDown;
 
   // View Mode: 'slider' or 'buttons'
@@ -324,7 +325,7 @@ const CoverCard = ({
   const translate = t || ((key) => key);
 
   // Position Logic
-  const position = entity.attributes?.current_position;
+  const position = activeEntity.attributes?.current_position;
   const [localPos, setLocalPos] = useState(position ?? 0);
   const isDraggingRef = useRef(false);
 
@@ -344,13 +345,14 @@ const CoverCard = ({
   };
   const accent = getAccent();
 
-  const handleOpenCover = () => !isUnavailable && callService('cover', 'open_cover', { entity_id: entityId });
-  const handleCloseCover = () => !isUnavailable && callService('cover', 'close_cover', { entity_id: entityId });
-  const handleStopCover = () => !isUnavailable && callService('cover', 'stop_cover', { entity_id: entityId });
+    const handleOpenCover = () => !isUnavailable && activeEntityId && callService('cover', 'open_cover', { entity_id: activeEntityId });
+    const handleCloseCover = () => !isUnavailable && activeEntityId && callService('cover', 'close_cover', { entity_id: activeEntityId });
+    const handleStopCover = () => !isUnavailable && activeEntityId && callService('cover', 'stop_cover', { entity_id: activeEntityId });
   
   const handlePositionCommit = (val) => {
       setLocalPos(val);
-      callService('cover', 'set_cover_position', { entity_id: entityId, position: val });
+      if (!activeEntityId) return;
+      callService('cover', 'set_cover_position', { entity_id: activeEntityId, position: val });
   };
 
   const handleToggleMode = (e) => {
@@ -373,6 +375,8 @@ const CoverCard = ({
       handleToggleMode, Icon, mode, supportsPosition, handlePositionCommit, setLocalPos,
       handleOpenCover, handleCloseCover, handleStopCover, translate
   };
+
+  if (!entity || !activeEntityId) return null;
 
   if (isSmall) {
       return <SmallCoverCard {...commonProps} />;
@@ -456,7 +460,6 @@ const CoverCard = ({
                onClose={handleCloseCover} 
                onStop={handleStopCover}
                isUnavailable={isUnavailable}
-               accent={accent}
             />
          )}
       </div>

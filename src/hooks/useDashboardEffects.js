@@ -66,7 +66,7 @@ export function useDashboardEffects({
 
       try {
         if (navigator.vibrate) navigator.vibrate(8);
-      } catch (err) {
+      } catch (_err) {
         // Ignore vibration errors
       }
     };

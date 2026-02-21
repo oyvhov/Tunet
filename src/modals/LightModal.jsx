@@ -15,9 +15,9 @@ export default function LightModal({
   customIcons,
   t
 }) {
-  if (!show || !lightId) return null;
+  const activeLightId = String(lightId || '');
 
-  const entity = entities[lightId];
+  const entity = entities[activeLightId];
   const isUnavailable = entity?.state === 'unavailable' || entity?.state === 'unknown' || !entity;
   const isOn = entity?.state === 'on';
 
@@ -31,14 +31,15 @@ export default function LightModal({
   const supportsColorTemp = colorModes.includes('color_temp') || colorModes.includes('color_temp_kelvin');
   const supportsColor = colorModes.some((mode) => ['hs', 'rgb', 'xy'].includes(mode));
   const showPills = isDimmable && (supportsColorTemp || supportsColor);
-  const showRightPanel = isDimmable || getA(lightId, "entity_id", []).length > 0;
+  const groupedEntityIds = activeLightId ? getA(activeLightId, 'entity_id', []) : [];
+  const showRightPanel = isDimmable || groupedEntityIds.length > 0;
 
   // --- Icon ---
   let DefaultIcon = Lightbulb;
-  if (lightId.includes('kjokken') || lightId.includes('kitchen')) DefaultIcon = Utensils;
-  else if (lightId.includes('stova') || lightId.includes('living')) DefaultIcon = Sofa;
-  else if (lightId.includes('studio') || lightId.includes('office')) DefaultIcon = LampDesk;
-  const lightIconName = customIcons[lightId] || entities[lightId]?.attributes?.icon;
+  if (activeLightId.includes('kjokken') || activeLightId.includes('kitchen')) DefaultIcon = Utensils;
+  else if (activeLightId.includes('stova') || activeLightId.includes('living')) DefaultIcon = Sofa;
+  else if (activeLightId.includes('studio') || activeLightId.includes('office')) DefaultIcon = LampDesk;
+  const lightIconName = customIcons[activeLightId] || entities[activeLightId]?.attributes?.icon;
   const LightIcon = lightIconName ? (getIconComponent(lightIconName) || DefaultIcon) : DefaultIcon;
 
   // --- Values & Ranges ---
@@ -79,15 +80,17 @@ export default function LightModal({
 
   // --- Handlers ---
   const handleTempChange = (e) => {
+    if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalKelvin(val);
-    callService("light", "turn_on", { entity_id: lightId, color_temp_kelvin: val });
+    callService('light', 'turn_on', { entity_id: activeLightId, color_temp_kelvin: val });
   };
 
   const handleHueChange = (e) => {
+    if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalHue(val);
-    callService("light", "turn_on", { entity_id: lightId, hs_color: [val, 100] });
+    callService('light', 'turn_on', { entity_id: activeLightId, hs_color: [val, 100] });
   };
 
   // Determine glow color
@@ -103,6 +106,8 @@ export default function LightModal({
     }
     return '#fbbf24'; // Default amber
   };
+
+  if (!show || !activeLightId) return null;
 
   return (
     <div 
@@ -138,7 +143,7 @@ export default function LightModal({
                </div>
                <div className="min-w-0">
                  <h2 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none truncate">
-                   {getA(lightId, "friendly_name", t('common.light'))}
+                   {getA(activeLightId, 'friendly_name', t('common.light'))}
                  </h2>
                  <div className={`mt-2 px-3 py-1 rounded-full border inline-flex items-center gap-2 ${isUnavailable ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
                    <div className={`w-1.5 h-1.5 rounded-full ${isUnavailable ? 'bg-red-400' : (isOn ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' : 'bg-slate-600')}`} />
@@ -147,7 +152,7 @@ export default function LightModal({
                    </span>
                    {isOn && (
                      <span className="text-[10px] uppercase font-bold italic tracking-widest pl-2 border-l border-[var(--glass-border)] text-[var(--text-muted)]">
-                       {Math.round((((optimisticLightBrightness[lightId] ?? (getA(lightId, "brightness") || 0)) / 255) * 100))}%
+                      {Math.round((((optimisticLightBrightness[activeLightId] ?? (getA(activeLightId, 'brightness') || 0)) / 255) * 100))}%
                      </span>
                    )}
                  </div>
@@ -157,7 +162,7 @@ export default function LightModal({
              {/* Centerpiece Icon - Toggle Button */}
              <div className="relative z-10 flex-1 flex items-center justify-center my-4 md:my-0 min-h-[100px] md:min-h-0">
                 <button 
-                  onClick={() => !isUnavailable && callService("light", "toggle", { entity_id: lightId })}
+                  onClick={() => !isUnavailable && callService('light', 'toggle', { entity_id: activeLightId })}
                   disabled={isUnavailable}
                   className={`relative w-24 h-24 md:w-36 md:h-36 rounded-full flex items-center justify-center transition-all duration-700
                     ${isUnavailable ? 'cursor-not-allowed bg-red-500/5 text-red-500' : 
@@ -227,7 +232,7 @@ export default function LightModal({
                         <div className="flex justify-between items-end px-1">
                           <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">{t('light.brightness')}</label>
                           <span className="text-lg font-medium text-[var(--text-primary)] font-mono">
-                            {Math.round((((optimisticLightBrightness[lightId] ?? (getA(lightId, "brightness") || 0)) / 255) * 100))}%
+                            {Math.round((((optimisticLightBrightness[activeLightId] ?? (getA(activeLightId, 'brightness') || 0)) / 255) * 100))}%
                           </span>
                         </div>
                         <div className="h-10">
@@ -235,12 +240,12 @@ export default function LightModal({
                                 min={0} 
                                 max={255} 
                                 step={1} 
-                                value={optimisticLightBrightness[lightId] ?? (getA(lightId, "brightness") || 0)} 
+                                value={optimisticLightBrightness[activeLightId] ?? (getA(activeLightId, 'brightness') || 0)} 
                                 disabled={isUnavailable} 
                                 onChange={(e) => { 
                                   const val = parseInt(e.target.value); 
-                                  setOptimisticLightBrightness(prev => ({ ...prev, [lightId]: val })); 
-                                  callService("light", "turn_on", { entity_id: lightId, brightness: val }); 
+                                  setOptimisticLightBrightness(prev => ({ ...prev, [activeLightId]: val })); 
+                                  callService('light', 'turn_on', { entity_id: activeLightId, brightness: val }); 
                                 }} 
                                 colorClass="bg-amber-500"
                                 variant="fat" // Keep fat for touch, but in smaller container
@@ -326,13 +331,13 @@ export default function LightModal({
               )}
 
               {/* Sub Entities - Cleaner list */}
-              {getA(lightId, "entity_id", []).length > 0 && (
+              {groupedEntityIds.length > 0 && (
                 <div className="pt-4 md:pt-6 border-t border-[var(--glass-border)]">
                   <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-2 md:mb-4 pl-1">
                     {t('light.roomLights')}
                   </h3>
                   <div className="space-y-2 md:space-y-3">
-                    {getA(lightId, "entity_id", []).map(cid => {
+                    {groupedEntityIds.map(cid => {
                         const subEnt = entities[cid];
                         const subName = subEnt?.attributes?.friendly_name || cid.split('.')[1].replace(/_/g, ' ');
                         const subIsOn = subEnt?.state === 'on';

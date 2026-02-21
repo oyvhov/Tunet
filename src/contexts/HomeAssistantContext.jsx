@@ -123,13 +123,13 @@ export const HomeAssistantProvider = ({ children, config }) => {
     // For token mode, require token
     if (!isOAuth && !hasToken) {
       cleanupConnection();
-      if (connected) setConnected(false);
+      setConnected(false);
       return;
     }
     // For oauth mode, require stored tokens OR an active callback in the URL
     if (isOAuth && !hasOAuth && !isOAuthCallback && !config.isIngress) {
       cleanupConnection();
-      if (connected) setConnected(false);
+      setConnected(false);
       return;
     }
 
@@ -152,7 +152,21 @@ export const HomeAssistantProvider = ({ children, config }) => {
           setHaUser({ id: user.id, name: user.name, is_owner: user.is_owner, is_admin: user.is_admin });
         }
       } catch (err) {
-        console.warn('Failed to fetch HA user:', err);
+        const resultError = err?.error || err;
+        const errorCode = resultError?.code;
+        const errorMessage = String(resultError?.message || '').toLowerCase();
+        const isUnsupportedCommand =
+          errorCode === 'unknown_command'
+          || errorCode === 'not_found'
+          || errorMessage.includes('unknown command')
+          || errorMessage.includes('not found')
+          || errorMessage.includes('auth/current_user');
+
+        if (isCurrentAttempt()) {
+          setHaUser(null);
+        }
+
+        if (!isUnsupportedCommand) return;
       }
     }
 
@@ -164,7 +178,25 @@ export const HomeAssistantProvider = ({ children, config }) => {
           setHaConfig(conf);
         }
       } catch (err) {
-        console.warn('Failed to fetch HA config:', err);
+        const resultError = err?.error || err;
+        const errorCode = resultError?.code;
+        const errorMessage = String(resultError?.message || '').toLowerCase();
+        const isUnsupportedCommand =
+          errorCode === 'unknown_command'
+          || errorCode === 'not_found'
+          || errorCode === 'unauthorized'
+          || errorCode === 'forbidden'
+          || errorMessage.includes('unknown command')
+          || errorMessage.includes('not found')
+          || errorMessage.includes('unauthorized')
+          || errorMessage.includes('forbidden')
+          || errorMessage.includes('get_config');
+
+        if (isCurrentAttempt()) {
+          setHaConfig(null);
+        }
+
+        if (!isUnsupportedCommand) return;
       }
     }
     
@@ -296,7 +328,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       }
       cleanupConnection();
     };
-  }, [config.url, config.fallbackUrl, config.token, config.authMethod, config.isIngress, cleanupConnection]);
+  }, [config.url, config.fallbackUrl, config.token, config.authMethod, config.isIngress, cleanupConnection, setEntities]);
 
   // Handle connection events
   useEffect(() => {

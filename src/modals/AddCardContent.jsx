@@ -190,7 +190,7 @@ export default function AddCardContent({
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
     setCalendarOptionsSnapshot(snapshot);
-  }, [addCardType]);
+  }, [addCardType, entities]);
 
   useEffect(() => {
     if (addCardType === 'spacer') {

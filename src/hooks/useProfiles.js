@@ -8,8 +8,6 @@ import {
 import {
   collectSnapshot,
   applySnapshot,
-  exportToFile,
-  importFromFile,
   isValidSnapshot,
 } from '../services/snapshot';
 

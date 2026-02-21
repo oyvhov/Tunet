@@ -127,8 +127,6 @@ export default function CostModal({
   t,
   currency: propCurrency
 }) {
-  if (!show) return null;
-
   const { haConfig } = useHomeAssistantMeta();
   const currency = propCurrency || haConfig?.currency || 'kr';
 
@@ -223,7 +221,7 @@ export default function CostModal({
     };
 
     fetchHistory();
-  }, [show, conn, activeEntity?.entity_id, rangeHours, metric]);
+  }, [show, conn, activeEntity?.entity_id, activeEntity?.state, rangeHours, metric, chartType]);
 
   const stats = useMemo(() => {
     if (!series.length) return { min: '--', max: '--', avg: '--', last: '--' };
@@ -243,6 +241,8 @@ export default function CostModal({
   const displayName = name || translate('energyCost.title');
   const CustomIcon = iconName ? getIconComponent(iconName) : null;
   const HeaderIcon = CustomIcon || Coins;
+
+  if (!show) return null;
 
   return (
     <div
