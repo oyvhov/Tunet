@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.2] — 2026-02-21
+
+### Added
+- Added accent-highlighted selection styling across Add Card flows (card type chips, entity selections, and selected badges).
+
+### Changed
+- Updated Add Card and Add Page primary actions to use accent-colored CTA styling for clearer selection and confirmation.
+- Improved Add Card modal visual consistency for selected states, including room, weather, Android TV, calendar, cost, nordpool, and spacer options.
+
+### Fixed
+- Fixed edit-overlay resize action to follow theme accent color instead of hardcoded purple.
+- Resolved release-blocking lint `no-undef` issues (`sessionStorage`, `confirm`, `Blob`, and `HTMLInputElement` references).
+- Refactored multiple modal/chart/card components to avoid conditional hook-order warnings in low-risk paths.
+
+
 ## [1.6.1] — 2026-02-21
 
 ### Fixed

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.2
+
+- Includes dashboard release `1.6.2`.
+- Updates Add Card and Add Page selection/CTA styling to use accent-highlighted selected states for better clarity.
+- Fixes edit-overlay resize control color to follow theme accent color.
+- Includes lint hardening updates required for release checks and CI stability.
+- Keeps app and add-on versions synchronized at `1.6.2`.
+
 ## 1.6.1
 
 - Release metadata sync.
