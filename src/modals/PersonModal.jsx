@@ -322,7 +322,7 @@ export default function PersonModal({
                 <div className="w-full h-[clamp(20rem,35vw,30rem)] rounded-2xl overflow-hidden relative group border border-[var(--glass-border)] bg-[var(--glass-bg)] z-0 shadow-inner">
                   <div ref={mapRef} className="w-full h-full z-0 opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-md bg-black/60 shadow-lg flex items-center gap-2 pointer-events-none z-[1000]">
-                      <MapPin className="w-3 h-3 text-blue-400" />
+                      <MapPin className="w-3 h-3 text-[var(--accent-color)]" />
                       <span className="text-xs font-bold uppercase tracking-widest text-white">
                          {t('map.lastSeenHere')}
                       </span>

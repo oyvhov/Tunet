@@ -78,7 +78,7 @@ export default function GenericNordpoolCard({
 
   // Determine price level
   let levelText = translate('power.level.normal');
-  let levelColor = 'text-blue-400';
+  let levelColor = 'text-[var(--accent-color)]';
 
   if (!Number.isNaN(currentPrice) && priceStats.avg > 0) {
     if (currentPrice >= priceStats.avg * 1.4) {
@@ -97,7 +97,7 @@ export default function GenericNordpoolCard({
   const priceDisplay = currentPrice > 0 ? currentPrice.toFixed(decimals) : '0';
 
   if (settings.size === 'small') {
-    let indicatorClass = 'bg-blue-400 ring-blue-400/30 shadow-blue-500/40';
+    let indicatorClass = 'bg-[var(--accent-color)] ring-[var(--accent-color)] ';
     if (levelColor.includes('red')) indicatorClass = 'bg-red-400 ring-red-400/30 shadow-red-500/40';
     else if (levelColor.includes('orange')) indicatorClass = 'bg-orange-400 ring-orange-400/30 shadow-orange-500/40';
     else if (levelColor.includes('green')) indicatorClass = 'bg-green-400 ring-green-400/30 shadow-green-500/40';
@@ -123,7 +123,7 @@ export default function GenericNordpoolCard({
           
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <p className="text-[var(--text-secondary)] text-[10px] tracking-widest uppercase font-bold opacity-60 truncate leading-none">{name}</p>
+              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-70 truncate leading-none">{name}</p>
               <span
                 className={`w-2.5 h-2.5 rounded-full ring-2 shadow-sm shrink-0 ${indicatorClass}`}
                 title={levelText}

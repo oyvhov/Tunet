@@ -44,7 +44,7 @@ const InteractiveBlind = ({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full rounded-2xl overflow-hidden border-2 select-none ${disabled ? 'opacity-50' : 'cursor-ns-resize'}`}
+      className={`relative w-full h-full rounded-2xl overflow-hidden border-2 select-none touch-none ${disabled ? 'opacity-50' : 'cursor-ns-resize'}`}
       style={{ borderColor: accent.border, backgroundColor: 'rgba(135,206,235,0.04)' }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -61,7 +61,7 @@ const InteractiveBlind = ({
       </div>
 
       {/* Slats from top */}
-      <div className="absolute inset-x-0 top-0 flex flex-col pointer-events-none">
+      <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col pointer-events-none">
         {Array.from({ length: slatCount }).map((_, i) => (
           <div
             key={i}
@@ -134,7 +134,7 @@ const TiltVisual = ({ tilt, onTiltChange, accent, disabled }) => {
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-24 rounded-xl overflow-hidden border flex flex-col justify-center gap-1 px-3 py-2 select-none ${disabled ? 'opacity-50' : 'cursor-ew-resize'}`}
+      className={`relative w-full h-24 rounded-xl overflow-hidden border flex flex-col justify-center gap-1 px-3 py-2 select-none touch-none ${disabled ? 'opacity-50' : 'cursor-ew-resize'}`}
       style={{ borderColor: accent.border, backgroundColor: 'rgba(135,206,235,0.04)' }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

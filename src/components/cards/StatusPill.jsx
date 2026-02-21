@@ -285,7 +285,7 @@ export default function StatusPill({
   // Get colors
   const bgColor = pill.bgColor || 'rgba(255, 255, 255, 0.03)';
   const iconBgColor = pill.iconBgColor || 'rgba(59, 130, 246, 0.1)';
-  const iconColor = pill.iconColor || 'text-blue-400';
+  const iconColor = pill.iconColor || 'text-[var(--accent-color)]';
   const labelColor = pill.labelColor || 'text-[var(--text-secondary)]';
   const sublabelColor = pill.sublabelColor || 'text-[var(--text-muted)]';
   

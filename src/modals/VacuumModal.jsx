@@ -80,7 +80,7 @@ export default function VacuumModal({
                 <div className="flex gap-4 w-full">
                     <button
                         onClick={() => callService('vacuum', isCleaning ? 'pause' : 'start', { entity_id: vacuumId })}
-                        className={`flex-1 py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${isCleaning ? 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600'}`}
+                        className={`flex-1 py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${isCleaning ? 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-white shadow-lg  hover:bg-[var(--accent-color)]'}`}
                     >
                         {isCleaning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                         {isCleaning ? t('vacuum.pause') : t('vacuum.start')}
@@ -105,7 +105,7 @@ export default function VacuumModal({
                    
                    {/* Room */}
                    <div className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[var(--glass-bg)]/50 transition-all">
-                      <MapPin className="w-6 h-6 text-blue-400" />
+                      <MapPin className="w-6 h-6 text-[var(--accent-color)]" />
                       <span className="text-xl font-light truncate max-w-full px-2" title={room}>{room || '--'}</span>
                       <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">{t('vacuum.room')}</span>
                    </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getForecast } from '../services';
 
 /**
@@ -8,36 +8,39 @@ import { getForecast } from '../services';
 export default function useWeatherForecast(conn, cardSettings) {
   const [forecastsById, setForecastsById] = useState({});
 
-  useEffect(() => {
-    if (!conn) return;
-
-    // Identify all weather entities used in cards
-    const weatherIds = Object.keys(cardSettings)
-      .map(section => {
+  // Derive a stable list of weather entity IDs used across cards
+  const weatherIds = useMemo(() => {
+    const ids = Object.keys(cardSettings)
+      .map((section) => {
         const settings = cardSettings[section];
         if (section.includes('::weather_temp_')) return settings.weatherId;
-        // Also check generic cards if they are configured as weather
         if (settings.type === 'weather') return settings.weatherId;
         return null;
       })
       .filter(Boolean);
-    
-    const uniqueIds = Array.from(new Set(weatherIds));
-    if (uniqueIds.length === 0) return;
+    return Array.from(new Set(ids));
+  }, [cardSettings]);
+
+  useEffect(() => {
+    if (!conn) return undefined;
+    if (weatherIds.length === 0) {
+      setForecastsById({});
+      return undefined;
+    }
+
+    let cancelled = false;
 
     const fetchForecasts = async () => {
       const newForecasts = {};
-      
-      // Fetch concurrently
-      await Promise.all(uniqueIds.map(async (entityId) => {
+
+      await Promise.all(weatherIds.map(async (entityId) => {
+        if (cancelled) return;
         try {
-          // Try hourly first
           let data = await getForecast(conn, { entityId, type: 'hourly' });
           if (!data || data.length === 0) {
-            // Fallback to daily
             data = await getForecast(conn, { entityId, type: 'daily' });
           }
-          if (data && data.length > 0) {
+          if (!cancelled && data && data.length > 0) {
             newForecasts[entityId] = data;
           }
         } catch (err) {
@@ -45,18 +48,28 @@ export default function useWeatherForecast(conn, cardSettings) {
         }
       }));
 
-      if (Object.keys(newForecasts).length > 0) {
-        setForecastsById(prev => ({ ...prev, ...newForecasts }));
-      }
+      if (cancelled) return;
+      setForecastsById((prev) => {
+        // Drop stale entries for weather cards that were removed
+        const next = weatherIds.reduce((acc, id) => {
+          if (prev[id]) acc[id] = prev[id];
+          return acc;
+        }, {});
+        if (Object.keys(newForecasts).length) {
+          return { ...next, ...newForecasts };
+        }
+        return next;
+      });
     };
 
     fetchForecasts();
-
-    // Refresh every 30 minutes
     const interval = setInterval(fetchForecasts, 30 * 60 * 1000);
 
-    return () => clearInterval(interval);
-  }, [conn, JSON.stringify(cardSettings)]);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [conn, weatherIds]);
 
   return [forecastsById, setForecastsById];
 }

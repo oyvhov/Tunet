@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useId } from 'react';
 
 export default function M3Slider({ 
   min, max, step, value, onChange, 
-  colorClass: propColorClass = "bg-blue-500", 
+  colorClass: propColorClass = "bg-[var(--accent-color)]", 
   disabled = false, 
   variant = "default",
   trackClass,
@@ -15,7 +15,7 @@ export default function M3Slider({
   const generatedId = useId();
   const inputId = id || `m3-slider-${generatedId.replace(/:/g, '')}`;
   const inputName = name || inputId;
-  const colorClass = propColorClass === "bg-blue-500" ? "bg-[var(--accent-color)]" : propColorClass;
+  const colorClass = propColorClass === "bg-[var(--accent-color)]" ? "bg-[var(--accent-color)]" : propColorClass;
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
   const timeoutRef = useRef(null);

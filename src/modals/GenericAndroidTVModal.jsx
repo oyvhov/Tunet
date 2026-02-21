@@ -122,7 +122,7 @@ export default function GenericAndroidTVModal({
                       <img src={picture} alt={title} className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                       <div className="absolute bottom-6 left-6 right-6">
-                        <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-1">{appName || t('media.homeScreen')}</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--accent-color)] mb-1">{appName || t('media.homeScreen')}</p>
                         <h2 className="text-2xl font-bold text-white leading-tight line-clamp-2">{title || t('media.noneMedia')}</h2>
                       </div>
                     </>
@@ -139,7 +139,7 @@ export default function GenericAndroidTVModal({
                   <button onClick={() => controlMedia('media_previous_track')} className="p-3 rounded-full bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95">
                     <SkipBack className="w-5 h-5" />
                   </button>
-                  <button onClick={() => controlMedia('media_play_pause')} className="p-5 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 transition-all active:scale-95 font-bold">
+                  <button onClick={() => controlMedia('media_play_pause')} className="p-5 rounded-full bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-white shadow-lg  transition-all active:scale-95 font-bold">
                     {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
                   </button>
                   <button onClick={() => controlMedia('media_next_track')} className="p-3 rounded-full bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95">
@@ -172,7 +172,7 @@ export default function GenericAndroidTVModal({
                     <ChevronDown className="w-5 h-5" />
                   </button>
                   {/* Center */}
-                  <button onClick={() => sendCommand('DPAD_CENTER')} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white transition-all active:scale-90 flex items-center justify-center shadow-lg shadow-blue-500/20 font-bold text-[10px]">
+                  <button onClick={() => sendCommand('DPAD_CENTER')} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-white transition-all active:scale-90 flex items-center justify-center shadow-lg  font-bold text-[10px]">
                     OK
                   </button>
                </div>

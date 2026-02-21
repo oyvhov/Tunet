@@ -166,7 +166,7 @@ export default function LeafModal({
                         className="opacity-70 group-hover:opacity-100 transition-opacity duration-500 w-full h-full"
                     ></iframe>
                     <div className="absolute top-4 left-4 px-4 py-2 rounded-xl backdrop-blur-md bg-black/60 shadow-lg flex items-center gap-2 pointer-events-none">
-                        <MapPin className="w-3 h-3 text-blue-400" />
+                        <MapPin className="w-3 h-3 text-[var(--accent-color)]" />
                         <span className="text-xs font-bold uppercase tracking-widest text-white">
                             {t('map.lastSeenHere')}
                         </span>

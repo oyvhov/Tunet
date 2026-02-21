@@ -128,7 +128,7 @@ export default function GenericFanModal({
                 {hasPowerControl && (
                   <button
                     onClick={handlePowerToggle}
-                    className={`flex-1 py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${isOn ? 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600'}`}
+                    className={`flex-1 py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${isOn ? 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-white shadow-lg  hover:bg-[var(--accent-color)]'}`}
                   >
                     <Fan className="w-5 h-5" />
                     {isOn ? t('fan.turnOff') : t('fan.turnOn')}
@@ -137,7 +137,7 @@ export default function GenericFanModal({
                 {hasOscillationControl && (
                   <button
                     onClick={() => callService('fan', 'oscillate', { entity_id: entityId, oscillating: !oscillating })}
-                    className={`py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${hasPowerControl ? 'flex-1' : 'w-full'} ${oscillating ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600' : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                    className={`py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${hasPowerControl ? 'flex-1' : 'w-full'} ${oscillating ? 'bg-[var(--accent-color)] text-white shadow-lg  hover:bg-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   >
                     <MoveHorizontal className="w-5 h-5" />
                     {t('fan.oscillate')}
@@ -157,7 +157,7 @@ export default function GenericFanModal({
                     step={minimumStep}
                     value={sliderValue}
                     onChange={(event) => setSliderValue(Number(event.target.value))}
-                    colorClass="bg-blue-500"
+                    colorClass="bg-[var(--accent-color)]"
                   />
                 </div>
               )}

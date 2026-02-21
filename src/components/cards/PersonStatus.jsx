@@ -46,7 +46,7 @@ const PersonStatus = ({
     >
       {editMode && (
         <div className="absolute -top-2 -right-2 z-50 flex gap-1">
-          <button onClick={(e) => { e.stopPropagation(); onEditCard(id, headerSettingsKey); }} className="p-1 rounded-full bg-blue-500 text-white shadow-sm"><Edit2 className="w-3 h-3" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onEditCard(id, headerSettingsKey); }} className="p-1 rounded-full bg-[var(--accent-color)] text-white shadow-sm"><Edit2 className="w-3 h-3" /></button>
           <button onClick={(e) => { e.stopPropagation(); onRemoveCard(id, 'header'); }} className="p-1 rounded-full bg-red-500/60 text-white shadow-sm"><Trash2 className="w-3 h-3" /></button>
         </div>
       )}

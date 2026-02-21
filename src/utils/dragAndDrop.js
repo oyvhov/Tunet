@@ -1,3 +1,16 @@
+export const safeVibrate = (ms) => {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      if (typeof navigator.userActivation !== 'undefined' && !navigator.userActivation.hasBeenActive) {
+        return; // Avoid "Blocked call to navigator.vibrate" warning
+      }
+      navigator.vibrate(ms);
+    }
+  } catch (e) {
+    // Ignore blocked vibration calls
+  }
+};
+
 export const createDragAndDropHandlers = ({
   editMode,
   pagesConfig,
@@ -37,7 +50,7 @@ export const createDragAndDropHandlers = ({
 
   const startTouchDrag = (cardId, index, colIndex, x, y) => {
     if (!editMode) return;
-    if (navigator.vibrate) navigator.vibrate(50);
+    safeVibrate(50);
     dragSourceRef.current = { index, cardId, colIndex };
     touchTargetRef.current = null;
     setTouchPath({ startX: x, startY: y, x, y });
@@ -85,7 +98,7 @@ export const createDragAndDropHandlers = ({
 
     dragSourceRef.current = source;
     setPagesConfig(newConfig);
-    if (navigator.vibrate) navigator.vibrate(10);
+    safeVibrate(10);
   };
 
   const performTouchDrop = (x, y) => {
@@ -130,7 +143,7 @@ export const createDragAndDropHandlers = ({
     });
 
     saveConfig(newConfig);
-    if (navigator.vibrate) navigator.vibrate(20);
+    safeVibrate(20);
   };
 
   const handleTouchEnd = (e) => {

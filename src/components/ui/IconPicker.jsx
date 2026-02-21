@@ -77,7 +77,7 @@ export default function IconPicker({
         className="w-full px-4 py-3 rounded-2xl popup-surface flex items-center justify-between"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${value ? 'bg-blue-500/10 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${value ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
             <SelectedIcon className="w-4 h-4" />
           </div>
           <div className="flex flex-col min-w-0">
@@ -100,7 +100,7 @@ export default function IconPicker({
         <div className="space-y-3">
           <input
             type="text"
-            className="w-full px-4 py-2 text-[var(--text-primary)] rounded-xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+            className="w-full px-4 py-2 text-[var(--text-primary)] rounded-xl popup-surface focus:border-[var(--accent-color)] outline-none transition-colors"
             placeholder={translate('form.searchIcon')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -108,7 +108,7 @@ export default function IconPicker({
           {onClear && (
             <button
               onClick={() => { onClear(); setOpen(false); }}
-              className={`w-full px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest ${!value ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+              className={`w-full px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest ${!value ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
               title={translate('form.defaultIcon')}
             >
               {translate('form.defaultIcon')}
@@ -134,7 +134,7 @@ export default function IconPicker({
                     <button
                       key={iconName}
                       onClick={() => { onSelect(iconName); setOpen(false); }}
-                      className={`p-3 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'popup-surface popup-surface-hover text-gray-500'}`}
+                      className={`p-3 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'popup-surface popup-surface-hover text-gray-500'}`}
                       title={iconName}
                     >
                       <Icon className="w-5 h-5" />

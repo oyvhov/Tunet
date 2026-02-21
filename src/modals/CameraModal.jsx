@@ -126,13 +126,13 @@ export default function CameraModal({
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setViewMode('stream'); setStreamSource(preferredSource); setRefreshTs(Date.now()); }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border ${viewMode === 'stream' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)]'}`}
+              className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border ${viewMode === 'stream' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)]'}`}
             >
               <span className="inline-flex items-center gap-1"><Video className="w-3.5 h-3.5" /> {t?.('camera.stream') || 'Stream'}</span>
             </button>
             <button
               onClick={() => { setViewMode('snapshot'); setRefreshTs(Date.now()); }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border ${viewMode === 'snapshot' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)]'}`}
+              className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border ${viewMode === 'snapshot' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)]'}`}
             >
               <span className="inline-flex items-center gap-1"><Camera className="w-3.5 h-3.5" /> {t?.('camera.snapshot') || 'Snapshot'}</span>
             </button>

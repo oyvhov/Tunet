@@ -71,8 +71,8 @@ function EditOverlay({
     ? 'p-1 rounded-full text-white border border-white/20 shadow-lg bg-black/60'
     : 'p-2 rounded-full text-white border border-white/20 shadow-lg bg-black/60';
   const hoverButtonClass = isCompactSpacer
-    ? 'p-1 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60'
-    : 'p-2 rounded-full transition-colors hover:bg-blue-500/80 text-white border border-white/20 shadow-lg bg-black/60';
+    ? 'p-1 rounded-full transition-colors hover:bg-[var(--accent-bg)] text-white border border-white/20 shadow-lg bg-black/60'
+    : 'p-2 rounded-full transition-colors hover:bg-[var(--accent-bg)] text-white border border-white/20 shadow-lg bg-black/60';
   const iconClass = isCompactSpacer ? 'w-3 h-3' : 'w-4 h-4';
   const dragHandleClass = isCompactSpacer
     ? 'flex items-center justify-center p-1.5 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto'
@@ -123,8 +123,8 @@ function EditOverlay({
               e.stopPropagation();
               onSaveSize(getNextSize(editId, currentSize));
             }}
-            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full transition-colors hover:bg-purple-500/80 text-white border border-white/20 shadow-lg`}
-            style={{ backgroundColor: isSmall ? 'rgba(168, 85, 247, 0.8)' : 'rgba(0, 0, 0, 0.6)' }}
+            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full transition-colors hover:bg-[var(--accent-color)] text-white border border-white/20 shadow-lg`}
+            style={{ backgroundColor: isSmall ? 'var(--accent-color)' : 'rgba(0, 0, 0, 0.6)' }}
             title={isTriple ? 'Bytt storleik' : (isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize'))}
           >
             {isSmall ? <Maximize2 className={iconClass} /> : <Minimize2 className={iconClass} />}

@@ -386,7 +386,7 @@ function CalendarCard({
 
         {/* Header */}
         <div className="px-5 pt-4 pb-1 flex items-center gap-3 shrink-0">
-          <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+          <div className="p-2 rounded-xl bg-[var(--accent-bg)] text-[var(--accent-color)]">
             <IconComp className="w-4 h-4" />
           </div>
           <h3 className="text-base font-medium text-[var(--text-primary)] tracking-tight">
@@ -406,7 +406,7 @@ function CalendarCard({
           </div>
         ) : loading && events.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)]">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-2" />
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-color)] mb-2" />
             <p className="text-xs uppercase font-bold tracking-widest">{t('common.loading') || 'Loading...'}</p>
           </div>
         ) : (
@@ -415,11 +415,11 @@ function CalendarCard({
             <div className="flex shrink-0 px-2 pb-1">
               <div className={GUTTER_W + ' shrink-0'} />
               {weekData.map(({ dateKey, dayName, dayNum, isToday }) => (
-                <div key={dateKey} className={`flex-1 text-center py-1 rounded-lg ${isToday ? 'bg-blue-500/15' : ''}`}>
-                  <p className={`text-xs font-bold uppercase tracking-widest leading-none ${isToday ? 'text-blue-400' : 'text-[var(--text-secondary)] opacity-50'}`}>
+                <div key={dateKey} className={`flex-1 text-center py-1 rounded-lg ${isToday ? 'bg-[var(--accent-bg)]' : ''}`}>
+                  <p className={`text-xs font-bold uppercase tracking-widest leading-none ${isToday ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] opacity-50'}`}>
                     {dayName}
                   </p>
-                  <p className={`text-base font-semibold leading-none mt-1 ${isToday ? 'text-blue-400' : 'text-[var(--text-primary)]'}`}>
+                  <p className={`text-base font-semibold leading-none mt-1 ${isToday ? 'text-[var(--accent-color)]' : 'text-[var(--text-primary)]'}`}>
                     {dayNum}
                   </p>
                 </div>
@@ -435,8 +435,8 @@ function CalendarCard({
                 {weekData.map(({ dateKey, allDay }) => (
                   <div key={dateKey} className="flex-1 px-0.5 space-y-0.5 min-h-[1.25rem]">
                     {allDay.map((evt, idx) => (
-                      <div key={`ad-${idx}`} className="px-1 py-0.5 rounded bg-blue-500/15 border-l-2 border-blue-400 truncate">
-                        <p className="text-xs font-medium text-blue-300 leading-tight truncate">{evt.summary}</p>
+                      <div key={`ad-${idx}`} className="px-1 py-0.5 rounded bg-[var(--accent-bg)] border-l-2 border-[var(--accent-color)] truncate">
+                        <p className="text-xs font-medium text-[var(--accent-color)] leading-tight truncate">{evt.summary}</p>
                       </div>
                     ))}
                   </div>
@@ -493,12 +493,12 @@ function CalendarCard({
                       return (
                         <div
                           key={`${evt.uid || evt.id || evt.summary || 'evt'}-${idx}`}
-                          className="absolute left-0.5 right-0.5 rounded-md bg-blue-500/20 border-l-2 border-blue-400 overflow-hidden z-10 hover:bg-blue-500/30 transition-colors"
+                          className="absolute left-0.5 right-0.5 rounded-md bg-[var(--accent-bg)] border-l-2 border-[var(--accent-color)] overflow-hidden z-10 hover:bg-[var(--accent-bg)] transition-colors"
                           style={{ top: block.top, height: Math.max(block.height, 18) }}
                         >
                           <div className="px-1 py-0.5 h-full">
                             {block.height >= 28 && timeStr && (
-                              <p className="text-[11px] font-bold text-blue-300/80 leading-none truncate">
+                              <p className="text-[11px] font-bold text-[var(--accent-color)] leading-none truncate">
                                 {timeStr}
                               </p>
                             )}
@@ -533,7 +533,7 @@ function CalendarCard({
         {/* Header */}
         <div className="p-5 pb-2 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl bg-blue-500/10 text-blue-400`}>
+              <div className={`p-2 rounded-xl bg-[var(--accent-bg)] text-[var(--accent-color)]`}>
                   <IconComp className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-medium text-[var(--text-primary)] tracking-tight">
@@ -556,7 +556,7 @@ function CalendarCard({
             </div>
         ) : loading && events.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)]">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-2"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-color)] mb-2"></div>
                 <p className="text-xs uppercase font-bold tracking-widest">{t('common.loading') || 'Loading...'}</p>
             </div>
         ) : events.length === 0 ? (
@@ -567,7 +567,7 @@ function CalendarCard({
         ) : (
             Object.entries(groupedEvents).map(([dateKey, dayEvents]) => (
                 <div key={dateKey} className="space-y-1">
-                    <h4 className="text-[10px] font-bold text-blue-400 uppercase tracking-widest py-1 mb-1">
+                    <h4 className="text-[10px] font-bold text-[var(--accent-color)] uppercase tracking-widest py-1 mb-1">
                         {formatDateHeader(dateKey)}
                     </h4>
                     <div className="space-y-3">
@@ -587,7 +587,7 @@ function CalendarCard({
                            return (
                            <div key={`${evt.uid || evt.id || evt.summary || 'event'}-${idx}`} className="flex gap-4 group items-start">
                                 <div className="flex flex-col items-center pt-1.5">
-                                    <div className={`w-2 h-2 rounded-full ${isAllDay ? 'bg-blue-400' : 'bg-[var(--glass-border)] group-hover:bg-blue-400 transition-colors'}`} />
+                                    <div className={`w-2 h-2 rounded-full ${isAllDay ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-border)] group-hover:bg-[var(--accent-color)] transition-colors'}`} />
                                     <div className="w-0.5 h-full bg-[var(--glass-border)]/50 my-1 -mb-4 group-last:hidden" />
                                 </div>
                                 <div className="flex-1 pb-1">
@@ -597,7 +597,7 @@ function CalendarCard({
                                         </p>
                                     )}
                                     <div className="relative pl-4 pr-3 py-2.5 rounded-xl border border-transparent bg-transparent hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg)] transition-colors">
-                                      <span className={`absolute left-0 top-2 bottom-2 w-1 rounded-full ${isAllDay ? 'bg-blue-400/70' : 'bg-[var(--glass-border)] group-hover:bg-blue-400/70 transition-colors'}`} />
+                                      <span className={`absolute left-0 top-2 bottom-2 w-1 rounded-full ${isAllDay ? 'bg-[var(--accent-bg)]' : 'bg-[var(--glass-border)] group-hover:bg-[var(--accent-bg)] transition-colors'}`} />
                                       <p className="text-sm font-medium text-[var(--text-primary)] leading-snug break-words whitespace-normal">
                                         {evt.summary}
                                       </p>

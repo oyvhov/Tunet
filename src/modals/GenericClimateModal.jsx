@@ -112,7 +112,7 @@ export default function GenericClimateModal({
                     <Minus className="w-8 h-8" style={{ strokeWidth: 3 }} />
                   </button>
                   <div className="flex-grow font-sans">
-                    <M3Slider min={minTemp} max={maxTemp} step={0.5} value={tempValue} onChange={(e) => callService('climate', 'set_temperature', { entity_id: entityId, temperature: parseFloat(e.target.value) })} colorClass={isCooling ? 'bg-blue-500' : isHeating ? 'bg-orange-500' : 'bg-white/20'} />
+                    <M3Slider min={minTemp} max={maxTemp} step={0.5} value={tempValue} onChange={(e) => callService('climate', 'set_temperature', { entity_id: entityId, temperature: parseFloat(e.target.value) })} colorClass={isCooling ? 'bg-[var(--accent-color)]' : isHeating ? 'bg-orange-500' : 'bg-white/20'} />
                   </div>
                   <button onClick={() => callService('climate', 'set_temperature', { entity_id: entityId, temperature: tempValue + 0.5 })} className="p-6 rounded-full transition-all active:scale-90 shadow-lg border" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
                     <Plus className="w-8 h-8" style={{ strokeWidth: 3 }} />

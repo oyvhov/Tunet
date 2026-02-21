@@ -32,7 +32,7 @@ const EditPageModal = ({
              <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('form.name')}</label>
              <input 
                type="text" 
-               className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-blue-500/50 outline-none transition-colors"
+               className="w-full px-4 py-3 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--accent-color)] outline-none transition-colors"
                value={pageSettings[editingPage]?.label || pageDefaults[editingPage]?.label || editingPage}
                onChange={(e) => {
                 savePageSetting(editingPage, 'label', e.target.value);
@@ -61,7 +61,7 @@ const EditPageModal = ({
                 onClick={() => {
                   savePageSetting(editingPage, 'hidden', !pageSettings[editingPage]?.hidden);
                 }}
-                className={`w-12 h-6 rounded-full transition-colors relative ${pageSettings[editingPage]?.hidden ? 'bg-blue-500' : 'bg-[var(--glass-bg-hover)]'}`}
+                className={`w-12 h-6 rounded-full transition-colors relative ${pageSettings[editingPage]?.hidden ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${pageSettings[editingPage]?.hidden ? 'left-7' : 'left-1'}`} />
               </button>

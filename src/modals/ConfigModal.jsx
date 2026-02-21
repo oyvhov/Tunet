@@ -186,7 +186,7 @@ export default function ConfigModal({
         <button
           type="button"
           onClick={() => { setConfig({ ...config, authMethod: 'oauth' }); setConnectionTestResult(null); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all relative ${isOAuth ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all relative ${isOAuth ? 'bg-[var(--accent-color)] text-white shadow-lg ' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
         >
           <LogIn className="w-3.5 h-3.5" />
           OAuth2
@@ -197,7 +197,7 @@ export default function ConfigModal({
         <button
           type="button"
           onClick={() => { setConfig({ ...config, authMethod: 'token' }); setConnectionTestResult(null); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${!isOAuth ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${!isOAuth ? 'bg-[var(--accent-color)] text-white shadow-lg ' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
         >
           <Key className="w-3.5 h-3.5" />
           Token
@@ -212,7 +212,7 @@ export default function ConfigModal({
     return (
       <div className="space-y-4">
         {oauthConnecting ? (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)] animate-pulse">
             <RefreshCw className="w-4 h-4 animate-spin" />
             <span className="font-bold text-sm">{t('system.oauth.connecting')}</span>
           </div>
@@ -236,7 +236,7 @@ export default function ConfigModal({
             type="button"
             onClick={startOAuthLogin}
             disabled={!config.url || !validateUrl(config.url)}
-            className={`w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-lg transition-all ${!config.url || !validateUrl(config.url) ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'}`}
+            className={`w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-lg transition-all ${!config.url || !validateUrl(config.url) ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-white '}`}
           >
             <LogIn className="w-5 h-5" />
             {t('system.oauth.loginButton')}
@@ -265,12 +265,12 @@ export default function ConfigModal({
       {/* Logged-in user info */}
       {connected && haUser && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)]">
-          <UserCircle2 className="w-5 h-5 text-blue-400" />
+          <UserCircle2 className="w-5 h-5 text-[var(--accent-color)]" />
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs uppercase font-bold text-gray-500">{t('system.loggedInAs')}</span>
             <span className="text-sm font-bold text-[var(--text-primary)]">{haUser.name}</span>
             {haUser.is_owner && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/20">{t('system.userRole.owner')}</span>}
-            {haUser.is_admin && !haUser.is_owner && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/20">{t('system.userRole.admin')}</span>}
+            {haUser.is_admin && !haUser.is_owner && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)]">{t('system.userRole.admin')}</span>}
           </div>
         </div>
       )}
@@ -285,12 +285,12 @@ export default function ConfigModal({
         <div className="relative group">
           <input
             type="text"
-            className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all placeholder:text-[var(--text-muted)]"
+            className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-[var(--accent-color)] outline-none transition-all placeholder:text-[var(--text-muted)]"
             value={config.url}
             onChange={(e) => setConfig({ ...config, url: e.target.value.trim() })}
             placeholder="https://homeassistant.local:8123"
           />
-          <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          <div className="absolute inset-0 rounded-xl bg-[var(--accent-bg)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         </div>
         {config.url && config.url.endsWith('/') && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/20">
@@ -315,12 +315,12 @@ export default function ConfigModal({
             <div className="relative group">
               <input
                 type="text"
-                className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all placeholder:text-[var(--text-muted)]"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-[var(--accent-color)] outline-none transition-all placeholder:text-[var(--text-muted)]"
                 value={config.fallbackUrl}
                 onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
                 placeholder={t('common.optional')}
               />
-              <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              <div className="absolute inset-0 rounded-xl bg-[var(--accent-bg)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </div>
             {config.fallbackUrl && config.fallbackUrl.endsWith('/') && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/20">
@@ -340,12 +340,12 @@ export default function ConfigModal({
                 type="password"
                 autoComplete="off"
                 spellCheck={false}
-                className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-blue-500/50 outline-none transition-all font-mono text-xs leading-relaxed"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] focus:bg-[var(--glass-bg-hover)] focus:border-[var(--accent-color)] outline-none transition-all font-mono text-xs leading-relaxed"
                 value={config.token}
                 onChange={(e) => setConfig({ ...config, token: e.target.value.trim() })}
                 placeholder="ey..."
               />
-              <div className="absolute inset-0 rounded-xl bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              <div className="absolute inset-0 rounded-xl bg-[var(--accent-bg)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </div>
           </div>
         </>
@@ -407,22 +407,22 @@ export default function ConfigModal({
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   placeholder={t('profiles.namePlaceholder')}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
                 />
                 <input
                   type="text"
                   value={profileDeviceLabel}
                   onChange={(e) => setProfileDeviceLabel(e.target.value)}
                   placeholder={t('profiles.deviceLabelPlaceholder')}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
                 />
                 <button
                   onClick={handleSaveProfile}
                   disabled={loading || !profileName.trim()}
                   className={`w-full py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${
                     profileName.trim()
-                      ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20'
-                      : 'bg-blue-500/40 cursor-not-allowed shadow-none'
+                      ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] '
+                      : 'bg-[var(--accent-bg)] cursor-not-allowed shadow-none'
                   }`}
                 >
                   <Save className="w-4 h-4" />
@@ -453,7 +453,7 @@ export default function ConfigModal({
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
                             placeholder={t('profiles.namePlaceholder')}
-                            className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
+                            className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
                             autoFocus
                           />
                           <input
@@ -461,7 +461,7 @@ export default function ConfigModal({
                             value={editLabel}
                             onChange={(e) => setEditLabel(e.target.value)}
                             placeholder={t('profiles.deviceLabelPlaceholder')}
-                            className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
+                            className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
                           />
                           <div className="flex gap-2 pt-1">
                             <button
@@ -475,7 +475,7 @@ export default function ConfigModal({
                               }}
                               disabled={loading || !editName.trim()}
                               className={`flex-1 py-2 rounded-lg text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                editName.trim() ? 'bg-blue-500 hover:bg-blue-600' : 'bg-blue-500/40 cursor-not-allowed'
+                                editName.trim() ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)]' : 'bg-[var(--accent-bg)] cursor-not-allowed'
                               }`}
                             >
                               <Check className="w-3.5 h-3.5" />
@@ -514,7 +514,7 @@ export default function ConfigModal({
                                 setEditName(profile.name);
                                 setEditLabel(profile.device_label || '');
                               }}
-                              className="p-1.5 rounded-lg hover:bg-blue-500/10 text-[var(--text-secondary)] hover:text-blue-400 transition-all"
+                              className="p-1.5 rounded-lg hover:bg-[var(--accent-bg)] text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-all"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -746,7 +746,7 @@ export default function ConfigModal({
                       setInactivityTimeout(val);
                       try { localStorage.setItem('tunet_inactivity_timeout', String(val)); } catch {}
                     }}
-                  colorClass="bg-blue-500"
+                  colorClass="bg-[var(--accent-color)]"
                 />
               </div>
               )}
@@ -905,7 +905,7 @@ export default function ConfigModal({
                       step={4}
                       value={gridGapH}
                       onChange={(e) => setGridGapH(parseInt(e.target.value, 10))}
-                      colorClass="bg-blue-500"
+                      colorClass="bg-[var(--accent-color)]"
                     />
                 </div>
 
@@ -921,7 +921,7 @@ export default function ConfigModal({
                       step={4}
                       value={gridGapV}
                       onChange={(e) => setGridGapV(parseInt(e.target.value, 10))}
-                      colorClass="bg-blue-500"
+                      colorClass="bg-[var(--accent-color)]"
                     />
                 </div>
             </div>
@@ -942,7 +942,7 @@ export default function ConfigModal({
                 {hts !== 16 && <ResetButton onClick={() => updateSectionSpacing({ headerToStatus: 16 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={hts} onChange={(e) => updateSectionSpacing({ headerToStatus: parseInt(e.target.value, 10) })} colorClass="bg-blue-500" />
+            <M3Slider min={0} max={64} step={4} value={hts} onChange={(e) => updateSectionSpacing({ headerToStatus: parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -952,7 +952,7 @@ export default function ConfigModal({
                 {stn !== 24 && <ResetButton onClick={() => updateSectionSpacing({ statusToNav: 24 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={stn} onChange={(e) => updateSectionSpacing({ statusToNav: parseInt(e.target.value, 10) })} colorClass="bg-blue-500" />
+            <M3Slider min={0} max={64} step={4} value={stn} onChange={(e) => updateSectionSpacing({ statusToNav: parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -962,7 +962,7 @@ export default function ConfigModal({
                 {ntg !== 24 && <ResetButton onClick={() => updateSectionSpacing({ navToGrid: 24 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={ntg} onChange={(e) => updateSectionSpacing({ navToGrid: parseInt(e.target.value, 10) })} colorClass="bg-blue-500" />
+            <M3Slider min={0} max={64} step={4} value={ntg} onChange={(e) => updateSectionSpacing({ navToGrid: parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
           </div>
         </Section>
 
@@ -987,7 +987,7 @@ export default function ConfigModal({
               step={2}
               value={cardBorderRadius}
               onChange={(e) => setCardBorderRadius(parseInt(e.target.value, 10))}
-              colorClass="bg-blue-500"
+              colorClass="bg-[var(--accent-color)]"
             />
           </div>
           {/* Transparency */}
@@ -1005,7 +1005,7 @@ export default function ConfigModal({
               step={5}
               value={cardTransparency}
               onChange={(e) => setCardTransparency(parseInt(e.target.value, 10))}
-              colorClass="bg-blue-500"
+              colorClass="bg-[var(--accent-color)]"
             />
           </div>
           {/* Border Opacity */}
@@ -1023,7 +1023,7 @@ export default function ConfigModal({
               step={5}
               value={cardBorderOpacity}
               onChange={(e) => setCardBorderOpacity(parseInt(e.target.value, 10))}
-              colorClass="bg-blue-500"
+              colorClass="bg-[var(--accent-color)]"
             />
           </div>
         </Section>
@@ -1067,7 +1067,7 @@ export default function ConfigModal({
                     {entityPicture ? (
                       <img src={entityPicture} alt="" className="w-full h-full object-contain" />
                     ) : (
-                      <Download className="w-5 h-5 text-blue-400" />
+                      <Download className="w-5 h-5 text-[var(--accent-color)]" />
                     )}
                   </div>
 
@@ -1107,8 +1107,8 @@ export default function ConfigModal({
                       disabled={isInstalling}
                       className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${
                         isInstalling
-                          ? 'bg-blue-500/50 text-white/70 cursor-wait'
-                          : 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20 active:scale-95'
+                          ? 'bg-[var(--accent-bg)] text-white/70 cursor-wait'
+                          : 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-white shadow-lg  active:scale-95'
                       }`}
                     >
                       {isInstalling && <RefreshCw className="w-3 h-3 animate-spin" />}
@@ -1214,7 +1214,7 @@ export default function ConfigModal({
             {/* Onboarding Sidebar */}
             <div className="w-full md:w-64 flex flex-row md:flex-col gap-1 p-3 border-b md:border-b-0 md:border-r border-[var(--glass-border)]">
               <div className="hidden md:flex items-center gap-3 px-3 py-4 mb-2">
-                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                <div className="p-2 bg-[var(--accent-bg)] rounded-lg text-[var(--accent-color)]">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <span className="font-bold text-lg tracking-wide">{t('onboarding.title')}</span>
@@ -1227,7 +1227,7 @@ export default function ConfigModal({
                 return (
                   <div
                     key={step.key}
-                    className={`flex-1 md:flex-none flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold uppercase tracking-wide cursor-default ${isActive ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : ''} ${isDone ? 'text-green-400 bg-green-500/10' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
+                    className={`flex-1 md:flex-none flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold uppercase tracking-wide cursor-default ${isActive ? 'bg-[var(--accent-color)] text-white shadow-lg ' : ''} ${isDone ? 'text-green-400 bg-green-500/10' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
                   >
                     {isDone ? <Check className="w-4 h-4" /> : <StepIcon className="w-4 h-4" />}
                     <span className="hidden md:inline">{step.label}</span>
@@ -1253,7 +1253,7 @@ export default function ConfigModal({
                     {!config.isIngress && renderAuthMethodToggle(true)}
 
                     {config.isIngress && (
-                      <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs leading-relaxed">
+                      <div className="p-3 rounded-xl bg-[var(--accent-bg)] border border-[var(--accent-color)] text-[var(--accent-color)] text-xs leading-relaxed">
                         <strong>Add-on Mode:</strong> URL is auto-detected. Just paste a Long-Lived Access Token from your HA Profile.
                       </div>
                     )}
@@ -1265,7 +1265,7 @@ export default function ConfigModal({
                         <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlPrimary')}</label>
                         <input
                           type="text"
-                          className={`w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] text-sm ${onboardingUrlError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
+                          className={`w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] text-sm ${onboardingUrlError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
                           value={config.url}
                           onChange={(e) => {
                             setConfig({ ...config, url: e.target.value.trim() });
@@ -1291,7 +1291,7 @@ export default function ConfigModal({
                           <div className="space-y-1.5">
                             <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.token')}</label>
                             <textarea
-                              className={`w-full px-3 py-2 h-24 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-mono text-xs leading-tight ${onboardingTokenError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-blue-500/50'}`}
+                              className={`w-full px-3 py-2 h-24 rounded-xl bg-[var(--glass-bg)] border-2 text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-mono text-xs leading-tight ${onboardingTokenError ? 'border-red-500/50' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
                               value={config.token}
                               onChange={(e) => {
                                 setConfig({ ...config, token: e.target.value.trim() });
@@ -1308,7 +1308,7 @@ export default function ConfigModal({
                             <label className="text-xs uppercase font-bold text-gray-500 ml-1">{t('system.haUrlFallback')}</label>
                             <input
                               type="text"
-                              className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] text-sm focus:border-blue-500/50"
+                              className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] text-sm focus:border-[var(--accent-color)]"
                               value={config.fallbackUrl}
                               onChange={(e) => setConfig({ ...config, fallbackUrl: e.target.value.trim() })}
                               placeholder={t('common.optional')}
@@ -1326,7 +1326,7 @@ export default function ConfigModal({
                         <button
                           onClick={testConnection}
                           disabled={!config.url || !config.token || !validateUrl(config.url) || testingConnection}
-                          className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg text-sm ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'}`}
+                          className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg text-sm ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-white '}`}
                         >
                           {testingConnection ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Wifi className="w-5 h-5" />}
                           {testingConnection ? t('onboarding.testing') : t('onboarding.testConnection')}
@@ -1365,7 +1365,7 @@ export default function ConfigModal({
                             setInactivityTimeout(val);
                             try { localStorage.setItem('tunet_inactivity_timeout', String(val)); } catch {}
                           }}
-                          colorClass="bg-blue-500"
+                          colorClass="bg-[var(--accent-color)]"
                         />
                       </div>
                     </div>
@@ -1397,7 +1397,7 @@ export default function ConfigModal({
                   <button
                     onClick={() => setOnboardingStep((s) => Math.min(onboardingSteps.length - 1, s + 1))}
                     disabled={!canAdvanceOnboarding}
-                    className={`flex-1 py-3 rounded-xl font-bold uppercase tracking-widest transition-all shadow-lg ${canAdvanceOnboarding ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] cursor-not-allowed opacity-50'}`}
+                    className={`flex-1 py-3 rounded-xl font-bold uppercase tracking-widest transition-all shadow-lg ${canAdvanceOnboarding ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-white ' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] cursor-not-allowed opacity-50'}`}
                   >
                     {t('onboarding.next')}
                   </button>
@@ -1419,7 +1419,7 @@ export default function ConfigModal({
             {!isLayoutPreview && (
               <div className="w-full md:w-56 flex flex-row md:flex-col gap-1 p-2 md:p-3 border-b md:border-b-0 md:border-r border-[var(--glass-border)] flex-shrink-0 bg-[linear-gradient(160deg,var(--glass-bg),transparent_70%)] animate-in fade-in slide-in-from-left-4 duration-300">
                 <div className="hidden md:flex items-center gap-3 px-3 py-4 mb-2">
-                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                  <div className="p-2 bg-[var(--accent-bg)] rounded-lg text-[var(--accent-color)]">
                     <Settings className="w-5 h-5" />
                   </div>
                   <span className="font-bold text-lg tracking-wide">{t('system.title')}</span>
@@ -1434,7 +1434,7 @@ export default function ConfigModal({
                       onClick={() => setConfigTab(tab.key)}
                       className={`flex-1 md:flex-none flex items-center justify-center md:justify-start gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl transition-all text-sm font-bold uppercase tracking-wide ${
                         active
-                          ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                          ? 'bg-[var(--accent-color)] text-white shadow-lg '
                           : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
                       }`}
                     >

@@ -291,7 +291,7 @@ export default function ConditionBuilder({
                 value={entitySearch}
                 onChange={(e) => setEntitySearch(e.target.value)}
                 placeholder={t('form.search') || 'Search...'}
-                className="w-full pl-9 pr-3 py-1.5 rounded-xl text-[var(--text-primary)] text-xs popup-surface border border-transparent focus:border-blue-500/50 outline-none transition-colors"
+                className="w-full pl-9 pr-3 py-1.5 rounded-xl text-[var(--text-primary)] text-xs popup-surface border border-transparent focus:border-[var(--accent-color)] outline-none transition-colors"
               />
             </div>
 
@@ -303,17 +303,17 @@ export default function ConditionBuilder({
                     key={`rule-${ruleIndex}-${id}`}
                     type="button"
                     onClick={() => updateRule(ruleIndex, { entityId: id })}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-blue-500/20 border-blue-500/50' : 'popup-surface popup-surface-hover border-transparent'}`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--accent-bg)] border-[var(--accent-color)]' : 'popup-surface popup-surface-hover border-transparent'}`}
                   >
                     <div className="flex flex-col overflow-hidden mr-3">
                       <span className={`text-[11px] font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                         {getFriendlyEntityName(id, entities)}
                       </span>
-                      <span className={`text-[10px] font-medium truncate ${isSelected ? 'text-blue-200' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                      <span className={`text-[10px] font-medium truncate ${isSelected ? 'text-[var(--accent-color)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
                         {id}
                       </span>
                     </div>
-                    <div className={`p-1 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-blue-500 text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                    <div className={`p-1 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--accent-color)] text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
                       {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                     </div>
                   </button>
@@ -358,7 +358,7 @@ export default function ConditionBuilder({
           <select
             value={rule.type || 'state'}
             onChange={(e) => setType(index, e.target.value)}
-            className="col-span-4 text-[var(--text-primary)] font-bold text-[11px] px-2.5 py-1.5 rounded-xl popup-surface border border-transparent focus:border-blue-500/50 outline-none transition-colors"
+            className="col-span-4 text-[var(--text-primary)] font-bold text-[11px] px-2.5 py-1.5 rounded-xl popup-surface border border-transparent focus:border-[var(--accent-color)] outline-none transition-colors"
             style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}
           >
             {TYPE_OPTIONS.map((option) => (
@@ -381,7 +381,7 @@ export default function ConditionBuilder({
             min="0"
             value={Number.isFinite(Number(rule.forSeconds)) ? Number(rule.forSeconds) : 0}
             onChange={(e) => updateRule(index, { forSeconds: Math.max(0, Number(e.target.value || 0)) })}
-            className="col-span-2 w-full px-2.5 py-1.5 rounded-xl text-[11px] popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-blue-500/50 transition-colors"
+            className="col-span-2 w-full px-2.5 py-1.5 rounded-xl text-[11px] popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
             title={t('visibility.forSeconds') || 'for sec'}
           />
         </div>
@@ -394,9 +394,9 @@ export default function ConditionBuilder({
                   key={`${index}-${state}`}
                   type="button"
                   onClick={() => removeStateValue(index, state)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-200 hover:bg-blue-500/30"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[var(--accent-bg)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
                 >
-                  <span className="text-blue-300">×</span>
+                  <span className="text-[var(--accent-color)]">×</span>
                   <span>{state}</span>
                 </button>
               ))}
@@ -413,7 +413,7 @@ export default function ConditionBuilder({
                   }
                 }}
                 placeholder={t('visibility.statesPlaceholder') || 'on, playing, home'}
-                className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-blue-500/50 transition-colors"
+                className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
               />
               <button
                 type="button"
@@ -431,7 +431,7 @@ export default function ConditionBuilder({
             <select
               value={rule.operator || '>'}
               onChange={(e) => updateRule(index, { operator: e.target.value })}
-              className="text-[var(--text-primary)] font-bold text-[11px] px-2.5 py-1.5 rounded-xl popup-surface border border-transparent focus:border-blue-500/50 outline-none transition-colors"
+              className="text-[var(--text-primary)] font-bold text-[11px] px-2.5 py-1.5 rounded-xl popup-surface border border-transparent focus:border-[var(--accent-color)] outline-none transition-colors"
             >
               {NUMERIC_OPERATORS.map((op) => <option key={op} value={op}>{op}</option>)}
             </select>
@@ -440,14 +440,14 @@ export default function ConditionBuilder({
               value={rule.value ?? ''}
               onChange={(e) => updateRule(index, { value: e.target.value })}
               placeholder="0"
-              className="w-20 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-blue-500/50 transition-colors"
+              className="w-20 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
             />
             <input
               type="text"
               value={rule.attribute || ''}
               onChange={(e) => updateRule(index, { attribute: e.target.value })}
               placeholder={t('visibility.numericAttrPlaceholder') || 'Optional attribute, e.g. temperature'}
-              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-blue-500/50 transition-colors"
+              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
             />
           </div>
         )}
@@ -459,14 +459,14 @@ export default function ConditionBuilder({
               value={rule.attribute || ''}
               onChange={(e) => updateRule(index, { attribute: e.target.value })}
               placeholder={t('visibility.attributeName') || 'Attribute name'}
-              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-blue-500/50 transition-colors"
+              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
             />
             <input
               type="text"
               value={rule.value ?? ''}
               onChange={(e) => updateRule(index, { value: e.target.value })}
               placeholder={t('visibility.attributeValueOptional') || 'Optional value'}
-              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-blue-500/50 transition-colors"
+              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
             />
           </div>
         )}
@@ -484,7 +484,7 @@ export default function ConditionBuilder({
         <button
           type="button"
           onClick={() => setEnabled(!isEnabled)}
-          className={`w-12 h-6 rounded-full transition-colors relative ${isEnabled ? 'bg-blue-500' : 'bg-gray-600'}`}
+          className={`w-12 h-6 rounded-full transition-colors relative ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
         >
           <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
         </button>
@@ -521,7 +521,7 @@ export default function ConditionBuilder({
                 <button
                   type="button"
                   onClick={addSecondRule}
-                  className="ml-auto px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest bg-blue-500/20 text-blue-300 hover:bg-blue-500/30"
+                  className="ml-auto px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest bg-[var(--accent-bg)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
                 >
                   {t('visibility.addRule') || 'Add rule'}
                 </button>
@@ -550,7 +550,7 @@ export default function ConditionBuilder({
 
               {ruleSummaryItems.map((item, index) => (
                 <div key={`rule-summary-${index}`} className="contents">
-                  <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-200 border border-blue-500/30 leading-snug">
+                  <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)] leading-snug">
                     {item}
                   </span>
                   {index < ruleSummaryItems.length - 1 && (

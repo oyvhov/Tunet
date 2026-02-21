@@ -93,7 +93,7 @@ export default function LayoutSidebar({
         >
           <div 
               className={`p-2 rounded-xl transition-colors ${isOpen ? '' : 'group-hover:bg-white/5'}`}
-              style={isOpen ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}
+              style={isOpen ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' } : { color: 'var(--text-secondary)' }}
           >
             <Icon className="w-4.5 h-4.5" />
           </div>
@@ -181,8 +181,8 @@ export default function LayoutSidebar({
              <div className="w-px my-1 mx-1" style={{ backgroundColor: 'var(--glass-border)' }} />
 
              <button
-                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all shadow-md relative z-10 text-white"
-               style={{ backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }}
+                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all shadow-md relative z-10 font-medium"
+               style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}
                 disabled
                 title={t('system.tabLayout')}
              >
@@ -216,7 +216,7 @@ export default function LayoutSidebar({
                   type="button"
                   onClick={() => setDynamicGridColumns(false)}
                   className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all"
-                  style={!dynamicGridColumns ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}
+                  style={!dynamicGridColumns ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('settings.manual')}
                 </button>
@@ -224,7 +224,7 @@ export default function LayoutSidebar({
                   type="button"
                   onClick={() => setDynamicGridColumns(true)}
                   className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all"
-                  style={dynamicGridColumns ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}
+                  style={dynamicGridColumns ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' } : { color: 'var(--text-secondary)' }}
                 >
                   {t('common.auto')}
                 </button>
@@ -271,7 +271,6 @@ export default function LayoutSidebar({
               step={1} 
               value={effectiveGridColumns}
               onChange={(e) => setGridColumns(parseInt(e.target.value, 10))} 
-              colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
           {/* Gap H */}
@@ -289,7 +288,6 @@ export default function LayoutSidebar({
               step={4} 
               value={gridGapH} 
               onChange={(e) => setGridGapH(parseInt(e.target.value, 10))} 
-              colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
           {/* Gap V */}
@@ -307,7 +305,6 @@ export default function LayoutSidebar({
               step={4} 
               value={gridGapV} 
               onChange={(e) => setGridGapV(parseInt(e.target.value, 10))} 
-              colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
         </Section>
@@ -327,7 +324,7 @@ export default function LayoutSidebar({
                 {hts !== 16 && <ResetButton onClick={() => updateSectionSpacing({ headerToStatus: 16 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={hts} onChange={(e) => updateSectionSpacing({ headerToStatus: parseInt(e.target.value, 10) })} colorClass="bg-[var(--text-secondary)]" />
+            <M3Slider min={0} max={64} step={4} value={hts} onChange={(e) => updateSectionSpacing({ headerToStatus: parseInt(e.target.value, 10) })} />
           </div>
           {/* Status -> Nav */}
           <div>
@@ -338,7 +335,7 @@ export default function LayoutSidebar({
                 {stn !== 24 && <ResetButton onClick={() => updateSectionSpacing({ statusToNav: 24 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={stn} onChange={(e) => updateSectionSpacing({ statusToNav: parseInt(e.target.value, 10) })} colorClass="bg-[var(--text-secondary)]" />
+            <M3Slider min={0} max={64} step={4} value={stn} onChange={(e) => updateSectionSpacing({ statusToNav: parseInt(e.target.value, 10) })} />
           </div>
           {/* Nav -> Grid */}
           <div>
@@ -349,7 +346,7 @@ export default function LayoutSidebar({
                 {ntg !== 24 && <ResetButton onClick={() => updateSectionSpacing({ navToGrid: 24 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={ntg} onChange={(e) => updateSectionSpacing({ navToGrid: parseInt(e.target.value, 10) })} colorClass="bg-[var(--text-secondary)]" />
+            <M3Slider min={0} max={64} step={4} value={ntg} onChange={(e) => updateSectionSpacing({ navToGrid: parseInt(e.target.value, 10) })} />
           </div>
         </Section>
 
@@ -374,7 +371,6 @@ export default function LayoutSidebar({
               step={2}
               value={cardBorderRadius}
               onChange={(e) => setCardBorderRadius(parseInt(e.target.value, 10))}
-              colorClass="bg-[var(--text-secondary)]"
             />
           </div>
           {/* Transparency */}
@@ -392,7 +388,6 @@ export default function LayoutSidebar({
               step={5}
               value={cardTransparency}
               onChange={(e) => setCardTransparency(parseInt(e.target.value, 10))}
-              colorClass="bg-[var(--text-secondary)]"
             />
           </div>
           {/* Border Opacity */}
@@ -410,7 +405,6 @@ export default function LayoutSidebar({
               step={5}
               value={cardBorderOpacity}
               onChange={(e) => setCardBorderOpacity(parseInt(e.target.value, 10))}
-              colorClass="bg-[var(--text-secondary)]"
             />
           </div>
           {/* Card Background Color */}
@@ -455,7 +449,6 @@ export default function LayoutSidebar({
                     step={1}
                     value={rgb.r}
                     onChange={(e) => updateCardColorChannel('r', parseInt(e.target.value, 10))}
-                    colorClass="bg-[var(--text-secondary)]"
                   />
                 </div>
                 <div>
@@ -469,7 +462,6 @@ export default function LayoutSidebar({
                     step={1}
                     value={rgb.g}
                     onChange={(e) => updateCardColorChannel('g', parseInt(e.target.value, 10))}
-                    colorClass="bg-[var(--text-secondary)]"
                   />
                 </div>
                 <div>
@@ -483,7 +475,6 @@ export default function LayoutSidebar({
                     step={1}
                     value={rgb.b}
                     onChange={(e) => updateCardColorChannel('b', parseInt(e.target.value, 10))}
-                    colorClass="bg-[var(--text-secondary)]"
                   />
                 </div>
               </div>

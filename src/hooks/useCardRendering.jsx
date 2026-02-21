@@ -47,6 +47,7 @@ export function useCardRendering({
   setShowCalendarModal,
   setShowTodoModal,
   setShowRoomModal,
+  setShowCoverModal,
   setShowEditCardModal,
   setEditCardSettingsKey,
   setShowCameraModal,
@@ -214,7 +215,7 @@ export function useCardRendering({
       setShowFanModal,
       setShowAndroidTVModal, setActiveCarModal, setShowWeatherModal,
       setShowNordpoolModal, setShowCalendarModal, setShowTodoModal,
-      setShowRoomModal, setShowEditCardModal, setEditCardSettingsKey,
+      setShowRoomModal, setShowCoverModal, setShowEditCardModal, setEditCardSettingsKey,
       setShowCameraModal,
       openMediaModal: (mpId, groupKey, groupIds) => {
         setActiveMediaId(mpId);
@@ -272,6 +273,7 @@ export function useCardRendering({
     setShowCalendarModal,
     setShowTodoModal,
     setShowRoomModal,
+    setShowCoverModal,
     setShowCameraModal,
     setActiveMediaId,
     setActiveMediaGroupKey,

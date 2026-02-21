@@ -117,7 +117,7 @@ export default function StatusPillsConfigModal({
       icon: pillType === 'emby' ? 'Clapperboard' : 'Activity',
       bgColor: 'rgba(255, 255, 255, 0.03)',
       iconBgColor: 'rgba(59, 130, 246, 0.1)',
-      iconColor: 'text-blue-400',
+      iconColor: 'text-[var(--accent-color)]',
       labelColor: 'text-[var(--text-secondary)]',
       sublabelColor: 'text-[var(--text-muted)]',
       condition: defaultCondition,
@@ -233,7 +233,7 @@ export default function StatusPillsConfigModal({
   };
 
   const colorPresets = [
-    { name: 'Blue', bg: 'rgba(59, 130, 246, 0.3)', icon: 'text-blue-400', label: t('statusPills.colorBlue') },
+    { name: 'Blue', bg: 'rgba(59, 130, 246, 0.3)', icon: 'text-[var(--accent-color)]', label: t('statusPills.colorBlue') },
     { name: 'Green', bg: 'rgba(34, 197, 94, 0.3)', icon: 'text-green-400', label: t('statusPills.colorGreen') },
     { name: 'Red', bg: 'rgba(239, 68, 68, 0.3)', icon: 'text-red-400', label: t('statusPills.colorRed') },
     { name: 'Orange', bg: 'rgba(249, 115, 22, 0.3)', icon: 'text-orange-400', label: t('statusPills.colorOrange') },
@@ -318,7 +318,7 @@ export default function StatusPillsConfigModal({
               {showAddMenu && (
                 <div className="absolute top-full right-0 mt-2 w-48 bg-[#1e293b] border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col p-1">
                   <button onClick={() => { addPill('conditional'); setShowAddMenu(false); }} className="text-left px-4 py-3 hover:bg-white/5 rounded-lg text-sm text-gray-200 font-medium transition-colors flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-blue-400" /> {t('statusPills.typeSensor')}
+                    <Activity className="w-4 h-4 text-[var(--accent-color)]" /> {t('statusPills.typeSensor')}
                   </button>
                   <button onClick={() => { addPill('media_player'); setShowAddMenu(false); }} className="text-left px-4 py-3 hover:bg-white/5 rounded-lg text-sm text-gray-200 font-medium transition-colors flex items-center gap-2">
                     <Music className="w-4 h-4 text-green-400" /> {t('statusPills.typeMedia')}
@@ -339,7 +339,7 @@ export default function StatusPillsConfigModal({
                 value={pillSearch}
                 onChange={(e) => setPillSearch(e.target.value)}
                 placeholder={t('form.search') || 'Search'}
-                className="w-full px-3 py-2 rounded-xl popup-surface text-[var(--text-primary)] outline-none border border-transparent focus:border-blue-500/40 text-sm"
+                className="w-full px-3 py-2 rounded-xl popup-surface text-[var(--text-primary)] outline-none border border-transparent focus:border-[var(--accent-color)] text-sm"
               />
             </div>
             
@@ -361,7 +361,7 @@ export default function StatusPillsConfigModal({
                 return (
                   <div
                     key={pill.id}
-                    className={`rounded-2xl transition-all border ${isEditing ? 'popup-surface border-blue-500/40 shadow-lg shadow-blue-500/10' : 'popup-surface border-transparent hover:border-[var(--glass-border)]'}`}
+                    className={`rounded-2xl transition-all border ${isEditing ? 'popup-surface border-[var(--accent-color)] shadow-lg ' : 'popup-surface border-transparent hover:border-[var(--glass-border)]'}`}
                   >
                     <button
                       onClick={() => {
@@ -385,7 +385,7 @@ export default function StatusPillsConfigModal({
                             {pill.visible === false ? t('statusPills.hide') : t('statusPills.show')}
                           </span>
                           {pill.conditionEnabled !== false && (
-                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold border bg-blue-500/10 text-blue-400 border-blue-500/20">
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold border bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]">
                               {t('statusPills.conditional')}
                             </span>
                           )}
@@ -512,7 +512,7 @@ export default function StatusPillsConfigModal({
                   <div className={`${sectionShellClass} flex items-start justify-between gap-4`}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2.5">
-                        <span className="text-xs font-bold uppercase tracking-widest text-blue-400">{pill.type === 'conditional' ? t('statusPills.typeSensor') : pill.type === 'media_player' ? t('statusPills.typeMedia') : pill.type === 'emby' ? t('statusPills.typeEmby') : t('statusPills.typeSonos')}</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent-color)]">{pill.type === 'conditional' ? t('statusPills.typeSensor') : pill.type === 'media_player' ? t('statusPills.typeMedia') : pill.type === 'emby' ? t('statusPills.typeEmby') : t('statusPills.typeSonos')}</span>
                         {pill.type === 'conditional' && <div className="w-1 h-1 bg-gray-500 rounded-full"></div>}
                         {pill.type === 'conditional' && <span className="text-xs text-gray-500">{t('statusPills.standardPill')}</span>}
                       </div>
@@ -676,7 +676,7 @@ export default function StatusPillsConfigModal({
                               onClick={() => updatePill(pill.id, { mediaSelectionMode: 'select', mediaFilter: '', entityId: '' })}
                               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                                 (pill.mediaSelectionMode || 'filter') === 'select'
-                                  ? 'bg-blue-500/20 text-blue-400'
+                                  ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
                                   : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
                               }`}
                             >
@@ -686,7 +686,7 @@ export default function StatusPillsConfigModal({
                               onClick={() => updatePill(pill.id, { mediaSelectionMode: 'filter', mediaEntityIds: [], entityId: '' })}
                               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                                 (pill.mediaSelectionMode || 'filter') === 'filter'
-                                  ? 'bg-blue-500/20 text-blue-400'
+                                  ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
                                   : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
                               }`}
                             >
@@ -839,7 +839,7 @@ export default function StatusPillsConfigModal({
                                         : [...current, id];
                                       updatePill(pill.id, { mediaEntityIds: next, mediaFilter: '', entityId: '', mediaSelectionMode: 'select' });
                                     }}
-                                    className={`w-full text-left px-3 py-1.5 rounded-lg transition-colors ${selected ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
+                                    className={`w-full text-left px-3 py-1.5 rounded-lg transition-colors ${selected ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'hover:bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]'}`}
                                   >
                                     <div className="text-xs font-bold truncate">
                                       {entities[id]?.attributes?.friendly_name || id}
@@ -922,7 +922,7 @@ export default function StatusPillsConfigModal({
                                         const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
                                         updatePill(pill.id, { sessionSensorIds: next });
                                       }}
-                                      className={`w-full text-left px-3 py-1.5 rounded-lg transition-colors text-xs font-bold ${selected ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-[var(--modal-bg)] text-[var(--text-secondary)]'}`}
+                                      className={`w-full text-left px-3 py-1.5 rounded-lg transition-colors text-xs font-bold ${selected ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'hover:bg-[var(--modal-bg)] text-[var(--text-secondary)]'}`}
                                     >
                                       {entities[id]?.attributes?.friendly_name || id}
                                     </button>
@@ -945,7 +945,7 @@ export default function StatusPillsConfigModal({
                         <button
                           onClick={() => updatePill(pill.id, { conditionEnabled: pill.conditionEnabled === false ? true : false })}
                           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                            pill.conditionEnabled === false ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]' : 'bg-blue-500/20 text-blue-400'
+                            pill.conditionEnabled === false ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]' : 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
                           }`}
                         >
                           {pill.conditionEnabled === false ? t('statusPills.conditional') : `✓ ${t('statusPills.conditional')}`}
@@ -957,7 +957,7 @@ export default function StatusPillsConfigModal({
                         {/* Sentence Builder */}
                         <div className="flex flex-wrap items-center gap-2 text-sm">
                             <span className="text-[var(--text-secondary)]">{t('statusPills.showWhen')}</span>
-                            <span className="font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">{t('statusPills.thisEntity')}</span>
+                            <span className="font-bold text-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-0.5 rounded">{t('statusPills.thisEntity')}</span>
                             <select
                               value={pill.condition?.type || 'state'}
                               onChange={(e) => updatePill(pill.id, { condition: { ...pill.condition, type: e.target.value }})}
@@ -971,12 +971,12 @@ export default function StatusPillsConfigModal({
                         </div>
 
                         {/* Values */}
-                        <div className="pl-2 border-l-2 border-blue-500/20">
+                        <div className="pl-2 border-l-2 border-[var(--accent-color)]">
                            {(pill.condition?.type === 'state' || pill.condition?.type === 'not_state') && (
                               <div className="space-y-2">
                                 <div className="flex flex-wrap gap-1.5 min-h-[26px]">
                                     {(pill.condition?.states || []).map((state, idx) => (
-                                      <span key={`${state}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold">
+                                      <span key={`${state}-${idx}`} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--accent-bg)] text-[var(--accent-color)] text-xs font-bold">
                                         {state}
                                         <button onClick={() => {
                                             const newStates = [...(pill.condition?.states || [])];
@@ -1117,7 +1117,7 @@ export default function StatusPillsConfigModal({
                                 <button
                                   onClick={() => updatePill(pill.id, { showCover: !(pill.showCover !== false) })}
                                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                                    pill.showCover !== false ? 'bg-blue-500/20 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                                    pill.showCover !== false ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
                                   }`}
                                 >
                                   {pill.showCover !== false ? '✓ ' : ''}{t('statusPills.showCover')}
@@ -1125,7 +1125,7 @@ export default function StatusPillsConfigModal({
                                 <button
                                   onClick={() => updatePill(pill.id, { showCount: !pill.showCount })}
                                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                                    pill.showCount ? 'bg-blue-500/20 text-blue-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                                    pill.showCount ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
                                   }`}
                                 >
                                   {pill.showCount ? '✓ ' : ''}{t('statusPills.showCount')}

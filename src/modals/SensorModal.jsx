@@ -471,7 +471,7 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
                <h4 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-6 opacity-40">{t('sensorInfo.timeline')}</h4>
                <div className="space-y-6">
                   <div className="relative pl-4 border-l border-[var(--glass-border)]">
-                      <div className="absolute -left-[3px] top-1.5 w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                      <div className="absolute -left-[3px] top-1.5 w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 mb-0.5">{t('sensorInfo.lastChanged')}</p>
                       <p className="text-sm font-medium text-[var(--text-primary)]">{lastChanged}</p>
                   </div>

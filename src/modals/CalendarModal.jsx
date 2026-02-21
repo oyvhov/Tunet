@@ -153,7 +153,7 @@ export default function CalendarModal({
         
         {/* Header */}
         <div className="flex items-center gap-4 mb-6 font-sans">
-          <div className="p-4 rounded-2xl transition-all duration-500 bg-blue-500/15 text-blue-400">
+          <div className="p-4 rounded-2xl transition-all duration-500 bg-[var(--accent-bg)] text-[var(--accent-color)]">
             <Calendar className="w-8 h-8" />
           </div>
           <div>
@@ -264,7 +264,7 @@ export default function CalendarModal({
                       setSelectedCalendars(allCalendars.map(c => c.id));
                     }
                   }}
-                  className="text-[10px] font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
+                  className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-color)] hover:text-[var(--accent-color)] transition-colors"
                 >
                   {selectedCalendars.length === allCalendars.length ? translate('calendar.removeAll') : translate('calendar.selectAll')}
                 </button>
@@ -295,7 +295,7 @@ export default function CalendarModal({
                         {calendar.name}
                       </span>
                       {isSelected && (
-                        <Check className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                        <Check className="w-4 h-4 text-[var(--accent-color)] flex-shrink-0" />
                       )}
                     </button>
                   );

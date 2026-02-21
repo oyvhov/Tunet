@@ -87,11 +87,11 @@ export default function PageNavigation({
               activePage === page.id 
                 ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' 
                 : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-            } ${editMode && isHidden ? 'opacity-50 border-gray-500 scale-95' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-blue-500/50' : ''}`}
+            } ${editMode && isHidden ? 'opacity-50 border-gray-500 scale-95' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-[var(--accent-color)]' : ''}`}
           >
             <Icon className={`w-4 h-4 ${editMode && isHidden ? 'animate-pulse' : ''}`} />
             <span className="hidden sm:inline">{label}</span>
-            {editMode && <Edit2 className="w-4 h-4 ml-1 text-blue-400 hidden sm:inline" />}
+            {editMode && <Edit2 className="w-4 h-4 ml-1 text-[var(--accent-color)] hidden sm:inline" />}
           </button>
         );
       })}

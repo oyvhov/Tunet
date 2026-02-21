@@ -25,14 +25,14 @@ export default function SettingsDropdown({
 
   const handleSelect = (action) => {
     setIsOpen(false);
-    action();
+    if (typeof action === 'function') action();
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        className={`p-2 rounded-full transition-all duration-300 group relative z-50 ${isOpen ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'hover:bg-white/10 text-slate-400 hover:text-white'}`}
+        className={`p-2 rounded-full transition-all duration-300 group relative z-50 ${isOpen ? 'bg-[var(--accent-color)] text-white shadow-lg ' : 'hover:bg-white/10 text-slate-400 hover:text-white'}`}
         aria-label="Settings"
       >
         <Settings className={`w-5 h-5 transition-transform duration-500 ${isOpen ? 'rotate-90' : 'group-hover:rotate-45'}`} />
@@ -62,7 +62,7 @@ export default function SettingsDropdown({
             onClick={() => handleSelect(onOpenLayout)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group"
           >
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+            <div className="p-2 rounded-lg bg-[var(--accent-bg)] text-[var(--accent-color)] group-hover:bg-[var(--accent-color)] group-hover:text-white transition-colors">
               <LayoutGrid className="w-4 h-4" />
             </div>
             <div>

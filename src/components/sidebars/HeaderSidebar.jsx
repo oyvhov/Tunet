@@ -47,7 +47,7 @@ const SegmentedControl = ({ options, value, onChange }) => (
             : 'hover:text-white'
         }`}
         style={value === opt.value 
-          ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }
+          ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }
           : { color: 'var(--text-secondary)', backgroundColor: 'transparent' }
         }
       >
@@ -63,8 +63,8 @@ const Toggle = ({ label, value, onChange }) => (
     className="w-full flex items-center justify-between py-2 group"
   >
     <span className="text-[12px] font-medium transition-colors group-hover:text-white" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-    <div className="w-9 h-5 rounded-full relative transition-all duration-300" style={{ backgroundColor: value ? 'var(--glass-bg-hover)' : 'var(--glass-bg)' }}>
-      <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all duration-300 shadow-sm ${value ? 'left-[calc(100%-16px)]' : 'left-1'}`} />
+    <div className="w-9 h-5 rounded-full relative transition-all duration-300" style={{ backgroundColor: value ? 'var(--accent-bg)' : 'var(--glass-bg)' }}>
+      <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all duration-300 shadow-sm ${value ? 'left-[calc(100%-16px)]' : 'left-1'}`} style={value ? { backgroundColor: 'var(--accent-color)' } : {}} />
     </div>
   </button>
 );
@@ -85,17 +85,17 @@ const Section = ({ id, icon: Icon, title, children, isOpen, toggle }) => (
       backgroundColor: isOpen ? 'var(--glass-bg)' : 'transparent',
       borderColor: isOpen ? 'var(--glass-border)' : 'transparent'
   }}>
-    <button
-      type="button"
-      onClick={() => toggle(id)}
-      className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors group"
-    >
-      <div className="p-2 rounded-xl transition-colors" style={isOpen ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } : { color: 'var(--text-secondary)' }}>
-        <Icon className="w-4.5 h-4.5" />
-      </div>
-      <span className="flex-1 text-[13px] font-semibold transition-colors" style={{ color: isOpen ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{title}</span>
-      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: 'var(--text-secondary)' }} />
-    </button>
+      <button
+        type="button"
+        onClick={() => toggle(id)}
+        className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors group"
+      >
+        <div className="p-2 rounded-xl transition-colors" style={isOpen ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' } : { color: 'var(--text-secondary)' }}>
+          <Icon className="w-4.5 h-4.5" />
+        </div>
+        <span className="flex-1 text-[13px] font-semibold transition-colors" style={{ color: isOpen ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{title}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} style={{ color: 'var(--text-secondary)' }} />
+      </button>
     <div
       className="grid transition-all duration-300 ease-in-out"
       style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
@@ -170,8 +170,8 @@ export default function HeaderSidebar({
              <div className="w-px my-1 mx-1" style={{ backgroundColor: 'var(--glass-border)' }} />
 
              <button
-                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all text-white shadow-md relative z-10"
-               style={{ backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }}
+                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all shadow-md relative z-10 font-medium"
+               style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}
                 disabled
                 title={t('system.tabHeader')}
              >
@@ -254,7 +254,7 @@ export default function HeaderSidebar({
                        : 'hover:border-white/20'
                    }`}
                    style={fontStyle === s 
-                      ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }
+                      ? { backgroundColor: 'var(--accent-bg)', borderColor: 'var(--glass-border)', color: 'var(--accent-color)' }
                       : { backgroundColor: 'transparent', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }
                    }
                  >
@@ -288,7 +288,6 @@ export default function HeaderSidebar({
                 step={0.1} 
                 value={headerScale} 
                 onChange={(e) => updateHeaderScale(parseFloat(e.target.value))} 
-                colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
 
@@ -317,7 +316,6 @@ export default function HeaderSidebar({
                 step={0.1} 
                 value={clockScale} 
                 onChange={(e) => update('clockScale', parseFloat(e.target.value))} 
-                colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
 
@@ -336,7 +334,6 @@ export default function HeaderSidebar({
                 step={0.1} 
                 value={dateScale} 
                 onChange={(e) => update('dateScale', parseFloat(e.target.value))} 
-                colorClass="bg-[var(--text-secondary)]" 
             />
           </div>
         </Section>
@@ -381,7 +378,7 @@ export default function HeaderSidebar({
                    clockFormat === '24h' ? '' : 'hover:text-white'
                  }`}
                  style={clockFormat === '24h' 
-                    ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } 
+                    ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }
                     : { backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)' }
                  }
                >
@@ -393,7 +390,7 @@ export default function HeaderSidebar({
                    clockFormat === '12h' ? '' : 'hover:text-white'
                  }`}
                  style={clockFormat === '12h' 
-                    ? { backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' } 
+                    ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }
                     : { backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)' }
                  }
                >
