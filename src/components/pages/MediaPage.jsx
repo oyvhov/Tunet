@@ -14,6 +14,7 @@ import {
   Pause,
   Play,
   SkipForward,
+  Power,
   VolumeX,
   Volume1,
   Volume2,
@@ -21,6 +22,7 @@ import {
   Plus,
   Heart
 } from '../../icons';
+import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 export default function MediaPage({
   pageId,
@@ -80,6 +82,9 @@ export default function MediaPage({
   const mpSeries = mpId ? (getA(mpId, 'media_artist') || getA(mpId, 'media_album_name')) : null;
   const mpName = currentMp?.attributes?.friendly_name || mpId || '';
   const isTV = mpId ? (getA(mpId, 'media_content_type') === 'channel' || getA(mpId, 'device_class') === 'tv') : false;
+  const powerAction = currentMp ? getMediaPlayerPowerAction(currentMp) : null;
+  const canTogglePower = Boolean(powerAction);
+  const isPowerOffAction = powerAction === 'turn_off';
 
   const mpPicture = currentMp ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
   const duration = mpId ? getA(mpId, 'media_duration') : null;
@@ -470,35 +475,44 @@ export default function MediaPage({
                 <M3Slider variant="thin" min={0} max={duration || 100} step={1} value={effectivePosition || 0} disabled={!duration} onChange={(e) => callService('media_player', 'media_seek', { entity_id: mpId, seek_position: parseFloat(e.target.value) })} colorClass="bg-white" />
               </div>
 
-              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 lg:gap-2 xl:gap-3">
+              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-[clamp(0.25rem,1vw,0.75rem)]">
                 <button
                   onClick={() => callService('media_player', 'shuffle_set', { entity_id: mpId, shuffle: !shuffle })}
-                  className={`p-2 rounded-full transition-all active:scale-95 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                  className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-all active:scale-95 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   style={shuffle ? {
                     color: 'var(--text-primary)',
                     backgroundColor: 'var(--glass-bg-hover)'
                   } : undefined}
                   title="Shuffle"
                 >
-                  <Shuffle className="w-4 h-4" />
+                  <Shuffle className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" />
                 </button>
-                <div className="min-w-0 flex items-center justify-center gap-1.5 lg:gap-2 xl:gap-4">
-                  <button onClick={() => callService('media_player', 'media_previous_track', { entity_id: mpId })} className="p-1.5 lg:p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipBack className="w-5 h-5 xl:w-6 xl:h-6 text-[var(--text-secondary)]" /></button>
-                  <button onClick={() => callService('media_player', 'media_play_pause', { entity_id: mpId })} className="p-2 lg:p-2.5 xl:p-3 rounded-full transition-all active:scale-95 shadow-lg hover:shadow-xl hover:scale-105 bg-[var(--text-primary)]">
-                    {isPlaying ? <Pause className="w-6 h-6 xl:w-7 xl:h-7" color="var(--bg-primary)" fill="var(--bg-primary)" /> : <Play className="w-6 h-6 xl:w-7 xl:h-7 ml-0.5" color="var(--bg-primary)" fill="var(--bg-primary)" />}
+                <div className="min-w-0 flex items-center justify-center gap-[clamp(0.2rem,1.3vw,1rem)]">
+                  <button onClick={() => callService('media_player', 'media_previous_track', { entity_id: mpId })} className="p-[clamp(0.2rem,1vw,0.5rem)] hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipBack className="w-[clamp(1.1rem,2.6vw,1.5rem)] h-[clamp(1.1rem,2.6vw,1.5rem)] text-[var(--text-secondary)]" /></button>
+                  <button onClick={() => callService('media_player', 'media_play_pause', { entity_id: mpId })} className="p-[clamp(0.3rem,1.2vw,0.75rem)] rounded-full transition-all active:scale-95 shadow-lg hover:shadow-xl hover:scale-105 bg-[var(--text-primary)]">
+                    {isPlaying ? <Pause className="w-[clamp(1.1rem,2.8vw,1.75rem)] h-[clamp(1.1rem,2.8vw,1.75rem)]" color="var(--bg-primary)" fill="var(--bg-primary)" /> : <Play className="w-[clamp(1.1rem,2.8vw,1.75rem)] h-[clamp(1.1rem,2.8vw,1.75rem)] ml-0.5" color="var(--bg-primary)" fill="var(--bg-primary)" />}
                   </button>
-                  <button onClick={() => callService('media_player', 'media_next_track', { entity_id: mpId })} className="p-1.5 lg:p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipForward className="w-5 h-5 xl:w-6 xl:h-6 text-[var(--text-secondary)]" /></button>
+                  <button onClick={() => callService('media_player', 'media_next_track', { entity_id: mpId })} className="p-[clamp(0.2rem,1vw,0.5rem)] hover:bg-[var(--glass-bg-hover)] rounded-full transition-all active:scale-95"><SkipForward className="w-[clamp(1.1rem,2.6vw,1.5rem)] h-[clamp(1.1rem,2.6vw,1.5rem)] text-[var(--text-secondary)]" /></button>
+                  {canTogglePower && (
+                    <button
+                      onClick={() => callService('media_player', powerAction, { entity_id: mpId })}
+                      className={`p-[clamp(0.2rem,1vw,0.5rem)] rounded-full transition-all active:scale-95 ${isPowerOffAction ? 'text-red-400 hover:bg-red-500/10' : 'text-emerald-400 hover:bg-emerald-500/10'}`}
+                      title={isPowerOffAction ? t('status.off') : t('status.on')}
+                    >
+                      <Power className="w-[clamp(1.1rem,2.6vw,1.5rem)] h-[clamp(1.1rem,2.6vw,1.5rem)]" />
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService('media_player', 'repeat_set', { entity_id: mpId, repeat: nextMode }); }}
-                  className={`p-2 rounded-full transition-all active:scale-95 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                  className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-all active:scale-95 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   style={repeat !== 'off' ? {
                     color: 'var(--text-primary)',
                     backgroundColor: 'var(--glass-bg-hover)'
                   } : undefined}
                   title="Repeat"
                 >
-                  {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+                  {repeat === 'one' ? <Repeat1 className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" /> : <Repeat className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" />}
                 </button>
               </div>
             </div>

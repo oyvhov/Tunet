@@ -4,6 +4,7 @@ import {
   Music,
   Tv,
   Speaker,
+  Power,
   SkipBack,
   SkipForward,
   Play,
@@ -20,6 +21,7 @@ import {
   Heart
 } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
+import { getMediaPlayerPowerAction } from '../utils/mediaPlayerFeatures';
 
 const readJSON = (key, fallback) => {
   try {
@@ -382,6 +384,9 @@ export default function MediaModal({
   const contentType = getA(mpId, 'media_content_type');
   const isChannel = contentType === 'channel';
   const isPlaying = mpState === 'playing';
+  const powerAction = getMediaPlayerPowerAction(currentMp);
+  const canTogglePower = Boolean(powerAction);
+  const isPowerOffAction = powerAction === 'turn_off';
 
   let mpTitle = getA(mpId, 'media_title');
 
@@ -790,18 +795,27 @@ export default function MediaModal({
 
               {isSonos ? (
                 <div className="flex flex-col gap-4 pt-2">
-                  <div className="flex items-center justify-center gap-6">
-                    <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-2 rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-4 h-4" /></button>
+                  <div className="flex items-center justify-center gap-[clamp(0.25rem,1.6vw,1.5rem)]">
+                    <button onClick={() => callService("media_player", "shuffle_set", { entity_id: mpId, shuffle: !shuffle })} className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-colors ${shuffle ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Shuffle className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" /></button>
 
-                    <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-5 h-5 text-[var(--text-secondary)]" /></button>
-                    <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-3 rounded-full transition-colors active:scale-95 shadow-lg bg-[var(--text-primary)]">
-                      {isPlaying ? <Pause className="w-6 h-6" color="var(--bg-primary)" fill="var(--bg-primary)" /> : <Play className="w-6 h-6 ml-0.5" color="var(--bg-primary)" fill="var(--bg-primary)" />}
+                    <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-[clamp(0.25rem,1vw,0.5rem)] hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-[clamp(1.1rem,2.6vw,1.25rem)] h-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" /></button>
+                    <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-[clamp(0.35rem,1.2vw,0.75rem)] rounded-full transition-colors active:scale-95 shadow-lg bg-[var(--text-primary)]">
+                      {isPlaying ? <Pause className="w-[clamp(1.25rem,3vw,1.5rem)] h-[clamp(1.25rem,3vw,1.5rem)]" color="var(--bg-primary)" fill="var(--bg-primary)" /> : <Play className="w-[clamp(1.25rem,3vw,1.5rem)] h-[clamp(1.25rem,3vw,1.5rem)] ml-0.5" color="var(--bg-primary)" fill="var(--bg-primary)" />}
                     </button>
-                    <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-2 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-5 h-5 text-[var(--text-secondary)]" /></button>
+                    <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-[clamp(0.25rem,1vw,0.5rem)] hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-[clamp(1.1rem,2.6vw,1.25rem)] h-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" /></button>
 
-                    <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-2 rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                      {repeat === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
+                    <button onClick={() => { const modes = ['off', 'one', 'all']; const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length]; callService("media_player", "repeat_set", { entity_id: mpId, repeat: nextMode }); }} className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-colors ${repeat !== 'off' ? 'text-blue-400 bg-blue-500/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+                      {repeat === 'one' ? <Repeat1 className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" /> : <Repeat className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" />}
                     </button>
+                    {canTogglePower && (
+                      <button
+                        onClick={() => callService('media_player', powerAction, { entity_id: mpId })}
+                        className={`p-[clamp(0.25rem,1vw,0.5rem)] rounded-full transition-colors ${isPowerOffAction ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'}`}
+                        title={isPowerOffAction ? t('status.off') : t('status.on')}
+                      >
+                        <Power className="w-[clamp(0.9rem,2vw,1rem)] h-[clamp(0.9rem,2vw,1rem)]" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 px-1 pt-2 border-t border-[var(--glass-border)]">
@@ -834,12 +848,21 @@ export default function MediaModal({
                 </div>
               ) : (
                 <div className="flex flex-col gap-4 pt-2">
-                  <div className="flex items-center justify-center gap-8">
-                    <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-8 h-8 text-[var(--text-secondary)]" /></button>
-                    <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-6 rounded-full transition-colors active:scale-95 shadow-lg bg-[var(--text-primary)]">
-                      {isPlaying ? <Pause className="w-8 h-8" color="var(--bg-primary)" fill="var(--bg-primary)" /> : <Play className="w-8 h-8 ml-1" color="var(--bg-primary)" fill="var(--bg-primary)" />}
+                  <div className="flex items-center justify-center gap-[clamp(0.25rem,1.8vw,1.5rem)]">
+                    <button onClick={() => callService("media_player", "media_previous_track", { entity_id: mpId })} className="p-[clamp(0.45rem,1.4vw,1rem)] hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipBack className="w-[clamp(1.25rem,3vw,2rem)] h-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" /></button>
+                    <button onClick={() => callService("media_player", "media_play_pause", { entity_id: mpId })} className="p-[clamp(0.65rem,2vw,1.5rem)] rounded-full transition-colors active:scale-95 shadow-lg bg-[var(--text-primary)]">
+                      {isPlaying ? <Pause className="w-[clamp(1.25rem,3vw,2rem)] h-[clamp(1.25rem,3vw,2rem)]" color="var(--bg-primary)" fill="var(--bg-primary)" /> : <Play className="w-[clamp(1.25rem,3vw,2rem)] h-[clamp(1.25rem,3vw,2rem)] ml-1" color="var(--bg-primary)" fill="var(--bg-primary)" />}
                     </button>
-                    <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-4 hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-8 h-8 text-[var(--text-secondary)]" /></button>
+                    <button onClick={() => callService("media_player", "media_next_track", { entity_id: mpId })} className="p-[clamp(0.45rem,1.4vw,1rem)] hover:bg-[var(--glass-bg-hover)] rounded-full transition-colors active:scale-95"><SkipForward className="w-[clamp(1.25rem,3vw,2rem)] h-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" /></button>
+                    {canTogglePower && (
+                      <button
+                        onClick={() => callService('media_player', powerAction, { entity_id: mpId })}
+                        className={`p-[clamp(0.45rem,1.4vw,1rem)] rounded-full transition-colors active:scale-95 ${isPowerOffAction ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'}`}
+                        title={isPowerOffAction ? t('status.off') : t('status.on')}
+                      >
+                        <Power className="w-[clamp(1.25rem,3vw,2rem)] h-[clamp(1.25rem,3vw,2rem)]" />
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 px-1 pt-2 border-t border-[var(--glass-border)]">
                     <button
