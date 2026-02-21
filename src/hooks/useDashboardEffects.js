@@ -59,6 +59,11 @@ export function useDashboardEffects({
     const handler = (e) => {
       if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
       if (!e.target?.closest?.('[data-haptic]')) return;
+      // Check for user activation (Chrome requires user interaction before vibrating)
+      if (typeof navigator.userActivation !== 'undefined' && !navigator.userActivation.hasBeenActive) {
+        return;
+      }
+
       try {
         if (navigator.vibrate) navigator.vibrate(8);
       } catch (err) {

@@ -1,6 +1,9 @@
 export const safeVibrate = (ms) => {
   try {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      if (typeof navigator.userActivation !== 'undefined' && !navigator.userActivation.hasBeenActive) {
+        return; // Avoid "Blocked call to navigator.vibrate" warning
+      }
       navigator.vibrate(ms);
     }
   } catch (e) {

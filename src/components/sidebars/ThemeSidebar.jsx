@@ -129,8 +129,8 @@ export default function ThemeSidebar({
         <div className="flex items-center justify-center mb-6">
           <div className="flex p-1 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
              <button
-                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all shadow-md relative z-10 text-white"
-               style={{ backgroundColor: 'var(--glass-bg-hover)', color: 'var(--text-primary)' }}
+                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all shadow-md relative z-10 font-medium"
+               style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}
                 disabled
                 title={t('system.tabAppearance')}
              >
@@ -319,7 +319,7 @@ export default function ThemeSidebar({
                   onClick={() => setBgMode(mode.key)}
                   className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all text-center border ${
                     active
-                      ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)] text-[var(--text-primary)]'
+                      ? 'bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)]'
                       : 'border-transparent hover:bg-white/10 text-[var(--text-secondary)]'
                   }`}
                   style={!active ? { backgroundColor: 'var(--glass-bg)' } : {}}
@@ -382,7 +382,7 @@ export default function ThemeSidebar({
                   >
                     <div
                       className={`w-12 h-12 rounded-xl transition-all ${
-                        active ? 'ring-2 ring-[var(--glass-border)] scale-105' : 'hover:scale-105 opacity-80 hover:opacity-100'
+                        active ? 'ring-2 ring-[var(--accent-color)] scale-105' : 'hover:scale-105 opacity-80 hover:opacity-100'
                       }`}
                       style={{ background: `linear-gradient(135deg, ${preset.from}, ${preset.to})` }}
                     />

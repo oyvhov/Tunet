@@ -119,7 +119,6 @@ export default function FanCard({
       style={{
         ...cardStyle,
         backgroundColor: 'var(--card-bg)',
-        borderColor: editMode ? 'var(--accent-color)' : 'var(--card-border)',
         ...(isSmall ? { containerType: 'inline-size' } : {})
       }}
     >
