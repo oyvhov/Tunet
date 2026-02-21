@@ -9,7 +9,7 @@
 | Node.js | 20+ |
 | npm | 9+ |
 | Docker (optional) | 20+ |
-| Home Assistant | Any recent version |
+| Home Assistant | Recent (2023.8+) |
 
 ## Project Structure
 
@@ -24,16 +24,16 @@ tunet/
 │   ├── hooks/               # Custom hooks (profiles, theme, energy, etc.)
 │   ├── services/            # HA WebSocket client, profile API, snapshots
 │   ├── rendering/           # Card renderer dispatch + ModalOrchestrator
-│   ├── i18n/                # Translations (en, nn)
-│   ├── layouts/             # Header, StatusBar, EditToolbar
+│   ├── i18n/                # Translations (en, nb, nn, sv, de)
+│   ├── layouts/             # Header, StatusBar, EditToolbar, overlays
 │   ├── config/              # Constants, defaults, themes, onboarding
 │   ├── icons/               # Icon barrel exports + iconMap
-│   ├── utils/               # Formatting, grid layout, drag-and-drop
+│   ├── utils/               # Formatting, grid layout, drag-and-drop, units
 │   └── styles/              # CSS (index, dashboard, animations)
 ├── server/
 │   ├── index.js             # Express server (API + static files)
 │   ├── db.js                # SQLite setup (profiles table)
-│   └── routes/profiles.js   # Profiles CRUD API
+│   └── routes/              # profiles/, icons/ APIs
 ├── Dockerfile               # Multi-stage Docker build
 ├── docker-compose.yml       # Docker Compose config
 └── vite.config.js           # Vite + dev proxy config
@@ -44,15 +44,17 @@ tunet/
 ```bash
 npm install
 
-# Start frontend + backend together
+# Start frontend + backend together (Vite + Express)
 npm run dev:all
 
-# Or run separately:
-npm run dev          # Vite frontend on :5173
+# Or run separately
+npm run dev          # Vite frontend on :5173 (proxies /api to :3002)
 npm run dev:server   # Express backend on :3002
-```
 
-The Vite dev server proxies `/api` requests to the backend automatically.
+# Quality gates
+npm test             # Vitest unit tests
+npm run lint         # ESLint
+```
 
 ## Docker
 
@@ -92,13 +94,17 @@ docker rm tunet-dashboard         # Remove container
 
 ## Configuration
 
-1. Open the dashboard in your browser
-2. Click the **gear icon** to open System settings
-3. Choose **OAuth2** (recommended) or **Token** authentication
-4. Enter your Home Assistant URL (e.g. `https://homeassistant.local:8123`)
-5. For token mode: paste a long-lived access token (HA → Profile → Security)
+1. Open the dashboard in your browser (defaults to `http://localhost:5173` in dev, `http://localhost:3002` in Docker).
+2. Click the **gear icon** to open System settings.
+3. Choose **OAuth2** (recommended) or **Token** authentication.
+4. Enter your Home Assistant URL without `/api` (e.g. `https://homeassistant.local:8123`).
+5. Token mode: paste a long-lived access token (HA → Profile → Security).
+6. Optional: set a fallback URL for token mode if you expose HA internally/externally.
 
-Dashboard layout is stored in `localStorage`. Profiles are stored server-side in SQLite.
+Where data lives:
+- Dashboard/layout/theme/language: browser `localStorage` (`tunet_*` keys) by default; can also be saved/restored via Profiles (server-side) per HA user.
+- HA credentials: `ha_url`, `ha_token` (or OAuth tokens) stored locally.
+- Profiles: server-side SQLite (`server/db.js`, default `data/` dir).
 
 ## Environment Variables
 
@@ -107,6 +113,8 @@ Dashboard layout is stored in `localStorage`. Profiles are stored server-side in
 | `PORT` | `3002` | Backend server port |
 | `DATA_DIR` | `/app/data` | SQLite database directory |
 | `NODE_ENV` | `production` | Environment mode |
+| `VITE_PORT` | `5173` | Vite dev server port (dev only) |
+| `VITE_PROXY_TARGET` | `http://localhost:3002` | API proxy target (dev) |
 
 ## Troubleshooting
 
@@ -115,8 +123,9 @@ Dashboard layout is stored in `localStorage`. Profiles are stored server-side in
 | Port in use | Change the port mapping in `docker-compose.yml` |
 | Build fails | Ensure Docker has enough memory. Try `docker system prune -a` then rebuild |
 | Native module error | The Dockerfile installs build tools automatically. If building locally, ensure `python3`, `make`, and `g++` are available |
-| Connection error | Check HA URL and token. Verify CORS if using external access |
+| Connection error | Check HA URL (no trailing `/api`) and token. For external origins ensure HA `cors_allowed_origins` includes your host |
 | Profiles not saving | Check that the backend is running (`/api/health`) |
+| History/CORS issues | Prefer WebSocket history; otherwise allow your origin in HA `cors_allowed_origins` |
 
 ## Release Workflow (Maintainers)
 
