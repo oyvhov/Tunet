@@ -88,7 +88,7 @@ export const ConfigProvider = ({ children }) => {
 
   const [settingsLockSessionUnlocked, setSettingsLockSessionUnlocked] = useState(() => {
     try {
-      return sessionStorage.getItem('tunet_settings_lock_unlocked') === '1';
+      return window.sessionStorage.getItem('tunet_settings_lock_unlocked') === '1';
     } catch {
       return false;
     }
@@ -169,13 +169,13 @@ export const ConfigProvider = ({ children }) => {
         try {
           savedUrl = localStorage.getItem('ha_url') || '';
           const persistentToken = localStorage.getItem('ha_token') || '';
-          const sessionToken = sessionStorage.getItem('ha_token') || '';
+          const sessionToken = window.sessionStorage.getItem('ha_token') || '';
           if (persistentToken) {
             savedToken = persistentToken;
           } else if (sessionToken) {
             savedToken = sessionToken;
             localStorage.setItem('ha_token', sessionToken);
-            sessionStorage.removeItem('ha_token');
+            window.sessionStorage.removeItem('ha_token');
           } else {
             savedToken = '';
           }
@@ -191,11 +191,11 @@ export const ConfigProvider = ({ children }) => {
 
       try {
         const persistentToken = localStorage.getItem('ha_token') || '';
-        const sessionToken = sessionStorage.getItem('ha_token') || '';
+        const sessionToken = window.sessionStorage.getItem('ha_token') || '';
         const token = persistentToken || sessionToken || '';
         if (!persistentToken && sessionToken) {
           localStorage.setItem('ha_token', sessionToken);
-          sessionStorage.removeItem('ha_token');
+          window.sessionStorage.removeItem('ha_token');
         }
         return {
           url: localStorage.getItem('ha_url') || '',
@@ -433,7 +433,7 @@ export const ConfigProvider = ({ children }) => {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem('tunet_settings_lock_unlocked', settingsLockSessionUnlocked ? '1' : '0');
+      window.sessionStorage.setItem('tunet_settings_lock_unlocked', settingsLockSessionUnlocked ? '1' : '0');
     } catch {}
   }, [settingsLockSessionUnlocked]);
 
@@ -455,12 +455,6 @@ export const ConfigProvider = ({ children }) => {
     const unlocked = verifyPin(pin, settingsLockPinHash);
     if (unlocked) setSettingsLockSessionUnlocked(true);
     return unlocked;
-  };
-
-  const unlockSettingsSession = () => {
-    if (settingsLockEnabled) {
-      setSettingsLockSessionUnlocked(true);
-    }
   };
 
   const lockSettingsSession = () => {
@@ -491,7 +485,6 @@ export const ConfigProvider = ({ children }) => {
     enableSettingsLock,
     disableSettingsLock,
     unlockSettingsLock,
-    unlockSettingsSession,
     lockSettingsSession,
     inactivityTimeout,
     setInactivityTimeout,

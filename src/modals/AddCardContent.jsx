@@ -26,11 +26,17 @@ import React, { useState, useEffect } from 'react';
 import { isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
 
+const SELECTED_CONTAINER = 'bg-[var(--accent-bg)] border-[var(--accent-color)]';
+const SELECTED_TEXT = 'text-[var(--accent-color)]';
+const SELECTED_SUBTEXT = 'text-[var(--text-secondary)]';
+const SELECTED_ICON = 'bg-[var(--accent-bg)] border border-[var(--accent-color)] text-[var(--accent-color)]';
+const PRIMARY_ADD_BUTTON = 'w-full py-4 rounded-2xl border bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] font-bold uppercase tracking-widest transition-colors hover:opacity-90 flex items-center justify-center gap-2';
+
 const TypeButton = ({ type, icon: Icon, label, isActive, onSelect }) => (
   <button
     type="button"
     onClick={() => onSelect(type)}
-    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-150 ease-out font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border focus-visible:outline-none ${isActive ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-150 ease-out font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border focus-visible:outline-none ${isActive ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
   >
     <Icon className="w-4 h-4" /> {label}
   </button>
@@ -105,18 +111,18 @@ function RoomSection({ conn, searchTerm, selectedArea, setSelectedArea, setAreaE
               type="button"
               key={area.area_id}
               onClick={() => setSelectedArea(isSelected ? null : area)}
-              className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}
+              className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}
             >
               <div className="flex flex-col overflow-hidden mr-4">
-                <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                <span className={`text-sm font-bold transition-colors truncate ${isSelected ? SELECTED_TEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
                   {area.name || area.area_id}
                 </span>
-                <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                <span className={`text-[11px] font-medium truncate ${isSelected ? SELECTED_SUBTEXT : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
                   {area.area_id}
                   {isSelected && !loadingEntities && ` — ${areaEntities.length} ${t('addCard.roomEntitiesFound')}`}
                 </span>
               </div>
-              <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+              <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? SELECTED_ICON : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-[var(--accent-bg)] group-hover:text-[var(--accent-color)]'}`}>
                 {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               </div>
             </button>
@@ -199,15 +205,15 @@ export default function AddCardContent({
 
   /** Reusable entity list item button. */
   const EntityItem = ({ id, isSelected, onClick, badgeText }) => (
-    <button type="button" key={id} onClick={onClick} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}>
+    <button type="button" key={id} onClick={onClick} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}>
       <div className="flex flex-col overflow-hidden mr-4">
-        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id]?.attributes?.friendly_name || id}</span>
-        <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? SELECTED_TEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id]?.attributes?.friendly_name || id}</span>
+        <span className={`text-[11px] font-medium truncate ${isSelected ? SELECTED_SUBTEXT : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
       </div>
       {badgeText ? (
-        <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400">{badgeText}</span>
+        <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)]">{badgeText}</span>
       ) : (
-        <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+        <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? SELECTED_ICON : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-[var(--accent-bg)] group-hover:text-[var(--accent-color)]'}`}>
           {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
         </div>
       )}
@@ -268,12 +274,12 @@ export default function AddCardContent({
       <div>
         <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{t('addCard.tempSensorOptional')}</p>
         <div className="space-y-3">
-          <button type="button" onClick={() => setSelectedTempId(null)} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${!selectedTempId ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}>
+          <button type="button" onClick={() => setSelectedTempId(null)} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${!selectedTempId ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}>
             <div className="flex flex-col overflow-hidden mr-4">
-              <span className={`text-sm font-bold transition-colors truncate ${!selectedTempId ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.useWeatherTemp')}</span>
-              <span className={`text-[11px] font-medium truncate ${!selectedTempId ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>weather.temperature</span>
+              <span className={`text-sm font-bold transition-colors truncate ${!selectedTempId ? SELECTED_TEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.useWeatherTemp')}</span>
+              <span className={`text-[11px] font-medium truncate ${!selectedTempId ? SELECTED_SUBTEXT : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>weather.temperature</span>
             </div>
-            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedTempId ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedTempId ? SELECTED_ICON : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-[var(--accent-bg)] group-hover:text-[var(--accent-color)]'}`}>
               {!selectedTempId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             </div>
           </button>
@@ -315,12 +321,12 @@ export default function AddCardContent({
       <div>
         <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{t('addCard.remoteOptional')}</p>
         <div className="space-y-3">
-          <button type="button" onClick={() => setSelectedAndroidTVRemoteId(null)} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${!selectedAndroidTVRemoteId ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}>
+          <button type="button" onClick={() => setSelectedAndroidTVRemoteId(null)} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${!selectedAndroidTVRemoteId ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}>
             <div className="flex flex-col overflow-hidden mr-4">
-              <span className={`text-sm font-bold transition-colors truncate ${!selectedAndroidTVRemoteId ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.noRemote')}</span>
-              <span className={`text-[11px] font-medium truncate ${!selectedAndroidTVRemoteId ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{t('addCard.mediaControlOnly')}</span>
+              <span className={`text-sm font-bold transition-colors truncate ${!selectedAndroidTVRemoteId ? SELECTED_TEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{t('addCard.noRemote')}</span>
+              <span className={`text-[11px] font-medium truncate ${!selectedAndroidTVRemoteId ? SELECTED_SUBTEXT : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{t('addCard.mediaControlOnly')}</span>
             </div>
-            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedAndroidTVRemoteId ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+            <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${!selectedAndroidTVRemoteId ? SELECTED_ICON : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-[var(--accent-bg)] group-hover:text-[var(--accent-color)]'}`}>
               {!selectedAndroidTVRemoteId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             </div>
           </button>
@@ -340,7 +346,7 @@ export default function AddCardContent({
       <p className="text-gray-400 max-w-xs text-sm">{description}</p>
       <button
         onClick={() => onAddSelected()}
-        className="px-6 py-3 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors"
+        className="px-6 py-3 rounded-2xl border bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] font-bold uppercase tracking-widest transition-colors hover:opacity-90"
       >
         {buttonLabel}
       </button>
@@ -368,13 +374,13 @@ export default function AddCardContent({
                   if (isSelected) setSelectedEntities((prev) => prev.filter((x) => x !== id));
                   else setSelectedEntities((prev) => [...prev, id]);
                 }}
-                className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}
+                className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}
               >
                 <div className="flex flex-col overflow-hidden mr-4">
-                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{name}</span>
-                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? SELECTED_TEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{name}</span>
+                  <span className={`text-[11px] font-medium truncate ${isSelected ? SELECTED_SUBTEXT : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
                 </div>
-                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? SELECTED_ICON : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-[var(--accent-bg)] group-hover:text-[var(--accent-color)]'}`}>
                   {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 </div>
               </button>
@@ -414,7 +420,7 @@ export default function AddCardContent({
                 setSelectedSpacerVariant(variant.key);
               }}
               className={`flex-1 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${localSpacerVariant === variant.key ? 'popup-surface text-[var(--text-primary)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-              style={localSpacerVariant === variant.key ? { backgroundColor: 'var(--glass-bg-hover)' } : undefined}
+              style={localSpacerVariant === variant.key ? { backgroundColor: 'var(--accent-bg)', borderColor: 'var(--accent-color)', color: 'var(--accent-color)' } : undefined}
             >
               {variant.label}
             </button>
@@ -423,7 +429,7 @@ export default function AddCardContent({
       </div>
       <button
         onClick={() => onAddSelected({ spacerVariant: localSpacerVariant })}
-        className="px-6 py-3 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors"
+        className="px-6 py-3 rounded-2xl border bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] font-bold uppercase tracking-widest transition-colors hover:opacity-90"
       >
         {t('addCard.add')}
       </button>
@@ -450,8 +456,8 @@ export default function AddCardContent({
             <button
               key={dec}
               onClick={() => setNordpoolDecimals(dec)}
-              className={`px-4 py-2 rounded-lg transition-colors font-bold ${nordpoolDecimals === dec ? 'popup-surface text-[var(--text-primary)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-              style={nordpoolDecimals === dec ? { backgroundColor: 'var(--glass-bg-hover)' } : undefined}
+              className={`px-4 py-2 rounded-lg transition-colors font-bold ${nordpoolDecimals === dec ? 'popup-surface border' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+              style={nordpoolDecimals === dec ? { backgroundColor: 'var(--accent-bg)', borderColor: 'var(--accent-color)', color: 'var(--accent-color)' } : undefined}
             >
               {dec}
             </button>
@@ -473,22 +479,22 @@ export default function AddCardContent({
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setCostSelectionTarget('today')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${costSelectionTarget === 'today' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${costSelectionTarget === 'today' ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
               >
                 <Coins className="w-4 h-4" /> {t('addCard.costToday')}
               </button>
               <button
                 onClick={() => setCostSelectionTarget('month')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${costSelectionTarget === 'month' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors font-bold uppercase tracking-widest text-[11px] whitespace-nowrap border ${costSelectionTarget === 'month' ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
               >
                 <Coins className="w-4 h-4" /> {t('addCard.costMonth')}
               </button>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-              <span className={`px-3 py-1 rounded-full border ${selectedCostTodayId ? 'border-emerald-500/30 text-emerald-400' : 'border-[var(--glass-border)] text-[var(--text-muted)]'}`}>
+              <span className={`px-3 py-1 rounded-full border ${selectedCostTodayId ? 'border-[var(--accent-color)] text-[var(--accent-color)] bg-[var(--accent-bg)]' : 'border-[var(--glass-border)] text-[var(--text-muted)]'}`}>
                 {t('addCard.costToday')}: {selectedCostTodayId ? (entities[selectedCostTodayId]?.attributes?.friendly_name || selectedCostTodayId) : t('common.missing')}
               </span>
-              <span className={`px-3 py-1 rounded-full border ${selectedCostMonthId ? 'border-emerald-500/30 text-emerald-400' : 'border-[var(--glass-border)] text-[var(--text-muted)]'}`}>
+              <span className={`px-3 py-1 rounded-full border ${selectedCostMonthId ? 'border-[var(--accent-color)] text-[var(--accent-color)] bg-[var(--accent-bg)]' : 'border-[var(--glass-border)] text-[var(--text-muted)]'}`}>
                 {t('addCard.costMonth')}: {selectedCostMonthId ? (entities[selectedCostMonthId]?.attributes?.friendly_name || selectedCostMonthId) : t('common.missing')}
               </span>
             </div>
@@ -514,27 +520,27 @@ export default function AddCardContent({
                 }
                 if (selectedEntities.includes(id)) setSelectedEntities(prev => prev.filter(e => e !== id));
                 else setSelectedEntities(prev => [...prev, id]);
-              }} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'popup-surface popup-surface-hover border-transparent'}`}>
+                }} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}>
                 <div className="flex flex-col overflow-hidden mr-4">
-                  <span className={`text-sm font-bold transition-colors truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
-                  <span className={`text-[11px] font-medium truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
+                    <span className={`text-sm font-bold transition-colors truncate ${isSelected ? SELECTED_TEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id].attributes?.friendly_name || id}</span>
+                    <span className={`text-[11px] font-medium truncate ${isSelected ? SELECTED_SUBTEXT : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
                 </div>
                 {addCardType === 'cost' ? (
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {isSelectedToday && (
-                      <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400">{t('addCard.costToday')}</span>
+                        <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)]">{t('addCard.costToday')}</span>
                     )}
                     {isSelectedMonth && (
-                      <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400">{t('addCard.costMonth')}</span>
+                        <span className="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)]">{t('addCard.costMonth')}</span>
                     )}
                     {!isSelected && (
-                      <div className="p-2 rounded-full transition-colors bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400">
+                        <div className="p-2 rounded-full transition-colors bg-[var(--glass-bg)] text-gray-500 group-hover:bg-[var(--accent-bg)] group-hover:text-[var(--accent-color)]">
                         <Plus className="w-4 h-4" />
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
+                    <div className={`p-2 rounded-full transition-colors flex-shrink-0 ${isSelected ? SELECTED_ICON : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-[var(--accent-bg)] group-hover:text-[var(--accent-color)]'}`}>
                     {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </div>
                 )}
@@ -617,7 +623,7 @@ export default function AddCardContent({
 
         <div className="pt-6 mt-6 border-t border-[var(--glass-border)] flex flex-col gap-3">
           {usesMultiSelectWithCalendar && selectedEntities.length > 0 && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
               <Plus className="w-5 h-5" /> {addCardType === 'media'
                 ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
                 : addCardType === 'calendar'
@@ -628,29 +634,29 @@ export default function AddCardContent({
             </button>
           )}
           {addCardType === 'cost' && selectedCostTodayId && selectedCostMonthId && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
               <Plus className="w-5 h-5" /> {t('addCard.costCard')}
             </button>
           )}
           {addCardType === 'weather' && selectedWeatherId && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
               <Plus className="w-5 h-5" /> {t('addCard.weatherCard')}
             </button>
           )}
           {addCardType === 'nordpool' && selectedNordpoolId && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
               <Plus className="w-5 h-5" /> {t('addCard.nordpoolCard')}
             </button>
           )}
           {addCardType === 'androidtv' && selectedAndroidTVMediaId && (
-            <button onClick={onAddSelected} className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+            <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
               <Plus className="w-5 h-5" /> {t('addCard.add')}
             </button>
           )}
           {addCardType === 'room' && selectedRoomArea && (
             <button 
               onClick={() => onAddRoom && onAddRoom(selectedRoomArea, selectedRoomEntities)} 
-              className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+              className={PRIMARY_ADD_BUTTON}
             >
               <Plus className="w-5 h-5" /> {selectedRoomArea.name || t('room.defaultName') || 'Room'}
             </button>

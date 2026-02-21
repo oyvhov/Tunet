@@ -34,12 +34,12 @@ export default function NordpoolModal({
   cardId,
   settings
 }) {
-  if (!show) return null;
-
   const { haConfig } = useHomeAssistantMeta();
   const translate = t || ((key) => key);
   const currency = settings?.currency || haConfig?.currency || 'kr';
   const [showWithSupport, setShowWithSupport] = useState(settings?.showWithSupport ?? false);
+
+  if (!show) return null;
   
   // Sync with settings when they change
   useEffect(() => {

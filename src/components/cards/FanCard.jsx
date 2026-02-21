@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { AlertTriangle, Fan as FanIconGlyph, MoveHorizontal, RotateCcw, RotateCw } from '../../icons';
 import { getIconComponent } from '../../icons';
 import M3Slider from '../ui/M3Slider';
@@ -86,13 +85,13 @@ export default function FanCard({
   const fanIconName = customIcons[fanId] || entity.attributes?.icon;
   const Icon = fanIconName ? (getIconComponent(fanIconName) || FanIconGlyph) : FanIconGlyph;
 
-  const statusText = useMemo(() => {
+  const statusText = (() => {
     if (isUnavailable) return t('common.unknown');
     if (!isOn) return t('status.off');
     if (hasPresetControl && presetMode) return String(presetMode);
     if (hasSpeedControl) return `${boundedPercentage}%`;
     return t('status.on');
-  }, [isUnavailable, isOn, presetMode, boundedPercentage, t]);
+  })();
 
   const togglePower = (event) => {
     event.stopPropagation();

@@ -37,11 +37,11 @@ export default function LeafModal({
   t,
   car
 }) {
-  if (!show) return null;
-
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+
+  if (!show) return null;
 
   const {
     name,

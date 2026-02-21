@@ -21,8 +21,6 @@ export default function CalendarModal({
   language,
   t
 }) {
-  if (!show) return null;
-
   const translate = t || ((key) => key);
   const locale = getLocaleForLanguage(language);
   
@@ -52,7 +50,7 @@ export default function CalendarModal({
 
   // Fetch events for selected calendars
   useEffect(() => {
-    if (!conn || selectedCalendars.length === 0) return;
+    if (!show || !conn || selectedCalendars.length === 0) return;
     
     const fetchEvents = async () => {
       setLoading(true);
@@ -78,16 +76,17 @@ export default function CalendarModal({
     };
 
     fetchEvents();
-  }, [conn, selectedCalendars]);
+  }, [show, conn, selectedCalendars]);
 
   // Save selection to localStorage
   useEffect(() => {
+    if (!show) return;
     try {
       localStorage.setItem('tunet_calendar_modal_selection', JSON.stringify(selectedCalendars));
     } catch (error) {
       console.error('Failed to save calendar selection:', error);
     }
-  }, [selectedCalendars]);
+  }, [show, selectedCalendars]);
 
   const toggleCalendar = (calendarId) => {
     setSelectedCalendars(prev => 
@@ -131,6 +130,8 @@ export default function CalendarModal({
     const dateB = groupedEvents[b][0]?.start;
     return new Date(dateA) - new Date(dateB);
   });
+
+  if (!show) return null;
 
   return (
     <div 

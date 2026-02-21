@@ -44,21 +44,20 @@ export default function WeatherModal({
   language,
   t
 }) {
-  if (!show || !weatherEntity) return null;
-
   const translate = t || ((key) => key);
   const locale = getLocaleForLanguage(language);
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
+  const activeWeatherEntity = weatherEntity || { state: 'unknown', attributes: {}, entity_id: null };
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
-  const condition = weatherEntity.state;
+  const condition = activeWeatherEntity.state;
   const info = getWeatherInfo(condition, t);
   const MainIcon = info.Icon;
 
-  const currentTempRaw = tempEntity?.state ?? weatherEntity.attributes?.temperature;
+  const currentTempRaw = tempEntity?.state ?? activeWeatherEntity.attributes?.temperature;
   const currentTemp = Number.isFinite(parseFloat(currentTempRaw)) ? parseFloat(currentTempRaw) : null;
 
-  const attrs = weatherEntity.attributes || {};
+  const attrs = activeWeatherEntity.attributes || {};
   const sourceTemperatureUnit = attrs.temperature_unit || haConfig?.unit_system?.temperature || '°C';
   const sourceWindUnit = attrs.wind_speed_unit || 'km/h';
   const sourcePressureUnit = attrs.pressure_unit || 'hPa';
@@ -123,7 +122,7 @@ export default function WeatherModal({
   const hasTempSensor = !!tempEntity?.entity_id;
 
   useEffect(() => {
-    if (!conn || !tempEntity?.entity_id) {
+    if (!show || !conn || !tempEntity?.entity_id) {
       setHistorySeries([]);
       return;
     }
@@ -191,25 +190,25 @@ export default function WeatherModal({
     return () => {
       cancelled = true;
     };
-  }, [conn, tempEntity?.entity_id, historyPeriodHours]);
+  }, [show, conn, tempEntity?.entity_id, historyPeriodHours]);
 
   useEffect(() => {
-    if (!conn || !weatherEntity?.entity_id) return;
+    if (!show || !conn || !activeWeatherEntity?.entity_id) return;
 
     let cancelled = false;
     const fetchForecast = async () => {
       setLoading(true);
       try {
-        const data = await getForecast(conn, { entityId: weatherEntity.entity_id, type: forecastType });
+        const data = await getForecast(conn, { entityId: activeWeatherEntity.entity_id, type: forecastType });
         if (!cancelled) {
           const next = Array.isArray(data) && data.length > 0
             ? data
-            : (Array.isArray(weatherEntity.attributes?.forecast) ? weatherEntity.attributes.forecast : []);
+            : (Array.isArray(activeWeatherEntity.attributes?.forecast) ? activeWeatherEntity.attributes.forecast : []);
           setForecast(next);
         }
       } catch {
         if (!cancelled) {
-          const fallback = Array.isArray(weatherEntity.attributes?.forecast) ? weatherEntity.attributes.forecast : [];
+          const fallback = Array.isArray(activeWeatherEntity.attributes?.forecast) ? activeWeatherEntity.attributes.forecast : [];
           setForecast(fallback);
         }
       } finally {
@@ -221,7 +220,7 @@ export default function WeatherModal({
     return () => {
       cancelled = true;
     };
-  }, [conn, weatherEntity?.entity_id, forecastType, weatherEntity?.attributes?.forecast]);
+  }, [show, conn, activeWeatherEntity?.entity_id, forecastType, activeWeatherEntity?.attributes?.forecast]);
 
   const forecastSeries = useMemo(() => {
     if (!forecast.length) return [];
@@ -270,6 +269,8 @@ export default function WeatherModal({
       };
     });
   }, [forecast, forecastType, condition, t, locale, sourceTemperatureUnit, effectiveUnitMode]);
+
+  if (!show || !weatherEntity) return null;
 
   return (
     <div

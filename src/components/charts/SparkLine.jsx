@@ -24,7 +24,7 @@ const createBezierPath = (points, smoothing = 0.3) => {
 };
 
 export default function SparkLine({ data, currentIndex, height = 40, fade = false }) {
-  if (!data || data.length === 0) return null;
+  const pointsData = Array.isArray(data) ? data : [];
   const lineStrokeWidth = 2.5;
   const pointRadius = 3.5;
   const verticalPadding = Math.max(4, Math.ceil(pointRadius + lineStrokeWidth / 2));
@@ -34,7 +34,9 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
   const lineId = `cardLineGrad-${idSuffix}`;
   const maskId = `cardMask-${idSuffix}`;
 
-  const values = data.map(d => d.value);
+  if (pointsData.length === 0) return null;
+
+  const values = pointsData.map(d => d.value);
   let min = Math.min(...values);
   let max = Math.max(...values);
   if (min === max) {
@@ -51,8 +53,8 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
     chartBottom - ((v - min) / range) * chartHeight
   ]);
 
-  const pathData = useMemo(() => createBezierPath(points, 0.3), [points]);
-  const areaData = useMemo(() => `${pathData} L ${width},${chartBottom} L 0,${chartBottom} Z`, [pathData, width, chartBottom]);
+  const pathData = createBezierPath(points, 0.3);
+  const areaData = `${pathData} L ${width},${chartBottom} L 0,${chartBottom} Z`;
   const currentPoint = points[currentIndex] || points[0];
 
   const getDotColor = (val) => {

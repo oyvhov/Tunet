@@ -1,14 +1,14 @@
 import React, { useMemo } from 'react';
 
 export default function BinaryTimeline({ events, startTime, endTime }) {
-  if (!events || events.length === 0) return null;
+  const eventList = useMemo(() => (Array.isArray(events) ? events : []), [events]);
 
   const segments = useMemo(() => {
     const totalDuration = endTime.getTime() - startTime.getTime();
     if (totalDuration <= 0) return [];
 
     // Sort events by time ascending
-    const sortedEvents = [...events].sort((a, b) => a.time - b.time);
+    const sortedEvents = [...eventList].sort((a, b) => a.time - b.time);
     
     const segs = [];
 
@@ -73,7 +73,9 @@ export default function BinaryTimeline({ events, startTime, endTime }) {
     }
     
     return segs;
-  }, [events, startTime, endTime]);
+  }, [eventList, startTime, endTime]);
+
+  if (eventList.length === 0) return null;
 
   const totalDuration = endTime.getTime() - startTime.getTime();
 

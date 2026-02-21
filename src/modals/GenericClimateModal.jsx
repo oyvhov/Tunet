@@ -16,10 +16,10 @@ export default function GenericClimateModal({
   swingMap,
   t
 }) {
-  if (!entityId || !entity) return null;
-
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
+
+  if (!entityId || !entity) return null;
 
   const hvacAction = entity.attributes?.hvac_action || 'idle';
   const isCooling = hvacAction === 'cooling';

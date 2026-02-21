@@ -3,8 +3,9 @@ import { X, Plus } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 
 export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon, onCreate, onCreateMedia }) {
-  if (!isOpen) return null;
   const [activeTab, setActiveTab] = useState('standard');
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{
@@ -23,14 +24,14 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
           <button
             type="button"
             onClick={() => setActiveTab('standard')}
-            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'standard' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'standard' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
           >
             {t('page.create')}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('media')}
-            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'media' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'media' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
           >
             {t('addCard.type.sonos')}
           </button>
@@ -64,7 +65,7 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
 
               <button
                 onClick={onCreate}
-                className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl border font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] hover:opacity-90"
               >
                 <Plus className="w-5 h-5" /> {t('page.create')}
               </button>
@@ -77,7 +78,7 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
               </div>
               <button
                 onClick={onCreateMedia}
-                className="w-full py-4 rounded-2xl popup-surface popup-surface-hover border border-[var(--glass-border)] text-[var(--text-primary)] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl border font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] hover:opacity-90"
               >
                 <Plus className="w-5 h-5" /> {t('sonos.createPage')}
               </button>

@@ -15,8 +15,6 @@ import { logger } from '../utils/logger';
  * @param {Function} props.t - Translation function
  */
 export default function TodoModal({ show, onClose, conn, entities, settings, t }) {
-  if (!show) return null;
-
   const translate = t || ((key) => key);
   const todoEntityId = settings?.todoEntityId;
 
@@ -48,15 +46,16 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
   }, [conn, todoEntityId]);
 
   useEffect(() => {
+    if (!show) return;
     fetchItems();
-  }, [fetchItems]);
+  }, [show, fetchItems]);
 
   // Refresh every 30 seconds while open
   useEffect(() => {
-    if (!conn || !todoEntityId) return;
+    if (!show || !conn || !todoEntityId) return;
     const interval = setInterval(fetchItems, 30000);
     return () => clearInterval(interval);
-  }, [conn, todoEntityId, fetchItems]);
+  }, [show, conn, todoEntityId, fetchItems]);
 
   const handleAdd = async () => {
     const text = newItemText.trim();
@@ -119,6 +118,8 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
   const completedCount = completedItems.length;
 
   const entityName = entities?.[todoEntityId]?.attributes?.friendly_name || todoEntityId || '';
+
+  if (!show) return null;
 
   return (
     <div

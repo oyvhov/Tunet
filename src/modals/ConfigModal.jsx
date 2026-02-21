@@ -519,7 +519,7 @@ export default function ConfigModal({
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => { if (confirm(t('profiles.confirmDelete'))) removeProfile(profile.id); }}
+                              onClick={() => { if (window.confirm(t('profiles.confirmDelete'))) removeProfile(profile.id); }}
                               className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--text-secondary)] hover:text-red-400 transition-all"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -540,7 +540,7 @@ export default function ConfigModal({
           <h3 className="text-xs uppercase font-bold text-gray-500 ml-1 tracking-wider">{t('profiles.sectionReset')}</h3>
           <div className="popup-surface p-4">
             <button
-              onClick={() => { if (confirm(t('profiles.confirmBlank'))) startBlank(); }}
+              onClick={() => { if (window.confirm(t('profiles.confirmBlank'))) startBlank(); }}
               className="w-full py-2.5 rounded-xl bg-[var(--glass-bg)] hover:bg-red-500/10 border border-[var(--glass-border)] hover:border-red-500/30 text-[var(--text-secondary)] hover:text-red-400 text-sm font-bold transition-all flex items-center justify-center gap-2"
             >
               <Trash2 className="w-4 h-4" />

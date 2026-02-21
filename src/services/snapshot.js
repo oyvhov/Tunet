@@ -183,7 +183,7 @@ export function isValidSnapshot(obj) {
  */
 export function exportToFile(filename = 'tunet-dashboard.json') {
   const snapshot = collectSnapshot();
-  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const blob = new window.Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

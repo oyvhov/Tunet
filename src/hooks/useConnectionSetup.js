@@ -95,8 +95,8 @@ export function useConnectionSetup({
     setConfig({ ...config, authMethod: 'oauth', token: '' });
     try {
       localStorage.removeItem('ha_oauth_tokens');
-      sessionStorage.removeItem('ha_oauth_tokens');
-      sessionStorage.removeItem('ha_token');
+      window.sessionStorage.removeItem('ha_oauth_tokens');
+      window.sessionStorage.removeItem('ha_token');
       localStorage.removeItem('ha_token');
       localStorage.setItem('ha_auth_method', 'oauth');
     } catch {}

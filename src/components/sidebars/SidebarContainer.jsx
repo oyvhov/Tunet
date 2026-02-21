@@ -28,7 +28,7 @@ export default function SidebarContainer({
     const updateColorPickerState = () => {
       const active = document.activeElement;
       const isColorInputActive =
-        active instanceof HTMLInputElement
+        active instanceof window.HTMLInputElement
         && active.type === 'color'
         && panel.contains(active);
       setIsColorPickerActive(isColorInputActive);
