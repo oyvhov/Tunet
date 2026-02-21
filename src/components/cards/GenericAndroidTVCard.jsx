@@ -155,7 +155,7 @@ export default function GenericAndroidTVCard({
             )}
           </div>
           <div className="flex flex-col min-w-0">
-            <p className={`${picture || appLogo ? 'text-gray-300' : 'text-[var(--text-secondary)]'} text-[10px] tracking-widest uppercase font-bold opacity-70 truncate`}>{deviceName}</p>
+            <p className={`${picture || appLogo ? 'text-gray-300' : 'text-[var(--text-secondary)]'} text-xs tracking-widest uppercase font-bold opacity-70 truncate`}>{deviceName}</p>
             <p className="text-sm font-bold text-[var(--text-primary)] leading-tight truncate">{appName || (isOn ? t('media.homeScreen') : t('status.off'))}</p>
             {title && <p className={`${picture || appLogo ? 'text-gray-200' : 'text-[var(--text-muted)]'} text-xs truncate font-medium`}>{title}</p>}
           </div>

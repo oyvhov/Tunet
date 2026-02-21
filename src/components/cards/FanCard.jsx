@@ -127,11 +127,19 @@ export default function FanCard({
       {isSmall ? (
         <>
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center transition-all ${isOn ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
-              <Icon className={`w-5 h-5 stroke-[1.5px] ${isOn && !disableAnimation ? 'animate-spin [animation-duration:2.4s]' : ''}`} />
-            </div>
+            <button
+              onClick={canTogglePower ? togglePower : undefined}
+              className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center transition-all ${
+                isOn 
+                  ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' 
+                  : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
+              } ${canTogglePower ? 'cursor-pointer' : 'cursor-default'}`}
+              disabled={!canTogglePower}
+            >
+              <Icon className={`w-6 h-6 stroke-[1.5px] ${isOn && !disableAnimation ? 'animate-spin [animation-duration:2.4s]' : ''}`} />
+            </button>
             <div className="flex flex-col min-w-0 gap-0.5">
-              <p className="text-[var(--text-secondary)] text-[10px] tracking-widest uppercase font-bold opacity-70 truncate">{name}</p>
+              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-70 truncate">{name}</p>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{hasSpeedControl && isOn ? `${boundedPercentage}%` : statusText}</span>
                 {/* Dynamic Indicators for Small Card */}
@@ -142,15 +150,6 @@ export default function FanCard({
               </div>
             </div>
           </div>
-          
-          {canTogglePower && (
-             <button
-              onClick={togglePower}
-              className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors shrink-0 ${isOn ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)] border-[var(--accent-color)]/30' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
-            >
-              <FanIconGlyph className="w-4 h-4" />
-            </button>
-          )}
         </>
       ) : (
         <>

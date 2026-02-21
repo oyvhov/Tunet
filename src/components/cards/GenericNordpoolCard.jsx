@@ -123,7 +123,7 @@ export default function GenericNordpoolCard({
           
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              <p className="text-[var(--text-secondary)] text-[10px] tracking-widest uppercase font-bold opacity-60 truncate leading-none">{name}</p>
+              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-70 truncate leading-none">{name}</p>
               <span
                 className={`w-2.5 h-2.5 rounded-full ring-2 shadow-sm shrink-0 ${indicatorClass}`}
                 title={levelText}

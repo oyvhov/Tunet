@@ -123,8 +123,8 @@ function EditOverlay({
               e.stopPropagation();
               onSaveSize(getNextSize(editId, currentSize));
             }}
-            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full transition-colors hover:bg-purple-500/80 text-white border border-white/20 shadow-lg`}
-            style={{ backgroundColor: isSmall ? 'rgba(168, 85, 247, 0.8)' : 'rgba(0, 0, 0, 0.6)' }}
+            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full transition-colors hover:bg-[var(--accent-color)] text-white border border-white/20 shadow-lg`}
+            style={{ backgroundColor: isSmall ? 'var(--accent-color)' : 'rgba(0, 0, 0, 0.6)' }}
             title={isTriple ? 'Bytt storleik' : (isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize'))}
           >
             {isSmall ? <Maximize2 className={iconClass} /> : <Minimize2 className={iconClass} />}
