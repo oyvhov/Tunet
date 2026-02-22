@@ -111,7 +111,7 @@ export default function GenericNordpoolCard({
           e.stopPropagation();
           if (!editMode && onOpen) onOpen();
         }}
-        className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-colors duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        className={`glass-texture touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-colors duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={cardStyle}
       >
         {controls}
@@ -149,7 +149,7 @@ export default function GenericNordpoolCard({
         e.stopPropagation();
         if (!editMode && onOpen) onOpen();
       }}
-      className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-colors duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+      className={`glass-texture touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-colors duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
       style={cardStyle}
     >
       {controls}

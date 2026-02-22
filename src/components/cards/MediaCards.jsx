@@ -35,7 +35,7 @@ export const MediaPlayerCard = ({
   if (!entity) {
     if (editMode) {
       return (
-        <div key={mpId} {...dragProps} className="touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full" style={cardStyle}>
+        <div key={mpId} {...dragProps} className="glass-texture touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full" style={cardStyle}>
           {controls}
           <AlertTriangle className="w-8 h-8 text-red-500 mb-2 opacity-80" />
           <p className="text-xs font-bold text-red-500 text-center uppercase tracking-widest">{t('common.missing')}</p>
@@ -64,9 +64,9 @@ export const MediaPlayerCard = ({
 
   if (!isActive) {
     return (
-      <div key={mpId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, null, null); }} className={`touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+      <div key={mpId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, null, null); }} className={`glass-texture touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
         {controls}
-        <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
+        <div className="p-5 rounded-full mb-4 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3" style={{backgroundColor: 'var(--glass-bg)'}}>
           {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}
         </div>
         <div className="text-center w-full px-4">
@@ -90,7 +90,7 @@ export const MediaPlayerCard = ({
   }
 
   return (
-    <div key={mpId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, null, null); }} className={`touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: (picture && isCoverMode) ? 'white' : ((picture && !isCoverMode) ? 'white' : 'var(--text-primary)')}}>
+    <div key={mpId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, null, null); }} className={`glass-texture touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: (picture && isCoverMode) ? 'white' : ((picture && !isCoverMode) ? 'white' : 'var(--text-primary)')}}>
       {controls}
       
       {/* Background artwork */}
@@ -108,7 +108,7 @@ export const MediaPlayerCard = ({
       <div className="relative z-10 flex gap-4 items-start">
         {!isCoverMode && (
           <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-lg">
-            {picture ? <img src={picture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}</div>}
+            {picture ? <img src={picture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110" />}</div>}
           </div>
         )}
         <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'mt-auto pt-8' : 'pt-1'}`}>
@@ -200,10 +200,10 @@ export const MediaGroupCard = ({
 
   if (!isActive) {
     return (
-      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, settingsKey, null); }} className={`touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
+      <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, settingsKey, null); }} className={`glass-texture touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-center items-center transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: 'var(--text-primary)'}}>
         {controls}
         <div className="p-5 rounded-full mb-4" style={{backgroundColor: 'var(--glass-bg)'}}>
-          {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}
+          {isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110" />}
         </div>
         <div className="text-center w-full px-4">
           <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-60">{t('media.noneMusic')}</p>
@@ -226,7 +226,7 @@ export const MediaGroupCard = ({
   }
 
   return (
-    <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, settingsKey, null); }} className={`touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: (picture && isCoverMode) ? 'white' : ((picture && !isCoverMode) ? 'white' : 'var(--text-primary)')}}>
+    <div key={cardId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(mpId, settingsKey, null); }} className={`glass-texture touch-feedback p-4 sm:p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`} style={{...cardStyle, color: (picture && isCoverMode) ? 'white' : ((picture && !isCoverMode) ? 'white' : 'var(--text-primary)')}}>
       {controls}
       {cyclePool.length > 1 && (
         <button onClick={cyclePlayers} className="absolute top-4 right-4 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors backdrop-blur-md" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
@@ -262,7 +262,7 @@ export const MediaGroupCard = ({
       <div className="relative z-10 flex gap-4 items-start">
         {(!picture || !isCoverMode) && (
           <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-lg">
-            {picture ? <img src={picture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)]" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)]" />}</div>}
+            {picture ? <img src={picture} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-8 h-8 text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110" /> : <Speaker className="w-8 h-8 text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110" />}</div>}
           </div>
         )}
         <div className={`flex flex-col overflow-hidden pt-1 ${isCoverMode ? 'w-full' : ''}`}>

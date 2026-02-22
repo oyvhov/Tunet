@@ -114,7 +114,7 @@ export default function FanCard({
         event.stopPropagation();
         if (!editMode) onOpen();
       }}
-      className={`touch-feedback ${isSmall ? (isMobile ? 'p-3 pl-4 gap-2' : 'p-4 pl-5 gap-4') : (isMobile ? 'p-5' : 'p-7')} rounded-3xl ${isSmall ? 'flex items-center justify-between' : 'flex flex-col justify-between'} transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+      className={`glass-texture touch-feedback ${isSmall ? (isMobile ? 'p-3 pl-4 gap-2' : 'p-4 pl-5 gap-4') : (isMobile ? 'p-5' : 'p-7')} rounded-3xl ${isSmall ? 'flex items-center justify-between' : 'flex flex-col justify-between'} transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
       style={{
         ...cardStyle,
         backgroundColor: 'var(--card-bg)',
@@ -128,7 +128,7 @@ export default function FanCard({
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={canTogglePower ? togglePower : undefined}
-              className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center transition-all ${
+              className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center transition-all group-hover:scale-110 ${
                 isOn 
                   ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' 
                   : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
@@ -156,7 +156,7 @@ export default function FanCard({
             <button
               onClick={togglePower}
               disabled={!canTogglePower}
-              className={`p-3 rounded-2xl transition-all flex-shrink-0 ${isOn ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              className={`p-3 rounded-2xl transition-all flex-shrink-0 group-hover:scale-110 group-hover:rotate-3 ${isOn ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
             >
               <Icon className={`w-5 h-5 stroke-[1.5px] ${isOn && !disableAnimation ? 'animate-spin [animation-duration:2.4s]' : ''}`} />
             </button>

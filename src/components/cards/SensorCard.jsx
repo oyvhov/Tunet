@@ -328,7 +328,7 @@ export default function SensorCard({
       <div ref={cardRef} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer' : 'cursor-move'}`} style={{...cardStyle, containerType: 'inline-size'}}>
         {controls}
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center ${iconToneClass}`}>
+          <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}>
             {Icon ? <Icon className="w-6 h-6 stroke-[1.5px]" /> : <Activity className="w-6 h-6" />}
           </div>
           <div className="flex flex-col min-w-0">
@@ -381,7 +381,7 @@ export default function SensorCard({
       )}
 
       <div className="relative z-10 flex justify-between items-start">
-        <div className={`p-3 rounded-2xl ${iconToneClass}`}>
+        <div className={`p-3 rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
           {Icon ? <Icon className="w-5 h-5 stroke-[1.5px]" /> : <Activity className="w-5 h-5" />}
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">

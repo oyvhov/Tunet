@@ -180,18 +180,30 @@
   background: rgba(0, 0, 0, 0.7);
 }
 .touch-feedback {
-  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.25s, border-color 0.25s;
   -webkit-tap-highlight-color: transparent;
 }
 .touch-feedback:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-color: var(--glass-border) !important;
   z-index: 10;
 }
 .touch-feedback:active {
-  transform: scale(0.98);
-  filter: brightness(1.05);
+  transform: scale(0.97);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  filter: brightness(0.95);
+}
+
+/* Icon pulse on hover for interactive elements */
+.group:hover .icon-pulse {
+  animation: pulse-soft 2s infinite ease-in-out;
+}
+
+@keyframes pulse-soft {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
 }
 ::selection {
   background: var(--selection-bg, rgba(59, 130, 246, 0.3));

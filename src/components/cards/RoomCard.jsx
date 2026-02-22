@@ -273,8 +273,8 @@ export default function RoomCard({
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
       className={`
-        touch-feedback relative p-5 rounded-[2.5rem] flex items-stretch justify-between 
-        transition-all duration-300 group overflow-hidden font-sans h-full select-none border 
+        glass-texture touch-feedback relative p-5 rounded-[2.5rem] flex items-stretch justify-between 
+        transition-all duration-500 group overflow-hidden font-sans h-full select-none border 
         border-[var(--glass-border)] bg-[var(--glass-bg)]
         ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}
       `}
@@ -293,7 +293,7 @@ export default function RoomCard({
                     handleControlToggle(e);
                  }
               }}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 bg-[var(--glass-bg-hover)] shadow-sm relative ${canSwitchControl ? 'cursor-pointer active:scale-95 hover:bg-[var(--glass-border)]' : ''}`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 bg-[var(--glass-bg-hover)] shadow-sm relative group-hover:scale-110 ${canSwitchControl ? 'cursor-pointer active:scale-95 hover:bg-[var(--glass-border)]' : ''}`}
            >
               <RoomIcon className="w-6 h-6 text-[var(--text-secondary)]" />
            </div>

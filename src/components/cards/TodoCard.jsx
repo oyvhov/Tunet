@@ -175,12 +175,12 @@ function TodoCard({
         {...dragProps}
         data-haptic={isEditMode ? undefined : 'card'}
         onClick={onClick}
-        className={`touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${className}`}
+        className={`glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${className}`}
         style={style}
       >
         {getControls && getControls(cardId)}
-        <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-[var(--glass-bg)] text-[var(--text-secondary)]">
-          <IconComp className="w-6 h-6 stroke-[1.5px]" />
+        <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-[var(--glass-bg)] text-[var(--text-secondary)] group">
+          <IconComp className="w-6 h-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
         </div>
         <div className="flex flex-col min-w-0 justify-center">
           {!todoEntityId ? (
@@ -219,15 +219,15 @@ function TodoCard({
       {...dragProps}
       data-haptic={isEditMode ? undefined : 'card'}
       onClick={onClick}
-      className={`touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
+      className={`glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
       style={style}
     >
       {getControls && getControls(cardId)}
 
       {/* Header */}
-      <div className="p-5 pb-2 flex items-center justify-between z-10">
+      <div className="p-5 pb-2 flex items-center justify-between z-10 group">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 transition-transform duration-300 group-hover:scale-110">
             <IconComp className="w-5 h-5" />
           </div>
           <h3 className="text-lg font-medium text-[var(--text-primary)] tracking-tight">

@@ -82,10 +82,10 @@ const VacuumCard = ({
 
   if (isSmall) {
     return (
-      <div ref={cardRef} key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(); }} className={`touch-feedback ${isMobile ? 'p-3 pl-4 gap-2' : 'p-4 pl-5 gap-4'} rounded-3xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.2)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)'), containerType: 'inline-size'}}>
+      <div ref={cardRef} key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(); }} className={`glass-texture touch-feedback ${isMobile ? 'p-3 pl-4 gap-2' : 'p-4 pl-5 gap-4'} rounded-3xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.2)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)'), containerType: 'inline-size'}}>
         {controls}
         <div className={`flex items-center ${isMobile ? 'gap-3' : 'gap-4'} flex-1 min-w-0`}>
-          <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all ${state === "cleaning" ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
+          <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all group-hover:scale-110 ${state === "cleaning" ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
             <Icon className="w-6 h-6 stroke-[1.5px]" />
           </div>
           <div className="flex flex-col min-w-0">
@@ -109,10 +109,10 @@ const VacuumCard = ({
   }
 
   return (
-    <div key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(); }} className={`touch-feedback ${isMobile ? 'p-5' : 'p-7'} rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.2)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
+    <div key={vacuumId} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen(); }} className={`glass-texture touch-feedback ${isMobile ? 'p-5' : 'p-7'} rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`} style={{...cardStyle, backgroundColor: state === "cleaning" ? 'rgba(59, 130, 246, 0.08)' : 'var(--card-bg)', borderColor: editMode ? 'rgba(59, 130, 246, 0.2)' : (state === "cleaning" ? 'rgba(59, 130, 246, 0.3)' : 'var(--card-border)')}}>
       {controls}
       <div className="flex justify-between items-start font-sans">
-         <div className={`rounded-2xl transition-all ${isMobile ? 'p-2.5' : 'p-3'} ${state === "cleaning" ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
+         <div className={`rounded-2xl transition-all group-hover:scale-110 group-hover:rotate-3 ${isMobile ? 'p-2.5' : 'p-3'} ${state === "cleaning" ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] animate-pulse' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}><Icon className="w-5 h-5 stroke-[1.5px]" /></div>
          <div className="flex flex-col items-end gap-2">
            {showRoom && (
              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"><MapPin className="w-3 h-3" /><span className="text-xs tracking-widest font-bold uppercase">{room}</span></div>

@@ -139,13 +139,13 @@ export default function GenericAndroidTVCard({
           e.stopPropagation();
           if (!editMode && onOpen) onOpen();
         }}
-        className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+        className={`glass-texture touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
         style={{ ...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)' }}
       >
         {controls}
 
         <div className="flex items-center gap-4 min-w-0">
-          <div className={`w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
+          <div className={`w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center transition-all group-hover:scale-110 ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
             {picture ? (
               <img src={picture} alt="" className="w-full h-full object-cover" />
             ) : appLogo ? (
@@ -177,13 +177,13 @@ export default function GenericAndroidTVCard({
         e.stopPropagation();
         if (!editMode && onOpen) onOpen();
       }}
-      className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+      className={`glass-texture touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
       style={{ ...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)' }}
     >
       {controls}
 
       <div className="flex justify-between items-start relative z-10">
-        <div className={`p-3 rounded-2xl transition-all ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
+        <div className={`p-3 rounded-2xl transition-all group-hover:scale-110 ${isOn ? 'bg-green-500/20 text-green-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
           <Tv className="w-5 h-5" />
         </div>
         {!linkedActive && (

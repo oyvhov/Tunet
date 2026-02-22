@@ -149,7 +149,7 @@ export default function CameraCard({
         key={cardId}
         {...dragProps}
         data-haptic={editMode ? undefined : 'card'}
-        className="touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300"
+        className="glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 group"
         style={cardStyle}
         onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
       >
@@ -165,7 +165,7 @@ export default function CameraCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)]">
-              <Icon className="w-6 h-6 stroke-[1.5px]" />
+              <Icon className="w-6 h-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
             </div>
           )}
         </div>
@@ -185,7 +185,7 @@ export default function CameraCard({
       key={cardId}
       {...dragProps}
       data-haptic={editMode ? undefined : 'card'}
-      className={`touch-feedback relative h-full rounded-3xl overflow-hidden border bg-[var(--card-bg)] group transition-all duration-300 ${editMode ? 'cursor-move' : 'cursor-pointer active:scale-[0.98]'}`}
+      className={`glass-texture touch-feedback relative h-full rounded-3xl overflow-hidden border bg-[var(--card-bg)] group transition-all duration-500 ${editMode ? 'cursor-move' : 'cursor-pointer active:scale-[0.98]'}`}
       style={cardStyle}
       onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
     >
@@ -234,7 +234,7 @@ export default function CameraCard({
           <p className="text-xs font-bold text-[var(--text-primary)] truncate tracking-wide uppercase">{name}</p>
         </div>
         <div className="shrink-0 p-2 rounded-xl popup-surface border border-[var(--glass-border)] text-[var(--text-primary)]">
-          <Icon className="w-4 h-4" />
+          <Icon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
         </div>
       </div>
     </div>

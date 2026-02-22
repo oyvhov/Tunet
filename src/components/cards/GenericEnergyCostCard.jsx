@@ -53,12 +53,12 @@ export default function GenericEnergyCostCard({
         {...dragProps}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => { e.stopPropagation(); if (!editMode && onOpen) onOpen(); }}
-        className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        className={`glass-texture touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={cardStyle}
       >
         {controls}
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
+          <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 group-hover:scale-110" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
             <Icon className="w-6 h-6 stroke-[1.5px]" />
           </div>
           <div className="flex flex-col min-w-0">
@@ -79,13 +79,13 @@ export default function GenericEnergyCostCard({
       {...dragProps}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => { e.stopPropagation(); if (!editMode && onOpen) onOpen(); }}
-      className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+      className={`glass-texture touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
       style={cardStyle}
     >
       {controls}
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50 pointer-events-none" />
       <div className="flex justify-between items-start relative z-10">
-        <div className="p-3 rounded-2xl transition-all duration-500" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
+        <div className="p-3 rounded-2xl transition-all duration-500 group-hover:scale-110" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
           <Icon className="w-5 h-5" style={{ strokeWidth: 1.5 }} />
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>

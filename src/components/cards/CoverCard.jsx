@@ -222,45 +222,51 @@ const ButtonControl = ({ onOpen, onClose, onStop, isUnavailable, horizontal = fa
 
 /* -- Small Card Variant ---------------------------------------------- */
 const SmallCoverCard = (props) => {
-  const { cardId, dragProps, controls, cardStyle, editMode, onOpen, localPos, position, isMoving, getStateLabel, accent, isUnavailable, handleToggleMode, Icon, mode, supportsPosition, handlePositionCommit, setLocalPos, handleOpenCover, handleCloseCover, handleStopCover } = props;
+  const { cardId, dragProps, controls, cardStyle, editMode, onOpen, localPos, position, isMoving, getStateLabel, accent, isUnavailable, handleToggleMode, Icon, mode, supportsPosition, handlePositionCommit, setLocalPos, handleOpenCover, handleCloseCover, handleStopCover, name } = props;
 
     return (
         <div
             key={cardId}
             {...dragProps}
             data-haptic={editMode ? undefined : 'card'}
-            className={`
-                touch-feedback relative p-4 rounded-3xl flex items-center gap-3
-                transition-all duration-300 group overflow-hidden font-sans h-full select-none border 
-                border-[var(--glass-border)] bg-[var(--glass-bg)]
-                ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}
-                ${isUnavailable ? 'opacity-70' : ''}
-            `}
-            style={cardStyle}
             onClick={(e) => {
                 e.stopPropagation();
                 if (!editMode && onOpen) onOpen();
             }}
+            className={`
+                glass-texture touch-feedback p-4 pl-5 rounded-3xl flex items-center gap-4
+                transition-all duration-500 border group relative overflow-hidden font-sans h-full
+                ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}
+                ${isUnavailable ? 'opacity-70' : ''}
+            `}
+            style={cardStyle}
         >
             {controls}
             
-            {/* Info / Icon Left */}
-             <div className="flex flex-col items-center justify-center h-full py-1 shrink-0 w-16 text-center">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div 
-                    onClick={handleToggleMode}
-                    className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--glass-bg-hover)] shadow-sm border border-[var(--glass-border)] cursor-pointer active:scale-90 transition-all hover:bg-white/10 mb-1"
-                    style={{ color: accent.text }}
+                    onClick={(e) => { e.stopPropagation(); handleToggleMode(); }}
+                    className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 group-hover:scale-110"
+                    style={{ 
+                        backgroundColor: accent.bg,
+                        color: accent.text
+                    }}
                 >
-                    <Icon className={`w-5 h-5 ${isMoving ? 'animate-pulse' : ''}`} />
+                    <Icon className={`w-6 h-6 stroke-[1.5px] ${isMoving ? 'animate-pulse' : ''}`} />
                 </div>
-                 
-                <div className="text-[10px] font-bold text-[var(--text-secondary)] opacity-80 leading-tight w-full truncate px-1">
-                    {typeof position === 'number' ? `${localPos}%` : getStateLabel()}
+
+                <div className="flex flex-col min-w-0">
+                    <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{name}</p>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-sm font-bold text-[var(--text-primary)] leading-none">
+                            {typeof position === 'number' ? `${localPos}%` : getStateLabel()}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {/* Slider / Controls Right (Horizontal) */}
-            <div className="flex-1 h-full py-1 relative min-w-0" onClick={(e) => e.stopPropagation()}>
+            {/* Controls Right */}
+            <div className="w-24 h-10 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {mode === 'slider' && supportsPosition ? (
                     <HorizontalBlindSlider
                         position={localPos} 
@@ -280,7 +286,6 @@ const SmallCoverCard = (props) => {
                     />
                 )}
             </div>
-            
         </div>
     );
 };
@@ -388,8 +393,8 @@ const CoverCard = ({
       {...dragProps}
       data-haptic={editMode ? undefined : 'card'}
       className={`
-        touch-feedback relative p-5 rounded-[2.5rem] flex items-stretch justify-between 
-        transition-all duration-300 group overflow-hidden font-sans h-full select-none border 
+        glass-texture touch-feedback relative p-7 rounded-[2.5rem] flex items-stretch justify-between 
+        transition-all duration-500 group overflow-hidden font-sans h-full select-none border 
         border-[var(--glass-border)] bg-[var(--glass-bg)]
         ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}
         ${isUnavailable ? 'opacity-70' : ''}
@@ -408,10 +413,10 @@ const CoverCard = ({
         <div className="flex items-start pointer-events-auto">
            <div 
               onClick={handleToggleMode}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--glass-bg-hover)] shadow-sm border border-[var(--glass-border)] cursor-pointer active:scale-90 transition-all hover:bg-white/10"
+              className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[var(--glass-bg-hover)] shadow-sm border border-[var(--glass-border)] cursor-pointer active:scale-90 transition-all group-hover:scale-110 hover:bg-white/10"
               style={{ color: accent.text }}
            >
-              <Icon className={`w-6 h-6 ${isMoving ? 'animate-pulse' : ''}`} />
+              <Icon className={`w-6 h-6 stroke-[1.5px] ${isMoving ? 'animate-pulse' : ''}`} />
            </div>
         </div>
 
