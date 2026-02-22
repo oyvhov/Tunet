@@ -95,6 +95,14 @@ export default function StatusBar({
     });
   };
 
+  const setMediaNameDisplayFilter = (pill) => {
+    try {
+      localStorage.setItem('tunet_media_name_display_filter', typeof pill?.playerNameDisplayFilter === 'string' ? pill.playerNameDisplayFilter : '');
+    } catch {
+      // ignore localStorage errors
+    }
+  };
+
   return (
     <div className="flex items-center justify-between w-full mt-0 font-sans">
       <div className={`flex flex-wrap items-center min-w-0 ${isMobile ? 'gap-1.5' : 'gap-2.5'}`}>
@@ -155,6 +163,7 @@ export default function StatusBar({
                     const activeEntities = mediaEntities.filter(isMediaActive);
                     const firstActive = activeEntities[0];
                     if (!firstActive) return;
+                    setMediaNameDisplayFilter(pill);
                     const activeMediaIds = activeEntities.map((entity) => entity.entity_id).filter(Boolean);
                     setActiveMediaId(firstActive.entity_id);
                     setActiveMediaGroupKey(null);
@@ -171,13 +180,17 @@ export default function StatusBar({
             }
             
             if (pill.type === 'sonos') {
+              const selectedMediaIds = Array.isArray(pill.mediaEntityIds) ? pill.mediaEntityIds : [];
               const filteredMediaIds = Object.keys(entities)
                 .filter((id) => id.startsWith('media_player.'))
                 .filter((id) => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode));
+              const sourceMediaIds = (pill.mediaSelectionMode === 'select' && selectedMediaIds.length > 0)
+                ? selectedMediaIds
+                : filteredMediaIds;
               const detectedSonosIds = getSonosEntities()
                 .map((entity) => entity.entity_id)
-                .filter((id) => filteredMediaIds.includes(id));
-              const sonosIds = detectedSonosIds.length > 0 ? detectedSonosIds : filteredMediaIds;
+                .filter((id) => sourceMediaIds.includes(id));
+              const sonosIds = detectedSonosIds.length > 0 ? detectedSonosIds : sourceMediaIds;
               const sonosEntities = sonosIds.map(id => entities[id]).filter(Boolean);
               const sonosPlayingCount = sonosEntities.filter(e => e.state === 'playing').length;
               
@@ -204,6 +217,7 @@ export default function StatusBar({
 
                     if (!preferredEntity) return;
 
+                    setMediaNameDisplayFilter(pill);
                     setActiveMediaId(preferredEntity.entity_id);
                     setActiveMediaGroupKey(null);
                     setActiveMediaGroupIds(selectedIds.length > 0 ? selectedIds : [preferredEntity.entity_id]);

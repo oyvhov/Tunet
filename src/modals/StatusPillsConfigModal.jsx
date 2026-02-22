@@ -93,6 +93,7 @@ export default function StatusPillsConfigModal({
       customUnit: typeof pill.customUnit === 'string' ? pill.customUnit : '',
       mediaFilter: typeof pill.mediaFilter === 'string' ? pill.mediaFilter : '',
       mediaFilterMode: typeof pill.mediaFilterMode === 'string' ? pill.mediaFilterMode : 'startsWith',
+      playerNameDisplayFilter: typeof pill.playerNameDisplayFilter === 'string' ? pill.playerNameDisplayFilter : '',
       mediaSelectionMode: typeof pill.mediaSelectionMode === 'string' ? pill.mediaSelectionMode : 'filter',
       mediaEntityIds: Array.isArray(pill.mediaEntityIds) ? pill.mediaEntityIds : [],
       sessionSensorIds: Array.isArray(pill.sessionSensorIds) ? pill.sessionSensorIds : [],
@@ -131,6 +132,7 @@ export default function StatusPillsConfigModal({
       showCount: pillType === 'sonos',
       mediaFilter: '',
       mediaFilterMode: 'startsWith',
+      playerNameDisplayFilter: '',
       mediaSelectionMode: 'filter',
       mediaEntityIds: [],
       sessionSensorIds: [],
@@ -479,6 +481,9 @@ export default function StatusPillsConfigModal({
                   return pill.entityId ? [pill.entityId] : sonosMatchedIds;
                 }
                 if (pill.type === 'sonos') {
+                  if ((pill.mediaSelectionMode || 'filter') === 'select' && Array.isArray(pill.mediaEntityIds) && pill.mediaEntityIds.length > 0) {
+                    return pill.mediaEntityIds;
+                  }
                   return sonosMatchedIds;
                 }
                 if (pill.type === 'emby') {
@@ -666,10 +671,10 @@ export default function StatusPillsConfigModal({
 
                     {/* Source Logic */}
                     <section className={`${sectionShellClass} space-y-3`}>
-                      <h4 className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{t('statusPills.dataSource')}</h4>
+                      <h4 className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{pill.type === 'conditional' ? t('statusPills.dataSource') : t('statusPills.mediaPlayerSource')}</h4>
                       
-                      {/* Emby Source Type Logic */}
-                      {pill.type === 'emby' && (
+                      {/* Emby/Sonos Source Type Logic */}
+                      {(pill.type === 'emby' || pill.type === 'sonos') && (
                         <div className="space-y-3">
                            <div className="flex flex-wrap gap-2">
                             <button
@@ -697,7 +702,7 @@ export default function StatusPillsConfigModal({
                       )}
 
                       {/* Emby / Media Player / Sonos Filter Logic */}
-                      {((pill.type === 'emby' && (pill.mediaSelectionMode || 'filter') === 'filter') || pill.type === 'media_player' || pill.type === 'sonos') && (
+                       {((pill.type === 'emby' && (pill.mediaSelectionMode || 'filter') === 'filter') || pill.type === 'media_player' || (pill.type === 'sonos' && (pill.mediaSelectionMode || 'filter') === 'filter')) && (
                          <div className="space-y-2 bg-[var(--glass-bg)] p-3 rounded-xl">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 <input
@@ -808,8 +813,8 @@ export default function StatusPillsConfigModal({
                          </div>
                       )}
 
-                      {/* Emby/Media Player Multi-Select */}
-                      {pill.type === 'emby' && (pill.mediaSelectionMode || 'filter') === 'select' && (
+                      {/* Emby/Sonos Multi-Select */}
+                      {(pill.type === 'emby' || pill.type === 'sonos') && (pill.mediaSelectionMode || 'filter') === 'select' && (
                         <div className="space-y-2">
                           <input
                             type="text"
@@ -1057,6 +1062,18 @@ export default function StatusPillsConfigModal({
                     {/* Visual Options Group */}
                       <section className={`${sectionShellClass} space-y-3`}>
                         <h4 className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{t('statusPills.options')}</h4>
+                            {(pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos') && (
+                              <div className="bg-[var(--glass-bg)] rounded-xl p-3 space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-gray-500">{t('statusPills.playerNameDisplayFilter')}</label>
+                                <input
+                                  type="text"
+                                  value={pill.playerNameDisplayFilter || ''}
+                                  onChange={(e) => updatePill(pill.id, { playerNameDisplayFilter: e.target.value })}
+                                  placeholder={t('statusPills.playerNameDisplayFilterPlaceholder')}
+                                  className="w-full px-3 py-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] outline-none border-0 text-xs"
+                                />
+                              </div>
+                            )}
                           {pill.type === 'sonos' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-[var(--glass-bg)] rounded-xl p-3">
                               <div className="space-y-1">

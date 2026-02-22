@@ -41,6 +41,15 @@ const writeJSON = (key, value) => {
   }
 };
 
+const readText = (key, fallback = '') => {
+  try {
+    const raw = localStorage.getItem(key);
+    return typeof raw === 'string' ? raw : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 const BLOCKED_MEDIA_TYPES = new Set([
   'camera', 'image', 'video', 'tvshow', 'movie', 'channel',
   'game', 'app', 'photo', 'picture', 'url',
@@ -117,6 +126,7 @@ export default function MediaModal({
   const [favoritesByPlayer, setFavoritesByPlayer] = useState({});
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [showAddSonosPicker, setShowAddSonosPicker] = useState(false);
+  const [playerNameDisplayFilter, setPlayerNameDisplayFilter] = useState(() => readText('tunet_media_name_display_filter', ''));
   
   // Load initial state from localStorage
   const [extraSelectedPlayerIds, setExtraSelectedPlayerIds] = useState(() => {
@@ -271,6 +281,30 @@ export default function MediaModal({
   useEffect(() => {
     writeJSON('tunet_media_last_choice', lastChoiceByPlayer);
   }, [lastChoiceByPlayer]);
+
+  useEffect(() => {
+    if (!show) return;
+    setPlayerNameDisplayFilter(readText('tunet_media_name_display_filter', ''));
+  }, [show]);
+
+  const applyPlayerNameDisplayFilter = useCallback((value) => {
+    const name = String(value || '');
+    const patterns = String(playerNameDisplayFilter || '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    if (!name || patterns.length === 0) return name;
+
+    let cleaned = name;
+    patterns.forEach((pattern) => {
+      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      const regex = new RegExp(`^${escaped}`, 'i');
+      cleaned = cleaned.replace(regex, '').trim();
+    });
+
+    return cleaned || name;
+  }, [playerNameDisplayFilter]);
 
   const isMusicAssistantEntity = (entity) => {
     if (!entity) return false;
@@ -741,7 +775,7 @@ export default function MediaModal({
             </div>
             <div className="min-w-0">
               <h3 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none truncate">
-                {activeUser ? `${activeUser} - ${currentMp.attributes?.friendly_name || mpId}` : (currentMp.attributes?.friendly_name || mpId)}
+                {activeUser ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}` : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
               </h3>
               <div className="mt-2 px-3 py-1 rounded-full border inline-flex items-center gap-2" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
                 <div className={`w-1.5 h-1.5 rounded-full ${mpState === 'playing' ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' : (mpState === 'paused' ? 'bg-amber-400' : 'bg-slate-600')}`} />
@@ -780,7 +814,7 @@ export default function MediaModal({
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
               <div className="absolute bottom-0 left-0 w-full p-8">
                 <p className="text-sm font-bold uppercase tracking-widest text-[var(--accent-color)] mb-2">
-                  {activeUser ? `${activeUser} - ${currentMp.attributes?.friendly_name || mpId}` : (currentMp.attributes?.friendly_name || mpId)}
+                  {activeUser ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}` : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
                 </p>
                 <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">{mpTitle || t('common.unknown')}</h2>
                 <p className="text-xl text-gray-300 font-medium">{mpSeries}</p>
@@ -943,7 +977,7 @@ export default function MediaModal({
                       {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
                     </div>
                     <div className="overflow-hidden">
-                      <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{p.attributes.friendly_name || p.entity_id}</p>
+                      <p className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{applyPlayerNameDisplayFilter(p.attributes?.friendly_name || p.entity_id)}</p>
                       <p className="text-[10px] text-gray-600 truncate mt-0.5">{pTitle}</p>
                       {pUser && <p className="text-[10px] text-gray-500 truncate">{pUser}</p>}
                     </div>
@@ -992,7 +1026,7 @@ export default function MediaModal({
                         .filter(Boolean)
                         .map((player) => (
                           <div key={`selected-${player.entity_id}`} className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-[var(--glass-bg)]">
-                            <span className="text-xs text-[var(--text-secondary)] truncate">{player.attributes?.friendly_name || player.entity_id}</span>
+                            <span className="text-xs text-[var(--text-secondary)] truncate">{applyPlayerNameDisplayFilter(player.attributes?.friendly_name || player.entity_id)}</span>
                             <button
                               type="button"
                               onClick={() => setExtraSelectedPlayerIds((prev) => prev.filter((id) => id !== player.entity_id))}
@@ -1017,7 +1051,7 @@ export default function MediaModal({
                       }}
                       className="w-full text-left px-3 py-2 rounded-xl popup-surface popup-surface-hover text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                      {player.attributes?.friendly_name || player.entity_id}
+                      {applyPlayerNameDisplayFilter(player.attributes?.friendly_name || player.entity_id)}
                     </button>
                   ))}
                 </div>

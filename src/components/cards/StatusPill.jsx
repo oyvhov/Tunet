@@ -38,6 +38,26 @@ export default function StatusPill({
     return value.charAt(0).toUpperCase() + value.slice(1);
   };
 
+  const applyPlayerNameDisplayFilter = (value) => {
+    const name = String(value || '');
+    const rawFilter = typeof pill?.playerNameDisplayFilter === 'string' ? pill.playerNameDisplayFilter : '';
+    const patterns = rawFilter
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    if (!name || patterns.length === 0) return name;
+
+    let cleaned = name;
+    patterns.forEach((pattern) => {
+      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      const regex = new RegExp(`^${escaped}`, 'i');
+      cleaned = cleaned.replace(regex, '').trim();
+    });
+
+    return cleaned || name;
+  };
+
   const getDefaultSublabelWithUnit = () => {
     const stateValue = entity?.state;
     const normalizedState = stateValue === undefined || stateValue === null ? '' : String(stateValue);
@@ -125,7 +145,8 @@ export default function StatusPill({
       return scored[0]?.candidate || null;
     };
     const firstActive = pickBestDisplayEntity(displayEntities) || pickBestDisplayEntity(mediaEntities);
-    const friendlyName = firstActive?.attributes?.friendly_name || null;
+    const friendlyNameRaw = firstActive?.attributes?.friendly_name || null;
+    const friendlyName = applyPlayerNameDisplayFilter(friendlyNameRaw);
     
     // Get display info from first active player
     const title = firstActive
