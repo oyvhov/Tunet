@@ -1,5 +1,4 @@
 import {
-  Activity,
   ArrowUpDown,
   Bot,
   Calendar,
@@ -17,6 +16,7 @@ import {
   Music,
   Plus,
   Search,
+  Sparkles,
   Thermometer,
   X,
   Zap
@@ -576,7 +576,7 @@ export default function AddCardContent({
             <div className="mb-5">
               <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-2">{t('addCard.cardType')}</p>
               <div className="flex flex-wrap gap-2">
-                <TypeButton type="sensor" icon={Activity} label={t('addCard.type.sensor')} isActive={addCardType === 'sensor'} onSelect={setAddCardType} />
+                <TypeButton type="sensor" icon={Sparkles} label={t('addCard.type.sensor')} isActive={addCardType === 'sensor'} onSelect={setAddCardType} />
                 <TypeButton type="light" icon={Lightbulb} label={t('addCard.type.light')} isActive={addCardType === 'light'} onSelect={setAddCardType} />
                 <TypeButton type="vacuum" icon={Bot} label={t('addCard.type.vacuum')} isActive={addCardType === 'vacuum'} onSelect={setAddCardType} />
                 <TypeButton type="fan" icon={Fan} label={t('addCard.type.fan')} isActive={addCardType === 'fan'} onSelect={setAddCardType} />
@@ -594,6 +594,13 @@ export default function AddCardContent({
                 <TypeButton type="room" icon={Home} label={getLabel('addCard.type.room', 'Room')} isActive={addCardType === 'room'} onSelect={setAddCardType} />
                 <TypeButton type="spacer" icon={Minus} label={getLabel('addCard.type.spacer', 'Spacer')} isActive={addCardType === 'spacer'} onSelect={setAddCardType} />
               </div>
+              {addCardType === 'sensor' && (
+                <p className="mt-2 ml-4 text-[11px] text-[var(--text-secondary)] opacity-75">
+                  {t('addCard.sensorIncludes') !== 'addCard.sensorIncludes'
+                    ? t('addCard.sensorIncludes')
+                    : 'Includes binary sensors, sensors, switches, automations, scripts and more.'}
+                </p>
+              )}
             </div>
           )}
 

@@ -823,6 +823,7 @@
   "addCard.noAreas": "Ingen områder funnet i Home Assistant",
   "addCard.loadingAreas": "Laster områder...",
   "addCard.roomEntitiesFound": "entiteter funnet",
+  "addCard.sensorIncludes": "Inkluderer binærsensorer, sensorer, brytere, automasjoner, skript og mer.",
   "room.defaultName": "Rom",
   "room.motionDetected": "Bevegelse",
   "room.motionClear": "Klart",

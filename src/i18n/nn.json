@@ -59,6 +59,7 @@
   "addCard.remoteOptional": "Fjernkontroll (valfritt)",
   "addCard.roomDescription": "Legg til eit romkort basert på eit Home Assistant-område. Einingar blir foreslått automatisk.",
   "addCard.roomEntitiesFound": "einingar funne",
+  "addCard.sensorIncludes": "Inkluderer binærsensorar, sensorar, brytarar, automatiseringar, skript og meir.",
   "addCard.search": "Søk etter einingar...",
   "addCard.selectArea": "Vel område (rom)",
   "addCard.tempSensorOptional": "Temperatursensor (valfritt)",

@@ -59,6 +59,7 @@
   "addCard.remoteOptional": "Fernbedienung (optional)",
   "addCard.roomDescription": "Füge eine Raumkarte basierend auf einem Home Assistant Bereich hinzu. Entitäten werden automatisch vorgeschlagen.",
   "addCard.roomEntitiesFound": "Entitäten gefunden",
+  "addCard.sensorIncludes": "Enthält Binärsensoren, Sensoren, Schalter, Automatisierungen, Skripte und mehr.",
   "addCard.search": "Entitäten suchen...",
   "addCard.selectArea": "Bereich auswählen (Raum)",
   "addCard.tempSensorOptional": "Temperatursensor (optional)",

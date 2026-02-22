@@ -61,6 +61,7 @@
   "addCard.roomEntitiesFound": "entities found",
   "addCard.search": "Search entities...",
   "addCard.selectArea": "Select area (room)",
+  "addCard.sensorIncludes": "Includes binary sensors, sensors, switches, automations, scripts and more.",
   "addCard.tempSensorOptional": "Temperature sensor (optional)",
   "addCard.todoDescription": "Add a to-do card. You can select which list to use after adding.",
   "addCard.type.androidtv": "Android TV",
