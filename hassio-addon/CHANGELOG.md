@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.0
+
+- Includes dashboard release `1.7.0`.
+- **Major Visual Upgrade**: "High-End Glass" aesthetic with refined gradients and glassmorphism.
+- **Dynamic Typography**: Modern thin fonts for data values and bolder labels.
+- **Enhanced Charts**: Smoother sparklines and weather graphs with bezier curves.
+- **Micro-interactions**: Subtle animations and hover effects throughout the interface.
+- Keeps app and add-on versions synchronized at `1.7.0`.
+
 ## 1.6.2
 
 - Includes dashboard release `1.6.2`.

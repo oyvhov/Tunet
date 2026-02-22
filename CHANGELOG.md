@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] — 2026-02-22
+
+### Added
+- **Visual Overhaul**: Introduced "High-End Glass" aesthetic with refined gradients and glassmorphism.
+- **Dynamic Typography**: Implemented a modern typographic scale with thin, elegant fonts for data display.
+- **Micro-interactions**: Added subtle animations and hover effects to all interactive elements.
+- **Smoother Charts**: Enhanced Sparklines and Weather Graphs with cubic bezier curves and improved gradients.
+- **New Typography**: Updated all major data-heavy cards (Sensor, Climate, Energy, etc.) to use lighter font weights for a premium feel.
+- **Documentation**: Comprehensive update to README features and card documentation.
+
+### Changed
+- Standardized typography hierarchy across all cards:
+  - Large data values use `font-thin` / `text-4xl` or `text-5xl`.
+  - Labels use `text-xs`, `uppercase`, `tracking-widest`, and `font-bold`.
+- Adjusted Energy Cost card layout to bring values closer to their context lines.
+- Refined gradients on chart components for better visual integration.
+
 ## [1.6.2] — 2026-02-21
 
 ### Added
