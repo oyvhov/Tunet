@@ -226,6 +226,10 @@ export const PageProvider = ({ children }) => {
     document.documentElement.style.setProperty('--card-border-radius', `${cardBorderRadius}px`);
   }, [cardBorderRadius]);
 
+  useEffect(() => {
+    writeJSON('tunet_pages_config', pagesConfig);
+  }, [pagesConfig]);
+
   const saveCustomName = (id, name) => {
     const newNames = { ...customNames, [id]: name };
     setCustomNames(newNames);

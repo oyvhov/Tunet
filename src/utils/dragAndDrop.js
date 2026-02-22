@@ -27,6 +27,9 @@ export const createDragAndDropHandlers = ({
   setDraggingId,
   ignoreTouchRef
 }) => {
+  const pendingTouchConfigRef = { current: null };
+  const touchWorkingConfigRef = { current: null };
+
   const saveConfig = (newConfig) => {
     if (typeof persistConfig === 'function') {
       persistConfig(newConfig);
@@ -44,6 +47,8 @@ export const createDragAndDropHandlers = ({
     setDraggingId(null);
     dragSourceRef.current = null;
     touchTargetRef.current = null;
+    pendingTouchConfigRef.current = null;
+    touchWorkingConfigRef.current = null;
     setTouchTargetId(null);
     setTouchPath(null);
   };
@@ -53,18 +58,22 @@ export const createDragAndDropHandlers = ({
     safeVibrate(50);
     dragSourceRef.current = { index, cardId, colIndex };
     touchTargetRef.current = null;
+    pendingTouchConfigRef.current = null;
+    touchWorkingConfigRef.current = { ...pagesConfig, [activePage]: [...(pagesConfig[activePage] || [])] };
     setTouchPath({ startX: x, startY: y, x, y });
     setTouchTargetId(null);
     setDraggingId(cardId);
   };
 
   const moveCard = ({ source, targetIndex }) => {
-    const newConfig = { ...pagesConfig };
+    const baseConfig = touchWorkingConfigRef.current || pagesConfig;
+    const newConfig = { ...baseConfig };
     const currentList = [...(newConfig[activePage] || [])];
     const [movedItem] = currentList.splice(source.index, 1);
     currentList.splice(targetIndex, 0, movedItem);
     newConfig[activePage] = currentList;
     source.index = targetIndex;
+    touchWorkingConfigRef.current = newConfig;
 
     return { newConfig, source };
   };
@@ -97,6 +106,7 @@ export const createDragAndDropHandlers = ({
     });
 
     dragSourceRef.current = source;
+    pendingTouchConfigRef.current = newConfig;
     setPagesConfig(newConfig);
     safeVibrate(10);
   };
@@ -128,14 +138,24 @@ export const createDragAndDropHandlers = ({
       cardElement = cards.find(card => card.getAttribute('data-card-id') === touchTargetRef.current.targetId);
     }
 
-    if (!cardElement) return;
+    if (!cardElement) {
+      if (pendingTouchConfigRef.current) {
+        saveConfig(pendingTouchConfigRef.current);
+      }
+      return;
+    }
 
     const targetId = cardElement.getAttribute('data-card-id');
     const targetIndex = parseInt(cardElement.getAttribute('data-index'));
     const targetColIndexStr = cardElement.getAttribute('data-col-index');
     const _targetColIndex = targetColIndexStr ? parseInt(targetColIndexStr) : undefined;
 
-    if (!targetId || targetId === dragSourceRef.current.cardId) return;
+    if (!targetId || targetId === dragSourceRef.current.cardId) {
+      if (pendingTouchConfigRef.current) {
+        saveConfig(pendingTouchConfigRef.current);
+      }
+      return;
+    }
 
     const { newConfig } = moveCard({
       source: dragSourceRef.current,
@@ -143,6 +163,8 @@ export const createDragAndDropHandlers = ({
     });
 
     saveConfig(newConfig);
+    pendingTouchConfigRef.current = null;
+    touchWorkingConfigRef.current = null;
     safeVibrate(20);
   };
 

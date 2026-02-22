@@ -113,6 +113,9 @@ export function useProfiles({ haUser, contextSetters }) {
     setError(null);
     try {
       const snapshot = collectSnapshot();
+      if (!isValidSnapshot(snapshot)) {
+        throw new Error('Invalid snapshot data');
+      }
       const profile = await apiCreateProfile({
         ha_user_id: haUser.id,
         name,
@@ -136,6 +139,9 @@ export function useProfiles({ haUser, contextSetters }) {
     setError(null);
     try {
       const snapshot = collectSnapshot();
+      if (!isValidSnapshot(snapshot)) {
+        throw new Error('Invalid snapshot data');
+      }
       const updated = await apiUpdateProfile(profileId, { ha_user_id: haUser.id, name, data: snapshot });
       setProfiles(prev => prev.map(p => p.id === profileId ? updated : p));
       return updated;
