@@ -120,12 +120,12 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     authRef
   } = useHomeAssistant();
   const translations = useMemo(() => ({ en, nb, nn, sv }), []);
-  const t = (key) => {
+  const t = useCallback((key) => {
     const selectedLanguage = normalizeLanguage(language);
     const value = translations[selectedLanguage]?.[key] ?? translations[DEFAULT_LANGUAGE]?.[key];
     if (value !== undefined) return value;
     return key;
-  };
+  }, [language, translations]);
   const resolvedHeaderTitle = headerTitle || t('page.home');
   
   // Modal state management

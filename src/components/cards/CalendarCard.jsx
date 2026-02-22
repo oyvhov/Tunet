@@ -59,7 +59,7 @@ function CalendarCard({
 
   // Parse check status ("It should be checked when the card is selected")
   // So settings.calendars = ['calendar.personal', 'calendar.work']
-  const selectedCalendars = settings?.calendars || [];
+  const selectedCalendars = useMemo(() => (Array.isArray(settings?.calendars) ? settings.calendars : []), [settings?.calendars]);
   const selectedCalendarsKey = useMemo(() => selectedCalendars.join('|'), [selectedCalendars]);
 
   useEffect(() => {
@@ -172,7 +172,7 @@ function CalendarCard({
       if (idleId) window.cancelIdleCallback(idleId);
       if (timerId) clearTimeout(timerId);
     };
-  }, [conn, selectedCalendarsKey, isVisible]);
+  }, [conn, selectedCalendars, selectedCalendarsKey, isVisible]);
 
   // Group events by day
   const groupedEvents = useMemo(() => {
@@ -466,7 +466,7 @@ function CalendarCard({
                 </div>
 
                 {/* Day columns */}
-                {weekData.map(({ dateKey, timed, isToday }) => (
+                {weekData.map(({ dateKey, timed }) => (
                   <div key={dateKey} className="flex-1 relative border-l border-[var(--glass-border)]/20">
                     {/* Hour grid lines */}
                     {hours.map(h => (

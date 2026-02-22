@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Activity } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { getHistory, getHistoryRest, getStatistics } from '../services/haClient';
@@ -43,9 +43,13 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
     return null;
   };
 
+  const attrs = entity?.attributes || {};
+  const state = entity?.state;
+  const domain = entityId?.split('.')?.[0];
+  const isNumeric = !['script', 'scene'].includes(domain) && !isNaN(parseFloat(state)) && !String(state).match(/^unavailable|unknown$/) && !String(entityId || '').startsWith('binary_sensor.');
+
   // Helper to determine if entity should show activity (called early before useEffect)
-  const getShouldShowActivity = () => {
-    const domain = entityId?.split('.')?.[0];
+  const getShouldShowActivity = useCallback(() => {
     const activityDomains = [
       'binary_sensor', 'automation', 'switch', 'input_boolean',
       'cover', 'light', 'fan', 'lock', 'climate',
@@ -56,7 +60,7 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
     if (state === 'unavailable' || state === 'unknown') return false;
     if (isNumeric && domain !== 'light' && domain !== 'climate') return false;
     return true;
-  };
+  }, [domain, state, isNumeric]);
 
   useEffect(() => {
     if (isOpen && entity && conn) {
@@ -219,16 +223,13 @@ export default function SensorModal({ isOpen, onClose, entityId, entity, customN
       setHistory([]);
       setHistoryEvents([]);
     }
-  }, [isOpen, entity, conn, haUrl, haToken, historyHours]);
+  }, [isOpen, entity, conn, haUrl, haToken, historyHours, getShouldShowActivity, isNumeric]);
 
   if (!isOpen || !entity) return null;
 
-  const attrs = entity.attributes || {};
+  
   const name = customName || attrs.friendly_name || entityId;
   const unit = attrs.unit_of_measurement ? `${attrs.unit_of_measurement}` : '';
-  const state = entity.state;
-  const domain = entityId?.split('.')?.[0];
-  const isNumeric = !['script', 'scene'].includes(domain) && !isNaN(parseFloat(state)) && !String(state).match(/^unavailable|unknown$/) && !entityId.startsWith('binary_sensor.');
   const deviceClass = attrs.device_class;
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
   const inferredUnitKind = inferUnitKind(deviceClass, unit);

@@ -41,6 +41,22 @@ const writeJSON = (key, value) => {
   }
 };
 
+const BLOCKED_MEDIA_TYPES = new Set([
+  'camera', 'image', 'video', 'tvshow', 'movie', 'channel',
+  'game', 'app', 'photo', 'picture', 'url',
+]);
+
+const BLOCKED_ID_PATTERNS = [
+  'camera.', 'camera/', 'image.', 'image/',
+  'media-source://camera', 'media-source://image',
+  'media-source://dlna', 'media-source://local',
+];
+
+const BLOCKED_TITLE_WORDS = [
+  'camera', 'kamera', 'webcam', 'surveillance',
+  'doorbell', 'security cam', 'cctv',
+];
+
 /**
  * MediaModal - Unified media/sonos modal
  *
@@ -112,7 +128,7 @@ export default function MediaModal({
     writeJSON('tunet_media_extra_players', extraSelectedPlayerIds);
   }, [extraSelectedPlayerIds]);
 
-  const inferSourceFromId = (value) => {
+  const inferSourceFromId = useCallback((value) => {
     const text = String(value || '').toLowerCase();
     if (!text) return '';
     if (text.includes('spotify')) return 'Spotify';
@@ -123,9 +139,9 @@ export default function MediaModal({
     if (text.includes('youtube')) return 'YouTube';
     if (text.includes('radio')) return 'Radio';
     return '';
-  };
+  }, []);
 
-  const inferSourceFromObject = (obj, value) => {
+  const inferSourceFromObject = useCallback((obj, value) => {
     const provider = obj?.provider
       || obj?.source
       || obj?.app_name
@@ -135,9 +151,9 @@ export default function MediaModal({
       || obj?.domain;
     if (provider) return String(provider);
     return inferSourceFromId(value);
-  };
+  }, [inferSourceFromId]);
 
-  const inferImageFromObject = (obj) => (
+  const inferImageFromObject = useCallback((obj) => (
     obj?.thumbnail
     || obj?.thumb
     || obj?.image
@@ -145,9 +161,9 @@ export default function MediaModal({
     || obj?.media_image
     || obj?.media_image_url
     || null
-  );
+  ), []);
 
-  const normalizeChoice = (item, fallbackType) => {
+  const normalizeChoice = useCallback((item, fallbackType) => {
     if (!item) return null;
     if (typeof item === 'string') {
       const value = item.trim();
@@ -182,9 +198,9 @@ export default function MediaModal({
     const image = inferImageFromObject(item);
 
     return { id, label: String(label), type: String(type), source, image };
-  };
+  }, [inferImageFromObject, inferSourceFromId, inferSourceFromObject]);
 
-  const normalizeChoiceArray = (raw, fallbackType) => {
+  const normalizeChoiceArray = useCallback((raw, fallbackType) => {
     const array = Array.isArray(raw) ? raw : [];
     const deduped = new Map();
     array.forEach((item) => {
@@ -194,25 +210,9 @@ export default function MediaModal({
       if (!deduped.has(key)) deduped.set(key, normalized);
     });
     return [...deduped.values()];
-  };
+  }, [normalizeChoice]);
 
-  const BLOCKED_MEDIA_TYPES = new Set([
-    'camera', 'image', 'video', 'tvshow', 'movie', 'channel',
-    'game', 'app', 'photo', 'picture', 'url',
-  ]);
-
-  const BLOCKED_ID_PATTERNS = [
-    'camera.', 'camera/', 'image.', 'image/',
-    'media-source://camera', 'media-source://image',
-    'media-source://dlna', 'media-source://local',
-  ];
-
-  const BLOCKED_TITLE_WORDS = [
-    'camera', 'kamera', 'webcam', 'surveillance',
-    'doorbell', 'security cam', 'cctv',
-  ];
-
-  const isMusicContent = (item) => {
+  const isMusicContent = useCallback((item) => {
     if (!item) return false;
     const type = String(item.media_content_type || item.media_class || item.type || '').toLowerCase();
     const id = String(item.media_content_id || item.id || item.uri || '').toLowerCase();
@@ -221,9 +221,9 @@ export default function MediaModal({
     if (BLOCKED_ID_PATTERNS.some((p) => id.includes(p))) return false;
     if (BLOCKED_TITLE_WORDS.some((w) => title.includes(w))) return false;
     return true;
-  };
+  }, []);
 
-  const flattenBrowseChoices = (nodes, fallbackType = 'music', sourceHint = '') => {
+  const flattenBrowseChoices = useCallback((nodes, fallbackType = 'music', sourceHint = '') => {
     const queue = Array.isArray(nodes) ? [...nodes] : [];
     const result = [];
     while (queue.length > 0) {
@@ -253,9 +253,9 @@ export default function MediaModal({
       }
     }
     return normalizeChoiceArray(result, fallbackType);
-  };
+  }, [isMusicContent, normalizeChoiceArray]);
 
-  const mergeChoiceArrays = (...arrays) => normalizeChoiceArray(arrays.flat(), 'music');
+  const mergeChoiceArrays = useCallback((...arrays) => normalizeChoiceArray(arrays.flat(), 'music'), [normalizeChoiceArray]);
 
   useEffect(() => {
     if (Array.isArray(activeMediaSessionSensorIds)) {
@@ -635,7 +635,7 @@ export default function MediaModal({
 
     loadChoices();
     return () => { cancelled = true; };
-  }, [show, showChoosePanel, mpId, conn]);
+  }, [show, showChoosePanel, mpId, conn, browseChoicesByPlayer, flattenBrowseChoices, isMusicContent, normalizeChoiceArray]);
 
   const browseChoices = browseChoicesByPlayer?.[mpId] || { playlists: [], library: [] };
 
