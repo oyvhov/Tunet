@@ -220,7 +220,8 @@ export const createDragAndDropHandlers = ({
     const style = {
       backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
       borderColor: isDragging ? 'rgba(96, 165, 250, 1)' : (editMode ? 'rgba(59, 130, 246, 0.2)' : 'var(--card-border)'),
-      backdropFilter: 'blur(16px)',
+      backdropFilter: 'var(--glass-blur, blur(20px))',
+      WebkitBackdropFilter: 'var(--glass-blur, blur(20px))',
       borderStyle: 'solid',
       borderWidth: editMode ? '2px' : '1px',
       borderRadius: 'var(--card-border-radius, 16px)',

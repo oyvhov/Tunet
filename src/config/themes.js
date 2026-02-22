@@ -12,22 +12,22 @@ export const themes = {
       '--text-primary': '#f8fafc',
       '--text-secondary': '#cbd5e1',
       '--text-muted': 'rgba(203, 213, 225, 0.6)',
-      '--card-bg': 'rgba(15, 23, 42, 0.25)', // Lighter, more elegant transparency
-      '--card-border': 'rgba(255, 255, 255, 0.05)', // Very subtle border definition
-      '--glass-bg': 'rgba(255, 255, 255, 0.08)', // Frosted look
+      '--card-bg': 'rgba(15, 23, 42, 0.35)', // Slightly more opaque for better contrast with blur
+      '--card-border': 'rgba(255, 255, 255, 0.08)', // Brighter border for glass edge
+      '--glass-bg': 'rgba(255, 255, 255, 0.04)', // Lighter touch
       '--glass-bg-hover': 'rgba(255, 255, 255, 0.12)',
-      '--glass-border': 'rgba(255, 255, 255, 0.08)',
+      '--glass-border': 'rgba(255, 255, 255, 0.1)',
       '--modal-bg': '#0f172a',
-      '--modal-backdrop': 'rgba(0,0,0,0.7)',
+      '--modal-backdrop': 'rgba(0,0,0,0.6)', // Less dark backdrop for airiness
       '--accent-color': '#7393b3', // Dampened blue
-      '--accent-bg': 'rgba(115, 147, 179, 0.15)',
-      '--modal-border': 'rgba(255, 255, 255, 0.05)',
+      '--accent-bg': 'rgba(115, 147, 179, 0.2)',
+      '--modal-border': 'rgba(255, 255, 255, 0.08)',
       '--modal-border-width': '0px',
       '--modal-shadow': '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-      '--modal-surface': 'rgba(15, 23, 42, 0.7)', // Darker surface for modals
-      '--modal-surface-hover': 'rgba(30, 41, 59, 0.7)',
-      '--modal-surface-shadow': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      '--modal-surface-shadow-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+      '--modal-surface': 'rgba(15, 23, 42, 0.65)', 
+      '--modal-surface-hover': 'rgba(30, 41, 59, 0.65)',
+      '--modal-surface-shadow': '0 8px 32px 0 rgba(0, 0, 0, 0.2)',
+      '--modal-surface-shadow-hover': '0 12px 40px -4px rgba(0, 0, 0, 0.25)'
     }
   },
   dark: {

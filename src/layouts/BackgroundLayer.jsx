@@ -9,21 +9,28 @@ export default function BackgroundLayer({ bgMode }) {
   }
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0">
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      {/* Deep static gradient base */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-primary), var(--bg-gradient-to))',
+            'radial-gradient(circle at 50% 0%, var(--bg-gradient-from), var(--bg-primary) 70%, var(--bg-gradient-to))',
         }}
       />
+      
+      {/* Animated Aurora Blobs - even in 'static' mode we give some life */}
       <div
-        className="absolute top-[-15%] right-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none"
-        style={{ background: 'rgba(59, 130, 246, 0.08)', filter: 'blur(150px)' }}
+        className="absolute top-[-10%] right-[-5%] w-[60vw] h-[60vw] rounded-full pointer-events-none aurora-blob-1 mix-blend-screen opacity-60"
+        style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%)', filter: 'blur(80px)' }}
       />
       <div
-        className="absolute bottom-[-15%] left-[-10%] w-[70%] h-[70%] rounded-full pointer-events-none"
-        style={{ background: 'rgba(30, 58, 138, 0.1)', filter: 'blur(150px)' }}
+        className="absolute bottom-[-10%] left-[-5%] w-[60vw] h-[60vw] rounded-full pointer-events-none aurora-blob-2 mix-blend-screen opacity-50"
+        style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0) 70%)', filter: 'blur(80px)' }}
+      />
+      <div
+        className="absolute top-[40%] left-[30%] w-[50vw] h-[50vw] rounded-full pointer-events-none aurora-blob-3 mix-blend-screen opacity-40"
+        style={{ background: 'radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, rgba(14, 165, 233, 0) 70%)', filter: 'blur(90px)' }}
       />
     </div>
   );

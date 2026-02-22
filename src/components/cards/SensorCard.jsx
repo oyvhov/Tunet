@@ -325,7 +325,7 @@ export default function SensorCard({
 
   if (isSmall) {
     return (
-      <div ref={cardRef} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`touch-feedback p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer' : 'cursor-move'}`} style={{...cardStyle, containerType: 'inline-size'}}>
+      <div ref={cardRef} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`touch-feedback glass-texture p-4 pl-5 rounded-3xl flex items-center gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer' : 'cursor-move'}`} style={{...cardStyle, containerType: 'inline-size'}}>
         {controls}
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center ${iconToneClass}`}>
@@ -367,7 +367,7 @@ export default function SensorCard({
   }
 
   return (
-    <div ref={cardRef} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer' : 'cursor-move'}`} style={cardStyle}>
+    <div ref={cardRef} {...dragProps} data-haptic={editMode ? undefined : 'card'} onClick={(e) => { if (!editMode) onOpen?.(e); }} className={`touch-feedback glass-texture p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer' : 'cursor-move'}`} style={cardStyle}>
       {controls}
       
       <div className="absolute -bottom-4 -right-4 text-[var(--glass-border)] opacity-[0.03] pointer-events-none">

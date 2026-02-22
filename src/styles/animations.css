@@ -1,33 +1,34 @@
 
 /* Background Animations */
+/* Slower, more organic movement for premium feel */
 @keyframes aurora-1 {
   0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
+  33% { transform: translate(40px, -40px) scale(1.1); }
+  66% { transform: translate(-30px, 30px) scale(0.95); }
   100% { transform: translate(0, 0) scale(1); }
 }
 
 @keyframes aurora-2 {
   0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-30px, 40px) scale(1.2); }
-  66% { transform: translate(25px, -30px) scale(0.8); }
+  33% { transform: translate(-40px, 50px) scale(1.15); }
+  66% { transform: translate(35px, -35px) scale(0.85); }
   100% { transform: translate(0, 0) scale(1); }
 }
 
 @keyframes aurora-3 {
-  0% { transform: translate(0, 0); opacity: 0.4; }
-  50% { transform: translate(40px, 40px); opacity: 0.6; }
-  100% { transform: translate(0, 0); opacity: 0.4; }
+  0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  50% { transform: translate(60px, 40px) scale(1.1); opacity: 0.5; }
+  100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
 }
 
 .aurora-blob-1 {
-  animation: aurora-1 15s infinite ease-in-out;
+  animation: aurora-1 25s infinite ease-in-out;
 }
 .aurora-blob-2 {
-  animation: aurora-2 20s infinite ease-in-out;
+  animation: aurora-2 35s infinite ease-in-out;
 }
 .aurora-blob-3 {
-  animation: aurora-3 25s infinite ease-in-out;
+  animation: aurora-3 40s infinite ease-in-out;
 }
 
 /* Page Transitions */
