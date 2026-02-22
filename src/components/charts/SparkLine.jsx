@@ -25,7 +25,7 @@ const createBezierPath = (points, smoothing = 0.3) => {
 
 export default function SparkLine({ data, currentIndex, height = 40, fade = false }) {
   const pointsData = Array.isArray(data) ? data : [];
-  const lineStrokeWidth = 2.5;
+  const lineStrokeWidth = 3;
   const pointRadius = 3.5;
   const verticalPadding = Math.max(4, Math.ceil(pointRadius + lineStrokeWidth / 2));
   

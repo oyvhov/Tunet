@@ -1,7 +1,7 @@
 import { useId, useMemo } from 'react';
 
 // Helper function to create smooth Bezier curves
-const createBezierPath = (points, smoothing = 0.35) => {
+const createBezierPath = (points, smoothing = 0.4) => {
   const line = (p1, p2) => {
     const dx = p2[0] - p1[0];
     const dy = p2[1] - p1[1];
@@ -24,7 +24,7 @@ const createBezierPath = (points, smoothing = 0.35) => {
 };
 
 // Helper function to create smooth curves (Catmull-Rom to Bezier)
-const getSvgPath = (points, smoothing = 0.35) => {
+const getSvgPath = (points, smoothing = 0.4) => {
   return createBezierPath(points, smoothing);
 };
 
@@ -173,8 +173,8 @@ export default function WeatherGraph({ history, currentTemp, historyHours = 12, 
           
           {/* Enhanced fade mask for smoother bottom edge */}
           <linearGradient id={fillFadeId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="white" stopOpacity="1" />
-            <stop offset="60%" stopColor="white" stopOpacity="0.5" />
+            <stop offset="0%" stopColor="white" stopOpacity="0.8" />
+            <stop offset="60%" stopColor="white" stopOpacity="0.3" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </linearGradient>
           
