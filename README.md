@@ -6,16 +6,33 @@ A modern React dashboard for Home Assistant with real-time entity control, energ
 
 ## Features
 
-- **30+ card types** — lights, climate, media, vacuum, covers, sensors, calendars, and more
-- **Server-side profiles** — save/load dashboard layouts per HA user, sync across devices
-- **Live entity updates** — real-time WebSocket connection to Home Assistant
-- **OAuth2 & token auth** — browser login or long-lived access tokens
-- **Settings Lock** — PIN-protected edit mode and settings
-- **Dark/Light/Graphite themes** — with glassmorphism and weather effects
-- **Multi-language** — English, German, Norwegian (Bokmål), Norwegian (Nynorsk), and Swedish
-- **Drag-and-drop layout** — resize, reorder, and customize cards
-- **Multi-page dashboards** — organize cards across multiple pages
-- **MDI icon support** — same naming as Home Assistant (`mdi:car-battery`)
+### 🎴 Cards
+- **Universal Sensor Card**: One card to rule them all. Handles numeric sensors (with history graphs), binary sensors (doors, windows, motion), switches, input booleans, scripts, and scenes.
+- **Specialized Control Cards**: 
+  - **Light**: Brightness, color (RGB/temp), and toggle limits.
+  - **Climate**: Thermostat modes, target temperature, and HVAC action feedback.
+  - **Media**: Generic media players + dedicated **Android TV** remote with app launching.
+  - **Cover**: Position sliders for blinds and toggle controls for garage doors.
+  - **Vacuum**: State monitoring, start/pause/dock commands.
+  - **Fan**: Speed percentage, oscillation, and direction controls.
+- **Energy & Environment**:
+  - **Nordpool**: Hourly electricity prices with beautiful trend graphs.
+  - **Energy Cost**: Track daily and monthly energy expenditure.
+  - **Weather**: Dynamic weather animations, current temperature, and forecasts.
+  - **Car**: EV monitoring (battery, range, charging status).
+- **Productivity & Organization**:
+  - **Calendar**: Agenda view for upcoming events.
+  - **Todo Lists**: Manage Home Assistant to-do items.
+  - **Room Card**: Compact summary of a room's state (lights, temp, occupancy).
+  - **Person**: Presence detection and location tracking.
+
+### 🚀 Advanced Capabilities
+- **Server-side Profiles**: Save layout configurations per user, accessible on any device.
+- **Live Updates**: Instant state reflection via Home Assistant WebSocket.
+- **Drag-and-Drop Grid**: Fully customizable masonry layout.
+- **Settings Lock**: PIN protection prevents accidental edits.
+- **Theming**: Dark/Light modes with high-end glassmorphism and animated backgrounds.
+- **Multi-language**: Native support for English, German, Norwegian (NB/NN), and Swedish.
 
 ## Quick Start
 
