@@ -140,7 +140,7 @@ export default function FanCard({
             <div className="flex flex-col min-w-0 gap-0.5">
               <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-70 truncate">{name}</p>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{hasSpeedControl && isOn ? `${boundedPercentage}%` : statusText}</span>
+                <span className="text-xl font-medium text-[var(--text-primary)] leading-none">{hasSpeedControl && isOn ? `${boundedPercentage}%` : statusText}</span>
                 {/* Dynamic Indicators for Small Card */}
                 <div className="flex items-center gap-1.5 opacity-60">
                   {hasDirectionControl && direction === 'reverse' && <RotateCcw className="w-3 h-3 text-[var(--text-primary)]" />}
@@ -188,7 +188,7 @@ export default function FanCard({
           </div>
 
           <div>
-            <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{hasSpeedControl ? `${boundedPercentage}%` : (isOn ? 'ON' : 'OFF')}</span>
+            <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">{hasSpeedControl ? `${boundedPercentage}%` : (isOn ? 'ON' : 'OFF')}</span>
           </div>
 
           <div className="mt-2 text-xs">

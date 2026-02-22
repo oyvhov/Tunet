@@ -258,7 +258,7 @@ const SmallCoverCard = (props) => {
                 <div className="flex flex-col min-w-0">
                     <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{name}</p>
                     <div className="flex items-baseline gap-1">
-                        <span className="text-sm font-bold text-[var(--text-primary)] leading-none">
+                        <span className="text-lg font-medium text-[var(--text-primary)] leading-none">
                             {typeof position === 'number' ? `${localPos}%` : getStateLabel()}
                         </span>
                     </div>
@@ -425,13 +425,13 @@ const CoverCard = ({
            <div className="flex items-baseline gap-1">
               {typeof position === 'number' ? (
                 <>
-                  <span className="text-4xl font-medium leading-none tabular-nums text-[var(--text-primary)]">
+                  <span className="text-4xl font-thin leading-none tabular-nums text-[var(--text-primary)]">
                     {localPos}
                   </span>
-                  <span className="text-xl text-[var(--text-secondary)] font-medium leading-none">%</span>
+                  <span className="text-xl text-[var(--text-secondary)] font-light leading-none">%</span>
                 </>
               ) : (
-                 <span className="text-2xl font-medium leading-none text-[var(--text-primary)] capitalize">
+                 <span className="text-3xl font-thin leading-none text-[var(--text-primary)] capitalize">
                     {getStateLabel()}
                  </span>
               )}

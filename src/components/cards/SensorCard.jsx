@@ -412,7 +412,7 @@ export default function SensorCard({
         ) : (
           <>
             {domain !== 'input_number' && showStatus && (
-              <h3 className="text-2xl font-medium text-[var(--text-primary)] leading-none">
+              <h3 className="text-3xl font-thin text-[var(--text-primary)] leading-none mt-2">
                 {displayState}
               </h3>
             )}

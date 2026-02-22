@@ -158,7 +158,7 @@ export default function GenericClimateCard({
         </div>
       </div>
       <div>
-        <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{formatUnitValue(displayCurrentTemp, { fallback: '--' })}{displayTempUnit}</span>
+        <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">{formatUnitValue(displayCurrentTemp, { fallback: '--' })}{displayTempUnit}</span>
       </div>
       <div className="mt-2">
         <div className="flex items-center gap-2 mb-3">
@@ -178,7 +178,7 @@ export default function GenericClimateCard({
               <Minus className="w-4 h-4" />
             </button>
             <div className="flex flex-col items-center">
-              <span className="text-lg font-bold text-[var(--text-primary)] leading-none">{formatUnitValue(displayTargetTemp, { fallback: '--' })}{displayTempUnit}</span>
+              <span className="text-xl font-medium text-[var(--text-primary)] leading-none">{formatUnitValue(displayTargetTemp, { fallback: '--' })}{displayTempUnit}</span>
             </div>
             <button
               onClick={(e) => {

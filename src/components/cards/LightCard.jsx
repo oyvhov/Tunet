@@ -75,7 +75,7 @@ const LightCard = ({
         <div className="flex-1 flex flex-col gap-3 min-w-0 justify-center h-full pt-1">
           <div className="flex justify-between items-baseline pr-1">
             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none">{String(name || t('common.light'))}</p>
-            <span className={`text-xs uppercase font-bold tracking-widest leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? (isDimmable ? `${Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100)}%` : t('common.on')) : t('common.off')}</span>
+            <span className={`text-lg font-medium tracking-wide leading-none transition-colors ${isOn ? 'text-amber-400' : 'text-[var(--text-secondary)] opacity-50'}`}>{isOn ? (isDimmable ? `${Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100)}%` : t('common.on')) : t('common.off')}</span>
           </div>
           <div className={`w-full flex items-center ${isDimmable ? 'h-6' : 'h-6'}`}>
              {isDimmable && <M3Slider variant="thinLg" min={0} max={255} step={1} value={optimisticLightBrightness[cardId] ?? br} disabled={isUnavailable} onChange={handleBrightnessChange} colorClass="bg-amber-500" />}
@@ -94,14 +94,14 @@ const LightCard = ({
         <div className="flex items-baseline gap-1 leading-none mt-1">
           {isDimmable ? (
             <>
-              <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">
+              <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">
                 {isUnavailable ? "--" : (isOn ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100) : "0")}
               </span>
-              <span className="text-[var(--text-muted)] font-medium text-base ml-1">%</span>
+              <span className="text-[var(--text-muted)] font-light text-xl ml-1">%</span>
             </>
           ) : (
             /* Layout: maintain 4xl height but show nothing unless UNAVAILABLE */
-            <span className="text-4xl font-medium text-transparent leading-none select-none">
+            <span className="text-4xl font-thin text-transparent leading-none select-none">
               {isUnavailable ? <span className="text-[var(--text-primary)]">--</span> : "0"}
             </span>
           )}

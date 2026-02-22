@@ -156,7 +156,7 @@ export default function GenericAndroidTVCard({
           </div>
           <div className="flex flex-col min-w-0">
             <p className={`${picture || appLogo ? 'text-gray-300' : 'text-[var(--text-secondary)]'} text-xs tracking-widest uppercase font-bold opacity-70 truncate`}>{deviceName}</p>
-            <p className="text-sm font-bold text-[var(--text-primary)] leading-tight truncate">{appName || (isOn ? t('media.homeScreen') : t('status.off'))}</p>
+            <p className="text-lg font-medium text-[var(--text-primary)] leading-tight truncate">{appName || (isOn ? t('media.homeScreen') : t('status.off'))}</p>
             {title && <p className={`${picture || appLogo ? 'text-gray-200' : 'text-[var(--text-muted)]'} text-xs truncate font-medium`}>{title}</p>}
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function GenericAndroidTVCard({
       <div className="relative z-10 flex items-end justify-between gap-4">
         <div className="min-w-0">
           <p className={`${picture || appLogo ? 'text-gray-400' : 'text-[var(--text-secondary)]'} text-xs tracking-widest uppercase mb-1 font-bold opacity-60`}>{deviceName}</p>
-          <h3 className="text-2xl font-medium leading-none line-clamp-2 mb-1">{appName || (isOn ? t('media.homeScreen') : t('status.off'))}</h3>
+          <h3 className="text-3xl font-thin leading-none line-clamp-2 mb-1">{appName || (isOn ? t('media.homeScreen') : t('status.off'))}</h3>
           {title && <p className={`text-xs ${picture || appLogo ? 'text-gray-300' : 'text-[var(--text-muted)]'} line-clamp-1 font-medium`}>{title}</p>}
         </div>
         {isOn && (

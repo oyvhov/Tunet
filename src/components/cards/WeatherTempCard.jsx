@@ -139,7 +139,7 @@ export default function WeatherTempCard({
           </div>
           <div className="flex flex-col min-w-0">
             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{info.label}</p>
-            <span className="text-2xl font-medium text-[var(--text-primary)] leading-none">{formatUnitValue(displayTempValue, { fallback: '--' })}{displayTempUnit}</span>
+            <span className="text-2xl font-light text-[var(--text-primary)] leading-none">{formatUnitValue(displayTempValue, { fallback: '--' })}{displayTempUnit}</span>
             {subtitle && <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate mt-1">{subtitle}</p>}
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function WeatherTempCard({
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
               <span className="text-xs tracking-widest uppercase font-bold">{info.label}</span>
             </div>
-            <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{formatUnitValue(displayTempValue, { fallback: '--' })}{displayTempUnit}</span>
+            <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">{formatUnitValue(displayTempValue, { fallback: '--' })}{displayTempUnit}</span>
           </div>
         </div>
       </div>

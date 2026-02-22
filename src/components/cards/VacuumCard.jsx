@@ -126,7 +126,7 @@ const VacuumCard = ({
       <div className="flex justify-between items-end">
          <div>
            <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
-           <h3 className="text-2xl font-medium text-[var(--text-primary)] leading-none">{statusText}</h3>
+           <h3 className="text-3xl font-thin text-[var(--text-primary)] leading-none">{statusText}</h3>
          </div>
          <div className="flex gap-2">
            <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className={`${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95`}>

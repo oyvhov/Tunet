@@ -166,8 +166,8 @@ export default function GenericNordpoolCard({
           <p className="text-[var(--text-secondary)] text-xs uppercase mb-0.5 font-bold opacity-60 leading-none" style={{ letterSpacing: '0.05em' }}>
             {name}
           </p>
-          <div className="flex items-baseline gap-1 leading-none">
-            <span className="text-4xl font-medium text-[var(--text-primary)] leading-none">{String(priceDisplay)}</span>
+          <div className="flex items-baseline gap-1 leading-none mt-2">
+            <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">{String(priceDisplay)}</span>
             <span className="text-[var(--text-muted)] font-medium text-base ml-1">{currency}</span>
           </div>
         </div>

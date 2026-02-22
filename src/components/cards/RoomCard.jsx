@@ -319,10 +319,10 @@ export default function RoomCard({
               <>
                 {showTemp && (
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-medium leading-none tabular-nums transition-colors duration-300">
+                    <span className="text-4xl font-thin leading-none tabular-nums transition-colors duration-300">
                       {displayTemp ? displayTemp : '--'}
                     </span>
-                    <span className="text-xl text-[var(--text-secondary)] font-medium leading-none">°</span>
+                    <span className="text-xl text-[var(--text-secondary)] font-light leading-none">°</span>
                   </div>
                 )}
                 {showLights && (
@@ -336,10 +336,10 @@ export default function RoomCard({
               <>
                 {showTemp && (
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-medium leading-none tabular-nums transition-colors duration-300">
+                    <span className="text-4xl font-thin leading-none tabular-nums transition-colors duration-300">
                       {displayTemp ? displayTemp : '--'}
                     </span>
-                    <span className="text-xl text-[var(--text-secondary)] font-medium leading-none">°</span>
+                    <span className="text-xl text-[var(--text-secondary)] font-light leading-none">°</span>
                   </div>
                 )}
                 {showClimate && (

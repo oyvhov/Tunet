@@ -151,12 +151,12 @@ const CarCard = ({
         <div>
           <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase mb-1 font-bold opacity-60">{name}</p>
           <div className="flex items-baseline gap-2 leading-none font-sans">
-            <span className={`text-2xl font-medium leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
+            <span className={`text-4xl font-thin leading-none ${isCharging ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
               {batteryValue !== null ? `${formatValue(batteryValue)}%` : '--'}
             </span>
             {isCharging && <Zap className="w-5 h-5 text-green-400 animate-pulse -ml-1 mb-1" fill="currentColor" />}
             {displayRangeValue !== null && (
-              <span className="text-[var(--text-muted)] font-medium text-base ml-1">{formatUnitValue(displayRangeValue, { fallback: '--' })}{rangeUnit}</span>
+              <span className="text-[var(--text-secondary)] font-light text-xl ml-1">{formatUnitValue(displayRangeValue, { fallback: '--' })}{rangeUnit}</span>
             )}
           </div>
           {pluggedId && (
