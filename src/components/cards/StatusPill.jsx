@@ -49,13 +49,22 @@ export default function StatusPill({
     if (!name || patterns.length === 0) return name;
 
     let cleaned = name;
+    let didApply = false;
     patterns.forEach((pattern) => {
-      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-      const regex = new RegExp(`^${escaped}`, 'i');
-      cleaned = cleaned.replace(regex, '').trim();
+      const wildcardIndex = pattern.indexOf('*');
+      const prefixCandidate = wildcardIndex >= 0 ? pattern.slice(0, wildcardIndex) : pattern;
+      const prefix = prefixCandidate.trim();
+      if (!prefix) return;
+
+      const escapedPrefix = prefix.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`^${escapedPrefix}`, 'i');
+      if (regex.test(cleaned)) {
+        cleaned = cleaned.replace(regex, '').trim();
+        didApply = true;
+      }
     });
 
-    return cleaned || name;
+    return didApply ? cleaned : name;
   };
 
   const getDefaultSublabelWithUnit = () => {
