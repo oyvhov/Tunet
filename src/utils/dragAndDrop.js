@@ -6,7 +6,7 @@ export const safeVibrate = (ms) => {
       }
       navigator.vibrate(ms);
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore blocked vibration calls
   }
 };

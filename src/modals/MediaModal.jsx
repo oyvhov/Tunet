@@ -90,8 +90,6 @@ export default function MediaModal({
   getServerInfo,
   conn,
 }) {
-  if (!show) return null;
-
   const [sessionSensorIds, setSessionSensorIds] = useState(() => readJSON('tunet_media_session_sensors', []));
   const [showChoosePanel, setShowChoosePanel] = useState(false);
   const [chooseTab, setChooseTab] = useState('favorites');
@@ -367,36 +365,25 @@ export default function MediaModal({
     else currentMp = mediaEntities[0];
   }
 
-  if (!currentMp) {
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={onClose}>
-        <div className="w-full max-w-2xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative border backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
-          <button onClick={onClose} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close z-20"><X className="w-4 h-4" /></button>
-          <div className="text-[var(--text-primary)] text-center">{t('media.noPlayerFound')}</div>
-        </div>
-      </div>
-    );
-  }
-
-  const mpId = currentMp.entity_id;
-  const mpState = currentMp.state;
+  const mpId = currentMp?.entity_id || null;
+  const mpState = currentMp?.state || 'off';
   const isCurrentSonos = isStrictSonosEntity(currentMp);
-  const contentType = getA(mpId, 'media_content_type');
+  const contentType = mpId ? getA(mpId, 'media_content_type') : null;
   const isChannel = contentType === 'channel';
   const isPlaying = mpState === 'playing';
   const powerAction = getMediaPlayerPowerAction(currentMp);
   const canTogglePower = Boolean(powerAction);
   const isPowerOffAction = powerAction === 'turn_off';
 
-  let mpTitle = getA(mpId, 'media_title');
+  let mpTitle = mpId ? getA(mpId, 'media_title') : '';
 
-  let mpSeries = getA(mpId, 'media_series_title');
+  let mpSeries = mpId ? getA(mpId, 'media_series_title') : '';
   if (contentType === 'episode') {
-    const season = getA(mpId, 'media_season');
+    const season = mpId ? getA(mpId, 'media_season') : '';
     if (mpSeries && season) mpSeries = `${mpSeries} • ${season}`;
     else if (!mpSeries && season) mpSeries = season;
   }
-  if (!mpSeries) mpSeries = getA(mpId, 'media_artist') || getA(mpId, 'media_season');
+  if (!mpSeries) mpSeries = mpId ? (getA(mpId, 'media_artist') || getA(mpId, 'media_season')) : '';
 
   const mpPicture = getEntityImageUrl(currentMp.attributes?.entity_picture);
   const activeUser = (() => {
@@ -410,10 +397,10 @@ export default function MediaModal({
       : null;
     return match?.user_name || '';
   })();
-  const duration = getA(mpId, 'media_duration');
-  const position = getA(mpId, 'media_position');
-  const positionUpdatedAt = getA(mpId, 'media_position_updated_at');
-  const serverInfo = getServerInfo(mpId);
+  const duration = mpId ? getA(mpId, 'media_duration') : null;
+  const position = mpId ? getA(mpId, 'media_position') : null;
+  const positionUpdatedAt = mpId ? getA(mpId, 'media_position_updated_at') : null;
+  const serverInfo = mpId ? getServerInfo(mpId) : {};
   const serverLabel = isGenericMedia ? (serverInfo.name || t('addCard.type.media')) : 'SONOS';
   const groupCardId = (activeMediaGroupKey && activeMediaGroupKey.includes('::'))
     ? activeMediaGroupKey.split('::').slice(1).join('::')
@@ -429,16 +416,16 @@ export default function MediaModal({
     : 0;
   const effectivePosition = Math.min(duration || basePosition, basePosition + elapsed);
 
-  const volume = getA(mpId, 'volume_level', 0);
-  const isMuted = getA(mpId, 'is_volume_muted', false);
-  const shuffle = getA(mpId, 'shuffle', false);
-  const repeat = getA(mpId, 'repeat', 'off');
+  const volume = mpId ? getA(mpId, 'volume_level', 0) : 0;
+  const isMuted = mpId ? getA(mpId, 'is_volume_muted', false) : false;
+  const shuffle = mpId ? getA(mpId, 'shuffle', false) : false;
+  const repeat = mpId ? getA(mpId, 'repeat', 'off') : 'off';
   const VOLUME_STEP = 0.03;
   const changeVolumeByStep = (delta) => {
     const nextVolume = Math.min(1, Math.max(0, (Number(volume) || 0) + delta));
     callService("media_player", "volume_set", { entity_id: mpId, volume_level: nextVolume });
   };
-  const rawMembers = getA(mpId, 'group_members');
+  const rawMembers = mpId ? getA(mpId, 'group_members') : [];
   const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
   const canGroup = isCurrentSonos;
   const availableSonosToAdd = sonosIds
@@ -540,16 +527,17 @@ export default function MediaModal({
 
   // Fetch favorites when the Choose panel opens or the player changes
   useEffect(() => {
-    if (showChoosePanel && mpId) {
+    if (show && showChoosePanel && mpId) {
       fetchFavorites(mpId);
     }
-  }, [showChoosePanel, mpId, fetchFavorites]);
+  }, [show, showChoosePanel, mpId, fetchFavorites]);
 
   const currentFavorites = favoritesByPlayer[mpId] || [];
 
   // ── Music Assistant browse (only for MA entities) ──────────────────
   useEffect(() => {
-    const canBrowse = showChoosePanel
+    const canBrowse = show
+      && showChoosePanel
       && !!mpId
       && conn
       && typeof conn.sendMessagePromise === 'function';
@@ -647,18 +635,18 @@ export default function MediaModal({
 
     loadChoices();
     return () => { cancelled = true; };
-  }, [showChoosePanel, mpId, conn]);
+  }, [show, showChoosePanel, mpId, conn]);
 
   const browseChoices = browseChoicesByPlayer?.[mpId] || { playlists: [], library: [] };
 
   const playlistChoices = mergeChoiceArrays(
     browseChoices.playlists,
-    ...normalizeChoiceArray(getA(mpId, 'sonos_playlists', []), 'playlist'),
+    ...normalizeChoiceArray(mpId ? getA(mpId, 'sonos_playlists', []) : [], 'playlist'),
   );
 
   const libraryChoices = mergeChoiceArrays(
     browseChoices.library || [],
-    ...normalizeChoiceArray(getA(mpId, 'sonos_favorites', []), 'music'),
+    ...normalizeChoiceArray(mpId ? getA(mpId, 'sonos_favorites', []) : [], 'music'),
   );
 
   const allSearchChoices = normalizeChoiceArray([
@@ -727,6 +715,19 @@ export default function MediaModal({
       {label}
     </button>
   );
+
+  if (!show) return null;
+
+  if (!currentMp) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={onClose}>
+        <div className="w-full max-w-2xl rounded-3xl md:rounded-[4rem] p-6 md:p-12 shadow-2xl relative border backdrop-blur-xl popup-anim" style={{background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)'}} onClick={(e) => e.stopPropagation()}>
+          <button onClick={onClose} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close z-20"><X className="w-4 h-4" /></button>
+          <div className="text-[var(--text-primary)] text-center">{t('media.noPlayerFound')}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans" style={{backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)'}} onClick={onClose}>

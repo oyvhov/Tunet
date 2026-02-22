@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import M3Slider from '../components/ui/M3Slider';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
@@ -132,8 +132,6 @@ export default function ConfigModal({
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
-
-  if (!open) return null;
 
   const handleClose = () => {
     if (!isOnboardingActive) onClose?.();
@@ -1169,6 +1167,8 @@ export default function ConfigModal({
   };
 
   // ─── Main Render ───
+  if (!open) return null;
+
   return (
     <div
       className={`fixed inset-0 z-50 flex ${

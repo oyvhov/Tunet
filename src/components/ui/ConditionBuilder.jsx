@@ -28,18 +28,6 @@ function getConditionWithDefaults(condition) {
   };
 }
 
-function toStateString(states) {
-  if (!Array.isArray(states)) return '';
-  return states.join(', ');
-}
-
-function fromStateString(value) {
-  return value
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
 function getFriendlyEntityName(entityId, entities) {
   if (!entityId) return '';
   return entities?.[entityId]?.attributes?.friendly_name || entityId;

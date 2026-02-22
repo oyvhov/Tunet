@@ -43,7 +43,7 @@ export default function useWeatherForecast(conn, cardSettings) {
           if (!cancelled && data && data.length > 0) {
             newForecasts[entityId] = data;
           }
-        } catch (err) {
+        } catch (_err) {
           // Silent failure
         }
       }));

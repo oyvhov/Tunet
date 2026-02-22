@@ -613,22 +613,6 @@ export default function EditCardModal({
 
   const updateButtonOptions = sortByName(byDomain('button'));
   const visibilityCondition = editSettings?.visibilityCondition || null;
-  const personEntity = isPerson ? entities?.[entityId] : null;
-  const personNameParts = (personEntity?.attributes?.friendly_name || '')
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((part) => part.length > 2);
-  const personSourceObjectId = (personEntity?.attributes?.source || '')
-    .toLowerCase()
-    .split('.')
-    .pop();
-  const matchesPersonContext = (id, stateObj) => {
-    const lowerId = id.toLowerCase();
-    const lowerName = (stateObj?.attributes?.friendly_name || '').toLowerCase();
-    const sourceMatch = personSourceObjectId && (lowerId.includes(personSourceObjectId) || lowerName.includes(personSourceObjectId));
-    const nameMatch = personNameParts.some((part) => lowerId.includes(part) || lowerName.includes(part));
-    return sourceMatch || nameMatch;
-  };
   const personBatteryOptions = batteryOptions; // Show all batteries always
   
   const allPersonCandidateSensors = sortByName(entityEntries

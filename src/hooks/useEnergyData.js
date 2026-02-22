@@ -2,18 +2,19 @@ import { useMemo } from 'react';
 
 export default function useEnergyData(entity, now = new Date()) {
   const attributes = entity?.attributes || {};
-  const rawToday = Array.isArray(attributes.raw_today) ? attributes.raw_today : [];
-  const rawTomorrow = Array.isArray(attributes.raw_tomorrow) ? attributes.raw_tomorrow : [];
-  const tomorrowValid = attributes.tomorrow_valid === true;
 
   const fullPriceData = useMemo(() => {
+    const rawToday = Array.isArray(attributes.raw_today) ? attributes.raw_today : [];
+    const rawTomorrow = Array.isArray(attributes.raw_tomorrow) ? attributes.raw_tomorrow : [];
+    const tomorrowValid = attributes.tomorrow_valid === true;
     if (tomorrowValid && rawTomorrow.length > 0) {
       return [...rawToday, ...rawTomorrow];
     }
     return rawToday;
-  }, [rawToday, rawTomorrow, tomorrowValid]);
+  }, [attributes.raw_today, attributes.raw_tomorrow, attributes.tomorrow_valid]);
 
   const currentPriceIndex = useMemo(() => {
+    const rawToday = Array.isArray(attributes.raw_today) ? attributes.raw_today : [];
     if (rawToday.length === 0) return -1;
     const nowTime = now.getTime();
     return rawToday.findIndex((d) => {
@@ -22,7 +23,7 @@ export default function useEnergyData(entity, now = new Date()) {
       const end = new Date(d.end).getTime();
       return nowTime >= start && nowTime < end;
     });
-  }, [rawToday, now]);
+  }, [attributes.raw_today, now]);
 
   const priceStats = useMemo(() => {
     if (fullPriceData.length === 0) return { min: 0, max: 0, avg: 0 };

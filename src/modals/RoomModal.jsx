@@ -22,7 +22,6 @@ export default function RoomModal({
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
 
   const areaName = settings?.areaName || t('room.defaultName');
-  const roomEntityIdList = Array.isArray(settings?.entityIds) ? settings.entityIds : [];
   const roomEntityIds = useMemo(() => {
     // Only show "key" entities in modal if the user requested simplified view
     // Filtering logic: Light, Climate, Switch, Cover, Media Player.
@@ -30,7 +29,7 @@ export default function RoomModal({
     // The user said "Modalen skal ikkje vise alle enitetane i rommet".
     // Let's filter out diagnostic/config sensors if they are too generic. 
     // For now, let's keep it simple: Show 'control' domains + basic Temp/Motion.
-    const all = roomEntityIdList;
+    const all = Array.isArray(settings?.entityIds) ? settings.entityIds : [];
     
     // Simple filter: Include only interesting domains
     const interestingDomains = ['light', 'climate', 'switch', 'cover', 'fan', 'media_player', 'vacuum', 'lock'];
@@ -54,7 +53,7 @@ export default function RoomModal({
        }
        return false;
      });
-  }, [roomEntityIdList, entities]);
+  }, [settings?.entityIds, entities]);
 
   // Group entities by domain
   const grouped = useMemo(() => {

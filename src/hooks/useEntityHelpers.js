@@ -9,7 +9,7 @@ import { logger } from '../utils/logger';
  *
  * Everything is stable-ref (useCallback / useMemo) so consumers don't re-render.
  */
-export function useEntityHelpers({ entities, conn, activeUrl, language, now, t }) {
+export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
   // ── Attribute / state accessors ────────────────────────────────────────
   const getS = useCallback((id, fallback = '--') => {
     const state = entities[id]?.state;
@@ -73,7 +73,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, language, now, t }
       fan_only: t('climate.hvac.fanOnly'),
       heat: t('climate.hvac.heat'),
     }),
-    [language],
+    [t],
   );
 
   const fanMap = useMemo(
@@ -85,7 +85,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, language, now, t }
       HighMid: t('climate.fan.highMid'),
       High: t('climate.fan.high'),
     }),
-    [language],
+    [t],
   );
 
   const swingMap = useMemo(
@@ -98,7 +98,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, language, now, t }
       Down: t('climate.swing.down'),
       Swing: t('climate.swing.swing'),
     }),
-    [language],
+    [t],
   );
 
   return {

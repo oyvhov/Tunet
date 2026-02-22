@@ -38,13 +38,14 @@ export default function NordpoolModal({
   const translate = t || ((key) => key);
   const currency = settings?.currency || haConfig?.currency || 'kr';
   const [showWithSupport, setShowWithSupport] = useState(settings?.showWithSupport ?? false);
-
-  if (!show) return null;
   
   // Sync with settings when they change
   useEffect(() => {
+    if (!show) return;
     setShowWithSupport(settings?.showWithSupport ?? false);
-  }, [settings?.showWithSupport]);
+  }, [show, settings?.showWithSupport]);
+
+  if (!show) return null;
   
   // Norwegian electricity price support 2025/2026:
   // Threshold: 75 øre/kWh (excl. VAT) = 93.75 øre/kWh (incl. VAT)

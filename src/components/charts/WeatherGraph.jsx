@@ -135,16 +135,16 @@ export default function WeatherGraph({ history, currentTemp, historyHours = 12, 
     return normalized.sort((a, b) => a - b);
   }, [colorLimits]);
 
-  const getColorForTemp = (temp) => {
-    const [l1, l2, l3, l4] = sortedLimits;
-    if (temp <= l1) return '#3b82f6';
-    if (temp <= l2) return '#06b6d4';
-    if (temp <= l3) return '#22c55e';
-    if (temp <= l4) return '#eab308';
-    return '#ef4444';
-  };
-
   const colorStops = useMemo(() => {
+    const getColorForTemp = (temp) => {
+      const [l1, l2, l3, l4] = sortedLimits;
+      if (temp <= l1) return '#3b82f6';
+      if (temp <= l2) return '#06b6d4';
+      if (temp <= l3) return '#22c55e';
+      if (temp <= l4) return '#eab308';
+      return '#ef4444';
+    };
+
     const thresholds = [yMin, ...sortedLimits, yMax]
       .filter((temp) => temp >= yMin && temp <= yMax)
       .sort((a, b) => a - b);
