@@ -137,7 +137,7 @@ function RoomSection({ conn, searchTerm, selectedArea, setSelectedArea, setAreaE
  * Content for the "Add Card" modal.
  * Handles entity selection and card type picking for adding new dashboard cards.
  */
-export default function AddCardContent({
+function AddCardContent({
   onClose,
   addCardTargetPage,
   addCardType,
@@ -179,6 +179,11 @@ export default function AddCardContent({
   const [selectedRoomEntities, setSelectedRoomEntities] = useState([]);
   const [localSpacerVariant, setLocalSpacerVariant] = useState(selectedSpacerVariant || 'divider');
   const [calendarOptionsSnapshot, setCalendarOptionsSnapshot] = useState([]);
+  const [weatherOptionsSnapshot, setWeatherOptionsSnapshot] = useState([]);
+  const [tempOptionsSnapshot, setTempOptionsSnapshot] = useState([]);
+  const [androidTVMediaOptionsSnapshot, setAndroidTVMediaOptionsSnapshot] = useState([]);
+  const [androidTVRemoteOptionsSnapshot, setAndroidTVRemoteOptionsSnapshot] = useState([]);
+  const [nordpoolOptionsSnapshot, setNordpoolOptionsSnapshot] = useState([]);
 
   useEffect(() => {
     if (addCardType !== 'calendar') return;
@@ -193,6 +198,52 @@ export default function AddCardContent({
   }, [addCardType, entities]);
 
   useEffect(() => {
+    if (addCardType !== 'weather') return;
+    const weatherSnapshot = Object.keys(entities)
+      .filter((id) => id.startsWith('weather.'))
+      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const tempSnapshot = Object.keys(entities)
+      .filter((id) => {
+        if (!id.startsWith('sensor.')) return false;
+        const deviceClass = entities[id]?.attributes?.device_class;
+        const lowerId = id.toLowerCase();
+        return deviceClass === 'temperature' || lowerId.includes('temperature') || lowerId.includes('temp');
+      })
+      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    setWeatherOptionsSnapshot(weatherSnapshot);
+    setTempOptionsSnapshot(tempSnapshot);
+  }, [addCardType]);
+
+  useEffect(() => {
+    if (addCardType !== 'androidtv') return;
+    const mediaSnapshot = Object.keys(entities)
+      .filter((id) => id.startsWith('media_player.'))
+      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const remoteSnapshot = Object.keys(entities)
+      .filter((id) => id.startsWith('remote.'))
+      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    setAndroidTVMediaOptionsSnapshot(mediaSnapshot);
+    setAndroidTVRemoteOptionsSnapshot(remoteSnapshot);
+  }, [addCardType]);
+
+  useEffect(() => {
+    if (addCardType !== 'nordpool') return;
+    const snapshot = Object.keys(entities)
+      .filter((id) => id.startsWith('sensor.') && id.toLowerCase().includes('nordpool'))
+      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setNordpoolOptionsSnapshot(snapshot);
+  }, [addCardType]);
+
+  useEffect(() => {
     if (addCardType === 'spacer') {
       setLocalSpacerVariant(selectedSpacerVariant || 'divider');
     }
@@ -204,10 +255,10 @@ export default function AddCardContent({
   };
 
   /** Reusable entity list item button. */
-  const EntityItem = ({ id, isSelected, onClick, badgeText }) => (
+  const EntityItem = ({ id, isSelected, onClick, badgeText, displayName }) => (
     <button type="button" key={id} onClick={onClick} className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}>
       <div className="flex flex-col overflow-hidden mr-4">
-        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? SELECTED_TEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{entities[id]?.attributes?.friendly_name || id}</span>
+        <span className={`text-sm font-bold transition-colors truncate ${isSelected ? SELECTED_TEXT : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>{displayName || entities[id]?.attributes?.friendly_name || id}</span>
         <span className={`text-[11px] font-medium truncate ${isSelected ? SELECTED_SUBTEXT : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>{id}</span>
       </div>
       {badgeText ? (
@@ -257,15 +308,26 @@ export default function AddCardContent({
 
   // --- Render sections ---
 
-  const renderWeatherSection = () => (
+  const renderWeatherSection = () => {
+    const lowerSearch = searchTerm.toLowerCase();
+    const visibleWeather = weatherOptionsSnapshot.filter(({ id, name }) => {
+      if (!searchTerm) return true;
+      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
+    });
+    const visibleTemps = tempOptionsSnapshot.filter(({ id, name }) => {
+      if (!searchTerm) return true;
+      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
+    });
+
+    return (
     <div className="space-y-8">
       <div>
         <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{t('addCard.weatherRequired')}</p>
         <div className="space-y-3">
-          {filterAndSort(Object.keys(entities).filter(id => id.startsWith('weather.'))).map(id => (
-            <EntityItem key={id} id={id} isSelected={selectedWeatherId === id} onClick={() => setSelectedWeatherId(prev => prev === id ? null : id)} />
+          {visibleWeather.map(({ id, name }) => (
+            <EntityItem key={id} id={id} displayName={name} isSelected={selectedWeatherId === id} onClick={() => setSelectedWeatherId(prev => prev === id ? null : id)} />
           ))}
-          {Object.keys(entities).filter(id => id.startsWith('weather.')).length === 0 && (
+          {weatherOptionsSnapshot.length === 0 && (
             <p className="text-gray-500 italic text-sm text-center py-4">{t('addCard.noWeatherSensors')}</p>
           )}
         </div>
@@ -283,36 +345,38 @@ export default function AddCardContent({
               {!selectedTempId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             </div>
           </button>
-          {filterAndSort(Object.keys(entities).filter(id => {
-            if (!id.startsWith('sensor.')) return false;
-            const deviceClass = entities[id].attributes?.device_class;
-            const lowerId = id.toLowerCase();
-            return deviceClass === 'temperature' || lowerId.includes('temperature') || lowerId.includes('temp');
-          })).map(id => (
-            <EntityItem key={id} id={id} isSelected={selectedTempId === id} onClick={() => setSelectedTempId(prev => prev === id ? null : id)} />
+          {visibleTemps.map(({ id, name }) => (
+            <EntityItem key={id} id={id} displayName={name} isSelected={selectedTempId === id} onClick={() => setSelectedTempId(prev => prev === id ? null : id)} />
           ))}
-          {Object.keys(entities).filter(id => {
-            if (!id.startsWith('sensor.')) return false;
-            const deviceClass = entities[id].attributes?.device_class;
-            const lowerId = id.toLowerCase();
-            return deviceClass === 'temperature' || lowerId.includes('temperature') || lowerId.includes('temp');
-          }).length === 0 && (
+          {tempOptionsSnapshot.length === 0 && (
             <p className="text-gray-500 italic text-sm text-center py-4">{t('addCard.noTempSensors')}</p>
           )}
         </div>
       </div>
     </div>
   );
+  };
 
-  const renderAndroidTVSection = () => (
+  const renderAndroidTVSection = () => {
+    const lowerSearch = searchTerm.toLowerCase();
+    const visibleMediaPlayers = androidTVMediaOptionsSnapshot.filter(({ id, name }) => {
+      if (!searchTerm) return true;
+      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
+    });
+    const visibleRemotes = androidTVRemoteOptionsSnapshot.filter(({ id, name }) => {
+      if (!searchTerm) return true;
+      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
+    });
+
+    return (
     <div className="space-y-8">
       <div>
         <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{t('addCard.mediaPlayerRequired')}</p>
         <div className="space-y-3">
-          {filterAndSort(Object.keys(entities).filter(id => id.startsWith('media_player.'))).map(id => (
-            <EntityItem key={id} id={id} isSelected={selectedAndroidTVMediaId === id} onClick={() => setSelectedAndroidTVMediaId(prev => prev === id ? null : id)} />
+          {visibleMediaPlayers.map(({ id, name }) => (
+            <EntityItem key={id} id={id} displayName={name} isSelected={selectedAndroidTVMediaId === id} onClick={() => setSelectedAndroidTVMediaId(prev => prev === id ? null : id)} />
           ))}
-          {Object.keys(entities).filter(id => id.startsWith('media_player.')).length === 0 && (
+          {androidTVMediaOptionsSnapshot.length === 0 && (
             <p className="text-gray-500 italic text-sm text-center py-4">{t('addCard.noMediaPlayers')}</p>
           )}
         </div>
@@ -330,13 +394,14 @@ export default function AddCardContent({
               {!selectedAndroidTVRemoteId ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             </div>
           </button>
-          {filterAndSort(Object.keys(entities).filter(id => id.startsWith('remote.'))).map(id => (
-            <EntityItem key={id} id={id} isSelected={selectedAndroidTVRemoteId === id} onClick={() => setSelectedAndroidTVRemoteId(prev => prev === id ? null : id)} />
+          {visibleRemotes.map(({ id, name }) => (
+            <EntityItem key={id} id={id} displayName={name} isSelected={selectedAndroidTVRemoteId === id} onClick={() => setSelectedAndroidTVRemoteId(prev => prev === id ? null : id)} />
           ))}
         </div>
       </div>
     </div>
   );
+  };
 
   const renderSimpleAddSection = (Icon, description, buttonLabel) => (
     <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
@@ -436,15 +501,22 @@ export default function AddCardContent({
     </div>
   );
 
-  const renderNordpoolSection = () => (
+  const renderNordpoolSection = () => {
+    const lowerSearch = searchTerm.toLowerCase();
+    const visibleNordpool = nordpoolOptionsSnapshot.filter(({ id, name }) => {
+      if (!searchTerm) return true;
+      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
+    });
+
+    return (
     <div className="space-y-8">
       <div>
         <p className="text-xs uppercase font-bold text-gray-500 ml-4 mb-4">{t('addCard.nordpoolSensorRequired')}</p>
         <div className="space-y-3">
-          {filterAndSort(Object.keys(entities).filter(id => id.startsWith('sensor.') && id.toLowerCase().includes('nordpool'))).map(id => (
-            <EntityItem key={id} id={id} isSelected={selectedNordpoolId === id} onClick={() => setSelectedNordpoolId(prev => prev === id ? null : id)} />
+          {visibleNordpool.map(({ id, name }) => (
+            <EntityItem key={id} id={id} displayName={name} isSelected={selectedNordpoolId === id} onClick={() => setSelectedNordpoolId(prev => prev === id ? null : id)} />
           ))}
-          {Object.keys(entities).filter(id => id.startsWith('sensor.') && id.toLowerCase().includes('nordpool')).length === 0 && (
+          {nordpoolOptionsSnapshot.length === 0 && (
             <p className="text-gray-500 italic text-sm text-center py-4">{t('addCard.noNordpoolSensors')}</p>
           )}
         </div>
@@ -466,6 +538,7 @@ export default function AddCardContent({
       </div>
     </div>
   );
+  };
 
   const renderGenericEntityList = () => {
     const filteredIds = getFilteredEntityIds();
@@ -674,3 +747,25 @@ export default function AddCardContent({
     </div>
   );
 }
+
+const FLICKER_PRONE_TYPES = new Set(['androidtv', 'weather', 'nordpool']);
+
+function areAddCardPropsEqual(prev, next) {
+  const freezeType = FLICKER_PRONE_TYPES.has(prev.addCardType) && FLICKER_PRONE_TYPES.has(next.addCardType);
+  if (!freezeType) return false;
+
+  return (
+    prev.addCardType === next.addCardType
+    && prev.addCardTargetPage === next.addCardTargetPage
+    && prev.searchTerm === next.searchTerm
+    && prev.selectedWeatherId === next.selectedWeatherId
+    && prev.selectedTempId === next.selectedTempId
+    && prev.selectedAndroidTVMediaId === next.selectedAndroidTVMediaId
+    && prev.selectedAndroidTVRemoteId === next.selectedAndroidTVRemoteId
+    && prev.selectedNordpoolId === next.selectedNordpoolId
+    && prev.nordpoolDecimals === next.nordpoolDecimals
+    && prev.t === next.t
+  );
+}
+
+export default React.memo(AddCardContent, areAddCardPropsEqual);

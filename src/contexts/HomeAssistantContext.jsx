@@ -73,6 +73,7 @@ function useThrottledEntities() {
 /** @param {HomeAssistantProviderProps} props */
 export const HomeAssistantProvider = ({ children, config }) => {
   const [entities, setEntities] = useThrottledEntities();
+  const [entitiesLoaded, setEntitiesLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [haUnavailable, setHaUnavailable] = useState(false);
   const [haUnavailableVisible, setHaUnavailableVisible] = useState(false);
@@ -141,6 +142,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const isCurrentAttempt = () => !cancelled && connectAttemptRef.current === attemptId;
 
     setConnected(false);
+    setEntitiesLoaded(false);
     cleanupConnection();
     setOauthExpired(false);
 
@@ -236,7 +238,10 @@ export const HomeAssistantProvider = ({ children, config }) => {
       persistConfig(url);
       fetchCurrentUser(connInstance);
       const unsub = subscribeEntities(connInstance, (updatedEntities) => {
-        if (isCurrentAttempt()) setEntities(updatedEntities);
+        if (isCurrentAttempt()) {
+          setEntities(updatedEntities);
+          setEntitiesLoaded(true);
+        }
       });
       unsubscribeEntitiesRef.current = typeof unsub === 'function' ? unsub : null;
       return connInstance;
@@ -273,7 +278,10 @@ export const HomeAssistantProvider = ({ children, config }) => {
       fetchHaConfig(connInstance);
       fetchCurrentUser(connInstance);
       const unsub = subscribeEntities(connInstance, (updatedEntities) => {
-        if (isCurrentAttempt()) setEntities(updatedEntities);
+        if (isCurrentAttempt()) {
+          setEntities(updatedEntities);
+          setEntitiesLoaded(true);
+        }
       });
       unsubscribeEntitiesRef.current = typeof unsub === 'function' ? unsub : null;
       return connInstance;
@@ -370,6 +378,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
 
   /** @type {HomeAssistantMetaValue} */
   const metaValue = useMemo(() => ({
+    entitiesLoaded,
     connected,
     haUnavailable,
     haUnavailableVisible,
@@ -379,7 +388,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     haConfig,
     authRef,
     haUser,
-  }), [connected, haUnavailable, haUnavailableVisible, oauthExpired, conn, activeUrl, haConfig, haUser]);
+  }), [entitiesLoaded, connected, haUnavailable, haUnavailableVisible, oauthExpired, conn, activeUrl, haConfig, haUser]);
 
   return (
     <HomeAssistantMetaContext.Provider value={metaValue}>

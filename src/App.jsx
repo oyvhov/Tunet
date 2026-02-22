@@ -112,6 +112,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
   const {
     entities,
+    entitiesLoaded,
     connected,
     haUnavailableVisible,
     oauthExpired,
@@ -393,6 +394,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     cardSettings,
     getCardSettingsKey,
     entities,
+    entitiesLoaded,
     conn,
     customNames,
     customIcons,

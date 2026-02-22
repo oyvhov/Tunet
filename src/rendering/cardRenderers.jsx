@@ -34,6 +34,11 @@ import { Activity, Hash, ToggleRight, Power, Workflow } from '../icons';
 import { getIconComponent } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
 
+function renderMissingEntityWhenReady(ctx, props) {
+  if (!ctx?.entitiesLoaded) return null;
+  return <MissingEntityCard {...props} />;
+}
+
 // ─── Individual Card Renderers ───────────────────────────────────────────────
 
 export function renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
@@ -41,10 +46,7 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
   const entity = entities[cardId];
 
   if (!entity) {
-    if (editMode) {
-      return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={t} />;
-    }
-    return null;
+    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: cardId, t });
   }
 
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
@@ -200,6 +202,9 @@ export function renderFanCard(fanId, dragProps, getControls, cardStyle, settings
 
 export function renderMediaPlayerCard(mpId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const { entities, editMode, customNames, getA, getEntityImageUrl, callService, isMediaActive, openMediaModal, cardSettings, t } = ctx;
+  if (!entities[mpId]) {
+    return renderMissingEntityWhenReady(ctx, { cardId: mpId, dragProps, controls: getControls(mpId), cardStyle, missingEntityId: mpId, t });
+  }
   return (
     <MediaPlayerCard
       key={mpId} mpId={mpId} cardId={mpId} dragProps={dragProps} controls={getControls(mpId)}
@@ -228,6 +233,14 @@ export function renderMediaGroupCard(cardId, dragProps, getControls, cardStyle, 
 
 export function renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const { entities, editMode, cardSettings, tempHistoryById, forecastsById, setShowWeatherModal, t } = ctx;
+  const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const weatherId = settings.weatherId;
+  const weatherEntity = weatherId ? entities[weatherId] : null;
+
+  if (!weatherEntity) {
+    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: weatherId || cardId, t });
+  }
+
   return (
     <WeatherTempCard
       cardId={cardId}
@@ -256,10 +269,7 @@ export function renderGenericClimateCard(cardId, dragProps, getControls, cardSty
   const entity = entityId ? entities[entityId] : null;
 
   if (!entity || !entityId) {
-    if (editMode) {
-      return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={t} />;
-    }
-    return null;
+    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: entityId || cardId, t });
   }
 
   return (
@@ -312,7 +322,9 @@ export function renderGenericAndroidTVCard(cardId, dragProps, getControls, cardS
   const remoteId = settings.remoteId;
   const linkedMediaPlayers = settings.linkedMediaPlayers;
 
-  if (!mediaPlayerId) return null;
+  if (!mediaPlayerId || !entities[mediaPlayerId]) {
+    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: mediaPlayerId || cardId, t });
+  }
 
   return (
     <GenericAndroidTVCard
@@ -404,7 +416,9 @@ export function renderNordpoolCard(cardId, dragProps, getControls, cardStyle, se
   const { entities, editMode, cardSettings, customNames, customIcons, saveCardSetting, setShowNordpoolModal, t } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const entity = entities[settings.nordpoolId];
-  if (!entity) return null;
+  if (!entity) {
+    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: settings.nordpoolId || cardId, t });
+  }
 
   return (
     <GenericNordpoolCard
@@ -431,10 +445,7 @@ export function renderCoverCard(cardId, dragProps, getControls, cardStyle, setti
   const entity = entityId ? entities[entityId] : null;
 
   if (!entity || !entityId) {
-    if (editMode) {
-      return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={t} />;
-    }
-    return null;
+    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: entityId || cardId, t });
   }
 
   return (
@@ -494,10 +505,7 @@ export function renderCameraCard(cardId, dragProps, getControls, cardStyle, sett
   const sizeSetting = settings.size;
 
   if (!entity || !entityId) {
-    if (editMode) {
-      return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={t} />;
-    }
-    return null;
+    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: entityId || cardId, t });
   }
 
   return (

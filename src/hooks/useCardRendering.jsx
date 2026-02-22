@@ -17,6 +17,7 @@ export function useCardRendering({
   cardSettings,
   getCardSettingsKey,
   entities,
+  entitiesLoaded,
   conn,
   customNames,
   customIcons,
@@ -205,7 +206,7 @@ export function useCardRendering({
     };
 
     const ctx = {
-      entities, editMode, conn, cardSettings, customNames, customIcons,
+      entities, entitiesLoaded, editMode, conn, cardSettings, customNames, customIcons,
       getA, getS, getEntityImageUrl, callService, isMediaActive,
       saveCardSetting, language, isMobile, activePage, t,
       optimisticLightBrightness, setOptimisticLightBrightness,
@@ -244,6 +245,7 @@ export function useCardRendering({
     t,
     touchPath,
     entities,
+    entitiesLoaded,
     conn,
     customNames,
     customIcons,
