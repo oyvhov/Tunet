@@ -13,6 +13,7 @@ const ENTITY_SETTING_KEYS = [
   'calendarEntity',
   'climateEntity',
   'coverEntity',
+  'alarmId',
   'cameraEntity',
   'weatherEntity',
   'weatherId',

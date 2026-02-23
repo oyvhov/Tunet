@@ -57,10 +57,19 @@ if (isProduction) {
 
     app.use(express.static(distPath, {
       index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      },
     }));
 
     app.get('/index.html', (_req, res) => {
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.sendFile(join(distPath, 'index.html'));
     });
 
@@ -72,7 +81,9 @@ if (isProduction) {
       if (req.path.includes('.')) {
         return res.status(404).end();
       }
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.sendFile(join(distPath, 'index.html'));
     });
   } else {

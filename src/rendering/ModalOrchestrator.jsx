@@ -27,6 +27,8 @@ const GenericAndroidTVModal = lazy(() => import('../modals/GenericAndroidTVModal
 const GenericClimateModal = lazy(() => import('../modals/GenericClimateModal'));
 const GenericFanModal = lazy(() => import('../modals/GenericFanModal'));
 const CoverModal = lazy(() => import('../modals/CoverModal'));
+const AlarmModal = lazy(() => import('../modals/AlarmModal'));
+const AlarmActionPinModal = lazy(() => import('../modals/AlarmActionPinModal'));
 const CameraModal = lazy(() => import('../modals/CameraModal'));
 const WeatherModal = lazy(() => import('../modals/WeatherModal'));
 const LeafModal = lazy(() => import('../modals/LeafModal'));
@@ -68,6 +70,8 @@ export default function ModalOrchestrator({
     showTodoModal, setShowTodoModal,
     showRoomModal, setShowRoomModal,
     showCoverModal, setShowCoverModal,
+    showAlarmModal, setShowAlarmModal,
+    showAlarmActionModal, setShowAlarmActionModal,
     showCameraModal, setShowCameraModal,
     showWeatherModal, setShowWeatherModal,
     activeMediaModal, setActiveMediaModal,
@@ -185,6 +189,7 @@ export default function ModalOrchestrator({
     const isEditCar = !!editId && (editId === 'car' || editId.startsWith('car_card_'));
     const isEditRoom = !!editId && editId.startsWith('room_card_');
     const isEditCover = !!editId && editId.startsWith('cover_card_');
+    const isEditAlarm = !!editId && editId.startsWith('alarm_card_');
     const isEditSpacer = !!editId && editId.startsWith('spacer_card_');
     const isEditCamera = !!editId && editId.startsWith('camera_card_');
     const isEditFan = !!editId && (editId.startsWith('fan.') || editId.startsWith('fan_card_'));
@@ -194,12 +199,12 @@ export default function ModalOrchestrator({
     const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
     const canEditName = !!editId && !isEditWeatherTemp && !isEditSpacer && editId !== 'media_player' && editId !== 'sonos';
     const isEditNordpool = !!editId && editId.startsWith('nordpool_card_');
-    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditNordpool || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('camera_card_') || (!!editEntity && !isEditMedia) || editId === 'car' || editId.startsWith('car_card_') || isEditFan);
+    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditAlarm || isEditNordpool || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('camera_card_') || (!!editEntity && !isEditMedia) || editId === 'car' || editId.startsWith('car_card_') || isEditFan);
     const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
     return {
       canEditName, canEditIcon, canEditStatus,
       isEditLight, isEditMedia, isEditCalendar, isEditTodo, isEditCost, isEditNordpool, isEditGenericType,
-      isEditAndroidTV, isEditCar, isEditRoom, isEditSpacer, isEditCamera, isEditSensor, isEditWeatherTemp, isEditFan,
+      isEditAndroidTV, isEditCar, isEditRoom, isEditSpacer, isEditCamera, isEditSensor, isEditWeatherTemp, isEditFan, isEditAlarm,
       editSettingsKey, editSettings,
     };
   }, [showEditCardModal, editSettingsKey, cardSettings, entities]);
@@ -596,6 +601,52 @@ export default function ModalOrchestrator({
               entity={coverEntity}
               callService={callService}
               customIcons={customIcons}
+              t={t}
+            />
+          </ModalSuspense>
+        );
+      })()}
+
+      {showAlarmModal && (() => {
+        const alarmSettingsKey = getCardSettingsKey(showAlarmModal);
+        const alarmSettings = cardSettings[alarmSettingsKey] || cardSettings[showAlarmModal] || {};
+        const alarmEntityId = alarmSettings.alarmId;
+        const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
+        if (!alarmEntityId || !alarmEntity) return null;
+        return (
+          <ModalSuspense>
+            <AlarmModal
+              show={true}
+              onClose={() => setShowAlarmModal(null)}
+              entityId={alarmEntityId}
+              entity={alarmEntity}
+              callService={callService}
+              customName={customNames?.[showAlarmModal]}
+              customIcon={customIcons?.[showAlarmModal]}
+              t={t}
+            />
+          </ModalSuspense>
+        );
+      })()}
+
+      {showAlarmActionModal && (() => {
+        const actionCardId = showAlarmActionModal.cardId;
+        const actionKey = showAlarmActionModal.actionKey;
+        const alarmSettingsKey = getCardSettingsKey(actionCardId);
+        const alarmSettings = cardSettings[alarmSettingsKey] || cardSettings[actionCardId] || {};
+        const alarmEntityId = alarmSettings.alarmId;
+        const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
+        if (!alarmEntityId || !alarmEntity || !actionKey) return null;
+
+        return (
+          <ModalSuspense>
+            <AlarmActionPinModal
+              show={true}
+              onClose={() => setShowAlarmActionModal(null)}
+              actionKey={actionKey}
+              entityId={alarmEntityId}
+              entity={alarmEntity}
+              callService={callService}
               t={t}
             />
           </ModalSuspense>

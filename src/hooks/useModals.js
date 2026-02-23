@@ -22,6 +22,8 @@ const MODAL_DEFAULTS = {
   showCoverModal: null,
   showCameraModal: null,
   showWeatherModal: null,
+  showAlarmModal: null,
+  showAlarmActionModal: null,
   activeMediaModal: null,
   activeMediaGroupKey: null,
   activeMediaGroupIds: null,
@@ -44,6 +46,7 @@ const OPEN_CHECK_KEYS = [
   'showSensorInfoModal', 'activeMediaModal', 'showStatusPillsConfig',
   'showPersonModal', 'showCalendarModal', 'showTodoModal',
   'showRoomModal', 'showWeatherModal', 'showCoverModal', 'showCameraModal',
+  'showAlarmModal', 'showAlarmActionModal',
 ];
 
 /** @param {ModalState} state @param {{ type: 'SET', key: keyof ModalState, value: ModalState[keyof ModalState] } | { type: 'CLOSE_ALL' }} action */

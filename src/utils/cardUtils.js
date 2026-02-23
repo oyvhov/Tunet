@@ -10,14 +10,14 @@ const REMOVABLE_PREFIXES = [
   'light_', 'light.', 'vacuum.', 'media_player.', 'media_group_',
   'weather_temp_', 'calendar_card_', 'climate_card_', 'cost_card_',
   'androidtv_card_', 'car_card_', 'nordpool_card_', 'todo_card_', 'room_card_',
-  'cover_card_', 'camera_card_', 'spacer_card_', 'fan.',
+  'cover_card_', 'camera_card_', 'alarm_card_', 'spacer_card_', 'fan.',
 ];
 
 /** Prefixes for "special" composite cards that don't map 1:1 to an entity. */
 const SPECIAL_CARD_PREFIXES = [
   'media_group_', 'weather_temp_', 'calendar_card_', 'climate_card_',
   'cost_card_', 'androidtv_card_', 'car_card_', 'nordpool_card_',
-  'todo_card_', 'room_card_', 'cover_card_', 'camera_card_', 'spacer_card_',
+  'todo_card_', 'room_card_', 'cover_card_', 'camera_card_', 'alarm_card_', 'spacer_card_',
 ];
 
 /**
