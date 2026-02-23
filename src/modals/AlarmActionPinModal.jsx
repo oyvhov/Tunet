@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Home, LogOut, Moon, Shield, Sun, Unlock, X } from '../icons';
+import { Home, LogOut, Moon, Shield, Sun, Unlock, X } from '../icons';
 
 const ACTION_META = {
   arm_home: { labelKey: 'alarm.action.armHome', icon: Home, service: 'alarm_arm_home' },
@@ -12,7 +12,8 @@ const ACTION_META = {
 
 function requiresCode(actionKey, entity) {
   const codeFormat = entity?.attributes?.code_format || 'none';
-  if (codeFormat === 'none') return false;
+  const hasCode = codeFormat !== 'none';
+  if (!hasCode) return false;
   if (actionKey === 'disarm') return true;
   return entity?.attributes?.code_arm_required === true;
 }
@@ -49,11 +50,12 @@ export default function AlarmActionPinModal({
 
     try {
       const payload = { entity_id: entityId };
-      if (pin.trim()) payload.code = pin.trim();
+      if (needsCode && pin.trim()) payload.code = pin.trim();
       await callService('alarm_control_panel', actionMeta.service, payload);
       setPin('');
       onClose();
     } catch {
+      setPin('');
       setError(translate('alarm.error.serviceFailed'));
     } finally {
       setSubmitting(false);
@@ -70,14 +72,13 @@ export default function AlarmActionPinModal({
   }, [show]);
 
   useEffect(() => {
-    if (!show || submitting || !needsCode) return;
-    if (pin.length !== 4) return;
-    submit();
-  }, [pin, show, submitting, needsCode, submit]);
+    if (!show) return;
+    setError('');
+  }, [show]);
 
   if (!show || !actionMeta || !entityId || !entity) return null;
 
-  const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '✓'];
+  const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✓'];
 
   return (
     <div
@@ -115,19 +116,25 @@ export default function AlarmActionPinModal({
               setPin(event.target.value.replace(/\D/g, '').slice(0, 12));
               if (error) setError('');
             }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                submit();
-              }
-            }}
             placeholder={translate('alarm.pin.placeholder')}
-            className="w-full px-3 py-2 rounded-xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-primary)] text-sm outline-none"
+            className="w-full px-4 py-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-primary)] text-lg tracking-[0.35em] text-center outline-none"
           />
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-3">
             {keypadDigits.map((digit, index) => {
-              if (digit === '') return <div key={`blank-${index}`} />;
+              if (digit === '⌫') {
+                return (
+                  <button
+                    key={`undo-${index}`}
+                    type="button"
+                    onClick={() => setPin((value) => value.slice(0, -1))}
+                    className="h-14 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] text-xl font-semibold transition-colors hover:bg-[var(--glass-bg-hover)]"
+                  >
+                    {digit}
+                  </button>
+                );
+              }
+
               if (digit === '✓') {
                 return (
                   <button
@@ -135,7 +142,7 @@ export default function AlarmActionPinModal({
                     type="button"
                     onClick={submit}
                     disabled={submitting}
-                    className="h-10 rounded-xl border bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] font-semibold disabled:opacity-50"
+                    className="h-14 rounded-2xl bg-[var(--accent-bg)] text-[var(--accent-color)] text-2xl font-semibold disabled:opacity-50"
                   >
                     {digit}
                   </button>
@@ -147,31 +154,12 @@ export default function AlarmActionPinModal({
                   key={digit}
                   type="button"
                   onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
-                  className="h-10 rounded-xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-primary)] font-semibold"
+                  className="h-14 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-primary)] text-2xl font-semibold transition-colors hover:bg-[var(--glass-bg-hover)]"
                 >
                   {digit}
                 </button>
               );
             })}
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setPin((value) => value.slice(0, -1))}
-              className="flex-1 py-2 rounded-xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest"
-            >
-              ⌫
-            </button>
-            <button
-              type="button"
-              onClick={submit}
-              disabled={submitting}
-              className="flex-1 py-2 rounded-xl border bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] text-xs font-bold uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5" />
-              {translate('common.ok')}
-            </button>
           </div>
         </div>
 

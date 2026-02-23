@@ -1,4 +1,6 @@
-import { AlertTriangle, Bell, Home, Lock, LogOut, Moon, RefreshCw, Shield, Sun, Unlock } from '../../icons';
+import { AlertTriangle, Home, Lock, LogOut, Moon, RefreshCw, Shield, Sun, Unlock } from '../../icons';
+import MdiIcon from '@mdi/react';
+import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
 
 const FEATURE_ARM_HOME = 1;
 const FEATURE_ARM_AWAY = 2;
@@ -34,10 +36,8 @@ function requiresCode(actionKey, entity) {
   const codeFormat = entity?.attributes?.code_format || 'none';
   const hasCode = codeFormat !== 'none';
   if (!hasCode) return false;
-
   if (actionKey === 'disarm') return true;
-  const codeArmRequired = entity?.attributes?.code_arm_required === true;
-  return codeArmRequired;
+  return entity?.attributes?.code_arm_required === true;
 }
 
 function isUnsupportedCodeFormat(entity) {
@@ -45,12 +45,32 @@ function isUnsupportedCodeFormat(entity) {
   return codeFormat !== 'none' && codeFormat !== 'number';
 }
 
-function getStateIcon(state) {
-  if (state === 'triggered') return AlertTriangle;
-  if (state === 'disarmed') return Unlock;
-  if (state === 'arming' || state === 'disarming' || state === 'pending') return RefreshCw;
-  if (state === 'unavailable' || state === 'unknown') return AlertTriangle;
-  return Lock;
+function getStateVisual(state) {
+  if (state === 'disarmed') {
+    return {
+      mdiPath: mdiShieldOff,
+      iconColor: '#3b82f6',
+      iconBgStyle: { backgroundColor: 'rgba(59, 130, 246, 0.2)' },
+    };
+  }
+  if (state === 'armed_home') {
+    return {
+      mdiPath: mdiShieldHome,
+      iconColor: '#22c55e',
+      iconBgStyle: { backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+    };
+  }
+  if (state === 'armed_away') {
+    return {
+      mdiPath: mdiShieldLock,
+      iconColor: '#22c55e',
+      iconBgStyle: { backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+    };
+  }
+  if (state === 'triggered') return { Icon: AlertTriangle, iconColor: 'var(--text-primary)', iconBgStyle: { backgroundColor: 'var(--glass-bg)' } };
+  if (state === 'arming' || state === 'disarming' || state === 'pending') return { Icon: RefreshCw, iconColor: 'var(--text-primary)', iconBgStyle: { backgroundColor: 'var(--glass-bg)' } };
+  if (state === 'unavailable' || state === 'unknown') return { Icon: AlertTriangle, iconColor: 'var(--text-primary)', iconBgStyle: { backgroundColor: 'var(--glass-bg)' } };
+  return { Icon: Lock, iconColor: 'var(--text-primary)', iconBgStyle: { backgroundColor: 'var(--glass-bg)' } };
 }
 
 export default function AlarmCard({
@@ -59,6 +79,7 @@ export default function AlarmCard({
   entity,
   dragProps,
   controls,
+  settings,
   cardStyle,
   editMode,
   customNames,
@@ -75,35 +96,97 @@ export default function AlarmCard({
   const isTriggered = state === 'triggered';
   const inTransition = TRANSITION_STATES.has(state);
   const isDisarmed = state === 'disarmed';
+  const isSmall = settings?.size === 'small';
   const unsupportedCode = isUnsupportedCodeFormat(entity);
   const availableArmActions = getAvailableArmActions(entity);
-  const StateIcon = getStateIcon(state);
+  const stateVisual = getStateVisual(state);
+  const StateIcon = stateVisual.Icon || Lock;
 
   const name = customNames?.[cardId] || entity.attributes?.friendly_name || entityId;
 
   const quickActions = [];
   if (!inTransition && !isUnavailable) {
     if (isDisarmed) {
-      quickActions.push(...availableArmActions.slice(0, 2));
+      quickActions.push(...availableArmActions.slice(0, isSmall ? 1 : 2));
     } else {
       quickActions.push(DISARM_ACTION);
     }
   }
 
+  const primaryAction = quickActions[0] || null;
+
   const runQuickAction = async (event, actionKey) => {
     event.stopPropagation();
     if (editMode || isUnavailable || inTransition) return;
-    if (onOpenAction) {
+    const mustOpenModal = unsupportedCode || requiresCode(actionKey, entity);
+    if (mustOpenModal && onOpenAction) {
       onOpenAction(actionKey);
       return;
     }
-    const mustOpenModal = unsupportedCode || requiresCode(actionKey, entity);
     if (mustOpenModal && onOpen) {
       onOpen();
       return;
     }
     await onAction(actionKey);
   };
+
+  if (isSmall) {
+    return (
+      <div
+        {...dragProps}
+        data-haptic={editMode ? undefined : 'card'}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (!editMode && onOpen) onOpen();
+        }}
+        className={`glass-texture touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-3 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${
+          !editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'
+        }`}
+        style={{ ...cardStyle, containerType: 'inline-size' }}
+      >
+        {controls}
+
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3" style={stateVisual.iconBgStyle}>
+            {stateVisual.mdiPath ? (
+              <MdiIcon
+                path={stateVisual.mdiPath}
+                size={0.95}
+                color={stateVisual.iconColor}
+                className={inTransition ? 'animate-spin' : ''}
+              />
+            ) : (
+              <StateIcon
+                className={`w-5 h-5 ${inTransition ? 'animate-spin' : ''}`}
+                color={stateVisual.iconColor}
+                style={{ color: stateVisual.iconColor }}
+              />
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0 pr-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)] truncate leading-none">{name}</p>
+            </div>
+          </div>
+        </div>
+
+        {primaryAction ? (
+          <button
+            type="button"
+            onClick={(event) => runQuickAction(event, primaryAction.key)}
+            className="h-11 min-w-[6.5rem] px-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-primary)] text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-[var(--glass-bg-hover)] disabled:opacity-50"
+            disabled={isUnavailable || inTransition}
+          >
+            <span className="flex items-center justify-center gap-1.5">
+              <primaryAction.icon className="w-3.5 h-3.5" />
+              {translate(primaryAction.labelKey)}
+            </span>
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -122,12 +205,21 @@ export default function AlarmCard({
 
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-[var(--glass-bg)] text-[var(--text-primary)] border border-[var(--glass-border)]">
-            <StateIcon className={`w-5 h-5 ${inTransition ? 'animate-spin' : ''}`} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)] truncate">{name}</p>
-            <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{getStateLabel(state, translate)}</p>
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3" style={stateVisual.iconBgStyle}>
+            {stateVisual.mdiPath ? (
+              <MdiIcon
+                path={stateVisual.mdiPath}
+                size={0.95}
+                color={stateVisual.iconColor}
+                className={inTransition ? 'animate-spin' : ''}
+              />
+            ) : (
+              <StateIcon
+                className={`w-5 h-5 ${inTransition ? 'animate-spin' : ''}`}
+                color={stateVisual.iconColor}
+                style={{ color: stateVisual.iconColor }}
+              />
+            )}
           </div>
         </div>
 
@@ -137,6 +229,10 @@ export default function AlarmCard({
       </div>
 
       <div className="space-y-2">
+        <div className="flex items-baseline gap-1 leading-none">
+          <span className="text-3xl font-thin text-[var(--text-primary)] leading-none truncate">{getStateLabel(state, translate)}</span>
+        </div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-60 truncate leading-none">{name}</p>
         {entity.attributes?.changed_by && (
           <p className="text-[11px] text-[var(--text-secondary)] truncate">
             {translate('alarm.changedBy')}: {entity.attributes.changed_by}
@@ -159,7 +255,7 @@ export default function AlarmCard({
             key={action.key}
             type="button"
             onClick={(event) => runQuickAction(event, action.key)}
-            className="flex-1 py-2 px-3 rounded-xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-primary)] text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-[var(--glass-bg-hover)] disabled:opacity-50"
+            className="flex-1 h-12 px-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-primary)] text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-[var(--glass-bg-hover)] disabled:opacity-50"
             disabled={isUnavailable || inTransition}
           >
             <span className="flex items-center justify-center gap-1.5">
@@ -168,17 +264,6 @@ export default function AlarmCard({
             </span>
           </button>
         ))}
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            if (!editMode && onOpen) onOpen();
-          }}
-          className="w-9 h-9 rounded-xl border flex items-center justify-center bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-          aria-label={translate('alarm.action.openControls')}
-        >
-          <Bell className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Check, Home, Lock, LogOut, Moon, RefreshCw, Shield, Sun, Unlock, X } from '../icons';
+import MdiIcon from '@mdi/react';
+import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
 
 const FEATURE_ARM_HOME = 1;
 const FEATURE_ARM_AWAY = 2;
@@ -15,7 +17,7 @@ const ACTIONS = [
   { key: 'arm_custom_bypass', feature: FEATURE_ARM_CUSTOM_BYPASS, labelKey: 'alarm.action.armCustomBypass', icon: Shield },
 ];
 
-const DISARM_ACTION = { key: 'disarm', labelKey: 'alarm.action.disarm', icon: Unlock, emphasized: true };
+const DISARM_ACTION = { key: 'disarm', labelKey: 'alarm.action.disarm', icon: Unlock };
 
 const SERVICE_MAP = {
   arm_home: 'alarm_arm_home',
@@ -35,7 +37,6 @@ function requiresCode(actionKey, entity) {
   const codeFormat = entity?.attributes?.code_format || 'none';
   const hasCode = codeFormat !== 'none';
   if (!hasCode) return false;
-
   if (actionKey === 'disarm') return true;
   return entity?.attributes?.code_arm_required === true;
 }
@@ -47,12 +48,32 @@ function getStateLabel(state, t) {
   return state || t('common.unknown');
 }
 
-function getStateIcon(state) {
-  if (state === 'triggered') return AlertTriangle;
-  if (state === 'disarmed') return Unlock;
-  if (state === 'arming' || state === 'disarming' || state === 'pending') return RefreshCw;
-  if (state === 'unavailable' || state === 'unknown') return AlertTriangle;
-  return Lock;
+function getStateVisual(state) {
+  if (state === 'disarmed') {
+    return {
+      mdiPath: mdiShieldOff,
+      iconColor: '#3b82f6',
+      iconBgStyle: { backgroundColor: 'rgba(59, 130, 246, 0.2)' },
+    };
+  }
+  if (state === 'armed_home') {
+    return {
+      mdiPath: mdiShieldHome,
+      iconColor: '#22c55e',
+      iconBgStyle: { backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+    };
+  }
+  if (state === 'armed_away') {
+    return {
+      mdiPath: mdiShieldLock,
+      iconColor: '#22c55e',
+      iconBgStyle: { backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+    };
+  }
+  if (state === 'triggered') return { Icon: AlertTriangle, iconColor: 'var(--text-primary)', iconBgStyle: { backgroundColor: 'var(--glass-bg)' } };
+  if (state === 'arming' || state === 'disarming' || state === 'pending') return { Icon: RefreshCw, iconColor: 'var(--text-primary)', iconBgStyle: { backgroundColor: 'var(--glass-bg)' } };
+  if (state === 'unavailable' || state === 'unknown') return { Icon: AlertTriangle, iconColor: 'var(--text-primary)', iconBgStyle: { backgroundColor: 'var(--glass-bg)' } };
+  return { Icon: Lock, iconColor: 'var(--text-primary)', iconBgStyle: { backgroundColor: 'var(--glass-bg)' } };
 }
 
 export default function AlarmModal({
@@ -83,12 +104,12 @@ export default function AlarmModal({
   const canDisarm = !isUnavailable && state !== 'disarmed';
   const actionButtons = useMemo(() => ([
     ...(canDisarm ? [DISARM_ACTION] : []),
-    ...availableArmActions.map((action) => ({ key: action.key, labelKey: action.labelKey, icon: action.icon, emphasized: false })),
+    ...availableArmActions.map((action) => ({ key: action.key, labelKey: action.labelKey, icon: action.icon })),
   ]), [canDisarm, availableArmActions]);
 
-  const codeFormat = safeEntity.attributes?.code_format || 'none';
   const name = customName || safeEntity.attributes?.friendly_name || entityId;
-  const StateIcon = getStateIcon(state);
+  const stateVisual = getStateVisual(state);
+  const StateIcon = stateVisual.Icon || Lock;
 
   useEffect(() => {
     if (!show) return;
@@ -130,6 +151,7 @@ export default function AlarmModal({
       await callService('alarm_control_panel', service, payload);
       if (needsCode) setPin('');
     } catch {
+      if (needsCode) setPin('');
       setError(translate('alarm.error.serviceFailed'));
     } finally {
       setBusyAction(null);
@@ -141,7 +163,7 @@ export default function AlarmModal({
     await callAlarmService(selectedAction);
   };
 
-  const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '✓'];
+  const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✓'];
   const selectedActionMeta = actionButtons.find((action) => action.key === selectedAction) || null;
 
   return (
@@ -160,8 +182,21 @@ export default function AlarmModal({
         </button>
 
         <div className="flex items-center gap-4 mb-6">
-          <div className="p-4 rounded-2xl border popup-surface">
-            <StateIcon className={`w-7 h-7 ${state === 'arming' || state === 'disarming' || state === 'pending' ? 'animate-spin' : ''}`} />
+          <div className="p-4 rounded-2xl popup-surface" style={stateVisual.iconBgStyle}>
+            {stateVisual.mdiPath ? (
+              <MdiIcon
+                path={stateVisual.mdiPath}
+                size={1.2}
+                color={stateVisual.iconColor}
+                className={state === 'arming' || state === 'disarming' || state === 'pending' ? 'animate-spin' : ''}
+              />
+            ) : (
+              <StateIcon
+                className={`w-7 h-7 ${state === 'arming' || state === 'disarming' || state === 'pending' ? 'animate-spin' : ''}`}
+                color={stateVisual.iconColor}
+                style={{ color: stateVisual.iconColor }}
+              />
+            )}
           </div>
           <div>
             <h3 className="text-2xl font-light tracking-tight uppercase italic leading-none">{name}</h3>
@@ -174,11 +209,12 @@ export default function AlarmModal({
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 popup-surface rounded-3xl p-5 space-y-4">
             <p className="text-xs uppercase font-bold tracking-widest text-[var(--text-secondary)]">{translate('alarm.modal.actions')}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               {actionButtons.map((action) => {
                 const needsCode = requiresCode(action.key, entity);
                 const disabled = !!busyAction || isUnavailable || (unsupportedCode && needsCode);
-                const selected = busyAction === action.key;
+                const isBusy = busyAction === action.key;
+                const isSelected = selectedAction === action.key;
                 return (
                   <button
                     key={action.key}
@@ -189,7 +225,7 @@ export default function AlarmModal({
                     }}
                     disabled={disabled}
                     className="w-full p-3 rounded-2xl border text-left transition-colors disabled:opacity-50"
-                    style={(selectedAction === action.key || action.emphasized)
+                    style={(selectedAction === action.key)
                       ? {
                           backgroundColor: 'var(--accent-bg)',
                           borderColor: 'var(--accent-color)',
@@ -206,7 +242,11 @@ export default function AlarmModal({
                         <action.icon className="w-4 h-4" />
                         {translate(action.labelKey)}
                       </span>
-                      {selected ? <span className="text-[10px] uppercase tracking-widest">{translate('common.loading')}</span> : <Check className="w-4 h-4" />}
+                      {isBusy ? (
+                        <span className="text-[10px] uppercase tracking-widest">{translate('common.loading')}</span>
+                      ) : isSelected ? (
+                        <Check className="w-5 h-5" />
+                      ) : null}
                     </div>
                     {needsCode && (
                       <p className="text-[10px] mt-1 uppercase tracking-wider opacity-80">{translate('alarm.pin.required')}</p>
@@ -232,25 +272,30 @@ export default function AlarmModal({
                 if (error) setError('');
               }}
               placeholder={translate('alarm.pin.placeholder')}
-              className="w-full px-3 py-2 rounded-xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-primary)] text-sm outline-none"
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  runSelectedAction();
-                }
-              }}
+              className="w-full px-4 py-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-primary)] text-lg tracking-[0.35em] text-center outline-none"
             />
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3">
               {keypadDigits.map((digit, index) => {
-                if (digit === '') return <div key={`blank-${index}`} />;
+                if (digit === '⌫') {
+                  return (
+                    <button
+                      key={`undo-${index}`}
+                      type="button"
+                      onClick={() => setPin((value) => value.slice(0, -1))}
+                      className="h-14 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] text-xl font-semibold transition-colors hover:bg-[var(--glass-bg-hover)]"
+                    >
+                      {digit}
+                    </button>
+                  );
+                }
                 if (digit === '✓') {
                   return (
                     <button
                       key="ok"
                       type="button"
                       onClick={runSelectedAction}
-                      className="h-10 rounded-xl border bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] font-semibold"
+                      className="h-14 rounded-2xl bg-[var(--accent-bg)] text-[var(--accent-color)] text-2xl font-semibold"
                     >
                       {digit}
                     </button>
@@ -261,7 +306,7 @@ export default function AlarmModal({
                     key={digit}
                     type="button"
                     onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
-                    className="h-10 rounded-xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-primary)] font-semibold"
+                    className="h-14 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-primary)] text-2xl font-semibold transition-colors hover:bg-[var(--glass-bg-hover)]"
                   >
                     {digit}
                   </button>
@@ -269,33 +314,15 @@ export default function AlarmModal({
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setPin((value) => value.slice(0, -1))}
-              className="w-full py-2 rounded-xl border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest"
-            >
-              ⌫
-            </button>
-
-            <button
-              type="button"
-              onClick={runSelectedAction}
-              disabled={!selectedAction || !!busyAction || isUnavailable}
-              className="w-full py-2.5 rounded-xl border text-xs font-bold uppercase tracking-widest disabled:opacity-50"
-              style={{
-                backgroundColor: 'var(--accent-bg)',
-                borderColor: 'var(--accent-color)',
-                color: 'var(--accent-color)',
-              }}
-            >
-              {translate('common.ok')}
-              {selectedActionMeta ? ` · ${translate(selectedActionMeta.labelKey)}` : ''}
-            </button>
+            {selectedActionMeta && (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] text-center">
+                {translate(selectedActionMeta.labelKey)}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="mt-5 text-sm text-[var(--text-secondary)] space-y-2">
-          <p>{translate('alarm.code.format')}: {codeFormat}</p>
           {entity.attributes?.changed_by && <p>{translate('alarm.changedBy')}: {entity.attributes.changed_by}</p>}
           {unsupportedCode && (
             <p className="flex items-center gap-2">

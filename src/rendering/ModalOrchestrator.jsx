@@ -204,7 +204,7 @@ export default function ModalOrchestrator({
     return {
       canEditName, canEditIcon, canEditStatus,
       isEditLight, isEditMedia, isEditCalendar, isEditTodo, isEditCost, isEditNordpool, isEditGenericType,
-      isEditAndroidTV, isEditCar, isEditRoom, isEditSpacer, isEditCamera, isEditSensor, isEditWeatherTemp, isEditFan,
+      isEditAndroidTV, isEditCar, isEditRoom, isEditSpacer, isEditCamera, isEditSensor, isEditWeatherTemp, isEditFan, isEditAlarm,
       editSettingsKey, editSettings,
     };
   }, [showEditCardModal, editSettingsKey, cardSettings, entities]);

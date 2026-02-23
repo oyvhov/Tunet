@@ -6,6 +6,29 @@ import App from './App.jsx'
 import { ConfigProvider } from './contexts/ConfigContext'
 import { PageProvider } from './contexts/PageContext'
 
+function isChunkLoadError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return message.includes('failed to fetch dynamically imported module')
+    || message.includes('importing a module script failed')
+    || message.includes('loading chunk');
+}
+
+function reloadForChunkErrorOnce() {
+  if (typeof window === 'undefined') return;
+  const key = 'tunet_chunk_reload_once';
+  if (sessionStorage.getItem(key) === '1') return;
+  sessionStorage.setItem(key, '1');
+  const next = `${window.location.pathname}${window.location.search ? `${window.location.search}&` : '?'}v=${Date.now()}${window.location.hash || ''}`;
+  window.location.replace(next);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    if (!isChunkLoadError(event?.reason)) return;
+    reloadForChunkErrorOnce();
+  });
+}
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -18,6 +41,9 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('App Error:', error, errorInfo);
+    if (isChunkLoadError(error)) {
+      reloadForChunkErrorOnce();
+    }
   }
 
   render() {

@@ -535,6 +535,7 @@ export default function EditCardModal({
   isEditRoom,
   isEditAndroidTV,
   isEditFan,
+  isEditAlarm,
   editSettingsKey,
   editSettings,
   isEditWeatherTemp,
