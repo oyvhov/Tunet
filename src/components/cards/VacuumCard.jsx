@@ -97,10 +97,10 @@ const VacuumCard = ({
           </div>
         </div>
         <div className="vacuum-card-controls shrink-0">
-          <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95">
+          <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] transition-colors text-[var(--text-primary)] active:scale-95">
             {state === "cleaning" ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
           </button>
-          <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", "return_to_base", { entity_id: vacuumId }); }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95">
+          <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", "return_to_base", { entity_id: vacuumId }); }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95">
             <Home className="w-4 h-4" />
           </button>
         </div>
@@ -129,10 +129,10 @@ const VacuumCard = ({
            <h3 className="text-3xl font-thin text-[var(--text-primary)] leading-none">{statusText}</h3>
          </div>
          <div className="flex gap-2">
-           <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className={`${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-primary)] active:scale-95`}>
+           <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", state === "cleaning" ? "pause" : "start", { entity_id: vacuumId }); }} className={`${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] transition-colors text-[var(--text-primary)] active:scale-95`}>
              {state === "cleaning" ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
            </button>
-           <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", "return_to_base", { entity_id: vacuumId }); }} className={`${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95`}>
+           <button onClick={(e) => { e.stopPropagation(); if (!isUnavailable) callService("vacuum", "return_to_base", { entity_id: vacuumId }); }} className={`${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95`}>
              <Home className="w-5 h-5" />
            </button>
          </div>
