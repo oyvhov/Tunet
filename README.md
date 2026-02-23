@@ -9,6 +9,7 @@ A modern React dashboard for Home Assistant with real-time entity control, energ
 ### 🎴 Cards
 - **Universal Sensor Card**: One card to rule them all. Handles numeric sensors (with history graphs), binary sensors (doors, windows, motion), switches, input booleans, scripts, and scenes.
 - **Specialized Control Cards**: 
+  - **Alarm** (BETA): Arm/disarm with mode selection, PIN-protected actions, and quick-action keypad.
   - **Light**: Brightness, color (RGB/temp), and toggle limits.
   - **Climate**: Thermostat modes, target temperature, and HVAC action feedback.
   - **Media**: Generic media players + dedicated **Android TV** remote with app launching.
