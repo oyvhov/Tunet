@@ -5,6 +5,7 @@ import {
   updateProfile as apiUpdateProfile,
   deleteProfile as apiDeleteProfile,
 } from '../services/profileApi';
+import { useSettingsSync } from './useSettingsSync';
 import {
   collectSnapshot,
   applySnapshot,
@@ -73,6 +74,22 @@ function normalizePagesConfig(candidate, fallback) {
   return { pagesConfig: next, notes };
 }
 
+function normalizeImportedSnapshot(snapshotCandidate) {
+  if (!snapshotCandidate || typeof snapshotCandidate !== 'object') {
+    return null;
+  }
+
+  const payload = (snapshotCandidate.data && typeof snapshotCandidate.data === 'object')
+    ? snapshotCandidate.data
+    : snapshotCandidate;
+
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  return payload;
+}
+
 /**
  * Hook for managing server-side profiles and templates.
  *
@@ -88,6 +105,7 @@ export function useProfiles({ haUser, contextSetters }) {
   const [backendAvailable, setBackendAvailable] = useState(true);
   const contextSettersRef = useRef(contextSetters);
   contextSettersRef.current = contextSetters;
+  const autoSync = useSettingsSync({ haUserId: haUser?.id, contextSettersRef });
 
   // ── Load profiles when haUser changes ──
   const refreshProfiles = useCallback(async () => {
@@ -187,6 +205,56 @@ export function useProfiles({ haUser, contextSetters }) {
     }
   }, []);
 
+  const importDashboard = useCallback((snapshotCandidate) => {
+    setError(null);
+    setLoadSummary(null);
+
+    const payload = normalizeImportedSnapshot(snapshotCandidate);
+    if (!payload || !isValidSnapshot(payload)) {
+      const importError = new Error('Invalid snapshot data');
+      setError(importError.message);
+      throw importError;
+    }
+
+    const currentSnapshot = collectSnapshot();
+    const currentPagesConfig = currentSnapshot?.layout?.pagesConfig;
+    const normalizedSnapshot = {
+      ...cloneJson(payload, {}),
+      layout: {
+        ...cloneJson(payload.layout, {}),
+      },
+    };
+
+    const { pagesConfig, notes } = normalizePagesConfig(
+      normalizedSnapshot.layout.pagesConfig,
+      currentPagesConfig,
+    );
+
+    normalizedSnapshot.layout.pagesConfig = pagesConfig;
+    applySnapshot(normalizedSnapshot, contextSettersRef.current);
+
+    if (notes.length > 0) {
+      setLoadSummary(notes.join(' '));
+    }
+  }, []);
+
+  const exportDashboard = useCallback(() => {
+    setError(null);
+    const snapshot = collectSnapshot();
+    if (!isValidSnapshot(snapshot)) {
+      const exportError = new Error('Invalid snapshot data');
+      setError(exportError.message);
+      throw exportError;
+    }
+
+    return {
+      format: 'tunet-dashboard-export',
+      version: 1,
+      exported_at: new Date().toISOString(),
+      data: snapshot,
+    };
+  }, []);
+
   // ── Edit profile name/label (no data change) ──
   const editProfile = useCallback(async (profileId, name, deviceLabel) => {
     if (!haUser?.id) throw new Error('No HA user');
@@ -257,9 +325,12 @@ export function useProfiles({ haUser, contextSetters }) {
     overwriteProfile,
     editProfile,
     loadProfile,
+    importDashboard,
+    exportDashboard,
     removeProfile,
     startBlank,
     refreshProfiles,
     isValidSnapshot,
+    autoSync,
   };
 }

@@ -38,6 +38,9 @@ export default function EditToolbar({
         onClick={() => {
           const currentSettings = pageSettings[activePage];
           if (currentSettings?.hidden) setActivePage('home');
+          if (editMode && typeof window !== 'undefined') {
+            window.dispatchEvent(new window.CustomEvent('tunet:edit-done'));
+          }
           setEditMode(!editMode);
         }}
         className={`p-2 rounded-full group border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] ${editMode ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)] hover:bg-[var(--accent-bg)] hover:text-white hover:shadow-lg hover:' : 'text-[var(--text-secondary)] border-transparent hover:border-[var(--glass-border)] hover:bg-white/10 hover:text-white'}`}

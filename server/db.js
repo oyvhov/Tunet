@@ -29,6 +29,40 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_profiles_ha_user_id ON profiles(ha_user_id);
+
+  CREATE TABLE IF NOT EXISTS current_settings (
+    ha_user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    device_label TEXT,
+    data TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (ha_user_id, device_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_current_settings_ha_user_id ON current_settings(ha_user_id);
+
+  CREATE TABLE IF NOT EXISTS current_settings_history (
+    ha_user_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (ha_user_id, device_id, revision)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_current_settings_history_lookup
+    ON current_settings_history(ha_user_id, device_id, revision DESC);
 `);
+
+const ensureColumn = (tableName, columnName, columnSql) => {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  const exists = Array.isArray(columns) && columns.some((col) => col.name === columnName);
+  if (!exists) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnSql}`);
+  }
+};
+
+ensureColumn('current_settings', 'device_label', 'TEXT');
 
 export default db;
