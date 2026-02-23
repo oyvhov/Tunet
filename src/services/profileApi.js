@@ -70,9 +70,3 @@ export function deleteProfile(id, haUserId) {
 }
 
 // ── Templates ────────────────────────────────────────────────────────
-
-// ── Health ────────────────────────────────────────────────────────────
-
-export function checkHealth() {
-  return request('/health');
-}
