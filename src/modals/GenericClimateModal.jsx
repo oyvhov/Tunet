@@ -2,7 +2,7 @@ import { AirVent, ArrowUpDown, Fan, Flame, Minus, Plus, Snowflake, X } from '../
 import M3Slider from '../components/ui/M3Slider';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
-import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode } from '../utils';
+import { formatKindValueForDisplay, getEffectiveUnitMode } from '../utils';
 
 const getDisplayName = (entity, fallback) => entity?.attributes?.friendly_name || fallback;
 
@@ -29,17 +29,19 @@ export default function GenericClimateModal({
   const targetTemp = entity.attributes?.temperature;
   const sourceTempUnit = haConfig?.unit_system?.temperature || entity.attributes?.temperature_unit || '°C';
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
-  const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
-  const displayCurrentTemp = convertValueByKind(currentTemp, {
+  const displayCurrentTemp = formatKindValueForDisplay(currentTemp, {
     kind: 'temperature',
     fromUnit: sourceTempUnit,
     unitMode: effectiveUnitMode,
+    includeUnit: false,
   });
-  const displayTargetTemp = convertValueByKind(targetTemp, {
+  const displayTargetTemp = formatKindValueForDisplay(targetTemp, {
     kind: 'temperature',
     fromUnit: sourceTempUnit,
     unitMode: effectiveUnitMode,
+    includeUnit: false,
   });
+  const displayTempUnit = displayTargetTemp.unit || displayCurrentTemp.unit;
   const minTemp = entity.attributes?.min_temp ?? 16;
   const maxTemp = entity.attributes?.max_temp ?? 30;
 
@@ -98,12 +100,12 @@ export default function GenericClimateModal({
                 <div className="flex justify-between items-center mb-6 px-4 italic">
                   <p className="text-xs text-gray-400 uppercase font-bold" style={{ letterSpacing: '0.5em' }}>{t('climate.indoorTemp')}</p>
                   <span className="text-xs uppercase font-bold" style={{ letterSpacing: '0.3em', color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af' }}>
-                    {typeof displayCurrentTemp === 'number' ? `${formatUnitValue(displayCurrentTemp, { fallback: '--' })}${displayTempUnit}` : '--'}
+                    {displayCurrentTemp.value === '--' ? '--' : `${displayCurrentTemp.value}${displayTempUnit}`}
                   </span>
                 </div>
                 <div className="flex items-center justify-center gap-4 mb-10">
                   <span className="text-6xl md:text-9xl font-light italic text-[var(--text-primary)] tracking-tighter leading-none select-none" style={{ textShadow: '0 10px 25px rgba(0,0,0,0.1)', color: isHeating ? '#fef2f2' : isCooling ? '#f0f9ff' : 'var(--text-primary)' }}>
-                    {formatUnitValue(displayTargetTemp, { fallback: '--' })}
+                    {displayTargetTemp.value}
                   </span>
                   <span className="text-5xl font-medium leading-none mt-10 italic text-gray-700">{displayTempUnit}</span>
                 </div>

@@ -1,7 +1,7 @@
 import { Minus, Plus, AirVent, Fan } from 'lucide-react';
 import { getIconComponent } from '../../icons';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
-import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode } from '../../utils';
+import { formatKindValueForDisplay, getEffectiveUnitMode } from '../../utils';
 
 const isCoolingState = (entity) => {
   const action = entity?.attributes?.hvac_action;
@@ -38,13 +38,12 @@ export default function GenericClimateCard({
   const targetTemp = entity.attributes?.temperature ?? '--';
   const sourceTempUnit = haConfig?.unit_system?.temperature || entity.attributes?.temperature_unit || '°C';
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
-  const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
-  const displayCurrentTemp = convertValueByKind(currentTemp, {
+  const displayCurrentTemp = formatKindValueForDisplay(currentTemp, {
     kind: 'temperature',
     fromUnit: sourceTempUnit,
     unitMode: effectiveUnitMode,
   });
-  const displayTargetTemp = convertValueByKind(targetTemp, {
+  const displayTargetTemp = formatKindValueForDisplay(targetTemp, {
     kind: 'temperature',
     fromUnit: sourceTempUnit,
     unitMode: effectiveUnitMode,
@@ -96,8 +95,8 @@ export default function GenericClimateCard({
           <div className="flex flex-col min-w-0">
             <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{name}</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{formatUnitValue(displayCurrentTemp, { fallback: '--' })}{displayTempUnit}</span>
-              <span className="text-xs text-[var(--text-secondary)]">→ {formatUnitValue(displayTargetTemp, { fallback: '--' })}{displayTempUnit}</span>
+              <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{displayCurrentTemp.text}</span>
+              <span className="text-xs text-[var(--text-secondary)]">→ {displayTargetTemp.text}</span>
             </div>
           </div>
         </div>
@@ -158,7 +157,7 @@ export default function GenericClimateCard({
         </div>
       </div>
       <div>
-        <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">{formatUnitValue(displayCurrentTemp, { fallback: '--' })}{displayTempUnit}</span>
+        <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">{displayCurrentTemp.text}</span>
       </div>
       <div className="mt-2">
         <div className="flex items-center gap-2 mb-3">
@@ -178,7 +177,7 @@ export default function GenericClimateCard({
               <Minus className="w-4 h-4" />
             </button>
             <div className="flex flex-col items-center">
-              <span className="text-xl font-medium text-[var(--text-primary)] leading-none">{formatUnitValue(displayTargetTemp, { fallback: '--' })}{displayTempUnit}</span>
+              <span className="text-xl font-medium text-[var(--text-primary)] leading-none">{displayTargetTemp.text}</span>
             </div>
             <button
               onClick={(e) => {

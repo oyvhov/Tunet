@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDuration, isToggleEntity } from '../utils';
+import { formatDuration, formatKindValueForDisplay, isToggleEntity } from '../utils';
 
 describe('formatDuration', () => {
   it('formats seconds into m:ss', () => {
@@ -45,5 +45,54 @@ describe('isToggleEntity', () => {
   it('returns false for null/undefined', () => {
     expect(isToggleEntity(null)).toBe(false);
     expect(isToggleEntity(undefined)).toBe(false);
+  });
+});
+
+describe('formatKindValueForDisplay', () => {
+  it('formats temperature without space before degree unit', () => {
+    const result = formatKindValueForDisplay(21.25, {
+      kind: 'temperature',
+      fromUnit: '°C',
+      unitMode: 'metric',
+    });
+
+    expect(result.value).toBe('21.3');
+    expect(result.unit).toBe('°C');
+    expect(result.text).toBe('21.3°C');
+  });
+
+  it('formats wind with space before unit', () => {
+    const result = formatKindValueForDisplay(10, {
+      kind: 'wind',
+      fromUnit: 'm/s',
+      unitMode: 'metric',
+    });
+
+    expect(result.unit).toBe('km/h');
+    expect(result.text).toBe('36 km/h');
+  });
+
+  it('supports value-only output when includeUnit is false', () => {
+    const result = formatKindValueForDisplay(68, {
+      kind: 'temperature',
+      fromUnit: '°F',
+      unitMode: 'metric',
+      includeUnit: false,
+    });
+
+    expect(result.value).toBe('20');
+    expect(result.unit).toBe('°C');
+    expect(result.text).toBe('20');
+  });
+
+  it('returns fallback text for invalid values', () => {
+    const result = formatKindValueForDisplay('nope', {
+      kind: 'temperature',
+      fromUnit: '°C',
+      unitMode: 'metric',
+      fallback: '--',
+    });
+
+    expect(result.text).toBe('--');
   });
 });
