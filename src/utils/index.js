@@ -7,3 +7,4 @@ export { getCardGridSpan, getCardColSpan, buildGridLayout } from './gridLayout';
 export { createDragAndDropHandlers } from './dragAndDrop';
 export { getEffectiveUnitMode, inferUnitKind, getDisplayUnitForKind, convertValueByKind, formatUnitValue } from './units';
 export { isValidPin, hashPin, verifyPin } from './pinLock';
+export { runConfigMigrations } from './configMigrations';

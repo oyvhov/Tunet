@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { themes } from '../config/themes';
 import { DEFAULT_LANGUAGE, LEGACY_NN_MIGRATION_FLAG, normalizeLanguage } from '../i18n';
-import { hashPin, verifyPin } from '../utils';
+import { hashPin, runConfigMigrations, verifyPin } from '../utils';
 
 /** @typedef {import('../types/dashboard').ConfigContextValue} ConfigContextValue */
 /** @typedef {import('../types/dashboard').ConfigProviderProps} ConfigProviderProps */
@@ -29,6 +29,10 @@ export const useConfig = () => {
 
 /** @param {ConfigProviderProps} props */
 export const ConfigProvider = ({ children }) => {
+  if (typeof window !== 'undefined') {
+    runConfigMigrations(window.localStorage, window.sessionStorage);
+  }
+
   const [currentTheme, setCurrentTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       try {

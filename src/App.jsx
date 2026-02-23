@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { en, nb, nn, sv, DEFAULT_LANGUAGE, normalizeLanguage } from './i18n';
 import {
@@ -27,7 +27,7 @@ import {
   useAddCard, useConnectionSetup,
   useResponsiveGrid, useEntityHelpers,
   usePageManagement, useDashboardEffects, usePageRouting, useCardRendering,
-  useAppComposition,
+  useAppComposition, useAppUiState, useSettingsAccessControl,
 } from './hooks';
 
 import './styles/dashboard.css';
@@ -170,45 +170,35 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     closeAllModals,
   } = modals;
   
-  const [activeVacuumId, setActiveVacuumId] = useState(null);
-  const [showThemeSidebar, setShowThemeSidebar] = useState(false);
-  const [showLayoutSidebar, setShowLayoutSidebar] = useState(false);
-  const [editCardSettingsKey, setEditCardSettingsKey] = useState(null);
-  const [editMode, setEditMode] = useState(false);
-  const [showPinLockModal, setShowPinLockModal] = useState(false);
-  const [pinLockError, setPinLockError] = useState('');
-  const pendingSettingsActionRef = useRef(null);
+  const {
+    activeVacuumId,
+    setActiveVacuumId,
+    showThemeSidebar,
+    setShowThemeSidebar,
+    showLayoutSidebar,
+    setShowLayoutSidebar,
+    editCardSettingsKey,
+    setEditCardSettingsKey,
+    editMode,
+    setEditMode,
+  } = useAppUiState();
   const { activePage, setActivePage } = usePageRouting();
 
   const [tempHistoryById, _setTempHistoryById] = useTempHistory(conn, cardSettings);
   const [forecastsById, _setForecastsById] = useWeatherForecast(conn, cardSettings);
 
-  const requestSettingsAccess = useCallback((onSuccess) => {
-    if (!settingsLockEnabled || settingsLockSessionUnlocked) {
-      if (typeof onSuccess === 'function') onSuccess();
-      return true;
-    }
-
-    pendingSettingsActionRef.current = typeof onSuccess === 'function' ? onSuccess : null;
-    setPinLockError('');
-    setShowPinLockModal(true);
-    return false;
-  }, [settingsLockEnabled, settingsLockSessionUnlocked]);
-
-  const handlePinSubmit = useCallback((pin) => {
-    const unlocked = unlockSettingsLock(pin);
-    if (!unlocked) {
-      setPinLockError(t('settings.lock.pinIncorrect'));
-      return;
-    }
-
-    setPinLockError('');
-    setShowPinLockModal(false);
-
-    const pendingAction = pendingSettingsActionRef.current;
-    pendingSettingsActionRef.current = null;
-    if (typeof pendingAction === 'function') pendingAction();
-  }, [unlockSettingsLock, t]);
+  const {
+    showPinLockModal,
+    pinLockError,
+    requestSettingsAccess,
+    handlePinSubmit,
+    closePinLockModal,
+  } = useSettingsAccessControl({
+    settingsLockEnabled,
+    settingsLockSessionUnlocked,
+    unlockSettingsLock,
+    t,
+  });
 
   // ── Responsive grid ────────────────────────────────────────────────────
   // Use page-specific gridColumns if set, otherwise fall back to global
@@ -812,11 +802,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
 
         <PinLockModal
           open={showPinLockModal}
-          onClose={() => {
-            setShowPinLockModal(false);
-            setPinLockError('');
-            pendingSettingsActionRef.current = null;
-          }}
+          onClose={closePinLockModal}
           onSubmit={handlePinSubmit}
           t={t}
           error={pinLockError}
