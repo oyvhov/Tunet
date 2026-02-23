@@ -356,6 +356,47 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     });
   };
 
+  const applySettingsGuardToBooleanSetter = useCallback((show, setter) => {
+    if (!show) {
+      setter(false);
+      return;
+    }
+    requestSettingsAccess(() => {
+      setter(true);
+    });
+  }, [requestSettingsAccess]);
+
+  const guardedSetEditMode = useCallback((nextValue) => {
+    const resolved = typeof nextValue === 'function' ? nextValue(editMode) : nextValue;
+    if (!resolved) {
+      setEditMode(false);
+      return;
+    }
+    requestSettingsAccess(() => {
+      setEditMode(true);
+    });
+  }, [editMode, requestSettingsAccess, setEditMode]);
+
+  const guardedSetShowAddCardModal = useCallback((show) => {
+    applySettingsGuardToBooleanSetter(show, setShowAddCardModal);
+  }, [applySettingsGuardToBooleanSetter, setShowAddCardModal]);
+
+  const guardedSetShowConfigModal = useCallback((show) => {
+    applySettingsGuardToBooleanSetter(show, setShowConfigModal);
+  }, [applySettingsGuardToBooleanSetter, setShowConfigModal]);
+
+  const guardedSetShowThemeSidebar = useCallback((show) => {
+    applySettingsGuardToBooleanSetter(show, setShowThemeSidebar);
+  }, [applySettingsGuardToBooleanSetter, setShowThemeSidebar]);
+
+  const guardedSetShowLayoutSidebar = useCallback((show) => {
+    applySettingsGuardToBooleanSetter(show, setShowLayoutSidebar);
+  }, [applySettingsGuardToBooleanSetter, setShowLayoutSidebar]);
+
+  const guardedSetShowHeaderEditModal = useCallback((show) => {
+    applySettingsGuardToBooleanSetter(show, setShowHeaderEditModal);
+  }, [applySettingsGuardToBooleanSetter, setShowHeaderEditModal]);
+
   const guardedToggleCardVisibility = (cardId) => {
     requestSettingsAccess(() => {
       toggleCardVisibility(cardId);
@@ -713,65 +754,16 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           />
           <EditToolbar
             editMode={editMode}
-            setEditMode={(nextValue) => {
-              const resolved = typeof nextValue === 'function' ? nextValue(editMode) : nextValue;
-              if (!resolved) {
-                setEditMode(false);
-                return;
-              }
-              requestSettingsAccess(() => {
-                setEditMode(true);
-              });
-            }}
+            setEditMode={guardedSetEditMode}
             activePage={activePage}
             pageSettings={pageSettings}
             setActivePage={setActivePage}
-            setShowAddCardModal={(show) => {
-              if (!show) {
-                setShowAddCardModal(false);
-                return;
-              }
-              requestSettingsAccess(() => {
-                setShowAddCardModal(true);
-              });
-            }}
-            setShowConfigModal={(show) => {
-              if (!show) {
-                setShowConfigModal(false);
-                return;
-              }
-              requestSettingsAccess(() => {
-                setShowConfigModal(true);
-              });
-            }}
+            setShowAddCardModal={guardedSetShowAddCardModal}
+            setShowConfigModal={guardedSetShowConfigModal}
             setConfigTab={setConfigTab}
-            setShowThemeSidebar={(show) => {
-              if (!show) {
-                setShowThemeSidebar(false);
-                return;
-              }
-              requestSettingsAccess(() => {
-                setShowThemeSidebar(true);
-              });
-            }}
-            setShowLayoutSidebar={(show) => {
-              if (!show) {
-                setShowLayoutSidebar(false);
-                return;
-              }
-              requestSettingsAccess(() => {
-                setShowLayoutSidebar(true);
-              });
-            }}
-            setShowHeaderEditModal={(show) => {
-              if (!show) {
-                setShowHeaderEditModal(false);
-                return;
-              }
-              requestSettingsAccess(() => {
-                setShowHeaderEditModal(true);
-              });
-            }}
+            setShowThemeSidebar={guardedSetShowThemeSidebar}
+            setShowLayoutSidebar={guardedSetShowLayoutSidebar}
+            setShowHeaderEditModal={guardedSetShowHeaderEditModal}
             connected={connected}
             updateCount={updateCount}
             t={t}
