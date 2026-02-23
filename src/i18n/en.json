@@ -865,6 +865,7 @@
   "system.oauth.redirectFailed": "Could not redirect to Home Assistant. Check the URL and try again.",
   "system.oauth.redirecting": "Redirecting to Home Assistant...",
   "system.oauth.urlRequired": "Enter your HA URL first",
+  "system.runningVersion": "Running version",
   "system.save": "Save",
   "system.tabAppearance": "Appearance",
   "system.tabConnection": "Connection",

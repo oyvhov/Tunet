@@ -27,6 +27,7 @@
   "system.oauth.redirectFailed": "Klarte ikke omdirigere til Home Assistant. Sjekk URL og prøv igjen.",
   "system.oauth.redirecting": "Omdirigerer til Home Assistant...",
   "system.oauth.urlRequired": "Skriv inn HA URL først",
+  "system.runningVersion": "Kjørende versjon",
   "onboarding.title": "Kom i gang",
   "onboarding.step.welcome": "Start",
   "onboarding.step.connection": "Tilkobling",

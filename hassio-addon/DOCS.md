@@ -39,6 +39,18 @@ real-time entity updates, and drag-and-drop customisation.
 - Ensure you are using the latest repository branch/revision.
 - Check add-on logs after restart.
 
+### Add-on shows new version but UI still looks old
+
+- Symptom: Home Assistant reports a newer add-on version, but the dashboard still shows an older app build.
+- Cause: stale cached image layers from previous builds can keep old frontend assets.
+- Fix:
+   1. Update to the latest add-on release.
+   2. Stop the add-on.
+   3. Use **Rebuild** once, then start again.
+   4. Hard-refresh browser (`Ctrl+Shift+R`).
+
+Tunet add-on builds are now version-resolved from release tags before falling back to `main`, which prevents this mismatch in normal updates.
+
 ## Troubleshooting
 
 ### "Connection failed" after entering the token

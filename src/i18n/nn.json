@@ -865,6 +865,7 @@
   "system.oauth.redirectFailed": "Kunne ikkje omdirigere til Home Assistant. Sjekk URL og prøv igjen.",
   "system.oauth.redirecting": "Omdirigerer til Home Assistant...",
   "system.oauth.urlRequired": "Skriv inn din HA URL først",
+  "system.runningVersion": "Køyrande versjon",
   "system.save": "Lagre",
   "system.tabAppearance": "Utsjånad",
   "system.tabConnection": "Tilkobling",

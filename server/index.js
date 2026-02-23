@@ -1,5 +1,5 @@
 import express from 'express';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import profilesRouter from './routes/profiles.js';
@@ -9,6 +9,15 @@ import settingsRouter from './routes/settings.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3002', 10);
 const isProduction = process.env.NODE_ENV === 'production';
+
+const packageJsonPath = join(__dirname, '..', 'package.json');
+let appVersion = 'unknown';
+try {
+  const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+  appVersion = pkg?.version || 'unknown';
+} catch {
+  appVersion = 'unknown';
+}
 
 const app = express();
 
@@ -31,7 +40,7 @@ app.use('/api/settings', settingsRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', version: process.env.npm_package_version || 'unknown' });
+  res.json({ status: 'ok', version: appVersion });
 });
 
 // Serve static frontend files in production

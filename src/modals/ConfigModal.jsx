@@ -101,6 +101,7 @@ export default function ConfigModal({
   // Profiles & templates
   profiles,
 }) {
+  const [runningVersion, setRunningVersion] = useState('unknown');
   const [installingIds, setInstallingIds] = useState({});
   const [expandedNotes, setExpandedNotes] = useState({});
   const [layoutPreview, setLayoutPreview] = useState(false);
@@ -132,6 +133,27 @@ export default function ConfigModal({
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
+    const loadVersion = async () => {
+      try {
+        const response = await fetch('/api/health', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Failed to load health status');
+        const data = await response.json();
+        if (!cancelled) {
+          setRunningVersion(typeof data?.version === 'string' && data.version ? data.version : 'unknown');
+        }
+      } catch {
+        if (!cancelled) setRunningVersion('unknown');
+      }
+    };
+
+    loadVersion();
+    return () => { cancelled = true; };
+  }, [open]);
 
   const handleClose = () => {
     if (!isOnboardingActive) onClose?.();
@@ -257,6 +279,10 @@ export default function ConfigModal({
   const haUser = profiles?.haUser;
   const renderConnectionTab = () => (
     <div className="space-y-6 font-sans animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="px-3 py-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[11px] uppercase tracking-widest font-bold text-[var(--text-secondary)]">
+        {t('system.runningVersion')}: <span className="text-[var(--text-primary)]">{runningVersion}</span>
+      </div>
+
       {/* Auth Method Toggle */}
       {renderAuthMethodToggle()}
 

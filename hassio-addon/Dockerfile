@@ -1,9 +1,23 @@
 ARG BUILD_FROM
+ARG BUILD_VERSION
 # ── Stage 1: Build from source ────────────────────────────────────────
 FROM node:20-alpine AS builder
-# Single RUN to prevent ALL Docker layer caching issues
-RUN apk add --no-cache git \
- && git clone --depth 1 --branch main https://github.com/oyvhov/Tunet.git /src \
+ARG BUILD_VERSION
+RUN apk add --no-cache curl tar \
+ && set -eux \
+ && REF="${BUILD_VERSION:-}" \
+ && URL="" \
+ && if [ -n "$REF" ]; then URL="https://codeload.github.com/oyvhov/Tunet/tar.gz/refs/tags/v${REF}"; fi \
+ && if [ -n "$URL" ] && ! curl -fsSL "$URL" -o /tmp/tunet.tar.gz; then \
+			URL="https://codeload.github.com/oyvhov/Tunet/tar.gz/refs/tags/${REF}"; \
+		fi \
+ && if [ -n "$URL" ] && ! curl -fsSL "$URL" -o /tmp/tunet.tar.gz; then \
+			URL="https://codeload.github.com/oyvhov/Tunet/tar.gz/refs/heads/main"; \
+		fi \
+ && if [ -z "$URL" ]; then URL="https://codeload.github.com/oyvhov/Tunet/tar.gz/refs/heads/main"; fi \
+ && if [ ! -f /tmp/tunet.tar.gz ]; then curl -fsSL "$URL" -o /tmp/tunet.tar.gz; fi \
+ && mkdir -p /src \
+ && tar -xzf /tmp/tunet.tar.gz --strip-components=1 -C /src \
  && cd /src \
  && npm ci \
  && npm run build

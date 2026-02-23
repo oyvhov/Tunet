@@ -172,8 +172,8 @@ async function runCheck() {
     }
   }
 
-  if (!addonDockerfile.includes('--branch main')) {
-    errors.push('hassio-addon/Dockerfile should build from --branch main for predictable updates.');
+  if (!addonDockerfile.includes('BUILD_VERSION')) {
+    errors.push('hassio-addon/Dockerfile must use BUILD_VERSION to select source revision and avoid stale cached main builds.');
   }
 
   if (errors.length) {

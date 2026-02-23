@@ -1,6 +1,6 @@
 name: "Tunet"
 description: "A modern, responsive dashboard for Home Assistant"
-version: "1.7.1"
+version: "1.7.2"
 slug: "tunet"
 url: "https://github.com/oyvhov/Tunet"
 init: false
