@@ -354,6 +354,10 @@ export default function ConfigModal({
   // ─── Profiles & Templates Tab ───
   const [profileName, setProfileName] = useState('');
   const [profileDeviceLabel, setProfileDeviceLabel] = useState('');
+  const [publishTargets, setPublishTargets] = useState([]);
+  const [selectedServerRevision, setSelectedServerRevision] = useState('');
+  const [autoSyncExpanded, setAutoSyncExpanded] = useState(false);
+  const [showAllKnownDevices, setShowAllKnownDevices] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editLabel, setEditLabel] = useState('');
@@ -367,7 +371,24 @@ export default function ConfigModal({
       saveProfile, editProfile, loadProfile, removeProfile,
       startBlank,
       haUser,
+      autoSync,
     } = profiles;
+
+    const syncStatusLabel = {
+      idle: t('profiles.autoSyncStatusIdle'),
+      syncing: t('profiles.autoSyncStatusSyncing'),
+      synced: t('profiles.autoSyncStatusSynced'),
+      conflict: t('profiles.autoSyncStatusConflict'),
+      error: t('profiles.autoSyncStatusError'),
+    }[autoSync?.status] || autoSync?.status || t('common.unknown');
+
+    const knownDevices = Array.isArray(autoSync?.knownDevices) ? autoSync.knownDevices : [];
+    const otherDevices = knownDevices.filter((entry) => entry?.device_id && entry.device_id !== autoSync.deviceId);
+    const selectedTargets = publishTargets.filter((id) => otherDevices.some((entry) => entry.device_id === id));
+    const historyEntries = Array.isArray(autoSync?.history) ? autoSync.history : [];
+    const MAX_VISIBLE_DEVICES = 8;
+    const visibleKnownDevices = showAllKnownDevices ? knownDevices : knownDevices.slice(0, MAX_VISIBLE_DEVICES);
+    const hiddenDeviceCount = Math.max(knownDevices.length - visibleKnownDevices.length, 0);
 
     const handleSaveProfile = async () => {
       const name = profileName.trim();
@@ -381,6 +402,193 @@ export default function ConfigModal({
 
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+        {haUser && backendAvailable && autoSync && (
+          <div className="space-y-3">
+            <h3 className="text-xs uppercase font-bold text-gray-500 ml-1 tracking-wider">{t('profiles.autoSyncSection')}</h3>
+            <div className="popup-surface p-4 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAutoSyncExpanded((prev) => !prev)}
+                  className="min-w-0 text-left flex-1"
+                >
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{t('profiles.autoSyncTitle')}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] truncate">{t('profiles.autoSyncDeviceId')}: {autoSync.deviceId}</p>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    {autoSync.enabled ? t('profiles.autoSyncEnabled') : t('profiles.autoSyncDisabled')}
+                    {autoSync.lastSyncedAt ? ` • ${t('profiles.autoSyncLastSynced')} ${new Date(autoSync.lastSyncedAt).toLocaleString()}` : ''}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => autoSync.setEnabled(!autoSync.enabled)}
+                  className={`w-10 h-6 rounded-full p-1 transition-colors relative ${autoSync.enabled ? 'bg-[var(--accent-color)]' : 'bg-gray-500/30'}`}
+                  title={autoSync.enabled ? t('profiles.autoSyncEnabled') : t('profiles.autoSyncDisabled')}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${autoSync.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAutoSyncExpanded((prev) => !prev)}
+                  className="p-1 rounded-md text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]"
+                  title={autoSyncExpanded ? t('common.hide') : t('common.show')}
+                >
+                  {autoSyncExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {autoSyncExpanded && (
+                <>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-bold text-[var(--text-secondary)]">{t('profiles.autoSyncStatusLabel')}:</span>
+                    <span className={`font-bold ${autoSync.status === 'error' ? 'text-red-400' : autoSync.status === 'syncing' ? 'text-amber-300' : 'text-emerald-300'}`}>
+                      {syncStatusLabel}
+                    </span>
+                  </div>
+
+                  {autoSync.error && (
+                    <p className="text-xs text-red-400 font-bold">{autoSync.error}</p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => autoSync.loadCurrentFromServer(selectedServerRevision ? Number(selectedServerRevision) : undefined)}
+                      className="px-3 py-2 rounded-lg bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-xs font-bold transition-all"
+                    >
+                      {t('profiles.autoSyncLoadServer')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={autoSync.publishing || selectedTargets.length === 0}
+                      onClick={() => autoSync.publishCurrentToDevices(selectedTargets)}
+                      className="px-3 py-2 rounded-lg bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-xs font-bold transition-all disabled:opacity-60"
+                    >
+                      {autoSync.publishing
+                        ? t('profiles.autoSyncPublishing')
+                        : selectedTargets.length > 0
+                          ? `${t('profiles.autoSyncPublishOthers')} (${selectedTargets.length})`
+                          : t('profiles.autoSyncPublishSelectTarget')}
+                    </button>
+                  </div>
+
+                  {selectedTargets.length === 0 && (
+                    <p className="text-[10px] text-[var(--text-muted)]">{t('profiles.autoSyncSelectTargetHint')}</p>
+                  )}
+
+                  {historyEntries.length > 0 && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-muted)]">{t('profiles.autoSyncRevision')}</label>
+                      <select
+                        value={selectedServerRevision}
+                        onChange={(event) => setSelectedServerRevision(event.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-xs font-bold focus:outline-none"
+                        style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}
+                      >
+                        <option value="" style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>{t('profiles.autoSyncRevisionLatest')}</option>
+                        {historyEntries.map((entry) => (
+                          <option key={entry.revision} value={String(entry.revision)} style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}>
+                            rev {entry.revision} • {new Date(entry.updated_at).toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {knownDevices.length > 0 && (
+                    <div className="pt-2 border-t border-[var(--glass-border)] space-y-2">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-muted)]">{t('profiles.autoSyncKnownDevices')}</p>
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
+                        {visibleKnownDevices.map((entry) => {
+                          const isCurrentDevice = entry.device_id === autoSync.deviceId;
+                          const isSelected = selectedTargets.includes(entry.device_id);
+                          const isRemoving = autoSync.removingDeviceId === entry.device_id;
+                          const isRenaming = autoSync.updatingDeviceId === entry.device_id;
+                          const displayName = (typeof entry.device_label === 'string' && entry.device_label.trim())
+                            ? entry.device_label.trim()
+                            : entry.device_id;
+                          return (
+                            <label key={entry.device_id} className={`flex items-center justify-between gap-2 text-xs rounded-md px-2 py-1.5 ${isCurrentDevice ? 'opacity-70' : 'cursor-pointer hover:bg-[var(--glass-bg-hover)]'}`}>
+                              <div className="flex items-center gap-2 min-w-0">
+                                {!isCurrentDevice && (
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(event) => {
+                                      const checked = event.target.checked;
+                                      setPublishTargets((prev) => {
+                                        const next = new Set(prev);
+                                        if (checked) next.add(entry.device_id);
+                                        else next.delete(entry.device_id);
+                                        return [...next];
+                                      });
+                                    }}
+                                  />
+                                )}
+                                <div className="min-w-0">
+                                  <div className="text-[var(--text-secondary)] truncate font-bold">{displayName}</div>
+                                  <div className="text-[10px] text-[var(--text-muted)] truncate">ID: {entry.device_id}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[var(--text-muted)]">rev {entry.revision}</span>
+                                <button
+                                  type="button"
+                                  disabled={isRenaming}
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    const currentLabel = typeof entry.device_label === 'string' ? entry.device_label : '';
+                                    const nextLabel = window.prompt(t('profiles.autoSyncRenameDevicePrompt'), currentLabel);
+                                    if (nextLabel === null) return;
+                                    autoSync.renameKnownDevice(entry.device_id, nextLabel);
+                                  }}
+                                  className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] transition-colors disabled:opacity-50"
+                                  title={t('profiles.autoSyncRenameDevice')}
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                {!isCurrentDevice && (
+                                  <button
+                                    type="button"
+                                    disabled={isRemoving || isRenaming}
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      if (!window.confirm(t('profiles.autoSyncRemoveDeviceConfirm'))) return;
+                                      autoSync.removeKnownDevice(entry.device_id);
+                                      setPublishTargets((prev) => prev.filter((id) => id !== entry.device_id));
+                                    }}
+                                    className="p-1 rounded text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                                    title={t('profiles.autoSyncRemoveDevice')}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {knownDevices.length > MAX_VISIBLE_DEVICES && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllKnownDevices((prev) => !prev)}
+                          className="text-[10px] font-bold text-[var(--accent-color)] hover:opacity-80 transition-opacity"
+                        >
+                          {showAllKnownDevices
+                            ? t('common.hide')
+                            : `${t('common.show')} +${hiddenDeviceCount}`}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Backend status warning */}
         {!backendAvailable && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">

@@ -5,6 +5,7 @@ import {
   updateProfile as apiUpdateProfile,
   deleteProfile as apiDeleteProfile,
 } from '../services/profileApi';
+import { useSettingsSync } from './useSettingsSync';
 import {
   collectSnapshot,
   applySnapshot,
@@ -88,6 +89,7 @@ export function useProfiles({ haUser, contextSetters }) {
   const [backendAvailable, setBackendAvailable] = useState(true);
   const contextSettersRef = useRef(contextSetters);
   contextSettersRef.current = contextSetters;
+  const autoSync = useSettingsSync({ haUserId: haUser?.id, contextSettersRef });
 
   // ── Load profiles when haUser changes ──
   const refreshProfiles = useCallback(async () => {
@@ -261,5 +263,6 @@ export function useProfiles({ haUser, contextSetters }) {
     startBlank,
     refreshProfiles,
     isValidSnapshot,
+    autoSync,
   };
 }

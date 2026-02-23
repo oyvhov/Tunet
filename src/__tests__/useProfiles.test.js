@@ -9,6 +9,24 @@ vi.mock('../services/profileApi', () => ({
   deleteProfile: vi.fn(),
 }));
 
+vi.mock('../hooks/useSettingsSync', () => ({
+  useSettingsSync: vi.fn(() => ({
+    enabled: true,
+    setEnabled: vi.fn(),
+    status: 'idle',
+    error: '',
+    lastSyncedAt: null,
+    deviceId: 'device-test',
+    currentRevision: null,
+    knownDevices: [],
+    publishing: false,
+    syncNow: vi.fn(),
+    loadCurrentFromServer: vi.fn(),
+    publishCurrentToDevices: vi.fn(),
+    refreshKnownDevices: vi.fn(),
+  })),
+}));
+
 vi.mock('../services/snapshot', () => ({
   collectSnapshot: vi.fn(),
   applySnapshot: vi.fn(),
