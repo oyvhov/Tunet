@@ -35,7 +35,7 @@ import { getIconComponent } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
 
 function renderMissingEntityWhenReady(ctx, props) {
-  if (!ctx?.entitiesLoaded) return null;
+  if (!ctx?.entitiesMissingReady) return null;
   return <MissingEntityCard {...props} />;
 }
 

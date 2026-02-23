@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getCardGridSpan as _getCardGridSpan, getCardColSpan as _getCardColSpan, buildGridLayout as _buildGridLayout } from '../utils/gridLayout';
 import { createDragAndDropHandlers } from '../utils/dragAndDrop';
 import { dispatchCardRender } from '../rendering/cardRenderers';
@@ -68,6 +68,20 @@ export function useCardRendering({
   const pointerDragRef = useRef(false);
   const ignoreTouchRef = useRef(false);
   const [draggingId, setDraggingId] = useState(null);
+  const [entitiesMissingReady, setEntitiesMissingReady] = useState(false);
+
+  useEffect(() => {
+    if (!entitiesLoaded) {
+      setEntitiesMissingReady(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setEntitiesMissingReady(true);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [entitiesLoaded]);
 
   const getCardGridSpan = useCallback((cardId) => {
     const rowPx = isMobile ? 82 : 100;
@@ -206,7 +220,7 @@ export function useCardRendering({
     };
 
     const ctx = {
-      entities, entitiesLoaded, editMode, conn, cardSettings, customNames, customIcons,
+      entities, entitiesLoaded, entitiesMissingReady, editMode, conn, cardSettings, customNames, customIcons,
       getA, getS, getEntityImageUrl, callService, isMediaActive,
       saveCardSetting, language, isMobile, activePage, t,
       optimisticLightBrightness, setOptimisticLightBrightness,
@@ -246,6 +260,7 @@ export function useCardRendering({
     touchPath,
     entities,
     entitiesLoaded,
+    entitiesMissingReady,
     conn,
     customNames,
     customIcons,
