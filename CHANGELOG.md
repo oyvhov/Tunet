@@ -8,10 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.8.0] — 2026-02-23
 
 ### Added
-- Alarm Card (BETA).
+- Alarm Card (BETA) with dedicated `alarm_control_panel` support.
+- Alarm details modal with action list and PIN confirmation flow.
+- Quick-action PIN modal with touch-friendly keypad and explicit check-to-confirm UX.
 
 ### Changed
-- Release metadata sync.
+- Refined alarm state visuals with shield-based state icons and improved status styling.
+- Updated alarm action layout to a simpler one-column interaction model.
+- Shortened alarm-related i18n labels across supported languages for compact UI display.
+- Improved runtime resilience for stale lazy-loaded chunks via client recovery and stricter HTML cache behavior.
+- Kept app/add-on release metadata synchronized for lockstep versioning.
+
+### Fixed
+- Wrong PIN submission now clears PIN input fields for safer retry behavior.
+- Alarm code requirement flow now better matches Home Assistant semantics (`code_arm_required` handling).
 
 
 ## [1.7.2] — 2026-02-23
