@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.1] — 2026-02-23
+
+### Added
+- Added settings sync enhancements for multi-device workflows: revision-select load, publish to selected targets, known-device cleanup, and logical per-device naming.
+- Added compact dashboard import/export actions directly in the saved profiles section.
+
+### Changed
+- Aligned Media Page volume controls with Media modal controls (step up/down, mute, and matching compact layout).
+- Improved release hygiene with safe removal of verified unused barrel files/exports.
+
+### Fixed
+- Prevented transient “Missing entity” card flashes during page reload by delaying missing-entity rendering until entity sync has stabilized.
+
+
 ## [1.7.0] — 2026-02-22
 
 ### Added

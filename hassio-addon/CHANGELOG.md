@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.1
+
+- Includes dashboard release `1.7.1`.
+- Adds improved settings sync workflows (selected-target publish, revision load, device naming, and device cleanup).
+- Adds compact dashboard import/export controls under saved profiles.
+- Aligns Media Page volume controls with modal behavior.
+- Reduces reload flicker by delaying temporary missing-entity placeholders during startup sync.
+- Keeps app and add-on versions synchronized at `1.7.1`.
+
 ## 1.7.0
 
 - Includes dashboard release `1.7.0`.
