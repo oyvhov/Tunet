@@ -27,7 +27,8 @@ A modern React dashboard for Home Assistant with real-time entity control, energ
   - **Person**: Presence detection and location tracking.
 
 ### 🚀 Advanced Capabilities
-- **Server-side Profiles**: Save layout configurations per user, accessible on any device.
+- **Server-side Profiles + Deploy**: Save layout configurations per user, load on any device, and publish/deploy current settings to selected devices.
+- **Dashboard Import/Export**: Portable JSON backup/restore directly from Profiles.
 - **Live Updates**: Instant state reflection via Home Assistant WebSocket.
 - **Drag-and-Drop Grid**: Fully customizable masonry layout.
 - **Settings Lock**: PIN protection prevents accidental edits.
