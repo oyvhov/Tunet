@@ -2,7 +2,7 @@
 
 A modern React dashboard for Home Assistant with real-time entity control, energy monitoring, and multi-device profile sync.
 
-![Main Dashboard](public/1.Main.jpg)
+![Main Dashboard](public/Main.png)
 
 ## Features
 
