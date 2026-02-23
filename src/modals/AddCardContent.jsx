@@ -16,6 +16,7 @@ import {
   Music,
   Plus,
   Search,
+  Shield,
   Sparkles,
   Thermometer,
   X,
@@ -294,6 +295,7 @@ function AddCardContent({
       if (addCardType === 'camera') return id.startsWith('camera.');
       if (addCardType === 'cover') return id.startsWith('cover.');
       if (addCardType === 'climate') return id.startsWith('climate.');
+      if (addCardType === 'alarm') return id.startsWith('alarm_control_panel.');
       if (addCardType === 'androidtv') return id.startsWith('media_player.') || id.startsWith('remote.');
       if (addCardType === 'cost') return (id.startsWith('sensor.') || id.startsWith('input_number.'));
       if (addCardType === 'media') return id.startsWith('media_player.');
@@ -628,7 +630,7 @@ function AddCardContent({
     );
   };
 
-  const usesEntityMultiSelect = ['sensor', 'light', 'vacuum', 'fan', 'camera', 'climate', 'cover', 'media', 'toggle', 'entity'].includes(addCardType);
+  const usesEntityMultiSelect = ['sensor', 'light', 'vacuum', 'fan', 'camera', 'climate', 'cover', 'alarm', 'media', 'toggle', 'entity'].includes(addCardType);
   const usesMultiSelectWithCalendar = usesEntityMultiSelect || addCardType === 'calendar';
 
   return (
@@ -656,6 +658,7 @@ function AddCardContent({
                 <TypeButton type="camera" icon={Camera} label={`${getLabel('addCard.type.camera', 'Camera')} (beta)`} isActive={addCardType === 'camera'} onSelect={setAddCardType} />
                 <TypeButton type="climate" icon={Thermometer} label={t('addCard.type.climate')} isActive={addCardType === 'climate'} onSelect={setAddCardType} />
                 <TypeButton type="cover" icon={ArrowUpDown} label={getLabel('addCard.type.cover', 'Cover')} isActive={addCardType === 'cover'} onSelect={setAddCardType} />
+                <TypeButton type="alarm" icon={Shield} label={getLabel('addCard.type.alarm', 'Alarm')} isActive={addCardType === 'alarm'} onSelect={setAddCardType} />
                 <TypeButton type="car" icon={Car} label={t('addCard.type.car')} isActive={addCardType === 'car'} onSelect={setAddCardType} />
                 <TypeButton type="androidtv" icon={Gamepad2} label={t('addCard.type.androidtv')} isActive={addCardType === 'androidtv'} onSelect={setAddCardType} />
                 <TypeButton type="cost" icon={Coins} label={t('addCard.type.cost')} isActive={addCardType === 'cost'} onSelect={setAddCardType} />

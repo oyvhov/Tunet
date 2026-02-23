@@ -30,7 +30,6 @@
  * @property {(pin: string) => void} enableSettingsLock
  * @property {() => void} disableSettingsLock
  * @property {(pin: string) => boolean} unlockSettingsLock
- * @property {() => void} unlockSettingsSession
  * @property {() => void} lockSettingsSession
  * @property {number} inactivityTimeout
  * @property {import('react').Dispatch<import('react').SetStateAction<number>>} setInactivityTimeout
@@ -306,6 +305,8 @@
  * @property {string | null} showCoverModal
  * @property {string | null} showCameraModal
  * @property {string | null} showWeatherModal
+ * @property {string | null} showAlarmModal
+ * @property {{ cardId: string, actionKey: string } | null} showAlarmActionModal
  * @property {string | null} activeMediaModal
  * @property {string | null} activeMediaGroupKey
  * @property {string[] | null} activeMediaGroupIds
@@ -337,6 +338,8 @@
  * @property {(value: string | null) => void} setShowCoverModal
  * @property {(value: string | null) => void} setShowCameraModal
  * @property {(value: string | null) => void} setShowWeatherModal
+ * @property {(value: string | null) => void} setShowAlarmModal
+ * @property {(value: { cardId: string, actionKey: string } | null) => void} setShowAlarmActionModal
  * @property {(value: string | null) => void} setActiveMediaModal
  * @property {(value: string | null) => void} setActiveMediaGroupKey
  * @property {(value: string[] | null) => void} setActiveMediaGroupIds

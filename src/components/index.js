@@ -3,6 +3,7 @@ export { default as CalendarCard } from './cards/CalendarCard';
 export { default as CameraCard } from './cards/CameraCard';
 export { default as CarCard } from './cards/CarCard';
 export { default as CoverCard } from './cards/CoverCard';
+export { default as AlarmCard } from './cards/AlarmCard';
 export { default as GenericAndroidTVCard } from './cards/GenericAndroidTVCard';
 export { default as GenericClimateCard } from './cards/GenericClimateCard';
 export { default as GenericEnergyCostCard } from './cards/GenericEnergyCostCard';

@@ -56,6 +56,8 @@ export const handleAddSelected = (ctx) => {
         return selectedEntities.filter((id) => id.startsWith('cover.'));
       case 'media':
         return selectedEntities.filter((id) => id.startsWith('media_player.'));
+      case 'alarm':
+        return selectedEntities.filter((id) => id.startsWith('alarm_control_panel.'));
       default:
         return selectedEntities;
     }
@@ -171,6 +173,22 @@ export const handleAddSelected = (ctx) => {
         const cardId = `cover_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
         newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), coverId: entityId };
+        return cardId;
+      });
+      persistCardSettings(newSettings);
+      commitCards(newCardIds);
+      setSelectedEntities([]);
+      return;
+    }
+
+    case 'alarm': {
+      const alarmEntities = selectedEntitiesForType();
+      if (alarmEntities.length === 0) return;
+      const newSettings = { ...cardSettings };
+      const newCardIds = alarmEntities.map((entityId) => {
+        const cardId = `alarm_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+        newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), alarmId: entityId };
         return cardId;
       });
       persistCardSettings(newSettings);

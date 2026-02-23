@@ -110,6 +110,7 @@ export function useAddCard({
     if (addCardType === 'camera') return t('addCard.available.cameras');
     if (addCardType === 'climate') return t('addCard.available.climates');
     if (addCardType === 'cover') return t('addCard.available.covers');
+    if (addCardType === 'alarm') return t('addCard.available.alarms');
     if (addCardType === 'cost') return t('addCard.available.costs');
     if (addCardType === 'media') return t('addCard.available.players');
     if (addCardType === 'car') return t('addCard.available.cars');
@@ -134,6 +135,8 @@ export function useAddCard({
             ? 'addCard.item.climates'
             : addCardType === 'cover'
               ? 'addCard.item.covers'
+            : addCardType === 'alarm'
+              ? 'addCard.item.alarms'
             : addCardType === 'cost'
               ? 'addCard.item.costs'
           : addCardType === 'media'
