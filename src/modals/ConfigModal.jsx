@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import M3Slider from '../components/ui/M3Slider';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
@@ -361,6 +361,7 @@ export default function ConfigModal({
   const [editingProfileId, setEditingProfileId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editLabel, setEditLabel] = useState('');
+  const importFileRef = useRef(null);
 
   const renderProfilesTab = () => {
     if (!profiles) return null;
@@ -369,6 +370,7 @@ export default function ConfigModal({
       profiles: profileList,
       loading, error: profileError, loadSummary, backendAvailable,
       saveProfile, editProfile, loadProfile, removeProfile,
+      importDashboard, exportDashboard,
       startBlank,
       haUser,
       autoSync,
@@ -398,6 +400,40 @@ export default function ConfigModal({
         setProfileName('');
         setProfileDeviceLabel('');
       } catch {}
+    };
+
+    const handleExportDashboard = () => {
+      try {
+        const payload = exportDashboard();
+        const content = JSON.stringify(payload, null, 2);
+        const blob = new window.Blob([content], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        const dateTag = new Date().toISOString().slice(0, 10);
+        anchor.href = url;
+        anchor.download = `tunet-dashboard-${dateTag}.json`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(url);
+      } catch {
+        // errors are handled via profiles hook state
+      }
+    };
+
+    const handleImportDashboard = async (event) => {
+      const file = event.target?.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        importDashboard(parsed);
+      } catch {
+        window.alert(t('profiles.invalidFile'));
+      } finally {
+        event.target.value = '';
+      }
     };
 
     return (
@@ -599,7 +635,34 @@ export default function ConfigModal({
 
         {/* Profiles Section (requires HA user) */}
         <div className="space-y-3">
-          <h3 className="text-xs uppercase font-bold text-gray-500 ml-1 tracking-wider">{t('profiles.sectionProfiles')}</h3>
+          <div className="flex items-center justify-between gap-2 ml-1">
+            <h3 className="text-xs uppercase font-bold text-gray-500 tracking-wider">{t('profiles.sectionProfiles')}</h3>
+            {haUser && backendAvailable && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleExportDashboard}
+                  className="px-2 py-1 rounded-md bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-wider transition-all"
+                >
+                  {t('profiles.export')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => importFileRef.current?.click()}
+                  className="px-2 py-1 rounded-md bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-wider transition-all"
+                >
+                  {t('profiles.import')}
+                </button>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={handleImportDashboard}
+                />
+              </div>
+            )}
+          </div>
           {!haUser ? (
             <div className="popup-surface p-4">
               <p className="text-sm text-[var(--text-secondary)]">{t('profiles.notConnected')}</p>
