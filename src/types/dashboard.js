@@ -63,10 +63,13 @@
  * @property {boolean} connected
  * @property {boolean} haUnavailable
  * @property {boolean} haUnavailableVisible
+ * @property {boolean} entitiesLoaded
+ * @property {boolean} entityDataStale
  * @property {boolean} oauthExpired
  * @property {unknown} conn
  * @property {string} activeUrl
  * @property {Record<string, unknown> | null} haConfig
+ * @property {number} lastEntityUpdateAt
  * @property {import('react').MutableRefObject<unknown>} authRef
  * @property {{ id?: string, name?: string, is_owner?: boolean, is_admin?: boolean } | null} haUser
  */
