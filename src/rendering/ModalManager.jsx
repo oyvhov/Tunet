@@ -11,6 +11,7 @@ export default function ModalManager({
   addCard,
   cardConfig,
   mediaTick,
+  reminderProps,
 }) {
   const { entities, conn, activeUrl, connected, authRef, config, setConfig, t, language, setLanguage } = core;
 
@@ -35,6 +36,7 @@ export default function ModalManager({
       addCard={addCard}
       cardConfig={cardConfig}
       mediaTick={mediaTick}
+      reminderProps={reminderProps}
     />
   );
 }

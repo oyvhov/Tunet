@@ -29,6 +29,7 @@ import {
   usePageManagement, useDashboardEffects, usePageRouting, useCardRendering,
   useAppComposition, useAppUiState, useSettingsAccessControl,
 } from './hooks';
+import { useReminders } from './hooks/useReminders';
 
 import './styles/dashboard.css';
 import { hasOAuthTokens } from './services/oauthStorage';
@@ -131,6 +132,15 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   
   // Modal state management
   const modals = useModals();
+
+  // Reminder state management
+  const reminderHook = useReminders();
+  const {
+    reminders, checkDue, activePopup,
+    addReminder, updateReminder, deleteReminder, setAllReminders,
+    handleComplete, handleSnooze, handleDismiss,
+  } = reminderHook;
+
   const {
     setShowNordpoolModal,
     setShowCostModal,
@@ -248,6 +258,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   } = useDashboardEffects({
     resolvedHeaderTitle, inactivityTimeout,
     resetToHome, activeMediaModal, entities,
+    checkRemindersDue: checkDue,
   });
 
   // Smart Theme Logic — only active when bgMode is 'theme'
@@ -673,6 +684,8 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           editMode={editMode}
           headerSettings={headerSettings}
           setShowHeaderEditModal={setShowHeaderEditModal}
+          setShowReminderModal={modals.setShowReminderModal}
+          reminderCount={reminders.filter(r => r.enabled).length}
           t={t}
           language={language}
           isMobile={isMobile}
@@ -791,6 +804,16 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
           addCard={modalManagerAddCard}
           cardConfig={modalManagerCardConfig}
           mediaTick={mediaTick}
+          reminderProps={{
+            reminders,
+            activePopup,
+            addReminder,
+            updateReminder,
+            deleteReminder,
+            handleComplete,
+            handleSnooze,
+            handleDismiss,
+          }}
         />
 
         <PinLockModal

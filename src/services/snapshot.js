@@ -62,6 +62,7 @@ export function collectSnapshot() {
       headerScale:        readNumber('tunet_header_scale', 1),
       sectionSpacing:     readJSON('tunet_section_spacing', { headerToStatus: 16, statusToNav: 24, navToGrid: 24 }),
       statusPillsConfig:  readJSON('tunet_status_pills_config', []),
+      reminders:          readJSON('tunet_reminders', []),
     },
     appearance: {
       theme:              localStorage.getItem('tunet_theme') || 'dark',
@@ -100,6 +101,7 @@ export function applySnapshot(snapshot, contextSetters = {}) {
   if (layout.customIcons)      localStorage.setItem('tunet_custom_icons',       JSON.stringify(layout.customIcons));
   if (layout.pageSettings)     localStorage.setItem('tunet_page_settings',      JSON.stringify(layout.pageSettings));
   if (layout.statusPillsConfig) localStorage.setItem('tunet_status_pills_config', JSON.stringify(layout.statusPillsConfig));
+  if (layout.reminders)          localStorage.setItem('tunet_reminders',              JSON.stringify(layout.reminders));
   if (layout.headerSettings)   localStorage.setItem('tunet_header_settings',    JSON.stringify(layout.headerSettings));
   if (layout.sectionSpacing)   localStorage.setItem('tunet_section_spacing',    JSON.stringify(layout.sectionSpacing));
 
@@ -149,6 +151,7 @@ export function applySnapshot(snapshot, contextSetters = {}) {
   if (s.updateHeaderSettings && layout.headerSettings)           s.updateHeaderSettings(layout.headerSettings);
   if (s.updateSectionSpacing && layout.sectionSpacing)           s.updateSectionSpacing(layout.sectionSpacing);
   if (s.saveStatusPillsConfig && layout.statusPillsConfig)       s.saveStatusPillsConfig(layout.statusPillsConfig);
+  if (s.setAllReminders && layout.reminders)                    s.setAllReminders(layout.reminders);
 
   // ConfigContext setters
   if (s.setCurrentTheme && appearance.theme)                     s.setCurrentTheme(appearance.theme);

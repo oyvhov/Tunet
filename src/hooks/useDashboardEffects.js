@@ -23,6 +23,7 @@ export function useDashboardEffects({
   resetToHome,
   activeMediaModal,
   entities,
+  checkRemindersDue,
 }) {
   const [now, setNow] = useState(new Date());
   const [mediaTick, setMediaTick] = useState(0);
@@ -36,9 +37,13 @@ export function useDashboardEffects({
 
   // ── Clock tick ─────────────────────────────────────────────────────────
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), ENTITY_UPDATE_INTERVAL);
+    const id = setInterval(() => {
+      setNow(new Date());
+      // Check for due reminders on every tick
+      if (checkRemindersDue) checkRemindersDue();
+    }, ENTITY_UPDATE_INTERVAL);
     return () => clearInterval(id);
-  }, []);
+  }, [checkRemindersDue]);
 
   // ── Media tick (only while a media modal is open) ──────────────────────
   useEffect(() => {

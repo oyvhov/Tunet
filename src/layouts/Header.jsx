@@ -1,4 +1,4 @@
-import { Edit2 } from '../icons';
+import { Edit2, Bell } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
 
 /**
@@ -20,6 +20,8 @@ export default function Header({
   editMode,
   headerSettings = { showTitle: true, showClock: true, showDate: true },
   setShowHeaderEditModal,
+  setShowReminderModal,
+  reminderCount,
   t,
   language,
   children,
@@ -111,29 +113,75 @@ export default function Header({
         </div>
 
         {headerSettings.showClock && !isMobile && (
-          <h2 
-            className="font-light tracking-[0.1em] leading-none select-none" 
-            style={{ 
-              fontSize: clockFontSize,
-              color: 'var(--text-muted)',
-              fontFamily: resolvedFontFamily,
-            }}
-          >
-            {timeStr}
-          </h2>
+          <div className="flex items-center gap-3">
+            {setShowReminderModal && (
+              <button
+                onClick={() => setShowReminderModal(true)}
+                className="relative p-2 rounded-xl transition-all hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--text-muted) 10%, transparent)',
+                  color: 'var(--text-muted)',
+                }}
+                title={t('reminder.title')}
+              >
+                <Bell className="w-5 h-5" />
+                {reminderCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                    style={{ backgroundColor: 'var(--accent-color)', color: '#fff' }}
+                  >
+                    {reminderCount > 9 ? '9+' : reminderCount}
+                  </span>
+                )}
+              </button>
+            )}
+            <h2 
+              className="font-light tracking-[0.1em] leading-none select-none" 
+              style={{ 
+                fontSize: clockFontSize,
+                color: 'var(--text-muted)',
+                fontFamily: resolvedFontFamily,
+              }}
+            >
+              {timeStr}
+            </h2>
+          </div>
         )}
 
         {headerSettings.showClock && isMobile && showClockOnMobile && (
-          <h2
-            className="font-light tracking-[0.08em] leading-none select-none"
-            style={{
-              fontSize: clockFontSize,
-              color: 'var(--text-muted)',
-              fontFamily: resolvedFontFamily,
-            }}
-          >
-            {timeStr}
-          </h2>
+          <div className="flex items-center gap-2">
+            {setShowReminderModal && (
+              <button
+                onClick={() => setShowReminderModal(true)}
+                className="relative p-2 rounded-xl transition-all hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--text-muted) 10%, transparent)',
+                  color: 'var(--text-muted)',
+                }}
+                title={t('reminder.title')}
+              >
+                <Bell className="w-4 h-4" />
+                {reminderCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center"
+                    style={{ backgroundColor: 'var(--accent-color)', color: '#fff' }}
+                  >
+                    {reminderCount > 9 ? '9+' : reminderCount}
+                  </span>
+                )}
+              </button>
+            )}
+            <h2
+              className="font-light tracking-[0.08em] leading-none select-none"
+              style={{
+                fontSize: clockFontSize,
+                color: 'var(--text-muted)',
+                fontFamily: resolvedFontFamily,
+              }}
+            >
+              {timeStr}
+            </h2>
+          </div>
         )}
       </div>
 

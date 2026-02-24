@@ -41,6 +41,8 @@ const StatusPillsConfigModal = lazy(() => import('../modals/StatusPillsConfigMod
 const TodoModal = lazy(() => import('../modals/TodoModal'));
 const RoomModal = lazy(() => import('../modals/RoomModal'));
 const VacuumModal = lazy(() => import('../modals/VacuumModal'));
+const ReminderModal = lazy(() => import('../modals/ReminderModal'));
+const ReminderPopup = lazy(() => import('../modals/ReminderPopup'));
 
 const ThemeSidebar = lazy(() => import('../components/sidebars/ThemeSidebar'));
 const LayoutSidebar = lazy(() => import('../components/sidebars/LayoutSidebar'));
@@ -53,6 +55,7 @@ export default function ModalOrchestrator({
   modals, appearance, layout, onboarding,
   pageManagement, entityHelpers, addCard, cardConfig,
   mediaTick,
+  reminderProps,
 }) {
   // ── Destructure grouped props ──────────────────────────────────────────
   const {
@@ -90,6 +93,7 @@ export default function ModalOrchestrator({
     showLayoutSidebar, setShowLayoutSidebar,
     editCardSettingsKey, setEditCardSettingsKey,
     configTab, setConfigTab,
+    showReminderModal, setShowReminderModal,
   } = modals;
 
   const {
@@ -232,6 +236,8 @@ export default function ModalOrchestrator({
       updateHeaderSettings,
       updateSectionSpacing,
       saveStatusPillsConfig,
+      // Reminder setters
+      setAllReminders: reminderProps?.setAllReminders,
       // ConfigContext setters
       setCurrentTheme,
       setLanguage,
@@ -874,6 +880,34 @@ export default function ModalOrchestrator({
             statusPillsConfig={statusPillsConfig}
             onSave={saveStatusPillsConfig}
             entities={entities}
+            t={t}
+          />
+        </ModalSuspense>
+      )}
+
+      {/* ── Reminder management modal ───────────────────────────────────── */}
+      {showReminderModal && reminderProps && (
+        <ModalSuspense>
+          <ReminderModal
+            show={true}
+            onClose={() => setShowReminderModal(false)}
+            reminders={reminderProps.reminders}
+            onAdd={reminderProps.addReminder}
+            onUpdate={reminderProps.updateReminder}
+            onDelete={reminderProps.deleteReminder}
+            t={t}
+          />
+        </ModalSuspense>
+      )}
+
+      {/* ── Reminder auto-popup (when due) ──────────────────────────────── */}
+      {reminderProps?.activePopup && (
+        <ModalSuspense>
+          <ReminderPopup
+            reminder={reminderProps.activePopup}
+            onComplete={reminderProps.handleComplete}
+            onSnooze={reminderProps.handleSnooze}
+            onDismiss={reminderProps.handleDismiss}
             t={t}
           />
         </ModalSuspense>

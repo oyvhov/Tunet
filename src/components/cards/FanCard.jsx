@@ -128,7 +128,7 @@ export default function FanCard({
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={canTogglePower ? togglePower : undefined}
-              className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center transition-all group-hover:scale-110 ${
+              className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all group-hover:scale-110 ${
                 isOn 
                   ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' 
                   : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'

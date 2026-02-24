@@ -35,6 +35,7 @@ const MODAL_DEFAULTS = {
   showHeaderEditModal: false,
   showEditCardModal: null,
   showStatusPillsConfig: false,
+  showReminderModal: false,
 };
 
 // Keys checked by hasOpenModal
@@ -46,7 +47,7 @@ const OPEN_CHECK_KEYS = [
   'showSensorInfoModal', 'activeMediaModal', 'showStatusPillsConfig',
   'showPersonModal', 'showCalendarModal', 'showTodoModal',
   'showRoomModal', 'showWeatherModal', 'showCoverModal', 'showCameraModal',
-  'showAlarmModal', 'showAlarmActionModal',
+  'showAlarmModal', 'showAlarmActionModal', 'showReminderModal',
 ];
 
 /** @param {ModalState} state @param {{ type: 'SET', key: keyof ModalState, value: ModalState[keyof ModalState] } | { type: 'CLOSE_ALL' }} action */

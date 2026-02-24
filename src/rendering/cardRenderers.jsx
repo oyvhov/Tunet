@@ -91,7 +91,7 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
 }
 
 export function renderLightCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, getA, callService, optimisticLightBrightness, setOptimisticLightBrightness, setShowLightModal, t } = ctx;
+  const { entities, editMode, cardSettings, customNames, customIcons, getA, callService, optimisticLightBrightness, setOptimisticLightBrightness, setShowLightModal, isMobile, t } = ctx;
   return (
     <LightCard
       key={cardId} cardId={cardId} dragProps={dragProps} controls={getControls(cardId)}
@@ -102,6 +102,7 @@ export function renderLightCard(cardId, dragProps, getControls, cardStyle, setti
       onOpen={() => { if (!editMode) setShowLightModal(cardId); }}
       optimisticLightBrightness={optimisticLightBrightness}
       setOptimisticLightBrightness={setOptimisticLightBrightness}
+      isMobile={isMobile}
       t={t}
     />
   );

@@ -386,8 +386,8 @@ function CalendarCard({
 
         {/* Header */}
         <div className="px-5 pt-4 pb-1 flex items-center gap-3 shrink-0">
-          <div className="p-2 rounded-xl bg-[var(--accent-bg)] text-[var(--accent-color)]">
-            <IconComp className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+          <div className="p-3 rounded-2xl bg-[var(--accent-bg)] text-[var(--accent-color)]">
+            <IconComp className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
           </div>
           <h3 className="text-base font-medium text-[var(--text-primary)] tracking-tight">
             {displayName}

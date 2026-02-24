@@ -167,17 +167,17 @@ export default function AlarmCard({
         {controls}
 
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3" style={stateVisual.iconBgStyle}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3" style={stateVisual.iconBgStyle}>
             {stateVisual.mdiPath ? (
               <MdiIcon
                 path={stateVisual.mdiPath}
-                size={0.95}
+                size={1.1}
                 color={stateVisual.iconColor}
                 className={inTransition ? 'animate-spin' : ''}
               />
             ) : (
               <StateIcon
-                className={`w-5 h-5 ${inTransition ? 'animate-spin' : ''}`}
+                className={`w-6 h-6 ${inTransition ? 'animate-spin' : ''}`}
                 color={stateVisual.iconColor}
                 style={{ color: stateVisual.iconColor }}
               />

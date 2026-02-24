@@ -411,12 +411,12 @@ const CoverCard = ({
       <div className="flex flex-col justify-between flex-1 min-w-0 pr-2 z-10 pointer-events-none">
         {/* Top: Icon (Interactive for mode toggle) */}
         <div className="flex items-start pointer-events-auto">
-           <div 
-              onClick={handleToggleMode}
-              className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[var(--glass-bg-hover)] shadow-sm border border-[var(--glass-border)] cursor-pointer active:scale-90 transition-all group-hover:scale-110 hover:bg-white/10"
-              style={{ color: accent.text }}
-           >
-              <Icon className={`w-6 h-6 stroke-[1.5px] ${isMoving ? 'animate-pulse' : ''}`} />
+              <div 
+                onClick={handleToggleMode}
+                className="p-3 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-3 cursor-pointer active:scale-90"
+                style={{ backgroundColor: accent.bg, color: accent.text }}
+              >
+              <Icon className={`w-5 h-5 stroke-[1.5px] ${isMoving ? 'animate-pulse' : ''}`} />
            </div>
         </div>
 
