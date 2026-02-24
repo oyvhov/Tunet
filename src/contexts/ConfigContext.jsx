@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { themes } from '../config/themes';
-import { DEFAULT_LANGUAGE, LEGACY_NN_MIGRATION_FLAG, normalizeLanguage } from '../i18n';
-import { hashPin, runConfigMigrations, verifyPin } from '../utils';
+import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
+import { hashPin, verifyPin } from '../utils';
 
 /** @typedef {import('../types/dashboard').ConfigContextValue} ConfigContextValue */
 /** @typedef {import('../types/dashboard').ConfigProviderProps} ConfigProviderProps */
@@ -17,6 +17,8 @@ export const GRADIENT_PRESETS = {
 
 /** @type {import('react').Context<ConfigContextValue | null>} */
 const ConfigContext = createContext(null);
+const CONFIG_STORAGE_VERSION_KEY = 'tunet_config_storage_version';
+const CONFIG_STORAGE_VERSION = '1';
 
 /** @returns {ConfigContextValue} */
 export const useConfig = () => {
@@ -29,9 +31,11 @@ export const useConfig = () => {
 
 /** @param {ConfigProviderProps} props */
 export const ConfigProvider = ({ children }) => {
-  if (typeof window !== 'undefined') {
-    runConfigMigrations(window.localStorage, window.sessionStorage);
-  }
+  useEffect(() => {
+    try {
+      localStorage.setItem(CONFIG_STORAGE_VERSION_KEY, CONFIG_STORAGE_VERSION);
+    } catch {}
+  }, []);
 
   const [currentTheme, setCurrentTheme] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -49,16 +53,7 @@ export const ConfigProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
     try {
       const rawLanguage = localStorage.getItem('tunet_language') || DEFAULT_LANGUAGE;
-      const migrationDone = localStorage.getItem(LEGACY_NN_MIGRATION_FLAG) === '1';
-      const shouldMigrateLegacyNn = rawLanguage === 'nn' && !migrationDone;
-      const normalizedLanguage = shouldMigrateLegacyNn ? 'nb' : normalizeLanguage(rawLanguage);
-
-      if (shouldMigrateLegacyNn) {
-        localStorage.setItem('tunet_language', normalizedLanguage);
-        localStorage.setItem(LEGACY_NN_MIGRATION_FLAG, '1');
-      }
-
-      return normalizedLanguage;
+      return normalizeLanguage(rawLanguage);
     } catch (error) {
       console.error('Failed to read language from localStorage:', error);
       return DEFAULT_LANGUAGE;
@@ -407,7 +402,6 @@ export const ConfigProvider = ({ children }) => {
     try {
       const normalizedLanguage = normalizeLanguage(language);
       localStorage.setItem('tunet_language', normalizedLanguage);
-      localStorage.setItem(LEGACY_NN_MIGRATION_FLAG, '1');
     } catch (error) {
       console.error('Failed to save language to localStorage:', error);
     }
