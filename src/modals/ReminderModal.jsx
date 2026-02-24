@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Bell, Plus, Trash2, Clock, Check, RotateCcw, X, ChevronDown, ChevronUp } from '../icons';
+import { Bell, Plus, Trash2, Clock, Check, RotateCcw, X, ChevronDown, ChevronUp, Calendar, Activity, Search } from '../icons';
 import {
   createReminder,
   getRecurrenceLabel,
@@ -11,6 +11,23 @@ const RECURRENCE_TYPES = [
 ];
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const SOURCE_OPTIONS = [
+  { key: 'manual', icon: Bell, labelKey: 'reminder.source.manual' },
+  { key: 'calendar', icon: Calendar, labelKey: 'reminder.source.calendar' },
+  { key: 'entityState', icon: Activity, labelKey: 'reminder.source.entityState' },
+];
+
+const OPERATOR_OPTIONS = [
+  { value: 'eq',  label: '=' },
+  { value: 'neq', label: '≠' },
+  { value: 'gt',  label: '>' },
+  { value: 'lt',  label: '<' },
+  { value: 'gte', label: '≥' },
+  { value: 'lte', label: '≤' },
+];
+
+const TRIGGER_ENTITY_DOMAINS = ['binary_sensor', 'sensor', 'input_boolean', 'switch', 'input_number'];
 
 function RecurrenceEditor({ rule, onChange, t }) {
   const type = rule?.type || 'none';
@@ -101,9 +118,10 @@ function RecurrenceEditor({ rule, onChange, t }) {
   );
 }
 
-function ReminderForm({ initial, onSave, onCancel, t }) {
+function ReminderForm({ initial, onSave, onCancel, t, entities }) {
   const [title, setTitle] = useState(initial?.title || '');
   const [description, setDescription] = useState(initial?.description || '');
+  const [source, setSource] = useState(initial?.source || 'manual');
   const [dueAt, setDueAt] = useState(() => {
     const d = new Date(initial?.dueAt || Date.now() + 3600_000);
     return d.toISOString().slice(0, 16); // datetime-local format
@@ -111,20 +129,127 @@ function ReminderForm({ initial, onSave, onCancel, t }) {
   const [recurrence, setRecurrence] = useState(initial?.recurrence || { type: 'none' });
   const [snoozeMinutes, setSnoozeMinutes] = useState(initial?.snoozeMinutes || 15);
 
+  // Calendar source
+  const [calendarEntityId, setCalendarEntityId] = useState(initial?.calendarEntityId || '');
+  const [calendarEventFilter, setCalendarEventFilter] = useState(initial?.calendarEventFilter || '');
+
+  // Entity-state source
+  const [sourceEntityId, setSourceEntityId] = useState(initial?.sourceEntityId || '');
+  const [triggerOperator, setTriggerOperator] = useState(initial?.triggerCondition?.operator || 'eq');
+  const [triggerValue, setTriggerValue] = useState(initial?.triggerCondition?.value || '');
+
+  // Entity search
+  const [entitySearch, setEntitySearch] = useState('');
+
+  // Filter entities by domain for each source type
+  const calendarEntities = useMemo(() => {
+    if (!entities) return [];
+    return Object.keys(entities)
+      .filter((id) => id.startsWith('calendar.'))
+      .sort();
+  }, [entities]);
+
+  const triggerEntities = useMemo(() => {
+    if (!entities) return [];
+    return Object.keys(entities)
+      .filter((id) => TRIGGER_ENTITY_DOMAINS.some((d) => id.startsWith(d + '.')))
+      .sort();
+  }, [entities]);
+
+  const filteredEntities = useMemo(() => {
+    const list = source === 'calendar' ? calendarEntities : triggerEntities;
+    if (!entitySearch.trim()) return list.slice(0, 50);
+    const q = entitySearch.toLowerCase();
+    return list.filter((id) => {
+      const name = entities?.[id]?.attributes?.friendly_name || '';
+      return id.toLowerCase().includes(q) || name.toLowerCase().includes(q);
+    }).slice(0, 50);
+  }, [source, calendarEntities, triggerEntities, entitySearch, entities]);
+
+  const selectedEntityForSource = source === 'calendar' ? calendarEntityId : sourceEntityId;
+  const setSelectedEntityForSource = source === 'calendar' ? setCalendarEntityId : setSourceEntityId;
+
   const handleSave = () => {
-    if (!title.trim()) return;
-    onSave({
+    if (!title.trim() && source === 'manual') return;
+    // Auto-generate title for entity/calendar if empty
+    let finalTitle = title.trim();
+    if (!finalTitle && source === 'calendar') {
+      const friendlyName = entities?.[calendarEntityId]?.attributes?.friendly_name || calendarEntityId;
+      finalTitle = calendarEventFilter ? `${friendlyName}: ${calendarEventFilter}` : friendlyName;
+    }
+    if (!finalTitle && source === 'entityState') {
+      const friendlyName = entities?.[sourceEntityId]?.attributes?.friendly_name || sourceEntityId;
+      finalTitle = `${friendlyName} ${triggerOperator} ${triggerValue}`;
+    }
+
+    const data = {
       ...(initial || {}),
-      title: title.trim(),
+      title: finalTitle,
       description: description.trim(),
-      dueAt: new Date(dueAt).getTime(),
-      recurrence,
+      source,
       snoozeMinutes,
-    });
+    };
+
+    if (source === 'manual') {
+      data.dueAt = new Date(dueAt).getTime();
+      data.recurrence = recurrence;
+      data.calendarEntityId = null;
+      data.calendarEventFilter = '';
+      data.sourceEntityId = null;
+      data.triggerCondition = null;
+    } else if (source === 'calendar') {
+      data.calendarEntityId = calendarEntityId;
+      data.calendarEventFilter = calendarEventFilter;
+      data.dueAt = initial?.dueAt || Date.now();
+      data.recurrence = { type: 'none' };
+      data.sourceEntityId = null;
+      data.triggerCondition = null;
+    } else if (source === 'entityState') {
+      data.sourceEntityId = sourceEntityId;
+      data.triggerCondition = { operator: triggerOperator, value: triggerValue };
+      data.dueAt = initial?.dueAt || Date.now();
+      data.recurrence = { type: 'none' };
+      data.calendarEntityId = null;
+      data.calendarEventFilter = '';
+    }
+
+    onSave(data);
   };
+
+  const canSave =
+    source === 'manual' ? title.trim() :
+    source === 'calendar' ? calendarEntityId :
+    source === 'entityState' ? sourceEntityId && triggerValue !== '' :
+    false;
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      {/* Source selector */}
+      <div>
+        <label className="text-xs font-medium uppercase tracking-widest opacity-60 mb-2 block" style={{ color: 'var(--text-secondary)' }}>
+          {t('reminder.source')}
+        </label>
+        <div className="flex gap-2">
+          {SOURCE_OPTIONS.map(({ key, icon: Icon, labelKey }) => (
+            <button
+              key={key}
+              onClick={() => setSource(key)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                source === key ? 'ring-2 ring-[var(--accent-color)]' : ''
+              }`}
+              style={{
+                backgroundColor: source === key ? 'var(--accent-bg)' : 'var(--glass-bg)',
+                color: source === key ? 'var(--accent-color)' : 'var(--text-secondary)',
+                border: '1px solid var(--glass-border)',
+              }}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {t(labelKey)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Title */}
       <div>
         <label className="text-xs font-medium uppercase tracking-widest opacity-60 mb-1 block" style={{ color: 'var(--text-secondary)' }}>
@@ -134,14 +259,14 @@ function ReminderForm({ initial, onSave, onCancel, t }) {
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={t('reminder.titlePlaceholder')}
+          placeholder={source === 'manual' ? t('reminder.titlePlaceholder') : t('reminder.titlePlaceholderAuto')}
           className="w-full px-4 py-2.5 rounded-2xl text-sm"
           style={{
             backgroundColor: 'var(--glass-bg)',
             border: '1px solid var(--glass-border)',
             color: 'var(--text-primary)',
           }}
-          autoFocus
+          autoFocus={source === 'manual'}
         />
       </div>
 
@@ -164,32 +289,199 @@ function ReminderForm({ initial, onSave, onCancel, t }) {
         />
       </div>
 
-      {/* Due date/time */}
-      <div>
-        <label className="text-xs font-medium uppercase tracking-widest opacity-60 mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-          {t('reminder.dueAt')}
-        </label>
-        <input
-          type="datetime-local"
-          value={dueAt}
-          onChange={(e) => setDueAt(e.target.value)}
-          className="w-full px-4 py-2.5 rounded-2xl text-sm"
-          style={{
-            backgroundColor: 'var(--glass-bg)',
-            border: '1px solid var(--glass-border)',
-            color: 'var(--text-primary)',
-            colorScheme: 'dark',
-          }}
-        />
-      </div>
+      {/* Calendar source fields */}
+      {source === 'calendar' && (
+        <div className="flex flex-col gap-3 popup-surface rounded-2xl p-3">
+          <label className="text-xs font-medium uppercase tracking-widest opacity-60" style={{ color: 'var(--text-secondary)' }}>
+            {t('reminder.selectCalendar')}
+          </label>
+          {/* Entity search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40" style={{ color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              value={entitySearch}
+              onChange={(e) => setEntitySearch(e.target.value)}
+              placeholder={t('reminder.searchEntities')}
+              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs"
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          </div>
+          {/* Entity list */}
+          <div className="max-h-32 overflow-y-auto flex flex-col gap-1">
+            {filteredEntities.map((id) => (
+              <button
+                key={id}
+                onClick={() => { setSelectedEntityForSource(id); setEntitySearch(''); }}
+                className={`text-left px-3 py-2 rounded-xl text-xs transition-all ${
+                  selectedEntityForSource === id ? 'ring-2 ring-[var(--accent-color)]' : ''
+                }`}
+                style={{
+                  backgroundColor: selectedEntityForSource === id ? 'var(--accent-bg)' : 'var(--glass-bg)',
+                  color: selectedEntityForSource === id ? 'var(--accent-color)' : 'var(--text-primary)',
+                  border: '1px solid var(--glass-border)',
+                }}
+              >
+                <span className="font-medium">{entities?.[id]?.attributes?.friendly_name || id}</span>
+                <span className="block opacity-50 text-[10px]">{id}</span>
+              </button>
+            ))}
+            {filteredEntities.length === 0 && (
+              <p className="text-xs opacity-50 py-2 text-center" style={{ color: 'var(--text-secondary)' }}>
+                {t('reminder.noEntitiesFound')}
+              </p>
+            )}
+          </div>
+          {/* Optional event filter */}
+          <div>
+            <label className="text-xs font-medium opacity-60 mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+              {t('reminder.eventFilter')}
+            </label>
+            <input
+              type="text"
+              value={calendarEventFilter}
+              onChange={(e) => setCalendarEventFilter(e.target.value)}
+              placeholder={t('reminder.eventFilterPlaceholder')}
+              className="w-full px-4 py-2 rounded-xl text-xs"
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
-      {/* Recurrence */}
-      <div>
-        <label className="text-xs font-medium uppercase tracking-widest opacity-60 mb-1 block" style={{ color: 'var(--text-secondary)' }}>
-          {t('reminder.repeat')}
-        </label>
-        <RecurrenceEditor rule={recurrence} onChange={setRecurrence} t={t} />
-      </div>
+      {/* Entity-state source fields */}
+      {source === 'entityState' && (
+        <div className="flex flex-col gap-3 popup-surface rounded-2xl p-3">
+          <label className="text-xs font-medium uppercase tracking-widest opacity-60" style={{ color: 'var(--text-secondary)' }}>
+            {t('reminder.selectEntity')}
+          </label>
+          {/* Entity search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40" style={{ color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              value={entitySearch}
+              onChange={(e) => setEntitySearch(e.target.value)}
+              placeholder={t('reminder.searchEntities')}
+              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs"
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          </div>
+          {/* Entity list */}
+          <div className="max-h-32 overflow-y-auto flex flex-col gap-1">
+            {filteredEntities.map((id) => {
+              const ent = entities?.[id];
+              return (
+                <button
+                  key={id}
+                  onClick={() => { setSelectedEntityForSource(id); setEntitySearch(''); }}
+                  className={`text-left px-3 py-2 rounded-xl text-xs transition-all ${
+                    selectedEntityForSource === id ? 'ring-2 ring-[var(--accent-color)]' : ''
+                  }`}
+                  style={{
+                    backgroundColor: selectedEntityForSource === id ? 'var(--accent-bg)' : 'var(--glass-bg)',
+                    color: selectedEntityForSource === id ? 'var(--accent-color)' : 'var(--text-primary)',
+                    border: '1px solid var(--glass-border)',
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{ent?.attributes?.friendly_name || id}</span>
+                    <span className="opacity-50 ml-2">{ent?.state}</span>
+                  </div>
+                  <span className="block opacity-50 text-[10px]">{id}</span>
+                </button>
+              );
+            })}
+            {filteredEntities.length === 0 && (
+              <p className="text-xs opacity-50 py-2 text-center" style={{ color: 'var(--text-secondary)' }}>
+                {t('reminder.noEntitiesFound')}
+              </p>
+            )}
+          </div>
+          {/* Condition editor */}
+          {sourceEntityId && (
+            <div>
+              <label className="text-xs font-medium opacity-60 mb-2 block" style={{ color: 'var(--text-secondary)' }}>
+                {t('reminder.condition')}
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={triggerOperator}
+                  onChange={(e) => setTriggerOperator(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs font-medium"
+                  style={{
+                    backgroundColor: 'var(--glass-bg)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {OPERATOR_OPTIONS.map((op) => (
+                    <option key={op.value} value={op.value}>{op.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={triggerValue}
+                  onChange={(e) => setTriggerValue(e.target.value)}
+                  placeholder={t('reminder.conditionValue')}
+                  className="flex-1 px-3 py-2 rounded-xl text-xs"
+                  style={{
+                    backgroundColor: 'var(--glass-bg)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </div>
+              <p className="mt-2 text-[10px] opacity-50" style={{ color: 'var(--text-secondary)' }}>
+                {t('reminder.currentState')}: <strong>{entities?.[sourceEntityId]?.state ?? '—'}</strong>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Due date/time (manual only) */}
+      {source === 'manual' && (
+        <div>
+          <label className="text-xs font-medium uppercase tracking-widest opacity-60 mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            {t('reminder.dueAt')}
+          </label>
+          <input
+            type="datetime-local"
+            value={dueAt}
+            onChange={(e) => setDueAt(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-2xl text-sm"
+            style={{
+              backgroundColor: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              colorScheme: 'dark',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Recurrence (manual only) */}
+      {source === 'manual' && (
+        <div>
+          <label className="text-xs font-medium uppercase tracking-widest opacity-60 mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            {t('reminder.repeat')}
+          </label>
+          <RecurrenceEditor rule={recurrence} onChange={setRecurrence} t={t} />
+        </div>
+      )}
 
       {/* Default snooze */}
       <div>
@@ -220,7 +512,7 @@ function ReminderForm({ initial, onSave, onCancel, t }) {
       <div className="flex gap-3 mt-2">
         <button
           onClick={handleSave}
-          disabled={!title.trim()}
+          disabled={!canSave}
           className="flex-1 py-3 rounded-2xl font-semibold text-sm transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40"
           style={{
             backgroundColor: 'var(--accent-color)',
@@ -247,12 +539,19 @@ function ReminderForm({ initial, onSave, onCancel, t }) {
 
 function ReminderListItem({ reminder, onEdit, onDelete, onToggle, t }) {
   const [expanded, setExpanded] = useState(false);
-  const isPast = reminder.dueAt < Date.now() && reminder.enabled && reminder.recurrence?.type === 'none';
+  const isPast = reminder.dueAt < Date.now() && reminder.enabled && reminder.recurrence?.type === 'none' && reminder.source === 'manual';
   const isSnoozed = reminder.snoozedUntil && reminder.snoozedUntil > Date.now();
 
   const dueDate = new Date(reminder.dueAt);
   const timeStr = dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = dueDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+  const SourceIcon = reminder.source === 'calendar' ? Calendar : reminder.source === 'entityState' ? Activity : Bell;
+  const sourceLabel = reminder.source === 'calendar'
+    ? t('reminder.source.calendar')
+    : reminder.source === 'entityState'
+    ? t('reminder.source.entityState')
+    : null;
 
   return (
     <div
@@ -273,7 +572,7 @@ function ReminderListItem({ reminder, onEdit, onDelete, onToggle, t }) {
             color: reminder.enabled ? 'var(--accent-color)' : 'var(--text-secondary)',
           }}
         >
-          {reminder.enabled ? <Bell className="w-4 h-4" /> : <Bell className="w-4 h-4 opacity-40" />}
+          {reminder.enabled ? <SourceIcon className="w-4 h-4" /> : <SourceIcon className="w-4 h-4 opacity-40" />}
         </button>
 
         {/* Title + meta */}
@@ -284,9 +583,18 @@ function ReminderListItem({ reminder, onEdit, onDelete, onToggle, t }) {
           >
             {reminder.title || t('reminder.untitled')}
           </p>
-          <p className="text-xs opacity-50 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-            <Clock className="w-3 h-3" />
-            {dateStr} {timeStr}
+          <p className="text-xs opacity-50 flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text-secondary)' }}>
+            {reminder.source === 'manual' && (
+              <>
+                <Clock className="w-3 h-3" />
+                {dateStr} {timeStr}
+              </>
+            )}
+            {sourceLabel && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}>
+                {sourceLabel}
+              </span>
+            )}
             {reminder.recurrence?.type !== 'none' && (
               <>
                 <span>·</span>
@@ -348,6 +656,7 @@ export default function ReminderModal({
   onAdd,
   onUpdate,
   onDelete,
+  entities,
   t = (k) => k,
 }) {
   const [view, setView] = useState('list'); // 'list' | 'form'
@@ -389,21 +698,20 @@ export default function ReminderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9990] flex items-end sm:items-center justify-center p-0 sm:p-4 popup-anim">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6"
+      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      onClick={onClose}
+    >
       {/* Panel */}
       <div
-        className="relative w-full sm:max-w-md max-h-[85vh] rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full sm:max-w-md max-h-[85vh] border rounded-t-3xl sm:rounded-3xl md:rounded-[2.5rem] backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col popup-anim"
         style={{
-          backgroundColor: 'var(--glass-bg)',
-          border: '1px solid var(--glass-border)',
-          backdropFilter: 'blur(24px)',
+          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+          borderColor: 'var(--glass-border)',
+          color: 'var(--text-primary)',
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div
@@ -448,6 +756,7 @@ export default function ReminderModal({
               onSave={handleSave}
               onCancel={() => { setView('list'); setEditingReminder(null); }}
               t={t}
+              entities={entities}
             />
           ) : sortedReminders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">

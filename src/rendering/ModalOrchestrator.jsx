@@ -895,6 +895,7 @@ export default function ModalOrchestrator({
             onAdd={reminderProps.addReminder}
             onUpdate={reminderProps.updateReminder}
             onDelete={reminderProps.deleteReminder}
+            entities={entities}
             t={t}
           />
         </ModalSuspense>

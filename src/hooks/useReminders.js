@@ -5,8 +5,12 @@ import {
   completeReminder,
   snoozeReminder,
   dismissReminder,
+  evaluateEntityTrigger,
+  matchCalendarEvents,
+  canTriggerAgain,
   DEFAULT_SNOOZE_MINUTES,
 } from '../utils/reminderEngine';
+import { getCalendarEvents } from '../services';
 
 const STORAGE_KEY = 'tunet_reminders';
 
@@ -139,6 +143,96 @@ export function useReminders() {
     [],
   );
 
+  // ── Entity / Calendar trigger checks ─────────────────────────────
+
+  const lastCalendarSyncRef = useRef(0);
+  const CALENDAR_SYNC_INTERVAL = 5 * 60_000; // 5-minute debounce
+
+  /**
+   * Called on each 30-second tick.
+   * - Entity-state reminders: evaluate condition against current entity state.
+   * - Calendar reminders: fetch events (debounced to 5 min) and match.
+   */
+  const checkEntityTriggers = useCallback(
+    async (entities, conn) => {
+      if (!entities) return;
+      const nowMs = Date.now();
+
+      // ── Entity-state triggers (instant, from in-memory entities) ──
+      const entityStateReminders = reminders.filter(
+        (r) => r.enabled && r.source === 'entityState' && r.sourceEntityId && r.triggerCondition,
+      );
+
+      const freshEntityTriggers = [];
+      for (const r of entityStateReminders) {
+        if (!canTriggerAgain(r, nowMs)) continue;
+        const entity = entities[r.sourceEntityId];
+        if (!entity) continue;
+        if (evaluateEntityTrigger(entity, r.triggerCondition)) {
+          if (!enqueuedRef.current.has(r.id)) {
+            freshEntityTriggers.push(r);
+          }
+        }
+      }
+
+      if (freshEntityTriggers.length > 0) {
+        // Mark trigger time
+        setReminders((prev) =>
+          prev.map((r) => {
+            const match = freshEntityTriggers.find((t) => t.id === r.id);
+            return match ? { ...r, lastTriggeredAt: nowMs, updatedAt: nowMs } : r;
+          }),
+        );
+        freshEntityTriggers.forEach((r) => enqueuedRef.current.add(r.id));
+        setDueQueue((prev) => [...prev, ...freshEntityTriggers]);
+      }
+
+      // ── Calendar triggers (debounced WS call) ─────────────────────
+      if (!conn) return;
+      const calendarReminders = reminders.filter(
+        (r) => r.enabled && r.source === 'calendar' && r.calendarEntityId,
+      );
+      if (calendarReminders.length === 0) return;
+      if (nowMs - lastCalendarSyncRef.current < CALENDAR_SYNC_INTERVAL) return;
+      lastCalendarSyncRef.current = nowMs;
+
+      // Collect unique calendar entity IDs
+      const calendarIds = [...new Set(calendarReminders.map((r) => r.calendarEntityId))];
+
+      try {
+        const start = new Date(nowMs - 10 * 60_000); // 10 min ago
+        const end = new Date(nowMs + 60 * 60_000);    // 1 h ahead
+        const result = await getCalendarEvents(conn, { start, end, entityIds: calendarIds });
+
+        const freshCalTriggers = [];
+        for (const r of calendarReminders) {
+          if (!canTriggerAgain(r, nowMs)) continue;
+          if (enqueuedRef.current.has(r.id)) continue;
+          const calData = result[r.calendarEntityId];
+          const events = calData?.events || [];
+          const matched = matchCalendarEvents(events, r.calendarEventFilter, nowMs);
+          if (matched.length > 0) {
+            freshCalTriggers.push({ ...r, _matchedEvent: matched[0] });
+          }
+        }
+
+        if (freshCalTriggers.length > 0) {
+          setReminders((prev) =>
+            prev.map((rm) => {
+              const match = freshCalTriggers.find((t) => t.id === rm.id);
+              return match ? { ...rm, lastTriggeredAt: nowMs, updatedAt: nowMs } : rm;
+            }),
+          );
+          freshCalTriggers.forEach((r) => enqueuedRef.current.add(r.id));
+          setDueQueue((prev) => [...prev, ...freshCalTriggers]);
+        }
+      } catch (err) {
+        console.warn('[useReminders] Calendar sync failed', err);
+      }
+    },
+    [reminders],
+  );
+
   return {
     reminders,
     addReminder,
@@ -146,6 +240,7 @@ export function useReminders() {
     deleteReminder,
     setAllReminders,
     checkDue,
+    checkEntityTriggers,
     activePopup,
     dueQueue,
     handleComplete,

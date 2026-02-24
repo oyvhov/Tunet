@@ -1090,5 +1090,21 @@
   "reminder.recurrence.biweekly": "Every 2 weeks",
   "reminder.recurrence.monthly": "Monthly",
   "reminder.recurrence.yearly": "Yearly",
-  "reminder.recurrence.custom": "Custom"
+  "reminder.recurrence.custom": "Custom",
+
+  "reminder.source": "Source",
+  "reminder.source.manual": "Manual",
+  "reminder.source.calendar": "Calendar",
+  "reminder.source.entityState": "Entity State",
+  "reminder.selectCalendar": "Select calendar",
+  "reminder.selectEntity": "Select entity",
+  "reminder.searchEntities": "Search entities…",
+  "reminder.noEntitiesFound": "No entities found",
+  "reminder.eventFilter": "Event title filter (optional)",
+  "reminder.eventFilterPlaceholder": "e.g. Meeting, Birthday…",
+  "reminder.condition": "Trigger condition",
+  "reminder.conditionValue": "Value",
+  "reminder.currentState": "Current state",
+  "reminder.nextOccurrence": "Next",
+  "reminder.titlePlaceholderAuto": "Auto-generated if empty"
 }

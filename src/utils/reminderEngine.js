@@ -23,24 +23,34 @@ export const generateReminderId = () =>
  */
 
 /**
- * @typedef {'manual'|'calendar'|'todo'} ReminderSource
+ * @typedef {'manual'|'calendar'|'entityState'} ReminderSource
+ *
+ * @typedef {'eq'|'neq'|'gt'|'lt'|'gte'|'lte'} TriggerOperator
+ *
+ * @typedef {Object} TriggerCondition
+ * @property {TriggerOperator} operator
+ * @property {string}          value    - compared as number when both sides are numeric
  *
  * @typedef {Object} Reminder
- * @property {string}         id
- * @property {string}         title
- * @property {string}         [description]
- * @property {ReminderSource} source          - 'manual' | 'calendar' | 'todo'
- * @property {string}         [sourceEntityId] - HA entity id for calendar/todo source
- * @property {string}         [sourceItemUid]  - HA todo item uid
- * @property {number}         dueAt           - epoch ms of next occurrence
- * @property {RecurrenceRule} recurrence
- * @property {number}         [snoozedUntil]  - epoch ms; if set & future, skip until then
- * @property {number}         [completedAt]   - epoch ms of last completion
- * @property {string[]}       [dismissedOccurrences] - ISO date strings of dismissed occurrences
- * @property {number}         [snoozeMinutes] - default snooze duration (default 15)
- * @property {boolean}        [enabled]       - false = paused
- * @property {number}         createdAt
- * @property {number}         updatedAt
+ * @property {string}            id
+ * @property {string}            title
+ * @property {string}            [description]
+ * @property {ReminderSource}    source            - 'manual' | 'calendar' | 'entityState'
+ * @property {string}            [sourceEntityId]  - HA entity id for calendar/entity source
+ * @property {string}            [sourceItemUid]   - HA todo item uid (legacy)
+ * @property {string}            [calendarEntityId] - calendar.* entity to watch
+ * @property {string}            [calendarEventFilter] - optional substring filter on event summary
+ * @property {TriggerCondition}  [triggerCondition] - condition for entityState source
+ * @property {number}            dueAt             - epoch ms of next occurrence
+ * @property {RecurrenceRule}    recurrence
+ * @property {number}            [snoozedUntil]    - epoch ms; if set & future, skip until then
+ * @property {number}            [completedAt]     - epoch ms of last completion
+ * @property {string[]}          [dismissedOccurrences] - ISO date strings
+ * @property {number}            [snoozeMinutes]   - default snooze duration (default 15)
+ * @property {boolean}           [enabled]         - false = paused
+ * @property {number}            [lastTriggeredAt] - epoch ms of last entity/calendar trigger
+ * @property {number}            createdAt
+ * @property {number}            updatedAt
  */
 
 // ── Defaults ─────────────────────────────────────────────────────────
@@ -59,6 +69,9 @@ export function createReminder(overrides = {}) {
     source: 'manual',
     sourceEntityId: null,
     sourceItemUid: null,
+    calendarEntityId: null,
+    calendarEventFilter: '',
+    triggerCondition: null,
     dueAt: now + 3600_000, // 1 h from now
     recurrence: { type: 'none' },
     snoozedUntil: null,
@@ -66,6 +79,7 @@ export function createReminder(overrides = {}) {
     dismissedOccurrences: [],
     snoozeMinutes: DEFAULT_SNOOZE_MINUTES,
     enabled: true,
+    lastTriggeredAt: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -234,4 +248,85 @@ export function getRecurrenceLabel(rule, t) {
     }
     default: return rule.type;
   }
+}
+
+// ── Entity-state trigger evaluation ──────────────────────────────────
+
+/**
+ * Evaluate whether an entity's current state satisfies a trigger condition.
+ * Numeric coercion is applied when both sides look like numbers.
+ *
+ * @param {{ state: string }} entity
+ * @param {TriggerCondition}  condition
+ * @returns {boolean}
+ */
+export function evaluateEntityTrigger(entity, condition) {
+  if (!entity || !condition || !condition.operator) return false;
+  const actual = entity.state;
+  if (actual === undefined || actual === null || actual === 'unavailable' || actual === 'unknown') return false;
+
+  const target = condition.value;
+  const aNum = Number(actual);
+  const tNum = Number(target);
+  const numeric = !isNaN(aNum) && !isNaN(tNum) && actual !== '' && target !== '';
+
+  switch (condition.operator) {
+    case 'eq':  return numeric ? aNum === tNum : actual === target;
+    case 'neq': return numeric ? aNum !== tNum : actual !== target;
+    case 'gt':  return numeric && aNum > tNum;
+    case 'lt':  return numeric && aNum < tNum;
+    case 'gte': return numeric && aNum >= tNum;
+    case 'lte': return numeric && aNum <= tNum;
+    default:    return false;
+  }
+}
+
+// ── Calendar event matching ──────────────────────────────────────────
+
+/**
+ * Given a flat array of calendar events and an optional summary filter,
+ * return events happening roughly "now" (started within the last 5 min or
+ * starting in the next 5 min).
+ *
+ * @param {{ start: string|{dateTime:string}, end: string|{dateTime:string}, summary: string }[]} events
+ * @param {string} [summaryFilter] - case-insensitive substring
+ * @param {number} [nowMs]
+ * @returns {{ start: string, end: string, summary: string }[]}
+ */
+export function matchCalendarEvents(events, summaryFilter, nowMs = Date.now()) {
+  if (!Array.isArray(events) || events.length === 0) return [];
+
+  const WINDOW_MS = 5 * 60_000; // ±5 minutes
+
+  return events.filter((ev) => {
+    // Resolve start time
+    const rawStart = ev.start?.dateTime || ev.start;
+    const startMs = new Date(rawStart).getTime();
+    if (isNaN(startMs)) return false;
+
+    // Check if event is within the window
+    const diff = startMs - nowMs;
+    if (diff > WINDOW_MS || diff < -WINDOW_MS) return false;
+
+    // Optional summary filter
+    if (summaryFilter && typeof summaryFilter === 'string' && summaryFilter.trim()) {
+      const summary = (ev.summary || '').toLowerCase();
+      if (!summary.includes(summaryFilter.trim().toLowerCase())) return false;
+    }
+
+    return true;
+  });
+}
+
+// ── Cooldown check for entity/calendar triggers ──────────────────────
+
+/** Minimum ms between repeated triggers for the same reminder. */
+export const TRIGGER_COOLDOWN_MS = 5 * 60_000; // 5 minutes
+
+/**
+ * Returns true if the reminder hasn't been triggered recently.
+ */
+export function canTriggerAgain(reminder, nowMs = Date.now()) {
+  if (!reminder.lastTriggeredAt) return true;
+  return (nowMs - reminder.lastTriggeredAt) >= TRIGGER_COOLDOWN_MS;
 }

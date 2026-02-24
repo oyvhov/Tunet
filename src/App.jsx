@@ -136,10 +136,16 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   // Reminder state management
   const reminderHook = useReminders();
   const {
-    reminders, checkDue, activePopup,
+    reminders, checkDue, checkEntityTriggers, activePopup,
     addReminder, updateReminder, deleteReminder, setAllReminders,
     handleComplete, handleSnooze, handleDismiss,
   } = reminderHook;
+
+  // Bind entity/conn context so the tick just calls a no-arg fn
+  const boundCheckEntityTriggers = useCallback(
+    () => checkEntityTriggers(entities, conn),
+    [checkEntityTriggers, entities, conn],
+  );
 
   const {
     setShowNordpoolModal,
@@ -259,6 +265,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     resolvedHeaderTitle, inactivityTimeout,
     resetToHome, activeMediaModal, entities,
     checkRemindersDue: checkDue,
+    checkEntityTriggers: boundCheckEntityTriggers,
   });
 
   // Smart Theme Logic — only active when bgMode is 'theme'
@@ -810,6 +817,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
             addReminder,
             updateReminder,
             deleteReminder,
+            setAllReminders,
             handleComplete,
             handleSnooze,
             handleDismiss,

@@ -24,6 +24,7 @@ export function useDashboardEffects({
   activeMediaModal,
   entities,
   checkRemindersDue,
+  checkEntityTriggers,
 }) {
   const [now, setNow] = useState(new Date());
   const [mediaTick, setMediaTick] = useState(0);
@@ -41,9 +42,11 @@ export function useDashboardEffects({
       setNow(new Date());
       // Check for due reminders on every tick
       if (checkRemindersDue) checkRemindersDue();
+      // Check entity-state & calendar triggers
+      if (checkEntityTriggers) checkEntityTriggers();
     }, ENTITY_UPDATE_INTERVAL);
     return () => clearInterval(id);
-  }, [checkRemindersDue]);
+  }, [checkRemindersDue, checkEntityTriggers]);
 
   // ── Media tick (only while a media modal is open) ──────────────────────
   useEffect(() => {

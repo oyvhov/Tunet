@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Bell, Check, Clock, X } from '../icons';
-import { SNOOZE_OPTIONS, getRecurrenceLabel } from '../utils/reminderEngine';
+import { Bell, Check, Clock, X, Calendar, Activity } from '../icons';
+import { SNOOZE_OPTIONS, getRecurrenceLabel, computeNextOccurrence } from '../utils/reminderEngine';
 
 /**
  * ReminderPopup — the full-screen overlay that appears when a reminder is due.
  *
  * Shows one reminder at a time with Done / Snooze / Dismiss actions.
  * Styled with the dashboard's glassmorphism popup conventions.
+ * Enlarged (max-w-lg) with pulsing icon glow, source badge, and next occurrence.
  */
 export default function ReminderPopup({
   reminder,
@@ -30,42 +31,83 @@ export default function ReminderPopup({
   const timeStr = dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = dueDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 popup-anim">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={() => onDismiss(reminder.id)}
-      />
+  // Source icon & label
+  const isCalendar = reminder.source === 'calendar';
+  const isEntityState = reminder.source === 'entityState';
+  const SourceIcon = isCalendar ? Calendar : isEntityState ? Activity : Bell;
+  const sourceLabel = isCalendar
+    ? t('reminder.source.calendar')
+    : isEntityState
+    ? t('reminder.source.entityState')
+    : null;
 
+  // Next occurrence
+  const nextOcc = computeNextOccurrence(reminder.dueAt, reminder.recurrence);
+  const nextOccStr = nextOcc
+    ? new Date(nextOcc).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      onClick={() => onDismiss(reminder.id)}
+    >
       {/* Card */}
       <div
-        className="relative w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg border rounded-3xl md:rounded-[2.5rem] backdrop-blur-xl shadow-2xl overflow-hidden reminder-popup-enter"
         style={{
-          backgroundColor: 'var(--glass-bg)',
-          border: '1px solid var(--glass-border)',
-          backdropFilter: 'blur(24px)',
+          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+          borderColor: 'var(--glass-border)',
+          color: 'var(--text-primary)',
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header accent bar */}
+        {/* Header accent bar — animated gradient */}
         <div
-          className="h-1 w-full"
-          style={{ background: 'var(--accent-color)' }}
+          className="h-1.5 w-full reminder-accent-bar"
+          style={{
+            background: 'linear-gradient(90deg, var(--accent-color), color-mix(in srgb, var(--accent-color) 60%, #fff), var(--accent-color))',
+            backgroundSize: '200% 100%',
+          }}
         />
 
-        <div className="p-6 flex flex-col items-center text-center gap-4">
-          {/* Icon */}
-          <div
-            className="p-4 rounded-2xl"
-            style={{ backgroundColor: 'var(--accent-bg)' }}
-          >
-            <Bell className="w-7 h-7" style={{ color: 'var(--accent-color)' }} />
+        <div className="p-8 flex flex-col items-center text-center gap-5">
+          {/* Pulsing icon with glow */}
+          <div className="relative">
+            <div
+              className="absolute inset-0 rounded-2xl reminder-glow-ring"
+              style={{
+                boxShadow: '0 0 25px var(--accent-color), 0 0 50px color-mix(in srgb, var(--accent-color) 30%, transparent)',
+              }}
+            />
+            <div
+              className="relative p-5 rounded-2xl reminder-pulse-icon"
+              style={{ backgroundColor: 'var(--accent-bg)' }}
+            >
+              <SourceIcon className="w-8 h-8" style={{ color: 'var(--accent-color)' }} />
+            </div>
           </div>
 
-          {/* Title */}
+          {/* Source badge */}
+          {sourceLabel && (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium"
+              style={{
+                backgroundColor: 'var(--accent-bg)',
+                color: 'var(--accent-color)',
+                border: '1px solid color-mix(in srgb, var(--accent-color) 25%, transparent)',
+              }}
+            >
+              <SourceIcon className="w-3 h-3" />
+              {sourceLabel}
+            </span>
+          )}
+
+          {/* Title & description */}
           <div>
             <h2
-              className="text-lg font-semibold mb-1"
+              className="text-xl font-semibold mb-1.5"
               style={{ color: 'var(--text-primary)' }}
             >
               {reminder.title || t('reminder.untitled')}
@@ -78,22 +120,46 @@ export default function ReminderPopup({
                 {reminder.description}
               </p>
             )}
-            <p className="text-xs opacity-50" style={{ color: 'var(--text-secondary)' }}>
-              {dateStr} · {timeStr}
-              {reminder.recurrence?.type !== 'none' && (
-                <span> · {getRecurrenceLabel(reminder.recurrence, t)}</span>
-              )}
-            </p>
+            {/* Time info for manual reminders */}
+            {!isCalendar && !isEntityState && (
+              <p className="text-xs opacity-50" style={{ color: 'var(--text-secondary)' }}>
+                {dateStr} · {timeStr}
+                {reminder.recurrence?.type !== 'none' && (
+                  <span> · {getRecurrenceLabel(reminder.recurrence, t)}</span>
+                )}
+              </p>
+            )}
+            {/* Calendar event detail */}
+            {isCalendar && reminder._matchedEvent?.summary && (
+              <p className="text-xs opacity-50 mt-1" style={{ color: 'var(--text-secondary)' }}>
+                {reminder._matchedEvent.summary}
+              </p>
+            )}
           </div>
+
+          {/* Next occurrence */}
+          {nextOccStr && (
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[11px]"
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <Clock className="w-3 h-3 opacity-60" />
+              {t('reminder.nextOccurrence')}: {nextOccStr}
+            </div>
+          )}
 
           {/* Snooze options (if expanded) */}
           {showSnoozeOptions && (
-            <div className="w-full popup-surface rounded-2xl p-3 grid grid-cols-2 gap-2">
+            <div className="w-full popup-surface rounded-2xl p-3 grid grid-cols-3 gap-2">
               {SNOOZE_OPTIONS.map((mins) => (
                 <button
                   key={mins}
                   onClick={() => onSnooze(reminder.id, mins)}
-                  className="px-3 py-2 rounded-xl text-xs font-medium transition-all hover:scale-[1.02] active:scale-95"
+                  className="px-3 py-2.5 rounded-xl text-xs font-medium transition-all hover:scale-[1.02] active:scale-95"
                   style={{
                     backgroundColor: 'var(--glass-bg)',
                     border: '1px solid var(--glass-border)',
@@ -111,7 +177,7 @@ export default function ReminderPopup({
             {/* Done */}
             <button
               onClick={() => onComplete(reminder.id)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all hover:scale-[1.02] active:scale-95"
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:scale-[1.02] active:scale-95"
               style={{
                 backgroundColor: 'var(--accent-color)',
                 color: '#fff',
@@ -128,7 +194,7 @@ export default function ReminderPopup({
                   ? setShowSnoozeOptions(false)
                   : setShowSnoozeOptions(true)
               }
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all hover:scale-[1.02] active:scale-95"
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:scale-[1.02] active:scale-95"
               style={{
                 backgroundColor: 'var(--glass-bg)',
                 border: '1px solid var(--glass-border)',
@@ -142,7 +208,7 @@ export default function ReminderPopup({
             {/* Dismiss */}
             <button
               onClick={() => onDismiss(reminder.id)}
-              className="p-3 rounded-2xl transition-all hover:scale-[1.05] active:scale-95"
+              className="p-3.5 rounded-2xl transition-all hover:scale-[1.05] active:scale-95"
               style={{
                 backgroundColor: 'var(--glass-bg)',
                 border: '1px solid var(--glass-border)',
