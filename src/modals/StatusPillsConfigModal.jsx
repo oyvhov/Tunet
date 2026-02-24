@@ -214,10 +214,37 @@ export default function StatusPillsConfigModal({
 
   const normalizePattern = (pattern) => pattern.trim();
 
-  const buildWildcardRegex = (pattern) => {
-    const escaped = pattern.replaceAll(/[.+?^${}()|[\]\\]/g, String.raw`\$&`);
-    const wildcard = escaped.replaceAll('*', '.*');
-    return new RegExp(`^${wildcard}$`, 'i');
+  const wildcardMatch = (value, pattern) => {
+    const text = String(value || '').toLowerCase();
+    const wildcard = String(pattern || '').toLowerCase();
+
+    let textIndex = 0;
+    let wildcardIndex = 0;
+    let starIndex = -1;
+    let backtrackTextIndex = 0;
+
+    while (textIndex < text.length) {
+      if (wildcardIndex < wildcard.length && wildcard[wildcardIndex] === text[textIndex]) {
+        wildcardIndex += 1;
+        textIndex += 1;
+      } else if (wildcardIndex < wildcard.length && wildcard[wildcardIndex] === '*') {
+        starIndex = wildcardIndex;
+        wildcardIndex += 1;
+        backtrackTextIndex = textIndex;
+      } else if (starIndex !== -1) {
+        wildcardIndex = starIndex + 1;
+        backtrackTextIndex += 1;
+        textIndex = backtrackTextIndex;
+      } else {
+        return false;
+      }
+    }
+
+    while (wildcardIndex < wildcard.length && wildcard[wildcardIndex] === '*') {
+      wildcardIndex += 1;
+    }
+
+    return wildcardIndex === wildcard.length;
   };
 
   const matchesMediaFilter = (id, filter, mode) => {
@@ -230,17 +257,11 @@ export default function StatusPillsConfigModal({
 
     return patterns.some((pattern) => {
       if (mode === 'regex') {
-        try {
-          const regex = new RegExp(pattern, 'i');
-          return regex.test(id);
-        } catch {
-          return false;
-        }
+        return id.toLowerCase().includes(pattern.toLowerCase());
       }
 
       if (pattern.includes('*')) {
-        const wildcardRegex = buildWildcardRegex(pattern);
-        return wildcardRegex.test(id);
+        return wildcardMatch(id, pattern);
       }
 
       if (mode === 'contains') return id.toLowerCase().includes(pattern.toLowerCase());

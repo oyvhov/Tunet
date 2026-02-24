@@ -35,7 +35,6 @@ export default function MediaPage({
   activeMediaId,
   setActiveMediaId,
   getA,
-  getEntityImageUrl,
   callService,
   savePageSetting,
   formatDuration,
@@ -87,7 +86,6 @@ export default function MediaPage({
   const canTogglePower = Boolean(powerAction);
   const isPowerOffAction = powerAction === 'turn_off';
 
-  const mpPicture = currentMp ? getEntityImageUrl(currentMp.attributes?.entity_picture) : null;
   const duration = mpId ? getA(mpId, 'media_duration') : null;
   const position = mpId ? getA(mpId, 'media_position') : null;
   const positionUpdatedAt = mpId ? getA(mpId, 'media_position_updated_at') : null;
@@ -143,8 +141,7 @@ export default function MediaPage({
     const label = item.title || item.name || item.friendly_name || item.label || id;
     const type = item.media_content_type || item.type || fallbackType;
     const source = item.provider || item.source || item.app_name || item.domain || '';
-    const image = item.thumbnail || item.thumb || item.image || item.icon || null;
-    return { id, label: String(label), type: String(type), source, image };
+    return { id, label: String(label), type: String(type), source };
   }, []);
 
   const normalizeChoiceArray = useCallback((raw, fallbackType) => {
@@ -266,7 +263,6 @@ export default function MediaPage({
                 label: child.title || child.media_content_id,
                 type: child.media_content_type || 'music',
                 source: detail?.title || 'Favorites',
-                image: child.thumbnail || null,
               });
             } else if (child?.can_expand) {
               await browseFavDir(child);
@@ -454,13 +450,9 @@ export default function MediaPage({
 
         <div className="flex-1 flex flex-col md:flex-row gap-8 md:gap-12 items-center">
           <div className="flex-shrink-0 flex justify-center md:justify-start">
-            {mpPicture ? (
-              <img src={mpPicture} alt="" className="w-52 h-52 lg:w-56 lg:h-56 xl:w-72 xl:h-72 object-cover rounded-2xl shadow-2xl" />
-            ) : (
-              <div className="w-52 h-52 lg:w-56 lg:h-56 xl:w-72 xl:h-72 flex items-center justify-center rounded-2xl bg-[var(--glass-bg)]">
-                {isTV ? <Tv className="w-24 h-24 text-gray-700" /> : <Speaker className="w-24 h-24 text-gray-700" />}
-              </div>
-            )}
+            <div className="w-52 h-52 lg:w-56 lg:h-56 xl:w-72 xl:h-72 flex items-center justify-center rounded-2xl bg-[var(--glass-bg)]">
+              {isTV ? <Tv className="w-24 h-24 text-gray-700" /> : <Speaker className="w-24 h-24 text-gray-700" />}
+            </div>
           </div>
 
           <div className="flex-1 w-full flex flex-col justify-center md:justify-between gap-4 lg:gap-5 xl:gap-6 min-w-0">
@@ -618,7 +610,6 @@ export default function MediaPage({
           <>
             <div className="flex flex-col gap-4 overflow-y-auto flex-1 custom-scrollbar">
               {listPlayers.map((p, idx) => {
-            const pPic = getEntityImageUrl(p.attributes?.entity_picture);
             const isSelected = p.entity_id === mpId;
             const isMember = groupMembers.includes(p.entity_id);
             const isSelf = p.entity_id === mpId;
@@ -630,7 +621,7 @@ export default function MediaPage({
               <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'} ${isActivePlayer ? '' : 'opacity-70'}`}>
                 <button onClick={() => { savePageSetting(pageId, 'activeId', p.entity_id); setActiveMediaId(p.entity_id); }} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
-                    {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Speaker className="w-5 h-5 text-gray-600" /></div>}
+                    <div className="w-full h-full flex items-center justify-center"><Speaker className="w-5 h-5 text-gray-600" /></div>
                     {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
                   </div>
                   <div className="overflow-hidden">
@@ -713,13 +704,9 @@ export default function MediaPage({
                       className="flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-[var(--glass-bg-hover)] transition-colors group"
                     >
                       <div className="w-full aspect-square rounded-lg overflow-hidden bg-[var(--glass-bg-hover)] flex-shrink-0">
-                        {choice.image ? (
-                          <img src={getEntityImageUrl(choice.image) || choice.image} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Heart className="w-6 h-6 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
-                          </div>
-                        )}
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Heart className="w-6 h-6 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
+                        </div>
                       </div>
                       <p className="w-full text-[10px] font-bold uppercase tracking-wider text-[var(--text-primary)] text-center line-clamp-2 leading-tight">{choice.label}</p>
                     </button>
