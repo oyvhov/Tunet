@@ -9,6 +9,7 @@ import StatusPill from '../components/cards/StatusPill';
  * @param {Function} props.setActiveMediaId - Set active media player
  * @param {Function} props.setActiveMediaGroupKey - Set media group key
  * @param {Function} props.setActiveMediaModal - Set active media modal
+ * @param {Function} props.setShowAlarmModal - Open alarm modal
  * @param {Function} props.setShowUpdateModal - Open update modal
  * @param {Function} props.t - Translation function
  * @param {Function} props.isSonosActive - Check if Sonos is active
@@ -25,6 +26,7 @@ export default function StatusBar({
   setActiveMediaGroupIds,
   setActiveMediaSessionSensorIds,
   setActiveMediaModal,
+  setShowAlarmModal,
   _setShowUpdateModal,  
   setShowStatusPillsConfig,
   editMode,
@@ -122,6 +124,27 @@ export default function StatusBar({
         {statusPillsConfig
           .filter(pill => pill.visible !== false)
           .map(pill => {
+            if (pill.type === 'alarm') {
+              const alarmEntityId = typeof pill.entityId === 'string' && pill.entityId.startsWith('alarm_control_panel.')
+                ? pill.entityId
+                : '';
+              const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
+
+              return (
+                <StatusPill
+                  key={pill.id}
+                  entity={alarmEntity}
+                  pill={pill}
+                  getA={getA}
+                  t={t}
+                  isMobile={isMobile}
+                  onClick={pill.clickable !== false && alarmEntityId
+                    ? () => setShowAlarmModal(alarmEntityId)
+                    : undefined}
+                />
+              );
+            }
+
             // Handle different pill types
             if (pill.type === 'media_player' || pill.type === 'emby') {
               const mediaIds = (() => {

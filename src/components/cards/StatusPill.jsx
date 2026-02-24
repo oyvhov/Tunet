@@ -1,5 +1,7 @@
 import { getIconComponent } from '../../icons';
-import { Activity, Clapperboard } from '../../icons';
+import { Activity, AlertTriangle, Clapperboard, Lock, RefreshCw } from '../../icons';
+import MdiIcon from '@mdi/react';
+import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
 import { evaluateEntityCondition } from '../../utils/conditionUtils';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode, inferUnitKind } from '../../utils';
@@ -101,6 +103,116 @@ export default function StatusPill({
     const alreadyContainsUnit = lowerState.endsWith(` ${lowerUnit}`) || lowerState === lowerUnit;
     return alreadyContainsUnit ? normalizedState : `${normalizedState} ${selectedUnit}`;
   };
+
+  const getAlarmStateLabel = (state) => {
+    const stateText = String(state || 'unknown');
+    const key = `alarm.state.${stateText}`;
+    const translated = t ? t(key) : key;
+    if (translated && translated !== key) return translated;
+    return stateText;
+  };
+
+  const getAlarmVisual = (state) => {
+    if (state === 'disarmed') {
+      return {
+        mdiPath: mdiShieldOff,
+        iconColor: '#3b82f6',
+        iconBgStyle: { backgroundColor: 'rgba(59, 130, 246, 0.2)' },
+      };
+    }
+    if (state === 'armed_home' || state === 'armed_away') {
+      return {
+        mdiPath: state === 'armed_home' ? mdiShieldHome : mdiShieldLock,
+        iconColor: '#22c55e',
+        iconBgStyle: { backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+      };
+    }
+    if (state === 'triggered') {
+      return {
+        Icon: AlertTriangle,
+        iconColor: 'var(--text-primary)',
+        iconBgStyle: { backgroundColor: 'var(--glass-bg)' },
+      };
+    }
+    if (state === 'arming' || state === 'pending' || state === 'disarming') {
+      return {
+        Icon: RefreshCw,
+        iconColor: 'var(--text-primary)',
+        iconBgStyle: { backgroundColor: 'var(--glass-bg)' },
+      };
+    }
+    return {
+      Icon: Lock,
+      iconColor: 'var(--text-primary)',
+      iconBgStyle: { backgroundColor: 'var(--glass-bg)' },
+    };
+  };
+
+  if (pill.type === 'alarm') {
+    if (!entity) return null;
+    if (isConditionEnabled && !evaluateEntityCondition({ condition: pill.condition, entity, getAttribute: getA })) return null;
+
+    const state = entity?.state || 'unknown';
+    const statusText = getAlarmStateLabel(state);
+    const sublabelText = pill.sublabel || pill.label || entity?.attributes?.friendly_name || entity?.entity_id || '';
+    const alarmVisual = getAlarmVisual(state);
+    const AlarmIcon = alarmVisual.Icon || Lock;
+    const bgColor = pill.bgColor || 'rgba(255, 255, 255, 0.03)';
+    const labelColor = pill.labelColor || 'text-[var(--text-primary)]';
+    const sublabelColor = pill.sublabelColor || 'text-[var(--text-secondary)]';
+
+    const animated = pill.animated !== false && (state === 'arming' || state === 'pending' || state === 'disarming');
+    const paddingClass = isMobile ? 'px-1.5 py-0.5 gap-1.5' : 'px-2.5 py-1 gap-2';
+    const iconPadding = isMobile ? 'p-1' : 'p-1.5';
+    const textSize = isMobile ? 'text-[10px]' : 'text-xs';
+
+    const Wrapper = onClick ? 'button' : 'div';
+    const wrapperProps = onClick ? {
+      onClick,
+      className: `flex items-center ${paddingClass} rounded-2xl transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 ${animated ? 'animate-pulse' : ''}`,
+      style: { backgroundColor: bgColor }
+    } : {
+      className: `flex items-center ${paddingClass} rounded-2xl ${animated ? 'animate-pulse' : ''}`,
+      style: { backgroundColor: bgColor }
+    };
+
+    return (
+      <Wrapper {...wrapperProps}>
+        <div className={`${iconPadding} rounded-xl`} style={alarmVisual.iconBgStyle}>
+          {alarmVisual.mdiPath ? (
+            <MdiIcon
+              path={alarmVisual.mdiPath}
+              size={isMobile ? 0.75 : 0.9}
+              color={alarmVisual.iconColor}
+              className={animated ? 'animate-spin' : ''}
+            />
+          ) : (
+            <AlarmIcon
+              className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} ${animated ? 'animate-spin' : ''}`}
+              color={alarmVisual.iconColor}
+              style={{ color: alarmVisual.iconColor }}
+            />
+          )}
+        </div>
+        <div className="flex flex-col items-start min-w-0">
+          <span
+            className={`${textSize} font-bold leading-tight text-left ${labelColor} ${textMaxWidthClass} block w-full truncate`}
+            title={statusText}
+          >
+            {statusText}
+          </span>
+          {sublabelText && (
+            <span
+              className={`${textSize} font-medium text-left ${sublabelColor} ${textMaxWidthClass} block w-full truncate`}
+              title={sublabelText}
+            >
+              {sublabelText}
+            </span>
+          )}
+        </div>
+      </Wrapper>
+    );
+  }
 
   // Handle media_player / emby / sonos type differently
   if (pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos') {

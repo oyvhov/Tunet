@@ -608,9 +608,10 @@ export default function ModalOrchestrator({
       })()}
 
       {showAlarmModal && (() => {
-        const alarmSettingsKey = getCardSettingsKey(showAlarmModal);
-        const alarmSettings = cardSettings[alarmSettingsKey] || cardSettings[showAlarmModal] || {};
-        const alarmEntityId = alarmSettings.alarmId;
+        const isDirectEntityId = typeof showAlarmModal === 'string' && showAlarmModal.startsWith('alarm_control_panel.');
+        const alarmSettingsKey = isDirectEntityId ? null : getCardSettingsKey(showAlarmModal);
+        const alarmSettings = isDirectEntityId ? {} : (cardSettings[alarmSettingsKey] || cardSettings[showAlarmModal] || {});
+        const alarmEntityId = isDirectEntityId ? showAlarmModal : alarmSettings.alarmId;
         const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
         if (!alarmEntityId || !alarmEntity) return null;
         return (
@@ -621,8 +622,8 @@ export default function ModalOrchestrator({
               entityId={alarmEntityId}
               entity={alarmEntity}
               callService={callService}
-              customName={customNames?.[showAlarmModal]}
-              customIcon={customIcons?.[showAlarmModal]}
+              customName={isDirectEntityId ? null : customNames?.[showAlarmModal]}
+              customIcon={isDirectEntityId ? null : customIcons?.[showAlarmModal]}
               t={t}
             />
           </ModalSuspense>

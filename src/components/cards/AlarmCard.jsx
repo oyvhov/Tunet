@@ -36,8 +36,28 @@ function requiresCode(actionKey, entity) {
   const codeFormat = entity?.attributes?.code_format || 'none';
   const hasCode = codeFormat !== 'none';
   if (!hasCode) return false;
-  if (actionKey === 'disarm') return true;
-  return entity?.attributes?.code_arm_required === true;
+
+  const parseBooleanLike = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') return true;
+      if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') return false;
+    }
+    return undefined;
+  };
+
+  const codeArmRequired = parseBooleanLike(entity?.attributes?.code_arm_required);
+  const codeDisarmRequired = parseBooleanLike(entity?.attributes?.code_disarm_required);
+
+  if (actionKey === 'disarm') {
+    if (codeDisarmRequired !== undefined) return codeDisarmRequired;
+    return true;
+  }
+
+  if (codeArmRequired !== undefined) return codeArmRequired;
+  return false;
 }
 
 function isUnsupportedCodeFormat(entity) {

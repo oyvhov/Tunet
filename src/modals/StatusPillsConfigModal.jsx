@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { 
   X, Plus, Trash2, Eye, EyeOff, Check,
-  ChevronDown, ChevronUp, Activity, Music, Clapperboard, Speaker,
+  ChevronDown, ChevronUp, Activity, Music, Clapperboard, Speaker, Shield,
   getAllIconKeys, getIconComponent, preloadMdiIcons,
 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
@@ -88,7 +88,9 @@ export default function StatusPillsConfigModal({
   const handleSave = () => {
     const cleaned = pills.map((pill) => ({
       ...pill,
-      icon: typeof pill.icon === 'string' ? pill.icon : 'Activity',
+      icon: pill.type === 'alarm' ? 'Shield' : (typeof pill.icon === 'string' ? pill.icon : 'Activity'),
+      iconBgColor: pill.type === 'alarm' ? 'rgba(59, 130, 246, 0.2)' : pill.iconBgColor,
+      iconColor: pill.type === 'alarm' ? 'text-blue-400' : pill.iconColor,
       conditionEnabled: pill.conditionEnabled === false ? false : pill.conditionEnabled,
       unitSource: pill.unitSource === 'custom' ? 'custom' : 'ha',
       customUnit: typeof pill.customUnit === 'string' ? pill.customUnit : '',
@@ -116,7 +118,7 @@ export default function StatusPillsConfigModal({
       entityId: '',
       label: '',
       sublabel: '',
-      icon: pillType === 'emby' ? 'Clapperboard' : 'Activity',
+      icon: pillType === 'emby' ? 'Clapperboard' : (pillType === 'alarm' ? 'Shield' : 'Activity'),
       bgColor: 'rgba(255, 255, 255, 0.03)',
       iconBgColor: 'rgba(59, 130, 246, 0.1)',
       iconColor: 'text-[var(--accent-color)]',
@@ -126,7 +128,7 @@ export default function StatusPillsConfigModal({
       conditionEnabled: false,
       unitSource: 'ha',
       customUnit: '',
-      clickable: pillType === 'sonos',
+      clickable: pillType === 'sonos' || pillType === 'alarm',
       animated: true,
       visible: true,
       showCover: true,
@@ -165,6 +167,10 @@ export default function StatusPillsConfigModal({
     if (pillType === 'conditional') return t('statusPills.typeSensor');
     if (pillType === 'media_player') return t('statusPills.typeMedia');
     if (pillType === 'emby') return t('statusPills.typeEmby');
+    if (pillType === 'alarm') {
+      const translated = t('statusPills.typeAlarm');
+      return translated === 'statusPills.typeAlarm' ? 'Alarm' : translated;
+    }
     return t('statusPills.typeSonos');
   };
 
@@ -369,6 +375,9 @@ export default function StatusPillsConfigModal({
                   <button onClick={() => { addPill('sonos'); setShowAddMenu(false); }} className="text-left px-4 py-3 hover:bg-white/5 rounded-lg text-sm text-gray-200 font-medium transition-colors flex items-center gap-2">
                     <Speaker className="w-4 h-4 text-orange-400" /> {t('statusPills.typeSonos')}
                   </button>
+                  <button onClick={() => { addPill('alarm'); setShowAddMenu(false); }} className="text-left px-4 py-3 hover:bg-white/5 rounded-lg text-sm text-gray-200 font-medium transition-colors flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-red-400" /> {(t('statusPills.typeAlarm') === 'statusPills.typeAlarm' ? 'Alarm' : t('statusPills.typeAlarm'))}
+                  </button>
                 </div>
               )}
             </div>
@@ -508,7 +517,7 @@ export default function StatusPillsConfigModal({
               const sonosIncludedPreviewRows = sonosPreviewRows.filter((id) => sonosMatchedIdSet.has(id));
               const sonosExcludedPreviewRows = sonosPreviewRows.filter((id) => !sonosMatchedIdSet.has(id));
               const previewMediaIds = (() => {
-                if (pill.type === 'conditional') return [];
+                if (pill.type === 'conditional' || pill.type === 'alarm') return [];
                 if (pill.type === 'media_player') {
                   return pill.entityId ? [pill.entityId] : sonosMatchedIds;
                 }
@@ -527,7 +536,7 @@ export default function StatusPillsConfigModal({
                 return [];
               })();
               const previewMediaEntities = previewMediaIds.map((id) => entities[id]).filter(Boolean);
-              const previewStatusEntity = pill.type === 'conditional' ? previewEntity : previewMediaEntities;
+              const previewStatusEntity = (pill.type === 'conditional' || pill.type === 'alarm') ? previewEntity : previewMediaEntities;
               const previewIsMediaActive = (mediaEntity) => {
                 if (!mediaEntity?.state) return false;
                 if (mediaEntity.state === 'playing' || mediaEntity.state === 'paused') return true;
@@ -550,8 +559,8 @@ export default function StatusPillsConfigModal({
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2.5">
                         <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent-color)]">{getPillTypeLabel(pill.type)}</span>
-                        {pill.type === 'conditional' && <div className="w-1 h-1 bg-gray-500 rounded-full"></div>}
-                        {pill.type === 'conditional' && <span className="text-xs text-gray-500">{t('statusPills.standardPill')}</span>}
+                        {(pill.type === 'conditional' || pill.type === 'alarm') && <div className="w-1 h-1 bg-gray-500 rounded-full"></div>}
+                        {(pill.type === 'conditional' || pill.type === 'alarm') && <span className="text-xs text-gray-500">{t('statusPills.standardPill')}</span>}
                       </div>
                       <input
                         type="text"
@@ -562,7 +571,7 @@ export default function StatusPillsConfigModal({
                       />
                     </div>
                     {/* Live preview */}
-                    {(pill.type === 'conditional' || pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos') && (
+                    {(pill.type === 'conditional' || pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos' || pill.type === 'alarm') && (
                       <div className="shrink-0">
                         <StatusPill
                           pill={previewPill}
@@ -703,7 +712,7 @@ export default function StatusPillsConfigModal({
 
                     {/* Source Logic */}
                     <section className={`${sectionShellClass} space-y-3`}>
-                      <h4 className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{pill.type === 'conditional' ? t('statusPills.dataSource') : t('statusPills.mediaPlayerSource')}</h4>
+                      <h4 className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{(pill.type === 'conditional' || pill.type === 'alarm') ? t('statusPills.dataSource') : t('statusPills.mediaPlayerSource')}</h4>
                       
                       {/* Emby/Sonos Source Type Logic */}
                       {(pill.type === 'emby' || pill.type === 'sonos') && (
@@ -889,7 +898,7 @@ export default function StatusPillsConfigModal({
                       )}
 
                       {/* Standard Entity Select (Conditional) */}
-                      {pill.type === 'conditional' && (
+                      {(pill.type === 'conditional' || pill.type === 'alarm') && (
                         <div className="relative" ref={entityPickerRef}>
                           <input
                             type="text"
@@ -909,6 +918,7 @@ export default function StatusPillsConfigModal({
                               <div className="mt-1 p-1 rounded-xl bg-[var(--modal-bg)] shadow-2xl border border-[var(--glass-border)] max-h-48 overflow-y-auto custom-scrollbar">
                                 {entityOptions
                                   .filter(id => {
+                                    if (pill.type === 'alarm' && !id.startsWith('alarm_control_panel.')) return false;
                                     if (!entitySearch) return true;
                                     const search = entitySearch.toLowerCase();
                                     const name = (entities[id]?.attributes?.friendly_name || '').toLowerCase();

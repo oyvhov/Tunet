@@ -713,6 +713,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
                 setActiveMediaGroupIds={setActiveMediaGroupIds}
                 setActiveMediaSessionSensorIds={setActiveMediaSessionSensorIds}
                 setActiveMediaModal={setActiveMediaModal}
+                setShowAlarmModal={setShowAlarmModal}
                 setShowUpdateModal={() => { setShowConfigModal(true); setConfigTab('updates'); }}
                 setShowStatusPillsConfig={setShowStatusPillsConfig}
                 editMode={editMode}
