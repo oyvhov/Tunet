@@ -4,6 +4,7 @@ about: Report a bug to help improve Tunet Dashboard
 title: "[Bug] "
 labels: bug
 assignees: ''
+
 ---
 
 ## Describe the bug
