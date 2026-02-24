@@ -1,10 +1,12 @@
 const API_BASE = './api';
 
 async function request(path, options = {}) {
-  const mergedHeaders = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
+  const mergedHeaders = options.headers
+    ? {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    }
+    : { 'Content-Type': 'application/json' };
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,

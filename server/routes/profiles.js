@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import db from '../db.js';
 
 const router = Router();
@@ -109,14 +109,14 @@ router.put('/:id', (req, res) => {
   }
 
   const now = new Date().toISOString();
-  const updates = [];
-  const params = [];
-
-  if (name !== undefined) { updates.push('name = ?'); params.push(name); }
-  if (device_label !== undefined) { updates.push('device_label = ?'); params.push(device_label); }
-  if (data !== undefined) { updates.push('data = ?'); params.push(JSON.stringify(data)); }
-  updates.push('updated_at = ?'); params.push(now);
-  params.push(req.params.id);
+  const updatePairs = [
+    ...(name === undefined ? [] : [['name = ?', name]]),
+    ...(device_label === undefined ? [] : [['device_label = ?', device_label]]),
+    ...(data === undefined ? [] : [['data = ?', JSON.stringify(data)]]),
+    ['updated_at = ?', now],
+  ];
+  const updates = updatePairs.map(([clause]) => clause);
+  const params = [...updatePairs.map(([, value]) => value), req.params.id];
 
   db.prepare(`UPDATE profiles SET ${updates.join(', ')} WHERE id = ?`).run(...params);
 

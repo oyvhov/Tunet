@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import M3Slider from '../components/ui/M3Slider';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
@@ -106,8 +107,8 @@ export default function ConfigModal({
   const [expandedNotes, setExpandedNotes] = useState({});
   const [layoutPreview, setLayoutPreview] = useState(false);
   const [maxGridColumns, setMaxGridColumns] = useState(() => {
-    if (typeof window === 'undefined') return MAX_GRID_COLUMNS;
-    return getMaxGridColumnsForWidth(window.innerWidth);
+    if (globalThis.window === undefined) return MAX_GRID_COLUMNS;
+    return getMaxGridColumnsForWidth(globalThis.window.innerWidth);
   });
   const selectableMaxGridColumns = dynamicGridColumns ? Math.min(maxGridColumns, 4) : maxGridColumns;
 
@@ -128,10 +129,10 @@ export default function ConfigModal({
   }, [layoutPreview, configTab, setConfigTab]);
 
   useEffect(() => {
-    const update = () => setMaxGridColumns(getMaxGridColumnsForWidth(window.innerWidth));
+    const update = () => setMaxGridColumns(getMaxGridColumnsForWidth(globalThis.window.innerWidth));
     update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    globalThis.window.addEventListener('resize', update);
+    return () => globalThis.window.removeEventListener('resize', update);
   }, []);
 
   useEffect(() => {
@@ -157,6 +158,12 @@ export default function ConfigModal({
 
   const handleClose = () => {
     if (!isOnboardingActive) onClose?.();
+  };
+
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) {
+      handleClose();
+    }
   };
 
   const TABS = [
@@ -217,7 +224,7 @@ export default function ConfigModal({
         <button
           type="button"
           onClick={() => { setConfig({ ...config, authMethod: 'token' }); setConnectionTestResult(null); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${!isOAuth ? 'bg-[var(--accent-color)] text-white shadow-lg ' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${isOAuth ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-white shadow-lg '}`}
         >
           <Key className="w-3.5 h-3.5" />
           Token
@@ -229,39 +236,49 @@ export default function ConfigModal({
   const renderOAuthSection = () => {
     const oauthActive = hasOAuthTokens() && connected;
     const oauthConnecting = hasOAuthTokens() && !connected;
-    return (
-      <div className="space-y-4">
-        {oauthConnecting ? (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)] animate-pulse">
-            <RefreshCw className="w-4 h-4 animate-spin" />
-            <span className="font-bold text-sm">{t('system.oauth.connecting')}</span>
+    let oauthContent;
+
+    if (oauthConnecting) {
+      oauthContent = (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)] animate-pulse">
+          <RefreshCw className="w-4 h-4 animate-spin" />
+          <span className="font-bold text-sm">{t('system.oauth.connecting')}</span>
+        </div>
+      );
+    } else if (oauthActive) {
+      oauthContent = (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20">
+            <Check className="w-4 h-4" />
+            <span className="font-bold text-sm">{t('system.oauth.authenticated')}</span>
           </div>
-        ) : oauthActive ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-green-500/10 text-green-400 border border-green-500/20">
-              <Check className="w-4 h-4" />
-              <span className="font-bold text-sm">{t('system.oauth.authenticated')}</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleOAuthLogout}
-              className="w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
-            >
-              <LogOut className="w-4 h-4" />
-              {t('system.oauth.logoutButton')}
-            </button>
-          </div>
-        ) : (
           <button
             type="button"
-            onClick={startOAuthLogin}
-            disabled={!config.url || !validateUrl(config.url)}
-            className={`w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-lg transition-all ${!config.url || !validateUrl(config.url) ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-white '}`}
+            onClick={handleOAuthLogout}
+            className="w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
           >
-            <LogIn className="w-5 h-5" />
-            {t('system.oauth.loginButton')}
+            <LogOut className="w-4 h-4" />
+            {t('system.oauth.logoutButton')}
           </button>
-        )}
+        </div>
+      );
+    } else {
+      oauthContent = (
+        <button
+          type="button"
+          onClick={startOAuthLogin}
+          disabled={!config.url || !validateUrl(config.url)}
+          className={`w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2 shadow-lg transition-all ${!config.url || !validateUrl(config.url) ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed' : 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-white '}`}
+        >
+          <LogIn className="w-5 h-5" />
+          {t('system.oauth.loginButton')}
+        </button>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {oauthContent}
         {!config.url && (
           <p className="text-xs text-[var(--text-muted)] ml-1">{t('system.oauth.urlRequired')}</p>
         )}
@@ -316,7 +333,7 @@ export default function ConfigModal({
           />
           <div className="absolute inset-0 rounded-xl bg-[var(--accent-bg)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         </div>
-        {config.url && config.url.endsWith('/') && (
+        {config.url?.endsWith('/') && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/20">
             <AlertCircle className="w-3 h-3" />
             {t('onboarding.urlTrailingSlash')}
@@ -346,7 +363,7 @@ export default function ConfigModal({
               />
               <div className="absolute inset-0 rounded-xl bg-[var(--accent-bg)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </div>
-            {config.fallbackUrl && config.fallbackUrl.endsWith('/') && (
+            {config.fallbackUrl?.endsWith('/') && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/20">
                 <AlertCircle className="w-3 h-3" />
                 {t('onboarding.urlTrailingSlash')}
@@ -417,7 +434,6 @@ export default function ConfigModal({
     const MAX_VISIBLE_DEVICES = 8;
     const visibleKnownDevices = showAllKnownDevices ? knownDevices : knownDevices.slice(0, MAX_VISIBLE_DEVICES);
     const hiddenDeviceCount = Math.max(knownDevices.length - visibleKnownDevices.length, 0);
-
     const handleSaveProfile = async () => {
       const name = profileName.trim();
       if (!name) return;
@@ -427,21 +443,180 @@ export default function ConfigModal({
         setProfileDeviceLabel('');
       } catch {}
     };
+    let syncStatusTone = 'text-emerald-300';
+    if (autoSync.status === 'error') {
+      syncStatusTone = 'text-red-400';
+    } else if (autoSync.status === 'syncing') {
+      syncStatusTone = 'text-amber-300';
+    }
+
+    let publishButtonLabel = `${t('profiles.autoSyncPublishOthers')} (${selectedTargets.length})`;
+    if (autoSync.publishing) {
+      publishButtonLabel = t('profiles.autoSyncPublishing');
+    } else if (selectedTargets.length === 0) {
+      publishButtonLabel = t('profiles.autoSyncPublishSelectTarget');
+    }
+
+    let profilesSectionContent = null;
+
+    if (!haUser) {
+      profilesSectionContent = (
+        <div className="popup-surface p-4">
+          <p className="text-sm text-[var(--text-secondary)]">{t('profiles.notConnected')}</p>
+        </div>
+      );
+    } else if (backendAvailable) {
+      profilesSectionContent = (
+        <div className="popup-surface p-4 space-y-4">
+          {/* Inline save form */}
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              placeholder={t('profiles.namePlaceholder')}
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
+            />
+            <input
+              type="text"
+              value={profileDeviceLabel}
+              onChange={(e) => setProfileDeviceLabel(e.target.value)}
+              placeholder={t('profiles.deviceLabelPlaceholder')}
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
+            />
+            <button
+              onClick={handleSaveProfile}
+              disabled={loading || !profileName.trim()}
+              className={`w-full py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${
+                profileName.trim()
+                  ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] '
+                  : 'bg-[var(--accent-bg)] cursor-not-allowed shadow-none'
+              }`}
+            >
+              <Save className="w-4 h-4" />
+              {t('profiles.save')}
+            </button>
+          </div>
+
+          {profileError && (
+            <p className="text-xs text-red-400 font-bold">{profileError}</p>
+          )}
+
+          {loadSummary && (
+            <p className="text-xs text-amber-300 font-bold">{loadSummary}</p>
+          )}
+
+          {/* Profile list */}
+          {profileList.length === 0 ? (
+            <p className="text-sm text-[var(--text-secondary)]">{t('profiles.noProfiles')}</p>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {profileList.map(profile => (
+                <div key={profile.id} className="rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] overflow-hidden">
+                  {editingProfileId === profile.id ? (
+                    /* ── Inline edit mode ── */
+                    <div className="p-3 space-y-2">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder={t('profiles.namePlaceholder')}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        placeholder={t('profiles.deviceLabelPlaceholder')}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
+                      />
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={async () => {
+                            const name = editName.trim();
+                            if (!name) return;
+                            try {
+                              await editProfile(profile.id, name, editLabel.trim());
+                              setEditingProfileId(null);
+                            } catch {}
+                          }}
+                          disabled={loading || !editName.trim()}
+                          className={`flex-1 py-2 rounded-lg text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                            editName.trim() ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)]' : 'bg-[var(--accent-bg)] cursor-not-allowed'
+                          }`}
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          {t('profiles.saveEdit')}
+                        </button>
+                        <button
+                          onClick={() => setEditingProfileId(null)}
+                          className="flex-1 py-2 rounded-lg bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-xs font-bold transition-all"
+                        >
+                          {t('profiles.cancelEdit')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* ── Normal display mode ── */
+                    <div className="flex items-center justify-between gap-3 p-3">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold text-sm text-[var(--text-primary)] block truncate">{profile.name}</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {profile.device_label && (
+                            <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] bg-[var(--glass-bg)] px-1.5 py-0.5 rounded">{profile.device_label}</span>
+                          )}
+                          <span className="text-[10px] text-[var(--text-muted)]">{new Date(profile.updated_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => loadProfile(profile)}
+                          className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-bold transition-all"
+                        >
+                          {t('profiles.load')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingProfileId(profile.id);
+                            setEditName(profile.name);
+                            setEditLabel(profile.device_label || '');
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-[var(--accent-bg)] text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-all"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => { if (globalThis.confirm(t('profiles.confirmDelete'))) removeProfile(profile.id); }}
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--text-secondary)] hover:text-red-400 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
 
     const handleExportDashboard = () => {
       try {
         const payload = exportDashboard();
         const content = JSON.stringify(payload, null, 2);
-        const blob = new window.Blob([content], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
+        const blob = new globalThis.Blob([content], { type: 'application/json' });
+        const url = globalThis.URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         const dateTag = new Date().toISOString().slice(0, 10);
         anchor.href = url;
         anchor.download = `tunet-dashboard-${dateTag}.json`;
         document.body.appendChild(anchor);
         anchor.click();
-        document.body.removeChild(anchor);
-        window.URL.revokeObjectURL(url);
+        anchor.remove();
+        globalThis.URL.revokeObjectURL(url);
       } catch {
         // errors are handled via profiles hook state
       }
@@ -456,7 +631,7 @@ export default function ConfigModal({
         const parsed = JSON.parse(text);
         importDashboard(parsed);
       } catch {
-        window.alert(t('profiles.invalidFile'));
+        globalThis.alert(t('profiles.invalidFile'));
       } finally {
         event.target.value = '';
       }
@@ -503,7 +678,7 @@ export default function ConfigModal({
                 <>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="font-bold text-[var(--text-secondary)]">{t('profiles.autoSyncStatusLabel')}:</span>
-                    <span className={`font-bold ${autoSync.status === 'error' ? 'text-red-400' : autoSync.status === 'syncing' ? 'text-amber-300' : 'text-emerald-300'}`}>
+                    <span className={`font-bold ${syncStatusTone}`}>
                       {syncStatusLabel}
                     </span>
                   </div>
@@ -526,11 +701,7 @@ export default function ConfigModal({
                       onClick={() => autoSync.publishCurrentToDevices(selectedTargets)}
                       className="px-3 py-2 rounded-lg bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-xs font-bold transition-all disabled:opacity-60"
                     >
-                      {autoSync.publishing
-                        ? t('profiles.autoSyncPublishing')
-                        : selectedTargets.length > 0
-                          ? `${t('profiles.autoSyncPublishOthers')} (${selectedTargets.length})`
-                          : t('profiles.autoSyncPublishSelectTarget')}
+                      {publishButtonLabel}
                     </button>
                   </div>
 
@@ -601,7 +772,7 @@ export default function ConfigModal({
                                     event.preventDefault();
                                     event.stopPropagation();
                                     const currentLabel = typeof entry.device_label === 'string' ? entry.device_label : '';
-                                    const nextLabel = window.prompt(t('profiles.autoSyncRenameDevicePrompt'), currentLabel);
+                                    const nextLabel = globalThis.prompt(t('profiles.autoSyncRenameDevicePrompt'), currentLabel);
                                     if (nextLabel === null) return;
                                     autoSync.renameKnownDevice(entry.device_id, nextLabel);
                                   }}
@@ -617,7 +788,7 @@ export default function ConfigModal({
                                     onClick={(event) => {
                                       event.preventDefault();
                                       event.stopPropagation();
-                                      if (!window.confirm(t('profiles.autoSyncRemoveDeviceConfirm'))) return;
+                                      if (!globalThis.confirm(t('profiles.autoSyncRemoveDeviceConfirm'))) return;
                                       autoSync.removeKnownDevice(entry.device_id);
                                       setPublishTargets((prev) => prev.filter((id) => id !== entry.device_id));
                                     }}
@@ -689,145 +860,7 @@ export default function ConfigModal({
               </div>
             )}
           </div>
-          {!haUser ? (
-            <div className="popup-surface p-4">
-              <p className="text-sm text-[var(--text-secondary)]">{t('profiles.notConnected')}</p>
-            </div>
-          ) : !backendAvailable ? null : (
-            <div className="popup-surface p-4 space-y-4">
-              {/* Inline save form */}
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder={t('profiles.namePlaceholder')}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
-                />
-                <input
-                  type="text"
-                  value={profileDeviceLabel}
-                  onChange={(e) => setProfileDeviceLabel(e.target.value)}
-                  placeholder={t('profiles.deviceLabelPlaceholder')}
-                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
-                />
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={loading || !profileName.trim()}
-                  className={`w-full py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${
-                    profileName.trim()
-                      ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] '
-                      : 'bg-[var(--accent-bg)] cursor-not-allowed shadow-none'
-                  }`}
-                >
-                  <Save className="w-4 h-4" />
-                  {t('profiles.save')}
-                </button>
-              </div>
-
-              {profileError && (
-                <p className="text-xs text-red-400 font-bold">{profileError}</p>
-              )}
-
-              {loadSummary && (
-                <p className="text-xs text-amber-300 font-bold">{loadSummary}</p>
-              )}
-
-              {/* Profile list */}
-              {profileList.length === 0 ? (
-                <p className="text-sm text-[var(--text-secondary)]">{t('profiles.noProfiles')}</p>
-              ) : (
-                <div className="space-y-2 mt-2">
-                  {profileList.map(profile => (
-                    <div key={profile.id} className="rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] overflow-hidden">
-                      {editingProfileId === profile.id ? (
-                        /* ── Inline edit mode ── */
-                        <div className="p-3 space-y-2">
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            placeholder={t('profiles.namePlaceholder')}
-                            className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
-                            autoFocus
-                          />
-                          <input
-                            type="text"
-                            value={editLabel}
-                            onChange={(e) => setEditLabel(e.target.value)}
-                            placeholder={t('profiles.deviceLabelPlaceholder')}
-                            className="w-full px-3 py-2 rounded-lg bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-color)] transition-colors"
-                          />
-                          <div className="flex gap-2 pt-1">
-                            <button
-                              onClick={async () => {
-                                const name = editName.trim();
-                                if (!name) return;
-                                try {
-                                  await editProfile(profile.id, name, editLabel.trim());
-                                  setEditingProfileId(null);
-                                } catch {}
-                              }}
-                              disabled={loading || !editName.trim()}
-                              className={`flex-1 py-2 rounded-lg text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                editName.trim() ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)]' : 'bg-[var(--accent-bg)] cursor-not-allowed'
-                              }`}
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              {t('profiles.saveEdit')}
-                            </button>
-                            <button
-                              onClick={() => setEditingProfileId(null)}
-                              className="flex-1 py-2 rounded-lg bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-xs font-bold transition-all"
-                            >
-                              {t('profiles.cancelEdit')}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        /* ── Normal display mode ── */
-                        <div className="flex items-center justify-between gap-3 p-3">
-                          <div className="flex-1 min-w-0">
-                            <span className="font-bold text-sm text-[var(--text-primary)] block truncate">{profile.name}</span>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              {profile.device_label && (
-                                <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] bg-[var(--glass-bg)] px-1.5 py-0.5 rounded">{profile.device_label}</span>
-                              )}
-                              <span className="text-[10px] text-[var(--text-muted)]">{new Date(profile.updated_at).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 flex-shrink-0">
-                            <button
-                              onClick={() => loadProfile(profile)}
-                              className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-bold transition-all"
-                            >
-                              {t('profiles.load')}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingProfileId(profile.id);
-                                setEditName(profile.name);
-                                setEditLabel(profile.device_label || '');
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-[var(--accent-bg)] text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-all"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => { if (window.confirm(t('profiles.confirmDelete'))) removeProfile(profile.id); }}
-                              className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--text-secondary)] hover:text-red-400 transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {profilesSectionContent}
         </div>
 
         {/* Start blank */}
@@ -835,7 +868,7 @@ export default function ConfigModal({
           <h3 className="text-xs uppercase font-bold text-gray-500 ml-1 tracking-wider">{t('profiles.sectionReset')}</h3>
           <div className="popup-surface p-4">
             <button
-              onClick={() => { if (window.confirm(t('profiles.confirmBlank'))) startBlank(); }}
+              onClick={() => { if (globalThis.confirm(t('profiles.confirmBlank'))) startBlank(); }}
               className="w-full py-2.5 rounded-xl bg-[var(--glass-bg)] hover:bg-red-500/10 border border-[var(--glass-border)] hover:border-red-500/30 text-[var(--text-secondary)] hover:text-red-400 text-sm font-bold transition-all flex items-center justify-center gap-2"
             >
               <Trash2 className="w-4 h-4" />
@@ -934,6 +967,7 @@ export default function ConfigModal({
           {bgMode === 'solid' && (
             <div className="py-2 flex items-center gap-4">
               <label className="relative cursor-pointer group">
+                <span className="sr-only">{t('settings.bgSolid')}</span>
                 <input
                   type="color"
                   value={bgColor}
@@ -1037,7 +1071,7 @@ export default function ConfigModal({
                     step={10}
                     value={inactivityTimeout}
                     onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
+                      const val = Number.parseInt(e.target.value, 10);
                       setInactivityTimeout(val);
                       try { localStorage.setItem('tunet_inactivity_timeout', String(val)); } catch {}
                     }}
@@ -1057,6 +1091,7 @@ export default function ConfigModal({
   const toggleSection = (key) => setLayoutSections(prev => ({ ...prev, [key]: !prev[key] }));
 
   const _renderLayoutTab = () => {
+     
 
     const ResetButton = ({ onClick }) => (
       <button 
@@ -1067,6 +1102,9 @@ export default function ConfigModal({
         <RefreshCw className="w-3.5 h-3.5" />
       </button>
     );
+    ResetButton.propTypes = {
+      onClick: PropTypes.func,
+    };
 
     // Accordion section wrapper
     const Section = ({ id, icon: Icon, title, children }) => {
@@ -1097,6 +1135,13 @@ export default function ConfigModal({
         </div>
       );
     };
+    Section.propTypes = {
+      id: PropTypes.string,
+      icon: PropTypes.elementType,
+      title: PropTypes.string,
+      children: PropTypes.node,
+    };
+     
 
     const hts = sectionSpacing?.headerToStatus ?? 16;
     const stn = sectionSpacing?.statusToNav ?? 24;
@@ -1136,8 +1181,8 @@ export default function ConfigModal({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(false)}
-                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${!dynamicGridColumns ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                  style={!dynamicGridColumns ? { backgroundColor: 'var(--accent-color)' } : {}}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${dynamicGridColumns ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-white'}`}
+                  style={dynamicGridColumns ? {} : { backgroundColor: 'var(--accent-color)' }}
                 >
                   {t('settings.manual')}
                 </button>
@@ -1160,20 +1205,26 @@ export default function ConfigModal({
             </div>
             <div className="flex gap-1.5 p-0.5 rounded-xl">
               {Array.from({ length: MAX_GRID_COLUMNS - MIN_GRID_COLUMNS + 1 }, (_, index) => MIN_GRID_COLUMNS + index).map(cols => (
-                <button
-                  key={cols}
-                  onClick={() => cols <= selectableMaxGridColumns && setGridColumns(cols)}
-                  disabled={cols > selectableMaxGridColumns}
-                  className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all ${
-                    effectiveGridColumns === cols
-                      ? 'bg-[var(--accent-color)] text-white shadow-lg shadow-[var(--accent-color)]/20'
-                      : cols > selectableMaxGridColumns
-                        ? 'text-[var(--text-muted)] opacity-40 cursor-not-allowed'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5'
-                  }`}
-                >
-                  {cols}
-                </button>
+                (() => {
+                  const isSelected = effectiveGridColumns === cols;
+                  const isDisabled = cols > selectableMaxGridColumns;
+                  const className = isSelected
+                    ? 'bg-[var(--accent-color)] text-white shadow-lg shadow-[var(--accent-color)]/20'
+                    : isDisabled
+                      ? 'text-[var(--text-muted)] opacity-40 cursor-not-allowed'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5';
+
+                  return (
+                    <button
+                      key={cols}
+                      onClick={() => cols <= selectableMaxGridColumns && setGridColumns(cols)}
+                      disabled={isDisabled}
+                      className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all ${className}`}
+                    >
+                      {cols}
+                    </button>
+                  );
+                })()
               ))}
             </div>
           </div>
@@ -1199,7 +1250,7 @@ export default function ConfigModal({
                       max={64}
                       step={4}
                       value={gridGapH}
-                      onChange={(e) => setGridGapH(parseInt(e.target.value, 10))}
+                      onChange={(e) => setGridGapH(Number.parseInt(e.target.value, 10))}
                       colorClass="bg-[var(--accent-color)]"
                     />
                 </div>
@@ -1215,7 +1266,7 @@ export default function ConfigModal({
                       max={64}
                       step={4}
                       value={gridGapV}
-                      onChange={(e) => setGridGapV(parseInt(e.target.value, 10))}
+                      onChange={(e) => setGridGapV(Number.parseInt(e.target.value, 10))}
                       colorClass="bg-[var(--accent-color)]"
                     />
                 </div>
@@ -1237,7 +1288,7 @@ export default function ConfigModal({
                 {hts !== 16 && <ResetButton onClick={() => updateSectionSpacing({ headerToStatus: 16 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={hts} onChange={(e) => updateSectionSpacing({ headerToStatus: parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
+            <M3Slider min={0} max={64} step={4} value={hts} onChange={(e) => updateSectionSpacing({ headerToStatus: Number.parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -1247,7 +1298,7 @@ export default function ConfigModal({
                 {stn !== 24 && <ResetButton onClick={() => updateSectionSpacing({ statusToNav: 24 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={stn} onChange={(e) => updateSectionSpacing({ statusToNav: parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
+            <M3Slider min={0} max={64} step={4} value={stn} onChange={(e) => updateSectionSpacing({ statusToNav: Number.parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
           </div>
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -1257,7 +1308,7 @@ export default function ConfigModal({
                 {ntg !== 24 && <ResetButton onClick={() => updateSectionSpacing({ navToGrid: 24 })} />}
               </div>
             </div>
-            <M3Slider min={0} max={64} step={4} value={ntg} onChange={(e) => updateSectionSpacing({ navToGrid: parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
+            <M3Slider min={0} max={64} step={4} value={ntg} onChange={(e) => updateSectionSpacing({ navToGrid: Number.parseInt(e.target.value, 10) })} colorClass="bg-[var(--accent-color)]" />
           </div>
         </Section>
 
@@ -1281,7 +1332,7 @@ export default function ConfigModal({
               max={64}
               step={2}
               value={cardBorderRadius}
-              onChange={(e) => setCardBorderRadius(parseInt(e.target.value, 10))}
+              onChange={(e) => setCardBorderRadius(Number.parseInt(e.target.value, 10))}
               colorClass="bg-[var(--accent-color)]"
             />
           </div>
@@ -1299,7 +1350,7 @@ export default function ConfigModal({
               max={100}
               step={5}
               value={cardTransparency}
-              onChange={(e) => setCardTransparency(parseInt(e.target.value, 10))}
+              onChange={(e) => setCardTransparency(Number.parseInt(e.target.value, 10))}
               colorClass="bg-[var(--accent-color)]"
             />
           </div>
@@ -1317,7 +1368,7 @@ export default function ConfigModal({
               max={50}
               step={5}
               value={cardBorderOpacity}
-              onChange={(e) => setCardBorderOpacity(parseInt(e.target.value, 10))}
+              onChange={(e) => setCardBorderOpacity(Number.parseInt(e.target.value, 10))}
               colorClass="bg-[var(--accent-color)]"
             />
           </div>
@@ -1475,7 +1526,7 @@ export default function ConfigModal({
         backdropFilter: isLayoutPreview ? 'none' : 'blur(20px)',
         backgroundColor: isLayoutPreview ? 'transparent' : 'rgba(0,0,0,0.3)'
       }}
-      onClick={handleClose}
+      onMouseDown={handleBackdropClick}
     >
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -1504,7 +1555,6 @@ export default function ConfigModal({
           borderColor: 'var(--glass-border)',
           color: 'var(--text-primary)'
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         {isOnboardingActive ? (
           <div className="flex flex-col md:flex-row h-full">
@@ -1658,7 +1708,7 @@ export default function ConfigModal({
                           step={10}
                           value={inactivityTimeout}
                           onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
+                            const val = Number.parseInt(e.target.value, 10);
                             setInactivityTimeout(val);
                             try { localStorage.setItem('tunet_inactivity_timeout', String(val)); } catch {}
                           }}
@@ -1786,8 +1836,6 @@ export default function ConfigModal({
                 )}
 
                 {configTab === 'connection' && renderConnectionTab()}
-                {/* {configTab === 'appearance' && renderAppearanceTab()} */}
-                {/* {configTab === 'layout' && renderLayoutTab()} */}
                 {configTab === 'profiles' && renderProfilesTab()}
                 {configTab === 'updates' && renderUpdatesTab()}
               </div>
@@ -1812,3 +1860,134 @@ export default function ConfigModal({
     </div>
   );
 }
+
+const onboardingStepShape = PropTypes.shape({
+  key: PropTypes.string,
+  label: PropTypes.string,
+  icon: PropTypes.elementType,
+});
+
+const configShape = PropTypes.shape({
+  url: PropTypes.string,
+  fallbackUrl: PropTypes.string,
+  token: PropTypes.string,
+  authMethod: PropTypes.string,
+  isIngress: PropTypes.bool,
+});
+
+const haUserShape = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  name: PropTypes.string,
+  is_owner: PropTypes.bool,
+  is_admin: PropTypes.bool,
+});
+
+const autoSyncShape = PropTypes.shape({
+  status: PropTypes.string,
+  enabled: PropTypes.bool,
+  deviceId: PropTypes.string,
+  lastSyncedAt: PropTypes.string,
+  knownDevices: PropTypes.array,
+  history: PropTypes.array,
+  publishing: PropTypes.bool,
+  removingDeviceId: PropTypes.string,
+  updatingDeviceId: PropTypes.string,
+  error: PropTypes.string,
+  setEnabled: PropTypes.func,
+  loadCurrentFromServer: PropTypes.func,
+  publishCurrentToDevices: PropTypes.func,
+  renameKnownDevice: PropTypes.func,
+  removeKnownDevice: PropTypes.func,
+});
+
+const profilesShape = PropTypes.shape({
+  haUser: haUserShape,
+  profiles: PropTypes.array,
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  loadSummary: PropTypes.string,
+  backendAvailable: PropTypes.bool,
+  saveProfile: PropTypes.func,
+  editProfile: PropTypes.func,
+  loadProfile: PropTypes.func,
+  removeProfile: PropTypes.func,
+  importDashboard: PropTypes.func,
+  exportDashboard: PropTypes.func,
+  startBlank: PropTypes.func,
+  autoSync: autoSyncShape,
+});
+
+ConfigModal.propTypes = {
+  open: PropTypes.bool,
+  isOnboardingActive: PropTypes.bool,
+  t: PropTypes.func,
+  configTab: PropTypes.string,
+  setConfigTab: PropTypes.func,
+  onboardingSteps: PropTypes.arrayOf(onboardingStepShape),
+  onboardingStep: PropTypes.number,
+  setOnboardingStep: PropTypes.func,
+  canAdvanceOnboarding: PropTypes.bool,
+  connected: PropTypes.bool,
+  activeUrl: PropTypes.string,
+  config: configShape,
+  setConfig: PropTypes.func,
+  onboardingUrlError: PropTypes.string,
+  setOnboardingUrlError: PropTypes.func,
+  onboardingTokenError: PropTypes.string,
+  setOnboardingTokenError: PropTypes.func,
+  setConnectionTestResult: PropTypes.func,
+  connectionTestResult: PropTypes.shape({
+    success: PropTypes.bool,
+    message: PropTypes.string,
+  }),
+  validateUrl: PropTypes.func,
+  testConnection: PropTypes.func,
+  testingConnection: PropTypes.bool,
+  startOAuthLogin: PropTypes.func,
+  handleOAuthLogout: PropTypes.func,
+  themes: PropTypes.object,
+  currentTheme: PropTypes.string,
+  setCurrentTheme: PropTypes.func,
+  language: PropTypes.string,
+  setLanguage: PropTypes.func,
+  inactivityTimeout: PropTypes.number,
+  setInactivityTimeout: PropTypes.func,
+  gridGapH: PropTypes.number,
+  setGridGapH: PropTypes.func,
+  gridGapV: PropTypes.number,
+  setGridGapV: PropTypes.func,
+  gridColumns: PropTypes.number,
+  setGridColumns: PropTypes.func,
+  dynamicGridColumns: PropTypes.bool,
+  setDynamicGridColumns: PropTypes.func,
+  cardBorderRadius: PropTypes.number,
+  setCardBorderRadius: PropTypes.func,
+  bgMode: PropTypes.string,
+  setBgMode: PropTypes.func,
+  bgColor: PropTypes.string,
+  setBgColor: PropTypes.func,
+  bgGradient: PropTypes.string,
+  setBgGradient: PropTypes.func,
+  bgImage: PropTypes.string,
+  setBgImage: PropTypes.func,
+  cardTransparency: PropTypes.number,
+  setCardTransparency: PropTypes.func,
+  cardBorderOpacity: PropTypes.number,
+  setCardBorderOpacity: PropTypes.func,
+  sectionSpacing: PropTypes.shape({
+    headerToStatus: PropTypes.number,
+    statusToNav: PropTypes.number,
+    navToGrid: PropTypes.number,
+  }),
+  updateSectionSpacing: PropTypes.func,
+  entities: PropTypes.objectOf(PropTypes.shape({
+    entity_id: PropTypes.string,
+    state: PropTypes.string,
+    attributes: PropTypes.object,
+  })),
+  getEntityImageUrl: PropTypes.func,
+  callService: PropTypes.func,
+  onClose: PropTypes.func,
+  onFinishOnboarding: PropTypes.func,
+  profiles: profilesShape,
+};

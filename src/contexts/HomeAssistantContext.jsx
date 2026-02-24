@@ -117,7 +117,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const isOAuth = config.authMethod === 'oauth';
     const hasToken = !!config.token;
     const hasOAuth = hasOAuthTokens();
-    const isOAuthCallback = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('auth_callback');
+    const isOAuthCallback = typeof globalThis.window !== 'undefined' && new URLSearchParams(globalThis.window.location.search).has('auth_callback');
 
     if (!config.url) {
       cleanupConnection();
@@ -225,7 +225,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
         localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
         if (!isOAuth) {
           localStorage.setItem('ha_token', config.token || '');
-          window.sessionStorage.removeItem('ha_token');
+          globalThis.sessionStorage.removeItem('ha_token');
         }
         localStorage.setItem('ha_auth_method', config.authMethod || 'token');
         if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl.replace(/\/$/, ''));
@@ -278,8 +278,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
         loadTokens: () => Promise.resolve(loadTokens()),
       });
       // Clean up OAuth callback params from URL after successful auth
-      if (window.location.search.includes('auth_callback')) {
-        window.history.replaceState(null, '', window.location.pathname);
+      if (globalThis.window.location.search.includes('auth_callback')) {
+        globalThis.window.history.replaceState(null, '', globalThis.window.location.pathname);
       }
       const connInstance = await createConnection({ auth });
       if (!isCurrentAttempt()) {

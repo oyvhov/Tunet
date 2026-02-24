@@ -16,8 +16,8 @@ function isChunkLoadError(error) {
 function reloadForChunkErrorOnce() {
   if (typeof window === 'undefined') return;
   const key = 'tunet_chunk_reload_once';
-  if (sessionStorage.getItem(key) === '1') return;
-  sessionStorage.setItem(key, '1');
+  if (globalThis.sessionStorage.getItem(key) === '1') return;
+  globalThis.sessionStorage.setItem(key, '1');
   const next = `${window.location.pathname}${window.location.search ? `${window.location.search}&` : '?'}v=${Date.now()}${window.location.hash || ''}`;
   window.location.replace(next);
 }

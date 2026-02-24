@@ -5,7 +5,7 @@ const OAUTH_TOKENS_KEY = 'ha_oauth_tokens';
 
 const getSessionStorage = () => {
   try {
-    return window.sessionStorage;
+    return globalThis.window?.sessionStorage ?? null;
   } catch {
     return null;
   }
@@ -13,7 +13,7 @@ const getSessionStorage = () => {
 
 const getLocalStorage = () => {
   try {
-    return window.localStorage;
+    return globalThis.window?.localStorage ?? null;
   } catch {
     return null;
   }
