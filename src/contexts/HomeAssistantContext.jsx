@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createConnection, createLongLivedTokenAuth, subscribeEntities, getAuth } from 'home-assistant-js-websocket';
 import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
+import { isEntityDataStale } from '../utils';
 
 /** @typedef {import('../types/dashboard').EntityMap} EntityMap */
 /** @typedef {import('../types/dashboard').HomeAssistantContextValue} HomeAssistantContextValue */
@@ -82,6 +83,9 @@ export const HomeAssistantProvider = ({ children, config }) => {
   const [activeUrl, setActiveUrl] = useState(config.url);
   const [haUser, setHaUser] = useState(null);
   const [haConfig, setHaConfig] = useState(null);
+  const [entityDataStale, setEntityDataStale] = useState(false);
+  const [lastEntityUpdateAt, setLastEntityUpdateAt] = useState(0);
+  const [disconnectedSince, setDisconnectedSince] = useState(null);
   const authRef = useRef(null);
   const connectionRef = useRef(null);
   const unsubscribeEntitiesRef = useRef(null);
@@ -113,11 +117,14 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const isOAuth = config.authMethod === 'oauth';
     const hasToken = !!config.token;
     const hasOAuth = hasOAuthTokens();
-    const isOAuthCallback = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('auth_callback');
+    const isOAuthCallback = typeof globalThis.window !== 'undefined' && new URLSearchParams(globalThis.window.location.search).has('auth_callback');
 
     if (!config.url) {
       cleanupConnection();
       setConnected(false);
+      setEntityDataStale(false);
+      setDisconnectedSince(null);
+      setLastEntityUpdateAt(0);
       return;
     }
 
@@ -125,12 +132,18 @@ export const HomeAssistantProvider = ({ children, config }) => {
     if (!isOAuth && !hasToken) {
       cleanupConnection();
       setConnected(false);
+      setEntityDataStale(false);
+      setDisconnectedSince(null);
+      setLastEntityUpdateAt(0);
       return;
     }
     // For oauth mode, require stored tokens OR an active callback in the URL
     if (isOAuth && !hasOAuth && !isOAuthCallback && !config.isIngress) {
       cleanupConnection();
       setConnected(false);
+      setEntityDataStale(false);
+      setDisconnectedSince(null);
+      setLastEntityUpdateAt(0);
       return;
     }
 
@@ -145,6 +158,9 @@ export const HomeAssistantProvider = ({ children, config }) => {
     setEntitiesLoaded(false);
     cleanupConnection();
     setOauthExpired(false);
+    setEntityDataStale(false);
+    setDisconnectedSince(null);
+    setLastEntityUpdateAt(0);
 
     /** Fetch the authenticated HA user after connecting */
     async function fetchCurrentUser(connInstance) {
@@ -209,7 +225,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
         localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
         if (!isOAuth) {
           localStorage.setItem('ha_token', config.token || '');
-          window.sessionStorage.removeItem('ha_token');
+          globalThis.sessionStorage.removeItem('ha_token');
         }
         localStorage.setItem('ha_auth_method', config.authMethod || 'token');
         if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl.replace(/\/$/, ''));
@@ -234,6 +250,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       setConn(connInstance);
       setConnected(true);
       setHaUnavailable(false);
+      setDisconnectedSince(null);
       setActiveUrl(url);
       persistConfig(url);
       fetchCurrentUser(connInstance);
@@ -241,6 +258,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
         if (isCurrentAttempt()) {
           setEntities(updatedEntities);
           setEntitiesLoaded(true);
+          setLastEntityUpdateAt(Date.now());
+          setEntityDataStale(false);
         }
       });
       unsubscribeEntitiesRef.current = typeof unsub === 'function' ? unsub : null;
@@ -259,8 +278,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
         loadTokens: () => Promise.resolve(loadTokens()),
       });
       // Clean up OAuth callback params from URL after successful auth
-      if (window.location.search.includes('auth_callback')) {
-        window.history.replaceState(null, '', window.location.pathname);
+      if (globalThis.window.location.search.includes('auth_callback')) {
+        globalThis.window.history.replaceState(null, '', globalThis.window.location.pathname);
       }
       const connInstance = await createConnection({ auth });
       if (!isCurrentAttempt()) {
@@ -273,6 +292,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       setConn(connInstance);
       setConnected(true);
       setHaUnavailable(false);
+      setDisconnectedSince(null);
       setActiveUrl(url);
       persistConfig(url);
       fetchHaConfig(connInstance);
@@ -281,6 +301,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
         if (isCurrentAttempt()) {
           setEntities(updatedEntities);
           setEntitiesLoaded(true);
+          setLastEntityUpdateAt(Date.now());
+          setEntityDataStale(false);
         }
       });
       unsubscribeEntitiesRef.current = typeof unsub === 'function' ? unsub : null;
@@ -304,6 +326,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
           if (isCurrentAttempt()) {
             setConnected(false);
             setHaUnavailable(true);
+            setDisconnectedSince(Date.now());
             setOauthExpired(true);
           }
           return;
@@ -322,6 +345,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
         if (isCurrentAttempt()) {
           setConnected(false);
           setHaUnavailable(true);
+          setDisconnectedSince(Date.now());
         }
       }
     }
@@ -347,12 +371,14 @@ export const HomeAssistantProvider = ({ children, config }) => {
       if (!cancelled) {
         setConnected(true);
         setHaUnavailable(false);
+        setDisconnectedSince(null);
       }
     };
     const handleDisconnected = () => {
       if (!cancelled) {
         setConnected(false);
         setHaUnavailable(true);
+        setDisconnectedSince(Date.now());
       }
     };
 
@@ -365,6 +391,21 @@ export const HomeAssistantProvider = ({ children, config }) => {
       conn.removeEventListener?.('disconnected', handleDisconnected);
     };
   }, [conn]);
+
+  useEffect(() => {
+    const updateStaleState = () => {
+      setEntityDataStale(isEntityDataStale({
+        entitiesLoaded,
+        connected,
+        disconnectedSince,
+        lastEntityUpdateAt,
+      }));
+    };
+
+    updateStaleState();
+    const timer = setInterval(updateStaleState, 5_000);
+    return () => clearInterval(timer);
+  }, [entitiesLoaded, connected, disconnectedSince, lastEntityUpdateAt]);
 
   // Show unavailable banner after delay
   useEffect(() => {
@@ -386,9 +427,11 @@ export const HomeAssistantProvider = ({ children, config }) => {
     conn,
     activeUrl,
     haConfig,
+    entityDataStale,
+    lastEntityUpdateAt,
     authRef,
     haUser,
-  }), [entitiesLoaded, connected, haUnavailable, haUnavailableVisible, oauthExpired, conn, activeUrl, haConfig, haUser]);
+  }), [entitiesLoaded, connected, haUnavailable, haUnavailableVisible, oauthExpired, conn, activeUrl, haConfig, entityDataStale, lastEntityUpdateAt, haUser]);
 
   return (
     <HomeAssistantMetaContext.Provider value={metaValue}>

@@ -17,7 +17,7 @@ const getOrCreateDeviceId = () => {
   try {
     const existing = localStorage.getItem(key);
     if (existing) return existing;
-    const webCrypto = typeof window !== 'undefined' ? window.crypto : globalThis.crypto;
+    const webCrypto = globalThis.window?.crypto ?? globalThis.crypto;
     const next = (webCrypto && typeof webCrypto.randomUUID === 'function') ? webCrypto.randomUUID() : fallback;
     localStorage.setItem(key, next);
     return next;
@@ -291,15 +291,15 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
   }, [haUserId, reconcileFromServer]);
 
   useEffect(() => {
-    if (!haUserId || typeof window === 'undefined') return undefined;
+    if (!haUserId || typeof globalThis.window === 'undefined') return undefined;
 
     const handleEditDone = () => {
       queueAutoSync(true, { ignoreEnabled: true });
     };
 
-    window.addEventListener('tunet:edit-done', handleEditDone);
+    globalThis.window.addEventListener('tunet:edit-done', handleEditDone);
     return () => {
-      window.removeEventListener('tunet:edit-done', handleEditDone);
+      globalThis.window.removeEventListener('tunet:edit-done', handleEditDone);
     };
   }, [haUserId, queueAutoSync]);
 

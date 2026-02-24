@@ -14,9 +14,9 @@ import {
 
 function cloneJson(value, fallback = {}) {
   try {
-    return JSON.parse(JSON.stringify(value ?? fallback));
+    return globalThis.structuredClone(value ?? fallback);
   } catch {
-    return JSON.parse(JSON.stringify(fallback));
+    return globalThis.structuredClone(fallback);
   }
 }
 
@@ -38,9 +38,12 @@ function normalizePagesConfig(candidate, fallback) {
     .filter((key) => Array.isArray(next[key]) && !['header', 'settings', 'automations'].includes(key));
 
   if (!Array.isArray(next.pages) || next.pages.length === 0) {
+    const fallbackPages = Array.isArray(fallbackConfig.pages) && fallbackConfig.pages.length > 0
+      ? [...fallbackConfig.pages]
+      : ['home'];
     next.pages = detectedPages.length > 0
       ? detectedPages
-      : (Array.isArray(fallbackConfig.pages) && fallbackConfig.pages.length > 0 ? [...fallbackConfig.pages] : ['home']);
+      : fallbackPages;
     notes.push('Profile page list was rebuilt.');
   }
 

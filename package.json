@@ -34,6 +34,7 @@
     "home-assistant-js-websocket": "^9.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.263.1",
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",

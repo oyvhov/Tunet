@@ -51,7 +51,7 @@ export const getDisplayUnitForKind = (kind, unitMode) => {
 };
 
 const toNumber = (value) => {
-  const parsed = typeof value === 'number' ? value : parseFloat(value);
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
@@ -158,4 +158,29 @@ export const formatUnitValue = (value, { kind, fromUnit, unitMode, fallback = '-
 
   const rendered = converted.toFixed(decimals).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
   return rendered;
+};
+
+export const formatKindValueForDisplay = (
+  value,
+  {
+    kind,
+    fromUnit,
+    unitMode,
+    fallback = '--',
+    includeUnit = true,
+  } = {},
+) => {
+  const renderedValue = formatUnitValue(value, { kind, fromUnit, unitMode, fallback });
+  const unit = kind ? getDisplayUnitForKind(kind, unitMode) : '';
+
+  if (!includeUnit || !unit || renderedValue === fallback) {
+    return { value: renderedValue, unit, text: renderedValue };
+  }
+
+  const separator = unit.startsWith('°') ? '' : ' ';
+  return {
+    value: renderedValue,
+    unit,
+    text: `${renderedValue}${separator}${unit}`,
+  };
 };

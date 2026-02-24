@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { 
   X, Plus, Trash2, Eye, EyeOff, Check,
-  ChevronDown, ChevronUp, Activity, Music, Clapperboard, Speaker
+  ChevronDown, ChevronUp, Activity, Music, Clapperboard, Speaker,
+  getAllIconKeys, getIconComponent, preloadMdiIcons,
 } from '../icons';
-import { getAllIconKeys, getIconComponent, preloadMdiIcons } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
 
 /**
@@ -30,15 +31,15 @@ export default function StatusPillsConfigModal({
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [mdiLoadedVersion, setMdiLoadedVersion] = useState(0);
   const [mobilePane, setMobilePane] = useState('list');
-  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
+  const [isMobile, setIsMobile] = useState(() => (globalThis.window === undefined ? false : globalThis.window.innerWidth < 768));
   const addMenuRef = useRef(null);
   const iconPickerRef = useRef(null);
   const entityPickerRef = useRef(null);
 
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const onResize = () => setIsMobile(globalThis.window.innerWidth < 768);
+    globalThis.window.addEventListener('resize', onResize);
+    return () => globalThis.window.removeEventListener('resize', onResize);
   }, []);
 
   useEffect(() => {
@@ -160,6 +161,25 @@ export default function StatusPillsConfigModal({
     updatePill(id, { visible: !pills.find(p => p.id === id)?.visible });
   };
 
+  const getPillTypeLabel = (pillType) => {
+    if (pillType === 'conditional') return t('statusPills.typeSensor');
+    if (pillType === 'media_player') return t('statusPills.typeMedia');
+    if (pillType === 'emby') return t('statusPills.typeEmby');
+    return t('statusPills.typeSonos');
+  };
+
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleBackdropKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      onClose();
+    }
+  };
+
   const movePill = (id, direction) => {
     const idx = pills.findIndex(p => p.id === id);
     if (idx === -1) return;
@@ -172,7 +192,7 @@ export default function StatusPillsConfigModal({
     setPills(newPills);
   };
 
-  const entityOptions = Object.keys(entities).sort();
+  const entityOptions = Object.keys(entities).sort((left, right) => left.localeCompare(right));
   const sessionSensorOptions = entityOptions.filter((id) => Array.isArray(entities[id]?.attributes?.sessions));
   
   const filteredIcons = getAllIconKeys().filter(name =>
@@ -184,13 +204,7 @@ export default function StatusPillsConfigModal({
     const query = pillSearch.toLowerCase();
     const entityLabel = entities[pill.entityId]?.attributes?.friendly_name || '';
     const name = pill.name || pill.label || entityLabel || pill.entityId || '';
-    const typeLabel = pill.type === 'conditional'
-      ? t('statusPills.typeSensor')
-      : pill.type === 'media_player'
-        ? t('statusPills.typeMedia')
-        : pill.type === 'emby'
-          ? t('statusPills.typeEmby')
-          : t('statusPills.typeSonos');
+    const typeLabel = getPillTypeLabel(pill.type);
 
     return name.toLowerCase().includes(query)
       || entityLabel.toLowerCase().includes(query)
@@ -201,8 +215,8 @@ export default function StatusPillsConfigModal({
   const normalizePattern = (pattern) => pattern.trim();
 
   const buildWildcardRegex = (pattern) => {
-    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-    const wildcard = escaped.replace(/\*/g, '.*');
+    const escaped = pattern.replaceAll(/[.+?^${}()|[\]\\]/g, String.raw`\$&`);
+    const wildcard = escaped.replaceAll('*', '.*');
     return new RegExp(`^${wildcard}$`, 'i');
   };
 
@@ -249,12 +263,15 @@ export default function StatusPillsConfigModal({
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4" 
       style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+      onClick={handleBackdropClick}
+      onKeyDown={handleBackdropKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label="Close dialog"
     >
       <div 
         className="border w-full max-w-5xl h-full md:h-[800px] max-h-[95vh] md:max-h-[90vh] rounded-2xl md:rounded-3xl shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim overflow-hidden"
         style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)' }}
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="p-5 md:p-6 border-b border-[var(--glass-border)] relative">
@@ -351,13 +368,7 @@ export default function StatusPillsConfigModal({
                 const entity = entities[pill.entityId];
                 const isEditing = editingPill === pill.id;
                 const itemIndex = pills.findIndex((p) => p.id === pill.id);
-                const typeLabel = pill.type === 'conditional'
-                  ? t('statusPills.typeSensor')
-                  : pill.type === 'media_player'
-                    ? t('statusPills.typeMedia')
-                    : pill.type === 'emby'
-                      ? t('statusPills.typeEmby')
-                      : t('statusPills.typeSonos');
+                const typeLabel = getPillTypeLabel(pill.type);
                 const displayName = pill.name || pill.label || entity?.attributes?.friendly_name || pill.entityId || t('statusPills.newPill');
                 
                 return (
@@ -517,7 +528,7 @@ export default function StatusPillsConfigModal({
                   <div className={`${sectionShellClass} flex items-start justify-between gap-4`}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2.5">
-                        <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent-color)]">{pill.type === 'conditional' ? t('statusPills.typeSensor') : pill.type === 'media_player' ? t('statusPills.typeMedia') : pill.type === 'emby' ? t('statusPills.typeEmby') : t('statusPills.typeSonos')}</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent-color)]">{getPillTypeLabel(pill.type)}</span>
                         {pill.type === 'conditional' && <div className="w-1 h-1 bg-gray-500 rounded-full"></div>}
                         {pill.type === 'conditional' && <span className="text-xs text-gray-500">{t('statusPills.standardPill')}</span>}
                       </div>
@@ -948,7 +959,7 @@ export default function StatusPillsConfigModal({
 
                       <div className="flex flex-wrap gap-2">
                         <button
-                          onClick={() => updatePill(pill.id, { conditionEnabled: pill.conditionEnabled === false ? true : false })}
+                          onClick={() => updatePill(pill.id, { conditionEnabled: pill.conditionEnabled === false })}
                           className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                             pill.conditionEnabled === false ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]' : 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
                           }`}
@@ -1030,7 +1041,7 @@ export default function StatusPillsConfigModal({
                                   type="number"
                                   placeholder={t('statusPills.valuePlaceholder')}
                                   value={pill.condition?.value || ''}
-                                  onChange={(e) => updatePill(pill.id, { condition: { ...pill.condition, value: parseFloat(e.target.value) }})}
+                                  onChange={(e) => updatePill(pill.id, { condition: { ...pill.condition, value: Number.parseFloat(e.target.value) }})}
                                   className="w-24 px-3 py-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] text-sm outline-none border-0"
                                 />
                               </div>
@@ -1114,12 +1125,12 @@ export default function StatusPillsConfigModal({
                           )}
                           <div className="flex flex-wrap gap-2">
                             <button
-                                onClick={() => updatePill(pill.id, { animated: !pill.animated })}
+                                onClick={() => updatePill(pill.id, { animated: pill.animated === false })}
                                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                                  pill.animated !== false ? 'bg-purple-500/20 text-purple-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                                  pill.animated === false ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]' : 'bg-purple-500/20 text-purple-400'
                                 }`}
                               >
-                                {pill.animated !== false ? '✓ ' : ''}{t('statusPills.animated')}
+                                {pill.animated === false ? '' : '✓ '}{t('statusPills.animated')}
                             </button>
                             <button
                                 onClick={() => updatePill(pill.id, { clickable: !pill.clickable })}
@@ -1132,12 +1143,12 @@ export default function StatusPillsConfigModal({
                             {(pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos') && (
                               <>
                                 <button
-                                  onClick={() => updatePill(pill.id, { showCover: !(pill.showCover !== false) })}
+                                  onClick={() => updatePill(pill.id, { showCover: pill.showCover === false })}
                                   className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                                    pill.showCover !== false ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                                    pill.showCover === false ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]' : 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
                                   }`}
                                 >
-                                  {pill.showCover !== false ? '✓ ' : ''}{t('statusPills.showCover')}
+                                  {pill.showCover === false ? '' : '✓ '}{t('statusPills.showCover')}
                                 </button>
                                 <button
                                   onClick={() => updatePill(pill.id, { showCount: !pill.showCount })}
@@ -1193,3 +1204,19 @@ export default function StatusPillsConfigModal({
     </div>
   );
 }
+
+const statusEntityShape = PropTypes.shape({
+  attributes: PropTypes.shape({
+    friendly_name: PropTypes.string,
+    sessions: PropTypes.array,
+  }),
+});
+
+StatusPillsConfigModal.propTypes = {
+  show: PropTypes.bool,
+  onClose: PropTypes.func,
+  statusPillsConfig: PropTypes.arrayOf(PropTypes.object),
+  onSave: PropTypes.func,
+  entities: PropTypes.objectOf(statusEntityShape),
+  t: PropTypes.func,
+};

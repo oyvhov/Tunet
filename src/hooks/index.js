@@ -12,3 +12,5 @@ export { useDashboardEffects } from './useDashboardEffects';
 export { usePageRouting } from './usePageRouting';
 export { useCardRendering } from './useCardRendering';
 export { useAppComposition } from './useAppComposition';
+export { useAppUiState } from './useAppUiState';
+export { useSettingsAccessControl } from './useSettingsAccessControl';

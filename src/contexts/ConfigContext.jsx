@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { themes } from '../config/themes';
-import { DEFAULT_LANGUAGE, LEGACY_NN_MIGRATION_FLAG, normalizeLanguage } from '../i18n';
+import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 import { hashPin, verifyPin } from '../utils';
 
 /** @typedef {import('../types/dashboard').ConfigContextValue} ConfigContextValue */
@@ -17,6 +17,8 @@ export const GRADIENT_PRESETS = {
 
 /** @type {import('react').Context<ConfigContextValue | null>} */
 const ConfigContext = createContext(null);
+const CONFIG_STORAGE_VERSION_KEY = 'tunet_config_storage_version';
+const CONFIG_STORAGE_VERSION = '1';
 
 /** @returns {ConfigContextValue} */
 export const useConfig = () => {
@@ -29,8 +31,14 @@ export const useConfig = () => {
 
 /** @param {ConfigProviderProps} props */
 export const ConfigProvider = ({ children }) => {
+  useEffect(() => {
+    try {
+      localStorage.setItem(CONFIG_STORAGE_VERSION_KEY, CONFIG_STORAGE_VERSION);
+    } catch {}
+  }, []);
+
   const [currentTheme, setCurrentTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof globalThis.window !== 'undefined') {
       try {
         const saved = localStorage.getItem('tunet_theme');
         return (saved && themes[saved]) ? saved : 'dark';
@@ -45,16 +53,7 @@ export const ConfigProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
     try {
       const rawLanguage = localStorage.getItem('tunet_language') || DEFAULT_LANGUAGE;
-      const migrationDone = localStorage.getItem(LEGACY_NN_MIGRATION_FLAG) === '1';
-      const shouldMigrateLegacyNn = rawLanguage === 'nn' && !migrationDone;
-      const normalizedLanguage = shouldMigrateLegacyNn ? 'nb' : normalizeLanguage(rawLanguage);
-
-      if (shouldMigrateLegacyNn) {
-        localStorage.setItem('tunet_language', normalizedLanguage);
-        localStorage.setItem(LEGACY_NN_MIGRATION_FLAG, '1');
-      }
-
-      return normalizedLanguage;
+      return normalizeLanguage(rawLanguage);
     } catch (error) {
       console.error('Failed to read language from localStorage:', error);
       return DEFAULT_LANGUAGE;
@@ -88,18 +87,18 @@ export const ConfigProvider = ({ children }) => {
 
   const [settingsLockSessionUnlocked, setSettingsLockSessionUnlocked] = useState(() => {
     try {
-      return window.sessionStorage.getItem('tunet_settings_lock_unlocked') === '1';
+      return globalThis.sessionStorage.getItem('tunet_settings_lock_unlocked') === '1';
     } catch {
       return false;
     }
   });
 
   const [inactivityTimeout, setInactivityTimeout] = useState(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof globalThis.window !== 'undefined') {
       try {
         const saved = localStorage.getItem('tunet_inactivity_timeout');
         if (saved !== null) {
-          const parsed = parseInt(saved, 10);
+          const parsed = Number.parseInt(saved, 10);
           if (!Number.isNaN(parsed)) return parsed;
         }
       } catch (error) {
@@ -136,14 +135,16 @@ export const ConfigProvider = ({ children }) => {
   const [cardTransparency, setCardTransparency] = useState(() => {
     try {
       const saved = localStorage.getItem('tunet_card_transparency');
-      return saved !== null ? parseInt(saved, 10) : 40; // Default 40% transparency (0.6 opacity)
+      if (saved === null) return 40;
+      return Number.parseInt(saved, 10);
     } catch { return 40; }
   });
 
   const [cardBorderOpacity, setCardBorderOpacity] = useState(() => {
     try {
       const saved = localStorage.getItem('tunet_card_border_opacity');
-      return saved !== null ? parseInt(saved, 10) : 5; // Default 5% opacity
+      if (saved === null) return 5;
+      return Number.parseInt(saved, 10);
     } catch { return 5; }
   });
 
@@ -157,11 +158,11 @@ export const ConfigProvider = ({ children }) => {
 
 
   const [config, setConfig] = useState(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof globalThis.window !== 'undefined') {
       // Ingress auto-detection: if served under /api/hassio_ingress/<token>,
       // connect to HA's root URL via Token (OAuth often fails in Ingress iframe)
-      const path = window.location.pathname;
-      const ingressMatch = path.match(/(.*\/api\/hassio_ingress\/[^/]+)/);
+      const path = globalThis.window.location.pathname;
+      const ingressMatch = /(.*\/api\/hassio_ingress\/[^/]+)/.exec(path);
       if (ingressMatch && ingressMatch[1]) {
         // Still load saved URL/token from localStorage so the user doesn't
         // have to re-enter credentials on every page reload
@@ -169,19 +170,19 @@ export const ConfigProvider = ({ children }) => {
         try {
           savedUrl = localStorage.getItem('ha_url') || '';
           const persistentToken = localStorage.getItem('ha_token') || '';
-          const sessionToken = window.sessionStorage.getItem('ha_token') || '';
+          const sessionToken = globalThis.sessionStorage.getItem('ha_token') || '';
           if (persistentToken) {
             savedToken = persistentToken;
           } else if (sessionToken) {
             savedToken = sessionToken;
             localStorage.setItem('ha_token', sessionToken);
-            window.sessionStorage.removeItem('ha_token');
+            globalThis.sessionStorage.removeItem('ha_token');
           } else {
             savedToken = '';
           }
         } catch { savedUrl = ''; savedToken = ''; }
         return {
-          url: savedUrl || window.location.origin,
+          url: savedUrl || globalThis.window.location.origin,
           fallbackUrl: '',
           token: savedToken,
           authMethod: 'token',
@@ -191,11 +192,11 @@ export const ConfigProvider = ({ children }) => {
 
       try {
         const persistentToken = localStorage.getItem('ha_token') || '';
-        const sessionToken = window.sessionStorage.getItem('ha_token') || '';
+        const sessionToken = globalThis.sessionStorage.getItem('ha_token') || '';
         const token = persistentToken || sessionToken || '';
         if (!persistentToken && sessionToken) {
           localStorage.setItem('ha_token', sessionToken);
-          window.sessionStorage.removeItem('ha_token');
+          globalThis.sessionStorage.removeItem('ha_token');
         }
         return {
           url: localStorage.getItem('ha_url') || '',
@@ -403,7 +404,6 @@ export const ConfigProvider = ({ children }) => {
     try {
       const normalizedLanguage = normalizeLanguage(language);
       localStorage.setItem('tunet_language', normalizedLanguage);
-      localStorage.setItem(LEGACY_NN_MIGRATION_FLAG, '1');
     } catch (error) {
       console.error('Failed to save language to localStorage:', error);
     }
@@ -433,7 +433,7 @@ export const ConfigProvider = ({ children }) => {
 
   useEffect(() => {
     try {
-      window.sessionStorage.setItem('tunet_settings_lock_unlocked', settingsLockSessionUnlocked ? '1' : '0');
+      globalThis.sessionStorage.setItem('tunet_settings_lock_unlocked', settingsLockSessionUnlocked ? '1' : '0');
     } catch {}
   }, [settingsLockSessionUnlocked]);
 
