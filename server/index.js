@@ -20,6 +20,11 @@ try {
 }
 
 const app = express();
+app.disable('x-powered-by');
+app.use((_req, res, next) => {
+  res.removeHeader('X-Powered-By');
+  next();
+});
 
 // Parse JSON bodies
 app.use(express.json({ limit: '2mb' }));
@@ -48,6 +53,22 @@ if (isProduction) {
   const distPath = join(__dirname, '..', 'dist');
   if (existsSync(distPath)) {
     const assetsPath = join(distPath, 'assets');
+    const indexHtmlPath = join(distPath, 'index.html');
+    const indexHtml = existsSync(indexHtmlPath) ? readFileSync(indexHtmlPath, 'utf8') : null;
+
+    const setNoCacheHeaders = (res) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    };
+
+    const sendSpaIndex = (res) => {
+      setNoCacheHeaders(res);
+      if (indexHtml !== null) {
+        return res.type('html').send(indexHtml);
+      }
+      return res.status(503).send('Frontend unavailable');
+    };
 
     app.use('/assets', express.static(assetsPath, {
       fallthrough: false,
@@ -59,18 +80,13 @@ if (isProduction) {
       index: false,
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html')) {
-          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-          res.setHeader('Pragma', 'no-cache');
-          res.setHeader('Expires', '0');
+          setNoCacheHeaders(res);
         }
       },
     }));
 
     app.get('/index.html', (_req, res) => {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.sendFile(join(distPath, 'index.html'));
+      sendSpaIndex(res);
     });
 
     // SPA fallback — serve index.html for all non-API routes
@@ -81,10 +97,7 @@ if (isProduction) {
       if (req.path.includes('.')) {
         return res.status(404).end();
       }
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.sendFile(join(distPath, 'index.html'));
+      sendSpaIndex(res);
     });
   } else {
     console.warn('[server] dist/ folder not found. Only API routes will be available.');

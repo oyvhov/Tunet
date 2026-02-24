@@ -66,6 +66,7 @@ const BLOCKED_TITLE_WORDS = [
   'doorbell', 'security cam', 'cctv',
 ];
 
+
 /**
  * MediaModal - Unified media/sonos modal
  *
@@ -84,7 +85,6 @@ const BLOCKED_TITLE_WORDS = [
  * @param {number} props.mediaTick - Tick for media position updates
  * @param {Function} props.callService - HA service call
  * @param {Function} props.getA - Get entity attribute
- * @param {Function} props.getEntityImageUrl - Resolve entity image URL
  * @param {Function} props.isMediaActive - Is media active
  * @param {Function} props.isSonosActive - Is Sonos active
  * @param {Function} props.t - Translation function
@@ -107,7 +107,6 @@ export default function MediaModal({
   mediaTick,
   callService,
   getA,
-  getEntityImageUrl,
   isMediaActive,
   isSonosActive,
   t,
@@ -428,7 +427,6 @@ export default function MediaModal({
   }
   if (!mpSeries) mpSeries = mpId ? (getA(mpId, 'media_artist') || getA(mpId, 'media_season')) : '';
 
-  const mpPicture = getEntityImageUrl(currentMp.attributes?.entity_picture);
   const activeUser = (() => {
     const match = Array.isArray(sessions)
       ? sessions.find((entry) => {
@@ -722,7 +720,8 @@ export default function MediaModal({
     setShowChoosePanel(false);
   };
 
-  const renderChoiceButton = (choice, keyPrefix = '') => (
+  const renderChoiceButton = (choice, keyPrefix = '') => {
+    return (
     <button
       key={`${keyPrefix}${choice.type}::${choice.id}`}
       type="button"
@@ -731,13 +730,9 @@ export default function MediaModal({
     >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg overflow-hidden bg-[var(--glass-bg-hover)] flex-shrink-0">
-          {choice.image ? (
-            <img src={getEntityImageUrl(choice.image) || choice.image} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Music className="w-4 h-4 text-[var(--text-secondary)]" />
-            </div>
-          )}
+          <div className="w-full h-full flex items-center justify-center">
+            <Music className="w-4 h-4 text-[var(--text-secondary)]" />
+          </div>
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] truncate">{choice.label}</p>
@@ -745,7 +740,8 @@ export default function MediaModal({
         </div>
       </div>
     </button>
-  );
+    );
+  };
 
   const renderChooseTabButton = (id, label) => (
     <button
@@ -819,7 +815,7 @@ export default function MediaModal({
 
           <div className="flex flex-col gap-6">
             <div className="aspect-[16/9] w-full rounded-3xl overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--glass-bg)] relative group">
-              {mpPicture ? <img src={mpPicture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>}
+              <div className="w-full h-full flex items-center justify-center">{isChannel ? <Tv className="w-20 h-20 text-gray-700" /> : (isSonos ? <Speaker className="w-20 h-20 text-gray-700" /> : <Music className="w-20 h-20 text-gray-700" />)}</div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
               <div className="absolute bottom-0 left-0 w-full p-8">
                 <p className="text-sm font-bold uppercase tracking-widest text-[var(--accent-color)] mb-2">
@@ -967,7 +963,6 @@ export default function MediaModal({
           <div className="flex flex-col gap-4">
             {listPlayers.length === 0 && <p className="text-gray-600 italic text-sm">{t('media.noPlayersFound')}</p>}
             {listPlayers.map((p, idx) => {
-              const pPic = getEntityImageUrl(p.attributes?.entity_picture);
               const isSelected = p.entity_id === mpId;
               const isMember = groupMembers.includes(p.entity_id);
               const isSelf = p.entity_id === mpId;
@@ -982,7 +977,7 @@ export default function MediaModal({
                 <div key={p.entity_id || idx} className={`flex items-center gap-3 p-3 rounded-2xl transition-all border ${isSelected ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)]' : 'hover:bg-[var(--glass-bg)] border-transparent'} ${isActivePlayer ? '' : 'opacity-70'}`}>
                   <button onClick={() => setActiveMediaId(p.entity_id)} className="flex-1 flex items-center gap-4 text-left min-w-0 group">
                     <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--glass-bg)] flex-shrink-0 relative">
-                      {pPic ? <img src={pPic} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">{isSonosUiEntity(p) ? <Speaker className="w-5 h-5 text-gray-600" /> : <Music className="w-5 h-5 text-gray-600" />}</div>}
+                      <div className="w-full h-full flex items-center justify-center">{isSonosUiEntity(p) ? <Speaker className="w-5 h-5 text-gray-600" /> : <Music className="w-5 h-5 text-gray-600" />}</div>
                       {p.state === 'playing' && <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /></div>}
                     </div>
                     <div className="overflow-hidden">
@@ -1127,25 +1122,23 @@ export default function MediaModal({
                   )}
                   {!favoritesLoading && currentFavorites.length > 0 && (
                     <div className="grid grid-cols-2 gap-2">
-                      {currentFavorites.map((fav) => (
-                        <button
-                          key={`fav::${fav.type}::${fav.id}`}
-                          type="button"
-                          onClick={() => playChoice(fav)}
-                          className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--glass-bg-hover)] transition-colors group"
-                        >
-                          <div className="w-full aspect-square rounded-lg overflow-hidden bg-[var(--glass-bg-hover)] flex-shrink-0">
-                            {fav.image ? (
-                              <img src={getEntityImageUrl(fav.image) || fav.image} alt="" className="w-full h-full object-cover" />
-                            ) : (
+                      {currentFavorites.map((fav) => {
+                        return (
+                          <button
+                            key={`fav::${fav.type}::${fav.id}`}
+                            type="button"
+                            onClick={() => playChoice(fav)}
+                            className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[var(--glass-bg-hover)] transition-colors group"
+                          >
+                            <div className="w-full aspect-square rounded-lg overflow-hidden bg-[var(--glass-bg-hover)] flex-shrink-0">
                               <div className="w-full h-full flex items-center justify-center">
                                 <Heart className="w-6 h-6 text-[var(--text-secondary)] group-hover:text-[var(--accent-color)] transition-colors" />
                               </div>
-                            )}
-                          </div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-primary)] text-center line-clamp-2 leading-tight">{fav.label}</p>
-                        </button>
-                      ))}
+                            </div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-primary)] text-center line-clamp-2 leading-tight">{fav.label}</p>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </>

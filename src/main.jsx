@@ -1,4 +1,5 @@
 import { StrictMode, Component } from 'react'
+import PropTypes from 'prop-types'
 import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import './styles/index.css'
@@ -14,16 +15,15 @@ function isChunkLoadError(error) {
 }
 
 function reloadForChunkErrorOnce() {
-  if (typeof window === 'undefined') return;
+  if (globalThis.window === undefined) return;
   const key = 'tunet_chunk_reload_once';
   if (globalThis.sessionStorage.getItem(key) === '1') return;
   globalThis.sessionStorage.setItem(key, '1');
-  const next = `${window.location.pathname}${window.location.search ? `${window.location.search}&` : '?'}v=${Date.now()}${window.location.hash || ''}`;
-  window.location.replace(next);
+  globalThis.window.history.go(0);
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('unhandledrejection', (event) => {
+if (globalThis.window !== undefined) {
+  globalThis.window.addEventListener('unhandledrejection', (event) => {
     if (!isChunkLoadError(event?.reason)) return;
     reloadForChunkErrorOnce();
   });
@@ -67,7 +67,7 @@ class ErrorBoundary extends Component {
               The application encountered an unexpected error.
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => globalThis.window.history.go(0)}
               style={{
                 padding: '12px 32px',
                 fontSize: '1rem',
@@ -82,6 +82,8 @@ class ErrorBoundary extends Component {
               }}
               onMouseOver={(e) => e.target.style.background = '#2563eb'}
               onMouseOut={(e) => e.target.style.background = '#3b82f6'}
+              onFocus={(e) => e.target.style.background = '#2563eb'}
+              onBlur={(e) => e.target.style.background = '#3b82f6'}
             >
               Reload Application
             </button>
@@ -92,6 +94,10 @@ class ErrorBoundary extends Component {
     return this.props.children;
   }
 }
+
+ErrorBoundary.propTypes = {
+  children: PropTypes.node,
+};
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <StrictMode>
