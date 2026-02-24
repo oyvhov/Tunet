@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.1
+
+- Release metadata sync.
+
 ## 1.8.0
 
 - Release metadata sync.
