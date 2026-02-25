@@ -276,8 +276,7 @@ export default function StatusPillsConfigModal({
   };
 
   const getSafeTranslationText = (key) => String(t(key) || '')
-    .replace(/<br\s*\/?\s*>/gi, '\n')
-    .replace(/<[^>]+>/g, '');
+    .replace(/<br\s*\/?\s*>/gi, '\n');
 
   const colorPresets = [
     { name: 'Blue', bg: 'rgba(59, 130, 246, 0.3)', icon: 'text-[var(--accent-color)]', label: t('statusPills.colorBlue') },
