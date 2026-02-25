@@ -1,4 +1,7 @@
-const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
+const importMetaEnv = typeof import.meta !== 'undefined'
+  ? /** @type {{ DEV?: boolean } | undefined} */ (/** @type {any} */ (import.meta).env)
+  : undefined;
+const isDev = Boolean(importMetaEnv?.DEV);
 
 export const logger = {
   debug: (...args) => {

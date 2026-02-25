@@ -109,16 +109,19 @@ router.put('/:id', (req, res) => {
   }
 
   const now = new Date().toISOString();
-  const updatePairs = [
-    ...(name === undefined ? [] : [['name = ?', name]]),
-    ...(device_label === undefined ? [] : [['device_label = ?', device_label]]),
-    ...(data === undefined ? [] : [['data = ?', JSON.stringify(data)]]),
-    ['updated_at = ?', now],
-  ];
-  const updates = updatePairs.map(([clause]) => clause);
-  const params = [...updatePairs.map(([, value]) => value), req.params.id];
-
-  db.prepare(`UPDATE profiles SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+  db.prepare(
+    'UPDATE profiles SET name = CASE WHEN ? THEN ? ELSE name END, device_label = CASE WHEN ? THEN ? ELSE device_label END, data = CASE WHEN ? THEN ? ELSE data END, updated_at = ? WHERE id = ? AND ha_user_id = ?'
+  ).run(
+    name !== undefined ? 1 : 0,
+    name,
+    device_label !== undefined ? 1 : 0,
+    device_label,
+    data !== undefined ? 1 : 0,
+    data === undefined ? null : JSON.stringify(data),
+    now,
+    req.params.id,
+    requestUserId
+  );
 
   const updated = db.prepare(
     'SELECT id, ha_user_id, name, device_label, data, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'

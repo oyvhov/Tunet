@@ -77,11 +77,13 @@ export function isCardHiddenByLogic(cardId, { activePage, getCardSettingsKey, ca
     if (!targetEntityId) return false;
     const targetEntity = entities[targetEntityId];
     if (!targetEntity) return false;
+    const getAttribute = (entityId, attribute) => entities?.[entityId]?.attributes?.[attribute];
 
     const shouldShow = evaluateVisibilityConditionConfig({
       condition: cardConfig.visibilityCondition,
       entity: targetEntity,
       entities,
+      getAttribute,
       fallbackEntityId: targetEntityId,
     });
 

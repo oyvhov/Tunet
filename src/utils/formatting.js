@@ -6,7 +6,7 @@ export const formatRelativeTime = (timestamp, t) => {
   try {
     const past = new Date(timestamp);
     const now = new Date();
-    const diffMs = now - past;
+    const diffMs = now.getTime() - past.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     if (diffMins < 1) return translate('time.justNow');
     if (diffMins < 60) return translate('time.minutesAgo').replace('{minutes}', diffMins);

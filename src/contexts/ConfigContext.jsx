@@ -60,10 +60,11 @@ export const ConfigProvider = ({ children }) => {
     }
   });
 
-  const [unitsMode, setUnitsMode] = useState(() => {
+  const [unitsMode, setUnitsMode] = useState(/** @returns {'follow_ha' | 'metric' | 'imperial'} */ () => {
     try {
       const saved = localStorage.getItem('tunet_units_mode');
-      return saved && ['follow_ha', 'metric', 'imperial'].includes(saved) ? saved : 'follow_ha';
+      if (saved === 'follow_ha' || saved === 'metric' || saved === 'imperial') return saved;
+      return 'follow_ha';
     } catch {
       return 'follow_ha';
     }
