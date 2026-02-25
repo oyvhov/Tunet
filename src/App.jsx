@@ -27,7 +27,7 @@ import {
   useAddCard, useConnectionSetup,
   useResponsiveGrid, useEntityHelpers,
   usePageManagement, useDashboardEffects, usePageRouting, useCardRendering,
-  useAppComposition, useAppUiState, useSettingsAccessControl,
+  useAppComposition, useAppUiState, useSettingsAccessControl, usePopupTriggers,
 } from './hooks';
 
 import './styles/dashboard.css';
@@ -182,6 +182,57 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     editMode,
     setEditMode,
   } = useAppUiState();
+
+  const popupModalActions = useMemo(() => ({
+    closeAllModals,
+    setShowLightModal,
+    setShowSensorInfoModal,
+    setActiveClimateEntityModal,
+    setShowCostModal,
+    setActiveVacuumId,
+    setShowVacuumModal,
+    setShowFanModal,
+    setShowAndroidTVModal,
+    setActiveCarModal,
+    setShowWeatherModal,
+    setShowNordpoolModal,
+    setShowCalendarModal,
+    setShowTodoModal,
+    setShowRoomModal,
+    setShowCoverModal,
+    setShowAlarmModal,
+    setShowCameraModal,
+    setActiveMediaModal,
+    setActiveMediaId,
+    setActiveMediaGroupKey,
+    setActiveMediaGroupIds,
+    setActiveMediaSessionSensorIds,
+  }), [
+    closeAllModals,
+    setShowLightModal,
+    setShowSensorInfoModal,
+    setActiveClimateEntityModal,
+    setShowCostModal,
+    setActiveVacuumId,
+    setShowVacuumModal,
+    setShowFanModal,
+    setShowAndroidTVModal,
+    setActiveCarModal,
+    setShowWeatherModal,
+    setShowNordpoolModal,
+    setShowCalendarModal,
+    setShowTodoModal,
+    setShowRoomModal,
+    setShowCoverModal,
+    setShowAlarmModal,
+    setShowCameraModal,
+    setActiveMediaModal,
+    setActiveMediaId,
+    setActiveMediaGroupKey,
+    setActiveMediaGroupIds,
+    setActiveMediaSessionSensorIds,
+  ]);
+
   const { activePage, setActivePage } = usePageRouting();
 
   const [tempHistoryById, _setTempHistoryById] = useTempHistory(conn, cardSettings);
@@ -319,6 +370,17 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const isCardRemovable = (cardId, pageId = activePage) => _isCardRemovable(cardId, pageId, cardUtilCtx);
   const isCardHiddenByLogic = (cardId) => _isCardHiddenByLogic(cardId, cardUtilCtx);
   const isMediaPage = (pageId) => _isMediaPage(pageId, pageSettings);
+
+  usePopupTriggers({
+    entities,
+    entitiesLoaded,
+    pagesConfig,
+    activePage,
+    cardSettings,
+    getCardSettingsKey,
+    editMode,
+    modalActions: popupModalActions,
+  });
 
   // ── Add-card dialog hook ───────────────────────────────────────────────
   const {
