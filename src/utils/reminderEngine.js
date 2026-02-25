@@ -40,6 +40,8 @@ export const generateReminderId = () =>
  * @property {string}            [sourceItemUid]   - HA todo item uid (legacy)
  * @property {string}            [calendarEntityId] - calendar.* entity to watch
  * @property {string}            [calendarEventFilter] - optional substring filter on event summary
+ * @property {'atEvent'|'beforeEvent'} [calendarTriggerMode] - trigger at start or before start
+ * @property {number}            [calendarTriggerOffsetMinutes] - minutes before event (when mode='beforeEvent')
  * @property {TriggerCondition}  [triggerCondition] - condition for entityState source
  * @property {number}            dueAt             - epoch ms of next occurrence
  * @property {RecurrenceRule}    recurrence
@@ -56,6 +58,8 @@ export const generateReminderId = () =>
 // ── Defaults ─────────────────────────────────────────────────────────
 
 export const DEFAULT_SNOOZE_MINUTES = 15;
+export const DEFAULT_CALENDAR_TRIGGER_MODE = 'atEvent';
+export const DEFAULT_CALENDAR_TRIGGER_OFFSET_MINUTES = 10;
 
 export const SNOOZE_OPTIONS = [5, 10, 15, 30, 60, 120, 1440]; // minutes
 
@@ -71,6 +75,8 @@ export function createReminder(overrides = {}) {
     sourceItemUid: null,
     calendarEntityId: null,
     calendarEventFilter: '',
+    calendarTriggerMode: DEFAULT_CALENDAR_TRIGGER_MODE,
+    calendarTriggerOffsetMinutes: DEFAULT_CALENDAR_TRIGGER_OFFSET_MINUTES,
     triggerCondition: null,
     dueAt: now + 3600_000, // 1 h from now
     recurrence: { type: 'none' },
@@ -293,29 +299,98 @@ export function evaluateEntityTrigger(entity, condition) {
  * @param {number} [nowMs]
  * @returns {{ start: string, end: string, summary: string }[]}
  */
-export function matchCalendarEvents(events, summaryFilter, nowMs = Date.now()) {
+export function matchCalendarEvents(events, summaryFilter, nowMs = Date.now(), options = {}) {
   if (!Array.isArray(events) || events.length === 0) return [];
 
   const WINDOW_MS = 5 * 60_000; // ±5 minutes
 
-  return events.filter((ev) => {
-    // Resolve start time
-    const rawStart = ev.start?.dateTime || ev.start;
-    const startMs = new Date(rawStart).getTime();
-    if (isNaN(startMs)) return false;
+  return events
+    .map((ev) => {
+      const eventStartAt = getCalendarEventStartMs(ev);
+      if (!Number.isFinite(eventStartAt)) return null;
 
-    // Check if event is within the window
-    const diff = startMs - nowMs;
-    if (diff > WINDOW_MS || diff < -WINDOW_MS) return false;
+      const triggerAt = computeCalendarReminderTriggerAt(
+        eventStartAt,
+        {
+          calendarTriggerMode: options?.calendarTriggerMode,
+          calendarTriggerOffsetMinutes: options?.calendarTriggerOffsetMinutes,
+        },
+      );
+      if (!Number.isFinite(triggerAt)) return null;
 
-    // Optional summary filter
-    if (summaryFilter && typeof summaryFilter === 'string' && summaryFilter.trim()) {
-      const summary = (ev.summary || '').toLowerCase();
-      if (!summary.includes(summaryFilter.trim().toLowerCase())) return false;
-    }
+      const diff = triggerAt - nowMs;
+      if (diff > WINDOW_MS || diff < -WINDOW_MS) return null;
 
-    return true;
-  });
+      if (summaryFilter && typeof summaryFilter === 'string' && summaryFilter.trim()) {
+        const summary = (ev.summary || '').toLowerCase();
+        if (!summary.includes(summaryFilter.trim().toLowerCase())) return null;
+      }
+
+      return {
+        ...ev,
+        _triggerAt: triggerAt,
+        _eventStartAt: eventStartAt,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a._triggerAt - b._triggerAt);
+}
+
+export function getCalendarEventStartMs(eventOrEntity) {
+  if (!eventOrEntity) return NaN;
+
+  const candidates = [
+    eventOrEntity?.start?.dateTime,
+    eventOrEntity?.start?.date_time,
+    eventOrEntity?.start?.date,
+    eventOrEntity?.start,
+    eventOrEntity?.start_time,
+    eventOrEntity?.attributes?.start_time,
+    eventOrEntity?.attributes?.start,
+    eventOrEntity?.attributes?.start_date_time,
+    eventOrEntity?.attributes?.next_event?.start,
+    eventOrEntity?.attributes?.next_event?.start_time,
+  ];
+
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const ms = new Date(raw).getTime();
+    if (Number.isFinite(ms)) return ms;
+  }
+
+  return NaN;
+}
+
+export function computeCalendarReminderTriggerAt(eventStartAt, reminderLike = {}) {
+  if (!Number.isFinite(eventStartAt)) return NaN;
+
+  const mode = reminderLike.calendarTriggerMode || DEFAULT_CALENDAR_TRIGGER_MODE;
+  if (mode !== 'beforeEvent') return eventStartAt;
+
+  const offsetMinutes = Number.isFinite(Number(reminderLike.calendarTriggerOffsetMinutes))
+    ? Math.max(0, Number(reminderLike.calendarTriggerOffsetMinutes))
+    : DEFAULT_CALENDAR_TRIGGER_OFFSET_MINUTES;
+
+  return eventStartAt - offsetMinutes * 60_000;
+}
+
+export function getCalendarReminderNextTriggerFromEntity(reminder, entities, nowMs = Date.now()) {
+  if (!reminder || reminder.source !== 'calendar' || !reminder.calendarEntityId) return null;
+  const entity = entities?.[reminder.calendarEntityId];
+  if (!entity) return null;
+
+  const eventStartAt = getCalendarEventStartMs(entity);
+  if (!Number.isFinite(eventStartAt)) return null;
+
+  const triggerAt = computeCalendarReminderTriggerAt(eventStartAt, reminder);
+  if (!Number.isFinite(triggerAt)) return null;
+
+  if (triggerAt < nowMs - 5 * 60_000) return null;
+
+  return {
+    triggerAt,
+    eventStartAt,
+  };
 }
 
 // ── Cooldown check for entity/calendar triggers ──────────────────────

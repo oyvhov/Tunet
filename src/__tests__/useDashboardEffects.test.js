@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useDashboardEffects } from '../hooks/useDashboardEffects';
 import {
+  CLOCK_TICK_INTERVAL,
   ENTITY_UPDATE_INTERVAL,
   MEDIA_TICK_INTERVAL,
 } from '../config/constants';
@@ -20,6 +21,8 @@ const makeProps = (overrides = {}) => ({
   resetToHome: vi.fn(),
   activeMediaModal: null,
   entities: {},
+  checkRemindersDue: undefined,
+  checkEntityTriggers: undefined,
   ...overrides,
 });
 
@@ -32,12 +35,32 @@ describe('useDashboardEffects › clock tick', () => {
     expect(result.current.now).toBeInstanceOf(Date);
   });
 
-  it('updates `now` on each ENTITY_UPDATE_INTERVAL tick', () => {
+  it('updates `now` on each CLOCK_TICK_INTERVAL tick', () => {
     const { result } = renderHook(() => useDashboardEffects(makeProps()));
     const first = result.current.now.getTime();
 
-    act(() => vi.advanceTimersByTime(ENTITY_UPDATE_INTERVAL));
+    act(() => vi.advanceTimersByTime(CLOCK_TICK_INTERVAL));
     expect(result.current.now.getTime()).toBeGreaterThanOrEqual(first);
+  });
+
+  it('runs due reminder checks every CLOCK_TICK_INTERVAL and immediately', () => {
+    const checkRemindersDue = vi.fn();
+    renderHook(() => useDashboardEffects(makeProps({ checkRemindersDue })));
+
+    expect(checkRemindersDue).toHaveBeenCalledTimes(1);
+
+    act(() => vi.advanceTimersByTime(CLOCK_TICK_INTERVAL * 2));
+    expect(checkRemindersDue).toHaveBeenCalledTimes(3);
+  });
+
+  it('runs entity/calendar trigger checks on ENTITY_UPDATE_INTERVAL and immediately', () => {
+    const checkEntityTriggers = vi.fn();
+    renderHook(() => useDashboardEffects(makeProps({ checkEntityTriggers })));
+
+    expect(checkEntityTriggers).toHaveBeenCalledTimes(1);
+
+    act(() => vi.advanceTimersByTime(ENTITY_UPDATE_INTERVAL));
+    expect(checkEntityTriggers).toHaveBeenCalledTimes(2);
   });
 });
 

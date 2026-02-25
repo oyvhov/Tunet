@@ -3,6 +3,7 @@
 // Entity update intervals
 export const ENTITY_UPDATE_INTERVAL = 30000; // 30 seconds - how often to refresh entity data
 export const ENTITY_UPDATE_THRESHOLD = 30000; // 30 seconds - threshold for considering entity data stale
+export const CLOCK_TICK_INTERVAL = 1000; // 1 second - UI clock refresh cadence
 
 // Media player timeouts
 export const MEDIA_TIMEOUT = 120000; // 2 minutes - timeout for inactive media player

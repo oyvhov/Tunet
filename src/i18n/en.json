@@ -1106,5 +1106,12 @@
   "reminder.conditionValue": "Value",
   "reminder.currentState": "Current state",
   "reminder.nextOccurrence": "Next",
+  "reminder.nextEstimatedTrigger": "Next (estimated)",
+  "reminder.calendarTriggerTiming": "When to remind",
+  "reminder.calendarTriggerOnEvent": "At event time",
+  "reminder.calendarTriggerBeforeEvent": "Before event",
+  "reminder.calendarBeforeMinutes": "Minutes before",
+  "reminder.nextWhenCondition": "When condition matches",
+  "reminder.nextWhenAvailable": "When available",
   "reminder.titlePlaceholderAuto": "Auto-generated if empty"
 }

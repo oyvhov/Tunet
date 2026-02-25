@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Bell, Plus, Trash2, Clock, Check, RotateCcw, X, ChevronDown, ChevronUp, Calendar, Activity, Search } from '../icons';
+import { Bell, Plus, Trash2, Clock, RotateCcw, X, ChevronDown, ChevronUp, Calendar, Activity, Search } from '../icons';
 import {
-  createReminder,
   getRecurrenceLabel,
   SNOOZE_OPTIONS,
+  DEFAULT_CALENDAR_TRIGGER_MODE,
+  DEFAULT_CALENDAR_TRIGGER_OFFSET_MINUTES,
+  getCalendarReminderNextTriggerFromEntity,
 } from '../utils/reminderEngine';
 
 const RECURRENCE_TYPES = [
@@ -28,6 +30,14 @@ const OPERATOR_OPTIONS = [
 ];
 
 const TRIGGER_ENTITY_DOMAINS = ['binary_sensor', 'sensor', 'input_boolean', 'switch', 'input_number'];
+const CALENDAR_BEFORE_OPTIONS = [5, 10, 15, 30, 60, 120, 1440];
+
+function toDateTimeLocalValue(epochMs) {
+  const date = new Date(epochMs);
+  if (Number.isNaN(date.getTime())) return '';
+  const tzOffsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+}
 
 function RecurrenceEditor({ rule, onChange, t }) {
   const type = rule?.type || 'none';
@@ -123,8 +133,7 @@ function ReminderForm({ initial, onSave, onCancel, t, entities }) {
   const [description, setDescription] = useState(initial?.description || '');
   const [source, setSource] = useState(initial?.source || 'manual');
   const [dueAt, setDueAt] = useState(() => {
-    const d = new Date(initial?.dueAt || Date.now() + 3600_000);
-    return d.toISOString().slice(0, 16); // datetime-local format
+    return toDateTimeLocalValue(initial?.dueAt || Date.now() + 3600_000);
   });
   const [recurrence, setRecurrence] = useState(initial?.recurrence || { type: 'none' });
   const [snoozeMinutes, setSnoozeMinutes] = useState(initial?.snoozeMinutes || 15);
@@ -132,6 +141,12 @@ function ReminderForm({ initial, onSave, onCancel, t, entities }) {
   // Calendar source
   const [calendarEntityId, setCalendarEntityId] = useState(initial?.calendarEntityId || '');
   const [calendarEventFilter, setCalendarEventFilter] = useState(initial?.calendarEventFilter || '');
+  const [calendarTriggerMode, setCalendarTriggerMode] = useState(initial?.calendarTriggerMode || DEFAULT_CALENDAR_TRIGGER_MODE);
+  const [calendarTriggerOffsetMinutes, setCalendarTriggerOffsetMinutes] = useState(
+    Number(initial?.calendarTriggerOffsetMinutes) > 0
+      ? Number(initial?.calendarTriggerOffsetMinutes)
+      : DEFAULT_CALENDAR_TRIGGER_OFFSET_MINUTES,
+  );
 
   // Entity-state source
   const [sourceEntityId, setSourceEntityId] = useState(initial?.sourceEntityId || '');
@@ -169,6 +184,19 @@ function ReminderForm({ initial, onSave, onCancel, t, entities }) {
   const selectedEntityForSource = source === 'calendar' ? calendarEntityId : sourceEntityId;
   const setSelectedEntityForSource = source === 'calendar' ? setCalendarEntityId : setSourceEntityId;
 
+  const selectedCalendarPreview = useMemo(() => {
+    if (source !== 'calendar') return null;
+    return getCalendarReminderNextTriggerFromEntity(
+      {
+        source: 'calendar',
+        calendarEntityId,
+        calendarTriggerMode,
+        calendarTriggerOffsetMinutes,
+      },
+      entities,
+    );
+  }, [source, calendarEntityId, calendarTriggerMode, calendarTriggerOffsetMinutes, entities]);
+
   const handleSave = () => {
     if (!title.trim() && source === 'manual') return;
     // Auto-generate title for entity/calendar if empty
@@ -195,11 +223,17 @@ function ReminderForm({ initial, onSave, onCancel, t, entities }) {
       data.recurrence = recurrence;
       data.calendarEntityId = null;
       data.calendarEventFilter = '';
+      data.calendarTriggerMode = DEFAULT_CALENDAR_TRIGGER_MODE;
+      data.calendarTriggerOffsetMinutes = DEFAULT_CALENDAR_TRIGGER_OFFSET_MINUTES;
       data.sourceEntityId = null;
       data.triggerCondition = null;
     } else if (source === 'calendar') {
       data.calendarEntityId = calendarEntityId;
       data.calendarEventFilter = calendarEventFilter;
+      data.calendarTriggerMode = calendarTriggerMode;
+      data.calendarTriggerOffsetMinutes = calendarTriggerMode === 'beforeEvent'
+        ? Math.max(0, Number(calendarTriggerOffsetMinutes) || DEFAULT_CALENDAR_TRIGGER_OFFSET_MINUTES)
+        : 0;
       data.dueAt = initial?.dueAt || Date.now();
       data.recurrence = { type: 'none' };
       data.sourceEntityId = null;
@@ -211,6 +245,8 @@ function ReminderForm({ initial, onSave, onCancel, t, entities }) {
       data.recurrence = { type: 'none' };
       data.calendarEntityId = null;
       data.calendarEventFilter = '';
+      data.calendarTriggerMode = DEFAULT_CALENDAR_TRIGGER_MODE;
+      data.calendarTriggerOffsetMinutes = DEFAULT_CALENDAR_TRIGGER_OFFSET_MINUTES;
     }
 
     onSave(data);
@@ -354,6 +390,78 @@ function ReminderForm({ initial, onSave, onCancel, t, entities }) {
               }}
             />
           </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-medium opacity-60" style={{ color: 'var(--text-secondary)' }}>
+              {t('reminder.calendarTriggerTiming')}
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCalendarTriggerMode('atEvent')}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  calendarTriggerMode === 'atEvent' ? 'ring-2 ring-[var(--accent-color)]' : ''
+                }`}
+                style={{
+                  backgroundColor: calendarTriggerMode === 'atEvent' ? 'var(--accent-bg)' : 'var(--glass-bg)',
+                  color: calendarTriggerMode === 'atEvent' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                  border: '1px solid var(--glass-border)',
+                }}
+              >
+                {t('reminder.calendarTriggerOnEvent')}
+              </button>
+              <button
+                onClick={() => setCalendarTriggerMode('beforeEvent')}
+                className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  calendarTriggerMode === 'beforeEvent' ? 'ring-2 ring-[var(--accent-color)]' : ''
+                }`}
+                style={{
+                  backgroundColor: calendarTriggerMode === 'beforeEvent' ? 'var(--accent-bg)' : 'var(--glass-bg)',
+                  color: calendarTriggerMode === 'beforeEvent' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                  border: '1px solid var(--glass-border)',
+                }}
+              >
+                {t('reminder.calendarTriggerBeforeEvent')}
+              </button>
+            </div>
+          </div>
+
+          {calendarTriggerMode === 'beforeEvent' && (
+            <div>
+              <label className="text-xs font-medium opacity-60 mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+                {t('reminder.calendarBeforeMinutes')}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {CALENDAR_BEFORE_OPTIONS.map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => setCalendarTriggerOffsetMinutes(mins)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                      calendarTriggerOffsetMinutes === mins ? 'ring-2 ring-[var(--accent-color)]' : ''
+                    }`}
+                    style={{
+                      backgroundColor: calendarTriggerOffsetMinutes === mins ? 'var(--accent-bg)' : 'var(--glass-bg)',
+                      color: calendarTriggerOffsetMinutes === mins ? 'var(--accent-color)' : 'var(--text-secondary)',
+                      border: '1px solid var(--glass-border)',
+                    }}
+                  >
+                    {mins < 60 ? `${mins}m` : mins < 1440 ? `${mins / 60}h` : '1d'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedCalendarPreview?.triggerAt && (
+            <p className="text-[11px] opacity-60" style={{ color: 'var(--text-secondary)' }}>
+              {t('reminder.nextEstimatedTrigger')}: {new Date(selectedCalendarPreview.triggerAt).toLocaleString([], {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          )}
         </div>
       )}
 
@@ -537,7 +645,7 @@ function ReminderForm({ initial, onSave, onCancel, t, entities }) {
   );
 }
 
-function ReminderListItem({ reminder, onEdit, onDelete, onToggle, t }) {
+function ReminderListItem({ reminder, onEdit, onDelete, onToggle, t, entities }) {
   const [expanded, setExpanded] = useState(false);
   const isPast = reminder.dueAt < Date.now() && reminder.enabled && reminder.recurrence?.type === 'none' && reminder.source === 'manual';
   const isSnoozed = reminder.snoozedUntil && reminder.snoozedUntil > Date.now();
@@ -552,6 +660,35 @@ function ReminderListItem({ reminder, onEdit, onDelete, onToggle, t }) {
     : reminder.source === 'entityState'
     ? t('reminder.source.entityState')
     : null;
+  const calendarNext = useMemo(
+    () => getCalendarReminderNextTriggerFromEntity(reminder, entities),
+    [reminder, entities],
+  );
+  const nextTriggerLabel = useMemo(() => {
+    if (!reminder?.enabled) return null;
+
+    if (reminder.source === 'calendar') {
+      if (!calendarNext?.triggerAt) return t('reminder.nextWhenAvailable') || 'When available';
+      return new Date(calendarNext.triggerAt).toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+
+    if (reminder.source === 'entityState') {
+      return t('reminder.nextWhenCondition') || 'When condition matches';
+    }
+
+    if (!Number.isFinite(reminder.dueAt)) return null;
+    return new Date(reminder.dueAt).toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }, [reminder, calendarNext, t]);
 
   return (
     <div
@@ -594,6 +731,13 @@ function ReminderListItem({ reminder, onEdit, onDelete, onToggle, t }) {
               <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}>
                 {sourceLabel}
               </span>
+            )}
+            {nextTriggerLabel && (
+              <>
+                <span>·</span>
+                <Clock className="w-3 h-3" />
+                {t('reminder.nextEstimatedTrigger')}: {nextTriggerLabel}
+              </>
             )}
             {reminder.recurrence?.type !== 'none' && (
               <>
@@ -785,6 +929,7 @@ export default function ReminderModal({
                   onDelete={onDelete}
                   onToggle={handleToggle}
                   t={t}
+                  entities={entities}
                 />
               ))}
             </div>

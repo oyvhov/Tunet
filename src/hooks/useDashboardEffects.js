@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
+  CLOCK_TICK_INTERVAL,
   ENTITY_UPDATE_INTERVAL,
   MEDIA_TICK_INTERVAL,
   INITIAL_FETCH_DELAY,
@@ -36,17 +37,28 @@ export function useDashboardEffects({
     resetToHomeRef.current = resetToHome;
   });
 
-  // ── Clock tick ─────────────────────────────────────────────────────────
+  // ── Clock tick (UI) ────────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => {
       setNow(new Date());
-      // Check for due reminders on every tick
       if (checkRemindersDue) checkRemindersDue();
-      // Check entity-state & calendar triggers
+    }, CLOCK_TICK_INTERVAL);
+
+    if (checkRemindersDue) checkRemindersDue();
+
+    return () => clearInterval(id);
+  }, [checkRemindersDue]);
+
+  // ── Reminder / trigger checks (background cadence) ────────────────────
+  useEffect(() => {
+    const id = setInterval(() => {
       if (checkEntityTriggers) checkEntityTriggers();
     }, ENTITY_UPDATE_INTERVAL);
+
+    if (checkEntityTriggers) checkEntityTriggers();
+
     return () => clearInterval(id);
-  }, [checkRemindersDue, checkEntityTriggers]);
+  }, [checkEntityTriggers]);
 
   // ── Media tick (only while a media modal is open) ──────────────────────
   useEffect(() => {

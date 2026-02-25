@@ -51,7 +51,6 @@ export default function ReminderPopup({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
       style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={() => onDismiss(reminder.id)}
     >
       {/* Card */}
       <div

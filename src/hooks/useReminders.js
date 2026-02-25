@@ -14,6 +14,24 @@ import { getCalendarEvents } from '../services';
 
 const STORAGE_KEY = 'tunet_reminders';
 
+const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj || {}, key);
+
+const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+const isScheduleChanged = (prevReminder, nextReminder) => {
+  if (!prevReminder || !nextReminder) return false;
+  if (prevReminder.source !== nextReminder.source) return true;
+  if (prevReminder.dueAt !== nextReminder.dueAt) return true;
+  if (!sameJSON(prevReminder.recurrence, nextReminder.recurrence)) return true;
+  if (prevReminder.calendarEntityId !== nextReminder.calendarEntityId) return true;
+  if (prevReminder.calendarEventFilter !== nextReminder.calendarEventFilter) return true;
+  if (prevReminder.calendarTriggerMode !== nextReminder.calendarTriggerMode) return true;
+  if (prevReminder.calendarTriggerOffsetMinutes !== nextReminder.calendarTriggerOffsetMinutes) return true;
+  if (prevReminder.sourceEntityId !== nextReminder.sourceEntityId) return true;
+  if (!sameJSON(prevReminder.triggerCondition, nextReminder.triggerCondition)) return true;
+  return false;
+};
+
 // ── localStorage helpers ─────────────────────────────────────────────
 
 const readReminders = () => {
@@ -62,11 +80,40 @@ export function useReminders() {
   }, []);
 
   const updateReminder = useCallback((id, updates) => {
+    const now = Date.now();
+
     setReminders((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, ...updates, updatedAt: Date.now() } : r,
-      ),
+      prev.map((r) => {
+        if (r.id !== id) return r;
+
+        const merged = { ...r, ...updates, updatedAt: now };
+        const scheduleChanged = isScheduleChanged(r, merged);
+        const hasExplicitEnabled = hasOwn(updates, 'enabled');
+
+        if (scheduleChanged) {
+          merged.snoozedUntil = null;
+          merged.lastTriggeredAt = null;
+
+          // Re-arm edited reminders when schedule/source changed after an earlier
+          // one-shot completion/disable, unless caller explicitly sets enabled.
+          if (!hasExplicitEnabled && r.enabled === false) {
+            merged.enabled = true;
+          }
+
+          if (r.source !== merged.source || !sameJSON(r.recurrence, merged.recurrence)) {
+            merged.completedAt = null;
+          }
+        }
+
+        return merged;
+      }),
     );
+
+    // If timing/source settings change, ensure this reminder can be re-enqueued
+    // at its new schedule and does not stay stuck in pending queue state.
+    enqueuedRef.current.delete(id);
+    setDueQueue((prev) => prev.filter((r) => r.id !== id));
+    setActivePopup((prev) => (prev?.id === id ? null : prev));
   }, []);
 
   const deleteReminder = useCallback((id) => {
@@ -146,7 +193,7 @@ export function useReminders() {
   // ── Entity / Calendar trigger checks ─────────────────────────────
 
   const lastCalendarSyncRef = useRef(0);
-  const CALENDAR_SYNC_INTERVAL = 5 * 60_000; // 5-minute debounce
+  const CALENDAR_SYNC_INTERVAL = 60_000; // 1-minute debounce
 
   /**
    * Called on each 30-second tick.
@@ -201,7 +248,12 @@ export function useReminders() {
 
       try {
         const start = new Date(nowMs - 10 * 60_000); // 10 min ago
-        const end = new Date(nowMs + 60 * 60_000);    // 1 h ahead
+        const maxLeadMinutes = calendarReminders.reduce((max, reminder) => {
+          if (reminder.calendarTriggerMode !== 'beforeEvent') return max;
+          const mins = Math.max(0, Number(reminder.calendarTriggerOffsetMinutes) || 0);
+          return Math.max(max, mins);
+        }, 0);
+        const end = new Date(nowMs + (60 + maxLeadMinutes) * 60_000); // 1 h ahead + max lead offset
         const result = await getCalendarEvents(conn, { start, end, entityIds: calendarIds });
 
         const freshCalTriggers = [];
@@ -210,7 +262,10 @@ export function useReminders() {
           if (enqueuedRef.current.has(r.id)) continue;
           const calData = result[r.calendarEntityId];
           const events = calData?.events || [];
-          const matched = matchCalendarEvents(events, r.calendarEventFilter, nowMs);
+          const matched = matchCalendarEvents(events, r.calendarEventFilter, nowMs, {
+            calendarTriggerMode: r.calendarTriggerMode,
+            calendarTriggerOffsetMinutes: r.calendarTriggerOffsetMinutes,
+          });
           if (matched.length > 0) {
             freshCalTriggers.push({ ...r, _matchedEvent: matched[0] });
           }
