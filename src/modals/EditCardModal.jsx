@@ -1,10 +1,27 @@
 import React from 'react';
-import { X, Check, Plus, RefreshCw } from 'lucide-react';
+import { X, Check, Plus, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
 import { getEntitiesForArea } from '../services/haClient';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
-import { convertValueByKind, getDisplayUnitForKind, getEffectiveUnitMode } from '../utils';
+import { convertValueByKind, getDisplayUnitForKind, getEffectiveUnitMode, isConditionConfigured, normalizeVisibilityConditionConfig } from '../utils';
+
+const MIN_POPUP_TRIGGER_COOLDOWN_SECONDS = 10;
+const MAX_POPUP_TRIGGER_COOLDOWN_SECONDS = 3600;
+const MIN_POPUP_TRIGGER_AUTO_CLOSE_SECONDS = 0;
+const MAX_POPUP_TRIGGER_AUTO_CLOSE_SECONDS = 3600;
+
+function normalizePopupTriggerCooldownSeconds(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return MIN_POPUP_TRIGGER_COOLDOWN_SECONDS;
+  return Math.min(MAX_POPUP_TRIGGER_COOLDOWN_SECONDS, Math.max(MIN_POPUP_TRIGGER_COOLDOWN_SECONDS, Math.floor(parsed)));
+}
+
+function normalizePopupTriggerAutoCloseSeconds(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return MIN_POPUP_TRIGGER_AUTO_CLOSE_SECONDS;
+  return Math.min(MAX_POPUP_TRIGGER_AUTO_CLOSE_SECONDS, Math.max(MIN_POPUP_TRIGGER_AUTO_CLOSE_SECONDS, Math.floor(parsed)));
+}
 
 function GraphLimitsSlider({ values, onChange, min = -15, max = 35 }) {
   const trackRef = React.useRef(null);
@@ -547,8 +564,16 @@ export default function EditCardModal({
   saveCardSetting,
 }) {
   const [mediaSearch, setMediaSearch] = React.useState('');
+  const [showVisibilityLogic, setShowVisibilityLogic] = React.useState(false);
+  const [showPopupLogic, setShowPopupLogic] = React.useState(false);
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    setShowVisibilityLogic(false);
+    setShowPopupLogic(false);
+  }, [isOpen, entityId]);
 
   if (!isOpen) return null;
 
@@ -613,6 +638,59 @@ export default function EditCardModal({
 
   const updateButtonOptions = sortByName(byDomain('button'));
   const visibilityCondition = editSettings?.visibilityCondition || null;
+  const normalizedVisibilityCondition = normalizeVisibilityConditionConfig(visibilityCondition);
+  const visibilityEnabled = normalizedVisibilityCondition.enabled && normalizedVisibilityCondition.rules.length > 0;
+
+  const toggleVisibilityCondition = () => {
+    if (!editSettingsKey) return;
+    const nextEnabled = !visibilityEnabled;
+    const nextRules = normalizedVisibilityCondition.rules.length > 0
+      ? normalizedVisibilityCondition.rules
+      : [{ type: 'state', states: ['on'], forSeconds: 0 }];
+
+    saveCardSetting(editSettingsKey, 'visibilityCondition', {
+      ...normalizedVisibilityCondition,
+      enabled: nextEnabled,
+      rules: nextRules,
+    });
+
+    setShowVisibilityLogic(nextEnabled);
+  };
+
+  const popupTrigger = (editSettings && typeof editSettings.popupTrigger === 'object' && editSettings.popupTrigger)
+    ? editSettings.popupTrigger
+    : null;
+  const popupTriggerEnabled = popupTrigger?.enabled === true;
+  const popupTriggerCondition = popupTrigger?.condition || null;
+  const popupTriggerCooldownSeconds = normalizePopupTriggerCooldownSeconds(popupTrigger?.cooldownSeconds);
+  const popupTriggerAutoCloseSeconds = normalizePopupTriggerAutoCloseSeconds(popupTrigger?.autoCloseSeconds);
+
+  const savePopupTrigger = (
+    nextEnabled,
+    nextCondition,
+    nextCooldownSeconds = popupTriggerCooldownSeconds,
+    nextAutoCloseSeconds = popupTriggerAutoCloseSeconds,
+  ) => {
+    if (!editSettingsKey) return;
+
+    const normalizedCondition = nextCondition || null;
+    const hasCondition = isConditionConfigured(normalizedCondition);
+    const normalizedEnabled = nextEnabled === true;
+    const normalizedCooldownSeconds = normalizePopupTriggerCooldownSeconds(nextCooldownSeconds);
+    const normalizedAutoCloseSeconds = normalizePopupTriggerAutoCloseSeconds(nextAutoCloseSeconds);
+
+    if (!normalizedEnabled && !hasCondition) {
+      saveCardSetting(editSettingsKey, 'popupTrigger', null);
+      return;
+    }
+
+    saveCardSetting(editSettingsKey, 'popupTrigger', {
+      enabled: normalizedEnabled,
+      condition: normalizedCondition,
+      cooldownSeconds: normalizedCooldownSeconds,
+      autoCloseSeconds: normalizedAutoCloseSeconds,
+    });
+  };
   const personBatteryOptions = batteryOptions; // Show all batteries always
   
   const allPersonCandidateSensors = sortByName(entityEntries
@@ -708,14 +786,147 @@ export default function EditCardModal({
 
           {editSettingsKey && (
             <div className="space-y-3">
-              <ConditionBuilder
-                cardId={entityId}
-                cardSettings={editSettings}
-                condition={visibilityCondition}
-                entities={entities}
-                onChange={(nextCondition) => saveCardSetting(editSettingsKey, 'visibilityCondition', nextCondition)}
-                t={t}
-              />
+              <div className="popup-surface rounded-2xl p-4 border border-[var(--glass-border)]/50">
+                <div className="flex items-start justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!visibilityEnabled) return;
+                      setShowVisibilityLogic((prev) => !prev);
+                    }}
+                    className={`flex-1 text-left ${visibilityEnabled ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-primary)]">
+                          {t('visibility.title') || 'Conditional visibility'}
+                        </p>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                          {t('visibility.description') || 'Show this card only when the rule matches.'}
+                        </p>
+                      </div>
+                      <span className={`mt-0.5 transition-colors ${visibilityEnabled ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]/60'}`}>
+                        {showVisibilityLogic ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleVisibilityCondition}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${visibilityEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
+                  >
+                    <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${visibilityEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {visibilityEnabled && showVisibilityLogic && (
+                  <div className="mt-3 pt-3 border-t border-[var(--glass-border)]/40">
+                    <ConditionBuilder
+                      cardId={entityId}
+                      cardSettings={editSettings}
+                      condition={visibilityCondition}
+                      entities={entities}
+                      onChange={(nextCondition) => saveCardSetting(editSettingsKey, 'visibilityCondition', nextCondition)}
+                      t={t}
+                      showHeader={false}
+                      showEnableToggle={false}
+                      forceEnabled
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {editSettingsKey && (
+            <div className="space-y-3">
+              <div className="popup-surface rounded-2xl p-4 border border-[var(--glass-border)]/50">
+                <div className="flex items-start justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!popupTriggerEnabled) return;
+                      setShowPopupLogic((prev) => !prev);
+                    }}
+                    className={`flex-1 text-left ${popupTriggerEnabled ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-primary)]">
+                          {t('popupTrigger.title') || 'Popup trigger'}
+                        </p>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                          {t('popupTrigger.description') || 'Open this card popup automatically when the rule transitions from false to true.'}
+                        </p>
+                      </div>
+                      <span className={`mt-0.5 transition-colors ${popupTriggerEnabled ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]/60'}`}>
+                        {showPopupLogic ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextEnabled = !popupTriggerEnabled;
+                      savePopupTrigger(nextEnabled, popupTriggerCondition, popupTriggerCooldownSeconds, popupTriggerAutoCloseSeconds);
+                      setShowPopupLogic(nextEnabled);
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${popupTriggerEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+                  >
+                    {popupTriggerEnabled ? `✓ ${t('popupTrigger.enabled') || 'Enabled'}` : (t('popupTrigger.enable') || 'Enable')}
+                  </button>
+                </div>
+
+                {popupTriggerEnabled && (
+                  <div className="mt-3 space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-[var(--text-muted)]">
+                      {t('popupTrigger.cooldownSeconds') || 'Cooldown (seconds)'}
+                    </label>
+                    <input
+                      type="number"
+                      min={MIN_POPUP_TRIGGER_COOLDOWN_SECONDS}
+                      max={MAX_POPUP_TRIGGER_COOLDOWN_SECONDS}
+                      value={popupTriggerCooldownSeconds}
+                      onChange={(e) => savePopupTrigger(popupTriggerEnabled, popupTriggerCondition, e.target.value, popupTriggerAutoCloseSeconds)}
+                      className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0 text-sm"
+                    />
+                    <p className="text-[10px] text-[var(--text-muted)]">
+                      {t('popupTrigger.cooldownHint') || 'Minimum 10 seconds between automatic popup opens for this trigger.'}
+                    </p>
+
+                    <label className="text-[10px] uppercase font-bold text-[var(--text-muted)] pt-1">
+                      {t('popupTrigger.autoCloseSeconds') || 'Auto-close (seconds)'}
+                    </label>
+                    <input
+                      type="number"
+                      min={MIN_POPUP_TRIGGER_AUTO_CLOSE_SECONDS}
+                      max={MAX_POPUP_TRIGGER_AUTO_CLOSE_SECONDS}
+                      value={popupTriggerAutoCloseSeconds}
+                      onChange={(e) => savePopupTrigger(popupTriggerEnabled, popupTriggerCondition, popupTriggerCooldownSeconds, e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)] outline-none border-0 text-sm"
+                    />
+                    <p className="text-[10px] text-[var(--text-muted)]">
+                      {t('popupTrigger.autoCloseHint') || 'Optional: auto-close popup after X seconds when opened by trigger. Set 0 to disable.'}
+                    </p>
+                  </div>
+                )}
+
+                {popupTriggerEnabled && showPopupLogic && (
+                  <div className="mt-3 pt-3 border-t border-[var(--glass-border)]/40">
+                    <ConditionBuilder
+                      cardId={entityId}
+                      cardSettings={editSettings}
+                      condition={popupTriggerCondition}
+                      entities={entities}
+                      onChange={(nextCondition) => savePopupTrigger(true, nextCondition, popupTriggerCooldownSeconds, popupTriggerAutoCloseSeconds)}
+                      t={t}
+                      showHeader={false}
+                      showEnableToggle={false}
+                      forceEnabled
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

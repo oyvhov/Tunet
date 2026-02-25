@@ -127,6 +127,9 @@ export default function ConditionBuilder({
   entities,
   onChange,
   t,
+  showHeader = true,
+  showEnableToggle = true,
+  forceEnabled = false,
 }) {
   const [entitySearch, setEntitySearch] = useState('');
   const [activeEntityPickerRule, setActiveEntityPickerRule] = useState(null);
@@ -143,7 +146,7 @@ export default function ConditionBuilder({
   const selectedEntityId = defaultEntityId || (effectiveConfig.entityId && effectiveConfig.entityId.trim()) || null;
   const selectedEntity = selectedEntityId ? entities?.[selectedEntityId] : null;
   const normalizedCondition = normalizeVisibilityConditionConfig(condition);
-  const isEnabled = normalizedCondition.enabled && normalizedCondition.rules.length > 0;
+  const isEnabled = forceEnabled || (normalizedCondition.enabled && normalizedCondition.rules.length > 0);
 
   const isVisibleNow = isEnabled
     ? evaluateVisibilityConditionConfig({
@@ -464,19 +467,23 @@ export default function ConditionBuilder({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-primary)]">{t('visibility.title') || 'Conditional visibility'}</p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t('visibility.description') || 'Show this card only when the rule matches.'}</p>
+      {showHeader && (
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-primary)]">{t('visibility.title') || 'Conditional visibility'}</p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t('visibility.description') || 'Show this card only when the rule matches.'}</p>
+          </div>
+          {showEnableToggle && (
+            <button
+              type="button"
+              onClick={() => setEnabled(!isEnabled)}
+              className={`w-12 h-6 rounded-full transition-colors relative ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
+            >
+              <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+            </button>
+          )}
         </div>
-        <button
-          type="button"
-          onClick={() => setEnabled(!isEnabled)}
-          className={`w-12 h-6 rounded-full transition-colors relative ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
-        >
-          <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-        </button>
-      </div>
+      )}
 
       {isEnabled && (
         <>
