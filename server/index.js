@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { existsSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -28,6 +29,15 @@ app.use((_req, res, next) => {
 
 // Parse JSON bodies
 app.use(express.json({ limit: '2mb' }));
+
+const apiRateLimiter = rateLimit({
+  windowMs: Math.max(Number(process.env.API_RATE_LIMIT_WINDOW_MS) || 60_000, 1_000),
+  max: Math.max(Number(process.env.API_RATE_LIMIT_MAX) || 300, 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api', apiRateLimiter);
 
 // Ingress support — strip X-Ingress-Path prefix from request URL
 app.use((req, _res, next) => {

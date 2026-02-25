@@ -1,8 +1,18 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import db from '../db.js';
 
 const router = Router();
 const HISTORY_KEEP_LIMIT = Math.min(Math.max(Number(process.env.SETTINGS_HISTORY_KEEP_LIMIT) || 50, 5), 500);
+
+const settingsRateLimiter = rateLimit({
+  windowMs: Math.max(Number(process.env.SETTINGS_RATE_LIMIT_WINDOW_MS) || 60_000, 1_000),
+  max: Math.max(Number(process.env.SETTINGS_RATE_LIMIT_MAX) || 180, 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.use(settingsRateLimiter);
 
 const safeParseJson = (raw, fallback = null) => {
   try {
