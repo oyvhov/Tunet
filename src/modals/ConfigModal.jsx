@@ -38,6 +38,8 @@ import {
   Edit2,
 } from '../icons';
 
+const SETTINGS_STATIC_VERSION = '1.9.0';
+
 export default function ConfigModal({
   open,
   isOnboardingActive,
@@ -102,7 +104,7 @@ export default function ConfigModal({
   // Profiles & templates
   profiles,
 }) {
-  const [runningVersion, setRunningVersion] = useState('unknown');
+  const [runningVersion, setRunningVersion] = useState(SETTINGS_STATIC_VERSION);
   const [installingIds, setInstallingIds] = useState({});
   const [expandedNotes, setExpandedNotes] = useState({});
   const [layoutPreview, setLayoutPreview] = useState(false);
@@ -145,10 +147,10 @@ export default function ConfigModal({
         if (!response.ok) throw new Error('Failed to load health status');
         const data = await response.json();
         if (!cancelled) {
-          setRunningVersion(typeof data?.version === 'string' && data.version ? data.version : 'unknown');
+          setRunningVersion(typeof data?.version === 'string' && data.version ? data.version : SETTINGS_STATIC_VERSION);
         }
       } catch {
-        if (!cancelled) setRunningVersion('unknown');
+        if (!cancelled) setRunningVersion(SETTINGS_STATIC_VERSION);
       }
     };
 
