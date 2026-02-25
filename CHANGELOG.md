@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [1.9.0] — 2026-02-25
 
+### Added
+- Popup trigger automation in Edit Card with rule-based opening on false→true condition transitions.
+- Per-trigger cooldown (minimum 10s) and optional auto-close timeout for trigger-opened popups.
+
 ### Changed
-- Release metadata sync.
+- Improved trigger stability with startup/redeploy suppression and first-observation baseline to avoid accidental opens.
+- Refined Edit Card UX for Conditional Visibility and Popup Trigger with grouped dropdown-style logic sections.
+- Updated light-popup trigger routing to resolve valid `light.*` entities more reliably.
+- Updated translations for popup trigger controls and labels across supported locales.
 
 
 ## [1.8.1] — 2026-02-24

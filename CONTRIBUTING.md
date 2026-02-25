@@ -20,6 +20,18 @@ Thank you for your interest in contributing to Tunet!
 -   For translations, add/update keys in `src/i18n/en.json` first, then keep `src/i18n/nb.json` and `src/i18n/nn.json` in sync.
 -   Run `npm run i18n:check` before opening a PR.
 
+## Releases (short checklist)
+
+-   Keep app and addon versions in lockstep (same version in `package.json` and `hassio-addon/config.yaml`).
+-   Use release scripts from repo root:
+	-   `npm run release:prep -- --version X.Y.Z --date YYYY-MM-DD`
+	-   `npm run release:check`
+	-   `npm test`
+	-   `npm run build`
+	-   `npm run release:publish`
+-   If release check fails, fix sync/changelog mismatches before tagging.
+-   Update static Settings fallback version in `src/modals/ConfigModal.jsx` (`SETTINGS_STATIC_VERSION`) for each release.
+
 ## Reporting Issues
 
 If you find a bug or have a suggestion, please open an issue on the GitHub repository.
