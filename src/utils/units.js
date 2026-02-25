@@ -1,5 +1,10 @@
 const normalizeUnit = (unit) => String(unit || '').trim().toLowerCase();
 
+/** @typedef {'temperature' | 'wind' | 'pressure' | 'precipitation' | 'length'} UnitKind */
+/** @typedef {'follow_ha' | 'metric' | 'imperial'} UnitsMode */
+/** @typedef {{ kind?: UnitKind | null, fromUnit?: string, unitMode?: UnitsMode, fallback?: string }} FormatUnitValueOptions */
+/** @typedef {FormatUnitValueOptions & { includeUnit?: boolean }} FormatKindValueForDisplayOptions */
+
 const isImperialHaConfig = (haConfig) => {
   const temp = normalizeUnit(haConfig?.unit_system?.temperature || haConfig?.temperature_unit);
   const length = normalizeUnit(haConfig?.unit_system?.length || haConfig?.length_unit);
@@ -146,7 +151,7 @@ export const convertValueByKind = (value, { kind, fromUnit, unitMode }) => {
   return toNumber(value);
 };
 
-export const formatUnitValue = (value, { kind, fromUnit, unitMode, fallback = '--' } = {}) => {
+export const formatUnitValue = (value, /** @type {FormatUnitValueOptions} */ { kind, fromUnit, unitMode, fallback = '--' } = {}) => {
   const converted = kind ? convertValueByKind(value, { kind, fromUnit, unitMode }) : toNumber(value);
   if (!Number.isFinite(converted)) return fallback;
 
@@ -162,7 +167,7 @@ export const formatUnitValue = (value, { kind, fromUnit, unitMode, fallback = '-
 
 export const formatKindValueForDisplay = (
   value,
-  {
+  /** @type {FormatKindValueForDisplayOptions} */ {
     kind,
     fromUnit,
     unitMode,

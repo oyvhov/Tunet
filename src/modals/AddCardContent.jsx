@@ -217,7 +217,7 @@ function AddCardContent({
 
     setWeatherOptionsSnapshot(weatherSnapshot);
     setTempOptionsSnapshot(tempSnapshot);
-  }, [addCardType]);
+  }, [addCardType, entities]);
 
   useEffect(() => {
     if (addCardType !== 'androidtv') return;
@@ -233,7 +233,7 @@ function AddCardContent({
 
     setAndroidTVMediaOptionsSnapshot(mediaSnapshot);
     setAndroidTVRemoteOptionsSnapshot(remoteSnapshot);
-  }, [addCardType]);
+  }, [addCardType, entities]);
 
   useEffect(() => {
     if (addCardType !== 'nordpool') return;
@@ -242,7 +242,7 @@ function AddCardContent({
       .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
       .sort((a, b) => a.name.localeCompare(b.name));
     setNordpoolOptionsSnapshot(snapshot);
-  }, [addCardType]);
+  }, [addCardType, entities]);
 
   useEffect(() => {
     if (addCardType === 'spacer') {
