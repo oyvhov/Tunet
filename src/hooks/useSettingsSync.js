@@ -11,18 +11,34 @@ import {
 } from '../services/settingsApi';
 import { collectSnapshot, applySnapshot, isValidSnapshot } from '../services/snapshot';
 
+const createDeviceId = () => {
+  const webCrypto = globalThis.window?.crypto ?? globalThis.crypto;
+  if (webCrypto && typeof webCrypto.randomUUID === 'function') {
+    return webCrypto.randomUUID();
+  }
+
+  if (webCrypto && typeof webCrypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    webCrypto.getRandomValues(bytes);
+    const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+    return `device_${hex}`;
+  }
+
+  const epoch = Date.now().toString(36);
+  const perfNow = Math.trunc(globalThis.performance?.now?.() || 0).toString(36);
+  return `device_${epoch}_${perfNow}`;
+};
+
 const getOrCreateDeviceId = () => {
   const key = 'tunet_device_id';
-  const fallback = `device_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   try {
     const existing = localStorage.getItem(key);
     if (existing) return existing;
-    const webCrypto = globalThis.window?.crypto ?? globalThis.crypto;
-    const next = (webCrypto && typeof webCrypto.randomUUID === 'function') ? webCrypto.randomUUID() : fallback;
+    const next = createDeviceId();
     localStorage.setItem(key, next);
     return next;
   } catch {
-    return fallback;
+    return createDeviceId();
   }
 };
 

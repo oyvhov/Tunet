@@ -1,8 +1,18 @@
 import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
+import rateLimit from 'express-rate-limit';
 import db from '../db.js';
 
 const router = Router();
+
+const profilesRateLimiter = rateLimit({
+  windowMs: Math.max(Number(process.env.PROFILES_RATE_LIMIT_WINDOW_MS) || 60_000, 1_000),
+  max: Math.max(Number(process.env.PROFILES_RATE_LIMIT_MAX) || 120, 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.use(profilesRateLimiter);
 
 const safeParseJson = (raw, fallback = null) => {
   try {

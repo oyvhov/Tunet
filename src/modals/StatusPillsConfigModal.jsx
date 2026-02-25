@@ -275,6 +275,10 @@ export default function StatusPillsConfigModal({
     });
   };
 
+  const getSafeTranslationText = (key) => String(t(key) || '')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<[^>]+>/g, '');
+
   const colorPresets = [
     { name: 'Blue', bg: 'rgba(59, 130, 246, 0.3)', icon: 'text-[var(--accent-color)]', label: t('statusPills.colorBlue') },
     { name: 'Green', bg: 'rgba(34, 197, 94, 0.3)', icon: 'text-green-400', label: t('statusPills.colorGreen') },
@@ -480,7 +484,9 @@ export default function StatusPillsConfigModal({
               )}
               
               {pills.length === 0 && (
-                <p className="text-center text-gray-500 text-sm py-8" dangerouslySetInnerHTML={{ __html: t('statusPills.noPillsYet') }} />
+                <p className="text-center text-gray-500 text-sm py-8 whitespace-pre-line">
+                  {getSafeTranslationText('statusPills.noPillsYet')}
+                </p>
               )}
             </div>
           </div>
@@ -1200,7 +1206,7 @@ export default function StatusPillsConfigModal({
             })() : (
               <div className="flex items-center justify-center h-full text-gray-500">
                 <div className="text-center space-y-3">
-                  <p dangerouslySetInnerHTML={{ __html: t('statusPills.selectPillHint') }} />
+                  <p className="whitespace-pre-line">{getSafeTranslationText('statusPills.selectPillHint')}</p>
                   {isMobile && (
                     <button
                       onClick={() => setMobilePane('list')}
