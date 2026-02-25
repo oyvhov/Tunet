@@ -40,6 +40,11 @@ export default function StatusPill({
     return value.charAt(0).toUpperCase() + value.slice(1);
   };
 
+  const resolveHeadingColorClass = (value) => {
+    if (typeof value !== 'string' || !value.trim()) return 'text-[var(--text-primary)]';
+    return value === 'text-[var(--text-secondary)]' ? 'text-[var(--text-primary)]' : value;
+  };
+
   const applyPlayerNameDisplayFilter = (value) => {
     const name = String(value || '');
     const rawFilter = typeof pill?.playerNameDisplayFilter === 'string' ? pill.playerNameDisplayFilter : '';
@@ -348,7 +353,7 @@ export default function StatusPill({
     const bgColor = pill.bgColor || 'rgba(255, 255, 255, 0.03)';
     const iconColor = pill.iconColor || 'text-green-400';
     const iconBgColor = pill.iconBgColor || 'rgba(74, 222, 128, 0.1)';
-    const labelColor = pill.labelColor || 'text-[var(--text-secondary)]';
+    const labelColor = resolveHeadingColorClass(pill.labelColor);
     const sublabelColor = pill.sublabelColor || 'text-[var(--text-muted)]';
     
     const animated = pill.animated !== false && isPlaying;
@@ -387,7 +392,7 @@ export default function StatusPill({
         <div className="flex flex-col items-start min-w-0">
           {displayLabel && (
             <span
-              className={`${textSize} uppercase font-bold leading-tight text-left ${labelColor} ${textMaxWidthClass} block w-full truncate`}
+              className={`${textSize} font-bold leading-tight text-left ${labelColor} ${textMaxWidthClass} block w-full truncate`}
               title={displayLabel}
             >
               {displayLabel}
@@ -428,7 +433,7 @@ export default function StatusPill({
   const bgColor = pill.bgColor || 'rgba(255, 255, 255, 0.03)';
   const iconBgColor = pill.iconBgColor || 'rgba(59, 130, 246, 0.1)';
   const iconColor = pill.iconColor || 'text-[var(--accent-color)]';
-  const labelColor = pill.labelColor || 'text-[var(--text-secondary)]';
+  const labelColor = resolveHeadingColorClass(pill.labelColor);
   const sublabelColor = pill.sublabelColor || 'text-[var(--text-muted)]';
   
   const animated = pill.animated !== false && (
@@ -459,7 +464,7 @@ export default function StatusPill({
       </div>
       <div className="flex flex-col items-start min-w-0">
         <span
-          className={`${textSize} uppercase font-bold leading-tight text-left ${labelColor} ${textMaxWidthClass} block w-full truncate`}
+          className={`${textSize} font-bold leading-tight text-left ${labelColor} ${textMaxWidthClass} block w-full truncate`}
           title={label}
         >
           {label}

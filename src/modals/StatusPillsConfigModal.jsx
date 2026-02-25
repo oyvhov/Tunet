@@ -101,7 +101,9 @@ export default function StatusPillsConfigModal({
       mediaEntityIds: Array.isArray(pill.mediaEntityIds) ? pill.mediaEntityIds : [],
       sessionSensorIds: Array.isArray(pill.sessionSensorIds) ? pill.sessionSensorIds : [],
       sonosHeadingSource: typeof pill.sonosHeadingSource === 'string' ? pill.sonosHeadingSource : 'song',
-      sonosSubheadingSource: typeof pill.sonosSubheadingSource === 'string' ? pill.sonosSubheadingSource : 'artist_player'
+      sonosSubheadingSource: typeof pill.sonosSubheadingSource === 'string' ? pill.sonosSubheadingSource : 'artist_player',
+      labelColor: typeof pill.labelColor === 'string' ? pill.labelColor : 'text-[var(--text-primary)]',
+      sublabelColor: typeof pill.sublabelColor === 'string' ? pill.sublabelColor : 'text-[var(--text-muted)]'
     }));
     onSave(cleaned);
     onClose();
@@ -122,7 +124,7 @@ export default function StatusPillsConfigModal({
       bgColor: 'rgba(255, 255, 255, 0.03)',
       iconBgColor: 'rgba(59, 130, 246, 0.1)',
       iconColor: 'text-[var(--accent-color)]',
-      labelColor: 'text-[var(--text-secondary)]',
+      labelColor: 'text-[var(--text-primary)]',
       sublabelColor: 'text-[var(--text-muted)]',
       condition: defaultCondition,
       conditionEnabled: false,
