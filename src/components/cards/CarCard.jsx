@@ -71,13 +71,17 @@ const CarCard = ({
   const batteryValue = getNumberState(entities, batteryId);
   const rangeValue = getNumberState(entities, rangeId);
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
-  const sourceRangeUnit = rangeId ? (entities[rangeId]?.attributes?.unit_of_measurement || 'km') : 'km';
-  const rangeUnit = getDisplayUnitForKind('length', effectiveUnitMode);
-  const displayRangeValue = convertValueByKind(rangeValue, {
-    kind: 'length',
-    fromUnit: sourceRangeUnit,
-    unitMode: effectiveUnitMode,
-  });
+  const sourceRangeUnitRaw = rangeId ? entities[rangeId]?.attributes?.unit_of_measurement : '';
+  const sourceRangeUnit = typeof sourceRangeUnitRaw === 'string' ? sourceRangeUnitRaw.trim() : '';
+  const useSourceRangeUnit = unitsMode === 'follow_ha' && !!sourceRangeUnit;
+  const rangeUnit = useSourceRangeUnit ? sourceRangeUnit : getDisplayUnitForKind('length', effectiveUnitMode);
+  const displayRangeValue = useSourceRangeUnit
+    ? rangeValue
+    : convertValueByKind(rangeValue, {
+      kind: 'length',
+      fromUnit: sourceRangeUnit || 'km',
+      unitMode: effectiveUnitMode,
+    });
   const climateTempValueRaw = climateId ? getA(climateId, 'current_temperature') : null;
   const climateTempValue = climateTempValueRaw !== null && climateTempValueRaw !== undefined
     ? parseFloat(climateTempValueRaw)
