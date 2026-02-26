@@ -8,6 +8,8 @@ services:
     environment:
       - NODE_ENV=production
       - DATA_DIR=/app/data
+      - TUNET_ENCRYPTION_MODE=${TUNET_ENCRYPTION_MODE:-off}
+      - TUNET_DATA_KEY=${TUNET_DATA_KEY:-}
     volumes:
       - tunet-data:/app/data
     healthcheck:

@@ -64,5 +64,8 @@ const ensureColumn = (tableName, columnName, columnSql) => {
 };
 
 ensureColumn('current_settings', 'device_label', 'TEXT');
+ensureColumn('profiles', 'data_enc', 'TEXT');
+ensureColumn('current_settings', 'data_enc', 'TEXT');
+ensureColumn('current_settings_history', 'data_enc', 'TEXT');
 
 export default db;

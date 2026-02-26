@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import db from '../db.js';
+import { encryptDataText, resolveStoredDataText } from '../utils/dataCrypto.js';
 
 const router = Router();
 const HISTORY_KEEP_LIMIT = Math.min(Math.max(Number(process.env.SETTINGS_HISTORY_KEEP_LIMIT) || 50, 5), 500);
@@ -49,6 +50,15 @@ const normalizeDeviceLabel = (value) => {
   return trimmed ? trimmed.slice(0, 120) : null;
 };
 
+const parseStoredData = (row, context) => {
+  const resolvedText = resolveStoredDataText({
+    plainText: row?.data,
+    encryptedText: row?.data_enc,
+    context,
+  });
+  return safeParseJson(resolvedText, {});
+};
+
 const pruneHistory = (haUserId, deviceId, keepLimitRaw) => {
   const keepLimit = resolveKeepLimit(keepLimitRaw);
   db.prepare(
@@ -78,12 +88,12 @@ router.get('/current', (req, res) => {
 
   const row = revision
     ? db.prepare(
-      `SELECT ha_user_id, device_id, data, revision, updated_at, NULL AS device_label
+      `SELECT ha_user_id, device_id, data, data_enc, revision, updated_at, NULL AS device_label
        FROM current_settings_history
        WHERE ha_user_id = ? AND device_id = ? AND revision = ?`
     ).get(ha_user_id, device_id, Number(revision))
     : db.prepare(
-      `SELECT ha_user_id, device_id, data, revision, updated_at, device_label
+      `SELECT ha_user_id, device_id, data, data_enc, revision, updated_at, device_label
        FROM current_settings
        WHERE ha_user_id = ? AND device_id = ?`
     ).get(ha_user_id, device_id);
@@ -92,7 +102,7 @@ router.get('/current', (req, res) => {
   return res.json({
     ha_user_id: row.ha_user_id,
     device_id: row.device_id,
-    data: safeParseJson(row.data, {}),
+    data: parseStoredData(row, `settings/current:${ha_user_id}:${device_id}:${revision || 'latest'}`),
     revision: row.revision,
     device_label: row.device_label || null,
     updated_at: row.updated_at,
@@ -278,16 +288,17 @@ router.put('/current', (req, res) => {
 
   if (!existing) {
     const payload = JSON.stringify(data);
+    const encryptedPayload = encryptDataText(payload);
     const normalizedLabel = normalizeDeviceLabel(device_label);
     db.prepare(
-      `INSERT INTO current_settings (ha_user_id, device_id, device_label, data, revision, updated_at)
-       VALUES (?, ?, ?, ?, 1, ?)`
-    ).run(ha_user_id, device_id, normalizedLabel, payload, now);
+      `INSERT INTO current_settings (ha_user_id, device_id, device_label, data, data_enc, revision, updated_at)
+       VALUES (?, ?, ?, ?, ?, 1, ?)`
+    ).run(ha_user_id, device_id, normalizedLabel, payload, encryptedPayload, now);
 
     db.prepare(
-      `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, updated_at)
-       VALUES (?, ?, 1, ?, ?)`
-    ).run(ha_user_id, device_id, payload, now);
+      `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
+       VALUES (?, ?, 1, ?, ?, ?)`
+    ).run(ha_user_id, device_id, payload, encryptedPayload, now);
 
     pruneHistory(ha_user_id, device_id, history_keep_limit);
 
@@ -303,19 +314,20 @@ router.put('/current', (req, res) => {
 
   const nextRevision = Number(existing.revision) + 1;
   const payload = JSON.stringify(data);
+  const encryptedPayload = encryptDataText(payload);
   const normalizedLabel = device_label === undefined
     ? (existing.device_label || null)
     : normalizeDeviceLabel(device_label);
   db.prepare(
     `UPDATE current_settings
-     SET data = ?, device_label = ?, revision = ?, updated_at = ?
+     SET data = ?, data_enc = ?, device_label = ?, revision = ?, updated_at = ?
      WHERE ha_user_id = ? AND device_id = ?`
-  ).run(payload, normalizedLabel, nextRevision, now, ha_user_id, device_id);
+  ).run(payload, encryptedPayload, normalizedLabel, nextRevision, now, ha_user_id, device_id);
 
   db.prepare(
-    `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, updated_at)
-     VALUES (?, ?, ?, ?, ?)`
-  ).run(ha_user_id, device_id, nextRevision, payload, now);
+    `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(ha_user_id, device_id, nextRevision, payload, encryptedPayload, now);
 
   pruneHistory(ha_user_id, device_id, history_keep_limit);
 
@@ -335,13 +347,23 @@ router.post('/publish', (req, res) => {
   }
 
   const source = db.prepare(
-    `SELECT data FROM current_settings
+    `SELECT data, data_enc FROM current_settings
      WHERE ha_user_id = ? AND device_id = ?`
   ).get(ha_user_id, source_device_id);
 
   if (!source) {
     return res.status(404).json({ error: 'Source device config not found' });
   }
+
+  const sourcePayload = resolveStoredDataText({
+    plainText: source.data,
+    encryptedText: source.data_enc,
+    context: `settings/publish-source:${ha_user_id}:${source_device_id}`,
+  });
+  if (!sourcePayload) {
+    return res.status(500).json({ error: 'Source device config is unreadable' });
+  }
+  const sourceEncryptedPayload = encryptDataText(sourcePayload);
 
   const now = new Date().toISOString();
 
@@ -353,14 +375,14 @@ router.post('/publish', (req, res) => {
 
     if (!existing) {
       db.prepare(
-        `INSERT INTO current_settings (ha_user_id, device_id, data, revision, updated_at)
-         VALUES (?, ?, ?, 1, ?)`
-      ).run(ha_user_id, deviceId, source.data, now);
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, 1, ?)`
+      ).run(ha_user_id, deviceId, sourcePayload, sourceEncryptedPayload, now);
 
       db.prepare(
-        `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, updated_at)
-         VALUES (?, ?, 1, ?, ?)`
-      ).run(ha_user_id, deviceId, source.data, now);
+        `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
+         VALUES (?, ?, 1, ?, ?, ?)`
+      ).run(ha_user_id, deviceId, sourcePayload, sourceEncryptedPayload, now);
       pruneHistory(ha_user_id, deviceId, history_keep_limit);
       return 1;
     }
@@ -368,14 +390,14 @@ router.post('/publish', (req, res) => {
     const nextRevision = Number(existing.revision) + 1;
     db.prepare(
       `UPDATE current_settings
-       SET data = ?, revision = ?, updated_at = ?
+       SET data = ?, data_enc = ?, revision = ?, updated_at = ?
        WHERE ha_user_id = ? AND device_id = ?`
-    ).run(source.data, nextRevision, now, ha_user_id, deviceId);
+    ).run(sourcePayload, sourceEncryptedPayload, nextRevision, now, ha_user_id, deviceId);
 
     db.prepare(
-      `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, updated_at)
-       VALUES (?, ?, ?, ?, ?)`
-    ).run(ha_user_id, deviceId, nextRevision, source.data, now);
+      `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(ha_user_id, deviceId, nextRevision, sourcePayload, sourceEncryptedPayload, now);
     pruneHistory(ha_user_id, deviceId, history_keep_limit);
     return 1;
   };
