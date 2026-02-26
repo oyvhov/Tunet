@@ -131,6 +131,7 @@
   "common.missingEntityId": "Manglende entitet-ID",
   "common.ok": "OK",
   "settings.theme": "Tema",
+  "settings.appFont": "App-skrift",
   "settings.language": "Språk",
   "settings.unitSystem": "Enhetssystem",
   "settings.unitSystem.followHa": "Følg Home Assistant",
