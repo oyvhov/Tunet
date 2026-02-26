@@ -129,16 +129,16 @@ export default function RoomCard({
     if (!activeVacuum) return null;
     switch (activeVacuum.state) {
       case 'cleaning':
-        return t('vacuum.start') || 'Cleaning';
+        return t('room.vacuumStatus.cleaning') || 'Cleaning';
       case 'returning':
       case 'returning_home':
-        return 'Going home';
+        return t('room.vacuumStatus.goingHome') || 'Going home';
       case 'error':
-        return 'Error';
+        return t('room.vacuumStatus.error') || 'Error';
       case 'paused':
       case 'idle':
       case 'stopped':
-        return 'Stopped';
+        return t('room.vacuumStatus.stopped') || 'Stopped';
       default:
         return activeVacuum.state;
     }
