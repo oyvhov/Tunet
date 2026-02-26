@@ -63,8 +63,8 @@ const LightCard = ({
     if (isUnavailable) return;
     clearTimeout(debounceRef.current);
     debounceRef.current = null;
-    callService("light", isOn ? "turn_off" : "turn_on", { entity_id: cardId });
-  }, [cardId, callService, isOn, isUnavailable]);
+    callService("light", "toggle", { entity_id: cardId });
+  }, [cardId, callService, isUnavailable]);
 
   if (isSmall) {
     return (
