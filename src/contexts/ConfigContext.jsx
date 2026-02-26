@@ -157,6 +157,14 @@ export const ConfigProvider = ({ children }) => {
     }
   });
 
+  const [appFont, setAppFont] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tunet_app_font');
+      if (saved) return saved;
+    } catch {}
+    return 'sans';
+  });
+
 
   const [config, setConfig] = useState(() => {
     if (typeof globalThis.window !== 'undefined') {
@@ -400,6 +408,12 @@ export const ConfigProvider = ({ children }) => {
     } catch {}
   }, [cardBgColor]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('tunet_app_font', appFont);
+    } catch {}
+  }, [appFont]);
+
   // Save language to localStorage
   useEffect(() => {
     try {
@@ -503,6 +517,8 @@ export const ConfigProvider = ({ children }) => {
     setCardBorderOpacity,
     cardBgColor,
     setCardBgColor,
+    appFont,
+    setAppFont,
     config,
     setConfig,
   };

@@ -18,6 +18,8 @@ import {
 } from '../../icons';
 import SidebarContainer from './SidebarContainer';
 
+const APP_FONT_OPTIONS = ['sans', 'Inter', 'Roboto', 'Lato', 'Montserrat', 'Open Sans', 'Raleway'];
+
 const LinkIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
 );
@@ -47,6 +49,8 @@ export default function ThemeSidebar({
   const {
     unitsMode,
     setUnitsMode,
+    appFont,
+    setAppFont,
     settingsLockEnabled,
     settingsLockSessionUnlocked,
     enableSettingsLock,
@@ -190,6 +194,23 @@ export default function ThemeSidebar({
                 follow_ha: t('settings.unitSystem.followHa'),
                 metric: t('settings.unitSystem.metric'),
                 imperial: t('settings.unitSystem.imperial')
+              }}
+              placeholder={t('dropdown.noneSelected')}
+            />
+            <ModernDropdown
+              label={t('settings.appFont')}
+              icon={Type}
+              options={APP_FONT_OPTIONS}
+              current={appFont}
+              onChange={setAppFont}
+              map={{
+                sans: 'Sans-serif',
+                Inter: 'Inter',
+                Roboto: 'Roboto',
+                Lato: 'Lato',
+                Montserrat: 'Montserrat',
+                'Open Sans': 'Open Sans',
+                Raleway: 'Raleway'
               }}
               placeholder={t('dropdown.noneSelected')}
             />
