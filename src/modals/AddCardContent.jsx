@@ -254,6 +254,7 @@ function AddCardContent({
     const value = t ? t(key) : key;
     return value && value !== key ? value : fallback;
   };
+  const betaSuffix = ` (${getLabel('addCard.betaLabel', 'beta')})`;
 
   /** Reusable entity list item button. */
   const EntityItem = ({ id, isSelected, onClick, badgeText, displayName }) => (
@@ -655,7 +656,7 @@ function AddCardContent({
                 <TypeButton type="light" icon={Lightbulb} label={t('addCard.type.light')} isActive={addCardType === 'light'} onSelect={setAddCardType} />
                 <TypeButton type="vacuum" icon={Bot} label={t('addCard.type.vacuum')} isActive={addCardType === 'vacuum'} onSelect={setAddCardType} />
                 <TypeButton type="fan" icon={Fan} label={t('addCard.type.fan')} isActive={addCardType === 'fan'} onSelect={setAddCardType} />
-                <TypeButton type="camera" icon={Camera} label={`${getLabel('addCard.type.camera', 'Camera')} (beta)`} isActive={addCardType === 'camera'} onSelect={setAddCardType} />
+                <TypeButton type="camera" icon={Camera} label={`${getLabel('addCard.type.camera', 'Camera')}${betaSuffix}`} isActive={addCardType === 'camera'} onSelect={setAddCardType} />
                 <TypeButton type="climate" icon={Thermometer} label={t('addCard.type.climate')} isActive={addCardType === 'climate'} onSelect={setAddCardType} />
                 <TypeButton type="cover" icon={ArrowUpDown} label={getLabel('addCard.type.cover', 'Cover')} isActive={addCardType === 'cover'} onSelect={setAddCardType} />
                 <TypeButton type="alarm" icon={Shield} label={getLabel('addCard.type.alarm', 'Alarm')} isActive={addCardType === 'alarm'} onSelect={setAddCardType} />
@@ -667,7 +668,7 @@ function AddCardContent({
                 <TypeButton type="calendar" icon={Calendar} label={getLabel('addCard.type.calendar', 'Calendar')} isActive={addCardType === 'calendar'} onSelect={setAddCardType} />
                 <TypeButton type="todo" icon={ListChecks} label={getLabel('addCard.type.todo', 'Todo')} isActive={addCardType === 'todo'} onSelect={setAddCardType} />
                 <TypeButton type="nordpool" icon={Zap} label={t('addCard.type.nordpool')} isActive={addCardType === 'nordpool'} onSelect={setAddCardType} />
-                <TypeButton type="room" icon={Home} label={getLabel('addCard.type.room', 'Room')} isActive={addCardType === 'room'} onSelect={setAddCardType} />
+                <TypeButton type="room" icon={Home} label={`${getLabel('addCard.type.room', 'Room')}${betaSuffix}`} isActive={addCardType === 'room'} onSelect={setAddCardType} />
                 <TypeButton type="spacer" icon={Minus} label={getLabel('addCard.type.spacer', 'Spacer')} isActive={addCardType === 'spacer'} onSelect={setAddCardType} />
               </div>
               {addCardType === 'sensor' && (

@@ -134,15 +134,15 @@ export default function RoomCard({
              <button
                 type="button"
                 onClick={handleMainLightToggle}
-               className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm relative group-hover:scale-110 ${isMainLightOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'} ${hasMainLightToggle ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
+               className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 ${isMainLightOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'} ${hasMainLightToggle ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
                 aria-label={t('room.mainLight')}
                 disabled={!hasMainLightToggle || !conn}
              >
-               <RoomIcon size="26px" className={`transition-transform duration-300 group-hover:scale-110 ${isMainLightOn ? 'fill-amber-400/20' : ''}`} />
+               <RoomIcon className={`w-6 h-6 stroke-[1.5px] ${isMainLightOn ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110`} />
              </button>
 
              <div className="flex flex-col items-start text-left min-w-0 w-full mt-2">
-               <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-75 truncate w-full">
+               <div className="text-base font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-85 truncate w-full">
                  {areaName}
                </div>
              </div>
@@ -161,13 +161,13 @@ export default function RoomCard({
         <div className="mt-5 flex flex-wrap items-start justify-start gap-2.5 max-w-[220px]">
           {showTemp && displayTemp && (
             <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-              <Thermometer className="w-4 h-4" />
+              <Thermometer className="w-4 h-4 fill-current stroke-[1.75px]" />
               <span>{displayTemp}°</span>
             </div>
           )}
           {showLightChip && showLights && (
             <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-              <Lightbulb className={`w-4 h-4 ${lightsOnCount > 0 ? 'text-amber-400' : ''}`} />
+              <Lightbulb className={`w-4 h-4 fill-current stroke-[1.75px] ${lightsOnCount > 0 ? 'text-amber-400' : ''}`} />
               <span>{lightsOnCount}</span>
             </div>
           )}

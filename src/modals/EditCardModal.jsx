@@ -530,6 +530,26 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
     return true;
   });
 
+  const domainLabelMap = {
+    all: t('room.filterAll') || 'All',
+    light: t('room.domain.light') || 'Lights',
+    climate: t('room.domain.climate') || 'Climate',
+    media_player: t('room.domain.mediaPlayer') || 'Media',
+    sensor: t('room.domain.sensor') || 'Sensors',
+    binary_sensor: t('room.domain.binarySensor') || 'Binary Sensors',
+    switch: t('room.domain.switch') || 'Switches',
+    fan: t('room.domain.fan') || 'Fans',
+    cover: t('room.domain.cover') || 'Covers',
+  };
+
+  const entityActionLabels = {
+    main: t('room.mainShort') || 'Main',
+    climate: t('room.domain.climate') || 'Climate',
+    temp: t('room.tempShort') || 'Temp',
+    motion: t('room.motionShort') || 'Motion',
+    humidity: t('room.humidityShort') || 'Humidity',
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -567,7 +587,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
               onClick={() => setDomainFilter(domain)}
               className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-colors ${domainFilter === domain ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
             >
-              {domain === 'all' ? t('room.filterAll') : domain}
+              {domainLabelMap[domain] || domain.replace('_', ' ')}
             </button>
           ))}
         </div>
@@ -602,7 +622,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
                         onClick={() => saveCardSetting(editSettingsKey, 'mainLightEntityId', isMainLight ? null : id)}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors ${isMainLight ? 'bg-amber-500/15 border-amber-400/40 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                       >
-                        Main
+                        {entityActionLabels.main}
                       </button>
                     )}
                     {isClimateEntity && (
@@ -611,7 +631,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
                         onClick={() => saveCardSetting(editSettingsKey, 'climateEntityId', isMainClimate ? null : id)}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors ${isMainClimate ? 'bg-amber-500/15 border-amber-400/40 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                       >
-                        Climate
+                        {entityActionLabels.climate}
                       </button>
                     )}
                     {isTempEntity && (
@@ -620,7 +640,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
                         onClick={() => saveCardSetting(editSettingsKey, 'tempEntityId', isMainTemp ? null : id)}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors ${isMainTemp ? 'bg-amber-500/15 border-amber-400/40 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                       >
-                        Temp
+                        {entityActionLabels.temp}
                       </button>
                     )}
                     {isMotionEntity && (
@@ -629,7 +649,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
                         onClick={() => saveCardSetting(editSettingsKey, 'motionEntityId', isMainMotion ? null : id)}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors ${isMainMotion ? 'bg-amber-500/15 border-amber-400/40 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                       >
-                        Motion
+                        {entityActionLabels.motion}
                       </button>
                     )}
                     {isHumidityEntity && (
@@ -638,7 +658,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
                         onClick={() => saveCardSetting(editSettingsKey, 'humidityEntityId', isMainHumidity ? null : id)}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors ${isMainHumidity ? 'bg-amber-500/15 border-amber-400/40 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                       >
-                        Humidity
+                        {entityActionLabels.humidity}
                       </button>
                     )}
                     <button
@@ -659,25 +679,23 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="popup-surface rounded-2xl p-4 space-y-4">
-          <div className="text-xs uppercase font-bold tracking-widest text-gray-500">{t('room.cardFeatures') || 'Card features'}</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {compactFeatureOptions.map(opt => {
-            const value = editSettings[opt.key] !== undefined ? editSettings[opt.key] : opt.defaultVal;
-            return (
-              <div key={opt.key} className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 bg-[var(--glass-bg)]/60">
-                <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest truncate pr-2">{opt.label}</span>
-                <button
-                  onClick={() => saveCardSetting(editSettingsKey, opt.key, !value)}
-                  className={`w-10 h-5 rounded-full transition-colors relative ${value ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                >
-                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${value ? 'left-5' : 'left-0.5'}`} />
-                </button>
-              </div>
-            );
-          })}
-          </div>
+      <div className="popup-surface rounded-2xl p-4 space-y-4">
+        <div className="text-xs uppercase font-bold tracking-widest text-gray-500">{t('room.cardFeatures') || 'Card features'}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {compactFeatureOptions.map(opt => {
+          const value = editSettings[opt.key] !== undefined ? editSettings[opt.key] : opt.defaultVal;
+          return (
+            <div key={opt.key} className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 bg-[var(--glass-bg)]/60">
+              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest truncate pr-2">{opt.label}</span>
+              <button
+                onClick={() => saveCardSetting(editSettingsKey, opt.key, !value)}
+                className={`w-10 h-5 rounded-full transition-colors relative ${value ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
+              >
+                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${value ? 'left-5' : 'left-0.5'}`} />
+              </button>
+            </div>
+          );
+        })}
         </div>
       </div>
 
@@ -884,7 +902,7 @@ export default function EditCardModal({
           background: rgba(255, 255, 255, 0.25);
         }
       `}</style>
-      <div className={`border w-full ${isEditRoom ? 'max-w-5xl' : 'max-w-lg'} rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 shadow-2xl relative font-sans backdrop-blur-xl popup-anim flex flex-col max-h-[92vh] sm:max-h-[85vh] mt-3 sm:mt-0`} style={{
+      <div className={`border w-full ${isEditRoom ? 'max-w-2xl' : 'max-w-lg'} rounded-2xl sm:rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 shadow-2xl relative font-sans backdrop-blur-xl popup-anim flex flex-col max-h-[92vh] sm:max-h-[85vh] mt-3 sm:mt-0`} style={{
         background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', 
         borderColor: 'var(--glass-border)', 
         color: 'var(--text-primary)'
