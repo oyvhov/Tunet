@@ -185,6 +185,7 @@ export function usePopupTriggers({
   getCardSettingsKey,
   editMode,
   modalActions,
+  enabled = true,
 }) {
   const previousMatchRef = useRef({});
   const seenTriggerRef = useRef({});
@@ -196,6 +197,16 @@ export function usePopupTriggers({
 
   useEffect(() => {
     const now = Date.now();
+
+    if (!enabled) {
+      previousMatchRef.current = {};
+      seenTriggerRef.current = {};
+      if (autoCloseTimerRef.current) {
+        clearTimeout(autoCloseTimerRef.current);
+        autoCloseTimerRef.current = null;
+      }
+      return;
+    }
 
     if (!entitiesLoaded) {
       hasLoadedEntitiesRef.current = false;
@@ -302,6 +313,7 @@ export function usePopupTriggers({
     getCardSettingsKey,
     editMode,
     modalActions,
+    enabled,
   ]);
 
   useEffect(() => () => {

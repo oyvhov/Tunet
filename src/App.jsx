@@ -370,6 +370,10 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
   const isCardRemovable = (cardId, pageId = activePage) => _isCardRemovable(cardId, pageId, cardUtilCtx);
   const isCardHiddenByLogic = (cardId) => _isCardHiddenByLogic(cardId, cardUtilCtx);
   const isMediaPage = (pageId) => _isMediaPage(pageId, pageSettings);
+  const hasEnabledPopupTriggers = useMemo(
+    () => Object.values(cardSettings || {}).some((settings) => settings?.popupTrigger?.enabled === true),
+    [cardSettings],
+  );
 
   usePopupTriggers({
     entities,
@@ -380,6 +384,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     getCardSettingsKey,
     editMode,
     modalActions: popupModalActions,
+    enabled: hasEnabledPopupTriggers,
   });
 
   // ── Add-card dialog hook ───────────────────────────────────────────────
