@@ -1,8 +1,7 @@
-import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { Home, Sun, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { Home, Thermometer, Lightbulb, Tv, Activity } from 'lucide-react';
 import { getIconComponent } from '../../icons';
-
-const SLIDER_DEBOUNCE_MS = 200;
+import { getEffectiveRoomEntityIds } from '../../utils';
 
 /**
  * RoomCard – shows a summary of a Home Assistant area (room).
@@ -26,52 +25,50 @@ export default function RoomCard({
   const areaName = customNames?.[cardId] || settings?.areaName || t('room.defaultName');
   const roomIconName = customIcons?.[cardId] || settings?.icon;
   const RoomIcon = roomIconName ? (getIconComponent(roomIconName) || Home) : Home;
+
   const showLights = settings?.showLights !== false;
   const showTemp = settings?.showTemp !== false;
   const showMotion = settings?.showMotion !== false;
-  const showHumidity = settings?.showHumidity === true;
-  const showClimate = settings?.showClimate === true;
-  
-  // -- Data Gathering -- //
-  const roomEntityIds = useMemo(() => Array.isArray(settings?.entityIds) ? settings.entityIds : [], [settings?.entityIds]);
-  
-  // Find key entities
+  const showLightChip = settings?.showLightChip !== false;
+  const showMediaChip = settings?.showMediaChip !== false;
+  const showActiveChip = settings?.showActiveChip !== false;
+  const showOccupiedIndicator = settings?.showOccupiedIndicator !== false;
+
+  const roomEntityIds = useMemo(() => getEffectiveRoomEntityIds(settings), [settings]);
+
   const lightIds = useMemo(() => {
-    // Main light override
-    if (settings?.mainLightEntityId && entities[settings.mainLightEntityId]) {
-      return [settings.mainLightEntityId];
-    }
-    // Fallback to all
     return roomEntityIds.filter(id => id.startsWith('light.'));
-  }, [roomEntityIds, settings?.mainLightEntityId, entities]);
-  
+  }, [roomEntityIds]);
+
+  const mediaPlayerIds = useMemo(() => roomEntityIds.filter(id => id.startsWith('media_player.')), [roomEntityIds]);
+
+  const mainLightId = useMemo(() => {
+    if (settings?.mainLightEntityId && entities[settings.mainLightEntityId]) return settings.mainLightEntityId;
+    return lightIds[0] || null;
+  }, [settings?.mainLightEntityId, entities, lightIds]);
+
   const climateId = useMemo(() => settings?.climateEntityId || roomEntityIds.find(id => id.startsWith('climate.')), [roomEntityIds, settings]);
-  const tempId = useMemo(() => settings?.tempEntityId || roomEntityIds.find(id => {
+  const tempId = useMemo(() => {
+    return settings?.tempEntityId || roomEntityIds.find(id => {
       const e = entities[id];
       return e && (e.attributes?.device_class === 'temperature' || id.includes('temperature') || id.includes('temp'));
-  }), [roomEntityIds, entities, settings]);
+    });
+  }, [roomEntityIds, entities, settings]);
   
-  const motionId = useMemo(() => settings?.motionEntityId || roomEntityIds.find(id => {
+  const motionId = useMemo(() => {
+     return settings?.motionEntityId || roomEntityIds.find(id => {
      const e = entities[id];
      return e && (e.attributes?.device_class === 'motion' || e.attributes?.device_class === 'occupancy' || e.attributes?.device_class === 'presence');
-  }), [roomEntityIds, entities, settings]);
+  });
+  }, [roomEntityIds, entities, settings]);
 
-  const humidityId = useMemo(() => settings?.humidityEntityId || roomEntityIds.find(id => {
-    const e = entities[id];
-    return e && (e.attributes?.device_class === 'humidity' || id.includes('humidity'));
-  }), [roomEntityIds, entities, settings]);
-
-  // States
-  const lightCount = lightIds.length;
-  // If specific light is selected, "lightsOnCount" is 1 or 0
   const lightsOnCount = lightIds.filter(id => entities[id]?.state === 'on').length;
-  const anyLightOn = lightsOnCount > 0;
+  const mediaPlayingCount = mediaPlayerIds.filter((id) => entities[id]?.state === 'playing').length;
+  const isMainLightOn = mainLightId ? entities[mainLightId]?.state === 'on' : false;
   
   const climateEntity = climateId ? entities[climateId] : null;
   const tempEntity = tempId ? entities[tempId] : null;
   const motionEntity = motionId ? entities[motionId] : null;
-  const humidityEntity = humidityId ? entities[humidityId] : null;
-  
   const currentTemp = useMemo(() => {
     if (tempEntity) {
       const parsed = Number.parseFloat(tempEntity.state);
@@ -92,180 +89,29 @@ export default function RoomCard({
   }, [currentTemp]);
 
   const displayTemp = stableTemp ?? currentTemp;
-  const targetTemp = climateEntity?.attributes?.temperature;
   const isOccupied = motionEntity?.state === 'on';
-  const displayHumidity = useMemo(() => {
-    if (!humidityEntity) return null;
-    const parsed = Number.parseFloat(humidityEntity.state);
-    if (!Number.isFinite(parsed)) return null;
-    const unit = humidityEntity.attributes?.unit_of_measurement || '%';
-    return `${Math.round(parsed)}${unit}`;
-  }, [humidityEntity]);
+  const hasMainLightToggle = !!mainLightId;
 
-  // Toggle state for which control to show (if both exist)
-  const isCapableOfLight = showLights && lightCount > 0;
-  const isCapableOfClimate = showClimate && !!climateId;
-  const canSwitchControl = isCapableOfLight && isCapableOfClimate;
+  const activeDeviceCount = useMemo(() => {
+    const toggleDomains = new Set(['light', 'switch', 'fan', 'cover', 'climate', 'media_player']);
+    return roomEntityIds.filter((entityId) => {
+      const entity = entities[entityId];
+      if (!entity) return false;
+      const domain = entityId.split('.')[0];
+      if (!toggleDomains.has(domain)) return false;
+      if (domain === 'media_player') return entity.state === 'playing';
+      if (domain === 'climate') return entity.state && !['off', 'unavailable', 'unknown'].includes(entity.state);
+      if (domain === 'cover') return ['opening', 'open'].includes(entity.state);
+      return entity.state === 'on';
+    }).length;
+  }, [roomEntityIds, entities]);
 
-  // Initialize mode: only default to climate if we HAVE climate but NO lights
-  const [controlMode, setControlMode] = useState(() => {
-     if (isCapableOfClimate && !isCapableOfLight) return 'climate';
-     return 'light';
-  });
-
-  useEffect(() => {
-    if (!isCapableOfLight && isCapableOfClimate && controlMode !== 'climate') {
-      setControlMode('climate');
-      return;
-    }
-    if (!isCapableOfClimate && isCapableOfLight && controlMode !== 'light') {
-      setControlMode('light');
-    }
-  }, [isCapableOfLight, isCapableOfClimate, controlMode]);
-
-  // Optimistic UI state for dragging
-  const [isNoteDragging, setIsNoteDragging] = useState(false);
-  const [localBrightness, setLocalBrightness] = useState(0);
-
-  const handleControlToggle = (e) => {
+  const handleMainLightToggle = useCallback((e) => {
     e.stopPropagation();
-    if (!canSwitchControl) return;
-    setControlMode(prev => prev === 'light' ? 'climate' : 'light');
-  };
-
-  // Compute average brightness for slider from props
-  const avgBrightness = useMemo(() => {
-    if (lightCount === 0) return 0;
-    let total = 0;
-    let on = 0;
-    lightIds.forEach(id => {
-       const e = entities[id];
-       if (e?.state === 'on') {
-         const b = e.attributes?.brightness;
-         const val = (b !== undefined) ? (b / 255) * 100 : 100;
-         total += val;
-         on++;
-       }
-    });
-    return on > 0 ? (total / on) : 0;
-  }, [lightIds, entities, lightCount]);
-
-  // Sync local slider state from entity updates when user is not dragging.
-  useEffect(() => {
-    if (isNoteDragging) return;
-    const next = anyLightOn ? avgBrightness : 0;
-    if (Math.abs(next - localBrightness) > 1) {
-      setLocalBrightness(next);
-    }
-  }, [isNoteDragging, anyLightOn, avgBrightness, localBrightness]);
-
-  // Handlers
-  const sliderDebounceRef = useRef(null);
-  useEffect(() => () => clearTimeout(sliderDebounceRef.current), []);
-
-  const handleLightSliderChange = useCallback((e) => {
-    e.stopPropagation();
-    const val = parseInt(e.target.value);
-    setLocalBrightness(val);
-    
-    if (!conn) return;
-
-    clearTimeout(sliderDebounceRef.current);
-    sliderDebounceRef.current = setTimeout(() => {
-      lightIds.forEach(id => {
-        if (val === 0) {
-          callService('light', 'turn_off', { entity_id: id });
-        } else {
-          callService('light', 'turn_on', { entity_id: id, brightness_pct: val });
-        }
-      });
-    }, SLIDER_DEBOUNCE_MS);
-  }, [conn, lightIds, callService]);
-
-  const handleSlideStart = (e) => {
-      e.stopPropagation();
-      setIsNoteDragging(true);
-  };
-  
-  const handleSlideEnd = (e) => {
-      e.stopPropagation();
-      setIsNoteDragging(false);
-  };
-  
-  const handleClimateStep = (step) => {
-    if (!climateId || !conn) return;
-    const current = targetTemp || 20;
-    const newTemp = current + step;
-    callService('climate', 'set_temperature', { entity_id: climateId, temperature: newTemp });
-  };
-
-
-  // -- ANIMATION STATES --
-  const lightActive = controlMode === 'light' && isCapableOfLight;
-
-  // Render Helpers
-  const renderSlider = () => (
-    <div 
-        className="h-full w-full relative group/slider flex justify-center"
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-    >
-        {/* Background track */}
-        <div className="absolute inset-x-0 top-0 bottom-0 bg-[var(--glass-border)] rounded-full w-full" />
-        
-        {/* Fill bar */}
-        <div 
-            className={`absolute bottom-0 w-full rounded-b-[2rem] transition-all duration-75 ease-out ${localBrightness > 0 ? 'bg-amber-500' : 'bg-transparent'}`}
-            style={{ height: `${localBrightness}%`, borderRadius: localBrightness > 95 ? '2rem' : '0 0 2rem 2rem' }}
-        />
-        
-        {/* Input */}
-        <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={localBrightness}
-            onChange={handleLightSliderChange}
-            onMouseDown={handleSlideStart}
-            onTouchStart={handleSlideStart}
-            onMouseUp={handleSlideEnd}
-            onTouchEnd={handleSlideEnd}
-            onClick={(e) => e.stopPropagation()}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-ns-resize z-20 touch-none"
-            style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
-        />
-        
-        {/* Icon Overlay */}
-        <div className="absolute inset-x-0 bottom-4 flex justify-center pointer-events-none z-10 transition-opacity duration-300">
-            <Sun className={`w-6 h-6 ${localBrightness > 0 ? 'text-white' : 'text-[var(--text-muted)]'}`} />
-        </div>
-    </div>
-  );
-
-  const renderClimate = () => (
-    <div className="h-full w-full flex flex-col justify-between items-center py-1 relative">
-        <div className="absolute inset-0 bg-black/5" /> {/* Subtle backing */}
-        <button 
-            onClick={(e) => { e.stopPropagation(); handleClimateStep(0.5); }}
-            className="w-full flex-1 flex items-center justify-center active:bg-black/10 transition-colors z-10 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-        >
-            <ChevronUp className="w-5 h-5" />
-        </button>
-        
-        <div className="flex flex-col items-center z-10 py-1">
-             <span className="text-lg font-bold text-[var(--text-primary)] leading-none tabular-nums">{targetTemp ? Math.round(targetTemp) : '--'}°</span>
-        </div>
-        
-        <button 
-            onClick={(e) => { e.stopPropagation(); handleClimateStep(-0.5); }}
-            className="w-full flex-1 flex items-center justify-center active:bg-black/10 transition-colors z-10 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-        >
-            <ChevronDown className="w-5 h-5" />
-        </button>
-    </div>
-  );
+    if (!conn || !mainLightId) return;
+    const isOn = entities[mainLightId]?.state === 'on';
+    callService('light', isOn ? 'turn_off' : 'turn_on', { entity_id: mainLightId });
+  }, [conn, mainLightId, entities, callService]);
 
   return (
     <div
@@ -273,7 +119,7 @@ export default function RoomCard({
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
       className={`
-        glass-texture touch-feedback relative p-5 rounded-[2.5rem] flex items-stretch justify-between 
+        glass-texture touch-feedback relative p-7 rounded-[2.5rem] flex flex-col 
         transition-all duration-500 group overflow-hidden font-sans h-full select-none border 
         border-[var(--glass-border)] bg-[var(--glass-bg)]
         ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}
@@ -282,123 +128,63 @@ export default function RoomCard({
     >
       {controls}
 
-      {/* LEFT COLUMN: Stats & Toggle */}
-      <div className="flex flex-col justify-between flex-1 min-w-0 pr-4 text-[var(--text-primary)] z-10">
-        <div className="flex justify-between items-start">
-           {/* Room/Occupancy Icon */}
-           <div 
-              onClick={(e) => {
-                 if (canSwitchControl) {
-                    e.stopPropagation();
-                    handleControlToggle(e);
-                 }
-              }}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 bg-[var(--glass-bg-hover)] shadow-sm relative group-hover:scale-110 ${canSwitchControl ? 'cursor-pointer active:scale-95 hover:bg-[var(--glass-border)]' : ''}`}
-           >
-              <RoomIcon className="w-6 h-6 text-[var(--text-secondary)]" />
+      <div className="flex flex-col justify-between flex-1 min-w-0 text-[var(--text-primary)] z-10">
+        <div className="flex justify-between items-start gap-2">
+           <div className="flex flex-col items-start min-w-0 max-w-[220px]">
+             <button
+                type="button"
+                onClick={handleMainLightToggle}
+               className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm relative group-hover:scale-110 ${isMainLightOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'} ${hasMainLightToggle ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
+                aria-label={t('room.mainLight')}
+                disabled={!hasMainLightToggle || !conn}
+             >
+               <RoomIcon size="26px" className={`transition-transform duration-300 group-hover:scale-110 ${isMainLightOn ? 'fill-amber-400/20' : ''}`} />
+             </button>
+
+             <div className="flex flex-col items-start text-left min-w-0 w-full mt-2">
+               <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-75 truncate w-full">
+                 {areaName}
+               </div>
+             </div>
            </div>
-           
-           {/* Occupancy Pill */}
-           {showMotion && isOccupied && (
-             <div className="bg-green-500/15 border border-green-500/20 rounded-full px-2.5 py-1 flex items-center gap-2 backdrop-blur-md">
-                 <div className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                 </div>
-                 <span className="text-[10px] font-bold uppercase tracking-wider text-green-500 leading-none py-0.5">
-                    {t('binary.occupancy.occupied') || 'Occupied'}
-                 </span>
-             </div>
-           )}
-        </div>
 
-        {/* Temp/State Display - Changes with mode */}
-        <div className="flex flex-col gap-1 mt-2 pl-1 transition-all duration-500">
-           {lightActive ? (
-              // LIGHT MODE STATS
-              <>
-                {showTemp && (
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-thin leading-none tabular-nums transition-colors duration-300">
-                      {displayTemp ? displayTemp : '--'}
-                    </span>
-                    <span className="text-xl text-[var(--text-secondary)] font-light leading-none">°</span>
-                  </div>
-                )}
-                {showLights && (
-                  <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-80 pl-1">
-                    {anyLightOn ? t('common.on') : t('common.off')}
-                  </div>
-                )}
-              </>
-           ) : (
-              // CLIMATE MODE STATS
-              <>
-                {showTemp && (
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-thin leading-none tabular-nums transition-colors duration-300">
-                      {displayTemp ? displayTemp : '--'}
-                    </span>
-                    <span className="text-xl text-[var(--text-secondary)] font-light leading-none">°</span>
-                  </div>
-                )}
-                {showClimate && (
-                  <div className="flex items-center gap-2 pl-1">
-                    <span className="text-xs font-bold text-[var(--text-primary)]">
-                      {displayTemp ? `${displayTemp}°` : '--'}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-secondary)] font-medium">
-                      → {targetTemp ? targetTemp : '--'}°
-                    </span>
-                  </div>
-                )}
-              </>
-           )}
-
-           {showHumidity && displayHumidity && (
-             <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-80 pl-1">
-               {displayHumidity}
-             </div>
-           )}
-           
-           <div className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-60 pl-1 mt-1 truncate">
-             {areaName}
+           <div className="flex flex-col items-end gap-2">
+             {showMotion && showOccupiedIndicator && isOccupied && (
+               <div className="relative flex h-3 w-3 mr-1">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-70" />
+                 <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 border border-green-300/60" />
+               </div>
+             )}
            </div>
         </div>
+
+        <div className="mt-5 flex flex-wrap items-start justify-start gap-2.5 max-w-[220px]">
+          {showTemp && displayTemp && (
+            <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+              <Thermometer className="w-4 h-4" />
+              <span>{displayTemp}°</span>
+            </div>
+          )}
+          {showLightChip && showLights && (
+            <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+              <Lightbulb className={`w-4 h-4 ${lightsOnCount > 0 ? 'text-amber-400' : ''}`} />
+              <span>{lightsOnCount}</span>
+            </div>
+          )}
+          {showMediaChip && (
+            <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+              <Tv className={`w-4 h-4 ${mediaPlayingCount > 0 ? 'text-[var(--accent-color)]' : ''}`} />
+              <span>{mediaPlayingCount}</span>
+            </div>
+          )}
+          {showActiveChip && (
+            <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+              <Activity className="w-4 h-4" />
+              <span>{activeDeviceCount}</span>
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* RIGHT COLUMN: Animated Controls */}
-      {(isCapableOfLight || isCapableOfClimate) && (
-      <div className="w-14 pl-3 relative z-0">
-         <div className="h-full w-full rounded-[2.5rem] overflow-hidden relative shadow-inner bg-black/5 border border-[var(--glass-border)] ring-1 ring-white/5">
-            
-            {/* Light Slider Container */}
-            {isCapableOfLight && (
-              <div 
-                  className={`
-                      absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
-                      ${lightActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-full scale-90 pointer-events-none'}
-                  `}
-              >
-                  {renderSlider()}
-              </div>
-            )}
-
-            {/* Climate Control Container */}
-            {isCapableOfClimate && (
-              <div 
-                  className={`
-                      absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-                      ${!lightActive ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-full scale-90 pointer-events-none'}
-                  `}
-              >
-                  {renderClimate()}
-              </div>
-            )}
-
-         </div>
-      </div>
-      )}
     </div>
   );
 }

@@ -580,6 +580,7 @@ export default function ModalOrchestrator({
               entities={entities}
               conn={conn}
               callService={(domain, service, data) => callService(domain, service, data)}
+              getEntityImageUrl={getEntityImageUrl}
               t={t}
             />
           </ModalSuspense>
@@ -724,11 +725,22 @@ export default function ModalOrchestrator({
                   areaId: area.area_id,
                   areaName: area.name || area.area_id,
                   entityIds: areaEntityIds,
+                  includedEntityIds: [],
+                  excludedEntityIds: [],
                   showLights: true,
                   showTemp: true,
                   showMotion: true,
                   showHumidity: false,
                   showClimate: false,
+                  showLightChip: true,
+                  showMediaChip: true,
+                  showActiveChip: true,
+                  showOccupiedIndicator: true,
+                  showControlPanel: true,
+                  showPopupClimate: true,
+                  showPopupLights: true,
+                  showPopupTempOverview: true,
+                  showPopupMedia: true,
                   size: 'large',
                 }
               };

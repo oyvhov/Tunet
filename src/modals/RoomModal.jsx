@@ -1,7 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { X, Lightbulb, Thermometer, Eye, Droplets, Flame, Power, ChevronRight } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X, Lightbulb, Thermometer, Flame, Tv, Play, Pause, SkipForward, SkipBack, ChevronDown } from 'lucide-react';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
-import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode, inferUnitKind } from '../utils';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode, getEffectiveRoomEntityIds, inferUnitKind } from '../utils';
+import M3Slider from '../components/ui/M3Slider';
+
+const GROUPED_OTHER_DOMAINS = new Set(['binary_sensor', 'sensor', 'number', 'select', 'update', 'input_number', 'switch']);
 
 /**
  * RoomModal – Detailed view of a room / area.
@@ -14,91 +17,153 @@ export default function RoomModal({
   entities,
   conn,
   callService,
+  getEntityImageUrl,
   t,
 }) {
-  const [filter, setFilter] = useState('all');
+  const [selectedClimateId, setSelectedClimateId] = useState(settings?.climateEntityId || null);
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
 
   const areaName = settings?.areaName || t('room.defaultName');
-  const roomEntityIds = useMemo(() => {
-    // Only show "key" entities in modal if the user requested simplified view
-    // Filtering logic: Light, Climate, Switch, Cover, Media Player.
-    // Skip sensors and binary_sensors usually, unless configured otherwise?
-    // The user said "Modalen skal ikkje vise alle enitetane i rommet".
-    // Let's filter out diagnostic/config sensors if they are too generic. 
-    // For now, let's keep it simple: Show 'control' domains + basic Temp/Motion.
-    const all = Array.isArray(settings?.entityIds) ? settings.entityIds : [];
-    
-    // Simple filter: Include only interesting domains
-    const interestingDomains = ['light', 'climate', 'switch', 'cover', 'fan', 'media_player', 'vacuum', 'lock'];
-    
-    // Also include 'user selected' sensors (Temp/Humidity) if explicitly needed?
-    // But usually sensors are just informational. The user probably means "don't list 50 sensors".
-    // Let's create two lists: Controls and "Key Sensors"
-    
-     return all.filter(id => {
-       const domain = id.split('.')[0];
-       // Always show controls
-       if (interestingDomains.includes(domain)) return true;
-       // Show sensors if they seem important (temp, humidity, motion, occupancy, illuminance)
-       if (domain === 'sensor') {
-         const deviceClass = entities[id]?.attributes?.device_class;
-         return ['temperature', 'humidity', 'illuminance', 'power', 'energy', 'battery'].includes(deviceClass);
-       }
-       if (domain === 'binary_sensor') {
-         const deviceClass = entities[id]?.attributes?.device_class;
-         return ['motion', 'occupancy', 'opening', 'presence', 'door', 'window', 'garage_door'].includes(deviceClass);
-       }
-       return false;
-     });
-  }, [settings?.entityIds, entities]);
-
-  // Group entities by domain
-  const grouped = useMemo(() => {
-    const groups = {};
-    roomEntityIds.forEach(id => {
-      const entity = entities[id];
-      if (!entity) return;
-      const domain = id.split('.')[0];
-      if (!groups[domain]) groups[domain] = [];
-      groups[domain].push({ id, entity });
-    });
-    return groups;
-  }, [roomEntityIds, entities]);
-
-  const domainLabels = {
-    light: { label: t('room.domain.light'), icon: Lightbulb, color: 'text-amber-400' },
-    sensor: { label: t('room.domain.sensor'), icon: Thermometer, color: 'text-[var(--accent-color)]' },
-    binary_sensor: { label: t('room.domain.binarySensor'), icon: Eye, color: 'text-green-400' },
-    climate: { label: t('room.domain.climate'), icon: Flame, color: 'text-red-400' },
-    switch: { label: t('room.domain.switch'), icon: Power, color: 'text-purple-400' },
-    cover: { label: t('room.domain.cover'), icon: ChevronRight, color: 'text-teal-400' },
-    fan: { label: t('room.domain.fan'), icon: Droplets, color: 'text-cyan-400' },
-  };
-
-  const domains = Object.keys(grouped).sort((a, b) => {
-    const order = ['light', 'climate', 'switch', 'sensor', 'binary_sensor', 'cover', 'fan'];
-    const ai = order.indexOf(a);
-    const bi = order.indexOf(b);
-    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  const collapseStorageKey = useMemo(() => {
+    const roomKey = String(settings?.areaName || settings?.areaId || 'default')
+      .toLowerCase()
+      .replace(/\s+/g, '_');
+    return `tunet_room_collapsed_${roomKey}`;
+  }, [settings?.areaId, settings?.areaName]);
+  const [collapsedSections, setCollapsedSections] = useState(() => {
+    try {
+      const raw = localStorage.getItem(collapseStorageKey);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
   });
+  const roomEntityIds = useMemo(() => getEffectiveRoomEntityIds(settings), [settings]);
 
-  const filteredDomains = filter === 'all' ? domains : domains.filter(d => d === filter);
+  const roomEntities = useMemo(() => roomEntityIds
+    .map((id) => ({ id, entity: entities[id] }))
+    .filter(({ entity }) => !!entity), [roomEntityIds, entities]);
+
+  const lights = useMemo(() => roomEntities.filter(({ id }) => id.startsWith('light.')), [roomEntities]);
+  const climateEntities = useMemo(() => roomEntities.filter(({ id }) => id.startsWith('climate.')), [roomEntities]);
+  const mediaPlayers = useMemo(() => roomEntities.filter(({ id }) => id.startsWith('media_player.')), [roomEntities]);
+  const tempOverview = useMemo(() => roomEntities.filter(({ id, entity }) => {
+    if (id === settings?.tempEntityId || id === settings?.humidityEntityId) return true;
+    const domain = id.split('.')[0];
+    if (!['sensor', 'climate', 'weather'].includes(domain)) return false;
+    const deviceClass = entity.attributes?.device_class;
+    return ['temperature', 'humidity'].includes(deviceClass);
+  }), [roomEntities, settings?.tempEntityId, settings?.humidityEntityId]);
+
+  const activeClimateId = selectedClimateId && entities[selectedClimateId]
+    ? selectedClimateId
+    : (settings?.climateEntityId && entities[settings.climateEntityId] ? settings.climateEntityId : climateEntities[0]?.id || null);
+
+  const activeClimate = activeClimateId ? entities[activeClimateId] : null;
+  const climateModes = Array.isArray(activeClimate?.attributes?.hvac_modes) ? activeClimate.attributes.hvac_modes : [];
+  const targetTemp = activeClimate?.attributes?.temperature;
+  const hvacAction = activeClimate?.attributes?.hvac_action || activeClimate?.state || 'idle';
+  const isCooling = hvacAction === 'cooling';
+  const isHeating = hvacAction === 'heating';
+  const climateMinTemp = activeClimate?.attributes?.min_temp ?? 16;
+  const climateMaxTemp = activeClimate?.attributes?.max_temp ?? 30;
+  const hasTargetTempControl = Number.isFinite(targetTemp);
+  const hasHvacModeControl = climateModes.length > 0;
+  const climateControlsAvailable = hasTargetTempControl || hasHvacModeControl;
+
+  const lightsOn = lights.filter(({ entity }) => entity.state === 'on').length;
+  const activeMedia = mediaPlayers.find(({ entity }) => entity.state === 'playing') || mediaPlayers[0] || null;
+  const orderedMediaPlayers = useMemo(() => {
+    if (!activeMedia) return mediaPlayers;
+    return [
+      activeMedia,
+      ...mediaPlayers.filter(({ id }) => id !== activeMedia.id),
+    ];
+  }, [mediaPlayers, activeMedia]);
+
+  const showPopupClimate = settings?.showPopupClimate !== false;
+  const showPopupLights = settings?.showPopupLights !== false;
+  const showPopupTempOverview = settings?.showPopupTempOverview !== false;
+  const showPopupMedia = settings?.showPopupMedia !== false;
+
+  const topEntityIds = useMemo(() => new Set([
+    ...lights.map(({ id }) => id),
+    ...climateEntities.map(({ id }) => id),
+    ...mediaPlayers.map(({ id }) => id),
+    ...tempOverview.map(({ id }) => id),
+  ]), [lights, climateEntities, mediaPlayers, tempOverview]);
+
+  const otherEntities = useMemo(
+    () => roomEntities.filter(({ id }) => !topEntityIds.has(id)),
+    [roomEntities, topEntityIds],
+  );
+
+  const categorizedOtherEntities = useMemo(() => {
+    const grouped = otherEntities.reduce((acc, item) => {
+      const domain = item.id.split('.')[0];
+      const groupKey = GROUPED_OTHER_DOMAINS.has(domain) ? 'other' : domain;
+      if (!acc[groupKey]) acc[groupKey] = [];
+      acc[groupKey].push(item);
+      return acc;
+    }, {});
+    return Object.entries(grouped).sort((a, b) => {
+      if (a[0] === 'other') return 1;
+      if (b[0] === 'other') return -1;
+      return a[0].localeCompare(b[0]);
+    });
+  }, [otherEntities]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(collapseStorageKey);
+      if (!raw) {
+        setCollapsedSections({});
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      setCollapsedSections(parsed && typeof parsed === 'object' ? parsed : {});
+    } catch {
+      setCollapsedSections({});
+    }
+  }, [collapseStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(collapseStorageKey, JSON.stringify(collapsedSections));
+    } catch {
+      // ignore persistence errors
+    }
+  }, [collapseStorageKey, collapsedSections]);
+
+  const leftColumnWeight = useMemo(() => {
+    let weight = 0;
+    if (showPopupClimate && climateEntities.length > 0) weight += 3;
+    if (showPopupTempOverview && tempOverview.length > 0) weight += 2;
+    if (showPopupLights && lights.length > 0) weight += Math.min(4, 1 + Math.ceil(lights.length / 4));
+    return weight;
+  }, [showPopupClimate, climateEntities.length, showPopupTempOverview, tempOverview.length, showPopupLights, lights.length]);
+
+  const rightColumnWeight = useMemo(() => {
+    if (otherEntities.length === 0) return 1;
+    return Math.max(1, categorizedOtherEntities.length);
+  }, [otherEntities.length, categorizedOtherEntities.length]);
+
+  const moveMediaToRight = showPopupMedia
+    && mediaPlayers.length > 0
+    && (leftColumnWeight - rightColumnWeight >= 2);
 
   if (!show) return null;
-
-  // Count lights on
-  const lightEntities = grouped['light'] || [];
-  const lightsOn = lightEntities.filter(e => e.entity.state === 'on').length;
 
   const handleToggleEntity = (entityId, domain) => {
     if (!conn || !callService) return;
     const entity = entities[entityId];
     if (!entity) return;
     const isOn = entity.state === 'on';
-    if (['light', 'switch', 'fan', 'cover'].includes(domain)) {
+    if (['light', 'switch', 'fan', 'cover', 'input_boolean'].includes(domain)) {
       callService(domain, isOn ? 'turn_off' : 'turn_on', { entity_id: entityId });
     }
   };
@@ -106,10 +171,195 @@ export default function RoomModal({
   const handleToggleAllLights = () => {
     if (!conn || !callService) return;
     const service = lightsOn > 0 ? 'turn_off' : 'turn_on';
-    lightEntities.forEach(({ id }) => {
+    lights.forEach(({ id }) => {
       callService('light', service, { entity_id: id });
     });
   };
+
+  const handleLightBrightness = (entityId, value) => {
+    if (!conn || !callService) return;
+    if (value <= 0) {
+      callService('light', 'turn_off', { entity_id: entityId });
+      return;
+    }
+    callService('light', 'turn_on', { entity_id: entityId, brightness_pct: value });
+  };
+
+  const handleClimateStep = (step) => {
+    if (!conn || !callService || !activeClimateId || !hasTargetTempControl) return;
+    const current = Number(targetTemp);
+    const next = Math.max(climateMinTemp, Math.min(climateMaxTemp, current + step));
+    callService('climate', 'set_temperature', {
+      entity_id: activeClimateId,
+      temperature: next,
+    });
+  };
+
+  const handleSetClimateMode = (mode) => {
+    if (!conn || !callService || !activeClimateId) return;
+    callService('climate', 'set_hvac_mode', { entity_id: activeClimateId, hvac_mode: mode });
+  };
+
+  const handleMediaAction = (entityId, action) => {
+    if (!conn || !callService || !entityId) return;
+    callService('media_player', action, { entity_id: entityId });
+  };
+
+  const handleEntityAction = (domain, action, entityId) => {
+    if (!conn || !callService || !entityId) return;
+    callService(domain, action, { entity_id: entityId });
+  };
+
+  const getOtherEntityActions = (entityId, entity) => {
+    const domain = entityId.split('.')[0];
+    const state = entity?.state;
+    const isOn = state === 'on';
+
+    if (['switch', 'fan', 'input_boolean', 'light'].includes(domain)) {
+      return [{
+        key: 'onoff',
+        kind: 'onoff-pills',
+        isOn,
+        onOn: () => { if (!isOn) handleEntityAction(domain, 'turn_on', entityId); },
+        onOff: () => { if (isOn) handleEntityAction(domain, 'turn_off', entityId); },
+      }];
+    }
+
+    if (domain === 'lock') {
+      return [{
+        key: 'lock-toggle',
+        label: state === 'locked' ? 'Unlock' : 'Lock',
+        onClick: () => handleEntityAction('lock', state === 'locked' ? 'unlock' : 'lock', entityId),
+      }];
+    }
+
+    if (domain === 'cover') {
+      return [
+        { key: 'open', label: 'Open', onClick: () => handleEntityAction('cover', 'open_cover', entityId) },
+        { key: 'stop', label: 'Stop', onClick: () => handleEntityAction('cover', 'stop_cover', entityId) },
+        { key: 'close', label: 'Close', onClick: () => handleEntityAction('cover', 'close_cover', entityId) },
+      ];
+    }
+
+    if (domain === 'button' || domain === 'input_button') {
+      return [{ key: 'press', label: 'Press', onClick: () => handleEntityAction(domain, 'press', entityId) }];
+    }
+
+    if (domain === 'automation') {
+      return [{
+        key: 'automation-onoff',
+        kind: 'onoff-pills',
+        isOn,
+        onOn: () => { if (!isOn) handleEntityAction('automation', 'turn_on', entityId); },
+        onOff: () => { if (isOn) handleEntityAction('automation', 'turn_off', entityId); },
+      }];
+    }
+
+    if (domain === 'scene' || domain === 'script') {
+      return [{ key: 'run', label: 'Run', onClick: () => handleEntityAction(domain, 'turn_on', entityId) }];
+    }
+
+    if (domain === 'vacuum') {
+      const isCleaning = state === 'cleaning';
+      return [
+        { key: 'main', label: isCleaning ? 'Pause' : 'Start', onClick: () => handleEntityAction('vacuum', isCleaning ? 'pause' : 'start', entityId) },
+        { key: 'dock', label: 'Dock', onClick: () => handleEntityAction('vacuum', 'return_to_base', entityId) },
+      ];
+    }
+
+    if (domain === 'media_player') {
+      const isPlaying = state === 'playing';
+      return [{
+        key: 'play-toggle',
+        label: isPlaying ? 'Pause' : 'Play',
+        onClick: () => handleEntityAction('media_player', isPlaying ? 'media_pause' : 'media_play', entityId),
+      }];
+    }
+
+    return [];
+  };
+
+  const isSectionCollapsed = (domain) => collapsedSections[domain] === true;
+  const toggleSectionCollapsed = (domain) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [domain]: !prev[domain],
+    }));
+  };
+
+  const mediaSection = showPopupMedia && mediaPlayers.length > 0 ? (
+    <section className="popup-surface rounded-3xl p-4 space-y-3">
+      <button
+        type="button"
+        onClick={() => toggleSectionCollapsed('media')}
+        className="w-full flex items-center justify-between text-left"
+      >
+        <h4 className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)] flex items-center gap-2">
+          <Tv className="w-4 h-4 text-[var(--accent-color)]" />
+          {t('room.popupMedia') || 'Media'}
+        </h4>
+        <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform ${isSectionCollapsed('media') ? '-rotate-90' : 'rotate-0'}`} />
+      </button>
+
+      {!isSectionCollapsed('media') && (
+        <div className="space-y-2 max-h-[32vh] overflow-y-auto custom-scrollbar pr-1">
+          <div className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)] px-1">
+            {t('room.mediaPlayersList') || 'Players'} ({mediaPlayers.length})
+          </div>
+          {orderedMediaPlayers.map(({ id, entity }) => {
+            const cover = getEntityImageUrl?.(entity.attributes?.entity_picture || entity.attributes?.media_image_url);
+            const isPlaying = entity.state === 'playing';
+            return (
+              <div key={id} className="relative rounded-xl px-3 py-2.5 bg-[var(--glass-bg)]/70 overflow-hidden">
+                {cover && (
+                  <>
+                    <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover opacity-15 blur-lg scale-110 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/25 to-black/5 pointer-events-none" />
+                  </>
+                )}
+
+                <div className="relative z-10 flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-lg overflow-hidden bg-[var(--glass-bg)] flex items-center justify-center shrink-0">
+                    {cover ? (
+                      <img src={cover} alt="Cover" className="w-full h-full object-cover" />
+                    ) : (
+                      <Tv className="w-5 h-5 text-[var(--text-secondary)]" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1 mr-2">
+                    <span className="block text-xs font-bold text-[var(--text-primary)] truncate">{entity.attributes?.friendly_name || id}</span>
+                    <span className="block text-[10px] text-[var(--text-secondary)] truncate">{entity.attributes?.media_title || entity.attributes?.media_artist || entity.attributes?.media_album_name || '—'}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleMediaAction(id, 'media_previous_track')}
+                      className="w-9 h-9 rounded-xl popup-surface popup-surface-hover flex items-center justify-center"
+                    >
+                      <SkipBack className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleMediaAction(id, 'media_play_pause')}
+                      className="w-10 h-10 rounded-xl popup-surface popup-surface-hover flex items-center justify-center"
+                    >
+                      {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => handleMediaAction(id, 'media_next_track')}
+                      className="w-9 h-9 rounded-xl popup-surface popup-surface-hover flex items-center justify-center"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  ) : null;
 
   return (
     <div
@@ -118,7 +368,7 @@ export default function RoomModal({
       onClick={onClose}
     >
       <div
-        className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim"
+        className="border w-full max-w-6xl max-h-[88vh] rounded-3xl md:rounded-[3rem] px-7 pt-7 pb-5 md:px-12 md:pt-10 md:pb-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim"
         style={{
           background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
           borderColor: 'var(--glass-border)',
@@ -134,118 +384,305 @@ export default function RoomModal({
           {areaName}
         </h3>
 
-        {/* Quick stats */}
-        {lightEntities.length > 0 && (
-          <div className="flex justify-center mb-4">
-            <button
-              onClick={handleToggleAllLights}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border ${lightsOn > 0 ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' : 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
-            >
-              <Lightbulb className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-widest">
-                {lightsOn > 0
-                  ? `${lightsOn} ${t('room.lightsOn')} — ${t('room.turnOffAll')}`
-                  : t('room.turnOnAll')}
-              </span>
-            </button>
-          </div>
-        )}
-
-        {/* Domain filter pills */}
-        {domains.length > 1 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors border ${filter === 'all' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent'}`}
-            >
-              {t('room.filterAll')}
-            </button>
-            {domains.map(d => {
-              const info = domainLabels[d] || { label: d, color: 'text-[var(--text-secondary)]' };
-              return (
-                <button
-                  key={d}
-                  onClick={() => setFilter(d)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-colors border ${filter === d ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent'}`}
-                >
-                  {info.label} ({grouped[d].length})
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Entity list */}
-        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-          {filteredDomains.map(domain => {
-            const info = domainLabels[domain] || { label: domain, icon: Power, color: 'text-[var(--text-secondary)]' };
-            const DomainIcon = info.icon || Power;
-            const items = grouped[domain];
-
-            return (
-              <div key={domain}>
-                <div className="flex items-center gap-2 mb-2 ml-1">
-                  <DomainIcon className={`w-4 h-4 ${info.color}`} />
-                  <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
-                    {info.label}
-                  </span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
+          <div className="space-y-4">
+            {showPopupClimate && climateEntities.length > 0 && (
+              <section className="popup-surface rounded-3xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => toggleSectionCollapsed('climate')}
+                    className="flex items-center justify-between gap-2 text-left"
+                  >
+                    <h4 className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)] flex items-center gap-2">
+                      <Flame className="w-4 h-4 text-red-400" />
+                      {t('room.popupClimate') || 'Climate'}
+                    </h4>
+                    <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform ${isSectionCollapsed('climate') ? '-rotate-90' : 'rotate-0'}`} />
+                  </button>
+                  {climateEntities.length > 1 && !isSectionCollapsed('climate') && (
+                    <select
+                      value={activeClimateId || ''}
+                      onChange={(e) => setSelectedClimateId(e.target.value)}
+                      className="px-3 py-1.5 rounded-xl text-xs popup-surface text-[var(--text-secondary)]"
+                    >
+                      {climateEntities.map(({ id, entity }) => (
+                        <option key={id} value={id}>
+                          {entity.attributes?.friendly_name || id}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  {items.map(({ id, entity }) => {
-                    const name = entity.attributes?.friendly_name || id;
-                    const state = entity.state;
-                    const unit = entity.attributes?.unit_of_measurement || '';
-                    const inferredUnitKind = inferUnitKind(entity.attributes?.device_class, unit);
-                    const isToggleable = ['light', 'switch', 'fan', 'cover'].includes(domain);
-                    const isOn = state === 'on';
-                    const isNumeric = /^\s*-?\d+(\.\d+)?\s*$/.test(state);
-                    const convertedNumericValue = isNumeric && inferredUnitKind
-                      ? convertValueByKind(parseFloat(state), {
-                        kind: inferredUnitKind,
-                        fromUnit: unit,
-                        unitMode: effectiveUnitMode,
-                      })
-                      : (isNumeric ? parseFloat(state) : null);
-                    const displayUnit = isNumeric && inferredUnitKind
-                      ? getDisplayUnitForKind(inferredUnitKind, effectiveUnitMode)
-                      : unit;
 
-                    return (
+                {!isSectionCollapsed('climate') && !activeClimate && (
+                  <div className="text-xs text-[var(--text-muted)] py-2">{t('room.noSensors') || 'No climate entity available'}</div>
+                )}
+
+                {!isSectionCollapsed('climate') && activeClimate && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">{t('room.tempSensor') || 'Temperature sensor'}</div>
+                      <div className="text-lg font-semibold text-[var(--text-primary)] tabular-nums">{activeClimate.attributes?.current_temperature ?? '--'}°</div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
                       <div
-                        key={id}
-                        className="popup-surface rounded-2xl p-3 flex items-center justify-between group"
+                        className="p-2.5 rounded-2xl"
+                        style={{
+                          backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.12)' : isHeating ? 'rgba(249, 115, 22, 0.12)' : 'var(--glass-bg)',
+                          color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)',
+                        }}
                       >
-                        <div className="flex-1 min-w-0 mr-3">
-                          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{name}</p>
-                          <p className="text-[10px] text-[var(--text-muted)] truncate">{id}</p>
+                        <Flame className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[11px] uppercase tracking-widest text-[var(--text-muted)] font-bold truncate" title={activeClimateId || ''}>
+                          {activeClimate.attributes?.friendly_name || activeClimateId}
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className={`text-xs font-bold uppercase tracking-widest ${isOn ? 'text-green-400' : 'text-[var(--text-muted)]'}`}>
-                            {isNumeric ? `${formatUnitValue(convertedNumericValue, { fallback: '--' })}${displayUnit}` : state}
-                          </span>
-                          {isToggleable && (
+                      </div>
+                    </div>
+
+                    {climateControlsAvailable && hasTargetTempControl && (
+                      <div className="mt-1 flex items-center gap-3">
+                        <button onClick={() => handleClimateStep(-0.5)} className="w-10 h-10 rounded-full popup-surface popup-surface-hover text-lg">−</button>
+                        <div className="flex-1">
+                          <M3Slider
+                            min={climateMinTemp}
+                            max={climateMaxTemp}
+                            step={0.5}
+                            value={targetTemp}
+                            onChange={(event) => callService('climate', 'set_temperature', { entity_id: activeClimateId, temperature: Number(event.target.value) })}
+                            colorClass={isHeating ? 'bg-orange-500' : 'bg-[var(--accent-color)]'}
+                          />
+                        </div>
+                        <div className="min-w-[52px] text-right text-base font-bold text-[var(--text-primary)]">{targetTemp}°</div>
+                        <button onClick={() => handleClimateStep(0.5)} className="w-10 h-10 rounded-full popup-surface popup-surface-hover text-lg">+</button>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-start justify-between gap-3">
+                      <div
+                        className="px-3 py-1.5 rounded-full text-[10px] uppercase font-bold tracking-widest"
+                        style={{
+                          backgroundColor: isCooling ? 'rgba(59, 130, 246, 0.15)' : isHeating ? 'rgba(249, 115, 22, 0.15)' : 'var(--glass-bg)',
+                          color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : 'var(--text-secondary)',
+                        }}
+                      >
+                        {hvacAction}
+                      </div>
+
+                      {climateControlsAvailable && climateModes.length > 0 && (
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {climateModes.map((mode) => (
                             <button
-                              onClick={() => handleToggleEntity(id, domain)}
-                              className={`w-10 h-5 rounded-full transition-colors relative ${isOn ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                              key={mode}
+                              onClick={() => handleSetClimateMode(mode)}
+                              className={`px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold border transition-colors ${activeClimate.state === mode ? 'bg-[var(--glass-bg-hover)] border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                             >
-                              <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${isOn ? 'left-5' : 'left-0.5'}`} />
+                              {mode}
                             </button>
-                          )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {!climateControlsAvailable && (
+                      <div className="text-xs text-[var(--text-muted)] mt-1">
+                        {t('room.noClimateControl') || 'Temperature sensor only'}
+                      </div>
+                    )}
+                  </>
+                )}
+              </section>
+            )}
+
+            {showPopupTempOverview && tempOverview.length > 0 && (
+              <section className="popup-surface rounded-3xl p-4">
+                <button
+                  type="button"
+                  onClick={() => toggleSectionCollapsed('tempOverview')}
+                  className="w-full flex items-center justify-between text-left mb-3"
+                >
+                  <h4 className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)] flex items-center gap-2">
+                    <Thermometer className="w-4 h-4 text-[var(--accent-color)]" />
+                    {t('room.popupTempOverview') || 'Temp overview'}
+                  </h4>
+                  <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform ${isSectionCollapsed('tempOverview') ? '-rotate-90' : 'rotate-0'}`} />
+                </button>
+                {!isSectionCollapsed('tempOverview') && (
+                <div className="space-y-2 max-h-[28vh] overflow-y-auto custom-scrollbar pr-1">
+                  {tempOverview.map(({ id, entity }) => {
+                    const rawState = entity.state;
+                    const unit = entity.attributes?.unit_of_measurement || '';
+                    const isNumeric = /^\s*-?\d+(\.\d+)?\s*$/.test(rawState);
+                    const kind = inferUnitKind(entity.attributes?.device_class, unit);
+                    const converted = isNumeric && kind
+                      ? convertValueByKind(parseFloat(rawState), { kind, fromUnit: unit, unitMode: effectiveUnitMode })
+                      : (isNumeric ? parseFloat(rawState) : null);
+                    const displayUnit = isNumeric && kind ? getDisplayUnitForKind(kind, effectiveUnitMode) : unit;
+                    return (
+                      <div key={id} className="rounded-xl px-3 py-2 bg-[var(--glass-bg)] border border-[var(--glass-border)] flex items-center justify-between">
+                        <div className="min-w-0 mr-3" title={id}>
+                          <div className="text-xs font-bold text-[var(--text-primary)] truncate">{entity.attributes?.friendly_name || id}</div>
+                        </div>
+                        <div className="text-xs font-bold text-[var(--text-secondary)]">
+                          {isNumeric ? `${formatUnitValue(converted, { fallback: '--' })}${displayUnit}` : rawState}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            );
-          })}
+                )}
+              </section>
+            )}
 
-          {roomEntityIds.length === 0 && (
-            <div className="text-center py-10 text-[var(--text-muted)]">
-              <p className="text-sm">{t('room.noEntities')}</p>
-              <p className="text-xs mt-1">{t('room.editToAdd')}</p>
-            </div>
-          )}
+            {showPopupLights && lights.length > 0 && (
+              <section className="popup-surface rounded-3xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => toggleSectionCollapsed('lights')}
+                    className="flex items-center justify-between gap-2 text-left"
+                  >
+                    <h4 className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)] flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-amber-400" />
+                      {t('room.popupLights') || 'Lights'}
+                    </h4>
+                    <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform ${isSectionCollapsed('lights') ? '-rotate-90' : 'rotate-0'}`} />
+                  </button>
+                  {lights.length > 0 && !isSectionCollapsed('lights') && (
+                    <button
+                      onClick={handleToggleAllLights}
+                      className="px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest popup-surface popup-surface-hover text-[var(--text-secondary)]"
+                    >
+                      {lightsOn > 0 ? t('room.turnOffAll') : t('room.turnOnAll')}
+                    </button>
+                  )}
+                </div>
+
+                {!isSectionCollapsed('lights') && (
+                <div className="space-y-2 max-h-[30vh] overflow-y-auto custom-scrollbar pr-1">
+                  {lights.map(({ id, entity }) => {
+                    const brightness = entity.attributes?.brightness;
+                    const brightnessPct = Number.isFinite(brightness) ? Math.round((brightness / 255) * 100) : (entity.state === 'on' ? 100 : 0);
+                    const isOn = entity.state === 'on';
+                    return (
+                      <div key={id} className="px-1 py-2">
+                        <div className="flex items-center justify-between gap-2 mb-2" title={id}>
+                          <div className="min-w-0" title={id}>
+                            <div className="text-xs font-bold text-[var(--text-primary)] truncate">{entity.attributes?.friendly_name || id}</div>
+                          </div>
+                          <button
+                            onClick={() => handleToggleEntity(id, 'light')}
+                            className={`w-10 h-5 rounded-full transition-colors relative ${isOn ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                          >
+                            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${isOn ? 'left-5' : 'left-0.5'}`} />
+                          </button>
+                        </div>
+                        <M3Slider
+                          variant="thinLg"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={brightnessPct}
+                          onChange={(event) => handleLightBrightness(id, Number(event.target.value))}
+                          colorClass="bg-amber-500"
+                        />
+                        <div className="mt-2 h-px bg-[var(--glass-border)]/35" />
+                      </div>
+                    );
+                  })}
+                </div>
+                )}
+              </section>
+            )}
+
+            {!moveMediaToRight && mediaSection}
+          </div>
+
+          <div className="space-y-4">
+            {moveMediaToRight && mediaSection}
+            {otherEntities.length > 0 && (
+              <div className="space-y-4">
+              {categorizedOtherEntities.map(([domain, items]) => (
+                <section key={domain} className="popup-surface rounded-3xl p-4">
+                  <button
+                    type="button"
+                    onClick={() => toggleSectionCollapsed(domain)}
+                    className="w-full flex items-center justify-between mb-3 text-left"
+                  >
+                    <h4 className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)]">
+                      {domain === 'other' ? (t('room.popupOtherGrouped') || 'Other entities') : domain.replace('_', ' ')}
+                    </h4>
+                    <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform ${isSectionCollapsed(domain) ? '-rotate-90' : 'rotate-0'}`} />
+                  </button>
+
+                  {!isSectionCollapsed(domain) && (
+                    <div className="space-y-1.5">
+                    {items.map(({ id, entity }, index) => {
+                      const actions = getOtherEntityActions(id, entity);
+                      const hasOnOffPills = actions.some((action) => action.kind === 'onoff-pills');
+                      return (
+                        <div
+                          key={id}
+                          className={`px-2 py-2 flex items-center justify-between gap-3 ${index < items.length - 1 ? 'border-b border-[var(--glass-border)]/35' : ''}`}
+                        >
+                          <div className="min-w-0" title={id}>
+                            <div className="text-xs font-semibold text-[var(--text-primary)] truncate">{entity.attributes?.friendly_name || id}</div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {domain === 'other' && !hasOnOffPills && (
+                              <span className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)]">
+                                {entity.state}
+                              </span>
+                            )}
+                            {actions.map((action) => (
+                              action.kind === 'onoff-pills' ? (
+                                <div key={action.key} className="shrink-0 flex items-center gap-1.5 whitespace-nowrap">
+                                  <button
+                                    onClick={action.onOn}
+                                    className={`control-on px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${action.isOn ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                                  >
+                                    {t('common.on') || 'On'}
+                                  </button>
+                                  <button
+                                    onClick={action.onOff}
+                                    className={`control-off px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${!action.isOn ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                                  >
+                                    {t('common.off') || 'Off'}
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  key={action.key}
+                                  onClick={action.onClick}
+                                  className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)] hover:bg-[var(--accent-color)]/20 transition-colors"
+                                >
+                                  {action.label}
+                                </button>
+                              )
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    </div>
+                  )}
+                </section>
+              ))}
+              </div>
+            )}
+
+            {otherEntities.length === 0 && (
+              <section className="popup-surface rounded-3xl p-4">
+                <h4 className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)] mb-2">
+                  {t('room.popupOtherIncluded') || 'Other included entities'}
+                </h4>
+                <div className="text-xs text-[var(--text-muted)]">{t('room.noEntities')}</div>
+              </section>
+            )}
+          </div>
         </div>
 
         <div className="pt-5 mt-4 border-t border-[var(--glass-border)]">

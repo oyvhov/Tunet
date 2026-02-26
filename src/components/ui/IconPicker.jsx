@@ -13,7 +13,7 @@ export default function IconPicker({
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   const [open, setOpen] = useState(false);
-  const [_mdiLoadedVersion, setMdiLoadedVersion] = useState(0);
+  const [mdiLoadedVersion, setMdiLoadedVersion] = useState(0);
   const scrollRef = useRef(null);
   const translate = t || ((key) => key);
 
@@ -33,7 +33,10 @@ export default function IconPicker({
     };
   }, [open]);
 
-  const iconKeys = useMemo(() => getAllIconKeys().slice().sort((a, b) => a.localeCompare(b)), []);
+  const iconKeys = useMemo(() => {
+    void mdiLoadedVersion;
+    return getAllIconKeys().slice().sort((a, b) => a.localeCompare(b));
+  }, [mdiLoadedVersion]);
   const filteredKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return iconKeys;

@@ -8,3 +8,4 @@ export { createDragAndDropHandlers } from './dragAndDrop';
 export { getEffectiveUnitMode, inferUnitKind, getDisplayUnitForKind, convertValueByKind, formatUnitValue, formatKindValueForDisplay } from './units';
 export { isValidPin, hashPin, verifyPin } from './pinLock';
 export { isEntityDataStale, ENTITY_STALE_DISCONNECT_GRACE_MS, ENTITY_STALE_NO_UPDATE_MS } from './connectionHealth';
+export { getEffectiveRoomEntityIds, filterEntitiesByDomain } from './roomEntities';
