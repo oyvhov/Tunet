@@ -10,6 +10,7 @@ export function useCardRendering({
   setPagesConfig,
   persistConfig,
   activePage,
+  setActivePage,
   hiddenCards,
   isCardHiddenByLogic,
   gridColCount,
@@ -234,6 +235,7 @@ export function useCardRendering({
       setShowNordpoolModal, setShowCalendarModal, setShowTodoModal,
       setShowRoomModal, setShowCoverModal, setShowAlarmModal, setShowAlarmActionModal, setShowEditCardModal, setEditCardSettingsKey,
       setShowCameraModal,
+      setActivePage,
       openMediaModal: (mpId, groupKey, groupIds) => {
         setActiveMediaId(mpId);
         setActiveMediaGroupKey(groupKey);
@@ -292,6 +294,7 @@ export function useCardRendering({
     setShowCalendarModal,
     setShowTodoModal,
     setShowRoomModal,
+    setActivePage,
     setShowCoverModal,
     setShowAlarmModal,
     setShowAlarmActionModal,

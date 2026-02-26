@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Lightbulb, Thermometer, Flame, Tv, Play, Pause, SkipForward, SkipBack, ChevronDown } from 'lucide-react';
+import { X, Lightbulb, Thermometer, Flame, Tv, Play, Pause, SkipForward, SkipBack, ChevronDown, Bot } from 'lucide-react';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveUnitMode, getEffectiveRoomEntityIds, inferUnitKind } from '../utils';
 import M3Slider from '../components/ui/M3Slider';
@@ -51,6 +51,7 @@ export default function RoomModal({
   const lights = useMemo(() => roomEntities.filter(({ id }) => id.startsWith('light.')), [roomEntities]);
   const climateEntities = useMemo(() => roomEntities.filter(({ id }) => id.startsWith('climate.')), [roomEntities]);
   const mediaPlayers = useMemo(() => roomEntities.filter(({ id }) => id.startsWith('media_player.')), [roomEntities]);
+  const vacuums = useMemo(() => roomEntities.filter(({ id }) => id.startsWith('vacuum.')), [roomEntities]);
   const tempOverview = useMemo(() => roomEntities.filter(({ id, entity }) => {
     if (id === settings?.tempEntityId || id === settings?.humidityEntityId) return true;
     const domain = id.split('.')[0];
@@ -66,6 +67,32 @@ export default function RoomModal({
   const activeClimate = activeClimateId ? entities[activeClimateId] : null;
   const climateModes = Array.isArray(activeClimate?.attributes?.hvac_modes) ? activeClimate.attributes.hvac_modes : [];
   const targetTemp = activeClimate?.attributes?.temperature;
+  const sourceClimateTempUnit = activeClimate?.attributes?.temperature_unit
+    || activeClimate?.attributes?.unit_of_measurement
+    || haConfig?.unit_system?.temperature
+    || haConfig?.temperature_unit
+    || '°C';
+  const displayTemperatureUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
+  const displayCurrentClimateTemp = Number.isFinite(activeClimate?.attributes?.current_temperature)
+    ? formatUnitValue(
+      convertValueByKind(activeClimate.attributes.current_temperature, {
+        kind: 'temperature',
+        fromUnit: sourceClimateTempUnit,
+        unitMode: effectiveUnitMode,
+      }),
+      { fallback: '--' },
+    )
+    : '--';
+  const displayTargetTemp = Number.isFinite(targetTemp)
+    ? formatUnitValue(
+      convertValueByKind(targetTemp, {
+        kind: 'temperature',
+        fromUnit: sourceClimateTempUnit,
+        unitMode: effectiveUnitMode,
+      }),
+      { fallback: '--' },
+    )
+    : '--';
   const hvacAction = activeClimate?.attributes?.hvac_action || activeClimate?.state || 'idle';
   const isCooling = hvacAction === 'cooling';
   const isHeating = hvacAction === 'heating';
@@ -84,18 +111,30 @@ export default function RoomModal({
       ...mediaPlayers.filter(({ id }) => id !== activeMedia.id),
     ];
   }, [mediaPlayers, activeMedia]);
+  const selectedVacuumId = settings?.vacuumEntityId && entities[settings.vacuumEntityId]
+    ? settings.vacuumEntityId
+    : (vacuums[0]?.id || null);
+  const orderedVacuums = useMemo(() => {
+    if (!selectedVacuumId) return vacuums;
+    return [
+      ...vacuums.filter(({ id }) => id === selectedVacuumId),
+      ...vacuums.filter(({ id }) => id !== selectedVacuumId),
+    ];
+  }, [vacuums, selectedVacuumId]);
 
   const showPopupClimate = settings?.showPopupClimate !== false;
   const showPopupLights = settings?.showPopupLights !== false;
   const showPopupTempOverview = settings?.showPopupTempOverview !== false;
   const showPopupMedia = settings?.showPopupMedia !== false;
+  const showPopupVacuum = settings?.showPopupVacuum !== false;
 
   const topEntityIds = useMemo(() => new Set([
     ...lights.map(({ id }) => id),
     ...climateEntities.map(({ id }) => id),
     ...mediaPlayers.map(({ id }) => id),
+    ...vacuums.map(({ id }) => id),
     ...tempOverview.map(({ id }) => id),
-  ]), [lights, climateEntities, mediaPlayers, tempOverview]);
+  ]), [lights, climateEntities, mediaPlayers, vacuums, tempOverview]);
 
   const otherEntities = useMemo(
     () => roomEntities.filter(({ id }) => !topEntityIds.has(id)),
@@ -144,8 +183,9 @@ export default function RoomModal({
     if (showPopupClimate && climateEntities.length > 0) weight += 3;
     if (showPopupTempOverview && tempOverview.length > 0) weight += 2;
     if (showPopupLights && lights.length > 0) weight += Math.min(4, 1 + Math.ceil(lights.length / 4));
+    if (showPopupVacuum && vacuums.length > 0) weight += 2;
     return weight;
-  }, [showPopupClimate, climateEntities.length, showPopupTempOverview, tempOverview.length, showPopupLights, lights.length]);
+  }, [showPopupClimate, climateEntities.length, showPopupTempOverview, tempOverview.length, showPopupLights, lights.length, showPopupVacuum, vacuums.length]);
 
   const rightColumnWeight = useMemo(() => {
     if (otherEntities.length === 0) return 1;
@@ -423,7 +463,7 @@ export default function RoomModal({
                   <>
                     <div className="flex items-center justify-between">
                       <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold">{t('room.tempSensor') || 'Temperature sensor'}</div>
-                      <div className="text-lg font-semibold text-[var(--text-primary)] tabular-nums">{activeClimate.attributes?.current_temperature ?? '--'}°</div>
+                      <div className="text-lg font-semibold text-[var(--text-primary)] tabular-nums">{displayCurrentClimateTemp}{displayTemperatureUnit}</div>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -456,7 +496,7 @@ export default function RoomModal({
                             colorClass={isHeating ? 'bg-orange-500' : 'bg-[var(--accent-color)]'}
                           />
                         </div>
-                        <div className="min-w-[52px] text-right text-base font-bold text-[var(--text-primary)]">{targetTemp}°</div>
+                        <div className="min-w-[52px] text-right text-base font-bold text-[var(--text-primary)]">{displayTargetTemp}{displayTemperatureUnit}</div>
                         <button onClick={() => handleClimateStep(0.5)} className="w-10 h-10 rounded-full popup-surface popup-surface-hover text-lg">+</button>
                       </div>
                     )}
@@ -594,6 +634,75 @@ export default function RoomModal({
                     );
                   })}
                 </div>
+                )}
+              </section>
+            )}
+
+            {showPopupVacuum && vacuums.length > 0 && (
+              <section className="popup-surface rounded-3xl p-4 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => toggleSectionCollapsed('vacuum')}
+                  className="w-full flex items-center justify-between text-left"
+                >
+                  <h4 className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)] flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-[var(--accent-color)]" />
+                    {t('room.popupVacuum') || 'Vacuum'}
+                  </h4>
+                  <ChevronDown className={`w-4 h-4 text-[var(--text-secondary)] transition-transform ${isSectionCollapsed('vacuum') ? '-rotate-90' : 'rotate-0'}`} />
+                </button>
+
+                {!isSectionCollapsed('vacuum') && (
+                  <div className="space-y-2 max-h-[28vh] overflow-y-auto custom-scrollbar pr-1">
+                    {orderedVacuums.map(({ id, entity }) => {
+                      const isCleaning = entity.state === 'cleaning';
+                      const battery = entity.attributes?.battery_level;
+                      const picture = getEntityImageUrl?.(entity.attributes?.entity_picture);
+                      return (
+                        <div key={id} className="relative rounded-xl px-3 py-2.5 bg-[var(--glass-bg)]/70 overflow-hidden">
+                          {picture && (
+                            <>
+                              <img src={picture} alt="" className="absolute inset-0 w-full h-full object-cover opacity-15 blur-lg scale-110 pointer-events-none" />
+                              <div className="absolute inset-0 bg-gradient-to-r from-black/25 to-black/5 pointer-events-none" />
+                            </>
+                          )}
+
+                          <div className="relative z-10 flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-lg overflow-hidden bg-[var(--glass-bg)] flex items-center justify-center shrink-0">
+                              {picture ? (
+                                <img src={picture} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <Bot className="w-5 h-5 text-[var(--text-secondary)]" />
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1 mr-2">
+                              <span className="block text-xs font-bold text-[var(--text-primary)] truncate">{entity.attributes?.friendly_name || id}</span>
+                              <span className="block text-[10px] text-[var(--text-secondary)] truncate uppercase tracking-widest">
+                                {entity.state}{Number.isFinite(battery) ? ` • ${battery}%` : ''}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => handleEntityAction('vacuum', isCleaning ? 'pause' : 'start', id)}
+                                className="w-10 h-10 rounded-xl popup-surface popup-surface-hover flex items-center justify-center"
+                                aria-label={isCleaning ? (t('vacuum.pause') || 'Pause') : (t('vacuum.start') || 'Start')}
+                              >
+                                {isCleaning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                              </button>
+                              <button
+                                onClick={() => handleEntityAction('vacuum', 'return_to_base', id)}
+                                className="px-2.5 h-10 rounded-xl popup-surface popup-surface-hover flex items-center justify-center text-[10px] font-bold uppercase tracking-widest"
+                              >
+                                {t('vacuum.home') || 'Home'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </section>
             )}

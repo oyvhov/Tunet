@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Home, Thermometer, Lightbulb, Tv, Activity } from 'lucide-react';
+import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import { getIconComponent } from '../../icons';
-import { getEffectiveRoomEntityIds } from '../../utils';
+import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveRoomEntityIds, getEffectiveUnitMode } from '../../utils';
 
 /**
  * RoomCard – shows a summary of a Home Assistant area (room).
@@ -22,6 +23,10 @@ export default function RoomCard({
   onOpen,
   t,
 }) {
+  const { unitsMode } = useConfig();
+  const { haConfig } = useHomeAssistantMeta();
+  const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+
   const areaName = customNames?.[cardId] || settings?.areaName || t('room.defaultName');
   const roomIconName = customIcons?.[cardId] || settings?.icon;
   const RoomIcon = roomIconName ? (getIconComponent(roomIconName) || Home) : Home;
@@ -69,14 +74,21 @@ export default function RoomCard({
   const climateEntity = climateId ? entities[climateId] : null;
   const tempEntity = tempId ? entities[tempId] : null;
   const motionEntity = motionId ? entities[motionId] : null;
+  const sourceTempUnit = tempEntity?.attributes?.unit_of_measurement
+    || climateEntity?.attributes?.temperature_unit
+    || climateEntity?.attributes?.unit_of_measurement
+    || haConfig?.unit_system?.temperature
+    || haConfig?.temperature_unit
+    || '°C';
+  const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
   const currentTemp = useMemo(() => {
     if (tempEntity) {
       const parsed = Number.parseFloat(tempEntity.state);
-      if (Number.isFinite(parsed)) return parsed.toFixed(1);
+      if (Number.isFinite(parsed)) return parsed;
     }
 
     const climateTemp = climateEntity?.attributes?.current_temperature;
-    if (Number.isFinite(climateTemp)) return String(climateTemp);
+    if (Number.isFinite(climateTemp)) return climateTemp;
 
     return null;
   }, [tempEntity, climateEntity]);
@@ -89,7 +101,21 @@ export default function RoomCard({
   }, [currentTemp]);
 
   const displayTemp = stableTemp ?? currentTemp;
+  const displayTempValue = useMemo(() => {
+    if (!Number.isFinite(displayTemp)) return null;
+    const converted = convertValueByKind(displayTemp, {
+      kind: 'temperature',
+      fromUnit: sourceTempUnit,
+      unitMode: effectiveUnitMode,
+    });
+    return formatUnitValue(converted, { fallback: '--' });
+  }, [displayTemp, sourceTempUnit, effectiveUnitMode]);
   const isOccupied = motionEntity?.state === 'on';
+  const occupancyPillLabel = useMemo(() => {
+    const deviceClass = motionEntity?.attributes?.device_class;
+    if (deviceClass === 'motion') return t('room.motionShort') || 'Motion';
+    return t('binary.occupancy.occupied') || 'Occupancy';
+  }, [motionEntity, t]);
   const hasMainLightToggle = !!mainLightId;
 
   const activeDeviceCount = useMemo(() => {
@@ -142,7 +168,7 @@ export default function RoomCard({
              </button>
 
              <div className="flex flex-col items-start text-left min-w-0 w-full mt-2">
-               <div className="text-base font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-85 truncate w-full">
+               <div className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate w-full">
                  {areaName}
                </div>
              </div>
@@ -150,37 +176,36 @@ export default function RoomCard({
 
            <div className="flex flex-col items-end gap-2">
              {showMotion && showOccupiedIndicator && isOccupied && (
-               <div className="relative flex h-3 w-3 mr-1">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-70" />
-                 <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 border border-green-300/60" />
+               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-green-500/12 border-green-400/30 text-green-300">
+                 <span className="text-xs tracking-widest font-bold uppercase">{occupancyPillLabel}</span>
                </div>
              )}
            </div>
         </div>
 
         <div className="mt-5 flex flex-wrap items-start justify-start gap-2.5 max-w-[220px]">
-          {showTemp && displayTemp && (
-            <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-              <Thermometer className="w-4 h-4 fill-current stroke-[1.75px]" />
-              <span>{displayTemp}°</span>
+          {showTemp && displayTempValue && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+              <Thermometer className="w-3 h-3 fill-current stroke-[1.75px]" />
+              <span className="text-xs tracking-widest font-bold uppercase">{displayTempValue}{displayTempUnit}</span>
             </div>
           )}
           {showLightChip && showLights && (
-            <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-              <Lightbulb className={`w-4 h-4 fill-current stroke-[1.75px] ${lightsOnCount > 0 ? 'text-amber-400' : ''}`} />
-              <span>{lightsOnCount}</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+              <Lightbulb className={`w-3 h-3 fill-current stroke-[1.75px] ${lightsOnCount > 0 ? 'text-amber-400' : ''}`} />
+              <span className="text-xs tracking-widest font-bold uppercase">{lightsOnCount}</span>
             </div>
           )}
           {showMediaChip && (
-            <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-              <Tv className={`w-4 h-4 ${mediaPlayingCount > 0 ? 'text-[var(--accent-color)]' : ''}`} />
-              <span>{mediaPlayingCount}</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+              <Tv className={`w-3 h-3 ${mediaPlayingCount > 0 ? 'text-[var(--accent-color)]' : ''}`} />
+              <span className="text-xs tracking-widest font-bold uppercase">{mediaPlayingCount}</span>
             </div>
           )}
           {showActiveChip && (
-            <div className="px-3.5 py-1.5 rounded-full popup-surface flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-              <Activity className="w-4 h-4" />
-              <span>{activeDeviceCount}</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
+              <Activity className="w-3 h-3" />
+              <span className="text-xs tracking-widest font-bold uppercase">{activeDeviceCount}</span>
             </div>
           )}
         </div>

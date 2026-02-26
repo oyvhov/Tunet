@@ -736,11 +736,11 @@ export default function ModalOrchestrator({
                   showMediaChip: true,
                   showActiveChip: true,
                   showOccupiedIndicator: true,
-                  showControlPanel: true,
                   showPopupClimate: true,
                   showPopupLights: true,
                   showPopupTempOverview: true,
                   showPopupMedia: true,
+                  showPopupVacuum: true,
                   size: 'large',
                 }
               };
@@ -806,6 +806,8 @@ export default function ModalOrchestrator({
             hiddenCards={hiddenCards}
             toggleCardVisibility={toggleCardVisibility}
             gridColumns={gridColumns}
+            pagesConfig={pagesConfig}
+            pageSettings={pageSettings}
             {...editModalProps}
           />
         </ModalSuspense>

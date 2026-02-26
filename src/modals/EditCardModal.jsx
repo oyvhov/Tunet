@@ -418,10 +418,12 @@ function CarMappingsSection({
   );
 }
 
-function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSetting, entities, t }) {
+function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSetting, entities, t, pageOptions = [] }) {
   const [refreshing, setRefreshing] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const [domainFilter, setDomainFilter] = React.useState('all');
+  const [showEntityFilter, setShowEntityFilter] = React.useState(true);
+  const [showCardFeatures, setShowCardFeatures] = React.useState(true);
 
   React.useEffect(() => {
     const keys = ['mainLightEntityId', 'tempEntityId', 'motionEntityId', 'humidityEntityId', 'climateEntityId'];
@@ -458,6 +460,11 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
     [applySearchAndDomain, roomEntityIds]
   );
 
+  const domainScopedEntityIds = React.useMemo(() => {
+    if (domainFilter === 'all') return roomEntityIds;
+    return roomEntityIds.filter((id) => id.startsWith(`${domainFilter}.`));
+  }, [roomEntityIds, domainFilter]);
+
   const handleRefresh = async () => {
     if (!conn || !editSettings.areaId) return;
     setRefreshing(true);
@@ -477,6 +484,28 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
     saveCardSetting(editSettingsKey, settingKey, next);
   };
 
+  const areAllDomainEntitiesExcluded = domainScopedEntityIds.length > 0
+    && domainScopedEntityIds.every((id) => excludedEntityIds.includes(id));
+  const hasExcludedDomainEntities = domainScopedEntityIds.some((id) => excludedEntityIds.includes(id));
+
+  const handleExcludeAllEntities = () => {
+    if (!domainScopedEntityIds.length || areAllDomainEntitiesExcluded) return;
+    const confirmed = globalThis.confirm(
+      t('room.excludeAllConfirm') || 'Are you sure you want to exclude all entities in this room?'
+    );
+    if (!confirmed) return;
+    const mergedExcluded = Array.from(new Set([...(Array.isArray(editSettings.excludedEntityIds) ? editSettings.excludedEntityIds : []), ...domainScopedEntityIds]));
+    saveCardSetting(editSettingsKey, 'excludedEntityIds', mergedExcluded);
+  };
+
+  const handleIncludeAllEntities = () => {
+    if (!domainScopedEntityIds.length || !hasExcludedDomainEntities) return;
+    const domainEntitySet = new Set(domainScopedEntityIds);
+    const currentExcluded = Array.isArray(editSettings.excludedEntityIds) ? editSettings.excludedEntityIds : [];
+    const nextExcluded = currentExcluded.filter((id) => !domainEntitySet.has(id));
+    saveCardSetting(editSettingsKey, 'excludedEntityIds', nextExcluded);
+  };
+
   const cardToggleOptions = [
     { key: 'showLights', label: t('room.showLights'), defaultVal: true },
     { key: 'showTemp', label: t('room.showTemp'), defaultVal: true },
@@ -487,7 +516,6 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
     { key: 'showMediaChip', label: t('room.showMediaChip') || 'Show media chip', defaultVal: true },
     { key: 'showActiveChip', label: t('room.showActiveChip') || 'Show active devices chip', defaultVal: true },
     { key: 'showOccupiedIndicator', label: t('room.showOccupiedIndicator') || 'Show occupied indicator', defaultVal: true },
-    { key: 'showControlPanel', label: t('room.showControlPanel') || 'Show control panel', defaultVal: true },
   ];
 
   const hasAutoCandidates = React.useMemo(() => ({
@@ -522,7 +550,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
   }, [editSettings, hasAutoCandidates]);
 
   const compactFeatureOptions = cardToggleOptions.filter((option) => {
-    if (['showLights', 'showLightChip', 'showControlPanel'].includes(option.key)) return hasSource.mainLightEntityId;
+    if (['showLights', 'showLightChip'].includes(option.key)) return hasSource.mainLightEntityId;
     if (option.key === 'showTemp') return hasSource.tempEntityId;
     if (['showMotion', 'showOccupiedIndicator'].includes(option.key)) return hasSource.motionEntityId;
     if (option.key === 'showHumidity') return hasSource.humidityEntityId;
@@ -534,6 +562,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
     all: t('room.filterAll') || 'All',
     light: t('room.domain.light') || 'Lights',
     climate: t('room.domain.climate') || 'Climate',
+    vacuum: t('room.domain.vacuum') || 'Vacuum',
     media_player: t('room.domain.mediaPlayer') || 'Media',
     sensor: t('room.domain.sensor') || 'Sensors',
     binary_sensor: t('room.domain.binarySensor') || 'Binary Sensors',
@@ -545,10 +574,13 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
   const entityActionLabels = {
     main: t('room.mainShort') || 'Main',
     climate: t('room.domain.climate') || 'Climate',
+    vacuum: t('room.domain.vacuum') || 'Vacuum',
     temp: t('room.tempShort') || 'Temp',
     motion: t('room.motionShort') || 'Motion',
     humidity: t('room.humidityShort') || 'Humidity',
   };
+
+  const navigateOnTap = editSettings.navigateOnTap === true;
 
   return (
     <div className="space-y-6">
@@ -569,7 +601,19 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
       </div>
 
       <div className="popup-surface rounded-2xl p-4 space-y-4">
-        <div className="text-xs uppercase font-bold tracking-widest text-gray-500">{t('room.entityFilter') || 'Entity filter'}</div>
+        <button
+          type="button"
+          onClick={() => setShowEntityFilter((prev) => !prev)}
+          className="w-full flex items-center justify-between gap-3 text-left"
+        >
+          <div className="text-xs uppercase font-bold tracking-widest text-gray-500">{t('room.entityFilter') || 'Entity filter'}</div>
+          <span className="text-[var(--text-secondary)] transition-transform">
+            {showEntityFilter ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </span>
+        </button>
+
+        {showEntityFilter && (
+        <>
 
         <input
           type="text"
@@ -580,7 +624,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
         />
 
         <div className="flex flex-wrap gap-2">
-          {['all', 'light', 'climate', 'media_player', 'sensor', 'binary_sensor', 'switch', 'fan', 'cover'].map((domain) => (
+          {['all', 'light', 'climate', 'vacuum', 'media_player', 'sensor', 'binary_sensor', 'switch', 'fan', 'cover'].map((domain) => (
             <button
               type="button"
               key={domain}
@@ -593,7 +637,27 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
         </div>
 
         <div className="space-y-2">
-          <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">{t('room.filterAreaEntities') || 'Area entities'}</div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">{t('room.filterAreaEntities') || 'Area entities'}</div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleIncludeAllEntities}
+                disabled={!domainScopedEntityIds.length || !hasExcludedDomainEntities}
+                className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-green-400/40 bg-green-500/10 text-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t('room.includeAll') || 'Include all'}
+              </button>
+              <button
+                type="button"
+                onClick={handleExcludeAllEntities}
+                disabled={!domainScopedEntityIds.length || areAllDomainEntitiesExcluded}
+                className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-red-400/40 bg-red-500/10 text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t('room.excludeAll') || 'Exclude all'}
+              </button>
+            </div>
+          </div>
           <div className="max-h-72 overflow-y-auto custom-scrollbar space-y-2 pr-1">
             {filteredAreaEntityIds.map((id) => {
               const isExcluded = excludedEntityIds.includes(id);
@@ -603,6 +667,8 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
               const deviceClass = entity?.attributes?.device_class;
               const isClimateEntity = id.startsWith('climate.');
               const isMainClimate = editSettings.climateEntityId === id;
+              const isVacuumEntity = id.startsWith('vacuum.');
+              const isMainVacuum = editSettings.vacuumEntityId === id;
               const isTempEntity = deviceClass === 'temperature' || id.includes('temperature') || id.includes('temp');
               const isMainTemp = editSettings.tempEntityId === id;
               const isMotionEntity = deviceClass === 'motion' || deviceClass === 'occupancy' || deviceClass === 'presence';
@@ -632,6 +698,15 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors ${isMainClimate ? 'bg-amber-500/15 border-amber-400/40 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                       >
                         {entityActionLabels.climate}
+                      </button>
+                    )}
+                    {isVacuumEntity && (
+                      <button
+                        type="button"
+                        onClick={() => saveCardSetting(editSettingsKey, 'vacuumEntityId', isMainVacuum ? null : id)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors ${isMainVacuum ? 'bg-amber-500/15 border-amber-400/40 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                      >
+                        {entityActionLabels.vacuum}
                       </button>
                     )}
                     {isTempEntity && (
@@ -677,10 +752,22 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
             )}
           </div>
         </div>
+        </>
+        )}
       </div>
 
       <div className="popup-surface rounded-2xl p-4 space-y-4">
-        <div className="text-xs uppercase font-bold tracking-widest text-gray-500">{t('room.cardFeatures') || 'Card features'}</div>
+        <button
+          type="button"
+          onClick={() => setShowCardFeatures((prev) => !prev)}
+          className="w-full flex items-center justify-between gap-3 text-left"
+        >
+          <div className="text-xs uppercase font-bold tracking-widest text-gray-500">{t('room.cardFeatures') || 'Card features'}</div>
+          <span className="text-[var(--text-secondary)] transition-transform">
+            {showCardFeatures ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </span>
+        </button>
+        {showCardFeatures && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {compactFeatureOptions.map(opt => {
           const value = editSettings[opt.key] !== undefined ? editSettings[opt.key] : opt.defaultVal;
@@ -697,6 +784,46 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
           );
         })}
         </div>
+        )}
+      </div>
+
+      <div className="popup-surface rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-primary)]">
+              {t('room.navigateOnTap') || 'Navigate on tap'}
+            </p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+              {t('room.navigateOnTapHint') || 'Open a dashboard page instead of the room popup when tapping this card.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => saveCardSetting(editSettingsKey, 'navigateOnTap', !navigateOnTap)}
+            className={`w-12 h-6 rounded-full transition-colors relative ${navigateOnTap ? 'bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]' : 'bg-[var(--glass-bg-hover)]'}`}
+          >
+            <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${navigateOnTap ? 'translate-x-6' : 'translate-x-0'}`} />
+          </button>
+        </div>
+
+        {navigateOnTap && (
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)]">
+              {t('room.navigateToPage') || 'Target page'}
+            </label>
+            <select
+              value={editSettings.navigateToPageId || ''}
+              onChange={(e) => saveCardSetting(editSettingsKey, 'navigateToPageId', e.target.value || null)}
+              className="w-full px-4 py-3 rounded-xl popup-surface text-[var(--text-primary)] text-sm outline-none focus:border-[var(--glass-border)] transition-colors"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              <option value="" style={{ backgroundColor: 'var(--modal-bg)', color: 'var(--text-primary)' }}>{t('room.selectTargetPage') || 'Select page'}</option>
+              {pageOptions.map((page) => (
+                <option key={page.id} value={page.id} style={{ backgroundColor: 'var(--modal-bg)', color: 'var(--text-primary)' }}>{page.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
     </div>
@@ -729,6 +856,8 @@ export default function EditCardModal({
   isEditWeatherTemp,
   gridColumns,
   conn,
+  pagesConfig,
+  pageSettings,
   customNames,
   saveCustomName,
   customIcons,
@@ -746,6 +875,14 @@ export default function EditCardModal({
     setShowVisibilityLogic(false);
     setShowPopupLogic(false);
   }, [isOpen, entityId]);
+
+  const roomPageOptions = React.useMemo(() => {
+    const pageIds = Array.isArray(pagesConfig?.pages) ? pagesConfig.pages : [];
+    return pageIds.map((pageId) => {
+      const configuredLabel = pageSettings?.[pageId]?.label;
+      return { id: pageId, label: configuredLabel || pageId };
+    });
+  }, [pagesConfig, pageSettings]);
 
   if (!isOpen) return null;
 
@@ -978,7 +1115,7 @@ export default function EditCardModal({
                         </p>
                       </div>
                       <span className={`mt-0.5 transition-colors ${visibilityEnabled ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]/60'}`}>
-                        {showVisibilityLogic ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        {showVisibilityLogic ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                       </span>
                     </div>
                   </button>
@@ -1032,7 +1169,7 @@ export default function EditCardModal({
                         </p>
                       </div>
                       <span className={`mt-0.5 transition-colors ${popupTriggerEnabled ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]/60'}`}>
-                        {showPopupLogic ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        {showPopupLogic ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                       </span>
                     </div>
                   </button>
@@ -1894,6 +2031,7 @@ export default function EditCardModal({
               editSettingsKey={editSettingsKey}
               saveCardSetting={saveCardSetting}
               entities={entities}
+              pageOptions={roomPageOptions}
               t={t}
             />
           )}

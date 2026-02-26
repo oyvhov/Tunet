@@ -519,7 +519,7 @@ export function renderAlarmCard(cardId, dragProps, getControls, cardStyle, setti
 }
 
 export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, conn, cardSettings, customNames, customIcons, callService, setShowRoomModal, setShowEditCardModal, setEditCardSettingsKey, t } = ctx;
+  const { entities, editMode, conn, cardSettings, customNames, customIcons, callService, setShowRoomModal, setShowEditCardModal, setEditCardSettingsKey, setActivePage, t } = ctx;
   const roomSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   return (
     <RoomCard
@@ -538,6 +538,8 @@ export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settin
         if (editMode) {
           setShowEditCardModal(cardId);
           setEditCardSettingsKey(settingsKey);
+        } else if (roomSettings.navigateOnTap === true && roomSettings.navigateToPageId && setActivePage) {
+          setActivePage(roomSettings.navigateToPageId);
         } else {
           setShowRoomModal(cardId);
         }

@@ -498,6 +498,7 @@ function AppContent({ showOnboarding, setShowOnboarding }) {
     setPagesConfig,
     persistConfig,
     activePage,
+    setActivePage,
     hiddenCards,
     isCardHiddenByLogic,
     gridColCount,
