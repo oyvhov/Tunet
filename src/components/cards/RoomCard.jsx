@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { Home, Thermometer, Lightbulb, Tv, Activity } from 'lucide-react';
+import { Home, Thermometer, Lightbulb, Tv, Activity, Bot } from 'lucide-react';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import { getIconComponent } from '../../icons';
 import { convertValueByKind, formatUnitValue, getDisplayUnitForKind, getEffectiveRoomEntityIds, getEffectiveUnitMode } from '../../utils';
@@ -37,6 +37,7 @@ export default function RoomCard({
   const showLightChip = settings?.showLightChip !== false;
   const showMediaChip = settings?.showMediaChip !== false;
   const showActiveChip = settings?.showActiveChip !== false;
+  const showVacuumChip = settings?.showVacuumChip !== false;
   const showOccupiedIndicator = settings?.showOccupiedIndicator !== false;
 
   const roomEntityIds = useMemo(() => getEffectiveRoomEntityIds(settings), [settings]);
@@ -46,6 +47,7 @@ export default function RoomCard({
   }, [roomEntityIds]);
 
   const mediaPlayerIds = useMemo(() => roomEntityIds.filter(id => id.startsWith('media_player.')), [roomEntityIds]);
+  const vacuumIds = useMemo(() => roomEntityIds.filter(id => id.startsWith('vacuum.')), [roomEntityIds]);
 
   const mainLightId = useMemo(() => {
     if (settings?.mainLightEntityId && entities[settings.mainLightEntityId]) return settings.mainLightEntityId;
@@ -69,6 +71,12 @@ export default function RoomCard({
 
   const lightsOnCount = lightIds.filter(id => entities[id]?.state === 'on').length;
   const mediaPlayingCount = mediaPlayerIds.filter((id) => entities[id]?.state === 'playing').length;
+  const activeVacuum = useMemo(
+    () => vacuumIds
+      .map((id) => entities[id])
+      .find((entity) => entity && entity.state !== 'docked') || null,
+    [vacuumIds, entities],
+  );
   const isMainLightOn = mainLightId ? entities[mainLightId]?.state === 'on' : false;
   
   const climateEntity = climateId ? entities[climateId] : null;
@@ -117,6 +125,41 @@ export default function RoomCard({
     return t('binary.occupancy.occupied') || 'Occupancy';
   }, [motionEntity, t]);
   const hasMainLightToggle = !!mainLightId;
+  const vacuumStatusLabel = useMemo(() => {
+    if (!activeVacuum) return null;
+    switch (activeVacuum.state) {
+      case 'cleaning':
+        return t('vacuum.start') || 'Cleaning';
+      case 'returning':
+      case 'returning_home':
+        return 'Going home';
+      case 'error':
+        return 'Error';
+      case 'paused':
+      case 'idle':
+      case 'stopped':
+        return 'Stopped';
+      default:
+        return activeVacuum.state;
+    }
+  }, [activeVacuum, t]);
+  const vacuumPillToneClass = useMemo(() => {
+    switch (activeVacuum?.state) {
+      case 'cleaning':
+        return 'bg-emerald-500/12 border-emerald-400/30 text-emerald-300';
+      case 'returning':
+      case 'returning_home':
+        return 'bg-sky-500/12 border-sky-400/30 text-sky-300';
+      case 'error':
+        return 'bg-red-500/12 border-red-400/30 text-red-300';
+      case 'paused':
+      case 'idle':
+      case 'stopped':
+        return 'bg-amber-500/12 border-amber-400/30 text-amber-300';
+      default:
+        return 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]';
+    }
+  }, [activeVacuum]);
 
   const activeDeviceCount = useMemo(() => {
     const toggleDomains = new Set(['light', 'switch', 'fan', 'cover', 'climate', 'media_player']);
@@ -190,22 +233,28 @@ export default function RoomCard({
               <span className="text-xs tracking-widest font-bold uppercase">{displayTempValue}{displayTempUnit}</span>
             </div>
           )}
-          {showLightChip && showLights && (
+          {showLightChip && showLights && lightsOnCount > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
               <Lightbulb className={`w-3 h-3 fill-current stroke-[1.75px] ${lightsOnCount > 0 ? 'text-amber-400' : ''}`} />
               <span className="text-xs tracking-widest font-bold uppercase">{lightsOnCount}</span>
             </div>
           )}
-          {showMediaChip && (
+          {showMediaChip && mediaPlayingCount > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
               <Tv className={`w-3 h-3 ${mediaPlayingCount > 0 ? 'text-[var(--accent-color)]' : ''}`} />
               <span className="text-xs tracking-widest font-bold uppercase">{mediaPlayingCount}</span>
             </div>
           )}
-          {showActiveChip && (
+          {showActiveChip && activeDeviceCount > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
               <Activity className="w-3 h-3" />
               <span className="text-xs tracking-widest font-bold uppercase">{activeDeviceCount}</span>
+            </div>
+          )}
+          {showVacuumChip && vacuumStatusLabel && (
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${vacuumPillToneClass}`}>
+              <Bot className="w-3 h-3" />
+              <span className="text-xs tracking-widest font-bold uppercase">{vacuumStatusLabel}</span>
             </div>
           )}
         </div>

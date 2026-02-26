@@ -510,11 +510,10 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
     { key: 'showLights', label: t('room.showLights'), defaultVal: true },
     { key: 'showTemp', label: t('room.showTemp'), defaultVal: true },
     { key: 'showMotion', label: t('room.showMotion'), defaultVal: true },
-    { key: 'showHumidity', label: t('room.showHumidity'), defaultVal: false },
-    { key: 'showClimate', label: t('room.showClimate'), defaultVal: false },
     { key: 'showLightChip', label: t('room.showLightChip') || 'Show light chip', defaultVal: true },
     { key: 'showMediaChip', label: t('room.showMediaChip') || 'Show media chip', defaultVal: true },
     { key: 'showActiveChip', label: t('room.showActiveChip') || 'Show active devices chip', defaultVal: true },
+    { key: 'showVacuumChip', label: t('room.showVacuumChip') || 'Show vacuum chip', defaultVal: true },
     { key: 'showOccupiedIndicator', label: t('room.showOccupiedIndicator') || 'Show occupied indicator', defaultVal: true },
   ];
 
@@ -528,8 +527,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
       const e = entities[id];
       return e && (e.attributes?.device_class === 'motion' || e.attributes?.device_class === 'occupancy' || e.attributes?.device_class === 'presence');
     }),
-    humidityEntityId: activeAreaEntityIds.some((id) => entities[id]?.attributes?.device_class === 'humidity'),
-    climateEntityId: activeAreaEntityIds.some((id) => id.startsWith('climate.')),
+    vacuumEntityId: activeAreaEntityIds.some((id) => id.startsWith('vacuum.')),
   }), [activeAreaEntityIds, entities]);
 
   const hasSource = React.useMemo(() => {
@@ -537,15 +535,13 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
       mainLightEntityId: editSettings.mainLightEntityId,
       tempEntityId: editSettings.tempEntityId,
       motionEntityId: editSettings.motionEntityId,
-      humidityEntityId: editSettings.humidityEntityId,
-      climateEntityId: editSettings.climateEntityId,
+      vacuumEntityId: editSettings.vacuumEntityId,
     };
     return {
       mainLightEntityId: !!selected.mainLightEntityId || hasAutoCandidates.mainLightEntityId,
       tempEntityId: !!selected.tempEntityId || hasAutoCandidates.tempEntityId,
       motionEntityId: !!selected.motionEntityId || hasAutoCandidates.motionEntityId,
-      humidityEntityId: !!selected.humidityEntityId || hasAutoCandidates.humidityEntityId,
-      climateEntityId: !!selected.climateEntityId || hasAutoCandidates.climateEntityId,
+      vacuumEntityId: !!selected.vacuumEntityId || hasAutoCandidates.vacuumEntityId,
     };
   }, [editSettings, hasAutoCandidates]);
 
@@ -553,8 +549,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
     if (['showLights', 'showLightChip'].includes(option.key)) return hasSource.mainLightEntityId;
     if (option.key === 'showTemp') return hasSource.tempEntityId;
     if (['showMotion', 'showOccupiedIndicator'].includes(option.key)) return hasSource.motionEntityId;
-    if (option.key === 'showHumidity') return hasSource.humidityEntityId;
-    if (option.key === 'showClimate') return hasSource.climateEntityId;
+    if (option.key === 'showVacuumChip') return hasSource.vacuumEntityId;
     return true;
   });
 

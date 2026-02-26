@@ -58,6 +58,49 @@ const normalizeGridColumns = (value) => {
   return Math.max(MIN_GRID_COLUMNS, Math.min(Math.round(parsed), MAX_GRID_COLUMNS));
 };
 
+const ROOM_CARD_DEFAULTS = {
+  showLightChip: true,
+  showMediaChip: true,
+  showActiveChip: true,
+  showVacuumChip: true,
+  showOccupiedIndicator: true,
+  showPopupClimate: true,
+  showPopupLights: true,
+  showPopupTempOverview: true,
+  showPopupMedia: true,
+  showPopupVacuum: true,
+  navigateOnTap: false,
+};
+
+function migrateCardSettings(rawSettings) {
+  if (!rawSettings || typeof rawSettings !== 'object') return { migratedSettings: {}, changed: false };
+
+  let changed = false;
+  const migratedSettings = { ...rawSettings };
+
+  Object.entries(migratedSettings).forEach(([settingsKey, settings]) => {
+    if (!settings || typeof settings !== 'object') return;
+
+    const isRoomSettings = settingsKey.includes('room_card_')
+      || String(settings.type || '').toLowerCase() === 'room'
+      || typeof settings.areaId === 'string';
+
+    if (!isRoomSettings) return;
+
+    const next = { ...settings };
+    Object.entries(ROOM_CARD_DEFAULTS).forEach(([key, defaultValue]) => {
+      if (next[key] === undefined) {
+        next[key] = defaultValue;
+        changed = true;
+      }
+    });
+
+    migratedSettings[settingsKey] = next;
+  });
+
+  return { migratedSettings, changed };
+}
+
 /** Synchronously load & migrate pagesConfig from localStorage. */
 function loadPagesConfig() {
   const parsed = readJSON('tunet_pages_config', null);
@@ -219,7 +262,11 @@ export const PageProvider = ({ children }) => {
     }
 
     const cardSettingsSaved = readJSON('tunet_card_settings', null);
-    if (cardSettingsSaved) setCardSettings(cardSettingsSaved);
+    if (cardSettingsSaved) {
+      const { migratedSettings, changed } = migrateCardSettings(cardSettingsSaved);
+      setCardSettings(migratedSettings);
+      if (changed) writeJSON('tunet_card_settings', migratedSettings);
+    }
   }, []);
 
   useEffect(() => {

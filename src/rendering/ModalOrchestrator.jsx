@@ -735,6 +735,7 @@ export default function ModalOrchestrator({
                   showLightChip: true,
                   showMediaChip: true,
                   showActiveChip: true,
+                  showVacuumChip: true,
                   showOccupiedIndicator: true,
                   showPopupClimate: true,
                   showPopupLights: true,
