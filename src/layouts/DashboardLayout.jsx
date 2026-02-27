@@ -209,6 +209,8 @@ export default function DashboardLayout(props) {
           <EditToolbar
             editMode={editMode}
             setEditMode={guardedSetEditMode}
+            activePage={activePage}
+            setActivePage={setActivePage}
             setShowAddCardModal={guardedSetShowAddCardModal}
             setShowConfigModal={guardedSetShowConfigModal}
             setConfigTab={setConfigTab}

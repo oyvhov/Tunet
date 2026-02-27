@@ -1,7 +1,6 @@
 import { Plus, Check, Edit2 } from '../icons';
 import SettingsDropdown from '../components/ui/SettingsDropdown';
 import { usePages } from '../contexts';
-import { usePageRouting } from '../hooks';
 
 /**
  * EditToolbar — add card, done, edit toggle, settings dropdown, connection dot.
@@ -9,6 +8,8 @@ import { usePageRouting } from '../hooks';
 export default function EditToolbar({
   editMode,
   setEditMode,
+  activePage,
+  setActivePage,
   setShowAddCardModal,
   setShowConfigModal,
   setConfigTab,
@@ -20,7 +21,6 @@ export default function EditToolbar({
   t,
 }) {
   const { pageSettings } = usePages();
-  const { activePage, setActivePage } = usePageRouting();
 
   return (
     <div className="relative flex flex-shrink-0 items-center justify-end gap-6 overflow-visible pb-2">
