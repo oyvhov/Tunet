@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+.vite
+.vscode
+*.log
+data/backups

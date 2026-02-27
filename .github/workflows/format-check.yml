@@ -1,0 +1,42 @@
+name: Format Check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting on changed files
+        shell: bash
+        run: |
+          mapfile -t files < <(
+            git diff --name-only --diff-filter=ACMR "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" \
+              | grep -E '\.(js|jsx|ts|tsx|json|css|md|yml|yaml|mjs|cjs|html)$' || true
+          )
+
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No formatter-target files changed in this PR."
+            exit 0
+          fi
+
+          printf 'Checking %s changed file(s) with Prettier\n' "${#files[@]}"
+          npx prettier --check "${files[@]}"
