@@ -53,8 +53,11 @@ async function writeJson(filePath, value) {
 }
 
 function extractAddonVersion(configYaml) {
-  const match = configYaml.match(/^version:\s*"([^"]+)"/m);
-  return match ? match[1] : null;
+  const quotedMatch = configYaml.match(/^version:\s*["']([^"']+)["']/m);
+  if (quotedMatch) return quotedMatch[1];
+
+  const plainMatch = configYaml.match(/^version:\s*([^\s#]+)\s*(?:#.*)?$/m);
+  return plainMatch ? plainMatch[1] : null;
 }
 
 function upsertTopSection(changelog, heading, body) {
