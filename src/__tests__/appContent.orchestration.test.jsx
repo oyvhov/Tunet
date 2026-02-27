@@ -33,6 +33,7 @@ vi.mock('../components', () => ({
 }));
 
 vi.mock('../contexts', () => ({
+  AppUiProvider: ({ children }) => children,
   HomeAssistantProvider: ({ children }) => children,
   ModalProvider: ({ children }) => children,
   useConfig: () => ({
@@ -153,6 +154,18 @@ vi.mock('../contexts', () => ({
     hasOpenModal: vi.fn(() => false),
     closeAllModals: vi.fn(),
   }),
+  useAppUiStateContext: () => ({
+    activeVacuumId: null,
+    setActiveVacuumId: vi.fn(),
+    showThemeSidebar: false,
+    setShowThemeSidebar: vi.fn(),
+    showLayoutSidebar: false,
+    setShowLayoutSidebar: vi.fn(),
+    editCardSettingsKey: null,
+    setEditCardSettingsKey: vi.fn(),
+    editMode: false,
+    setEditMode: mockFns.setEditMode,
+  }),
 }));
 
 vi.mock('../hooks', () => ({
@@ -246,34 +259,6 @@ vi.mock('../hooks', () => ({
     gridLayout: {},
     draggingId: null,
     touchPath: null,
-  }),
-  useAppComposition: () => ({
-    dashboardGridPage: {},
-    dashboardGridMedia: {},
-    dashboardGridGrid: {},
-    dashboardGridCards: {},
-    dashboardGridActions: {},
-    modalManagerCore: {},
-    modalManagerState: {},
-    modalManagerAppearance: {},
-    modalManagerLayout: {},
-    modalManagerOnboarding: {},
-    modalManagerPageManagement: {},
-    modalManagerEntityHelpers: {},
-    modalManagerAddCard: {},
-    modalManagerCardConfig: {},
-  }),
-  useAppUiState: () => ({
-    activeVacuumId: null,
-    setActiveVacuumId: vi.fn(),
-    showThemeSidebar: false,
-    setShowThemeSidebar: vi.fn(),
-    showLayoutSidebar: false,
-    setShowLayoutSidebar: vi.fn(),
-    editCardSettingsKey: null,
-    setEditCardSettingsKey: vi.fn(),
-    editMode: false,
-    setEditMode: mockFns.setEditMode,
   }),
   useSettingsAccessControl: () => ({
     showPinLockModal: false,

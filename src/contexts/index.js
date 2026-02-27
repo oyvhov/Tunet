@@ -7,3 +7,4 @@ export {
   useHomeAssistantMeta,
 } from './HomeAssistantContext';
 export { ModalProvider, useModalState } from './ModalContext';
+export { AppUiProvider, useAppUiStateContext } from './AppUiContext';
