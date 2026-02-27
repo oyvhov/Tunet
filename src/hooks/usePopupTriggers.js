@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { evaluateVisibilityConditionConfig, isConditionConfigured, resolveConditionEntityId } from '../utils';
+import {
+  evaluateVisibilityConditionConfig,
+  isConditionConfigured,
+  resolveConditionEntityId,
+} from '../utils';
 
 const STARTUP_SUPPRESSION_MS = 15000;
 const MIN_REOPEN_SUPPRESSION_MS = 10000;
@@ -10,7 +14,10 @@ function normalizeCooldownMs(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return MIN_REOPEN_SUPPRESSION_MS;
   const clampedSeconds = Math.min(3600, Math.max(10, Math.floor(parsed)));
-  return Math.min(MAX_REOPEN_SUPPRESSION_MS, Math.max(MIN_REOPEN_SUPPRESSION_MS, clampedSeconds * 1000));
+  return Math.min(
+    MAX_REOPEN_SUPPRESSION_MS,
+    Math.max(MIN_REOPEN_SUPPRESSION_MS, clampedSeconds * 1000)
+  );
 }
 
 function normalizeAutoCloseMs(value) {
@@ -61,9 +68,12 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
 
   if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
     const resolvedLightId = resolveConditionEntityId(cardId, settings || {}, entities || {});
-    const lightId = (typeof resolvedLightId === 'string' && resolvedLightId.startsWith('light.'))
-      ? resolvedLightId
-      : (cardId.startsWith('light.') ? cardId : null);
+    const lightId =
+      typeof resolvedLightId === 'string' && resolvedLightId.startsWith('light.')
+        ? resolvedLightId
+        : cardId.startsWith('light.')
+          ? cardId
+          : null;
     if (!lightId) return false;
     closeAndOpen(() => setShowLightModal(lightId));
     return true;
@@ -156,7 +166,9 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
   }
 
   if (cardId.startsWith('media_group_')) {
-    const entityIds = Array.isArray(settings?.entityIds) ? settings.entityIds.filter((id) => typeof id === 'string') : [];
+    const entityIds = Array.isArray(settings?.entityIds)
+      ? settings.entityIds.filter((id) => typeof id === 'string')
+      : [];
     const firstEntityId = entityIds[0] || null;
     closeAndOpen(() => {
       setActiveMediaSessionSensorIds(null);
@@ -267,7 +279,7 @@ export function usePopupTriggers({
 
       const matchedBefore = Boolean(previousMatchRef.current[triggerId]);
       const lastOpenedAt = Number(lastOpenedAtRef.current[triggerId]) || 0;
-      const isCoolingDown = (now - lastOpenedAt) < reopenSuppressionMs;
+      const isCoolingDown = now - lastOpenedAt < reopenSuppressionMs;
 
       if (matchesNow && !matchedBefore && !isCoolingDown && !cardToOpen) {
         cardToOpen = cardId;
@@ -295,7 +307,9 @@ export function usePopupTriggers({
           autoCloseTimerRef.current = null;
         }
 
-        const autoCloseMs = normalizeAutoCloseMs(cardSettingsToOpen?.popupTrigger?.autoCloseSeconds);
+        const autoCloseMs = normalizeAutoCloseMs(
+          cardSettingsToOpen?.popupTrigger?.autoCloseSeconds
+        );
         if (autoCloseMs > 0 && typeof modalActions?.closeAllModals === 'function') {
           autoCloseTimerRef.current = setTimeout(() => {
             modalActions.closeAllModals();
@@ -316,10 +330,13 @@ export function usePopupTriggers({
     enabled,
   ]);
 
-  useEffect(() => () => {
-    if (autoCloseTimerRef.current) {
-      clearTimeout(autoCloseTimerRef.current);
-      autoCloseTimerRef.current = null;
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (autoCloseTimerRef.current) {
+        clearTimeout(autoCloseTimerRef.current);
+        autoCloseTimerRef.current = null;
+      }
+    },
+    []
+  );
 }

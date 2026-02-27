@@ -39,14 +39,29 @@ const MODAL_DEFAULTS = {
 
 // Keys checked by hasOpenModal
 const OPEN_CHECK_KEYS = [
-  'showNordpoolModal', 'showCostModal', 'activeClimateEntityModal',
-  'showLightModal', 'activeCarModal', 'showAndroidTVModal', 'showVacuumModal',
+  'showNordpoolModal',
+  'showCostModal',
+  'activeClimateEntityModal',
+  'showLightModal',
+  'activeCarModal',
+  'showAndroidTVModal',
+  'showVacuumModal',
   'showFanModal',
-  'showAddCardModal', 'showConfigModal', 'showEditCardModal',
-  'showSensorInfoModal', 'activeMediaModal', 'showStatusPillsConfig',
-  'showPersonModal', 'showCalendarModal', 'showTodoModal',
-  'showRoomModal', 'showWeatherModal', 'showCoverModal', 'showCameraModal',
-  'showAlarmModal', 'showAlarmActionModal',
+  'showAddCardModal',
+  'showConfigModal',
+  'showEditCardModal',
+  'showSensorInfoModal',
+  'activeMediaModal',
+  'showStatusPillsConfig',
+  'showPersonModal',
+  'showCalendarModal',
+  'showTodoModal',
+  'showRoomModal',
+  'showWeatherModal',
+  'showCoverModal',
+  'showCameraModal',
+  'showAlarmModal',
+  'showAlarmActionModal',
 ];
 
 /** @param {ModalState} state @param {{ type: 'SET', key: keyof ModalState, value: ModalState[keyof ModalState] } | { type: 'CLOSE_ALL' }} action */
@@ -80,15 +95,9 @@ export function useModals() {
     return result;
   }, []);
 
-  const hasOpenModal = useCallback(
-    () => OPEN_CHECK_KEYS.some((key) => !!state[key]),
-    [state],
-  );
+  const hasOpenModal = useCallback(() => OPEN_CHECK_KEYS.some((key) => !!state[key]), [state]);
 
-  const closeAllModals = useCallback(
-    () => dispatch({ type: 'CLOSE_ALL' }),
-    [],
-  );
+  const closeAllModals = useCallback(() => dispatch({ type: 'CLOSE_ALL' }), []);
 
   return /** @type {UseModalsResult} */ ({ ...state, ...setters, hasOpenModal, closeAllModals });
 }

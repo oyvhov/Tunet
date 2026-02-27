@@ -18,8 +18,8 @@ import StatusPill from '../components/cards/StatusPill';
  * @param {Function} props.getEntityImageUrl - Get entity image URL
  * @param {Array} props.statusPillsConfig - Status pills configuration
  */
-export default function StatusBar({ 
-  entities, 
+export default function StatusBar({
+  entities,
   _now,
   setActiveMediaId,
   setActiveMediaGroupKey,
@@ -27,16 +27,16 @@ export default function StatusBar({
   setActiveMediaSessionSensorIds,
   setActiveMediaModal,
   setShowAlarmModal,
-  _setShowUpdateModal,  
+  _setShowUpdateModal,
   setShowStatusPillsConfig,
   editMode,
-  t, 
-  isSonosActive, 
-  isMediaActive, 
-  getA, 
-  getEntityImageUrl, 
+  t,
+  isSonosActive,
+  isMediaActive,
+  getA,
+  getEntityImageUrl,
   statusPillsConfig = [],
-  isMobile = false
+  isMobile = false,
 }) {
   const isSonosEntity = (entity) => {
     if (!entity) return false;
@@ -48,15 +48,18 @@ export default function StatusBar({
     return entityId.includes('sonos') || friendlyName.includes('sonos');
   };
 
-  const getSonosEntities = () => Object.keys(entities)
-    .filter(id => id.startsWith('media_player.'))
-    .map(id => entities[id])
-    .filter(isSonosEntity);
+  const getSonosEntities = () =>
+    Object.keys(entities)
+      .filter((id) => id.startsWith('media_player.'))
+      .map((id) => entities[id])
+      .filter(isSonosEntity);
 
   const hasSonosMediaMetadata = (entity) => {
     if (!entity) return false;
     const attrs = entity.attributes || {};
-    const hasText = Boolean(attrs.media_title || attrs.media_channel || attrs.media_artist || attrs.media_album_name);
+    const hasText = Boolean(
+      attrs.media_title || attrs.media_channel || attrs.media_artist || attrs.media_album_name
+    );
     const hasImage = Boolean(attrs.entity_picture || attrs.media_image_url);
     return hasText || hasImage;
   };
@@ -71,10 +74,7 @@ export default function StatusBar({
 
   const matchesMediaFilter = (id, filter, mode) => {
     if (!filter) return true;
-    const patterns = filter
-      .split(',')
-      .map(normalizePattern)
-      .filter(Boolean);
+    const patterns = filter.split(',').map(normalizePattern).filter(Boolean);
     if (patterns.length === 0) return true;
 
     return patterns.some((pattern) => {
@@ -99,35 +99,42 @@ export default function StatusBar({
 
   const setMediaNameDisplayFilter = (pill) => {
     try {
-      localStorage.setItem('tunet_media_name_display_filter', typeof pill?.playerNameDisplayFilter === 'string' ? pill.playerNameDisplayFilter : '');
+      localStorage.setItem(
+        'tunet_media_name_display_filter',
+        typeof pill?.playerNameDisplayFilter === 'string' ? pill.playerNameDisplayFilter : ''
+      );
     } catch {
       // ignore localStorage errors
     }
   };
 
   return (
-    <div className="flex items-center justify-between w-full mt-0 font-sans">
-      <div className={`flex flex-wrap items-center min-w-0 ${isMobile ? 'gap-1.5' : 'gap-2.5'}`}>
+    <div className="mt-0 flex w-full items-center justify-between font-sans">
+      <div className={`flex min-w-0 flex-wrap items-center ${isMobile ? 'gap-1.5' : 'gap-2.5'}`}>
         {/* Edit button (only in edit mode) - at first position */}
         {editMode && (
           <button
             onClick={() => setShowStatusPillsConfig(true)}
-            className={`flex items-center gap-1.5 rounded-full border transition-all bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)] ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1'}`}
+            className={`flex items-center gap-1.5 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] transition-all hover:bg-[var(--accent-bg)] ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1'}`}
             title={t('statusBar.editPills')}
           >
-            <Edit2 className="w-3 h-3" />
-            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">{t('statusBar.pills')}</span>
+            <Edit2 className="h-3 w-3" />
+            <span className="text-[10px] font-bold tracking-[0.2em] uppercase">
+              {t('statusBar.pills')}
+            </span>
           </button>
         )}
-        
+
         {/* Configurable status pills */}
         {statusPillsConfig
-          .filter(pill => pill.visible !== false)
-          .map(pill => {
+          .filter((pill) => pill.visible !== false)
+          .map((pill) => {
             if (pill.type === 'alarm') {
-              const alarmEntityId = typeof pill.entityId === 'string' && pill.entityId.startsWith('alarm_control_panel.')
-                ? pill.entityId
-                : '';
+              const alarmEntityId =
+                typeof pill.entityId === 'string' &&
+                pill.entityId.startsWith('alarm_control_panel.')
+                  ? pill.entityId
+                  : '';
               const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
 
               return (
@@ -138,9 +145,11 @@ export default function StatusBar({
                   getA={getA}
                   t={t}
                   isMobile={isMobile}
-                  onClick={pill.clickable !== false && alarmEntityId
-                    ? () => setShowAlarmModal(alarmEntityId)
-                    : undefined}
+                  onClick={
+                    pill.clickable !== false && alarmEntityId
+                      ? () => setShowAlarmModal(alarmEntityId)
+                      : undefined
+                  }
                 />
               );
             }
@@ -152,8 +161,10 @@ export default function StatusBar({
                   return pill.entityId
                     ? [pill.entityId]
                     : Object.keys(entities)
-                        .filter(id => id.startsWith('media_player.'))
-                        .filter(id => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode));
+                        .filter((id) => id.startsWith('media_player.'))
+                        .filter((id) =>
+                          matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode)
+                        );
                 }
 
                 if (Array.isArray(pill.mediaEntityIds) && pill.mediaEntityIds.length > 0) {
@@ -161,12 +172,12 @@ export default function StatusBar({
                 }
 
                 return Object.keys(entities)
-                  .filter(id => id.startsWith('media_player.'))
-                  .filter(id => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode));
+                  .filter((id) => id.startsWith('media_player.'))
+                  .filter((id) => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode));
               })();
-              const mediaEntities = mediaIds.map(id => entities[id]).filter(Boolean);
-              const playingCount = mediaEntities.filter(e => e.state === 'playing').length;
-              
+              const mediaEntities = mediaIds.map((id) => entities[id]).filter(Boolean);
+              const playingCount = mediaEntities.filter((e) => e.state === 'playing').length;
+
               return (
                 <StatusPill
                   key={pill.id}
@@ -177,46 +188,61 @@ export default function StatusBar({
                   isMediaActive={isMediaActive}
                   t={t}
                   isMobile={isMobile}
-                  badge={pill.showCount
-                    ? (pill.type === 'emby'
-                      ? (playingCount >= 2 ? playingCount : undefined)
-                      : (pill.type === 'media_player' && playingCount > 0 ? playingCount : undefined))
-                    : undefined}
-                  onClick={pill.clickable ? () => {
-                    const activeEntities = mediaEntities.filter(isMediaActive);
-                    const firstActive = activeEntities[0];
-                    if (!firstActive) return;
-                    setMediaNameDisplayFilter(pill);
-                    const activeMediaIds = activeEntities.map((entity) => entity.entity_id).filter(Boolean);
-                    setActiveMediaId(firstActive.entity_id);
-                    setActiveMediaGroupKey(null);
-                    setActiveMediaGroupIds(activeMediaIds);
-                    if (pill.type === 'emby' && Array.isArray(pill.sessionSensorIds)) {
-                      setActiveMediaSessionSensorIds(pill.sessionSensorIds);
-                    } else {
-                      setActiveMediaSessionSensorIds(null);
-                    }
-                    setActiveMediaModal('media');
-                  } : undefined}
+                  badge={
+                    pill.showCount
+                      ? pill.type === 'emby'
+                        ? playingCount >= 2
+                          ? playingCount
+                          : undefined
+                        : pill.type === 'media_player' && playingCount > 0
+                          ? playingCount
+                          : undefined
+                      : undefined
+                  }
+                  onClick={
+                    pill.clickable
+                      ? () => {
+                          const activeEntities = mediaEntities.filter(isMediaActive);
+                          const firstActive = activeEntities[0];
+                          if (!firstActive) return;
+                          setMediaNameDisplayFilter(pill);
+                          const activeMediaIds = activeEntities
+                            .map((entity) => entity.entity_id)
+                            .filter(Boolean);
+                          setActiveMediaId(firstActive.entity_id);
+                          setActiveMediaGroupKey(null);
+                          setActiveMediaGroupIds(activeMediaIds);
+                          if (pill.type === 'emby' && Array.isArray(pill.sessionSensorIds)) {
+                            setActiveMediaSessionSensorIds(pill.sessionSensorIds);
+                          } else {
+                            setActiveMediaSessionSensorIds(null);
+                          }
+                          setActiveMediaModal('media');
+                        }
+                      : undefined
+                  }
                 />
               );
             }
-            
+
             if (pill.type === 'sonos') {
-              const selectedMediaIds = Array.isArray(pill.mediaEntityIds) ? pill.mediaEntityIds : [];
+              const selectedMediaIds = Array.isArray(pill.mediaEntityIds)
+                ? pill.mediaEntityIds
+                : [];
               const filteredMediaIds = Object.keys(entities)
                 .filter((id) => id.startsWith('media_player.'))
                 .filter((id) => matchesMediaFilter(id, pill.mediaFilter, pill.mediaFilterMode));
-              const sourceMediaIds = (pill.mediaSelectionMode === 'select' && selectedMediaIds.length > 0)
-                ? selectedMediaIds
-                : filteredMediaIds;
+              const sourceMediaIds =
+                pill.mediaSelectionMode === 'select' && selectedMediaIds.length > 0
+                  ? selectedMediaIds
+                  : filteredMediaIds;
               const detectedSonosIds = getSonosEntities()
                 .map((entity) => entity.entity_id)
                 .filter((id) => sourceMediaIds.includes(id));
               const sonosIds = detectedSonosIds.length > 0 ? detectedSonosIds : sourceMediaIds;
-              const sonosEntities = sonosIds.map(id => entities[id]).filter(Boolean);
-              const sonosPlayingCount = sonosEntities.filter(e => e.state === 'playing').length;
-              
+              const sonosEntities = sonosIds.map((id) => entities[id]).filter(Boolean);
+              const sonosPlayingCount = sonosEntities.filter((e) => e.state === 'playing').length;
+
               return (
                 <StatusPill
                   key={pill.id}
@@ -228,29 +254,46 @@ export default function StatusBar({
                   t={t}
                   isMobile={isMobile}
                   badge={pill.showCount && sonosPlayingCount > 0 ? sonosPlayingCount : undefined}
-                  onClick={pill.clickable ? () => {
-                    const activeEntities = sonosEntities.filter(isSonosActive);
-                    const playingEntities = activeEntities.filter((entity) => entity.state === 'playing');
-                    const metadataEntities = sonosEntities.filter(hasSonosMediaMetadata);
-                    const preferredEntity = playingEntities[0] || metadataEntities[0] || activeEntities[0] || sonosEntities[0];
-                    const selectedBase = activeEntities.length > 0 ? activeEntities : (metadataEntities.length > 0 ? metadataEntities : sonosEntities);
-                    const selectedIds = selectedBase
-                      .map((entity) => entity?.entity_id)
-                      .filter(Boolean);
+                  onClick={
+                    pill.clickable
+                      ? () => {
+                          const activeEntities = sonosEntities.filter(isSonosActive);
+                          const playingEntities = activeEntities.filter(
+                            (entity) => entity.state === 'playing'
+                          );
+                          const metadataEntities = sonosEntities.filter(hasSonosMediaMetadata);
+                          const preferredEntity =
+                            playingEntities[0] ||
+                            metadataEntities[0] ||
+                            activeEntities[0] ||
+                            sonosEntities[0];
+                          const selectedBase =
+                            activeEntities.length > 0
+                              ? activeEntities
+                              : metadataEntities.length > 0
+                                ? metadataEntities
+                                : sonosEntities;
+                          const selectedIds = selectedBase
+                            .map((entity) => entity?.entity_id)
+                            .filter(Boolean);
 
-                    if (!preferredEntity) return;
+                          if (!preferredEntity) return;
 
-                    setMediaNameDisplayFilter(pill);
-                    setActiveMediaId(preferredEntity.entity_id);
-                    setActiveMediaGroupKey(null);
-                    setActiveMediaGroupIds(selectedIds.length > 0 ? selectedIds : [preferredEntity.entity_id]);
-                    setActiveMediaSessionSensorIds(null);
-                    setActiveMediaModal('sonos');
-                  } : undefined}
+                          setMediaNameDisplayFilter(pill);
+                          setActiveMediaId(preferredEntity.entity_id);
+                          setActiveMediaGroupKey(null);
+                          setActiveMediaGroupIds(
+                            selectedIds.length > 0 ? selectedIds : [preferredEntity.entity_id]
+                          );
+                          setActiveMediaSessionSensorIds(null);
+                          setActiveMediaModal('sonos');
+                        }
+                      : undefined
+                  }
                 />
               );
             }
-            
+
             // Default conditional pill
             return (
               <StatusPill
@@ -262,8 +305,7 @@ export default function StatusBar({
                 isMobile={isMobile}
               />
             );
-          })
-        }
+          })}
       </div>
     </div>
   );

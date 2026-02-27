@@ -128,14 +128,14 @@ describe('useEntityHelpers › getEntityImageUrl', () => {
   it('returns absolute URL unchanged', () => {
     const { result } = renderHook(() => useEntityHelpers(baseProps()));
     expect(result.current.getEntityImageUrl('https://img.server/pic.jpg')).toBe(
-      'https://img.server/pic.jpg',
+      'https://img.server/pic.jpg'
     );
   });
 
   it('prefixes relative URL with activeUrl', () => {
     const { result } = renderHook(() => useEntityHelpers(baseProps()));
     expect(result.current.getEntityImageUrl('/api/camera_proxy/camera.front')).toBe(
-      'http://homeassistant.local:8123/api/camera_proxy/camera.front',
+      'http://homeassistant.local:8123/api/camera_proxy/camera.front'
     );
   });
 
@@ -143,9 +143,7 @@ describe('useEntityHelpers › getEntityImageUrl', () => {
     const props = baseProps();
     props.activeUrl = 'http://ha.local:8123/';
     const { result } = renderHook(() => useEntityHelpers(props));
-    expect(result.current.getEntityImageUrl('/img.jpg')).toBe(
-      'http://ha.local:8123/img.jpg',
-    );
+    expect(result.current.getEntityImageUrl('/img.jpg')).toBe('http://ha.local:8123/img.jpg');
   });
 });
 
@@ -163,12 +161,9 @@ describe('useEntityHelpers › callService', () => {
     const res = await result.current.callService('light', 'turn_on', {
       entity_id: 'light.room',
     });
-    expect(haCallService).toHaveBeenCalledWith(
-      expect.anything(),
-      'light',
-      'turn_on',
-      { entity_id: 'light.room' },
-    );
+    expect(haCallService).toHaveBeenCalledWith(expect.anything(), 'light', 'turn_on', {
+      entity_id: 'light.room',
+    });
     expect(res).toEqual({ ok: true });
   });
 
@@ -177,7 +172,7 @@ describe('useEntityHelpers › callService', () => {
     props.conn = null;
     const { result } = renderHook(() => useEntityHelpers(props));
     await expect(result.current.callService('light', 'toggle', {})).rejects.toThrow(
-      'No connection',
+      'No connection'
     );
   });
 
@@ -185,12 +180,10 @@ describe('useEntityHelpers › callService', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     haCallService.mockRejectedValueOnce(new Error('timeout'));
     const { result } = renderHook(() => useEntityHelpers(baseProps()));
-    await expect(
-      result.current.callService('switch', 'turn_off', {}),
-    ).rejects.toThrow('timeout');
+    await expect(result.current.callService('switch', 'turn_off', {})).rejects.toThrow('timeout');
     expect(errorSpy).toHaveBeenCalledWith(
       'Service call failed: switch.turn_off',
-      expect.any(Error),
+      expect.any(Error)
     );
     errorSpy.mockRestore();
   });
@@ -274,7 +267,7 @@ describe('useEntityHelpers › climate maps', () => {
     const { result } = renderHook(() => useEntityHelpers(baseProps()));
     const keys = Object.keys(result.current.hvacMap);
     expect(keys).toEqual(
-      expect.arrayContaining(['off', 'auto', 'cool', 'dry', 'fan_only', 'heat']),
+      expect.arrayContaining(['off', 'auto', 'cool', 'dry', 'fan_only', 'heat'])
     );
   });
 
@@ -282,7 +275,7 @@ describe('useEntityHelpers › climate maps', () => {
     const { result } = renderHook(() => useEntityHelpers(baseProps()));
     const keys = Object.keys(result.current.fanMap);
     expect(keys).toEqual(
-      expect.arrayContaining(['Auto', 'Low', 'LowMid', 'Mid', 'HighMid', 'High']),
+      expect.arrayContaining(['Auto', 'Low', 'LowMid', 'Mid', 'HighMid', 'High'])
     );
   });
 
@@ -290,7 +283,7 @@ describe('useEntityHelpers › climate maps', () => {
     const { result } = renderHook(() => useEntityHelpers(baseProps()));
     const keys = Object.keys(result.current.swingMap);
     expect(keys).toEqual(
-      expect.arrayContaining(['Auto', 'Up', 'UpMid', 'Mid', 'DownMid', 'Down', 'Swing']),
+      expect.arrayContaining(['Auto', 'Up', 'UpMid', 'Mid', 'DownMid', 'Down', 'Swing'])
     );
   });
 });

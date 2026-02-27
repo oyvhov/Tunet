@@ -10,7 +10,7 @@ real-time entity updates, and drag-and-drop customisation.
 3. Open the **Tunet** panel in the sidebar.
 4. On first launch you will see the onboarding screen.
 5. Create a **Long-Lived Access Token** in your HA profile
-   (click your username → scroll down → *Long-Lived Access Tokens* → *Create Token*).
+   (click your username → scroll down → _Long-Lived Access Tokens_ → _Create Token_).
 6. Paste the token and click **Test Connection**.
 7. Once the test succeeds, click **Next** and finish the setup.
 
@@ -44,10 +44,10 @@ real-time entity updates, and drag-and-drop customisation.
 - Symptom: Home Assistant reports a newer add-on version, but the dashboard still shows an older app build.
 - Cause: stale cached image layers from previous builds can keep old frontend assets.
 - Fix:
-   1. Update to the latest add-on release.
-   2. Stop the add-on.
-   3. Use **Rebuild** once, then start again.
-   4. Hard-refresh browser (`Ctrl+Shift+R`).
+  1.  Update to the latest add-on release.
+  2.  Stop the add-on.
+  3.  Use **Rebuild** once, then start again.
+  4.  Hard-refresh browser (`Ctrl+Shift+R`).
 
 Tunet add-on builds are now version-resolved from release tags before falling back to `main`, which prevents this mismatch in normal updates.
 

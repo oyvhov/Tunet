@@ -8,7 +8,7 @@ describe('getCardGridSpan', () => {
   const identity = (id) => id;
 
   it('returns 1 for small lights', () => {
-    const settings = { 'light_abc': { size: 'small' } };
+    const settings = { light_abc: { size: 'small' } };
     expect(getCardGridSpan('light_abc', identity, settings, 'home')).toBe(1);
   });
 
@@ -17,12 +17,12 @@ describe('getCardGridSpan', () => {
   });
 
   it('returns 1 for small calendar cards', () => {
-    const settings = { 'calendar_card_1': { size: 'small' } };
+    const settings = { calendar_card_1: { size: 'small' } };
     expect(getCardGridSpan('calendar_card_1', identity, settings, 'home')).toBe(1);
   });
 
   it('returns 2 for medium calendar cards', () => {
-    const settings = { 'calendar_card_1': { size: 'medium' } };
+    const settings = { calendar_card_1: { size: 'medium' } };
     expect(getCardGridSpan('calendar_card_1', identity, settings, 'home')).toBe(2);
   });
 
@@ -31,7 +31,7 @@ describe('getCardGridSpan', () => {
   });
 
   it('returns 1 for small car cards', () => {
-    const settings = { 'car_card_1': { size: 'small' } };
+    const settings = { car_card_1: { size: 'small' } };
     expect(getCardGridSpan('car_card_1', identity, settings, 'home')).toBe(1);
   });
 
@@ -72,7 +72,7 @@ describe('getCardGridSpan', () => {
   });
 
   it('returns 1 for small room cards', () => {
-    const settings = { 'room_card_1': { size: 'small' } };
+    const settings = { room_card_1: { size: 'small' } };
     expect(getCardGridSpan('room_card_1', identity, settings, 'home')).toBe(1);
   });
 
@@ -81,36 +81,36 @@ describe('getCardGridSpan', () => {
   });
 
   it('returns estimated spacer span when heightPx is set', () => {
-    const settings = { 'spacer_card_1': { heightPx: 260 } };
+    const settings = { spacer_card_1: { heightPx: 260 } };
     expect(getCardGridSpan('spacer_card_1', identity, settings, 'home')).toBe(3);
   });
 
   it('supports legacy spacer heightRows setting', () => {
-    const settings = { 'spacer_card_1': { heightRows: 3 } };
+    const settings = { spacer_card_1: { heightRows: 3 } };
     expect(getCardGridSpan('spacer_card_1', identity, settings, 'home')).toBe(3);
   });
 
   it('uses runtime row/gap metrics for spacer heightPx span', () => {
-    const settings = { 'spacer_card_1': { heightPx: 420 } };
+    const settings = { spacer_card_1: { heightPx: 420 } };
     const metrics = { rowPx: 82, gapPx: 12 };
     expect(getCardGridSpan('spacer_card_1', identity, settings, 'home', metrics)).toBe(5);
   });
 
   it('falls back to size behavior for spacer when heightRows is not set', () => {
-    const settings = { 'spacer_card_1': { size: 'small' } };
+    const settings = { spacer_card_1: { size: 'small' } };
     expect(getCardGridSpan('spacer_card_1', identity, settings, 'home')).toBe(1);
     expect(getCardGridSpan('spacer_card_2', identity, {}, 'home')).toBe(2);
   });
 
   it('uses getCardSettingsKey to resolve settings', () => {
     const keyFn = (id) => `page_home_${id}`;
-    const settings = { 'page_home_light_abc': { size: 'small' } };
+    const settings = { page_home_light_abc: { size: 'small' } };
     expect(getCardGridSpan('light_abc', keyFn, settings, 'home')).toBe(1);
   });
 
   it('handles legacy "car" id', () => {
     expect(getCardGridSpan('car', identity, {}, 'home')).toBe(2);
-    const settings = { 'car': { size: 'small' } };
+    const settings = { car: { size: 'small' } };
     expect(getCardGridSpan('car', identity, settings, 'home')).toBe(1);
   });
 });
@@ -160,12 +160,12 @@ describe('getCardColSpan', () => {
   const identity = (id) => id;
 
   it('returns full width sentinel for colSpan=full', () => {
-    const settings = { 'spacer_card_1': { colSpan: 'full' } };
+    const settings = { spacer_card_1: { colSpan: 'full' } };
     expect(getCardColSpan('spacer_card_1', identity, settings)).toBe(Number.MAX_SAFE_INTEGER);
   });
 
   it('returns numeric colSpan when provided', () => {
-    const settings = { 'spacer_card_1': { colSpan: 3 } };
+    const settings = { spacer_card_1: { colSpan: 3 } };
     expect(getCardColSpan('spacer_card_1', identity, settings)).toBe(3);
   });
 });

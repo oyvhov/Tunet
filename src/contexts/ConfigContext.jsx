@@ -41,7 +41,7 @@ export const ConfigProvider = ({ children }) => {
     if (typeof globalThis.window !== 'undefined') {
       try {
         const saved = localStorage.getItem('tunet_theme');
-        return (saved && themes[saved]) ? saved : 'dark';
+        return saved && themes[saved] ? saved : 'dark';
       } catch (error) {
         console.error('Failed to read theme from localStorage:', error);
         return 'dark';
@@ -60,15 +60,17 @@ export const ConfigProvider = ({ children }) => {
     }
   });
 
-  const [unitsMode, setUnitsMode] = useState(/** @returns {'follow_ha' | 'metric' | 'imperial'} */ () => {
-    try {
-      const saved = localStorage.getItem('tunet_units_mode');
-      if (saved === 'follow_ha' || saved === 'metric' || saved === 'imperial') return saved;
-      return 'follow_ha';
-    } catch {
-      return 'follow_ha';
+  const [unitsMode, setUnitsMode] = useState(
+    /** @returns {'follow_ha' | 'metric' | 'imperial'} */ () => {
+      try {
+        const saved = localStorage.getItem('tunet_units_mode');
+        if (saved === 'follow_ha' || saved === 'metric' || saved === 'imperial') return saved;
+        return 'follow_ha';
+      } catch {
+        return 'follow_ha';
+      }
     }
-  });
+  );
 
   const [settingsLockEnabled, setSettingsLockEnabled] = useState(() => {
     try {
@@ -112,25 +114,37 @@ export const ConfigProvider = ({ children }) => {
   const [bgMode, setBgMode] = useState(() => {
     try {
       const saved = localStorage.getItem('tunet_bg_mode');
-      return saved && ['theme', 'solid', 'gradient', 'custom', 'animated'].includes(saved) ? saved : 'theme';
-    } catch { return 'theme'; }
+      return saved && ['theme', 'solid', 'gradient', 'custom', 'animated'].includes(saved)
+        ? saved
+        : 'theme';
+    } catch {
+      return 'theme';
+    }
   });
 
   const [bgColor, setBgColor] = useState(() => {
-    try { return localStorage.getItem('tunet_bg_color') || '#0f172a'; }
-    catch { return '#0f172a'; }
+    try {
+      return localStorage.getItem('tunet_bg_color') || '#0f172a';
+    } catch {
+      return '#0f172a';
+    }
   });
 
   const [bgGradient, setBgGradient] = useState(() => {
     try {
       const saved = localStorage.getItem('tunet_bg_gradient');
       return saved && GRADIENT_PRESETS[saved] ? saved : 'midnight';
-    } catch { return 'midnight'; }
+    } catch {
+      return 'midnight';
+    }
   });
 
   const [bgImage, setBgImage] = useState(() => {
-    try { return localStorage.getItem('tunet_bg_image') || ''; }
-    catch { return ''; }
+    try {
+      return localStorage.getItem('tunet_bg_image') || '';
+    } catch {
+      return '';
+    }
   });
 
   const [cardTransparency, setCardTransparency] = useState(() => {
@@ -138,7 +152,9 @@ export const ConfigProvider = ({ children }) => {
       const saved = localStorage.getItem('tunet_card_transparency');
       if (saved === null) return 40;
       return Number.parseInt(saved, 10);
-    } catch { return 40; }
+    } catch {
+      return 40;
+    }
   });
 
   const [cardBorderOpacity, setCardBorderOpacity] = useState(() => {
@@ -146,7 +162,9 @@ export const ConfigProvider = ({ children }) => {
       const saved = localStorage.getItem('tunet_card_border_opacity');
       if (saved === null) return 5;
       return Number.parseInt(saved, 10);
-    } catch { return 5; }
+    } catch {
+      return 5;
+    }
   });
 
   const [cardBgColor, setCardBgColor] = useState(() => {
@@ -164,7 +182,6 @@ export const ConfigProvider = ({ children }) => {
     } catch {}
     return 'sans';
   });
-
 
   const [config, setConfig] = useState(() => {
     if (typeof globalThis.window !== 'undefined') {
@@ -189,7 +206,10 @@ export const ConfigProvider = ({ children }) => {
           } else {
             savedToken = '';
           }
-        } catch { savedUrl = ''; savedToken = ''; }
+        } catch {
+          savedUrl = '';
+          savedToken = '';
+        }
         return {
           url: savedUrl || globalThis.window.location.origin,
           fallbackUrl: '',
@@ -230,7 +250,7 @@ export const ConfigProvider = ({ children }) => {
     }
     document.documentElement.dataset.theme = themeKey;
     document.documentElement.style.colorScheme = themeKey === 'light' ? 'light' : 'dark';
-    
+
     /** @type {HTMLMetaElement | null} */
     let metaThemeColor = document.querySelector("meta[name='theme-color']");
     if (!metaThemeColor) {
@@ -239,7 +259,7 @@ export const ConfigProvider = ({ children }) => {
       document.head.appendChild(metaThemeColor);
     }
     metaThemeColor.content = theme['--bg-primary'];
-    
+
     try {
       localStorage.setItem('tunet_theme', themeKey);
     } catch (error) {
@@ -259,12 +279,12 @@ export const ConfigProvider = ({ children }) => {
     body.style.backgroundSize = '';
     body.style.backgroundPosition = '';
     body.style.backgroundAttachment = '';
-    
+
     // Clear inline variables that might mask theme variables
     root.style.removeProperty('--bg-primary');
     root.style.removeProperty('--bg-gradient-from');
     root.style.removeProperty('--bg-gradient-to');
-    
+
     root.classList.remove('custom-bg-active');
 
     if (bgMode === 'solid') {
@@ -338,8 +358,11 @@ export const ConfigProvider = ({ children }) => {
     if (parsed) {
       // transparency 0-100: 0 = solid, 100 = invisible
       // alpha = 1 - (transparency / 100)
-      const alpha = Math.max(0, Math.min(1, 1 - (cardTransparency / 100)));
-      document.documentElement.style.setProperty('--card-bg', `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${alpha.toFixed(2)})`);
+      const alpha = Math.max(0, Math.min(1, 1 - cardTransparency / 100));
+      document.documentElement.style.setProperty(
+        '--card-bg',
+        `rgba(${parsed.r}, ${parsed.g}, ${parsed.b}, ${alpha.toFixed(2)})`
+      );
     } else {
       // Fallback
       document.documentElement.style.setProperty('--card-bg', baseColor);
@@ -357,13 +380,13 @@ export const ConfigProvider = ({ children }) => {
     if (baseBorder.startsWith('#')) {
       const hex = baseBorder.substring(1);
       if (hex.length === 3) {
-          r = parseInt(hex[0]+hex[0], 16);
-          g = parseInt(hex[1]+hex[1], 16);
-          b = parseInt(hex[2]+hex[2], 16);
+        r = parseInt(hex[0] + hex[0], 16);
+        g = parseInt(hex[1] + hex[1], 16);
+        b = parseInt(hex[2] + hex[2], 16);
       } else {
-          r = parseInt(hex.substring(0, 2), 16);
-          g = parseInt(hex.substring(2, 4), 16);
-          b = parseInt(hex.substring(4, 6), 16);
+        r = parseInt(hex.substring(0, 2), 16);
+        g = parseInt(hex.substring(2, 4), 16);
+        b = parseInt(hex.substring(4, 6), 16);
       }
     } else if (baseBorder.startsWith('rgba') || baseBorder.startsWith('rgb')) {
       const parts = baseBorder.match(/(\d+)/g);
@@ -375,28 +398,43 @@ export const ConfigProvider = ({ children }) => {
     if (r !== undefined) {
       // Map 0-100 slider directly to 0.0-1.0 alpha (0 = invisible, 100 = opaque)
       const alpha = cardBorderOpacity / 100;
-      document.documentElement.style.setProperty('--card-border', `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`);
+      document.documentElement.style.setProperty(
+        '--card-border',
+        `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`
+      );
     }
   }, [cardBorderOpacity, currentTheme]);
 
   // Persist background settings
   useEffect(() => {
-    try { localStorage.setItem('tunet_bg_mode', bgMode); } catch {}
+    try {
+      localStorage.setItem('tunet_bg_mode', bgMode);
+    } catch {}
   }, [bgMode]);
   useEffect(() => {
-    try { localStorage.setItem('tunet_bg_color', bgColor); } catch {}
+    try {
+      localStorage.setItem('tunet_bg_color', bgColor);
+    } catch {}
   }, [bgColor]);
   useEffect(() => {
-    try { localStorage.setItem('tunet_bg_gradient', bgGradient); } catch {}
+    try {
+      localStorage.setItem('tunet_bg_gradient', bgGradient);
+    } catch {}
   }, [bgGradient]);
   useEffect(() => {
-    try { localStorage.setItem('tunet_bg_image', bgImage); } catch {}
+    try {
+      localStorage.setItem('tunet_bg_image', bgImage);
+    } catch {}
   }, [bgImage]);
   useEffect(() => {
-    try { localStorage.setItem('tunet_card_transparency', String(cardTransparency)); } catch {}
+    try {
+      localStorage.setItem('tunet_card_transparency', String(cardTransparency));
+    } catch {}
   }, [cardTransparency]);
   useEffect(() => {
-    try { localStorage.setItem('tunet_card_border_opacity', String(cardBorderOpacity)); } catch {}
+    try {
+      localStorage.setItem('tunet_card_border_opacity', String(cardBorderOpacity));
+    } catch {}
   }, [cardBorderOpacity]);
   useEffect(() => {
     try {
@@ -448,7 +486,10 @@ export const ConfigProvider = ({ children }) => {
 
   useEffect(() => {
     try {
-      globalThis.sessionStorage.setItem('tunet_settings_lock_unlocked', settingsLockSessionUnlocked ? '1' : '0');
+      globalThis.sessionStorage.setItem(
+        'tunet_settings_lock_unlocked',
+        settingsLockSessionUnlocked ? '1' : '0'
+      );
     } catch {}
   }, [settingsLockSessionUnlocked]);
 
@@ -477,7 +518,6 @@ export const ConfigProvider = ({ children }) => {
       setSettingsLockSessionUnlocked(false);
     }
   };
-
 
   const toggleTheme = () => {
     const themeKeys = Object.keys(themes);
@@ -523,9 +563,5 @@ export const ConfigProvider = ({ children }) => {
     setConfig,
   };
 
-  return (
-    <ConfigContext.Provider value={value}>
-      {children}
-    </ConfigContext.Provider>
-  );
+  return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>;
 };

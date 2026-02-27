@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "./animations.css";
+@import 'tailwindcss';
+@import './animations.css';
 
 @theme {
   --color-primary: var(--bg-primary);
@@ -28,11 +28,11 @@ html.custom-bg-active body::before {
 @layer utilities {
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
-      display: none;
+    display: none;
   }
   /* Hide scrollbar for IE, Edge and Firefox */
   .no-scrollbar {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }

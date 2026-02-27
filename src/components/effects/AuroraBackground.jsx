@@ -22,7 +22,7 @@ const AuroraBackground = () => {
     const resize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
-      
+
       // Handle high DPI displays
       const dpr = window.devicePixelRatio || 1;
       canvas.width = width * dpr;
@@ -47,31 +47,33 @@ const AuroraBackground = () => {
       // Update and draw orbs
       orbs.forEach((orb, i) => {
         // Organic fluid movement using compound sine waves
-        const time = t * 1.0; 
-        
+        const time = t * 1.0;
+
         // Compound sine waves for non-linear path
         // Using the orb.speed (very small number) directly with large time multiplier
-        const noiseX = Math.sin(time * orb.speed * 4 + orb.phase) * 0.2 + 
-                       Math.sin(time * orb.speed * 8 + orb.phase) * 0.1;
-                       
-        const noiseY = Math.cos(time * orb.speed * 3 + orb.phase) * 0.2 + 
-                       Math.cos(time * orb.speed * 5 + orb.phase) * 0.1;
+        const noiseX =
+          Math.sin(time * orb.speed * 4 + orb.phase) * 0.2 +
+          Math.sin(time * orb.speed * 8 + orb.phase) * 0.1;
+
+        const noiseY =
+          Math.cos(time * orb.speed * 3 + orb.phase) * 0.2 +
+          Math.cos(time * orb.speed * 5 + orb.phase) * 0.1;
 
         // Interaction term
         const interaction = Math.sin(time * 0.0001) * 0.02;
 
         const x = (orb.x + noiseX + interaction) * width;
         const y = (orb.y + noiseY + interaction) * height;
-        
+
         // Breathing radius
         const radius = Math.min(width, height) * (orb.r + Math.sin(time * 0.0005 + i) * 0.05);
 
         // Draw radial gradient
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-        
+
         // Soft ehereal blending
-        gradient.addColorStop(0, orb.color + '66'); 
-        gradient.addColorStop(0.6, orb.color + '22'); 
+        gradient.addColorStop(0, orb.color + '66');
+        gradient.addColorStop(0.6, orb.color + '22');
         gradient.addColorStop(1, 'transparent');
 
         ctx.globalCompositeOperation = 'screen';
@@ -93,17 +95,17 @@ const AuroraBackground = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 w-full h-full pointer-events-none z-0 bg-[#0f172a] overflow-hidden">
-      <canvas 
-        ref={canvasRef} 
+    <div className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden bg-[#0f172a]">
+      <canvas
+        ref={canvasRef}
         style={{ filter: 'blur(80px)', opacity: 0.8 }}
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 h-full w-full"
       />
       {/* Noise texture overlay for texture */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{ 
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` 
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}
       />
     </div>

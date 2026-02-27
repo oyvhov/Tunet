@@ -7,8 +7,9 @@ A modern React dashboard for Home Assistant with real-time entity control, energ
 ## Features
 
 ### 🎴 Cards
+
 - **Universal Sensor Card**: One card to rule them all. Handles numeric sensors (with history graphs), binary sensors (doors, windows, motion), switches, input booleans, scripts, and scenes.
-- **Specialized Control Cards**: 
+- **Specialized Control Cards**:
   - **Alarm** (BETA): Arm/disarm with mode selection, PIN-protected actions, and quick-action keypad.
   - **Light**: Brightness, color (RGB/temp), and toggle limits.
   - **Climate**: Thermostat modes, target temperature, and HVAC action feedback.
@@ -28,6 +29,7 @@ A modern React dashboard for Home Assistant with real-time entity control, energ
   - **Person**: Presence detection and location tracking.
 
 ### 🚀 Advanced Capabilities
+
 - **Server-side Profiles + Deploy**: Save layout configurations per user, load on any device, and publish/deploy current settings to selected devices.
 - **Optional Data-at-Rest Encryption**: Encrypt server-stored profiles/settings with migration-safe compatibility modes.
 - **Dashboard Import/Export**: Portable JSON backup/restore directly from Profiles.

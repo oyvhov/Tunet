@@ -57,8 +57,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-afterEach(() => {
-});
+afterEach(() => {});
 
 // ═════════════════════════════════════════════════════════════════════════
 // Initial state
@@ -132,7 +131,9 @@ describe('useConnectionSetup › testConnection', () => {
   });
 
   it('does nothing when token is missing (non-OAuth)', async () => {
-    const props = makeProps({ config: { url: 'http://ha.local:8123', token: '', authMethod: 'token' } });
+    const props = makeProps({
+      config: { url: 'http://ha.local:8123', token: '', authMethod: 'token' },
+    });
     const { result } = renderHook(() => useConnectionSetup(props));
 
     await act(async () => {
@@ -191,7 +192,7 @@ describe('useConnectionSetup › handleOAuthLogout', () => {
 
     expect(clearOAuthTokens).toHaveBeenCalled();
     expect(props.setConfig).toHaveBeenCalledWith(
-      expect.objectContaining({ authMethod: 'oauth', token: '' }),
+      expect.objectContaining({ authMethod: 'oauth', token: '' })
     );
   });
 });

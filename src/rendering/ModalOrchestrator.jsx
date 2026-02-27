@@ -47,139 +47,262 @@ const LayoutSidebar = lazy(() => import('../components/sidebars/LayoutSidebar'))
 const HeaderSidebar = lazy(() => import('../components/sidebars/HeaderSidebar'));
 
 export default function ModalOrchestrator({
-  entities, conn, activeUrl, connected, authRef,
-  config, setConfig,
-  t, language, setLanguage,
-  modals, appearance, layout, onboarding,
-  pageManagement, entityHelpers, addCard, cardConfig,
+  entities,
+  conn,
+  activeUrl,
+  connected,
+  authRef,
+  config,
+  setConfig,
+  t,
+  language,
+  setLanguage,
+  modals,
+  appearance,
+  layout,
+  onboarding,
+  pageManagement,
+  entityHelpers,
+  addCard,
+  cardConfig,
   mediaTick,
 }) {
   // ── Destructure grouped props ──────────────────────────────────────────
   const {
-    showNordpoolModal, setShowNordpoolModal,
-    showCostModal, setShowCostModal,
-    activeClimateEntityModal, setActiveClimateEntityModal,
-    showLightModal, setShowLightModal,
-    activeCarModal, setActiveCarModal,
-    showPersonModal, setShowPersonModal,
-    showAndroidTVModal, setShowAndroidTVModal,
-    showVacuumModal, setShowVacuumModal,
-    showFanModal, setShowFanModal,
-    showSensorInfoModal, setShowSensorInfoModal,
-    showCalendarModal, setShowCalendarModal,
-    showTodoModal, setShowTodoModal,
-    showRoomModal, setShowRoomModal,
-    showCoverModal, setShowCoverModal,
-    showAlarmModal, setShowAlarmModal,
-    showAlarmActionModal, setShowAlarmActionModal,
-    showCameraModal, setShowCameraModal,
-    showWeatherModal, setShowWeatherModal,
-    activeMediaModal, setActiveMediaModal,
-    activeMediaGroupKey, setActiveMediaGroupKey,
-    activeMediaGroupIds, setActiveMediaGroupIds,
-    activeMediaSessionSensorIds, setActiveMediaSessionSensorIds,
-    activeMediaId, setActiveMediaId,
-    showAddCardModal, setShowAddCardModal,
-    showConfigModal, setShowConfigModal,
-    showAddPageModal, setShowAddPageModal,
-    showHeaderEditModal, setShowHeaderEditModal,
-    showEditCardModal, setShowEditCardModal,
-    showStatusPillsConfig, setShowStatusPillsConfig,
-    activeVacuumId, setActiveVacuumId,
-    showThemeSidebar, setShowThemeSidebar,
-    showLayoutSidebar, setShowLayoutSidebar,
-    editCardSettingsKey, setEditCardSettingsKey,
-    configTab, setConfigTab,
+    showNordpoolModal,
+    setShowNordpoolModal,
+    showCostModal,
+    setShowCostModal,
+    activeClimateEntityModal,
+    setActiveClimateEntityModal,
+    showLightModal,
+    setShowLightModal,
+    activeCarModal,
+    setActiveCarModal,
+    showPersonModal,
+    setShowPersonModal,
+    showAndroidTVModal,
+    setShowAndroidTVModal,
+    showVacuumModal,
+    setShowVacuumModal,
+    showFanModal,
+    setShowFanModal,
+    showSensorInfoModal,
+    setShowSensorInfoModal,
+    showCalendarModal,
+    setShowCalendarModal,
+    showTodoModal,
+    setShowTodoModal,
+    showRoomModal,
+    setShowRoomModal,
+    showCoverModal,
+    setShowCoverModal,
+    showAlarmModal,
+    setShowAlarmModal,
+    showAlarmActionModal,
+    setShowAlarmActionModal,
+    showCameraModal,
+    setShowCameraModal,
+    showWeatherModal,
+    setShowWeatherModal,
+    activeMediaModal,
+    setActiveMediaModal,
+    activeMediaGroupKey,
+    setActiveMediaGroupKey,
+    activeMediaGroupIds,
+    setActiveMediaGroupIds,
+    activeMediaSessionSensorIds,
+    setActiveMediaSessionSensorIds,
+    activeMediaId,
+    setActiveMediaId,
+    showAddCardModal,
+    setShowAddCardModal,
+    showConfigModal,
+    setShowConfigModal,
+    showAddPageModal,
+    setShowAddPageModal,
+    showHeaderEditModal,
+    setShowHeaderEditModal,
+    showEditCardModal,
+    setShowEditCardModal,
+    showStatusPillsConfig,
+    setShowStatusPillsConfig,
+    activeVacuumId,
+    setActiveVacuumId,
+    showThemeSidebar,
+    setShowThemeSidebar,
+    showLayoutSidebar,
+    setShowLayoutSidebar,
+    editCardSettingsKey,
+    setEditCardSettingsKey,
+    configTab,
+    setConfigTab,
   } = modals;
 
   const {
-    currentTheme, setCurrentTheme,
-    bgMode, setBgMode, bgColor, setBgColor,
-    bgGradient, setBgGradient, bgImage, setBgImage,
-    cardTransparency, setCardTransparency,
-    cardBorderOpacity, setCardBorderOpacity,
-    cardBgColor, setCardBgColor,
-    inactivityTimeout, setInactivityTimeout,
+    currentTheme,
+    setCurrentTheme,
+    bgMode,
+    setBgMode,
+    bgColor,
+    setBgColor,
+    bgGradient,
+    setBgGradient,
+    bgImage,
+    setBgImage,
+    cardTransparency,
+    setCardTransparency,
+    cardBorderOpacity,
+    setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
+    inactivityTimeout,
+    setInactivityTimeout,
   } = appearance;
 
   const {
-    gridGapH, setGridGapH, gridGapV, setGridGapV,
-    gridColumns, setGridColumns,
-    dynamicGridColumns, setDynamicGridColumns,
+    gridGapH,
+    setGridGapH,
+    gridGapV,
+    setGridGapV,
+    gridColumns,
+    setGridColumns,
+    dynamicGridColumns,
+    setDynamicGridColumns,
     effectiveGridColumns,
-    cardBorderRadius, setCardBorderRadius,
-    sectionSpacing, updateSectionSpacing,
-    headerTitle, headerScale, headerSettings,
-    updateHeaderTitle, updateHeaderScale, updateHeaderSettings,
+    cardBorderRadius,
+    setCardBorderRadius,
+    sectionSpacing,
+    updateSectionSpacing,
+    headerTitle,
+    headerScale,
+    headerSettings,
+    updateHeaderTitle,
+    updateHeaderScale,
+    updateHeaderSettings,
   } = layout;
 
   const {
-    showOnboarding, setShowOnboarding, isOnboardingActive,
-    onboardingStep, setOnboardingStep,
-    onboardingUrlError, setOnboardingUrlError,
-    onboardingTokenError, setOnboardingTokenError,
-    testingConnection, testConnection,
-    connectionTestResult, setConnectionTestResult,
-    startOAuthLogin, handleOAuthLogout, canAdvanceOnboarding,
+    showOnboarding,
+    setShowOnboarding,
+    isOnboardingActive,
+    onboardingStep,
+    setOnboardingStep,
+    onboardingUrlError,
+    setOnboardingUrlError,
+    onboardingTokenError,
+    setOnboardingTokenError,
+    testingConnection,
+    testConnection,
+    connectionTestResult,
+    setConnectionTestResult,
+    startOAuthLogin,
+    handleOAuthLogout,
+    canAdvanceOnboarding,
   } = onboarding;
 
   const {
-    pageDefaults, editingPage, setEditingPage,
-    newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon,
-    createPage, createMediaPage, deletePage,
-    pageSettings, savePageSetting, persistPageSettings,
-    pagesConfig, persistConfig,
+    pageDefaults,
+    editingPage,
+    setEditingPage,
+    newPageLabel,
+    setNewPageLabel,
+    newPageIcon,
+    setNewPageIcon,
+    createPage,
+    createMediaPage,
+    deletePage,
+    pageSettings,
+    savePageSetting,
+    persistPageSettings,
+    pagesConfig,
+    persistConfig,
     activePage,
   } = pageManagement;
 
   const {
-    callService, getEntityImageUrl, getA, getS,
-    optimisticLightBrightness, setOptimisticLightBrightness,
-    hvacMap, fanMap, swingMap,
-    isSonosActive, isMediaActive,
+    callService,
+    getEntityImageUrl,
+    getA,
+    getS,
+    optimisticLightBrightness,
+    setOptimisticLightBrightness,
+    hvacMap,
+    fanMap,
+    swingMap,
+    isSonosActive,
+    isMediaActive,
   } = entityHelpers;
 
   const {
-    addCardTargetPage, addCardType, setAddCardType,
-    searchTerm, setSearchTerm,
-    selectedEntities, setSelectedEntities,
-    selectedWeatherId, setSelectedWeatherId,
-    selectedTempId, setSelectedTempId,
-    selectedAndroidTVMediaId, setSelectedAndroidTVMediaId,
-    selectedAndroidTVRemoteId, setSelectedAndroidTVRemoteId,
-    selectedCostTodayId, setSelectedCostTodayId,
-    selectedCostMonthId, setSelectedCostMonthId,
-    costSelectionTarget, setCostSelectionTarget,
-    selectedNordpoolId, setSelectedNordpoolId,
-    nordpoolDecimals, setNordpoolDecimals,
-    selectedSpacerVariant, setSelectedSpacerVariant,
+    addCardTargetPage,
+    addCardType,
+    setAddCardType,
+    searchTerm,
+    setSearchTerm,
+    selectedEntities,
+    setSelectedEntities,
+    selectedWeatherId,
+    setSelectedWeatherId,
+    selectedTempId,
+    setSelectedTempId,
+    selectedAndroidTVMediaId,
+    setSelectedAndroidTVMediaId,
+    selectedAndroidTVRemoteId,
+    setSelectedAndroidTVRemoteId,
+    selectedCostTodayId,
+    setSelectedCostTodayId,
+    selectedCostMonthId,
+    setSelectedCostMonthId,
+    costSelectionTarget,
+    setCostSelectionTarget,
+    selectedNordpoolId,
+    setSelectedNordpoolId,
+    nordpoolDecimals,
+    setNordpoolDecimals,
+    selectedSpacerVariant,
+    setSelectedSpacerVariant,
     onAddSelected,
-    getAddCardAvailableLabel, getAddCardNoneLeftLabel,
+    getAddCardAvailableLabel,
+    getAddCardNoneLeftLabel,
   } = addCard;
 
   const {
-    cardSettings, saveCardSetting, persistCardSettings,
-    customNames, saveCustomName, persistCustomNames,
-    customIcons, saveCustomIcon, persistCustomIcons,
-    hiddenCards, toggleCardVisibility, persistHiddenCards,
+    cardSettings,
+    saveCardSetting,
+    persistCardSettings,
+    customNames,
+    saveCustomName,
+    persistCustomNames,
+    customIcons,
+    saveCustomIcon,
+    persistCustomIcons,
+    hiddenCards,
+    toggleCardVisibility,
+    persistHiddenCards,
     getCardSettingsKey,
-    statusPillsConfig, saveStatusPillsConfig,
+    statusPillsConfig,
+    saveStatusPillsConfig,
   } = cardConfig;
 
   // ── Edit modal props (computed here, not passed from App) ──────────────
   const resolveCarSettings = (_cardId, settings = {}) => settings;
   const editSettingsKey = showEditCardModal
-    ? (editCardSettingsKey || getCardSettingsKey(showEditCardModal))
+    ? editCardSettingsKey || getCardSettingsKey(showEditCardModal)
     : null;
   const editModalProps = useMemo(() => {
     if (!showEditCardModal) return {};
     const rawEditSettings = editSettingsKey
-      ? (cardSettings[editSettingsKey] || cardSettings[showEditCardModal] || {})
+      ? cardSettings[editSettingsKey] || cardSettings[showEditCardModal] || {}
       : {};
     const editId = showEditCardModal;
     const editEntity = editId ? entities[editId] : null;
     const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
-    const isEditMedia = !!editId && (editId.startsWith('media_player.') || editId === 'media_player' || editId.startsWith('media_group_'));
+    const isEditMedia =
+      !!editId &&
+      (editId.startsWith('media_player.') ||
+        editId === 'media_player' ||
+        editId.startsWith('media_group_'));
     const isEditCalendar = !!editId && editId.startsWith('calendar_card_');
     const isEditTodo = !!editId && editId.startsWith('todo_card_');
     const isEditCost = !!editId && editId.startsWith('cost_card_');
@@ -194,18 +317,68 @@ export default function ModalOrchestrator({
     const isEditCamera = !!editId && editId.startsWith('camera_card_');
     const isEditFan = !!editId && (editId.startsWith('fan.') || editId.startsWith('fan_card_'));
     const editSettings = isEditCar ? resolveCarSettings(editId, rawEditSettings) : rawEditSettings;
-    const isEditGenericType = (!!editSettings?.type && (editSettings.type === 'entity' || editSettings.type === 'toggle' || editSettings.type === 'sensor')) || isEditVacuum || isEditAutomation || isEditCar || isEditAndroidTV || isEditRoom || isEditFan;
+    const isEditGenericType =
+      (!!editSettings?.type &&
+        (editSettings.type === 'entity' ||
+          editSettings.type === 'toggle' ||
+          editSettings.type === 'sensor')) ||
+      isEditVacuum ||
+      isEditAutomation ||
+      isEditCar ||
+      isEditAndroidTV ||
+      isEditRoom ||
+      isEditFan;
     const isEditSensor = !!editSettings?.type && editSettings.type === 'sensor';
     const isEditWeatherTemp = !!editId && editId.startsWith('weather_temp_');
-    const canEditName = !!editId && !isEditWeatherTemp && !isEditSpacer && editId !== 'media_player' && editId !== 'sonos';
+    const canEditName =
+      !!editId &&
+      !isEditWeatherTemp &&
+      !isEditSpacer &&
+      editId !== 'media_player' &&
+      editId !== 'sonos';
     const isEditNordpool = !!editId && editId.startsWith('nordpool_card_');
-    const canEditIcon = !!editId && (isEditLight || isEditCalendar || isEditTodo || isEditRoom || isEditCover || isEditAlarm || isEditNordpool || editId.startsWith('automation.') || editId.startsWith('vacuum.') || editId.startsWith('climate_card_') || editId.startsWith('cost_card_') || editId.startsWith('camera_card_') || (!!editEntity && !isEditMedia) || editId === 'car' || editId.startsWith('car_card_') || isEditFan);
-    const canEditStatus = !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
+    const canEditIcon =
+      !!editId &&
+      (isEditLight ||
+        isEditCalendar ||
+        isEditTodo ||
+        isEditRoom ||
+        isEditCover ||
+        isEditAlarm ||
+        isEditNordpool ||
+        editId.startsWith('automation.') ||
+        editId.startsWith('vacuum.') ||
+        editId.startsWith('climate_card_') ||
+        editId.startsWith('cost_card_') ||
+        editId.startsWith('camera_card_') ||
+        (!!editEntity && !isEditMedia) ||
+        editId === 'car' ||
+        editId.startsWith('car_card_') ||
+        isEditFan);
+    const canEditStatus =
+      !!editEntity && !!editSettingsKey && editSettingsKey.startsWith('settings::');
     return {
-      canEditName, canEditIcon, canEditStatus,
-      isEditLight, isEditMedia, isEditCalendar, isEditTodo, isEditCost, isEditNordpool, isEditGenericType,
-      isEditAndroidTV, isEditCar, isEditRoom, isEditSpacer, isEditCamera, isEditSensor, isEditWeatherTemp, isEditFan, isEditAlarm,
-      editSettingsKey, editSettings,
+      canEditName,
+      canEditIcon,
+      canEditStatus,
+      isEditLight,
+      isEditMedia,
+      isEditCalendar,
+      isEditTodo,
+      isEditCost,
+      isEditNordpool,
+      isEditGenericType,
+      isEditAndroidTV,
+      isEditCar,
+      isEditRoom,
+      isEditSpacer,
+      isEditCamera,
+      isEditSensor,
+      isEditWeatherTemp,
+      isEditFan,
+      isEditAlarm,
+      editSettingsKey,
+      editSettings,
     };
   }, [showEditCardModal, editSettingsKey, cardSettings, entities]);
 
@@ -290,7 +463,10 @@ export default function ModalOrchestrator({
             getEntityImageUrl={getEntityImageUrl}
             callService={callService}
             onClose={() => setShowConfigModal(false)}
-            onFinishOnboarding={() => { setShowOnboarding(false); setShowConfigModal(false); }}
+            onFinishOnboarding={() => {
+              setShowOnboarding(false);
+              setShowConfigModal(false);
+            }}
             profiles={profilesProps}
           />
         </ModalSuspense>
@@ -301,8 +477,14 @@ export default function ModalOrchestrator({
         <ThemeSidebar
           open={showThemeSidebar}
           onClose={() => setShowThemeSidebar(false)}
-          onSwitchToLayout={() => { setShowThemeSidebar(false); setShowLayoutSidebar(true); }}
-          onSwitchToHeader={() => { setShowThemeSidebar(false); setShowHeaderEditModal(true); }}
+          onSwitchToLayout={() => {
+            setShowThemeSidebar(false);
+            setShowLayoutSidebar(true);
+          }}
+          onSwitchToHeader={() => {
+            setShowThemeSidebar(false);
+            setShowHeaderEditModal(true);
+          }}
           t={t}
           themes={themes}
           currentTheme={currentTheme}
@@ -326,8 +508,14 @@ export default function ModalOrchestrator({
         <LayoutSidebar
           open={showLayoutSidebar}
           onClose={() => setShowLayoutSidebar(false)}
-          onSwitchToTheme={() => { setShowLayoutSidebar(false); setShowThemeSidebar(true); }}
-          onSwitchToHeader={() => { setShowLayoutSidebar(false); setShowHeaderEditModal(true); }}
+          onSwitchToTheme={() => {
+            setShowLayoutSidebar(false);
+            setShowThemeSidebar(true);
+          }}
+          onSwitchToHeader={() => {
+            setShowLayoutSidebar(false);
+            setShowHeaderEditModal(true);
+          }}
           t={t}
           gridGapH={gridGapH}
           setGridGapH={setGridGapH}
@@ -364,58 +552,71 @@ export default function ModalOrchestrator({
           updateHeaderTitle={updateHeaderTitle}
           updateHeaderScale={updateHeaderScale}
           updateHeaderSettings={updateHeaderSettings}
-          onSwitchToTheme={() => { setShowHeaderEditModal(false); setShowThemeSidebar(true); }}
-          onSwitchToLayout={() => { setShowHeaderEditModal(false); setShowLayoutSidebar(true); }}
+          onSwitchToTheme={() => {
+            setShowHeaderEditModal(false);
+            setShowThemeSidebar(true);
+          }}
+          onSwitchToLayout={() => {
+            setShowHeaderEditModal(false);
+            setShowLayoutSidebar(true);
+          }}
           t={t}
         />
       </ModalSuspense>
 
       {/* ── Card-specific modals ────────────────────────────────────────── */}
-      {showNordpoolModal && (() => {
-        const data = prepareNordpoolData(showNordpoolModal, { getCardSettingsKey, cardSettings, entities, customNames });
-        if (!data) return null;
-        return (
-          <ModalSuspense>
-            <NordpoolModal
-              show={true}
-              onClose={() => setShowNordpoolModal(null)}
-              entity={data.entity}
-              fullPriceData={data.fullPriceData}
-              currentPriceIndex={data.currentPriceIndex}
-              priceStats={data.priceStats}
-              name={data.name}
-              t={t}
-              language={language}
-              saveCardSetting={saveCardSetting}
-              cardId={showNordpoolModal}
-              settings={data.settings}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showNordpoolModal &&
+        (() => {
+          const data = prepareNordpoolData(showNordpoolModal, {
+            getCardSettingsKey,
+            cardSettings,
+            entities,
+            customNames,
+          });
+          if (!data) return null;
+          return (
+            <ModalSuspense>
+              <NordpoolModal
+                show={true}
+                onClose={() => setShowNordpoolModal(null)}
+                entity={data.entity}
+                fullPriceData={data.fullPriceData}
+                currentPriceIndex={data.currentPriceIndex}
+                priceStats={data.priceStats}
+                name={data.name}
+                t={t}
+                language={language}
+                saveCardSetting={saveCardSetting}
+                cardId={showNordpoolModal}
+                settings={data.settings}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
-      {showCostModal && (() => {
-        const settingsKey = getCardSettingsKey(showCostModal);
-        const settings = cardSettings[settingsKey] || cardSettings[showCostModal] || {};
-        const name = customNames?.[showCostModal] || t('energyCost.title');
-        const iconName = customIcons?.[showCostModal] || null;
-        return (
-          <ModalSuspense>
-            <CostModal
-              show={true}
-              onClose={() => setShowCostModal(null)}
-              conn={conn}
-              entities={entities}
-              todayEntityId={settings.todayId}
-              monthEntityId={settings.monthId}
-              name={name}
-              iconName={iconName}
-              currency={settings.currency}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showCostModal &&
+        (() => {
+          const settingsKey = getCardSettingsKey(showCostModal);
+          const settings = cardSettings[settingsKey] || cardSettings[showCostModal] || {};
+          const name = customNames?.[showCostModal] || t('energyCost.title');
+          const iconName = customIcons?.[showCostModal] || null;
+          return (
+            <ModalSuspense>
+              <CostModal
+                show={true}
+                onClose={() => setShowCostModal(null)}
+                conn={conn}
+                entities={entities}
+                todayEntityId={settings.todayId}
+                monthEntityId={settings.monthId}
+                name={name}
+                iconName={iconName}
+                currency={settings.currency}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
       {activeClimateEntityModal && entities[activeClimateEntityModal] && (
         <ModalSuspense>
@@ -449,32 +650,36 @@ export default function ModalOrchestrator({
         </ModalSuspense>
       )}
 
-      {showAndroidTVModal && (() => {
-        const settings = cardSettings[getCardSettingsKey(showAndroidTVModal)] || {};
-        return (
-          <ModalSuspense>
-            <GenericAndroidTVModal
-              show={true}
-              onClose={() => setShowAndroidTVModal(null)}
-              entities={entities}
-              mediaPlayerId={settings.mediaPlayerId}
-              remoteId={settings.remoteId}
-              linkedMediaPlayers={settings.linkedMediaPlayers}
-              callService={callService}
-              getA={getA}
-              getEntityImageUrl={getEntityImageUrl}
-              customNames={customNames}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showAndroidTVModal &&
+        (() => {
+          const settings = cardSettings[getCardSettingsKey(showAndroidTVModal)] || {};
+          return (
+            <ModalSuspense>
+              <GenericAndroidTVModal
+                show={true}
+                onClose={() => setShowAndroidTVModal(null)}
+                entities={entities}
+                mediaPlayerId={settings.mediaPlayerId}
+                remoteId={settings.remoteId}
+                linkedMediaPlayers={settings.linkedMediaPlayers}
+                callService={callService}
+                getA={getA}
+                getEntityImageUrl={getEntityImageUrl}
+                customNames={customNames}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
       {showVacuumModal && (
         <ModalSuspense>
           <VacuumModal
             show={showVacuumModal}
-            onClose={() => { setShowVacuumModal(false); setActiveVacuumId(null); }}
+            onClose={() => {
+              setShowVacuumModal(false);
+              setActiveVacuumId(null);
+            }}
             entities={entities}
             callService={callService}
             getA={getA}
@@ -497,46 +702,51 @@ export default function ModalOrchestrator({
         </ModalSuspense>
       )}
 
-      {activeCarModal && (() => {
-        const settingsKey = getCardSettingsKey(activeCarModal);
-        const settings = resolveCarSettings(activeCarModal, cardSettings[settingsKey] || cardSettings[activeCarModal] || {});
-        const name = customNames[activeCarModal] || t('car.defaultName');
-        return (
-          <ModalSuspense>
-            <LeafModal
-              show={true}
-              onClose={() => setActiveCarModal(null)}
-              entities={entities}
-              callService={callService}
-              getS={getS}
-              getA={getA}
-              t={t}
-              car={{ name, ...settings }}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {activeCarModal &&
+        (() => {
+          const settingsKey = getCardSettingsKey(activeCarModal);
+          const settings = resolveCarSettings(
+            activeCarModal,
+            cardSettings[settingsKey] || cardSettings[activeCarModal] || {}
+          );
+          const name = customNames[activeCarModal] || t('car.defaultName');
+          return (
+            <ModalSuspense>
+              <LeafModal
+                show={true}
+                onClose={() => setActiveCarModal(null)}
+                entities={entities}
+                callService={callService}
+                getS={getS}
+                getA={getA}
+                t={t}
+                car={{ name, ...settings }}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
-      {showWeatherModal && (() => {
-        const settingsKey = getCardSettingsKey(showWeatherModal);
-        const settings = cardSettings[settingsKey] || cardSettings[showWeatherModal] || {};
-        const weatherEntity = settings.weatherId ? entities[settings.weatherId] : null;
-        const tempEntity = settings.tempId ? entities[settings.tempId] : null;
-        if (!weatherEntity) return null;
-        return (
-          <ModalSuspense>
-            <WeatherModal
-              show={true}
-              onClose={() => setShowWeatherModal(null)}
-              conn={conn}
-              weatherEntity={weatherEntity}
-              tempEntity={tempEntity}
-              language={language}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showWeatherModal &&
+        (() => {
+          const settingsKey = getCardSettingsKey(showWeatherModal);
+          const settings = cardSettings[settingsKey] || cardSettings[showWeatherModal] || {};
+          const weatherEntity = settings.weatherId ? entities[settings.weatherId] : null;
+          const tempEntity = settings.tempId ? entities[settings.tempId] : null;
+          if (!weatherEntity) return null;
+          return (
+            <ModalSuspense>
+              <WeatherModal
+                show={true}
+                onClose={() => setShowWeatherModal(null)}
+                conn={conn}
+                weatherEntity={weatherEntity}
+                tempEntity={tempEntity}
+                language={language}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
       {showCalendarModal && (
         <ModalSuspense>
@@ -551,132 +761,143 @@ export default function ModalOrchestrator({
         </ModalSuspense>
       )}
 
-      {showTodoModal && (() => {
-        const todoSettingsKey = getCardSettingsKey(showTodoModal);
-        const todoSettings = cardSettings[todoSettingsKey] || cardSettings[showTodoModal] || {};
-        return (
-          <ModalSuspense>
-            <TodoModal
-              show={true}
-              onClose={() => setShowTodoModal(null)}
-              conn={conn}
-              entities={entities}
-              settings={todoSettings}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showTodoModal &&
+        (() => {
+          const todoSettingsKey = getCardSettingsKey(showTodoModal);
+          const todoSettings = cardSettings[todoSettingsKey] || cardSettings[showTodoModal] || {};
+          return (
+            <ModalSuspense>
+              <TodoModal
+                show={true}
+                onClose={() => setShowTodoModal(null)}
+                conn={conn}
+                entities={entities}
+                settings={todoSettings}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
-      {showRoomModal && (() => {
-        const roomSettingsKey = getCardSettingsKey(showRoomModal);
-        const roomSettings = cardSettings[roomSettingsKey] || cardSettings[showRoomModal] || {};
-        return (
-          <ModalSuspense>
-            <RoomModal
-              show={true}
-              onClose={() => setShowRoomModal(null)}
-              settings={roomSettings}
-              entities={entities}
-              conn={conn}
-              callService={(domain, service, data) => callService(domain, service, data)}
-              getEntityImageUrl={getEntityImageUrl}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showRoomModal &&
+        (() => {
+          const roomSettingsKey = getCardSettingsKey(showRoomModal);
+          const roomSettings = cardSettings[roomSettingsKey] || cardSettings[showRoomModal] || {};
+          return (
+            <ModalSuspense>
+              <RoomModal
+                show={true}
+                onClose={() => setShowRoomModal(null)}
+                settings={roomSettings}
+                entities={entities}
+                conn={conn}
+                callService={(domain, service, data) => callService(domain, service, data)}
+                getEntityImageUrl={getEntityImageUrl}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
-      {showCoverModal && (() => {
-        const coverSettingsKey = getCardSettingsKey(showCoverModal);
-        const coverSettings = cardSettings[coverSettingsKey] || cardSettings[showCoverModal] || {};
-        const coverEntityId = coverSettings.coverId;
-        const coverEntity = coverEntityId ? entities[coverEntityId] : null;
-        if (!coverEntityId || !coverEntity) return null;
-        return (
-          <ModalSuspense>
-            <CoverModal
-              show={true}
-              onClose={() => setShowCoverModal(null)}
-              entityId={coverEntityId}
-              entity={coverEntity}
-              callService={callService}
-              customIcons={customIcons}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showCoverModal &&
+        (() => {
+          const coverSettingsKey = getCardSettingsKey(showCoverModal);
+          const coverSettings =
+            cardSettings[coverSettingsKey] || cardSettings[showCoverModal] || {};
+          const coverEntityId = coverSettings.coverId;
+          const coverEntity = coverEntityId ? entities[coverEntityId] : null;
+          if (!coverEntityId || !coverEntity) return null;
+          return (
+            <ModalSuspense>
+              <CoverModal
+                show={true}
+                onClose={() => setShowCoverModal(null)}
+                entityId={coverEntityId}
+                entity={coverEntity}
+                callService={callService}
+                customIcons={customIcons}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
-      {showAlarmModal && (() => {
-        const isDirectEntityId = typeof showAlarmModal === 'string' && showAlarmModal.startsWith('alarm_control_panel.');
-        const alarmSettingsKey = isDirectEntityId ? null : getCardSettingsKey(showAlarmModal);
-        const alarmSettings = isDirectEntityId ? {} : (cardSettings[alarmSettingsKey] || cardSettings[showAlarmModal] || {});
-        const alarmEntityId = isDirectEntityId ? showAlarmModal : alarmSettings.alarmId;
-        const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
-        if (!alarmEntityId || !alarmEntity) return null;
-        return (
-          <ModalSuspense>
-            <AlarmModal
-              show={true}
-              onClose={() => setShowAlarmModal(null)}
-              entityId={alarmEntityId}
-              entity={alarmEntity}
-              callService={callService}
-              customName={isDirectEntityId ? null : customNames?.[showAlarmModal]}
-              customIcon={isDirectEntityId ? null : customIcons?.[showAlarmModal]}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showAlarmModal &&
+        (() => {
+          const isDirectEntityId =
+            typeof showAlarmModal === 'string' && showAlarmModal.startsWith('alarm_control_panel.');
+          const alarmSettingsKey = isDirectEntityId ? null : getCardSettingsKey(showAlarmModal);
+          const alarmSettings = isDirectEntityId
+            ? {}
+            : cardSettings[alarmSettingsKey] || cardSettings[showAlarmModal] || {};
+          const alarmEntityId = isDirectEntityId ? showAlarmModal : alarmSettings.alarmId;
+          const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
+          if (!alarmEntityId || !alarmEntity) return null;
+          return (
+            <ModalSuspense>
+              <AlarmModal
+                show={true}
+                onClose={() => setShowAlarmModal(null)}
+                entityId={alarmEntityId}
+                entity={alarmEntity}
+                callService={callService}
+                customName={isDirectEntityId ? null : customNames?.[showAlarmModal]}
+                customIcon={isDirectEntityId ? null : customIcons?.[showAlarmModal]}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
-      {showAlarmActionModal && (() => {
-        const actionCardId = showAlarmActionModal.cardId;
-        const actionKey = showAlarmActionModal.actionKey;
-        const alarmSettingsKey = getCardSettingsKey(actionCardId);
-        const alarmSettings = cardSettings[alarmSettingsKey] || cardSettings[actionCardId] || {};
-        const alarmEntityId = alarmSettings.alarmId;
-        const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
-        if (!alarmEntityId || !alarmEntity || !actionKey) return null;
+      {showAlarmActionModal &&
+        (() => {
+          const actionCardId = showAlarmActionModal.cardId;
+          const actionKey = showAlarmActionModal.actionKey;
+          const alarmSettingsKey = getCardSettingsKey(actionCardId);
+          const alarmSettings = cardSettings[alarmSettingsKey] || cardSettings[actionCardId] || {};
+          const alarmEntityId = alarmSettings.alarmId;
+          const alarmEntity = alarmEntityId ? entities[alarmEntityId] : null;
+          if (!alarmEntityId || !alarmEntity || !actionKey) return null;
 
-        return (
-          <ModalSuspense>
-            <AlarmActionPinModal
-              show={true}
-              onClose={() => setShowAlarmActionModal(null)}
-              actionKey={actionKey}
-              entityId={alarmEntityId}
-              entity={alarmEntity}
-              callService={callService}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+          return (
+            <ModalSuspense>
+              <AlarmActionPinModal
+                show={true}
+                onClose={() => setShowAlarmActionModal(null)}
+                actionKey={actionKey}
+                entityId={alarmEntityId}
+                entity={alarmEntity}
+                callService={callService}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
-      {showCameraModal && (() => {
-        const cameraSettingsKey = getCardSettingsKey(showCameraModal);
-        const cameraSettings = cardSettings[cameraSettingsKey] || cardSettings[showCameraModal] || {};
-        const cameraEntityId = cameraSettings.cameraId;
-        const cameraEntity = cameraEntityId ? entities[cameraEntityId] : null;
-        if (!cameraEntityId || !cameraEntity) return null;
-        return (
-          <ModalSuspense>
-            <CameraModal
-              show={true}
-              onClose={() => setShowCameraModal(null)}
-              entityId={cameraEntityId}
-              entity={cameraEntity}
-              customName={customNames?.[showCameraModal]}
-              customIcon={customIcons?.[showCameraModal]}
-              getEntityImageUrl={getEntityImageUrl}
-              settings={cameraSettings}
-              t={t}
-            />
-          </ModalSuspense>
-        );
-      })()}
+      {showCameraModal &&
+        (() => {
+          const cameraSettingsKey = getCardSettingsKey(showCameraModal);
+          const cameraSettings =
+            cardSettings[cameraSettingsKey] || cardSettings[showCameraModal] || {};
+          const cameraEntityId = cameraSettings.cameraId;
+          const cameraEntity = cameraEntityId ? entities[cameraEntityId] : null;
+          if (!cameraEntityId || !cameraEntity) return null;
+          return (
+            <ModalSuspense>
+              <CameraModal
+                show={true}
+                onClose={() => setShowCameraModal(null)}
+                entityId={cameraEntityId}
+                entity={cameraEntity}
+                customName={customNames?.[showCameraModal]}
+                customIcon={customIcons?.[showCameraModal]}
+                getEntityImageUrl={getEntityImageUrl}
+                settings={cameraSettings}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
       {/* ── Edit / Add modals ───────────────────────────────────────────── */}
       {showAddCardModal && (
@@ -818,7 +1039,10 @@ export default function ModalOrchestrator({
         <ModalSuspense>
           <EditCardModal
             isOpen={!!showEditCardModal}
-            onClose={() => { setShowEditCardModal(null); setEditCardSettingsKey(null); }}
+            onClose={() => {
+              setShowEditCardModal(null);
+              setEditCardSettingsKey(null);
+            }}
             t={t}
             entityId={showEditCardModal}
             entities={entities}
@@ -848,7 +1072,9 @@ export default function ModalOrchestrator({
             customName={customNames[showSensorInfoModal]}
             conn={conn}
             haUrl={activeUrl}
-            haToken={config.authMethod === 'oauth' ? (authRef?.current?.accessToken || '') : config.token}
+            haToken={
+              config.authMethod === 'oauth' ? authRef?.current?.accessToken || '' : config.token
+            }
             t={t}
           />
         </ModalSuspense>
@@ -866,7 +1092,13 @@ export default function ModalOrchestrator({
             getEntityImageUrl={getEntityImageUrl}
             conn={conn}
             t={t}
-            settings={showPersonModal ? (cardSettings[getCardSettingsKey(showPersonModal, 'header')] || cardSettings[showPersonModal] || {}) : {}}
+            settings={
+              showPersonModal
+                ? cardSettings[getCardSettingsKey(showPersonModal, 'header')] ||
+                  cardSettings[showPersonModal] ||
+                  {}
+                : {}
+            }
           />
         </ModalSuspense>
       )}

@@ -3,16 +3,19 @@ import { MediaPage } from '../components';
 import CardErrorBoundary from '../components/ui/CardErrorBoundary';
 import { formatDuration } from '../utils';
 
-export default function DashboardGrid({
-  page,
-  media,
-  grid,
-  cards,
-  actions,
-  t,
-}) {
+export default function DashboardGrid({ page, media, grid, cards, actions, t }) {
   const { activePage, pagesConfig, pageSettings, editMode, isMediaPage } = page;
-  const { entities, conn, isSonosActive, activeMediaId, setActiveMediaId, getA, getEntityImageUrl, callService, savePageSetting } = media;
+  const {
+    entities,
+    conn,
+    isSonosActive,
+    activeMediaId,
+    setActiveMediaId,
+    getA,
+    getEntityImageUrl,
+    callService,
+    savePageSetting,
+  } = media;
   const { gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards } = grid;
   const { cardSettings, getCardSettingsKey, hiddenCards, isCardHiddenByLogic, renderCard } = cards;
   const { setShowAddCardModal, setConfigTab, setShowConfigModal } = actions;
@@ -40,35 +43,48 @@ export default function DashboardGrid({
     );
   }
 
-  const hasVisiblePlacement = (pagesConfig[activePage] || []).filter(id => gridLayout[id]).length > 0;
+  const hasVisiblePlacement =
+    (pagesConfig[activePage] || []).filter((id) => gridLayout[id]).length > 0;
   const cardIndexMap = new Map((pagesConfig[activePage] || []).map((id, index) => [id, index]));
   if (!hasVisiblePlacement) {
     const allPages = pagesConfig.pages || [];
-    const totalCards = allPages.reduce((sum, p) => sum + (pagesConfig[p] || []).length, 0) + (pagesConfig.header || []).length;
+    const totalCards =
+      allPages.reduce((sum, p) => sum + (pagesConfig[p] || []).length, 0) +
+      (pagesConfig.header || []).length;
 
     return (
-      <div key={`${activePage}-empty`} className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 opacity-90 animate-in fade-in zoom-in duration-500 font-sans">
-        <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] p-5 rounded-full mb-6 shadow-lg shadow-black/5">
-          <LayoutGrid className="w-12 h-12 text-[var(--text-primary)] opacity-80" />
+      <div
+        key={`${activePage}-empty`}
+        className="animate-in fade-in zoom-in flex min-h-[60vh] flex-col items-center justify-center p-8 text-center font-sans opacity-90 duration-500"
+      >
+        <div className="mb-6 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-5 shadow-lg shadow-black/5">
+          <LayoutGrid className="h-12 w-12 text-[var(--text-primary)] opacity-80" />
         </div>
 
-        <h2 className="text-3xl font-light mb-3 text-[var(--text-primary)] uppercase tracking-tight">{t('welcome.title')}</h2>
-        <p className="text-lg text-[var(--text-secondary)] mb-8 max-w-md leading-relaxed">{t('welcome.subtitle')}</p>
+        <h2 className="mb-3 text-3xl font-light tracking-tight text-[var(--text-primary)] uppercase">
+          {t('welcome.title')}
+        </h2>
+        <p className="mb-8 max-w-md text-lg leading-relaxed text-[var(--text-secondary)]">
+          {t('welcome.subtitle')}
+        </p>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => setShowAddCardModal(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-[var(--accent-color)] hover:bg-[var(--accent-color)] active:scale-95 text-white rounded-2xl shadow-lg  transition-all duration-200 font-bold uppercase tracking-widest text-sm"
+            className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-8 py-4 text-sm font-bold tracking-widest text-white uppercase shadow-lg transition-all duration-200 hover:bg-[var(--accent-color)] active:scale-95"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="h-5 w-5" />
             {t('welcome.addCard')}
           </button>
           {totalCards > 0 ? null : (
             <button
-              onClick={() => { setConfigTab('profiles'); setShowConfigModal(true); }}
-              className="flex items-center gap-3 px-8 py-4 bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] active:scale-95 text-[var(--text-primary)] rounded-2xl shadow-lg transition-all duration-200 font-bold uppercase tracking-widest text-sm"
+              onClick={() => {
+                setConfigTab('profiles');
+                setShowConfigModal(true);
+              }}
+              className="flex items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-8 py-4 text-sm font-bold tracking-widest text-[var(--text-primary)] uppercase shadow-lg transition-all duration-200 hover:bg-[var(--glass-bg-hover)] active:scale-95"
             >
-              <UserCircle2 className="w-5 h-5" />
+              <UserCircle2 className="h-5 w-5" />
               {t('welcome.restoreProfile')}
             </button>
           )}
@@ -80,7 +96,7 @@ export default function DashboardGrid({
   return (
     <div
       key={activePage}
-      className="grid font-sans page-transition items-start"
+      className="page-transition grid items-start font-sans"
       style={{
         gap: isMobile ? '12px' : `${gridGapV}px ${gridGapH}px`,
         gridAutoRows: 'auto',
@@ -100,9 +116,15 @@ export default function DashboardGrid({
           const isCalendarCard = id.startsWith('calendar_card_');
           const isTodoCard = id.startsWith('todo_card_');
           const isLargeCard = isCalendarCard || isTodoCard;
-          const sizeSetting = isLargeCard ? (cardSettings[getCardSettingsKey(id)]?.size || cardSettings[id]?.size) : null;
+          const sizeSetting = isLargeCard
+            ? cardSettings[getCardSettingsKey(id)]?.size || cardSettings[id]?.size
+            : null;
           const forcedSpan = isLargeCard
-            ? (sizeSetting === 'small' ? 1 : (sizeSetting === 'medium' ? 2 : 4))
+            ? sizeSetting === 'small'
+              ? 1
+              : sizeSetting === 'medium'
+                ? 2
+                : 4
             : placement?.span;
           const settingsKey = getCardSettingsKey(id);
           const settings = cardSettings[settingsKey] || cardSettings[id] || {};
@@ -118,10 +140,14 @@ export default function DashboardGrid({
           const gapPx = isMobile ? 12 : gridGapV;
           const rowPx = isMobile ? 82 : 100;
           let cardHeight;
-          if (id.startsWith('spacer_card_') && Number.isFinite(Number(settings.heightPx)) && Number(settings.heightPx) > 0) {
+          if (
+            id.startsWith('spacer_card_') &&
+            Number.isFinite(Number(settings.heightPx)) &&
+            Number(settings.heightPx) > 0
+          ) {
             cardHeight = Math.max(40, Math.min(420, Number(settings.heightPx)));
           } else if (isLargeCard && sizeSetting !== 'small' && sizeSetting !== 'medium') {
-            cardHeight = (4 * rowPx) + (3 * gapPx);
+            cardHeight = 4 * rowPx + 3 * gapPx;
           } else {
             cardHeight = forcedSpan * rowPx + Math.max(0, forcedSpan - 1) * gapPx;
           }
@@ -129,7 +155,7 @@ export default function DashboardGrid({
           return (
             <div
               key={id}
-              className={`relative ${(isCompactCards || isMobile) ? 'card-compact' : ''}`}
+              className={`relative ${isCompactCards || isMobile ? 'card-compact' : ''}`}
               style={{
                 gridRowStart: placement.row,
                 gridColumnStart: placement.col,
@@ -139,7 +165,7 @@ export default function DashboardGrid({
               }}
             >
               {heading && !isSpacerCard && (
-                <div className="absolute -top-4 left-2 text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)]">
+                <div className="absolute -top-4 left-2 text-[10px] font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase">
                   {heading}
                 </div>
               )}

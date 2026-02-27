@@ -48,12 +48,16 @@ const deriveEncryptionKey = (rawKey) => {
   if (fromBase64) return fromBase64;
 
   if (trimmed.length < 16) {
-    warnOnce('[data-crypto] TUNET_DATA_KEY is too short. Use a 32-byte base64/hex key or a long passphrase.');
+    warnOnce(
+      '[data-crypto] TUNET_DATA_KEY is too short. Use a 32-byte base64/hex key or a long passphrase.'
+    );
     return null;
   }
 
   if (!PASSPHRASE_SALT) {
-    warnOnce('[data-crypto] TUNET_DATA_KEY_SALT is required when TUNET_DATA_KEY is a passphrase. Use a 32-byte base64/hex key to avoid salt requirements.');
+    warnOnce(
+      '[data-crypto] TUNET_DATA_KEY_SALT is required when TUNET_DATA_KEY is a passphrase. Use a 32-byte base64/hex key to avoid salt requirements.'
+    );
     return null;
   }
 
@@ -69,7 +73,9 @@ const DATA_ENCRYPTION_MODE = normalizeMode(process.env.TUNET_ENCRYPTION_MODE);
 const DATA_ENCRYPTION_KEY = deriveEncryptionKey(process.env.TUNET_DATA_KEY || '');
 
 if (DATA_ENCRYPTION_MODE !== 'off' && !DATA_ENCRYPTION_KEY) {
-  warnOnce('[data-crypto] TUNET_ENCRYPTION_MODE is enabled but TUNET_DATA_KEY is missing. Falling back to plaintext reads/writes.');
+  warnOnce(
+    '[data-crypto] TUNET_ENCRYPTION_MODE is enabled but TUNET_DATA_KEY is missing. Falling back to plaintext reads/writes.'
+  );
 }
 
 export const getDataEncryptionMode = () => DATA_ENCRYPTION_MODE;
@@ -82,7 +88,8 @@ const canWriteEncryptedData = () => DATA_ENCRYPTION_MODE !== 'off' && Boolean(DA
 
 const decryptPayload = (encryptedValue) => {
   if (!DATA_ENCRYPTION_KEY) return null;
-  if (typeof encryptedValue !== 'string' || !encryptedValue.startsWith(ENCRYPTION_PREFIX)) return null;
+  if (typeof encryptedValue !== 'string' || !encryptedValue.startsWith(ENCRYPTION_PREFIX))
+    return null;
 
   try {
     const payload = Buffer.from(encryptedValue.slice(ENCRYPTION_PREFIX.length), 'base64');
@@ -114,7 +121,8 @@ export const encryptDataText = (plainText) => {
 
 export const resolveStoredDataText = ({ plainText, encryptedText, context = 'unknown' }) => {
   const plain = typeof plainText === 'string' ? plainText : null;
-  const encrypted = typeof encryptedText === 'string' && encryptedText.trim() ? encryptedText : null;
+  const encrypted =
+    typeof encryptedText === 'string' && encryptedText.trim() ? encryptedText : null;
 
   if (DATA_ENCRYPTION_MODE === 'off') {
     if (plain) return plain;
@@ -128,7 +136,9 @@ export const resolveStoredDataText = ({ plainText, encryptedText, context = 'unk
       warnOnce(`[data-crypto] Failed to decrypt payload in ${context} while in enc_only mode.`);
       return null;
     }
-    warnOnce(`[data-crypto] Failed to decrypt payload in ${context}. Falling back to plaintext data.`);
+    warnOnce(
+      `[data-crypto] Failed to decrypt payload in ${context}. Falling back to plaintext data.`
+    );
   }
 
   return plain;

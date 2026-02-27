@@ -33,7 +33,7 @@ const buildBuckets = (points, rangeHours) => {
     .sort((a, b) => a.time - b.time)
     .map((b) => ({
       time: b.time,
-      value: b.count ? b.total / b.count : 0
+      value: b.count ? b.total / b.count : 0,
     }));
 };
 
@@ -74,8 +74,8 @@ const BarChart = ({ data, height = 200, color = '#34d399' }) => {
   const range = max - min || 1;
 
   return (
-    <div className="w-full relative">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full" preserveAspectRatio="none">
+    <div className="relative w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="none">
         <line
           x1={padding.left}
           y1={padding.top}
@@ -94,7 +94,7 @@ const BarChart = ({ data, height = 200, color = '#34d399' }) => {
         />
         {data.map((point, idx) => {
           const x = padding.left + (idx / Math.max(data.length - 1, 1)) * chartWidth;
-          const barWidth = chartWidth / Math.max(data.length, 1) * 0.6;
+          const barWidth = (chartWidth / Math.max(data.length, 1)) * 0.6;
           const normalized = (point.value - min) / range;
           const barHeight = normalized * chartHeight;
           return (
@@ -125,7 +125,7 @@ export default function CostModal({
   name,
   iconName,
   t,
-  currency: propCurrency
+  currency: propCurrency,
 }) {
   const { haConfig } = useHomeAssistantMeta();
   const currency = propCurrency || haConfig?.currency || 'kr';
@@ -164,29 +164,37 @@ export default function CostModal({
           start,
           end,
           minimal_response: true,
-          no_attributes: true
+          no_attributes: true,
         });
 
         let points = (raw || [])
           .map((d) => ({
             value: parseNumeric(d.state),
-            time: new Date(d.last_changed || d.last_updated || d.last_reported || d.timestamp || d.lu || d.lc)
+            time: new Date(
+              d.last_changed || d.last_updated || d.last_reported || d.timestamp || d.lu || d.lc
+            ),
           }))
-          .filter((d) => d.value !== null && d.time instanceof Date && !Number.isNaN(d.time.getTime()));
+          .filter(
+            (d) => d.value !== null && d.time instanceof Date && !Number.isNaN(d.time.getTime())
+          );
 
         if (points.length < 2) {
           const stats = await getStatistics(conn, {
             statisticId: activeEntity.entity_id,
             start,
             end,
-            period: rangeHours > 48 ? 'day' : 'hour'
+            period: rangeHours > 48 ? 'day' : 'hour',
           });
           points = (stats || [])
             .map((d) => ({
-              value: parseNumeric(typeof d.mean === 'number' ? d.mean : (typeof d.state === 'number' ? d.state : d.sum)),
-              time: new Date(d.start)
+              value: parseNumeric(
+                typeof d.mean === 'number' ? d.mean : typeof d.state === 'number' ? d.state : d.sum
+              ),
+              time: new Date(d.start),
             }))
-            .filter((d) => d.value !== null && d.time instanceof Date && !Number.isNaN(d.time.getTime()));
+            .filter(
+              (d) => d.value !== null && d.time instanceof Date && !Number.isNaN(d.time.getTime())
+            );
         }
 
         if (points.length < 2) {
@@ -195,7 +203,7 @@ export default function CostModal({
             const now = new Date();
             points = [
               { value: val, time: new Date(now.getTime() - rangeHours * 60 * 60 * 1000) },
-              { value: val, time: now }
+              { value: val, time: now },
             ];
           }
         }
@@ -234,7 +242,7 @@ export default function CostModal({
       min: min.toFixed(2),
       max: max.toFixed(2),
       avg: avg.toFixed(2),
-      last: last.toFixed(2)
+      last: last.toFixed(2),
     };
   }, [series]);
 
@@ -251,41 +259,61 @@ export default function CostModal({
       onClick={onClose}
     >
       <div
-        className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 font-sans relative max-h-[90vh] overflow-y-auto backdrop-blur-xl popup-anim"
+        className="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
         style={{
           background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
           borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)'
+          color: 'var(--text-primary)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close">
-          <X className="w-4 h-4" />
+        <button
+          onClick={onClose}
+          className="modal-close absolute top-6 right-6 md:top-10 md:right-10"
+        >
+          <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-4 mb-6 font-sans">
-          <div className="p-4 rounded-2xl transition-all duration-500" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-            <HeaderIcon className="w-8 h-8" />
+        <div className="mb-6 flex items-center gap-4 font-sans">
+          <div
+            className="rounded-2xl p-4 transition-all duration-500"
+            style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}
+          >
+            <HeaderIcon className="h-8 w-8" />
           </div>
           <div>
-            <h3 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">{displayName}</h3>
-            <div className="mt-2 px-3 py-1 rounded-full border inline-flex items-center gap-2" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
-              <span className="text-[10px] uppercase font-bold italic tracking-widest">
-                {source === 'month' ? translate('energyCost.thisMonth') : translate('energyCost.today')}
+            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+              {displayName}
+            </h3>
+            <div
+              className="mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1"
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                borderColor: 'var(--glass-border)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <span className="text-[10px] font-bold tracking-widest uppercase italic">
+                {source === 'month'
+                  ? translate('energyCost.thisMonth')
+                  : translate('energyCost.today')}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            {[{ key: 'today', label: translate('energyCost.today') }, { key: 'month', label: translate('energyCost.thisMonth') }]
+            {[
+              { key: 'today', label: translate('energyCost.today') },
+              { key: 'month', label: translate('energyCost.thisMonth') },
+            ]
               .filter((item) => (item.key === 'today' ? todayEntityId : monthEntityId))
               .map((item) => (
                 <button
                   key={item.key}
                   onClick={() => setSource(item.key)}
-                  className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${source === item.key ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                  className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${source === item.key ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                 >
                   {item.label}
                 </button>
@@ -296,7 +324,7 @@ export default function CostModal({
               <button
                 key={hours}
                 onClick={() => setRangeHours(hours)}
-                className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${rangeHours === hours ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${rangeHours === hours ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
               >
                 {hours >= 168 ? '7d' : `${hours}h`}
               </button>
@@ -305,13 +333,13 @@ export default function CostModal({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setChartType('line')}
-              className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${chartType === 'line' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${chartType === 'line' ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
             >
               {translate('cost.view.line')}
             </button>
             <button
               onClick={() => setChartType('bars')}
-              className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${chartType === 'bars' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${chartType === 'bars' ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
             >
               {translate('cost.view.bars')}
             </button>
@@ -319,58 +347,79 @@ export default function CostModal({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMetric('value')}
-              className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${metric === 'value' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${metric === 'value' ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
             >
               {translate('cost.metric.value')}
             </button>
             <button
               onClick={() => setMetric('delta')}
-              className={`px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${metric === 'delta' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${metric === 'delta' ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
             >
               {translate('cost.metric.delta')}
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-          <div className="lg:col-span-3 p-4 rounded-2xl popup-surface">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
+          <div className="popup-surface rounded-2xl p-4 lg:col-span-3">
             {loading ? (
-              <div className="h-[220px] flex items-center justify-center text-[var(--text-secondary)] text-sm">
+              <div className="flex h-[220px] items-center justify-center text-sm text-[var(--text-secondary)]">
                 {translate('common.loading')}
               </div>
             ) : series.length === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-[var(--text-secondary)] text-sm">
+              <div className="flex h-[220px] items-center justify-center text-sm text-[var(--text-secondary)]">
                 {translate('cost.noData')}
               </div>
             ) : chartType === 'bars' ? (
               <BarChart data={series} height={220} color="#34d399" />
             ) : (
-              <SensorHistoryGraph data={series} height={220} color="#34d399" noDataLabel={translate('cost.noData')} />
+              <SensorHistoryGraph
+                data={series}
+                height={220}
+                color="#34d399"
+                noDataLabel={translate('cost.noData')}
+              />
             )}
           </div>
-          <div className="lg:col-span-2 space-y-4">
-            <div className="p-4 rounded-2xl popup-surface flex items-center gap-3">
-              <TrendingUp className="w-5 h-5 text-emerald-400" />
+          <div className="space-y-4 lg:col-span-2">
+            <div className="popup-surface flex items-center gap-3 rounded-2xl p-4">
+              <TrendingUp className="h-5 w-5 text-emerald-400" />
               <div>
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">{translate('cost.stats.last')}</p>
-                <p className="text-lg font-semibold text-[var(--text-primary)]">{stats.last} {currency}</p>
+                <p className="text-[10px] tracking-widest text-[var(--text-secondary)] uppercase">
+                  {translate('cost.stats.last')}
+                </p>
+                <p className="text-lg font-semibold text-[var(--text-primary)]">
+                  {stats.last} {currency}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-4 rounded-2xl popup-surface">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">{translate('cost.stats.min')}</p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">{stats.min} {currency}</p>
+              <div className="popup-surface rounded-2xl p-4">
+                <p className="text-[10px] tracking-widest text-[var(--text-secondary)] uppercase">
+                  {translate('cost.stats.min')}
+                </p>
+                <p className="text-base font-semibold text-[var(--text-primary)]">
+                  {stats.min} {currency}
+                </p>
               </div>
-              <div className="p-4 rounded-2xl popup-surface">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">{translate('cost.stats.max')}</p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">{stats.max} {currency}</p>
+              <div className="popup-surface rounded-2xl p-4">
+                <p className="text-[10px] tracking-widest text-[var(--text-secondary)] uppercase">
+                  {translate('cost.stats.max')}
+                </p>
+                <p className="text-base font-semibold text-[var(--text-primary)]">
+                  {stats.max} {currency}
+                </p>
               </div>
             </div>
-            <div className="p-4 rounded-2xl popup-surface flex items-center gap-3">
-              <BarChart3 className="w-5 h-5 text-emerald-400" />
+            <div className="popup-surface flex items-center gap-3 rounded-2xl p-4">
+              <BarChart3 className="h-5 w-5 text-emerald-400" />
               <div>
-                <p className="text-[10px] uppercase tracking-widest text-[var(--text-secondary)]">{translate('cost.stats.avg')}</p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">{stats.avg} {currency}</p>
+                <p className="text-[10px] tracking-widest text-[var(--text-secondary)] uppercase">
+                  {translate('cost.stats.avg')}
+                </p>
+                <p className="text-base font-semibold text-[var(--text-primary)]">
+                  {stats.avg} {currency}
+                </p>
               </div>
             </div>
           </div>

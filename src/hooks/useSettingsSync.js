@@ -101,7 +101,10 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('tunet_history_keep_limit', String(clampHistoryKeepLimit(historyKeepLimit)));
+      localStorage.setItem(
+        'tunet_history_keep_limit',
+        String(clampHistoryKeepLimit(historyKeepLimit))
+      );
     } catch {
       // ignore storage errors
     }
@@ -155,55 +158,63 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
     }
   }, [haUserId]);
 
-  const pushCurrentToServer = useCallback(async (options = {}) => {
-    if (!haUserId) return null;
+  const pushCurrentToServer = useCallback(
+    async (options = {}) => {
+      if (!haUserId) return null;
 
-    const snapshot = collectSnapshot();
-    if (!isValidSnapshot(snapshot)) {
-      const validationError = new Error('Invalid snapshot data');
-      setStatus('error');
-      setError(validationError.message);
-      throw validationError;
-    }
-
-    const serialized = JSON.stringify(snapshot);
-    if (!options.force && serialized === lastUploadedHashRef.current) {
-      return null;
-    }
-
-    setStatus('syncing');
-    setError('');
-
-    try {
-      const response = await apiSaveCurrentSettings({
-        ha_user_id: haUserId,
-        device_id: deviceIdRef.current,
-        data: snapshot,
-        base_revision: currentRevision,
-        history_keep_limit: clampHistoryKeepLimit(historyKeepLimit),
-        device_label: deviceLabelRef.current || undefined,
-      }, options.fetchOptions || {});
-
-      setCurrentRevision(Number.isFinite(Number(response?.revision)) ? Number(response.revision) : currentRevision);
-      setLastSyncedAt(response?.updated_at || new Date().toISOString());
-      setStatus('synced');
-      lastUploadedHashRef.current = serialized;
-      lastObservedHashRef.current = serialized;
-      await refreshKnownDevices();
-      await refreshHistory();
-      return response;
-    } catch (saveError) {
-      if (saveError?.status === 409 && Number.isFinite(Number(saveError?.body?.revision))) {
-        setCurrentRevision(Number(saveError.body.revision));
-        setStatus('conflict');
-        setError('Revision conflict');
-      } else {
+      const snapshot = collectSnapshot();
+      if (!isValidSnapshot(snapshot)) {
+        const validationError = new Error('Invalid snapshot data');
         setStatus('error');
-        setError(saveError?.message || 'Failed to sync settings');
+        setError(validationError.message);
+        throw validationError;
       }
-      throw saveError;
-    }
-  }, [haUserId, currentRevision, historyKeepLimit, refreshKnownDevices, refreshHistory]);
+
+      const serialized = JSON.stringify(snapshot);
+      if (!options.force && serialized === lastUploadedHashRef.current) {
+        return null;
+      }
+
+      setStatus('syncing');
+      setError('');
+
+      try {
+        const response = await apiSaveCurrentSettings(
+          {
+            ha_user_id: haUserId,
+            device_id: deviceIdRef.current,
+            data: snapshot,
+            base_revision: currentRevision,
+            history_keep_limit: clampHistoryKeepLimit(historyKeepLimit),
+            device_label: deviceLabelRef.current || undefined,
+          },
+          options.fetchOptions || {}
+        );
+
+        setCurrentRevision(
+          Number.isFinite(Number(response?.revision)) ? Number(response.revision) : currentRevision
+        );
+        setLastSyncedAt(response?.updated_at || new Date().toISOString());
+        setStatus('synced');
+        lastUploadedHashRef.current = serialized;
+        lastObservedHashRef.current = serialized;
+        await refreshKnownDevices();
+        await refreshHistory();
+        return response;
+      } catch (saveError) {
+        if (saveError?.status === 409 && Number.isFinite(Number(saveError?.body?.revision))) {
+          setCurrentRevision(Number(saveError.body.revision));
+          setStatus('conflict');
+          setError('Revision conflict');
+        } else {
+          setStatus('error');
+          setError(saveError?.message || 'Failed to sync settings');
+        }
+        throw saveError;
+      }
+    },
+    [haUserId, currentRevision, historyKeepLimit, refreshKnownDevices, refreshHistory]
+  );
 
   const reconcileFromServer = useCallback(async () => {
     if (!haUserId) return;
@@ -247,29 +258,35 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
     }
   }, [haUserId, currentRevision, contextSettersRef, refreshHistory]);
 
-  const queueAutoSync = useCallback((force = false, { ignoreEnabled = false } = {}) => {
-    if ((!enabled && !ignoreEnabled) || !haUserId) return;
+  const queueAutoSync = useCallback(
+    (force = false, { ignoreEnabled = false } = {}) => {
+      if ((!enabled && !ignoreEnabled) || !haUserId) return;
 
-    const snapshot = collectSnapshot();
-    if (!isValidSnapshot(snapshot)) return;
-    const serialized = JSON.stringify(snapshot);
+      const snapshot = collectSnapshot();
+      if (!isValidSnapshot(snapshot)) return;
+      const serialized = JSON.stringify(snapshot);
 
-    if (!force && serialized === lastObservedHashRef.current) return;
-    lastObservedHashRef.current = serialized;
+      if (!force && serialized === lastObservedHashRef.current) return;
+      lastObservedHashRef.current = serialized;
 
-    if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current);
-    autoSyncTimerRef.current = setTimeout(async () => {
-      if (syncInFlightRef.current) return;
-      syncInFlightRef.current = true;
-      try {
-        await pushCurrentToServer({ force });
-      } catch {
-        // state already handled
-      } finally {
-        syncInFlightRef.current = false;
-      }
-    }, force ? 0 : 3500);
-  }, [enabled, haUserId, pushCurrentToServer]);
+      if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current);
+      autoSyncTimerRef.current = setTimeout(
+        async () => {
+          if (syncInFlightRef.current) return;
+          syncInFlightRef.current = true;
+          try {
+            await pushCurrentToServer({ force });
+          } catch {
+            // state already handled
+          } finally {
+            syncInFlightRef.current = false;
+          }
+        },
+        force ? 0 : 3500
+      );
+    },
+    [enabled, haUserId, pushCurrentToServer]
+  );
 
   useEffect(() => {
     if (!haUserId) return;
@@ -319,58 +336,74 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
     };
   }, [haUserId, queueAutoSync]);
 
-  const loadCurrentFromServer = useCallback(async (revision) => {
-    const row = Number.isFinite(Number(revision))
-      ? await apiFetchCurrentSettings(haUserId, deviceIdRef.current, Number(revision))
-      : await readCurrentFromServer();
-    if (!row?.data || typeof row.data !== 'object') return;
+  const loadCurrentFromServer = useCallback(
+    async (revision) => {
+      const row = Number.isFinite(Number(revision))
+        ? await apiFetchCurrentSettings(haUserId, deviceIdRef.current, Number(revision))
+        : await readCurrentFromServer();
+      if (!row?.data || typeof row.data !== 'object') return;
 
-    if (Number.isFinite(Number(row.revision))) {
-      setCurrentRevision(Number(row.revision));
-    }
-    if (row.updated_at) {
-      setLastSyncedAt(row.updated_at);
-    }
-
-    applySnapshot(row.data, contextSettersRef?.current || {});
-  }, [haUserId, readCurrentFromServer, contextSettersRef]);
-
-  const publishCurrentToDevices = useCallback(async (targetDeviceIds) => {
-    if (!haUserId) return;
-    setPublishing(true);
-    setError('');
-    try {
-      await pushCurrentToServer({ force: true });
-
-      const normalizedTargets = Array.isArray(targetDeviceIds)
-        ? [...new Set(targetDeviceIds.filter((id) => typeof id === 'string' && id.trim()).map((id) => id.trim()))]
-        : [];
-
-      if (normalizedTargets.length === 0) {
-        await apiPublishCurrentSettings({
-          ha_user_id: haUserId,
-          source_device_id: deviceIdRef.current,
-          target_device_id: undefined,
-          history_keep_limit: clampHistoryKeepLimit(historyKeepLimit),
-        });
-      } else {
-        await Promise.all(normalizedTargets.map((targetDeviceId) => apiPublishCurrentSettings({
-          ha_user_id: haUserId,
-          source_device_id: deviceIdRef.current,
-          target_device_id: targetDeviceId,
-          history_keep_limit: clampHistoryKeepLimit(historyKeepLimit),
-        })));
+      if (Number.isFinite(Number(row.revision))) {
+        setCurrentRevision(Number(row.revision));
       }
-      await refreshKnownDevices();
-      await refreshHistory();
-    } catch (publishError) {
-      setStatus('error');
-      setError(publishError?.message || 'Failed to publish settings');
-      throw publishError;
-    } finally {
-      setPublishing(false);
-    }
-  }, [haUserId, historyKeepLimit, pushCurrentToServer, refreshKnownDevices, refreshHistory]);
+      if (row.updated_at) {
+        setLastSyncedAt(row.updated_at);
+      }
+
+      applySnapshot(row.data, contextSettersRef?.current || {});
+    },
+    [haUserId, readCurrentFromServer, contextSettersRef]
+  );
+
+  const publishCurrentToDevices = useCallback(
+    async (targetDeviceIds) => {
+      if (!haUserId) return;
+      setPublishing(true);
+      setError('');
+      try {
+        await pushCurrentToServer({ force: true });
+
+        const normalizedTargets = Array.isArray(targetDeviceIds)
+          ? [
+              ...new Set(
+                targetDeviceIds
+                  .filter((id) => typeof id === 'string' && id.trim())
+                  .map((id) => id.trim())
+              ),
+            ]
+          : [];
+
+        if (normalizedTargets.length === 0) {
+          await apiPublishCurrentSettings({
+            ha_user_id: haUserId,
+            source_device_id: deviceIdRef.current,
+            target_device_id: undefined,
+            history_keep_limit: clampHistoryKeepLimit(historyKeepLimit),
+          });
+        } else {
+          await Promise.all(
+            normalizedTargets.map((targetDeviceId) =>
+              apiPublishCurrentSettings({
+                ha_user_id: haUserId,
+                source_device_id: deviceIdRef.current,
+                target_device_id: targetDeviceId,
+                history_keep_limit: clampHistoryKeepLimit(historyKeepLimit),
+              })
+            )
+          );
+        }
+        await refreshKnownDevices();
+        await refreshHistory();
+      } catch (publishError) {
+        setStatus('error');
+        setError(publishError?.message || 'Failed to publish settings');
+        throw publishError;
+      } finally {
+        setPublishing(false);
+      }
+    },
+    [haUserId, historyKeepLimit, pushCurrentToServer, refreshKnownDevices, refreshHistory]
+  );
 
   const clearHistory = useCallback(async () => {
     if (!haUserId) return;
@@ -388,54 +421,60 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
     }
   }, [haUserId, refreshHistory]);
 
-  const removeKnownDevice = useCallback(async (targetDeviceId) => {
-    if (!haUserId || !targetDeviceId) return;
-    if (targetDeviceId === deviceIdRef.current) {
-      const removeCurrentError = new Error('Cannot remove current device');
-      setStatus('error');
-      setError(removeCurrentError.message);
-      throw removeCurrentError;
-    }
-
-    setRemovingDeviceId(targetDeviceId);
-    setError('');
-    try {
-      await apiDeleteSettingsDevice(haUserId, targetDeviceId);
-      await refreshKnownDevices();
-    } catch (removeError) {
-      setStatus('error');
-      setError(removeError?.message || 'Failed to remove device');
-      throw removeError;
-    } finally {
-      setRemovingDeviceId('');
-    }
-  }, [haUserId, refreshKnownDevices]);
-
-  const renameKnownDevice = useCallback(async (targetDeviceId, nextLabel) => {
-    if (!haUserId || !targetDeviceId) return;
-
-    setUpdatingDeviceId(targetDeviceId);
-    setError('');
-    try {
-      await apiUpdateSettingsDeviceLabel(haUserId, targetDeviceId, nextLabel);
+  const removeKnownDevice = useCallback(
+    async (targetDeviceId) => {
+      if (!haUserId || !targetDeviceId) return;
       if (targetDeviceId === deviceIdRef.current) {
-        const normalized = typeof nextLabel === 'string' ? nextLabel.trim() : '';
-        deviceLabelRef.current = normalized;
-        try {
-          localStorage.setItem('tunet_device_label', normalized);
-        } catch {
-          // ignore storage errors
-        }
+        const removeCurrentError = new Error('Cannot remove current device');
+        setStatus('error');
+        setError(removeCurrentError.message);
+        throw removeCurrentError;
       }
-      await refreshKnownDevices();
-    } catch (renameError) {
-      setStatus('error');
-      setError(renameError?.message || 'Failed to rename device');
-      throw renameError;
-    } finally {
-      setUpdatingDeviceId('');
-    }
-  }, [haUserId, refreshKnownDevices]);
+
+      setRemovingDeviceId(targetDeviceId);
+      setError('');
+      try {
+        await apiDeleteSettingsDevice(haUserId, targetDeviceId);
+        await refreshKnownDevices();
+      } catch (removeError) {
+        setStatus('error');
+        setError(removeError?.message || 'Failed to remove device');
+        throw removeError;
+      } finally {
+        setRemovingDeviceId('');
+      }
+    },
+    [haUserId, refreshKnownDevices]
+  );
+
+  const renameKnownDevice = useCallback(
+    async (targetDeviceId, nextLabel) => {
+      if (!haUserId || !targetDeviceId) return;
+
+      setUpdatingDeviceId(targetDeviceId);
+      setError('');
+      try {
+        await apiUpdateSettingsDeviceLabel(haUserId, targetDeviceId, nextLabel);
+        if (targetDeviceId === deviceIdRef.current) {
+          const normalized = typeof nextLabel === 'string' ? nextLabel.trim() : '';
+          deviceLabelRef.current = normalized;
+          try {
+            localStorage.setItem('tunet_device_label', normalized);
+          } catch {
+            // ignore storage errors
+          }
+        }
+        await refreshKnownDevices();
+      } catch (renameError) {
+        setStatus('error');
+        setError(renameError?.message || 'Failed to rename device');
+        throw renameError;
+      } finally {
+        setUpdatingDeviceId('');
+      }
+    },
+    [haUserId, refreshKnownDevices]
+  );
 
   return {
     enabled,

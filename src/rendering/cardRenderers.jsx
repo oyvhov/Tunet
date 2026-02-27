@@ -43,27 +43,56 @@ function renderMissingEntityWhenReady(ctx, props) {
 // ─── Individual Card Renderers ───────────────────────────────────────────────
 
 export function renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, conn, cardSettings, customNames, customIcons, getA, callService, setShowSensorInfoModal, t } = ctx;
+  const {
+    entities,
+    editMode,
+    conn,
+    cardSettings,
+    customNames,
+    customIcons,
+    getA,
+    callService,
+    setShowSensorInfoModal,
+    t,
+  } = ctx;
   const entity = entities[cardId];
 
   if (!entity) {
-    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: cardId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: cardId,
+      t,
+    });
   }
 
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const name = customNames[cardId] || getA(cardId, 'friendly_name', cardId);
   const domain = cardId.split('.')[0];
-  const defaultIcons = { sensor: Activity, input_number: Hash, input_boolean: ToggleRight, switch: Power, default: Activity };
+  const defaultIcons = {
+    sensor: Activity,
+    input_number: Hash,
+    input_boolean: ToggleRight,
+    switch: Power,
+    default: Activity,
+  };
   const DefaultIcon = defaultIcons[domain] || defaultIcons.default;
   const sensorIconName = customIcons[cardId] || entity?.attributes?.icon;
-  const Icon = sensorIconName ? (getIconComponent(sensorIconName) || DefaultIcon) : DefaultIcon;
+  const Icon = sensorIconName ? getIconComponent(sensorIconName) || DefaultIcon : DefaultIcon;
 
   const handleControl = (action) => {
     if (domain === 'input_number') {
       if (action === 'increment') callService('input_number', 'increment', { entity_id: cardId });
       if (action === 'decrement') callService('input_number', 'decrement', { entity_id: cardId });
     }
-    if (domain === 'input_boolean' || domain === 'switch' || domain === 'light' || domain === 'automation') {
+    if (
+      domain === 'input_boolean' ||
+      domain === 'switch' ||
+      domain === 'light' ||
+      domain === 'automation'
+    ) {
       if (action === 'toggle') callService(domain, 'toggle', { entity_id: cardId });
     }
     if (domain === 'script' || domain === 'scene') {
@@ -85,21 +114,45 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
       name={name}
       t={t}
       onControl={handleControl}
-      onOpen={() => { if (!editMode) setShowSensorInfoModal(cardId); }}
+      onOpen={() => {
+        if (!editMode) setShowSensorInfoModal(cardId);
+      }}
     />
   );
 }
 
 export function renderLightCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, getA, callService, optimisticLightBrightness, setOptimisticLightBrightness, setShowLightModal, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    getA,
+    callService,
+    optimisticLightBrightness,
+    setOptimisticLightBrightness,
+    setShowLightModal,
+    t,
+  } = ctx;
   return (
     <LightCard
-      key={cardId} cardId={cardId} dragProps={dragProps} controls={getControls(cardId)}
-      cardStyle={cardStyle} entities={entities} editMode={editMode}
-      cardSettings={cardSettings} settingsKey={settingsKey}
-      customNames={customNames} customIcons={customIcons}
-      getA={getA} callService={callService}
-      onOpen={() => { if (!editMode) setShowLightModal(cardId); }}
+      key={cardId}
+      cardId={cardId}
+      dragProps={dragProps}
+      controls={getControls(cardId)}
+      cardStyle={cardStyle}
+      entities={entities}
+      editMode={editMode}
+      cardSettings={cardSettings}
+      settingsKey={settingsKey}
+      customNames={customNames}
+      customIcons={customIcons}
+      getA={getA}
+      callService={callService}
+      onOpen={() => {
+        if (!editMode) setShowLightModal(cardId);
+      }}
       optimisticLightBrightness={optimisticLightBrightness}
       setOptimisticLightBrightness={setOptimisticLightBrightness}
       t={t}
@@ -112,134 +165,296 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
   const isOn = entities[cardId]?.state === 'on';
   const friendlyName = customNames[cardId] || getA(cardId, 'friendly_name') || cardId;
   const automationIconName = customIcons[cardId] || entities[cardId]?.attributes?.icon;
-  const Icon = automationIconName ? (getIconComponent(automationIconName) || Workflow) : Workflow;
+  const Icon = automationIconName ? getIconComponent(automationIconName) || Workflow : Workflow;
 
   return (
     <div
-      key={cardId} {...dragProps}
+      key={cardId}
+      {...dragProps}
       data-haptic={editMode ? undefined : 'card'}
-      className={`touch-feedback w-full p-4 rounded-2xl flex items-center justify-between transition-all duration-500 border group relative overflow-hidden font-sans mb-3 break-inside-avoid ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
+      className={`touch-feedback group relative mb-3 flex w-full break-inside-avoid items-center justify-between overflow-hidden rounded-2xl border p-4 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
       style={{
         ...cardStyle,
-        backgroundColor: isOn ? 'color-mix(in srgb, var(--accent-color) 8%, transparent)' : 'rgba(15, 23, 42, 0.6)',
-        borderColor: isOn ? 'color-mix(in srgb, var(--accent-color) 24%, transparent)' : (editMode ? 'color-mix(in srgb, var(--accent-color) 26%, transparent)' : 'rgba(255, 255, 255, 0.04)')
+        backgroundColor: isOn
+          ? 'color-mix(in srgb, var(--accent-color) 8%, transparent)'
+          : 'rgba(15, 23, 42, 0.6)',
+        borderColor: isOn
+          ? 'color-mix(in srgb, var(--accent-color) 24%, transparent)'
+          : editMode
+            ? 'color-mix(in srgb, var(--accent-color) 26%, transparent)'
+            : 'rgba(255, 255, 255, 0.04)',
       }}
-      onClick={(_e) => { if (!editMode) callService('automation', 'toggle', { entity_id: cardId }); }}
+      onClick={(_e) => {
+        if (!editMode) callService('automation', 'toggle', { entity_id: cardId });
+      }}
     >
       {getControls(cardId)}
       <div className="flex items-center gap-4">
         <div
-          className={`p-3 rounded-2xl transition-all ${isOn ? '' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
-          style={isOn ? {
-            backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
-            color: 'var(--accent-color)'
-          } : undefined}
+          className={`rounded-2xl p-3 transition-all ${isOn ? '' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+          style={
+            isOn
+              ? {
+                  backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
+                  color: 'var(--accent-color)',
+                }
+              : undefined
+          }
         >
-          <Icon className="w-5 h-5 stroke-[1.5px]" />
+          <Icon className="h-5 w-5 stroke-[1.5px]" />
         </div>
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-[var(--text-primary)] leading-tight">{friendlyName}</span>
+            <span className="text-sm leading-tight font-bold text-[var(--text-primary)]">
+              {friendlyName}
+            </span>
           </div>
-          <span className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)] mt-0.5">
+          <span className="mt-0.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
             {isOn ? t('status.active') : t('status.off')}
           </span>
         </div>
       </div>
       <div
-        className={`w-10 h-6 rounded-full relative transition-all ${isOn ? '' : 'bg-[var(--glass-bg-hover)]'}`}
-        style={isOn ? { backgroundColor: 'color-mix(in srgb, var(--accent-color) 68%, transparent)' } : undefined}
+        className={`relative h-6 w-10 rounded-full transition-all ${isOn ? '' : 'bg-[var(--glass-bg-hover)]'}`}
+        style={
+          isOn
+            ? { backgroundColor: 'color-mix(in srgb, var(--accent-color) 68%, transparent)' }
+            : undefined
+        }
       >
-        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-md ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`} />
+        <div
+          className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-md transition-all ${isOn ? 'left-[calc(100%-20px)]' : 'left-1'}`}
+        />
       </div>
     </div>
   );
 }
 
 export function renderCarCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, getS, getA, getEntityImageUrl, callService, setActiveCarModal, isMobile, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    getS,
+    getA,
+    getEntityImageUrl,
+    callService,
+    setActiveCarModal,
+    isMobile,
+    t,
+  } = ctx;
   return (
     <CarCard
-      key={cardId} cardId={cardId} dragProps={dragProps} controls={getControls(cardId)}
-      cardStyle={cardStyle} entities={entities} editMode={editMode}
-      cardSettings={cardSettings} settingsKey={settingsKey}
-      customNames={customNames} customIcons={customIcons}
-      getS={getS} getA={getA} getEntityImageUrl={getEntityImageUrl} callService={callService}
-      onOpen={() => { if (!editMode) setActiveCarModal(cardId); }}
-      isMobile={isMobile} t={t}
+      key={cardId}
+      cardId={cardId}
+      dragProps={dragProps}
+      controls={getControls(cardId)}
+      cardStyle={cardStyle}
+      entities={entities}
+      editMode={editMode}
+      cardSettings={cardSettings}
+      settingsKey={settingsKey}
+      customNames={customNames}
+      customIcons={customIcons}
+      getS={getS}
+      getA={getA}
+      getEntityImageUrl={getEntityImageUrl}
+      callService={callService}
+      onOpen={() => {
+        if (!editMode) setActiveCarModal(cardId);
+      }}
+      isMobile={isMobile}
+      t={t}
     />
   );
 }
 
 export function renderVacuumCard(vacuumId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, getA, callService, setActiveVacuumId, setShowVacuumModal, isMobile, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    getA,
+    callService,
+    setActiveVacuumId,
+    setShowVacuumModal,
+    isMobile,
+    t,
+  } = ctx;
   return (
     <VacuumCard
-      key={vacuumId} vacuumId={vacuumId} dragProps={dragProps} controls={getControls(vacuumId)}
-      cardStyle={cardStyle} entities={entities} editMode={editMode}
-      cardSettings={cardSettings} settingsKey={settingsKey}
-      customNames={customNames} customIcons={customIcons}
-      getA={getA} callService={callService}
-      onOpen={() => { if (!editMode) { setActiveVacuumId(vacuumId); setShowVacuumModal(true); } }}
-      isMobile={isMobile} t={t}
+      key={vacuumId}
+      vacuumId={vacuumId}
+      dragProps={dragProps}
+      controls={getControls(vacuumId)}
+      cardStyle={cardStyle}
+      entities={entities}
+      editMode={editMode}
+      cardSettings={cardSettings}
+      settingsKey={settingsKey}
+      customNames={customNames}
+      customIcons={customIcons}
+      getA={getA}
+      callService={callService}
+      onOpen={() => {
+        if (!editMode) {
+          setActiveVacuumId(vacuumId);
+          setShowVacuumModal(true);
+        }
+      }}
+      isMobile={isMobile}
+      t={t}
     />
   );
 }
 
 export function renderFanCard(fanId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, getA, callService, setShowFanModal, isMobile, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    getA,
+    callService,
+    setShowFanModal,
+    isMobile,
+    t,
+  } = ctx;
   return (
     <FanCard
-      key={fanId} fanId={fanId} dragProps={dragProps} controls={getControls(fanId)}
-      cardStyle={cardStyle} entities={entities} editMode={editMode}
-      cardSettings={cardSettings} settingsKey={settingsKey}
-      customNames={customNames} customIcons={customIcons}
-      getA={getA} callService={callService}
-      onOpen={() => { if (!editMode) setShowFanModal(fanId); }}
-      isMobile={isMobile} t={t}
+      key={fanId}
+      fanId={fanId}
+      dragProps={dragProps}
+      controls={getControls(fanId)}
+      cardStyle={cardStyle}
+      entities={entities}
+      editMode={editMode}
+      cardSettings={cardSettings}
+      settingsKey={settingsKey}
+      customNames={customNames}
+      customIcons={customIcons}
+      getA={getA}
+      callService={callService}
+      onOpen={() => {
+        if (!editMode) setShowFanModal(fanId);
+      }}
+      isMobile={isMobile}
+      t={t}
     />
   );
 }
 
 export function renderMediaPlayerCard(mpId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, customNames, getA, getEntityImageUrl, callService, isMediaActive, openMediaModal, cardSettings, t } = ctx;
+  const {
+    entities,
+    editMode,
+    customNames,
+    getA,
+    getEntityImageUrl,
+    callService,
+    isMediaActive,
+    openMediaModal,
+    cardSettings,
+    t,
+  } = ctx;
   if (!entities[mpId]) {
-    return renderMissingEntityWhenReady(ctx, { cardId: mpId, dragProps, controls: getControls(mpId), cardStyle, missingEntityId: mpId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId: mpId,
+      dragProps,
+      controls: getControls(mpId),
+      cardStyle,
+      missingEntityId: mpId,
+      t,
+    });
   }
   return (
     <MediaPlayerCard
-      key={mpId} mpId={mpId} cardId={mpId} dragProps={dragProps} controls={getControls(mpId)}
-      cardStyle={cardStyle} entities={entities} editMode={editMode}
-      customNames={customNames} getA={getA} getEntityImageUrl={getEntityImageUrl}
-      callService={callService} isMediaActive={isMediaActive}
-      onOpen={openMediaModal} t={t}
-      cardSettings={cardSettings} settingsKey={settingsKey}
+      key={mpId}
+      mpId={mpId}
+      cardId={mpId}
+      dragProps={dragProps}
+      controls={getControls(mpId)}
+      cardStyle={cardStyle}
+      entities={entities}
+      editMode={editMode}
+      customNames={customNames}
+      getA={getA}
+      getEntityImageUrl={getEntityImageUrl}
+      callService={callService}
+      isMediaActive={isMediaActive}
+      onOpen={openMediaModal}
+      t={t}
+      cardSettings={cardSettings}
+      settingsKey={settingsKey}
     />
   );
 }
 
 export function renderMediaGroupCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, getA, getEntityImageUrl, callService, isMediaActive, saveCardSetting, openMediaModal, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    getA,
+    getEntityImageUrl,
+    callService,
+    isMediaActive,
+    saveCardSetting,
+    openMediaModal,
+    t,
+  } = ctx;
   return (
     <MediaGroupCard
-      key={cardId} cardId={cardId} dragProps={dragProps} controls={getControls(cardId)}
-      cardStyle={cardStyle} entities={entities} editMode={editMode}
-      cardSettings={cardSettings} settingsKey={settingsKey}
-      customNames={customNames} getA={getA} getEntityImageUrl={getEntityImageUrl}
-      callService={callService} isMediaActive={isMediaActive}
-      saveCardSetting={saveCardSetting} onOpen={openMediaModal} t={t}
+      key={cardId}
+      cardId={cardId}
+      dragProps={dragProps}
+      controls={getControls(cardId)}
+      cardStyle={cardStyle}
+      entities={entities}
+      editMode={editMode}
+      cardSettings={cardSettings}
+      settingsKey={settingsKey}
+      customNames={customNames}
+      getA={getA}
+      getEntityImageUrl={getEntityImageUrl}
+      callService={callService}
+      isMediaActive={isMediaActive}
+      saveCardSetting={saveCardSetting}
+      onOpen={openMediaModal}
+      t={t}
     />
   );
 }
 
 export function renderWeatherTempCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, tempHistoryById, forecastsById, setShowWeatherModal, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    tempHistoryById,
+    forecastsById,
+    setShowWeatherModal,
+    t,
+  } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const weatherId = settings.weatherId;
   const weatherEntity = weatherId ? entities[weatherId] : null;
 
   if (!weatherEntity) {
-    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: weatherId || cardId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: weatherId || cardId,
+      t,
+    });
   }
 
   return (
@@ -257,20 +472,45 @@ export function renderWeatherTempCard(cardId, dragProps, getControls, cardStyle,
       outsideTempId={null}
       weatherEntityId={null}
       editMode={editMode}
-      onOpen={() => { if (!editMode) setShowWeatherModal(cardId); }}
+      onOpen={() => {
+        if (!editMode) setShowWeatherModal(cardId);
+      }}
       t={t}
     />
   );
 }
 
-export function renderGenericClimateCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, callService, setActiveClimateEntityModal, t } = ctx;
+export function renderGenericClimateCard(
+  cardId,
+  dragProps,
+  getControls,
+  cardStyle,
+  settingsKey,
+  ctx
+) {
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    callService,
+    setActiveClimateEntityModal,
+    t,
+  } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const entityId = settings.climateId;
   const entity = entityId ? entities[entityId] : null;
 
   if (!entity || !entityId) {
-    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: entityId || cardId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: entityId || cardId,
+      t,
+    });
   }
 
   return (
@@ -286,7 +526,9 @@ export function renderGenericClimateCard(cardId, dragProps, getControls, cardSty
       customNames={customNames}
       customIcons={customIcons}
       onOpen={() => setActiveClimateEntityModal(entityId)}
-      onSetTemperature={(temp) => callService('climate', 'set_temperature', { entity_id: entityId, temperature: temp })}
+      onSetTemperature={(temp) =>
+        callService('climate', 'set_temperature', { entity_id: entityId, temperature: temp })
+      }
       settings={settings}
       t={t}
     />
@@ -316,15 +558,39 @@ export function renderGenericCostCard(cardId, dragProps, getControls, cardStyle,
   );
 }
 
-export function renderGenericAndroidTVCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, getA, getEntityImageUrl, setShowAndroidTVModal, callService, t } = ctx;
+export function renderGenericAndroidTVCard(
+  cardId,
+  dragProps,
+  getControls,
+  cardStyle,
+  settingsKey,
+  ctx
+) {
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    getA,
+    getEntityImageUrl,
+    setShowAndroidTVModal,
+    callService,
+    t,
+  } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const mediaPlayerId = settings.mediaPlayerId;
   const remoteId = settings.remoteId;
   const linkedMediaPlayers = settings.linkedMediaPlayers;
 
   if (!mediaPlayerId || !entities[mediaPlayerId]) {
-    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: mediaPlayerId || cardId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: mediaPlayerId || cardId,
+      t,
+    });
   }
 
   return (
@@ -350,7 +616,18 @@ export function renderGenericAndroidTVCard(cardId, dragProps, getControls, cardS
 }
 
 export function renderCalendarCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { editMode, conn, cardSettings, customNames, customIcons, language, setShowCalendarModal, setShowEditCardModal, setEditCardSettingsKey, t } = ctx;
+  const {
+    editMode,
+    conn,
+    cardSettings,
+    customNames,
+    customIcons,
+    language,
+    setShowCalendarModal,
+    setShowEditCardModal,
+    setEditCardSettingsKey,
+    t,
+  } = ctx;
   const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
   const locale = getLocaleForLanguage(language);
   return (
@@ -383,7 +660,17 @@ export function renderCalendarCard(cardId, dragProps, getControls, cardStyle, se
 }
 
 export function renderTodoCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { editMode, conn, cardSettings, customNames, customIcons, setShowTodoModal, setShowEditCardModal, setEditCardSettingsKey, t } = ctx;
+  const {
+    editMode,
+    conn,
+    cardSettings,
+    customNames,
+    customIcons,
+    setShowTodoModal,
+    setShowEditCardModal,
+    setEditCardSettingsKey,
+    t,
+  } = ctx;
   const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
   return (
     <TodoCard
@@ -414,11 +701,27 @@ export function renderTodoCard(cardId, dragProps, getControls, cardStyle, settin
 }
 
 export function renderNordpoolCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, saveCardSetting, setShowNordpoolModal, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    saveCardSetting,
+    setShowNordpoolModal,
+    t,
+  } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const entity = entities[settings.nordpoolId];
   if (!entity) {
-    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: settings.nordpoolId || cardId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: settings.nordpoolId || cardId,
+      t,
+    });
   }
 
   return (
@@ -440,13 +743,29 @@ export function renderNordpoolCard(cardId, dragProps, getControls, cardStyle, se
 }
 
 export function renderCoverCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, callService, setShowCoverModal, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    callService,
+    setShowCoverModal,
+    t,
+  } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const entityId = settings.coverId;
   const entity = entityId ? entities[entityId] : null;
 
   if (!entity || !entityId) {
-    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: entityId || cardId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: entityId || cardId,
+      t,
+    });
   }
 
   return (
@@ -470,13 +789,30 @@ export function renderCoverCard(cardId, dragProps, getControls, cardStyle, setti
 }
 
 export function renderAlarmCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, callService, setShowAlarmModal, setShowAlarmActionModal, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    callService,
+    setShowAlarmModal,
+    setShowAlarmActionModal,
+    t,
+  } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const entityId = settings.alarmId;
   const entity = entityId ? entities[entityId] : null;
 
   if (!entity || !entityId) {
-    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: entityId || cardId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: entityId || cardId,
+      t,
+    });
   }
 
   const runAction = async (action, code) => {
@@ -519,7 +855,20 @@ export function renderAlarmCard(cardId, dragProps, getControls, cardStyle, setti
 }
 
 export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, conn, cardSettings, customNames, customIcons, callService, setShowRoomModal, setShowEditCardModal, setEditCardSettingsKey, setActivePage, t } = ctx;
+  const {
+    entities,
+    editMode,
+    conn,
+    cardSettings,
+    customNames,
+    customIcons,
+    callService,
+    setShowRoomModal,
+    setShowEditCardModal,
+    setEditCardSettingsKey,
+    setActivePage,
+    t,
+  } = ctx;
   const roomSettings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   return (
     <RoomCard
@@ -538,7 +887,11 @@ export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settin
         if (editMode) {
           setShowEditCardModal(cardId);
           setEditCardSettingsKey(settingsKey);
-        } else if (roomSettings.navigateOnTap === true && roomSettings.navigateToPageId && setActivePage) {
+        } else if (
+          roomSettings.navigateOnTap === true &&
+          roomSettings.navigateToPageId &&
+          setActivePage
+        ) {
           setActivePage(roomSettings.navigateToPageId);
         } else {
           setShowRoomModal(cardId);
@@ -550,14 +903,30 @@ export function renderRoomCard(cardId, dragProps, getControls, cardStyle, settin
 }
 
 export function renderCameraCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
-  const { entities, editMode, cardSettings, customNames, customIcons, getEntityImageUrl, setShowCameraModal, t } = ctx;
+  const {
+    entities,
+    editMode,
+    cardSettings,
+    customNames,
+    customIcons,
+    getEntityImageUrl,
+    setShowCameraModal,
+    t,
+  } = ctx;
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const entityId = settings.cameraId;
   const entity = entityId ? entities[entityId] : null;
   const sizeSetting = settings.size;
 
   if (!entity || !entityId) {
-    return renderMissingEntityWhenReady(ctx, { cardId, dragProps, controls: getControls(cardId), cardStyle, missingEntityId: entityId || cardId, t });
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: entityId || cardId,
+      t,
+    });
   }
 
   return (
@@ -610,25 +979,25 @@ export function renderSpacerCard(cardId, dragProps, getControls, cardStyle, sett
  * Entries are checked in order; first match wins.
  */
 const CARD_REGISTRY = [
-  { prefix: 'light_',          renderer: renderLightCard },
-  { prefix: 'light.',          renderer: renderLightCard },
-  { prefix: 'vacuum.',         renderer: renderVacuumCard },
-  { prefix: 'fan.',            renderer: renderFanCard },
-  { prefix: 'media_player.',   renderer: renderMediaPlayerCard },
-  { prefix: 'media_group_',    renderer: renderMediaGroupCard },
-  { prefix: 'calendar_card_',  renderer: renderCalendarCard },
-  { prefix: 'climate_card_',   renderer: renderGenericClimateCard },
-  { prefix: 'todo_card_',      renderer: renderTodoCard },
-  { prefix: 'cost_card_',      renderer: renderGenericCostCard },
-  { prefix: 'weather_temp_',   renderer: renderWeatherTempCard },
+  { prefix: 'light_', renderer: renderLightCard },
+  { prefix: 'light.', renderer: renderLightCard },
+  { prefix: 'vacuum.', renderer: renderVacuumCard },
+  { prefix: 'fan.', renderer: renderFanCard },
+  { prefix: 'media_player.', renderer: renderMediaPlayerCard },
+  { prefix: 'media_group_', renderer: renderMediaGroupCard },
+  { prefix: 'calendar_card_', renderer: renderCalendarCard },
+  { prefix: 'climate_card_', renderer: renderGenericClimateCard },
+  { prefix: 'todo_card_', renderer: renderTodoCard },
+  { prefix: 'cost_card_', renderer: renderGenericCostCard },
+  { prefix: 'weather_temp_', renderer: renderWeatherTempCard },
   { prefix: 'androidtv_card_', renderer: renderGenericAndroidTVCard },
-  { prefix: 'car_card_',       renderer: renderCarCard },
-  { prefix: 'nordpool_card_',  renderer: renderNordpoolCard },
-  { prefix: 'cover_card_',     renderer: renderCoverCard },
-  { prefix: 'room_card_',      renderer: renderRoomCard },
-  { prefix: 'camera_card_',    renderer: renderCameraCard },
-  { prefix: 'alarm_card_',     renderer: renderAlarmCard },
-  { prefix: 'spacer_card_',    renderer: renderSpacerCard },
+  { prefix: 'car_card_', renderer: renderCarCard },
+  { prefix: 'nordpool_card_', renderer: renderNordpoolCard },
+  { prefix: 'cover_card_', renderer: renderCoverCard },
+  { prefix: 'room_card_', renderer: renderRoomCard },
+  { prefix: 'camera_card_', renderer: renderCameraCard },
+  { prefix: 'alarm_card_', renderer: renderAlarmCard },
+  { prefix: 'spacer_card_', renderer: renderSpacerCard },
 ];
 
 export function dispatchCardRender(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
@@ -657,18 +1026,40 @@ export function dispatchCardRender(cardId, dragProps, getControls, cardStyle, se
   }
 
   // Settings page fallback — render as sensor
-  if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player')) {
+  if (
+    activePage === 'settings' &&
+    !['car'].includes(cardId) &&
+    !cardId.startsWith('light_') &&
+    !cardId.startsWith('media_player')
+  ) {
     return renderSensorCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
   }
 
   // Legacy media_player placeholder
   if (editMode && cardId === 'media_player') {
-    return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} label="Legacy" t={ctx.t} />;
+    return (
+      <MissingEntityCard
+        cardId={cardId}
+        dragProps={dragProps}
+        controls={getControls(cardId)}
+        cardStyle={cardStyle}
+        label="Legacy"
+        t={ctx.t}
+      />
+    );
   }
 
   // Empty/missing media groups in edit mode
   if (editMode && cardId.startsWith('media_group_')) {
-    return <MissingEntityCard cardId={cardId} dragProps={dragProps} controls={getControls(cardId)} cardStyle={cardStyle} t={ctx.t} />;
+    return (
+      <MissingEntityCard
+        cardId={cardId}
+        dragProps={dragProps}
+        controls={getControls(cardId)}
+        cardStyle={cardStyle}
+        t={ctx.t}
+      />
+    );
   }
 
   // Final fallback

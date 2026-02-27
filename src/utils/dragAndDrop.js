@@ -1,7 +1,10 @@
 export const safeVibrate = (ms) => {
   try {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      if (typeof navigator.userActivation !== 'undefined' && !navigator.userActivation.hasBeenActive) {
+      if (
+        typeof navigator.userActivation !== 'undefined' &&
+        !navigator.userActivation.hasBeenActive
+      ) {
         return; // Avoid "Blocked call to navigator.vibrate" warning
       }
       navigator.vibrate(ms);
@@ -25,7 +28,7 @@ export const createDragAndDropHandlers = ({
   touchTargetId,
   setTouchTargetId,
   setDraggingId,
-  ignoreTouchRef
+  ignoreTouchRef,
 }) => {
   const pendingTouchConfigRef = { current: null };
   const touchWorkingConfigRef = { current: null };
@@ -59,7 +62,10 @@ export const createDragAndDropHandlers = ({
     dragSourceRef.current = { index, cardId, colIndex };
     touchTargetRef.current = null;
     pendingTouchConfigRef.current = null;
-    touchWorkingConfigRef.current = { ...pagesConfig, [activePage]: [...(pagesConfig[activePage] || [])] };
+    touchWorkingConfigRef.current = {
+      ...pagesConfig,
+      [activePage]: [...(pagesConfig[activePage] || [])],
+    };
     setTouchPath({ startX: x, startY: y, x, y });
     setTouchTargetId(null);
     setDraggingId(cardId);
@@ -102,7 +108,7 @@ export const createDragAndDropHandlers = ({
 
     const { newConfig, source } = moveCard({
       source: dragSourceRef.current,
-      targetIndex
+      targetIndex,
     });
 
     dragSourceRef.current = source;
@@ -115,14 +121,14 @@ export const createDragAndDropHandlers = ({
     if (!dragSourceRef.current) return;
 
     const cards = Array.from(document.querySelectorAll('[data-card-id]'));
-    let cardElement = cards.find(card => {
+    let cardElement = cards.find((card) => {
       const rect = card.getBoundingClientRect();
       return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
     });
 
     if (!cardElement) {
       let minDist = Infinity;
-      cards.forEach(card => {
+      cards.forEach((card) => {
         const rect = card.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
@@ -135,7 +141,9 @@ export const createDragAndDropHandlers = ({
     }
 
     if (!cardElement && touchTargetRef.current) {
-      cardElement = cards.find(card => card.getAttribute('data-card-id') === touchTargetRef.current.targetId);
+      cardElement = cards.find(
+        (card) => card.getAttribute('data-card-id') === touchTargetRef.current.targetId
+      );
     }
 
     if (!cardElement) {
@@ -159,7 +167,7 @@ export const createDragAndDropHandlers = ({
 
     const { newConfig } = moveCard({
       source: dragSourceRef.current,
-      targetIndex
+      targetIndex,
     });
 
     saveConfig(newConfig);
@@ -192,11 +200,14 @@ export const createDragAndDropHandlers = ({
     draggable: editMode,
     onDragStart: (e) => {
       e.dataTransfer.setData('dragData', JSON.stringify({ index, cardId, colIndex }));
-      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.effectAllowed = 'move';
       setTimeout(() => setDraggingId(cardId), 0);
     },
     onDragEnd: () => setDraggingId(null),
-    onDragOver: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; },
+    onDragOver: (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    },
     onDrop: (e) => {
       e.stopPropagation();
       const rawData = e.dataTransfer.getData('dragData');
@@ -233,7 +244,7 @@ export const createDragAndDropHandlers = ({
     onTouchCancel: handleTouchCancel,
     'data-card-id': cardId,
     'data-index': index,
-    'data-col-index': colIndex
+    'data-col-index': colIndex,
   });
 
   const getCardStyle = ({ cardId, isHidden, isDragging }) => {
@@ -241,7 +252,11 @@ export const createDragAndDropHandlers = ({
 
     const style = {
       backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
-      borderColor: isDragging ? 'rgba(96, 165, 250, 1)' : (editMode ? 'rgba(59, 130, 246, 0.2)' : 'var(--card-border)'),
+      borderColor: isDragging
+        ? 'rgba(96, 165, 250, 1)'
+        : editMode
+          ? 'rgba(59, 130, 246, 0.2)'
+          : 'var(--card-border)',
       backdropFilter: 'blur(16px)',
       borderStyle: 'solid',
       borderWidth: editMode ? '2px' : '1px',
@@ -249,13 +264,23 @@ export const createDragAndDropHandlers = ({
       opacity: isHidden && editMode ? 0.4 : 1,
       filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
       transform: isDragging ? 'scale(1.08)' : 'none',
-      animation: (editMode && !isDragging) ? 'editJiggle 0.3s infinite alternate ease-in-out' : 'none',
+      animation:
+        editMode && !isDragging ? 'editJiggle 0.3s infinite alternate ease-in-out' : 'none',
       // Randomize animation start slightly based on card char code sum so they don't sync perfectly
-      animationDelay: (editMode && !isDragging) ? `${(cardId.split('').reduce((a,c)=>a+c.charCodeAt(0),0) % 10) / -10}s` : '0s',
-      boxShadow: isDragging ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : (isTouchTarget ? '0 0 0 2px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.35)' : (editMode ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' : 'none')),
+      animationDelay:
+        editMode && !isDragging
+          ? `${(cardId.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 10) / -10}s`
+          : '0s',
+      boxShadow: isDragging
+        ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+        : isTouchTarget
+          ? '0 0 0 2px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.35)'
+          : editMode
+            ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+            : 'none',
       zIndex: isDragging ? 50 : 1,
       pointerEvents: isDragging ? 'none' : 'auto',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     };
 
     return style;
@@ -268,6 +293,6 @@ export const createDragAndDropHandlers = ({
     startTouchDrag,
     updateTouchDrag,
     performTouchDrop,
-    resetDragState
+    resetDragState,
   };
 };

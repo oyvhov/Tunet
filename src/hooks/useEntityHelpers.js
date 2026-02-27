@@ -11,17 +11,21 @@ import { logger } from '../utils/logger';
  */
 export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
   // ── Attribute / state accessors ────────────────────────────────────────
-  const getS = useCallback((id, fallback = '--') => {
-    const state = entities[id]?.state;
-    if (!state || state === 'unavailable' || state === 'unknown') return fallback;
-    if (state === 'home') return t('status.home');
-    if (state === 'not_home') return t('status.notHome');
-    return state.charAt(0).toUpperCase() + state.slice(1);
-  }, [entities, t]);
+  const getS = useCallback(
+    (id, fallback = '--') => {
+      const state = entities[id]?.state;
+      if (!state || state === 'unavailable' || state === 'unknown') return fallback;
+      if (state === 'home') return t('status.home');
+      if (state === 'not_home') return t('status.notHome');
+      return state.charAt(0).toUpperCase() + state.slice(1);
+    },
+    [entities, t]
+  );
 
-  const getA = useCallback((id, attr, fallback = null) =>
-    entities[id]?.attributes?.[attr] ?? fallback,
-  [entities]);
+  const getA = useCallback(
+    (id, attr, fallback = null) => entities[id]?.attributes?.[attr] ?? fallback,
+    [entities]
+  );
 
   const getEntityImageUrl = useCallback(
     (rawUrl) => {
@@ -29,7 +33,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) return rawUrl;
       return `${activeUrl.replace(/\/$/, '')}${rawUrl}`;
     },
-    [activeUrl],
+    [activeUrl]
   );
 
   // ── Service calls ──────────────────────────────────────────────────────
@@ -44,7 +48,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
         throw error;
       });
     },
-    [conn],
+    [conn]
   );
 
   // ── Activity helpers ───────────────────────────────────────────────────
@@ -73,7 +77,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
       fan_only: t('climate.hvac.fanOnly'),
       heat: t('climate.hvac.heat'),
     }),
-    [t],
+    [t]
   );
 
   const fanMap = useMemo(
@@ -85,7 +89,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
       HighMid: t('climate.fan.highMid'),
       High: t('climate.fan.high'),
     }),
-    [t],
+    [t]
   );
 
   const swingMap = useMemo(
@@ -98,7 +102,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
       Down: t('climate.swing.down'),
       Swing: t('climate.swing.swing'),
     }),
-    [t],
+    [t]
   );
 
   return {

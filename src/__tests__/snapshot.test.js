@@ -23,7 +23,7 @@ describe('snapshot service', () => {
         layout: { cardBorderRadius: 34 },
         appearance: {},
       },
-      { setCardBorderRadius },
+      { setCardBorderRadius }
     );
 
     expect(localStorage.getItem('tunet_card_border_radius')).toBe('34');
@@ -47,7 +47,7 @@ describe('snapshot service', () => {
         layout: {},
         appearance: { cardBgColor: '#445566' },
       },
-      { setCardBgColor },
+      { setCardBgColor }
     );
 
     expect(localStorage.getItem('tunet_card_bg_color')).toBe('#445566');
@@ -71,7 +71,7 @@ describe('snapshot service', () => {
         layout: {},
         appearance: { appFont: 'Inter' },
       },
-      { setAppFont },
+      { setAppFont }
     );
 
     expect(localStorage.getItem('tunet_app_font')).toBe('Inter');
@@ -95,7 +95,7 @@ describe('snapshot service', () => {
         layout: {},
         appearance: { unitsMode: 'metric' },
       },
-      { setUnitsMode },
+      { setUnitsMode }
     );
 
     expect(localStorage.getItem('tunet_units_mode')).toBe('metric');
@@ -137,7 +137,7 @@ describe('snapshot service', () => {
         layout: { cardSettings },
         appearance: {},
       },
-      { persistCardSettings },
+      { persistCardSettings }
     );
 
     expect(JSON.parse(localStorage.getItem('tunet_card_settings') || '{}')).toEqual(cardSettings);

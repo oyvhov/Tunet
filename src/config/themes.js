@@ -27,8 +27,8 @@ export const themes = {
       '--modal-surface': 'rgba(15, 23, 42, 0.7)', // Darker surface for modals
       '--modal-surface-hover': 'rgba(30, 41, 59, 0.7)',
       '--modal-surface-shadow': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      '--modal-surface-shadow-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-    }
+      '--modal-surface-shadow-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    },
   },
   dark: {
     label: 'Mørk',
@@ -56,8 +56,8 @@ export const themes = {
       '--modal-surface': 'rgba(255, 255, 255, 0.015)',
       '--modal-surface-hover': 'rgba(255, 255, 255, 0.03)',
       '--modal-surface-shadow': 'none',
-      '--modal-surface-shadow-hover': 'none'
-    }
+      '--modal-surface-shadow-hover': 'none',
+    },
   },
   light: {
     label: 'Lys',
@@ -84,8 +84,8 @@ export const themes = {
       '--modal-surface': '#f3f4f6',
       '--modal-surface-hover': '#e5e7eb',
       '--modal-surface-shadow': '0 10px 24px rgba(15, 23, 42, 0.08)',
-      '--modal-surface-shadow-hover': '0 14px 28px rgba(15, 23, 42, 0.12)'
-    }
+      '--modal-surface-shadow-hover': '0 14px 28px rgba(15, 23, 42, 0.12)',
+    },
   },
   graphite: {
     label: 'Grafitt',
@@ -112,8 +112,8 @@ export const themes = {
       '--modal-surface': 'rgba(24, 24, 31, 0.5)',
       '--modal-surface-hover': 'rgba(39, 39, 42, 0.55)',
       '--modal-surface-shadow': '0 10px 24px rgba(0, 0, 0, 0.3)',
-      '--modal-surface-shadow-hover': '0 14px 28px rgba(0, 0, 0, 0.35)'
-    }
+      '--modal-surface-shadow-hover': '0 14px 28px rgba(0, 0, 0, 0.35)',
+    },
   },
   amethyst: {
     label: 'Ametyst',
@@ -140,8 +140,8 @@ export const themes = {
       '--modal-surface': 'rgba(45, 42, 66, 0.45)',
       '--modal-surface-hover': 'rgba(216, 180, 254, 0.1)',
       '--modal-surface-shadow': '0 10px 24px rgba(0, 0, 0, 0.35)',
-      '--modal-surface-shadow-hover': '0 14px 28px rgba(0, 0, 0, 0.4)'
-    }
+      '--modal-surface-shadow-hover': '0 14px 28px rgba(0, 0, 0, 0.4)',
+    },
   },
   flat: {
     label: 'Flat',
@@ -205,7 +205,7 @@ export const themes = {
       '--modal-surface': 'rgba(255, 255, 255, 0.03)',
       '--modal-surface-hover': 'rgba(255, 255, 255, 0.06)',
       '--modal-surface-shadow': 'none',
-      '--modal-surface-shadow-hover': 'none'
-    }
-  }
+      '--modal-surface-shadow-hover': 'none',
+    },
+  },
 };

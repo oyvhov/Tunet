@@ -5,15 +5,15 @@ import { AlertTriangle } from '../icons';
  */
 export default function ConnectionBanner({ oauthExpired, onReconnect, t }) {
   return (
-    <div className="mb-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-100 px-4 sm:px-6 py-4 flex items-center gap-3">
-      <AlertTriangle className="w-5 h-5 text-yellow-300" />
+    <div className="mb-6 flex items-center gap-3 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-4 text-yellow-100 sm:px-6">
+      <AlertTriangle className="h-5 w-5 text-yellow-300" />
       <div className="text-sm font-semibold">
         {oauthExpired ? t('system.oauth.expired') : t('ha.unavailable')}
       </div>
       {oauthExpired && (
         <button
           onClick={onReconnect}
-          className="ml-auto px-3 py-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 text-xs font-bold uppercase tracking-wider transition-colors border border-yellow-500/30"
+          className="ml-auto rounded-lg border border-yellow-500/30 bg-yellow-500/20 px-3 py-1.5 text-xs font-bold tracking-wider text-yellow-200 uppercase transition-colors hover:bg-yellow-500/30"
         >
           {t('system.oauth.loginButton')}
         </button>

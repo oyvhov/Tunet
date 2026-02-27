@@ -1,6 +1,7 @@
-const importMetaEnv = typeof import.meta !== 'undefined'
-  ? /** @type {{ DEV?: boolean } | undefined} */ (/** @type {any} */ (import.meta).env)
-  : undefined;
+const importMetaEnv =
+  typeof import.meta !== 'undefined'
+    ? /** @type {{ DEV?: boolean } | undefined} */ (/** @type {any} */ (import.meta).env)
+    : undefined;
 const isDev = Boolean(importMetaEnv?.DEV);
 
 export const logger = {
@@ -15,5 +16,5 @@ export const logger = {
   },
   error: (...args) => {
     console.error(...args);
-  }
+  },
 };

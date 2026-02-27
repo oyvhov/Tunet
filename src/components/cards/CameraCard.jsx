@@ -15,7 +15,9 @@ function appendTs(url, ts) {
 
 function resolveCameraTemplate(urlTemplate, entityId) {
   if (!urlTemplate) return '';
-  const objectId = (entityId || '').includes('.') ? entityId.split('.').slice(1).join('.') : entityId;
+  const objectId = (entityId || '').includes('.')
+    ? entityId.split('.').slice(1).join('.')
+    : entityId;
   return urlTemplate
     .replaceAll('{entity_id}', entityId || '')
     .replaceAll('{entity_object_id}', objectId || '');
@@ -52,17 +54,21 @@ export default function CameraCard({
   const previousMotionActiveRef = useRef(false);
 
   const attrs = entity?.attributes || {};
-  const isOffline = !entity || entity.state === 'unavailable' || entity.state === 'unknown' || entity.state === 'off';
+  const isOffline =
+    !entity ||
+    entity.state === 'unavailable' ||
+    entity.state === 'unknown' ||
+    entity.state === 'off';
   const name = customNames?.[cardId] || attrs.friendly_name || entityId;
   const iconName = customIcons?.[cardId] || attrs.icon;
-  const Icon = iconName ? (getIconComponent(iconName) || Camera) : Camera;
+  const Icon = iconName ? getIconComponent(iconName) || Camera : Camera;
   const isSmall = size === 'small';
 
   const accessToken = attrs.access_token;
 
   const haStreamUrl = useMemo(
     () => getEntityImageUrl(buildCameraUrl('/api/camera_proxy_stream', entityId, accessToken)),
-    [entityId, accessToken, getEntityImageUrl],
+    [entityId, accessToken, getEntityImageUrl]
   );
 
   const snapshotUrl = useMemo(() => {
@@ -92,11 +98,8 @@ export default function CameraCard({
     setStreamSource(preferredSource);
   }, [preferredSource]);
 
-  const previewUrl = streamSource === 'webrtc'
-    ? webrtcUrl
-    : streamSource === 'ha'
-      ? haStreamUrl
-      : snapshotUrl;
+  const previewUrl =
+    streamSource === 'webrtc' ? webrtcUrl : streamSource === 'ha' ? haStreamUrl : snapshotUrl;
 
   const handleStreamError = useCallback(() => {
     setStreamSource((current) => {
@@ -149,33 +152,40 @@ export default function CameraCard({
         key={cardId}
         {...dragProps}
         data-haptic={editMode ? undefined : 'card'}
-        className="glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 group"
+        className="glass-texture touch-feedback group relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4 pl-5 font-sans backdrop-blur-xl transition-all duration-300"
         style={cardStyle}
-        onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!editMode) onOpen?.();
+        }}
       >
         {controls}
-        <div className="w-12 h-12 rounded-2xl flex-shrink-0 overflow-hidden bg-[var(--glass-bg)]">
+        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-[var(--glass-bg)]">
           {!isOffline ? (
             <img
               src={previewUrl}
               alt={name}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
               referrerPolicy="no-referrer"
               onError={handleStreamError}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)]">
-              <Icon className="w-6 h-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
+            <div className="flex h-full w-full items-center justify-center text-[var(--text-secondary)]">
+              <Icon className="h-6 w-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
             </div>
           )}
         </div>
-        <div className="flex flex-col min-w-0 justify-center">
-          <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">
-            {isOffline ? (t?.('camera.unavailable') || 'Unavailable') : (t?.('camera.live') || 'Live')}
+        <div className="flex min-w-0 flex-col justify-center">
+          <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+            {isOffline ? t?.('camera.unavailable') || 'Unavailable' : t?.('camera.live') || 'Live'}
           </p>
-          <p className="text-sm font-bold text-[var(--text-primary)] leading-none truncate">{name}</p>
+          <p className="truncate text-sm leading-none font-bold text-[var(--text-primary)]">
+            {name}
+          </p>
         </div>
-        <span className={`ml-auto w-2.5 h-2.5 rounded-full shrink-0 ${isOffline ? 'bg-red-400' : 'bg-emerald-400'}`} />
+        <span
+          className={`ml-auto h-2.5 w-2.5 shrink-0 rounded-full ${isOffline ? 'bg-red-400' : 'bg-emerald-400'}`}
+        />
       </div>
     );
   }
@@ -185,9 +195,12 @@ export default function CameraCard({
       key={cardId}
       {...dragProps}
       data-haptic={editMode ? undefined : 'card'}
-      className={`glass-texture touch-feedback relative h-full rounded-3xl overflow-hidden border bg-[var(--card-bg)] group transition-all duration-500 ${editMode ? 'cursor-move' : 'cursor-pointer active:scale-[0.98]'}`}
+      className={`glass-texture touch-feedback group relative h-full overflow-hidden rounded-3xl border bg-[var(--card-bg)] transition-all duration-500 ${editMode ? 'cursor-move' : 'cursor-pointer active:scale-[0.98]'}`}
       style={cardStyle}
-      onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!editMode) onOpen?.();
+      }}
     >
       {controls}
 
@@ -195,46 +208,58 @@ export default function CameraCard({
         <img
           src={previewUrl}
           alt={name}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
           referrerPolicy="no-referrer"
           onError={handleStreamError}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-[var(--glass-bg)]">
           <div className="flex flex-col items-center gap-2 text-[var(--text-secondary)] opacity-70">
-            <AlertCircle className="w-10 h-10" />
-            <p className="text-xs font-bold uppercase tracking-widest">{t?.('camera.unavailable') || 'Unavailable'}</p>
+            <AlertCircle className="h-10 w-10" />
+            <p className="text-xs font-bold tracking-widest uppercase">
+              {t?.('camera.unavailable') || 'Unavailable'}
+            </p>
           </div>
         </div>
       )}
 
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.20) 0%, transparent 35%, rgba(0,0,0,0.45) 100%)' }} />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(0,0,0,0.20) 0%, transparent 35%, rgba(0,0,0,0.45) 100%)',
+        }}
+      />
 
       {/* Status badge */}
-      <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest popup-surface text-[var(--text-primary)] border border-[var(--glass-border)]">
-        <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-red-400' : 'bg-emerald-400'}`} />
-        {isOffline ? (t?.('camera.unavailable') || 'Unavailable') : (t?.('camera.live') || 'Live')}
+      <div className="popup-surface absolute top-3 left-3 flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] px-2.5 py-1 text-[10px] font-bold tracking-widest text-[var(--text-primary)] uppercase">
+        <span className={`h-2 w-2 rounded-full ${isOffline ? 'bg-red-400' : 'bg-emerald-400'}`} />
+        {isOffline ? t?.('camera.unavailable') || 'Unavailable' : t?.('camera.live') || 'Live'}
       </div>
 
       {/* Motion indicator */}
-      {refreshMode === 'motion' && motionSensorId && (() => {
-        const motionEntity = entities?.[motionSensorId];
-        const isMotion = motionEntity?.state === 'on' || motionEntity?.state === 'detected';
-        if (!isMotion) return null;
-        return (
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-red-500/60 text-white border border-red-400/40 animate-pulse">
-            {t?.('camera.motion') || 'Motion'}
-          </div>
-        );
-      })()}
+      {refreshMode === 'motion' &&
+        motionSensorId &&
+        (() => {
+          const motionEntity = entities?.[motionSensorId];
+          const isMotion = motionEntity?.state === 'on' || motionEntity?.state === 'detected';
+          if (!isMotion) return null;
+          return (
+            <div className="absolute top-3 right-3 flex animate-pulse items-center gap-1.5 rounded-full border border-red-400/40 bg-red-500/60 px-2.5 py-1 text-[10px] font-bold tracking-widest text-white uppercase">
+              {t?.('camera.motion') || 'Motion'}
+            </div>
+          );
+        })()}
 
       {/* Name overlay */}
-      <div className="absolute left-3 right-3 bottom-3 flex items-end justify-between gap-3">
-        <div className="min-w-0 max-w-[75%] px-3 py-2 rounded-xl popup-surface border border-[var(--glass-border)]">
-          <p className="text-xs font-bold text-[var(--text-primary)] truncate tracking-wide uppercase">{name}</p>
+      <div className="absolute right-3 bottom-3 left-3 flex items-end justify-between gap-3">
+        <div className="popup-surface max-w-[75%] min-w-0 rounded-xl border border-[var(--glass-border)] px-3 py-2">
+          <p className="truncate text-xs font-bold tracking-wide text-[var(--text-primary)] uppercase">
+            {name}
+          </p>
         </div>
-        <div className="shrink-0 p-2 rounded-xl popup-surface border border-[var(--glass-border)] text-[var(--text-primary)]">
-          <Icon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+        <div className="popup-surface shrink-0 rounded-xl border border-[var(--glass-border)] p-2 text-[var(--text-primary)]">
+          <Icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
         </div>
       </div>
     </div>

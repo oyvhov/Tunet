@@ -26,7 +26,7 @@ export default function GenericClimateCard({
   onOpen,
   onSetTemperature,
   settings,
-  t
+  t,
 }) {
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
@@ -36,7 +36,8 @@ export default function GenericClimateCard({
   const isSmall = settings?.size === 'small';
   const currentTemp = entity.attributes?.current_temperature ?? '--';
   const targetTemp = entity.attributes?.temperature ?? '--';
-  const sourceTempUnit = haConfig?.unit_system?.temperature || entity.attributes?.temperature_unit || '°C';
+  const sourceTempUnit =
+    haConfig?.unit_system?.temperature || entity.attributes?.temperature_unit || '°C';
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
   const displayCurrentTemp = formatKindValueForDisplay(currentTemp, {
     kind: 'temperature',
@@ -53,9 +54,7 @@ export default function GenericClimateCard({
   const showFan = Array.isArray(fanModes) && fanModes.length > 0;
   const fanSpeedLevel = ['Low', 'LowMid', 'Mid', 'HighMid', 'High'].indexOf(fanMode) + 1;
 
-  const name = customNames[cardId]
-    || entity.attributes?.friendly_name
-    || entityId;
+  const name = customNames[cardId] || entity.attributes?.friendly_name || entityId;
 
   const climateIconName = customIcons[cardId] || entity?.attributes?.icon;
   const Icon = climateIconName ? getIconComponent(climateIconName) : null;
@@ -77,26 +76,41 @@ export default function GenericClimateCard({
           e.stopPropagation();
           if (!editMode && onOpen) onOpen();
         }}
-        className={`glass-texture touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
-        style={{...cardStyle, containerType: 'inline-size'}}
+        className={`glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        style={{ ...cardStyle, containerType: 'inline-size' }}
       >
         {controls}
-        <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
           <div
-            className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 group-hover:scale-110"
+            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 group-hover:scale-110"
             style={{
               backgroundColor:
-                clTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'var(--glass-bg)',
-              color: clTheme === 'blue' ? '#60a5fa' : clTheme === 'orange' ? '#fb923c' : 'var(--text-secondary)'
+                clTheme === 'blue'
+                  ? 'rgba(59, 130, 246, 0.1)'
+                  : clTheme === 'orange'
+                    ? 'rgba(249, 115, 22, 0.1)'
+                    : 'var(--glass-bg)',
+              color:
+                clTheme === 'blue'
+                  ? '#60a5fa'
+                  : clTheme === 'orange'
+                    ? '#fb923c'
+                    : 'var(--text-secondary)',
             }}
           >
-            <DisplayIcon className="w-6 h-6 stroke-[1.5px]" />
+            <DisplayIcon className="h-6 w-6 stroke-[1.5px]" />
           </div>
-          <div className="flex flex-col min-w-0">
-            <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{name}</p>
+          <div className="flex min-w-0 flex-col">
+            <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
+              {name}
+            </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{displayCurrentTemp.text}</span>
-              <span className="text-xs text-[var(--text-secondary)]">→ {displayTargetTemp.text}</span>
+              <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
+                {displayCurrentTemp.text}
+              </span>
+              <span className="text-xs text-[var(--text-secondary)]">
+                → {displayTargetTemp.text}
+              </span>
             </div>
           </div>
         </div>
@@ -106,18 +120,18 @@ export default function GenericClimateCard({
               e.stopPropagation();
               stepTemp(0.5);
             }}
-            className="control-plus w-8 h-8 flex items-center justify-center rounded-xl transition-colors bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"
+            className="control-plus flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-4 w-4" />
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               stepTemp(-0.5);
             }}
-            className="control-minus w-8 h-8 flex items-center justify-center rounded-xl transition-colors bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"
+            className="control-minus flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90"
           >
-            <Minus className="w-4 h-4" />
+            <Minus className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -133,69 +147,113 @@ export default function GenericClimateCard({
         e.stopPropagation();
         if (!editMode && onOpen) onOpen();
       }}
-      className={`glass-texture touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
+      className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border p-7 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
       style={cardStyle}
     >
       {controls}
-      <div className="flex justify-between items-start gap-4 mb-4">
+      <div className="mb-4 flex items-start justify-between gap-4">
         <div
-          className="p-3 rounded-2xl transition-all duration-500 flex-shrink-0 group-hover:scale-110 group-hover:rotate-3"
+          className="flex-shrink-0 rounded-2xl p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3"
           style={{
             backgroundColor:
-              clTheme === 'blue' ? 'rgba(59, 130, 246, 0.2)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-            color: clTheme === 'blue' ? '#3b82f6' : clTheme === 'orange' ? '#fb923c' : 'var(--text-secondary)'
+              clTheme === 'blue'
+                ? 'rgba(59, 130, 246, 0.2)'
+                : clTheme === 'orange'
+                  ? 'rgba(249, 115, 22, 0.1)'
+                  : 'rgba(255, 255, 255, 0.05)',
+            color:
+              clTheme === 'blue'
+                ? '#3b82f6'
+                : clTheme === 'orange'
+                  ? '#fb923c'
+                  : 'var(--text-secondary)',
           }}
         >
-          <DisplayIcon className="w-5 h-5" style={{ strokeWidth: 1.5 }} />
+          <DisplayIcon className="h-5 w-5" style={{ strokeWidth: 1.5 }} />
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border flex-shrink-0" style={{
-          backgroundColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.2)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-          borderColor: clTheme === 'blue' ? 'rgba(59, 130, 246, 0.3)' : clTheme === 'orange' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-          color: clTheme === 'blue' ? '#3b82f6' : clTheme === 'orange' ? '#fb923c' : 'var(--text-secondary)'
-        }}>
-          <span className="text-xs tracking-widest uppercase font-bold">{translate('climate.action.' + hvacAction)}</span>
+        <div
+          className="flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1"
+          style={{
+            backgroundColor:
+              clTheme === 'blue'
+                ? 'rgba(59, 130, 246, 0.2)'
+                : clTheme === 'orange'
+                  ? 'rgba(249, 115, 22, 0.1)'
+                  : 'rgba(255, 255, 255, 0.05)',
+            borderColor:
+              clTheme === 'blue'
+                ? 'rgba(59, 130, 246, 0.3)'
+                : clTheme === 'orange'
+                  ? 'rgba(249, 115, 22, 0.2)'
+                  : 'rgba(255, 255, 255, 0.1)',
+            color:
+              clTheme === 'blue'
+                ? '#3b82f6'
+                : clTheme === 'orange'
+                  ? '#fb923c'
+                  : 'var(--text-secondary)',
+          }}
+        >
+          <span className="text-xs font-bold tracking-widest uppercase">
+            {translate('climate.action.' + hvacAction)}
+          </span>
         </div>
       </div>
       <div>
-        <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">{displayCurrentTemp.text}</span>
+        <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">
+          {displayCurrentTemp.text}
+        </span>
       </div>
       <div className="mt-2">
-        <div className="flex items-center gap-2 mb-3">
-          <p className="text-[var(--text-secondary)] text-xs uppercase font-bold opacity-60 leading-none" style={{ letterSpacing: '0.05em' }}>
+        <div className="mb-3 flex items-center gap-2">
+          <p
+            className="text-xs leading-none font-bold text-[var(--text-secondary)] uppercase opacity-60"
+            style={{ letterSpacing: '0.05em' }}
+          >
             {name}
           </p>
         </div>
         <div className="flex items-stretch gap-3">
-          <div className="flex items-center justify-between rounded-2xl p-1 flex-1" style={{ backgroundColor: 'var(--glass-bg)' }}>
+          <div
+            className="flex flex-1 items-center justify-between rounded-2xl p-1"
+            style={{ backgroundColor: 'var(--glass-bg)' }}
+          >
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 stepTemp(-0.5);
               }}
-              className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"
+              className="flex h-8 w-6 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="h-4 w-4" />
             </button>
             <div className="flex flex-col items-center">
-              <span className="text-xl font-medium text-[var(--text-primary)] leading-none">{displayTargetTemp.text}</span>
+              <span className="text-xl leading-none font-medium text-[var(--text-primary)]">
+                {displayTargetTemp.text}
+              </span>
             </div>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 stepTemp(0.5);
               }}
-              className="w-6 h-8 flex items-center justify-center rounded-xl transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 hover:bg-[var(--glass-bg-hover)]"
+              className="flex h-8 w-6 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="h-4 w-4" />
             </button>
           </div>
           {showFan && (
-            <div className="flex items-center justify-center rounded-2xl w-20 gap-2 pr-2" style={{ backgroundColor: 'var(--glass-bg)' }}>
-              <Fan className="w-4 h-4 text-[var(--text-secondary)]" />
+            <div
+              className="flex w-20 items-center justify-center gap-2 rounded-2xl pr-2"
+              style={{ backgroundColor: 'var(--glass-bg)' }}
+            >
+              <Fan className="h-4 w-4 text-[var(--text-secondary)]" />
               {fanSpeedLevel === 0 ? (
-                <span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">{translate('climate.fanAuto')}</span>
+                <span className="text-[10px] font-bold tracking-wider text-[var(--text-secondary)]">
+                  {translate('climate.fanAuto')}
+                </span>
               ) : (
-                <div className="flex items-end gap-[2px] h-4">
+                <div className="flex h-4 items-end gap-[2px]">
                   {[1, 2, 3, 4, 5].map((level) => (
                     <div
                       key={level}
@@ -204,8 +262,8 @@ export default function GenericClimateCard({
                           ? clTheme === 'blue'
                             ? 'bg-[var(--accent-color)]'
                             : clTheme === 'orange'
-                            ? 'bg-orange-400'
-                            : 'bg-[var(--text-primary)]'
+                              ? 'bg-orange-400'
+                              : 'bg-[var(--text-primary)]'
                           : 'bg-[var(--glass-bg-hover)]'
                       }`}
                       style={{ height: `${30 + level * 14}%` }}

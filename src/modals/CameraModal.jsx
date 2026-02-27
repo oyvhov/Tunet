@@ -15,7 +15,9 @@ function buildCameraUrl(basePath, entityId, accessToken) {
 
 function resolveCameraTemplate(urlTemplate, entityId) {
   if (!urlTemplate) return '';
-  const objectId = (entityId || '').includes('.') ? entityId.split('.').slice(1).join('.') : entityId;
+  const objectId = (entityId || '').includes('.')
+    ? entityId.split('.').slice(1).join('.')
+    : entityId;
   return urlTemplate
     .replaceAll('{entity_id}', entityId || '')
     .replaceAll('{entity_object_id}', objectId || '');
@@ -50,9 +52,12 @@ export default function CameraModal({
   const accessToken = attrs.access_token || '';
   const name = customName || attrs.friendly_name || activeEntityId;
   const iconName = customIcon || attrs.icon;
-  const Icon = iconName ? (getIconComponent(iconName) || Camera) : Camera;
+  const Icon = iconName ? getIconComponent(iconName) || Camera : Camera;
 
-  const streamBase = useMemo(() => buildCameraUrl('/api/camera_proxy_stream', activeEntityId, accessToken), [activeEntityId, accessToken]);
+  const streamBase = useMemo(
+    () => buildCameraUrl('/api/camera_proxy_stream', activeEntityId, accessToken),
+    [activeEntityId, accessToken]
+  );
   const snapshotBase = useMemo(() => {
     return buildCameraUrl('/api/camera_proxy', activeEntityId, accessToken) || attrs.entity_picture;
   }, [activeEntityId, accessToken, attrs.entity_picture]);
@@ -83,11 +88,8 @@ export default function CameraModal({
     }
   }, [preferredSource, viewMode]);
 
-  const activeStreamUrl = streamSource === 'webrtc'
-    ? webrtcUrl
-    : streamSource === 'ha'
-      ? streamUrl
-      : snapshotUrl;
+  const activeStreamUrl =
+    streamSource === 'webrtc' ? webrtcUrl : streamSource === 'ha' ? streamUrl : snapshotUrl;
 
   const handleStreamError = () => {
     setStreamSource((current) => {
@@ -97,7 +99,8 @@ export default function CameraModal({
     });
   };
 
-  const isFallbackActive = viewMode === 'stream' && streamSource === 'snapshot' && preferredSource !== 'snapshot';
+  const isFallbackActive =
+    viewMode === 'stream' && streamSource === 'snapshot' && preferredSource !== 'snapshot';
 
   if (!show || !entityId || !entity) return null;
 
@@ -108,52 +111,79 @@ export default function CameraModal({
       onClick={onClose}
     >
       <div
-        className="border w-full max-w-6xl max-h-[92vh] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl relative font-sans backdrop-blur-xl popup-anim flex flex-col"
-        style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+        className="popup-anim relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl border p-4 font-sans shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6"
+        style={{
+          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+          borderColor: 'var(--glass-border)',
+          color: 'var(--text-primary)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 modal-close z-10"><X className="w-4 h-4" /></button>
+        <button
+          onClick={onClose}
+          className="modal-close absolute top-4 right-4 z-10 sm:top-6 sm:right-6"
+        >
+          <X className="h-4 w-4" />
+        </button>
 
-        <div className="mb-4 pr-12 flex items-center justify-between gap-4">
-          <div className="min-w-0 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)]">
-              <Icon className="w-5 h-5" />
+        <div className="mb-4 flex items-center justify-between gap-4 pr-12">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-primary)]">
+              <Icon className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-secondary)] truncate">{entityId}</p>
-              <h3 className="text-lg sm:text-2xl font-bold text-[var(--text-primary)] truncate">{name}</h3>
+              <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                {entityId}
+              </p>
+              <h3 className="truncate text-lg font-bold text-[var(--text-primary)] sm:text-2xl">
+                {name}
+              </h3>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { setViewMode('stream'); setStreamSource(preferredSource); setRefreshTs(Date.now()); }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border ${viewMode === 'stream' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)]'}`}
+              onClick={() => {
+                setViewMode('stream');
+                setStreamSource(preferredSource);
+                setRefreshTs(Date.now());
+              }}
+              className={`rounded-xl border px-3 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${viewMode === 'stream' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
             >
-              <span className="inline-flex items-center gap-1"><Video className="w-3.5 h-3.5" /> {t?.('camera.stream') || 'Stream'}</span>
+              <span className="inline-flex items-center gap-1">
+                <Video className="h-3.5 w-3.5" /> {t?.('camera.stream') || 'Stream'}
+              </span>
             </button>
             <button
-              onClick={() => { setViewMode('snapshot'); setRefreshTs(Date.now()); }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border ${viewMode === 'snapshot' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)]'}`}
+              onClick={() => {
+                setViewMode('snapshot');
+                setRefreshTs(Date.now());
+              }}
+              className={`rounded-xl border px-3 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${viewMode === 'snapshot' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
             >
-              <span className="inline-flex items-center gap-1"><Camera className="w-3.5 h-3.5" /> {t?.('camera.snapshot') || 'Snapshot'}</span>
+              <span className="inline-flex items-center gap-1">
+                <Camera className="h-3.5 w-3.5" /> {t?.('camera.snapshot') || 'Snapshot'}
+              </span>
             </button>
             <button
-              onClick={() => { setStreamSource(preferredSource); setRefreshTs(Date.now()); }}
-              className="p-2 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              onClick={() => {
+                setStreamSource(preferredSource);
+                setRefreshTs(Date.now());
+              }}
+              className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
               title={t?.('camera.refresh') || 'Refresh'}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        <div className="relative flex-1 min-h-[320px] rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-black/70">
+        <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-black/70">
           {viewMode === 'stream' ? (
             <img
               src={activeStreamUrl}
               alt={name}
-              className="w-full h-full object-contain"
+              className="h-full w-full object-contain"
               referrerPolicy="no-referrer"
               onError={handleStreamError}
             />
@@ -161,14 +191,15 @@ export default function CameraModal({
             <img
               src={snapshotUrl}
               alt={name}
-              className="w-full h-full object-contain"
+              className="h-full w-full object-contain"
               referrerPolicy="no-referrer"
             />
           )}
 
           {isFallbackActive && (
-            <div className="absolute inset-x-0 bottom-0 p-3 text-sm text-amber-200 bg-amber-500/10 border-t border-amber-500/20 text-center">
-              {t?.('camera.streamUnavailable') || 'Stream unavailable, showing snapshots may work better.'}
+            <div className="absolute inset-x-0 bottom-0 border-t border-amber-500/20 bg-amber-500/10 p-3 text-center text-sm text-amber-200">
+              {t?.('camera.streamUnavailable') ||
+                'Stream unavailable, showing snapshots may work better.'}
             </div>
           )}
         </div>

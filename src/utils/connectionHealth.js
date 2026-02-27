@@ -20,9 +20,9 @@ export const isEntityDataStale = ({
 
   if (!connected) {
     if (!disconnectedSince) return false;
-    return (now - disconnectedSince) >= ENTITY_STALE_DISCONNECT_GRACE_MS;
+    return now - disconnectedSince >= ENTITY_STALE_DISCONNECT_GRACE_MS;
   }
 
   if (!lastEntityUpdateAt) return false;
-  return (now - lastEntityUpdateAt) >= ENTITY_STALE_NO_UPDATE_MS;
+  return now - lastEntityUpdateAt >= ENTITY_STALE_NO_UPDATE_MS;
 };

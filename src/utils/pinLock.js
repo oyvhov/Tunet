@@ -5,7 +5,7 @@ export const hashPin = (pin) => {
   let hash = 5381;
 
   for (let index = 0; index < normalizedPin.length; index += 1) {
-    hash = ((hash << 5) + hash) + normalizedPin.charCodeAt(index);
+    hash = (hash << 5) + hash + normalizedPin.charCodeAt(index);
   }
 
   return `tunet_${(hash >>> 0).toString(16)}`;

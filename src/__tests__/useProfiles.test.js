@@ -49,7 +49,7 @@ describe('useProfiles', () => {
     createProfile.mockResolvedValue(savedProfile);
 
     const { result } = renderHook(() =>
-      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} }),
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
     );
 
     await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));
@@ -75,7 +75,7 @@ describe('useProfiles', () => {
     isValidSnapshot.mockReturnValue(false);
 
     const { result } = renderHook(() =>
-      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} }),
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
     );
 
     await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));
@@ -103,7 +103,7 @@ describe('useProfiles', () => {
     updateProfile.mockResolvedValue({ id: 'p1', name: 'Updated' });
 
     const { result } = renderHook(() =>
-      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} }),
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
     );
 
     await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));

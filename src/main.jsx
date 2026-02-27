@@ -1,17 +1,19 @@
-import { StrictMode, Component } from 'react'
-import PropTypes from 'prop-types'
-import ReactDOM from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
-import './styles/index.css'
-import App from './App.jsx'
-import { ConfigProvider } from './contexts/ConfigContext'
-import { PageProvider } from './contexts/PageContext'
+import { StrictMode, Component } from 'react';
+import PropTypes from 'prop-types';
+import ReactDOM from 'react-dom/client';
+import { HashRouter } from 'react-router-dom';
+import './styles/index.css';
+import App from './App.jsx';
+import { ConfigProvider } from './contexts/ConfigContext';
+import { PageProvider } from './contexts/PageContext';
 
 function isChunkLoadError(error) {
   const message = String(error?.message || error || '').toLowerCase();
-  return message.includes('failed to fetch dynamically imported module')
-    || message.includes('importing a module script failed')
-    || message.includes('loading chunk');
+  return (
+    message.includes('failed to fetch dynamically imported module') ||
+    message.includes('importing a module script failed') ||
+    message.includes('loading chunk')
+  );
 }
 
 function reloadForChunkErrorOnce() {
@@ -49,16 +51,18 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          color: 'white',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          padding: '20px'
-        }}>
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+            color: 'white',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            padding: '20px',
+          }}
+        >
           <div style={{ textAlign: 'center', maxWidth: '500px' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontWeight: '300' }}>
               Oops! Something went wrong
@@ -78,12 +82,12 @@ class ErrorBoundary extends Component {
                 borderRadius: '12px',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
               }}
-              onMouseOver={(e) => e.target.style.background = '#2563eb'}
-              onMouseOut={(e) => e.target.style.background = '#3b82f6'}
-              onFocus={(e) => e.target.style.background = '#2563eb'}
-              onBlur={(e) => e.target.style.background = '#3b82f6'}
+              onMouseOver={(e) => (e.target.style.background = '#2563eb')}
+              onMouseOut={(e) => (e.target.style.background = '#3b82f6')}
+              onFocus={(e) => (e.target.style.background = '#2563eb')}
+              onBlur={(e) => (e.target.style.background = '#3b82f6')}
             >
               Reload Application
             </button>
@@ -110,5 +114,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </PageProvider>
       </ConfigProvider>
     </ErrorBoundary>
-  </StrictMode>,
-)
+  </StrictMode>
+);

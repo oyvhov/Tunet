@@ -33,20 +33,22 @@ export default function useWeatherForecast(conn, cardSettings) {
     const fetchForecasts = async () => {
       const newForecasts = {};
 
-      await Promise.all(weatherIds.map(async (entityId) => {
-        if (cancelled) return;
-        try {
-          let data = await getForecast(conn, { entityId, type: 'hourly' });
-          if (!data || data.length === 0) {
-            data = await getForecast(conn, { entityId, type: 'daily' });
+      await Promise.all(
+        weatherIds.map(async (entityId) => {
+          if (cancelled) return;
+          try {
+            let data = await getForecast(conn, { entityId, type: 'hourly' });
+            if (!data || data.length === 0) {
+              data = await getForecast(conn, { entityId, type: 'daily' });
+            }
+            if (!cancelled && data && data.length > 0) {
+              newForecasts[entityId] = data;
+            }
+          } catch (_err) {
+            // Silent failure
           }
-          if (!cancelled && data && data.length > 0) {
-            newForecasts[entityId] = data;
-          }
-        } catch (_err) {
-          // Silent failure
-        }
-      }));
+        })
+      );
 
       if (cancelled) return;
       setForecastsById((prev) => {

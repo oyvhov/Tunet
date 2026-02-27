@@ -3,9 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { PageProvider, usePages } from '../contexts/PageContext';
 
-const wrapper = ({ children }) => (
-  <PageProvider>{children}</PageProvider>
-);
+const wrapper = ({ children }) => <PageProvider>{children}</PageProvider>;
 
 describe('PageContext persistence', () => {
   beforeEach(() => {

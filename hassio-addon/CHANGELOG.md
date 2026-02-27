@@ -5,6 +5,7 @@
 - Includes dashboard release `1.10.0`.
 - Adds Room Card (BETA) enhancements: area-icon defaults, icon watermark toggle, and improved room popup controls.
 - Adds bulk Room Card creation from Add Card flow (multi-room select/add).
+- Adds support for filtering entities using labels (`#76`).
 - Improves Room Card pill responsiveness and wrap behavior with cleaner borderless styling.
 - Improves stale chunk recovery in production through server-side hashed asset fallback.
 - Keeps app and add-on versions synchronized at `1.10.0`.
@@ -130,11 +131,13 @@
 ## 1.1.0
 
 ### Changed
+
 - **BREAKING**: Synchronized application and addon versions to move in lockstep
 - Graduated from beta status to stable release
 - Unified version numbering across all components
 
 ### Migration
+
 - Both the application and Home Assistant addon now use the same version number
 - This ensures consistency and easier tracking of releases
 

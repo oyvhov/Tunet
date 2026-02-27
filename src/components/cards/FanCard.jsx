@@ -1,4 +1,10 @@
-import { AlertTriangle, Fan as FanIconGlyph, MoveHorizontal, RotateCcw, RotateCw } from '../../icons';
+import {
+  AlertTriangle,
+  Fan as FanIconGlyph,
+  MoveHorizontal,
+  RotateCcw,
+  RotateCw,
+} from '../../icons';
 import { getIconComponent } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 
@@ -46,13 +52,17 @@ export default function FanCard({
         <div
           key={fanId}
           {...dragProps}
-          className="touch-feedback relative rounded-3xl overflow-hidden bg-[var(--card-bg)] border border-dashed border-red-500/50 flex flex-col items-center justify-center p-4 h-full"
+          className="touch-feedback relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-dashed border-red-500/50 bg-[var(--card-bg)] p-4"
           style={cardStyle}
         >
           {controls}
-          <AlertTriangle className="w-8 h-8 text-red-500 mb-2 opacity-80" />
-          <p className="text-xs font-bold text-red-500 text-center uppercase tracking-widest">{t('common.missing')}</p>
-          <p className="text-[10px] text-red-400/70 text-center mt-1 font-mono break-all line-clamp-2">{fanId}</p>
+          <AlertTriangle className="mb-2 h-8 w-8 text-red-500 opacity-80" />
+          <p className="text-center text-xs font-bold tracking-widest text-red-500 uppercase">
+            {t('common.missing')}
+          </p>
+          <p className="mt-1 line-clamp-2 text-center font-mono text-[10px] break-all text-red-400/70">
+            {fanId}
+          </p>
         </div>
       );
     }
@@ -76,14 +86,17 @@ export default function FanCard({
   const hasPresetControl = supportsFeature(supportedFeatures, FAN_FEATURE.PRESET_MODE);
 
   const percentageValue = Number(getA(fanId, 'percentage') ?? 0);
-  const boundedPercentage = Number.isFinite(percentageValue) ? Math.max(0, Math.min(100, Math.round(percentageValue))) : 0;
-  const oscillating = entity.attributes?.oscillating === true || entity.attributes?.oscillating === 'on';
+  const boundedPercentage = Number.isFinite(percentageValue)
+    ? Math.max(0, Math.min(100, Math.round(percentageValue)))
+    : 0;
+  const oscillating =
+    entity.attributes?.oscillating === true || entity.attributes?.oscillating === 'on';
   const direction = entity.attributes?.direction || null;
   const presetMode = entity.attributes?.preset_mode || null;
 
   const name = customNames[fanId] || getA(fanId, 'friendly_name', fanId);
   const fanIconName = customIcons[fanId] || entity.attributes?.icon;
-  const Icon = fanIconName ? (getIconComponent(fanIconName) || FanIconGlyph) : FanIconGlyph;
+  const Icon = fanIconName ? getIconComponent(fanIconName) || FanIconGlyph : FanIconGlyph;
 
   const statusText = (() => {
     if (isUnavailable) return t('common.unknown');
@@ -114,37 +127,45 @@ export default function FanCard({
         event.stopPropagation();
         if (!editMode) onOpen();
       }}
-      className={`glass-texture touch-feedback ${isSmall ? (isMobile ? 'p-3 pl-4 gap-2' : 'p-4 pl-5 gap-4') : (isMobile ? 'p-5' : 'p-7')} rounded-3xl ${isSmall ? 'flex items-center justify-between' : 'flex flex-col justify-between'} transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+      className={`glass-texture touch-feedback ${isSmall ? (isMobile ? 'gap-2 p-3 pl-4' : 'gap-4 p-4 pl-5') : isMobile ? 'p-5' : 'p-7'} rounded-3xl ${isSmall ? 'flex items-center justify-between' : 'flex flex-col justify-between'} group relative h-full overflow-hidden border font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
       style={{
         ...cardStyle,
         backgroundColor: 'var(--card-bg)',
-        ...(isSmall ? { containerType: 'inline-size' } : {})
+        ...(isSmall ? { containerType: 'inline-size' } : {}),
       }}
     >
       {controls}
 
       {isSmall ? (
         <>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               onClick={canTogglePower ? togglePower : undefined}
-              className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center transition-all group-hover:scale-110 ${
-                isOn 
-                  ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' 
+              className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-all group-hover:scale-110 ${
+                isOn
+                  ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]'
                   : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
               } ${canTogglePower ? 'cursor-pointer' : 'cursor-default'}`}
               disabled={!canTogglePower}
             >
-              <Icon className={`w-6 h-6 stroke-[1.5px] ${isOn && !disableAnimation ? 'animate-spin [animation-duration:2.4s]' : ''}`} />
+              <Icon
+                className={`h-6 w-6 stroke-[1.5px] ${isOn && !disableAnimation ? 'animate-spin [animation-duration:2.4s]' : ''}`}
+              />
             </button>
-            <div className="flex flex-col min-w-0 gap-0.5">
-              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-70 truncate">{name}</p>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
+                {name}
+              </p>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-medium text-[var(--text-primary)] leading-none">{hasSpeedControl && isOn ? `${boundedPercentage}%` : statusText}</span>
+                <span className="text-xl leading-none font-medium text-[var(--text-primary)]">
+                  {hasSpeedControl && isOn ? `${boundedPercentage}%` : statusText}
+                </span>
                 {/* Dynamic Indicators for Small Card */}
                 <div className="flex items-center gap-1.5 opacity-60">
-                  {hasDirectionControl && direction === 'reverse' && <RotateCcw className="w-3 h-3 text-[var(--text-primary)]" />}
-                  {oscillating && <MoveHorizontal className="w-3 h-3 text-[var(--text-primary)]" />}
+                  {hasDirectionControl && direction === 'reverse' && (
+                    <RotateCcw className="h-3 w-3 text-[var(--text-primary)]" />
+                  )}
+                  {oscillating && <MoveHorizontal className="h-3 w-3 text-[var(--text-primary)]" />}
                 </div>
               </div>
             </div>
@@ -152,13 +173,15 @@ export default function FanCard({
         </>
       ) : (
         <>
-          <div className="flex justify-between items-start gap-4 mb-4">
+          <div className="mb-4 flex items-start justify-between gap-4">
             <button
               onClick={togglePower}
               disabled={!canTogglePower}
-              className={`p-3 rounded-2xl transition-all flex-shrink-0 group-hover:scale-110 group-hover:rotate-3 ${isOn ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+              className={`flex-shrink-0 rounded-2xl p-3 transition-all group-hover:scale-110 group-hover:rotate-3 ${isOn ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
             >
-              <Icon className={`w-5 h-5 stroke-[1.5px] ${isOn && !disableAnimation ? 'animate-spin [animation-duration:2.4s]' : ''}`} />
+              <Icon
+                className={`h-5 w-5 stroke-[1.5px] ${isOn && !disableAnimation ? 'animate-spin [animation-duration:2.4s]' : ''}`}
+              />
             </button>
             <div className="flex items-center gap-2">
               {hasDirectionControl && (
@@ -166,52 +189,67 @@ export default function FanCard({
                   onClick={(e) => {
                     e.stopPropagation();
                     const newDirection = direction === 'forward' ? 'reverse' : 'forward';
-                    callService('fan', 'set_direction', { entity_id: fanId, direction: newDirection });
+                    callService('fan', 'set_direction', {
+                      entity_id: fanId,
+                      direction: newDirection,
+                    });
                   }}
-                  className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${direction === 'reverse' ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)] border-[var(--accent-color)]/30' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] copy-button'}`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${direction === 'reverse' ? 'border-[var(--accent-color)]/30 bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'copy-button border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                 >
-                  {direction === 'reverse' ? <RotateCcw className="w-4 h-4" /> : <RotateCw className="w-4 h-4" />}
+                  {direction === 'reverse' ? (
+                    <RotateCcw className="h-4 w-4" />
+                  ) : (
+                    <RotateCw className="h-4 w-4" />
+                  )}
                 </button>
               )}
               {hasOscillationControl && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    callService('fan', 'oscillate', { entity_id: fanId, oscillating: !oscillating });
+                    callService('fan', 'oscillate', {
+                      entity_id: fanId,
+                      oscillating: !oscillating,
+                    });
                   }}
-                  className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors ${oscillating ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)] border-[var(--accent-color)]/30' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] copy-button'}`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${oscillating ? 'border-[var(--accent-color)]/30 bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'copy-button border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                 >
-                  <MoveHorizontal className="w-4 h-4" />
+                  <MoveHorizontal className="h-4 w-4" />
                 </button>
               )}
             </div>
           </div>
 
           <div>
-            <span className="text-4xl font-thin text-[var(--text-primary)] leading-none">{hasSpeedControl ? `${boundedPercentage}%` : (isOn ? 'ON' : 'OFF')}</span>
+            <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">
+              {hasSpeedControl ? `${boundedPercentage}%` : isOn ? 'ON' : 'OFF'}
+            </span>
           </div>
 
           <div className="mt-2 text-xs">
-            <div className="flex items-center gap-2 mb-3">
-              <p className="text-[var(--text-secondary)] text-xs uppercase font-bold opacity-60 leading-none" style={{ letterSpacing: '0.05em' }}>
+            <div className="mb-3 flex items-center gap-2">
+              <p
+                className="text-xs leading-none font-bold text-[var(--text-secondary)] uppercase opacity-60"
+                style={{ letterSpacing: '0.05em' }}
+              >
                 {name}
               </p>
             </div>
 
             {hasSpeedControl && (
-               <div onClick={(e) => e.stopPropagation()} className="w-full mb-1">
-                 <M3Slider
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={boundedPercentage}
-                    onChange={(e) => {
-                      const Val = Number(e.target.value);
-                      callService('fan', 'set_percentage', { entity_id: fanId, percentage: Val });
-                    }}
-                    colorClass="bg-[var(--accent-color)]"
-                 />
-               </div>
+              <div onClick={(e) => e.stopPropagation()} className="mb-1 w-full">
+                <M3Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={boundedPercentage}
+                  onChange={(e) => {
+                    const Val = Number(e.target.value);
+                    callService('fan', 'set_percentage', { entity_id: fanId, percentage: Val });
+                  }}
+                  colorClass="bg-[var(--accent-color)]"
+                />
+              </div>
             )}
           </div>
         </>

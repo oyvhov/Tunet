@@ -20,12 +20,12 @@ class CalendarErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] p-5 text-red-400">
+        <div className="flex h-full flex-col rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-5 text-red-400">
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5" />
+            <AlertCircle className="h-5 w-5" />
             <span className="text-sm font-semibold">Calendar error</span>
           </div>
-          <p className="text-xs mt-2 opacity-80">{this.state.message}</p>
+          <p className="mt-2 text-xs opacity-80">{this.state.message}</p>
         </div>
       );
     }
@@ -33,11 +33,11 @@ class CalendarErrorBoundary extends React.Component {
   }
 }
 
-function CalendarCard({ 
-  cardId, 
-  settings, 
-  conn, 
-  t, 
+function CalendarCard({
+  cardId,
+  settings,
+  conn,
+  t,
   locale = 'nb-NO',
   className,
   style,
@@ -47,7 +47,7 @@ function CalendarCard({
   isEditMode,
   size,
   iconName,
-  customName
+  customName,
 }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +59,10 @@ function CalendarCard({
 
   // Parse check status ("It should be checked when the card is selected")
   // So settings.calendars = ['calendar.personal', 'calendar.work']
-  const selectedCalendars = useMemo(() => (Array.isArray(settings?.calendars) ? settings.calendars : []), [settings?.calendars]);
+  const selectedCalendars = useMemo(
+    () => (Array.isArray(settings?.calendars) ? settings.calendars : []),
+    [settings?.calendars]
+  );
   const selectedCalendarsKey = useMemo(() => selectedCalendars.join('|'), [selectedCalendars]);
 
   useEffect(() => {
@@ -94,19 +97,19 @@ function CalendarCard({
   }, []);
 
   const getEventDate = (eventDate) => {
-      try {
-        if (!eventDate) return new Date(0);
-        const value = eventDate.dateTime || eventDate.date || eventDate;
-        const date = new Date(value);
-        return Number.isNaN(date.getTime()) ? new Date(0) : date;
-      } catch {
-        return new Date(0);
-      }
+    try {
+      if (!eventDate) return new Date(0);
+      const value = eventDate.dateTime || eventDate.date || eventDate;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? new Date(0) : date;
+    } catch {
+      return new Date(0);
+    }
   };
 
   useEffect(() => {
     if (!conn) return;
-    
+
     if (selectedCalendars.length === 0 || !isVisible) {
       if (!isVisible && selectedCalendars.length > 0) return;
       setEvents([]);
@@ -124,31 +127,31 @@ function CalendarCard({
         const result = await getCalendarEvents(conn, {
           start,
           end,
-          entityIds: selectedCalendars
+          entityIds: selectedCalendars,
         });
 
         if (!result) {
-            setEvents([]);
-            return;
+          setEvents([]);
+          return;
         }
 
         // Merge all events from all calendars
         let allEvents = [];
-        Object.values(result).forEach(calendarEvents => {
+        Object.values(result).forEach((calendarEvents) => {
           if (calendarEvents && Array.isArray(calendarEvents.events)) {
             allEvents = [...allEvents, ...calendarEvents.events];
           }
         });
 
         // Remove events without start info
-        allEvents = allEvents.filter(evt => evt && evt.start);
+        allEvents = allEvents.filter((evt) => evt && evt.start);
 
         // Sort by start time
         allEvents.sort((a, b) => getEventDate(a.start) - getEventDate(b.start));
         setEvents(allEvents);
       } catch (err) {
-        console.error("Failed to fetch calendar events", err);
-        setError(err.message || "Failed to fetch events");
+        console.error('Failed to fetch calendar events', err);
+        setError(err.message || 'Failed to fetch events');
       } finally {
         setLoading(false);
       }
@@ -166,7 +169,7 @@ function CalendarCard({
 
     // Refresh every 15 minutes
     const interval = setInterval(() => fetchEvents(), 15 * 60 * 1000);
-    
+
     return () => {
       clearInterval(interval);
       if (idleId) window.cancelIdleCallback(idleId);
@@ -177,7 +180,7 @@ function CalendarCard({
   // Group events by day
   const groupedEvents = useMemo(() => {
     const groups = {};
-    events.forEach(event => {
+    events.forEach((event) => {
       const date = getEventDate(event.start);
       // Format: YYYY-MM-DD for grouping
       const key = date.toLocaleDateString('sv-SE'); // ISO-like date part
@@ -192,26 +195,26 @@ function CalendarCard({
     // Create date as local time components to avoid UTC shift issues
     const [y, m, d] = dateStr.split('-').map(Number);
     const date = new Date(y, m - 1, d); // Local time 00:00:00
-    
+
     const today = new Date();
-    today.setHours(0,0,0,0);
-    
+    today.setHours(0, 0, 0, 0);
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (date.getTime() === today.getTime()) return t('calendar.today') || 'Today';
     if (date.getTime() === tomorrow.getTime()) return t('calendar.tomorrow') || 'Tomorrow';
-    
+
     // Format: "Monday 26. Jan"
     return date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' });
   };
 
   const formatEventTime = (date) => {
     if (!date || Number.isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString(locale, { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: locale === 'en-US' 
+    return date.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: locale === 'en-US',
     });
   };
 
@@ -227,7 +230,7 @@ function CalendarCard({
     return !!value.date && !value.dateTime && !value.date_time;
   };
 
-  const IconComp = iconName ? (getIconComponent(iconName) || CalendarIcon) : CalendarIcon;
+  const IconComp = iconName ? getIconComponent(iconName) || CalendarIcon : CalendarIcon;
   const displayName = customName || settings?.name || t('calendar.title') || 'Calendar';
   const isSmall = size === 'small';
   const isLarge = !!settings?.largeCalendar;
@@ -258,7 +261,11 @@ function CalendarCard({
 
   const nextEvent = events.length > 0 ? events[0] : null;
   const nextEventTitle = nextEvent
-    ? (nextEvent.summary || nextEvent.title || nextEvent.description || t('calendar.noEvents') || 'Event')
+    ? nextEvent.summary ||
+      nextEvent.title ||
+      nextEvent.description ||
+      t('calendar.noEvents') ||
+      'Event'
     : '';
   const nextEventStartRaw = nextEvent ? getEventDateValue(nextEvent.start) : null;
   const nextEventStart = nextEventStartRaw ? new Date(nextEventStartRaw) : null;
@@ -268,52 +275,65 @@ function CalendarCard({
   const nextEventEndTime = formatEventTime(nextEventEnd);
   const nextIsAllDay = nextEvent ? isAllDayValue(nextEvent.start) : false;
   const nextTimeString = nextEvent
-    ? (nextIsAllDay
-        ? (nextEventStart ? formatDateHeader(nextEventStart.toLocaleDateString('sv-SE')) : t('calendar.allDay'))
-        : (nextEventStartTime ? `${nextEventStartTime}${nextEventEndTime ? ` - ${nextEventEndTime}` : ''}` : ''))
+    ? nextIsAllDay
+      ? nextEventStart
+        ? formatDateHeader(nextEventStart.toLocaleDateString('sv-SE'))
+        : t('calendar.allDay')
+      : nextEventStartTime
+        ? `${nextEventStartTime}${nextEventEndTime ? ` - ${nextEventEndTime}` : ''}`
+        : ''
     : '';
 
   if (isSmall) {
     return (
-      <div 
+      <div
         ref={cardRef}
-        {...dragProps} 
+        {...dragProps}
         data-haptic={isEditMode ? undefined : 'card'}
         onClick={onClick}
-        className={`glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 group ${className}`}
+        className={`glass-texture touch-feedback group relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4 pl-5 font-sans backdrop-blur-xl transition-all duration-300 ${className}`}
         style={style}
       >
         {getControls && getControls(cardId)}
-        <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-[var(--glass-bg)] text-[var(--text-secondary)]">
-          <IconComp className="w-6 h-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)]">
+          <IconComp className="h-6 w-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
         </div>
-        
-        <div className="flex flex-col min-w-0 justify-center">
-             {!selectedCalendars.length ? (
-                <p className="text-xs uppercase font-bold tracking-widest opacity-60 text-[var(--text-secondary)] truncate">{t('calendar.selectCalendars') || 'Select Calendars'}</p>
-            ) : loading && events.length === 0 ? (
-                <p className="text-xs uppercase font-bold tracking-widest opacity-60 text-[var(--text-secondary)] truncate">{t('common.loading') || 'Loading...'}</p>
-            ) : !nextEvent ? (
-                <>
-                <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">{displayName}</p>
-                <p className="text-sm font-bold text-[var(--text-primary)] leading-none opacity-80 truncate">{t('calendar.noEvents') || 'No events'}</p>
-                </>
-            ) : (
-                <>
-                   <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 leading-tight mb-1.5 min-w-0 flex-wrap">
-                     <span>{nextTimeString}</span>
-                     {!nextIsAllDay && nextEventStart && (
-                        <span>
-                          {formatDateHeader(nextEventStart.toLocaleDateString('sv-SE')) !== (t('calendar.today') || 'Today') && 
-                           `• ${formatDateHeader(nextEventStart.toLocaleDateString('sv-SE'))}`}
-                        </span>
-                     )}
-                   </div>
-                   <p className="text-sm font-bold text-[var(--text-primary)] leading-tight line-clamp-2">
-                     {nextEventTitle}
-                   </p>
-                </>
-            )}
+
+        <div className="flex min-w-0 flex-col justify-center">
+          {!selectedCalendars.length ? (
+            <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+              {t('calendar.selectCalendars') || 'Select Calendars'}
+            </p>
+          ) : loading && events.length === 0 ? (
+            <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+              {t('common.loading') || 'Loading...'}
+            </p>
+          ) : !nextEvent ? (
+            <>
+              <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                {displayName}
+              </p>
+              <p className="truncate text-sm leading-none font-bold text-[var(--text-primary)] opacity-80">
+                {t('calendar.noEvents') || 'No events'}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mb-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-xs leading-tight font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                <span>{nextTimeString}</span>
+                {!nextIsAllDay && nextEventStart && (
+                  <span>
+                    {formatDateHeader(nextEventStart.toLocaleDateString('sv-SE')) !==
+                      (t('calendar.today') || 'Today') &&
+                      `• ${formatDateHeader(nextEventStart.toLocaleDateString('sv-SE'))}`}
+                  </span>
+                )}
+              </div>
+              <p className="line-clamp-2 text-sm leading-tight font-bold text-[var(--text-primary)]">
+                {nextEventTitle}
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
@@ -338,7 +358,7 @@ function CalendarCard({
 
     const getTimePosition = (date) => {
       if (!date) return 0;
-      return ((date.getHours() - START_HOUR) + date.getMinutes() / 60) * HOUR_HEIGHT;
+      return (date.getHours() - START_HOUR + date.getMinutes() / 60) * HOUR_HEIGHT;
     };
 
     const getEventBlock = (evt) => {
@@ -357,14 +377,14 @@ function CalendarCard({
       const dayEvts = groupedEvents[dateKey] || [];
       const allDay = [];
       const timed = [];
-      dayEvts.forEach(evt => {
+      dayEvts.forEach((evt) => {
         if (isAllDayValue(evt.start)) allDay.push(evt);
         else timed.push(evt);
       });
       return { dateKey, allDay, timed, ...formatShortDay(dateKey) };
     });
 
-    const hasAnyAllDay = weekData.some(d => d.allDay.length > 0);
+    const hasAnyAllDay = weekData.some((d) => d.allDay.length > 0);
 
     const now = new Date();
     const nowDateKey = now.toLocaleDateString('sv-SE');
@@ -379,47 +399,58 @@ function CalendarCard({
         {...dragProps}
         data-haptic={isEditMode ? undefined : 'card'}
         onClick={onClick}
-        className={`glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 group ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
+        className={`glass-texture touch-feedback group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] font-sans backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
         style={style}
       >
         {getControls && getControls(cardId)}
 
         {/* Header */}
-        <div className="px-5 pt-4 pb-1 flex items-center gap-3 shrink-0">
-          <div className="p-2 rounded-xl bg-[var(--accent-bg)] text-[var(--accent-color)]">
-            <IconComp className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+        <div className="flex shrink-0 items-center gap-3 px-5 pt-4 pb-1">
+          <div className="rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)]">
+            <IconComp className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
           </div>
-          <h3 className="text-base font-medium text-[var(--text-primary)] tracking-tight">
+          <h3 className="text-base font-medium tracking-tight text-[var(--text-primary)]">
             {displayName}
           </h3>
         </div>
 
         {selectedCalendars.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
-            <IconComp className="w-8 h-8 mb-2" />
-            <p className="text-xs uppercase font-bold tracking-widest">{t('calendar.selectCalendars') || 'Select Calendars'}</p>
+          <div className="flex flex-1 flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
+            <IconComp className="mb-2 h-8 w-8" />
+            <p className="text-xs font-bold tracking-widest uppercase">
+              {t('calendar.selectCalendars') || 'Select Calendars'}
+            </p>
           </div>
         ) : error ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-red-400">
-            <AlertCircle className="w-8 h-8 mb-2" />
-            <p className="text-xs uppercase font-bold tracking-widest text-center px-4">{error}</p>
+          <div className="flex flex-1 flex-col items-center justify-center text-red-400">
+            <AlertCircle className="mb-2 h-8 w-8" />
+            <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">{error}</p>
           </div>
         ) : loading && events.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)]">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-color)] mb-2" />
-            <p className="text-xs uppercase font-bold tracking-widest">{t('common.loading') || 'Loading...'}</p>
+          <div className="flex flex-1 flex-col items-center justify-center text-[var(--text-secondary)]">
+            <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--accent-color)]" />
+            <p className="text-xs font-bold tracking-widest uppercase">
+              {t('common.loading') || 'Loading...'}
+            </p>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {/* Day column headers */}
             <div className="flex shrink-0 px-2 pb-1">
               <div className={GUTTER_W + ' shrink-0'} />
               {weekData.map(({ dateKey, dayName, dayNum, isToday }) => (
-                <div key={dateKey} className={`flex-1 text-center py-1 rounded-lg ${isToday ? 'bg-[var(--accent-bg)]' : ''}`}>
-                  <p className={`text-xs font-bold uppercase tracking-widest leading-none ${isToday ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] opacity-50'}`}>
+                <div
+                  key={dateKey}
+                  className={`flex-1 rounded-lg py-1 text-center ${isToday ? 'bg-[var(--accent-bg)]' : ''}`}
+                >
+                  <p
+                    className={`text-xs leading-none font-bold tracking-widest uppercase ${isToday ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+                  >
                     {dayName}
                   </p>
-                  <p className={`text-base font-semibold leading-none mt-1 ${isToday ? 'text-[var(--accent-color)]' : 'text-[var(--text-primary)]'}`}>
+                  <p
+                    className={`mt-1 text-base leading-none font-semibold ${isToday ? 'text-[var(--accent-color)]' : 'text-[var(--text-primary)]'}`}
+                  >
                     {dayNum}
                   </p>
                 </div>
@@ -428,15 +459,22 @@ function CalendarCard({
 
             {/* All-day events banner */}
             {hasAnyAllDay && (
-              <div className="flex shrink-0 px-2 pb-1 border-b border-[var(--glass-border)]/30">
-                <div className={GUTTER_W + ' shrink-0 flex items-center justify-end pr-1.5'}>
-                  <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase">{t('calendar.allDay') || 'All day'}</span>
+              <div className="flex shrink-0 border-b border-[var(--glass-border)]/30 px-2 pb-1">
+                <div className={GUTTER_W + ' flex shrink-0 items-center justify-end pr-1.5'}>
+                  <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40">
+                    {t('calendar.allDay') || 'All day'}
+                  </span>
                 </div>
                 {weekData.map(({ dateKey, allDay }) => (
-                  <div key={dateKey} className="flex-1 px-0.5 space-y-0.5 min-h-[1.25rem]">
+                  <div key={dateKey} className="min-h-[1.25rem] flex-1 space-y-0.5 px-0.5">
                     {allDay.map((evt, idx) => (
-                      <div key={`ad-${idx}`} className="px-1 py-0.5 rounded bg-[var(--accent-bg)] border-l-2 border-[var(--accent-color)] truncate">
-                        <p className="text-xs font-medium text-[var(--accent-color)] leading-tight truncate">{evt.summary}</p>
+                      <div
+                        key={`ad-${idx}`}
+                        className="truncate rounded border-l-2 border-[var(--accent-color)] bg-[var(--accent-bg)] px-1 py-0.5"
+                      >
+                        <p className="truncate text-xs leading-tight font-medium text-[var(--accent-color)]">
+                          {evt.summary}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -447,18 +485,18 @@ function CalendarCard({
             {/* Scrollable time grid */}
             <div
               ref={gridScrollRef}
-              className="flex-1 overflow-y-auto overflow-x-hidden px-2 hide-scrollbar [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+              className="hide-scrollbar flex-1 overflow-x-hidden overflow-y-auto px-2 [-ms-overflow-style:'none'] [scrollbar-width:'none'] [&::-webkit-scrollbar]:hidden"
             >
-              <div className="flex relative" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
+              <div className="relative flex" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
                 {/* Time gutter with hour labels */}
-                <div className={GUTTER_W + ' shrink-0 relative'}>
-                  {hours.map(h => (
+                <div className={GUTTER_W + ' relative shrink-0'}>
+                  {hours.map((h) => (
                     <div
                       key={h}
-                      className="absolute right-0 pr-1.5 flex items-start"
+                      className="absolute right-0 flex items-start pr-1.5"
                       style={{ top: (h - START_HOUR) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
                     >
-                      <span className="text-xs font-bold text-[var(--text-secondary)] opacity-40 leading-none -mt-[5px]">
+                      <span className="-mt-[5px] text-xs leading-none font-bold text-[var(--text-secondary)] opacity-40">
                         {h === 0 ? '' : `${h.toString().padStart(2, '0')}:00`}
                       </span>
                     </div>
@@ -467,21 +505,27 @@ function CalendarCard({
 
                 {/* Day columns */}
                 {weekData.map(({ dateKey, timed }) => (
-                  <div key={dateKey} className="flex-1 relative border-l border-[var(--glass-border)]/20">
+                  <div
+                    key={dateKey}
+                    className="relative flex-1 border-l border-[var(--glass-border)]/20"
+                  >
                     {/* Hour grid lines */}
-                    {hours.map(h => (
+                    {hours.map((h) => (
                       <div
                         key={h}
-                        className="absolute left-0 right-0 border-t border-[var(--glass-border)]/15"
+                        className="absolute right-0 left-0 border-t border-[var(--glass-border)]/15"
                         style={{ top: (h - START_HOUR) * HOUR_HEIGHT }}
                       />
                     ))}
 
                     {/* Now indicator */}
                     {dateKey === nowDateKey && (
-                      <div className="absolute left-0 right-0 z-20 flex items-center" style={{ top: nowTop }}>
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 -ml-[3px]" />
-                        <div className="flex-1 h-[1.5px] bg-red-500/70" />
+                      <div
+                        className="absolute right-0 left-0 z-20 flex items-center"
+                        style={{ top: nowTop }}
+                      >
+                        <div className="-ml-[3px] h-1.5 w-1.5 rounded-full bg-red-500" />
+                        <div className="h-[1.5px] flex-1 bg-red-500/70" />
                       </div>
                     )}
 
@@ -493,16 +537,16 @@ function CalendarCard({
                       return (
                         <div
                           key={`${evt.uid || evt.id || evt.summary || 'evt'}-${idx}`}
-                          className="absolute left-0.5 right-0.5 rounded-md bg-[var(--accent-bg)] border-l-2 border-[var(--accent-color)] overflow-hidden z-10 hover:bg-[var(--accent-bg)] transition-colors"
+                          className="absolute right-0.5 left-0.5 z-10 overflow-hidden rounded-md border-l-2 border-[var(--accent-color)] bg-[var(--accent-bg)] transition-colors hover:bg-[var(--accent-bg)]"
                           style={{ top: block.top, height: Math.max(block.height, 18) }}
                         >
-                          <div className="px-1 py-0.5 h-full">
+                          <div className="h-full px-1 py-0.5">
                             {block.height >= 28 && timeStr && (
-                              <p className="text-[11px] font-bold text-[var(--accent-color)] leading-none truncate">
+                              <p className="truncate text-[11px] leading-none font-bold text-[var(--accent-color)]">
                                 {timeStr}
                               </p>
                             )}
-                            <p className="text-xs font-medium text-[var(--text-primary)] leading-tight line-clamp-2 mt-px">
+                            <p className="mt-px line-clamp-2 text-xs leading-tight font-medium text-[var(--text-primary)]">
                               {evt.summary}
                             </p>
                           </div>
@@ -520,111 +564,130 @@ function CalendarCard({
   }
 
   return (
-    <div 
+    <div
       ref={cardRef}
-      {...dragProps} 
+      {...dragProps}
       data-haptic={isEditMode ? undefined : 'card'}
       onClick={onClick}
-      className={`glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 group ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
+      className={`glass-texture touch-feedback group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] font-sans backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
       style={style}
     >
       {getControls && getControls(cardId)}
-      
-        {/* Header */}
-        <div className="p-5 pb-2 flex items-center justify-between z-10">
-          <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl bg-[var(--accent-bg)] text-[var(--accent-color)]`}>
-                  <IconComp className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              </div>
-              <h3 className="text-lg font-medium text-[var(--text-primary)] tracking-tight">
-                {displayName}
-              </h3>
+
+      {/* Header */}
+      <div className="z-10 flex items-center justify-between p-5 pb-2">
+        <div className="flex items-center gap-3">
+          <div className={`rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)]`}>
+            <IconComp className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
           </div>
+          <h3 className="text-lg font-medium tracking-tight text-[var(--text-primary)]">
+            {displayName}
+          </h3>
         </div>
+      </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-5 pt-0 hide-scrollbar space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+      <div className="hide-scrollbar flex-1 space-y-4 overflow-y-auto p-5 pt-0 [-ms-overflow-style:'none'] [scrollbar-width:'none'] [&::-webkit-scrollbar]:hidden">
         {selectedCalendars.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-60">
-                <IconComp className="w-8 h-8 mb-2" />
-                <p className="text-xs uppercase font-bold tracking-widest">{t('calendar.selectCalendars') || 'Select Calendars'}</p>
-            </div>
+          <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
+            <IconComp className="mb-2 h-8 w-8" />
+            <p className="text-xs font-bold tracking-widest uppercase">
+              {t('calendar.selectCalendars') || 'Select Calendars'}
+            </p>
+          </div>
         ) : error ? (
-            <div className="flex flex-col items-center justify-center h-full text-red-400">
-                <AlertCircle className="w-8 h-8 mb-2" />
-                <p className="text-xs uppercase font-bold tracking-widest text-center px-4">{error}</p>
-            </div>
+          <div className="flex h-full flex-col items-center justify-center text-red-400">
+            <AlertCircle className="mb-2 h-8 w-8" />
+            <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">{error}</p>
+          </div>
         ) : loading && events.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)]">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-color)] mb-2"></div>
-                <p className="text-xs uppercase font-bold tracking-widest">{t('common.loading') || 'Loading...'}</p>
-            </div>
+          <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)]">
+            <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--accent-color)]"></div>
+            <p className="text-xs font-bold tracking-widest uppercase">
+              {t('common.loading') || 'Loading...'}
+            </p>
+          </div>
         ) : events.length === 0 ? (
-           <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-60">
-                <Clock className="w-8 h-8 mb-2" />
-            <p className="text-xs uppercase font-bold tracking-widest text-center px-3 leading-relaxed">{t('calendar.noEvents') || 'No upcoming events'}</p>
-            </div>
+          <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
+            <Clock className="mb-2 h-8 w-8" />
+            <p className="px-3 text-center text-xs leading-relaxed font-bold tracking-widest uppercase">
+              {t('calendar.noEvents') || 'No upcoming events'}
+            </p>
+          </div>
         ) : (
-            Object.entries(groupedEvents).map(([dateKey, dayEvents]) => (
-                <div key={dateKey} className="space-y-1">
-                    <h4 className="text-[10px] font-bold text-[var(--accent-color)] uppercase tracking-widest py-1 mb-1">
-                        {formatDateHeader(dateKey)}
-                    </h4>
-                    <div className="space-y-3">
-                        {dayEvents.map((evt, idx) => {
-                          if (!evt || !evt.start) return null;
-                          const startRaw = getEventDateValue(evt.start);
-                          const start = startRaw ? new Date(startRaw) : null; 
-                          const endRaw = getEventDateValue(evt.end);
-                          const end = endRaw ? new Date(endRaw) : null;
-                          
-                          const startTime = formatEventTime(start);
-                          const endTime = formatEventTime(end);
+          Object.entries(groupedEvents).map(([dateKey, dayEvents]) => (
+            <div key={dateKey} className="space-y-1">
+              <h4 className="mb-1 py-1 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
+                {formatDateHeader(dateKey)}
+              </h4>
+              <div className="space-y-3">
+                {dayEvents.map((evt, idx) => {
+                  if (!evt || !evt.start) return null;
+                  const startRaw = getEventDateValue(evt.start);
+                  const start = startRaw ? new Date(startRaw) : null;
+                  const endRaw = getEventDateValue(evt.end);
+                  const end = endRaw ? new Date(endRaw) : null;
 
-                          const isAllDay = isAllDayValue(evt.start);
-                          const timeString = isAllDay ? t('calendar.allDay') : (startTime ? `${startTime}${endTime ? ` - ${endTime}` : ''}` : '');
-                           
-                           return (
-                           <div key={`${evt.uid || evt.id || evt.summary || 'event'}-${idx}`} className="flex gap-4 group items-start">
-                                <div className="flex flex-col items-center pt-1.5">
-                                    <div className={`w-2 h-2 rounded-full ${isAllDay ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-border)] group-hover:bg-[var(--accent-color)] transition-colors'}`} />
-                                    <div className="w-0.5 h-full bg-[var(--glass-border)]/50 my-1 -mb-4 group-last:hidden" />
-                                </div>
-                                <div className="flex-1 pb-1">
-                                    {timeString && (
-                                        <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wide mb-0.5">
-                                        {timeString}
-                                        </p>
-                                    )}
-                                    <div className="relative pl-4 pr-3 py-2.5 rounded-xl border border-transparent bg-transparent hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg)] transition-colors">
-                                      <span className={`absolute left-0 top-2 bottom-2 w-1 rounded-full ${isAllDay ? 'bg-[var(--accent-bg)]' : 'bg-[var(--glass-border)] group-hover:bg-[var(--accent-bg)] transition-colors'}`} />
-                                      <p className="text-sm font-medium text-[var(--text-primary)] leading-snug break-words whitespace-normal">
-                                        {evt.summary}
-                                      </p>
-                                      {evt.location && (
-                                        <div className="flex items-start gap-1.5 mt-1.5 text-[10px] text-[var(--text-secondary)]">
-                                          <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                          <span className="opacity-80 break-words whitespace-normal">{evt.location}</span>
-                                        </div>
-                                      )}
-                                      {evt.description && (
-                                        <p className="text-[10px] text-[var(--text-secondary)] mt-1.5 opacity-60 break-words whitespace-normal">
-                                          {evt.description}
-                                        </p>
-                                      )}
-                                    </div>
-                                </div>
+                  const startTime = formatEventTime(start);
+                  const endTime = formatEventTime(end);
+
+                  const isAllDay = isAllDayValue(evt.start);
+                  const timeString = isAllDay
+                    ? t('calendar.allDay')
+                    : startTime
+                      ? `${startTime}${endTime ? ` - ${endTime}` : ''}`
+                      : '';
+
+                  return (
+                    <div
+                      key={`${evt.uid || evt.id || evt.summary || 'event'}-${idx}`}
+                      className="group flex items-start gap-4"
+                    >
+                      <div className="flex flex-col items-center pt-1.5">
+                        <div
+                          className={`h-2 w-2 rounded-full ${isAllDay ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-border)] transition-colors group-hover:bg-[var(--accent-color)]'}`}
+                        />
+                        <div className="my-1 -mb-4 h-full w-0.5 bg-[var(--glass-border)]/50 group-last:hidden" />
+                      </div>
+                      <div className="flex-1 pb-1">
+                        {timeString && (
+                          <p className="mb-0.5 text-[11px] font-bold tracking-wide text-[var(--text-secondary)] uppercase">
+                            {timeString}
+                          </p>
+                        )}
+                        <div className="relative rounded-xl border border-transparent bg-transparent py-2.5 pr-3 pl-4 transition-colors hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg)]">
+                          <span
+                            className={`absolute top-2 bottom-2 left-0 w-1 rounded-full ${isAllDay ? 'bg-[var(--accent-bg)]' : 'bg-[var(--glass-border)] transition-colors group-hover:bg-[var(--accent-bg)]'}`}
+                          />
+                          <p className="text-sm leading-snug font-medium break-words whitespace-normal text-[var(--text-primary)]">
+                            {evt.summary}
+                          </p>
+                          {evt.location && (
+                            <div className="mt-1.5 flex items-start gap-1.5 text-[10px] text-[var(--text-secondary)]">
+                              <MapPin className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                              <span className="break-words whitespace-normal opacity-80">
+                                {evt.location}
+                              </span>
                             </div>
-                           );
-                        })}
+                          )}
+                          {evt.description && (
+                            <p className="mt-1.5 text-[10px] break-words whitespace-normal text-[var(--text-secondary)] opacity-60">
+                              {evt.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                </div>
-            ))
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>
   );
-};
+}
 
 export default function CalendarCardWithBoundary(props) {
   return (

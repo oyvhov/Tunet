@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useDashboardEffects } from '../hooks/useDashboardEffects';
-import {
-  ENTITY_UPDATE_INTERVAL,
-  MEDIA_TICK_INTERVAL,
-} from '../config/constants';
+import { ENTITY_UPDATE_INTERVAL, MEDIA_TICK_INTERVAL } from '../config/constants';
 
 // ── Fake timers ──────────────────────────────────────────────────────────
 beforeEach(() => {
@@ -54,7 +51,7 @@ describe('useDashboardEffects › media tick', () => {
 
   it('mediaTick updates when activeMediaModal is set', () => {
     const { result } = renderHook(() =>
-      useDashboardEffects(makeProps({ activeMediaModal: 'sonos.living' })),
+      useDashboardEffects(makeProps({ activeMediaModal: 'sonos.living' }))
     );
     const first = result.current.mediaTick;
     expect(first).toBeGreaterThan(0); // initialised to Date.now()
@@ -111,9 +108,7 @@ describe('useDashboardEffects › optimistic light brightness', () => {
 describe('useDashboardEffects › inactivity timer', () => {
   it('calls resetToHome after inactivityTimeout seconds', () => {
     const resetToHome = vi.fn();
-    renderHook(() =>
-      useDashboardEffects(makeProps({ inactivityTimeout: 5, resetToHome })),
-    );
+    renderHook(() => useDashboardEffects(makeProps({ inactivityTimeout: 5, resetToHome })));
 
     act(() => vi.advanceTimersByTime(5000));
     expect(resetToHome).toHaveBeenCalledTimes(1);
@@ -121,9 +116,7 @@ describe('useDashboardEffects › inactivity timer', () => {
 
   it('does not call resetToHome when inactivityTimeout is 0', () => {
     const resetToHome = vi.fn();
-    renderHook(() =>
-      useDashboardEffects(makeProps({ inactivityTimeout: 0, resetToHome })),
-    );
+    renderHook(() => useDashboardEffects(makeProps({ inactivityTimeout: 0, resetToHome })));
 
     act(() => vi.advanceTimersByTime(60_000));
     expect(resetToHome).not.toHaveBeenCalled();
@@ -131,9 +124,7 @@ describe('useDashboardEffects › inactivity timer', () => {
 
   it('resets the timer on user interaction', () => {
     const resetToHome = vi.fn();
-    renderHook(() =>
-      useDashboardEffects(makeProps({ inactivityTimeout: 10, resetToHome })),
-    );
+    renderHook(() => useDashboardEffects(makeProps({ inactivityTimeout: 10, resetToHome })));
 
     // advance 8s, simulate mouse move, advance 8s more — should NOT fire at 10s
     act(() => vi.advanceTimersByTime(8000));
@@ -155,9 +146,7 @@ describe('useDashboardEffects › inactivity timer', () => {
 describe('useDashboardEffects › cleanup', () => {
   it('removes event listeners on unmount', () => {
     const removeSpy = vi.spyOn(document, 'removeEventListener');
-    const { unmount } = renderHook(() =>
-      useDashboardEffects(makeProps({ inactivityTimeout: 60 })),
-    );
+    const { unmount } = renderHook(() => useDashboardEffects(makeProps({ inactivityTimeout: 60 })));
     unmount();
     // Checks for at least the idle-timer events
     const removedEvents = removeSpy.mock.calls.map((c) => c[0]);

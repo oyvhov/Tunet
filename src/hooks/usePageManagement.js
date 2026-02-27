@@ -72,7 +72,7 @@ export function usePageManagement({
   const createMediaPage = () => {
     const baseLabel = t('sonos.pageName');
     const existingLabels = (pagesConfig.pages || []).map(
-      (id) => pageSettings[id]?.label || pageDefaults[id]?.label || id,
+      (id) => pageSettings[id]?.label || pageDefaults[id]?.label || id
     );
     let maxNum = 0;
     existingLabels.forEach((label) => {
@@ -141,7 +141,7 @@ export function usePageManagement({
         persistConfig(newConfig);
       }
     },
-    [pagesConfig, activePage, persistConfig],
+    [pagesConfig, activePage, persistConfig]
   );
 
   return {

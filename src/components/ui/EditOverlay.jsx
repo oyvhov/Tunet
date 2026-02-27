@@ -19,10 +19,23 @@ import {
 
 /** Prefixes for cards that support size toggling. */
 const RESIZABLE_PREFIXES = [
-  'light_', 'light.', 'vacuum.', 'automation.', 'climate_card_',
-  'cost_card_', 'weather_temp_', 'androidtv_card_', 'calendar_card_',
-  'todo_card_', 'nordpool_card_', 'car_card_', 'cover_card_', 'camera_card_',
-  'fan.', 'fan_card_', 'alarm_card_',
+  'light_',
+  'light.',
+  'vacuum.',
+  'automation.',
+  'climate_card_',
+  'cost_card_',
+  'weather_temp_',
+  'androidtv_card_',
+  'calendar_card_',
+  'todo_card_',
+  'nordpool_card_',
+  'car_card_',
+  'cover_card_',
+  'camera_card_',
+  'fan.',
+  'fan_card_',
+  'alarm_card_',
 ];
 
 /** Prefixes that cycle through 3 sizes (small → medium → large). */
@@ -31,12 +44,12 @@ const TRIPLE_SIZE_PREFIXES = ['calendar_card_', 'todo_card_'];
 function canResize(editId, settings) {
   if (editId === 'car') return true;
   if (['entity', 'toggle', 'sensor', 'fan'].includes(settings?.type)) return true;
-  return RESIZABLE_PREFIXES.some(p => editId.startsWith(p));
+  return RESIZABLE_PREFIXES.some((p) => editId.startsWith(p));
 }
 
 function getNextSize(editId, currentSize) {
-  if (TRIPLE_SIZE_PREFIXES.some(p => editId.startsWith(p))) {
-    return currentSize === 'small' ? 'medium' : (currentSize === 'medium' ? 'large' : 'small');
+  if (TRIPLE_SIZE_PREFIXES.some((p) => editId.startsWith(p))) {
+    return currentSize === 'small' ? 'medium' : currentSize === 'medium' ? 'large' : 'small';
   }
   return currentSize === 'small' ? 'large' : 'small';
 }
@@ -59,10 +72,11 @@ function EditOverlay({
   t,
 }) {
   const isSpacerCard = editId?.startsWith('spacer_card_');
-  const isCompactSpacer = isSpacerCard && Number(settings?.heightPx || 0) > 0 && Number(settings?.heightPx || 0) <= 56;
+  const isCompactSpacer =
+    isSpacerCard && Number(settings?.heightPx || 0) > 0 && Number(settings?.heightPx || 0) <= 56;
   const showResize = canResize(editId, settings);
   const isSmall = currentSize === 'small';
-  const isTriple = TRIPLE_SIZE_PREFIXES.some(p => editId.startsWith(p));
+  const isTriple = TRIPLE_SIZE_PREFIXES.some((p) => editId.startsWith(p));
   const topOffsetClass = isCompactSpacer ? 'top-1' : 'top-2';
   const sideOffsetClass = isCompactSpacer ? 'left-1' : 'left-2';
   const rightOffsetClass = isCompactSpacer ? 'right-1' : 'right-2';
@@ -79,20 +93,25 @@ function EditOverlay({
     : 'flex items-center justify-center p-3 rounded-full bg-black/50 border border-white/10 text-white/80 shadow-lg pointer-events-auto';
   const dragIconClass = isCompactSpacer ? 'w-4 h-4' : 'w-5 h-5';
 
-
   return (
     <>
       {/* Move buttons – top left */}
       <div className={`absolute ${topOffsetClass} ${sideOffsetClass} z-50 flex ${gapClass}`}>
         <button
-          onClick={(e) => { e.stopPropagation(); onMoveLeft(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveLeft();
+          }}
           className={hoverButtonClass}
           title={t('tooltip.moveLeft')}
         >
           <ChevronLeft className={iconClass} />
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); onMoveRight(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveRight();
+          }}
           className={hoverButtonClass}
           title={t('tooltip.moveRight')}
         >
@@ -103,15 +122,21 @@ function EditOverlay({
       {/* Action buttons – top right */}
       <div className={`absolute ${topOffsetClass} ${rightOffsetClass} z-50 flex ${gapClass}`}>
         <button
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
           className={buttonClass}
           title={t('tooltip.editCard')}
         >
           <Edit2 className={iconClass} />
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
-          className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full transition-colors hover:bg-white/20 text-white border border-white/20 shadow-lg`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleVisibility();
+          }}
+          className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full border border-white/20 text-white shadow-lg transition-colors hover:bg-white/20`}
           style={{ backgroundColor: isHidden ? 'rgba(239, 68, 68, 0.8)' : 'rgba(0, 0, 0, 0.6)' }}
           title={isHidden ? t('tooltip.showCard') : t('tooltip.hideCard')}
         >
@@ -123,17 +148,22 @@ function EditOverlay({
               e.stopPropagation();
               onSaveSize(getNextSize(editId, currentSize));
             }}
-            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full transition-colors hover:bg-[var(--accent-color)] text-white border border-white/20 shadow-lg`}
+            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full border border-white/20 text-white shadow-lg transition-colors hover:bg-[var(--accent-color)]`}
             style={{ backgroundColor: isSmall ? 'var(--accent-color)' : 'rgba(0, 0, 0, 0.6)' }}
-            title={isTriple ? 'Bytt storleik' : (isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize'))}
+            title={
+              isTriple ? 'Bytt storleik' : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')
+            }
           >
             {isSmall ? <Maximize2 className={iconClass} /> : <Minimize2 className={iconClass} />}
           </button>
         )}
         {canRemove && (
           <button
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full transition-colors hover:bg-red-500/80 text-white border border-white/20 shadow-lg bg-black/60`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full border border-white/20 bg-black/60 text-white shadow-lg transition-colors hover:bg-red-500/80`}
             title={t('tooltip.removeCard')}
           >
             <Trash2 className={iconClass} />
@@ -142,7 +172,7 @@ function EditOverlay({
       </div>
 
       {/* Central drag handle */}
-      <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
+      <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
         <div
           data-drag-handle
           {...dragHandleProps}
@@ -152,7 +182,6 @@ function EditOverlay({
           <GripVertical className={dragIconClass} />
         </div>
       </div>
-
     </>
   );
 }

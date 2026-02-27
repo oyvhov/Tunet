@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { evaluateVisibilityConditionConfig, normalizeVisibilityConditionConfig, resolveConditionEntityId } from '../../utils/conditionUtils';
+import {
+  evaluateVisibilityConditionConfig,
+  normalizeVisibilityConditionConfig,
+  resolveConditionEntityId,
+} from '../../utils/conditionUtils';
 import { Check, Plus, Search } from '../../icons';
 
 const createDefaultRule = () => ({
@@ -37,9 +41,10 @@ function buildRuleSummary(rule, targetLabel, t) {
   if (!rule?.type) return t('visibility.summary.custom') || 'Custom rule';
 
   const seconds = Number(rule.forSeconds);
-  const durationSuffix = Number.isFinite(seconds) && seconds > 0
-    ? ` ${t('visibility.summary.forSeconds') || 'for'} ${seconds}s`
-    : '';
+  const durationSuffix =
+    Number.isFinite(seconds) && seconds > 0
+      ? ` ${t('visibility.summary.forSeconds') || 'for'} ${seconds}s`
+      : '';
 
   if (rule.type === 'state') {
     const states = Array.isArray(rule.states) ? rule.states.join(', ') : '';
@@ -74,30 +79,34 @@ function buildRuleSummary(rule, targetLabel, t) {
 function buildSummary(config, entityId, entities, t) {
   if (!config?.rules?.length) return t('visibility.summary.always') || 'Always visible';
 
-  const targetLabel = getFriendlyEntityName(entityId, entities) || (t('visibility.currentCardEntity') || 'current card entity');
+  const targetLabel =
+    getFriendlyEntityName(entityId, entities) ||
+    t('visibility.currentCardEntity') ||
+    'current card entity';
   const [firstRule, secondRule] = config.rules;
   if (!secondRule) {
     return buildRuleSummary(firstRule, targetLabel, t);
   }
 
-  const joiner = config.logic === 'OR'
-    ? (t('visibility.logic.or') || 'OR')
-    : (t('visibility.logic.and') || 'AND');
+  const joiner =
+    config.logic === 'OR' ? t('visibility.logic.or') || 'OR' : t('visibility.logic.and') || 'AND';
   return `${buildRuleSummary(firstRule, targetLabel, t)} ${joiner} ${buildRuleSummary(secondRule, targetLabel, t)}`;
 }
 
 function buildRuleSummaryItems(config, defaultEntityId, entities, t) {
   if (!config?.rules?.length) return [];
 
-  return config.rules
-    .filter(Boolean)
-    .map((rule) => {
-      const targetEntityId = (typeof rule?.entityId === 'string' && rule.entityId.trim())
+  return config.rules.filter(Boolean).map((rule) => {
+    const targetEntityId =
+      typeof rule?.entityId === 'string' && rule.entityId.trim()
         ? rule.entityId.trim()
         : defaultEntityId;
-      const targetLabel = getFriendlyEntityName(targetEntityId, entities) || (t('visibility.currentCardEntity') || 'current card entity');
-      return buildRuleSummary(rule, targetLabel, t);
-    });
+    const targetLabel =
+      getFriendlyEntityName(targetEntityId, entities) ||
+      t('visibility.currentCardEntity') ||
+      'current card entity';
+    return buildRuleSummary(rule, targetLabel, t);
+  });
 }
 
 function buildLiveStatusItems(config, defaultEntityId, entities, t) {
@@ -106,9 +115,10 @@ function buildLiveStatusItems(config, defaultEntityId, entities, t) {
   return config.rules
     .filter(Boolean)
     .map((rule, index) => {
-      const targetEntityId = (typeof rule?.entityId === 'string' && rule.entityId.trim())
-        ? rule.entityId.trim()
-        : defaultEntityId;
+      const targetEntityId =
+        typeof rule?.entityId === 'string' && rule.entityId.trim()
+          ? rule.entityId.trim()
+          : defaultEntityId;
 
       if (!targetEntityId) return null;
 
@@ -143,18 +153,20 @@ export default function ConditionBuilder({
 
   const defaultEntityId = resolveConditionEntityId(cardId, cardSettings, entities);
   const effectiveConfig = getConditionWithDefaults(condition);
-  const selectedEntityId = defaultEntityId || (effectiveConfig.entityId && effectiveConfig.entityId.trim()) || null;
+  const selectedEntityId =
+    defaultEntityId || (effectiveConfig.entityId && effectiveConfig.entityId.trim()) || null;
   const selectedEntity = selectedEntityId ? entities?.[selectedEntityId] : null;
   const normalizedCondition = normalizeVisibilityConditionConfig(condition);
-  const isEnabled = forceEnabled || (normalizedCondition.enabled && normalizedCondition.rules.length > 0);
+  const isEnabled =
+    forceEnabled || (normalizedCondition.enabled && normalizedCondition.rules.length > 0);
 
   const isVisibleNow = isEnabled
     ? evaluateVisibilityConditionConfig({
-      condition: effectiveConfig,
-      entity: selectedEntity,
-      entities,
-      fallbackEntityId: defaultEntityId,
-    })
+        condition: effectiveConfig,
+        entity: selectedEntity,
+        entities,
+        fallbackEntityId: defaultEntityId,
+      })
     : true;
 
   const ruleSummaryItems = isEnabled
@@ -173,9 +185,10 @@ export default function ConditionBuilder({
     }
     const normalizedRules = safeRules.map((rule) => ({
       ...rule,
-      entityId: (typeof rule.entityId === 'string' && rule.entityId.trim())
-        ? rule.entityId.trim()
-        : defaultEntityId,
+      entityId:
+        typeof rule.entityId === 'string' && rule.entityId.trim()
+          ? rule.entityId.trim()
+          : defaultEntityId,
     }));
 
     onChange({
@@ -255,38 +268,40 @@ export default function ConditionBuilder({
         <button
           type="button"
           onClick={() => {
-            setActiveEntityPickerRule((prev) => prev === ruleIndex ? null : ruleIndex);
+            setActiveEntityPickerRule((prev) => (prev === ruleIndex ? null : ruleIndex));
             setEntitySearch('');
           }}
-          className="w-full text-left px-2.5 py-1.5 rounded-lg transition-colors flex items-center justify-between group entity-item border popup-surface popup-surface-hover border-transparent"
+          className="group entity-item popup-surface popup-surface-hover flex w-full items-center justify-between rounded-lg border border-transparent px-2.5 py-1.5 text-left transition-colors"
         >
-          <div className="flex flex-col overflow-hidden mr-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+          <div className="mr-4 flex flex-col overflow-hidden">
+            <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
               {t('visibility.targetEntity') || 'Entity'} {ruleIndex + 1}
             </span>
-            <span className="text-[11px] font-medium truncate text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
-              {getFriendlyEntityName(selectedRuleEntityId, entities) || (t('visibility.noEntity') || 'No entity')}
+            <span className="truncate text-[11px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
+              {getFriendlyEntityName(selectedRuleEntityId, entities) ||
+                t('visibility.noEntity') ||
+                'No entity'}
             </span>
           </div>
-          <div className="p-1 rounded-full transition-colors flex-shrink-0 bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400">
-            {pickerOpen ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+          <div className="flex-shrink-0 rounded-full bg-[var(--glass-bg)] p-1 text-gray-500 transition-colors group-hover:bg-green-500/20 group-hover:text-green-400">
+            {pickerOpen ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
           </div>
         </button>
 
         {pickerOpen && (
           <div className="space-y-1.5">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
               <input
                 type="text"
                 value={entitySearch}
                 onChange={(e) => setEntitySearch(e.target.value)}
                 placeholder={t('form.search') || 'Search...'}
-                className="w-full pl-9 pr-3 py-1.5 rounded-xl text-[var(--text-primary)] text-xs popup-surface border border-transparent focus:border-[var(--accent-color)] outline-none transition-colors"
+                className="popup-surface w-full rounded-xl border border-transparent py-1.5 pr-3 pl-9 text-xs text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
               />
             </div>
 
-            <div className="max-h-36 overflow-y-auto custom-scrollbar space-y-1 pr-1">
+            <div className="custom-scrollbar max-h-36 space-y-1 overflow-y-auto pr-1">
               {filteredEntityIds.map((id) => {
                 const isSelected = selectedRuleEntityId === id;
                 return (
@@ -294,18 +309,28 @@ export default function ConditionBuilder({
                     key={`rule-${ruleIndex}-${id}`}
                     type="button"
                     onClick={() => updateRule(ruleIndex, { entityId: id })}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg transition-colors flex items-center justify-between group entity-item border ${isSelected ? 'bg-[var(--accent-bg)] border-[var(--accent-color)]' : 'popup-surface popup-surface-hover border-transparent'}`}
+                    className={`group entity-item flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-colors ${isSelected ? 'border-[var(--accent-color)] bg-[var(--accent-bg)]' : 'popup-surface popup-surface-hover border-transparent'}`}
                   >
-                    <div className="flex flex-col overflow-hidden mr-3">
-                      <span className={`text-[11px] font-bold transition-colors truncate ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                    <div className="mr-3 flex flex-col overflow-hidden">
+                      <span
+                        className={`truncate text-[11px] font-bold transition-colors ${isSelected ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}
+                      >
                         {getFriendlyEntityName(id, entities)}
                       </span>
-                      <span className={`text-[10px] font-medium truncate ${isSelected ? 'text-[var(--accent-color)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}>
+                      <span
+                        className={`truncate text-[10px] font-medium ${isSelected ? 'text-[var(--accent-color)]' : 'text-[var(--text-muted)] group-hover:text-gray-400'}`}
+                      >
                         {id}
                       </span>
                     </div>
-                    <div className={`p-1 rounded-full transition-colors flex-shrink-0 ${isSelected ? 'bg-[var(--accent-color)] text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}>
-                      {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                    <div
+                      className={`flex-shrink-0 rounded-full p-1 transition-colors ${isSelected ? 'bg-[var(--accent-color)] text-white' : 'bg-[var(--glass-bg)] text-gray-500 group-hover:bg-green-500/20 group-hover:text-green-400'}`}
+                    >
+                      {isSelected ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
                     </div>
                   </button>
                 );
@@ -341,15 +366,15 @@ export default function ConditionBuilder({
 
     return (
       <div className="space-y-1.5">
-        <div className="grid grid-cols-12 gap-1.5 items-center">
-          <span className="col-span-2 text-[10px] uppercase font-bold tracking-widest text-[var(--text-muted)]">
+        <div className="grid grid-cols-12 items-center gap-1.5">
+          <span className="col-span-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
             {t('visibility.ruleLabel') || 'Rule'} {index + 1}
           </span>
 
           <select
             value={rule.type || 'state'}
             onChange={(e) => setType(index, e.target.value)}
-            className="col-span-4 text-[var(--text-primary)] font-bold text-[11px] px-2.5 py-1.5 rounded-xl popup-surface border border-transparent focus:border-[var(--accent-color)] outline-none transition-colors"
+            className="popup-surface col-span-4 rounded-xl border border-transparent px-2.5 py-1.5 text-[11px] font-bold text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}
           >
             {TYPE_OPTIONS.map((option) => (
@@ -363,7 +388,7 @@ export default function ConditionBuilder({
             ))}
           </select>
 
-          <div className="col-span-4 text-[10px] text-[var(--text-muted)] text-right uppercase tracking-widest font-bold pr-1">
+          <div className="col-span-4 pr-1 text-right text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
             {t('visibility.secondsLabel') || 'I (Sekund)'}
           </div>
 
@@ -371,21 +396,23 @@ export default function ConditionBuilder({
             type="number"
             min="0"
             value={Number.isFinite(Number(rule.forSeconds)) ? Number(rule.forSeconds) : 0}
-            onChange={(e) => updateRule(index, { forSeconds: Math.max(0, Number(e.target.value || 0)) })}
-            className="col-span-2 w-full px-2.5 py-1.5 rounded-xl text-[11px] popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
+            onChange={(e) =>
+              updateRule(index, { forSeconds: Math.max(0, Number(e.target.value || 0)) })
+            }
+            className="popup-surface col-span-2 w-full rounded-xl border border-transparent px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             title={t('visibility.forSeconds') || 'for sec'}
           />
         </div>
 
         {(rule.type === 'state' || rule.type === 'not_state') && (
           <div className="space-y-1.5 pl-0.5">
-            <div className="flex flex-wrap gap-1 min-h-[18px]">
+            <div className="flex min-h-[18px] flex-wrap gap-1">
               {selectedStates.map((state) => (
                 <button
                   key={`${index}-${state}`}
                   type="button"
                   onClick={() => removeStateValue(index, state)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[var(--accent-bg)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-bg)] px-2.5 py-1 text-[11px] font-bold text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
                 >
                   <span className="text-[var(--accent-color)]">×</span>
                   <span>{state}</span>
@@ -396,7 +423,9 @@ export default function ConditionBuilder({
               <input
                 type="text"
                 value={stateInputByRule[index] || ''}
-                onChange={(e) => setStateInputByRule((prev) => ({ ...prev, [index]: e.target.value }))}
+                onChange={(e) =>
+                  setStateInputByRule((prev) => ({ ...prev, [index]: e.target.value }))
+                }
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ',') {
                     e.preventDefault();
@@ -404,12 +433,12 @@ export default function ConditionBuilder({
                   }
                 }}
                 placeholder={t('visibility.statesPlaceholder') || 'on, playing, home'}
-                className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
+                className="popup-surface flex-1 rounded-xl border border-transparent px-2.5 py-1.5 text-xs text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
               />
               <button
                 type="button"
                 onClick={() => addStateValue(index)}
-                className="px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="rounded bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
               >
                 {t('addCard.add') || 'Add'}
               </button>
@@ -422,23 +451,29 @@ export default function ConditionBuilder({
             <select
               value={rule.operator || '>'}
               onChange={(e) => updateRule(index, { operator: e.target.value })}
-              className="text-[var(--text-primary)] font-bold text-[11px] px-2.5 py-1.5 rounded-xl popup-surface border border-transparent focus:border-[var(--accent-color)] outline-none transition-colors"
+              className="popup-surface rounded-xl border border-transparent px-2.5 py-1.5 text-[11px] font-bold text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             >
-              {NUMERIC_OPERATORS.map((op) => <option key={op} value={op}>{op}</option>)}
+              {NUMERIC_OPERATORS.map((op) => (
+                <option key={op} value={op}>
+                  {op}
+                </option>
+              ))}
             </select>
             <input
               type="number"
               value={rule.value ?? ''}
               onChange={(e) => updateRule(index, { value: e.target.value })}
               placeholder="0"
-              className="w-20 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
+              className="popup-surface w-20 rounded-xl border border-transparent px-2.5 py-1.5 text-xs text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             />
             <input
               type="text"
               value={rule.attribute || ''}
               onChange={(e) => updateRule(index, { attribute: e.target.value })}
-              placeholder={t('visibility.numericAttrPlaceholder') || 'Optional attribute, e.g. temperature'}
-              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
+              placeholder={
+                t('visibility.numericAttrPlaceholder') || 'Optional attribute, e.g. temperature'
+              }
+              className="popup-surface flex-1 rounded-xl border border-transparent px-2.5 py-1.5 text-xs text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             />
           </div>
         )}
@@ -450,14 +485,14 @@ export default function ConditionBuilder({
               value={rule.attribute || ''}
               onChange={(e) => updateRule(index, { attribute: e.target.value })}
               placeholder={t('visibility.attributeName') || 'Attribute name'}
-              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
+              className="popup-surface flex-1 rounded-xl border border-transparent px-2.5 py-1.5 text-xs text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             />
             <input
               type="text"
               value={rule.value ?? ''}
               onChange={(e) => updateRule(index, { value: e.target.value })}
               placeholder={t('visibility.attributeValueOptional') || 'Optional value'}
-              className="flex-1 px-2.5 py-1.5 rounded-xl text-xs popup-surface border border-transparent text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)] transition-colors"
+              className="popup-surface flex-1 rounded-xl border border-transparent px-2.5 py-1.5 text-xs text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             />
           </div>
         )}
@@ -470,16 +505,22 @@ export default function ConditionBuilder({
       {showHeader && (
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-widest font-bold text-[var(--text-primary)]">{t('visibility.title') || 'Conditional visibility'}</p>
-            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{t('visibility.description') || 'Show this card only when the rule matches.'}</p>
+            <p className="text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase">
+              {t('visibility.title') || 'Conditional visibility'}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+              {t('visibility.description') || 'Show this card only when the rule matches.'}
+            </p>
           </div>
           {showEnableToggle && (
             <button
               type="button"
               onClick={() => setEnabled(!isEnabled)}
-              className={`w-12 h-6 rounded-full transition-colors relative ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
+              className={`relative h-6 w-12 rounded-full transition-colors ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
             >
-              <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+              <span
+                className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`}
+              />
             </button>
           )}
         </div>
@@ -495,14 +536,19 @@ export default function ConditionBuilder({
             {effectiveConfig.rules.length > 1 && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-center gap-2 py-0.5">
-                <select
-                  value={effectiveConfig.logic || 'AND'}
-                  onChange={(e) => saveConfig({ ...effectiveConfig, logic: e.target.value === 'OR' ? 'OR' : 'AND' })}
-                  className="bg-[var(--modal-bg)] text-[var(--text-primary)] font-bold text-[11px] px-2 py-1 rounded outline-none border border-[var(--glass-border)]"
-                >
-                  <option value="AND">{t('visibility.logic.and') || 'AND'}</option>
-                  <option value="OR">{t('visibility.logic.or') || 'OR'}</option>
-                </select>
+                  <select
+                    value={effectiveConfig.logic || 'AND'}
+                    onChange={(e) =>
+                      saveConfig({
+                        ...effectiveConfig,
+                        logic: e.target.value === 'OR' ? 'OR' : 'AND',
+                      })
+                    }
+                    className="rounded border border-[var(--glass-border)] bg-[var(--modal-bg)] px-2 py-1 text-[11px] font-bold text-[var(--text-primary)] outline-none"
+                  >
+                    <option value="AND">{t('visibility.logic.and') || 'AND'}</option>
+                    <option value="OR">{t('visibility.logic.or') || 'OR'}</option>
+                  </select>
                 </div>
 
                 {renderRuleEntityPicker(1)}
@@ -516,7 +562,7 @@ export default function ConditionBuilder({
                 <button
                   type="button"
                   onClick={addSecondRule}
-                  className="ml-auto px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest bg-[var(--accent-bg)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
+                  className="ml-auto rounded bg-[var(--accent-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase hover:bg-[var(--accent-bg)]"
                 >
                   {t('visibility.addRule') || 'Add rule'}
                 </button>
@@ -526,7 +572,7 @@ export default function ConditionBuilder({
                 <button
                   type="button"
                   onClick={removeSecondRule}
-                  className="ml-auto px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  className="ml-auto rounded bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
                 >
                   {t('visibility.removeRule') || 'Remove rule'}
                 </button>
@@ -534,23 +580,27 @@ export default function ConditionBuilder({
             </div>
           </div>
 
-          <div className="px-2.5 py-2 rounded-xl popup-surface border border-[var(--glass-border)]">
-            <p className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-muted)]">{t('visibility.summary') || 'Summary'}</p>
+          <div className="popup-surface rounded-xl border border-[var(--glass-border)] px-2.5 py-2">
+            <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+              {t('visibility.summary') || 'Summary'}
+            </p>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               {ruleSummaryItems.length === 0 && (
-                <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]">
+                <span className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-semibold text-[var(--text-secondary)]">
                   {buildSummary(effectiveConfig, selectedEntityId, entities, t)}
                 </span>
               )}
 
               {ruleSummaryItems.map((item, index) => (
                 <div key={`rule-summary-${index}`} className="contents">
-                  <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)] leading-snug">
+                  <span className="rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-1 text-[10px] leading-snug font-semibold text-[var(--accent-color)]">
                     {item}
                   </span>
                   {index < ruleSummaryItems.length - 1 && (
-                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--glass-bg)] text-[var(--text-muted)] border border-[var(--glass-border)]">
-                      {(effectiveConfig.logic || 'AND') === 'OR' ? (t('visibility.logic.or') || 'OR') : (t('visibility.logic.and') || 'AND')}
+                    <span className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)]">
+                      {(effectiveConfig.logic || 'AND') === 'OR'
+                        ? t('visibility.logic.or') || 'OR'
+                        : t('visibility.logic.and') || 'AND'}
                     </span>
                   )}
                 </div>
@@ -562,15 +612,19 @@ export default function ConditionBuilder({
                 {liveStatusItems.map((item) => (
                   <span
                     key={item.key}
-                    className="px-2 py-1 rounded-full text-[10px] font-medium bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]"
+                    className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-medium text-[var(--text-secondary)]"
                   >
                     {item.text}
                   </span>
                 ))}
               </div>
             )}
-            <p className={`text-xs mt-1.5 font-bold ${isVisibleNow ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {isVisibleNow ? (t('visibility.visibleNow') || 'Visible now') : (t('visibility.hiddenNow') || 'Hidden now')}
+            <p
+              className={`mt-1.5 text-xs font-bold ${isVisibleNow ? 'text-emerald-400' : 'text-amber-400'}`}
+            >
+              {isVisibleNow
+                ? t('visibility.visibleNow') || 'Visible now'
+                : t('visibility.hiddenNow') || 'Hidden now'}
             </p>
           </div>
         </>

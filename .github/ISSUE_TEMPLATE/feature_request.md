@@ -1,10 +1,9 @@
 ---
 name: Feature Request
 about: Suggest a Tunet dashboard feature or UX improvement
-title: "[Feature] "
+title: '[Feature] '
 labels: enhancement
 assignees: ''
-
 ---
 
 ## Summary
@@ -28,6 +27,5 @@ What should happen in the UI?
 - Affects cards: [e.g. Weather, Media, Fan]
 - Affects pages/layout: [yes/no]
 - Home Assistant entities/services involved: [e.g. `weather.home`, `media_player.living_room`]
-
 
 ## Alternatives considered

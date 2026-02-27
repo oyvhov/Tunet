@@ -13,10 +13,10 @@ import { getLocaleForLanguage } from '../i18n';
  * @param {Function} props.t - Translation function
  * @param {React.ReactNode} [props.children] - Optional children content
  */
-export default function Header({ 
-  now, 
-  headerTitle, 
-  headerScale, 
+export default function Header({
+  now,
+  headerTitle,
+  headerScale,
   editMode,
   headerSettings = { showTitle: true, showClock: true, showDate: true },
   setShowHeaderEditModal,
@@ -24,11 +24,13 @@ export default function Header({
   language,
   children,
   isMobile,
-  sectionSpacing
+  sectionSpacing,
 }) {
   const headerBottom = Number.isFinite(sectionSpacing?.statusToNav)
     ? sectionSpacing.statusToNav
-    : (isMobile ? 8 : 40);
+    : isMobile
+      ? 8
+      : 40;
 
   const fontWeight = headerSettings?.fontWeight || '300';
   const selectedFontFamily = headerSettings?.fontFamily || headerSettings?.headerFont || 'sans';
@@ -53,7 +55,12 @@ export default function Header({
   };
   const resolvedFontFamily = fontFamilyMap[selectedFontFamily] || fontFamilyMap.sans;
   const letterSpacingMap = { tight: '0.05em', normal: '0.2em', wide: '0.5em', extraWide: '0.8em' };
-  const letterSpacingMobile = { tight: '0.05em', normal: '0.2em', wide: '0.3em', extraWide: '0.5em' };
+  const letterSpacingMobile = {
+    tight: '0.05em',
+    normal: '0.2em',
+    wide: '0.3em',
+    extraWide: '0.5em',
+  };
   const lsDesktop = letterSpacingMap[headerSettings?.letterSpacing || 'normal'] || '0.2em';
   const lsMobile = letterSpacingMobile[headerSettings?.letterSpacing || 'normal'] || '0.2em';
   const fontStyleVal = headerSettings?.fontStyle || 'normal';
@@ -74,35 +81,39 @@ export default function Header({
 
   return (
     <header
-      className="relative pt-4 md:pt-0 font-sans"
+      className="relative pt-4 font-sans md:pt-0"
       style={{ marginBottom: `${headerBottom}px` }}
     >
       {editMode && !headerSettings.showTitle && setShowHeaderEditModal && (
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-50 edit-controls-anim">
+        <div className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
           <button
             onClick={() => setShowHeaderEditModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent-bg)] border border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)] transition-all shadow-lg backdrop-blur-md"
+            className="flex items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
           >
-            <Edit2 className="w-4 h-4 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-widest">{t('header.addHeader')}</span>
+            <Edit2 className="h-4 w-4 animate-pulse" />
+            <span className="text-xs font-bold tracking-widest uppercase">
+              {t('header.addHeader')}
+            </span>
           </button>
         </div>
       )}
 
       {/* Top row: heading (left) and clock (right) aligned only with heading */}
-      <div className={`flex justify-between items-start gap-10 leading-none ${isMobile ? 'flex-col items-center text-center' : ''}`}>
-        <div className={`flex items-center gap-4 ${isMobile ? 'justify-center w-full' : ''}`}>
+      <div
+        className={`flex items-start justify-between gap-10 leading-none ${isMobile ? 'flex-col items-center text-center' : ''}`}
+      >
+        <div className={`flex items-center gap-4 ${isMobile ? 'w-full justify-center' : ''}`}>
           {headerSettings.showTitle && (
-            <h1 
+            <h1
               className="leading-none select-none"
               style={{
-                color: 'var(--text-muted)', 
+                color: 'var(--text-muted)',
                 fontSize: headingFontSize,
                 fontWeight: fontWeight,
                 letterSpacing: isMobile ? lsMobile : lsDesktop,
                 fontStyle: fontStyleVal === 'italic' ? 'italic' : 'normal',
                 textTransform: fontStyleVal === 'uppercase' ? 'uppercase' : 'none',
-                fontFamily: resolvedFontFamily
+                fontFamily: resolvedFontFamily,
               }}
             >
               {headerTitle || 'Tunet'}
@@ -111,9 +122,9 @@ export default function Header({
         </div>
 
         {headerSettings.showClock && !isMobile && (
-          <h2 
-            className="font-light tracking-[0.1em] leading-none select-none" 
-            style={{ 
+          <h2
+            className="leading-none font-light tracking-[0.1em] select-none"
+            style={{
               fontSize: clockFontSize,
               color: 'var(--text-muted)',
               fontFamily: resolvedFontFamily,
@@ -125,7 +136,7 @@ export default function Header({
 
         {headerSettings.showClock && isMobile && showClockOnMobile && (
           <h2
-            className="font-light tracking-[0.08em] leading-none select-none"
+            className="leading-none font-light tracking-[0.08em] select-none"
             style={{
               fontSize: clockFontSize,
               color: 'var(--text-muted)',
@@ -139,8 +150,8 @@ export default function Header({
 
       {/* Date row: independent from heading/clock alignment */}
       {headerSettings.showDate && !isMobile && (
-        <p 
-          className="text-gray-500 font-medium uppercase leading-none opacity-50 tracking-[0.2em] md:tracking-[0.6em] mt-1"
+        <p
+          className="mt-1 leading-none font-medium tracking-[0.2em] text-gray-500 uppercase opacity-50 md:tracking-[0.6em]"
           style={{
             fontSize: `calc(0.75rem * ${dateScale})`,
             fontFamily: resolvedFontFamily,
@@ -151,9 +162,7 @@ export default function Header({
       )}
 
       {/* Children (content below heading & clock) */}
-      <div className="flex flex-col gap-6 md:gap-3 w-full pt-6 md:pt-3">
-        {children}
-      </div>
+      <div className="flex w-full flex-col gap-6 pt-6 md:gap-3 md:pt-3">{children}</div>
     </header>
   );
 }

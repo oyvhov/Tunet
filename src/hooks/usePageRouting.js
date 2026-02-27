@@ -11,20 +11,27 @@ export function usePageRouting() {
   const { pageId } = useParams();
 
   const [activePage, _setActivePage] = useState(() => {
-    try { return localStorage.getItem('tunet_active_page') || 'home'; }
-    catch { return 'home'; }
+    try {
+      return localStorage.getItem('tunet_active_page') || 'home';
+    } catch {
+      return 'home';
+    }
   });
 
   const setActivePage = useCallback((page) => {
     _setActivePage(page);
-    try { localStorage.setItem('tunet_active_page', page); } catch {}
+    try {
+      localStorage.setItem('tunet_active_page', page);
+    } catch {}
   }, []);
 
   useEffect(() => {
     if (!pageId) return;
     _setActivePage((prev) => {
       if (prev !== pageId) {
-        try { localStorage.setItem('tunet_active_page', pageId); } catch {}
+        try {
+          localStorage.setItem('tunet_active_page', pageId);
+        } catch {}
         return pageId;
       }
       return prev;

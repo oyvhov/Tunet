@@ -128,14 +128,16 @@ if (isProduction) {
       return res.sendFile(join(assetsPath, fallbackFileName));
     });
 
-    app.use(express.static(distPath, {
-      index: false,
-      setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html')) {
-          setNoCacheHeaders(res);
-        }
-      },
-    }));
+    app.use(
+      express.static(distPath, {
+        index: false,
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.html')) {
+            setNoCacheHeaders(res);
+          }
+        },
+      })
+    );
 
     app.get('/index.html', (_req, res) => {
       sendSpaIndex(res);
@@ -157,7 +159,9 @@ if (isProduction) {
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[server] Tunet backend running on port ${PORT} (${isProduction ? 'production' : 'development'})`);
+  console.log(
+    `[server] Tunet backend running on port ${PORT} (${isProduction ? 'production' : 'development'})`
+  );
 });
 
 export default app;

@@ -2,7 +2,23 @@
 // Used as saveTokens / loadTokens callbacks for HAWS getAuth()
 
 const PRIMARY_STORAGE_SLOT = 'tunet_auth_cache_v1';
-const LEGACY_STORAGE_SLOT = String.fromCharCode(104, 97, 95, 111, 97, 117, 116, 104, 95, 116, 111, 107, 101, 110, 115);
+const LEGACY_STORAGE_SLOT = String.fromCharCode(
+  104,
+  97,
+  95,
+  111,
+  97,
+  117,
+  116,
+  104,
+  95,
+  116,
+  111,
+  107,
+  101,
+  110,
+  115
+);
 
 const getSessionStorage = () => {
   try {
@@ -38,7 +54,8 @@ export function loadTokens() {
   try {
     const sessionStore = getSessionStorage();
     const localStore = getLocalStorage();
-    const localRaw = localStore?.getItem(PRIMARY_STORAGE_SLOT) || localStore?.getItem(LEGACY_STORAGE_SLOT);
+    const localRaw =
+      localStore?.getItem(PRIMARY_STORAGE_SLOT) || localStore?.getItem(LEGACY_STORAGE_SLOT);
     if (localRaw) {
       localStore?.setItem(PRIMARY_STORAGE_SLOT, localRaw);
       localStore?.removeItem(LEGACY_STORAGE_SLOT);
@@ -46,7 +63,8 @@ export function loadTokens() {
       return JSON.parse(localRaw);
     }
 
-    const sessionRaw = sessionStore?.getItem(PRIMARY_STORAGE_SLOT) || sessionStore?.getItem(LEGACY_STORAGE_SLOT);
+    const sessionRaw =
+      sessionStore?.getItem(PRIMARY_STORAGE_SLOT) || sessionStore?.getItem(LEGACY_STORAGE_SLOT);
     if (sessionRaw) {
       const parsed = JSON.parse(sessionRaw);
       localStore?.setItem(PRIMARY_STORAGE_SLOT, sessionRaw);
@@ -75,10 +93,10 @@ export function clearOAuthTokens() {
 export function hasOAuthTokens() {
   try {
     return !!(
-      getSessionStorage()?.getItem(PRIMARY_STORAGE_SLOT)
-      || getLocalStorage()?.getItem(PRIMARY_STORAGE_SLOT)
-      || getSessionStorage()?.getItem(LEGACY_STORAGE_SLOT)
-      || getLocalStorage()?.getItem(LEGACY_STORAGE_SLOT)
+      getSessionStorage()?.getItem(PRIMARY_STORAGE_SLOT) ||
+      getLocalStorage()?.getItem(PRIMARY_STORAGE_SLOT) ||
+      getSessionStorage()?.getItem(LEGACY_STORAGE_SLOT) ||
+      getLocalStorage()?.getItem(LEGACY_STORAGE_SLOT)
     );
   } catch {
     return false;

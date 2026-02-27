@@ -17,14 +17,7 @@ const supportsFeature = (supportedFeatures, bitMask) => {
   return (supportedFeatures & bitMask) !== 0;
 };
 
-export default function GenericFanModal({
-  show,
-  onClose,
-  entityId,
-  entity,
-  callService,
-  t,
-}) {
+export default function GenericFanModal({ show, onClose, entityId, entity, callService, t }) {
   const activeEntityId = entityId || '';
   const activeEntity = entity || { state: 'unknown', attributes: {} };
 
@@ -44,11 +37,16 @@ export default function GenericFanModal({
   const percentageStep = Number(activeEntity.attributes?.percentage_step || 1);
   const minimumStep = Number.isFinite(percentageStep) && percentageStep > 0 ? percentageStep : 1;
   const percentageRaw = Number(activeEntity.attributes?.percentage ?? 0);
-  const percentage = Number.isFinite(percentageRaw) ? Math.max(0, Math.min(100, Math.round(percentageRaw))) : 0;
-  const oscillating = activeEntity.attributes?.oscillating === true || activeEntity.attributes?.oscillating === 'on';
+  const percentage = Number.isFinite(percentageRaw)
+    ? Math.max(0, Math.min(100, Math.round(percentageRaw)))
+    : 0;
+  const oscillating =
+    activeEntity.attributes?.oscillating === true || activeEntity.attributes?.oscillating === 'on';
   const direction = activeEntity.attributes?.direction || null;
   const presetMode = activeEntity.attributes?.preset_mode || null;
-  const presetModes = Array.isArray(activeEntity.attributes?.preset_modes) ? activeEntity.attributes.preset_modes : [];
+  const presetModes = Array.isArray(activeEntity.attributes?.preset_modes)
+    ? activeEntity.attributes.preset_modes
+    : [];
   const fanName = activeEntity.attributes?.friendly_name || activeEntityId;
 
   const [sliderValue, setSliderValue] = useState(percentage);
@@ -62,7 +60,10 @@ export default function GenericFanModal({
     if (!show || !activeEntityId || !entity || !hasPercentageControl) return undefined;
     const timeoutId = setTimeout(() => {
       if (sliderValue !== percentage) {
-        callService('fan', 'set_percentage', { entity_id: activeEntityId, percentage: sliderValue });
+        callService('fan', 'set_percentage', {
+          entity_id: activeEntityId,
+          percentage: sliderValue,
+        });
       }
     }, 180);
     return () => clearTimeout(timeoutId);
@@ -101,49 +102,67 @@ export default function GenericFanModal({
       onClick={onClose}
     >
       <div
-        className="border w-full max-w-5xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 font-sans relative max-h-[90vh] overflow-y-auto backdrop-blur-xl popup-anim"
-        style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+        className="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
+        style={{
+          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+          borderColor: 'var(--glass-border)',
+          color: 'var(--text-primary)',
+        }}
         onClick={(event) => event.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
+        <button
+          onClick={onClose}
+          className="modal-close absolute top-6 right-6 md:top-10 md:right-10"
+        >
+          <X className="h-4 w-4" />
+        </button>
 
-        <div className="flex items-center gap-4 mb-6 font-sans">
+        <div className="mb-6 flex items-center gap-4 font-sans">
           <div
-            className="p-4 rounded-2xl transition-all duration-500"
+            className="rounded-2xl p-4 transition-all duration-500"
             style={{
-              backgroundColor: isOn ? 'color-mix(in srgb, var(--accent-color) 18%, transparent)' : 'var(--glass-bg)',
-              color: isOn ? 'var(--accent-color)' : 'var(--text-secondary)'
+              backgroundColor: isOn
+                ? 'color-mix(in srgb, var(--accent-color) 18%, transparent)'
+                : 'var(--glass-bg)',
+              color: isOn ? 'var(--accent-color)' : 'var(--text-secondary)',
             }}
           >
-            <Fan className={`w-8 h-8 ${isOn ? 'animate-spin [animation-duration:2.4s]' : ''}`} />
+            <Fan className={`h-8 w-8 ${isOn ? 'animate-spin [animation-duration:2.4s]' : ''}`} />
           </div>
           <div>
-            <h3 className="text-2xl font-light tracking-tight text-[var(--text-primary)] uppercase italic leading-none">{fanName}</h3>
-            <div className="mt-2 px-3 py-1 rounded-full border inline-block transition-all duration-500 bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-              <p className="text-[10px] uppercase font-bold italic tracking-widest">{statusText}</p>
+            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+              {fanName}
+            </h3>
+            <div className="mt-2 inline-block rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1 text-[var(--text-secondary)] transition-all duration-500">
+              <p className="text-[10px] font-bold tracking-widest uppercase italic">{statusText}</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start font-sans">
-          <div className="lg:col-span-3 space-y-6">
-            <div className="p-8 rounded-3xl popup-surface flex flex-col gap-8">
-              <div className="flex gap-4 w-full">
+        <div className="grid grid-cols-1 items-start gap-12 font-sans lg:grid-cols-5">
+          <div className="space-y-6 lg:col-span-3">
+            <div className="popup-surface flex flex-col gap-8 rounded-3xl p-8">
+              <div className="flex w-full gap-4">
                 {hasPowerControl && (
                   <button
                     onClick={handlePowerToggle}
-                    className={`flex-1 py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${isOn ? 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-white shadow-lg  hover:bg-[var(--accent-color)]'}`}
+                    className={`flex flex-1 items-center justify-center gap-3 rounded-2xl py-5 text-sm font-bold tracking-widest uppercase transition-all ${isOn ? 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-white shadow-lg hover:bg-[var(--accent-color)]'}`}
                   >
-                    <Fan className="w-5 h-5" />
+                    <Fan className="h-5 w-5" />
                     {isOn ? t('fan.turnOff') : t('fan.turnOn')}
                   </button>
                 )}
                 {hasOscillationControl && (
                   <button
-                    onClick={() => callService('fan', 'oscillate', { entity_id: activeEntityId, oscillating: !oscillating })}
-                    className={`py-5 rounded-2xl flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-widest transition-all ${hasPowerControl ? 'flex-1' : 'w-full'} ${oscillating ? 'bg-[var(--accent-color)] text-white shadow-lg  hover:bg-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                    onClick={() =>
+                      callService('fan', 'oscillate', {
+                        entity_id: activeEntityId,
+                        oscillating: !oscillating,
+                      })
+                    }
+                    className={`flex items-center justify-center gap-3 rounded-2xl py-5 text-sm font-bold tracking-widest uppercase transition-all ${hasPowerControl ? 'flex-1' : 'w-full'} ${oscillating ? 'bg-[var(--accent-color)] text-white shadow-lg hover:bg-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   >
-                    <MoveHorizontal className="w-5 h-5" />
+                    <MoveHorizontal className="h-5 w-5" />
                     {t('fan.oscillate')}
                   </button>
                 )}
@@ -151,9 +170,13 @@ export default function GenericFanModal({
 
               {hasPercentageControl && (
                 <div>
-                  <div className="flex items-center justify-between mb-4 px-1">
-                    <span className="text-xs uppercase font-bold tracking-widest text-[var(--text-secondary)]">{t('fan.speed')}</span>
-                    <span className="text-xs uppercase font-bold tracking-widest text-[var(--text-secondary)]">{sliderValue}%</span>
+                  <div className="mb-4 flex items-center justify-between px-1">
+                    <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                      {t('fan.speed')}
+                    </span>
+                    <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                      {sliderValue}%
+                    </span>
                   </div>
                   <M3Slider
                     min={0}
@@ -168,14 +191,19 @@ export default function GenericFanModal({
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-10 py-4 italic font-sans flex flex-col justify-start">
+          <div className="flex flex-col justify-start space-y-10 py-4 font-sans italic lg:col-span-2">
             {hasDirectionControl && (
               <ModernDropdown
                 label={t('fan.direction')}
                 icon={RotateCw}
                 options={['forward', 'reverse']}
                 current={direction}
-                onChange={(value) => callService('fan', 'set_direction', { entity_id: activeEntityId, direction: value })}
+                onChange={(value) =>
+                  callService('fan', 'set_direction', {
+                    entity_id: activeEntityId,
+                    direction: value,
+                  })
+                }
                 placeholder={t('dropdown.noneSelected')}
                 map={directionMap}
               />
@@ -187,7 +215,12 @@ export default function GenericFanModal({
                 icon={RefreshCw}
                 options={presetModes}
                 current={presetMode}
-                onChange={(value) => callService('fan', 'set_preset_mode', { entity_id: activeEntityId, preset_mode: value })}
+                onChange={(value) =>
+                  callService('fan', 'set_preset_mode', {
+                    entity_id: activeEntityId,
+                    preset_mode: value,
+                  })
+                }
                 placeholder={t('dropdown.noneSelected')}
                 map={{}}
               />

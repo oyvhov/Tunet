@@ -60,7 +60,10 @@ export function useDashboardEffects({
       if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
       if (!e.target?.closest?.('[data-haptic]')) return;
       // Check for user activation (Chrome requires user interaction before vibrating)
-      if (typeof navigator.userActivation !== 'undefined' && !navigator.userActivation.hasBeenActive) {
+      if (
+        typeof navigator.userActivation !== 'undefined' &&
+        !navigator.userActivation.hasBeenActive
+      ) {
         return;
       }
 
@@ -96,8 +99,7 @@ export function useDashboardEffects({
       meta.name = 'viewport';
       document.head.appendChild(meta);
     }
-    meta.content =
-      'width=device-width, initial-scale=1.0';
+    meta.content = 'width=device-width, initial-scale=1.0';
   }, [resolvedHeaderTitle]);
 
   // ── Inactivity / idle timer ────────────────────────────────────────────

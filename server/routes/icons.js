@@ -43,7 +43,9 @@ router.get('/mdi', (req, res) => {
 });
 
 router.get('/mdi/:name', (req, res) => {
-  const rawName = String(req.params.name || '').toLowerCase().trim();
+  const rawName = String(req.params.name || '')
+    .toLowerCase()
+    .trim();
   if (!rawName || !ICON_KEY_PATTERN.test(rawName)) {
     return res.status(400).json({ error: 'Invalid icon name' });
   }

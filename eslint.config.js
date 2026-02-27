@@ -11,7 +11,7 @@ export default [
       ecmaVersion: 2022,
       sourceType: 'module',
       parserOptions: {
-        ecmaFeatures: { jsx: true }
+        ecmaFeatures: { jsx: true },
       },
       globals: {
         window: 'readonly',
@@ -35,20 +35,23 @@ export default [
         requestAnimationFrame: 'readonly',
         cancelAnimationFrame: 'readonly',
         __APP_VERSION__: 'readonly',
-      }
+      },
     },
     rules: {
       'react/jsx-uses-vars': 'error',
       'react/jsx-uses-react': 'error',
       'react-hooks/rules-of-hooks': 'warn',
       'react-hooks/exhaustive-deps': 'warn',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-empty': ['warn', { allowEmptyCatch: true }],
-    }
+    },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'scripts/', 'src/__tests__/']
-  }
+    ignores: ['dist/', 'node_modules/', 'scripts/', 'src/__tests__/'],
+  },
 ];

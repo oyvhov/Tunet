@@ -9,9 +9,9 @@ const API_BASE = './api';
 async function request(path, options = {}) {
   const mergedHeaders = options.headers
     ? {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    }
+        'Content-Type': 'application/json',
+        ...options.headers,
+      }
     : { 'Content-Type': 'application/json' };
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -30,9 +30,7 @@ async function request(path, options = {}) {
   return res.json();
 }
 
-const userHeaders = (haUserId) => (
-  haUserId ? { 'x-ha-user-id': String(haUserId) } : {}
-);
+const userHeaders = (haUserId) => (haUserId ? { 'x-ha-user-id': String(haUserId) } : {});
 
 // ── Profiles ─────────────────────────────────────────────────────────
 

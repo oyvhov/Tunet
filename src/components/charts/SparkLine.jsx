@@ -28,7 +28,7 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
   const lineStrokeWidth = 3;
   const pointRadius = 3.5;
   const verticalPadding = Math.max(4, Math.ceil(pointRadius + lineStrokeWidth / 2));
-  
+
   const idSuffix = useMemo(() => Math.random().toString(36).substr(2, 9), []);
   const areaId = `cardAreaGrad-${idSuffix}`;
   const lineId = `cardLineGrad-${idSuffix}`;
@@ -36,7 +36,7 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
 
   if (pointsData.length === 0) return null;
 
-  const values = pointsData.map(d => d.value);
+  const values = pointsData.map((d) => d.value);
   let min = Math.min(...values);
   let max = Math.max(...values);
   if (min === max) {
@@ -50,7 +50,7 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
   const chartHeight = Math.max(1, chartBottom - chartTop);
   const points = values.map((v, i) => [
     values.length === 1 ? width / 2 : (i / (values.length - 1)) * width,
-    chartBottom - ((v - min) / range) * chartHeight
+    chartBottom - ((v - min) / range) * chartHeight,
   ]);
 
   const pathData = createBezierPath(points, 0.3);
@@ -59,14 +59,20 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
 
   const getDotColor = (val) => {
     const t = (val - min) / range;
-    if (t > 0.6) return "#ef4444";
-    if (t > 0.3) return "#eab308";
-    return "#3b82f6";
+    if (t > 0.6) return '#ef4444';
+    if (t > 0.3) return '#eab308';
+    return '#3b82f6';
   };
 
   return (
-    <div className="mt-1 relative opacity-80 group-hover:opacity-100 transition-all duration-700">
-      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-visible">
+    <div className="relative mt-1 opacity-80 transition-all duration-700 group-hover:opacity-100">
+      <svg
+        width="100%"
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        className="overflow-visible"
+      >
         <defs>
           {/* Area gradient - more opaque at top */}
           <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
@@ -74,34 +80,47 @@ export default function SparkLine({ data, currentIndex, height = 40, fade = fals
             <stop offset="50%" stopColor="#eab308" stopOpacity="0.12" />
             <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.04" />
           </linearGradient>
-          
+
           {/* Line gradient - color based on value */}
           <linearGradient id={lineId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#ef4444" />
             <stop offset="50%" stopColor="#eab308" />
             <stop offset="100%" stopColor="#3b82f6" />
           </linearGradient>
-          
+
           {/* Fade mask for smooth bottom */}
           <linearGradient id={maskId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="white" stopOpacity="1" />
             <stop offset="70%" stopColor="white" stopOpacity="0.5" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </linearGradient>
-          
+
           <mask id={`${maskId}-use`}>
             <rect x="0" y="0" width={width} height={height} fill={`url(#${maskId})`} />
           </mask>
         </defs>
-        
+
         {/* Area fill with smooth fade */}
         <path d={areaData} fill={`url(#${areaId})`} mask={`url(#${maskId}-use)`} />
-        
+
         {/* Bezier line with gradient */}
-        <path d={pathData} fill="none" stroke={`url(#${lineId})`} strokeWidth={lineStrokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-        
+        <path
+          d={pathData}
+          fill="none"
+          stroke={`url(#${lineId})`}
+          strokeWidth={lineStrokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
         {/* Current point marker */}
-        <circle cx={currentPoint[0]} cy={currentPoint[1]} r={pointRadius} fill={getDotColor(values[currentIndex])} className="animate-pulse" />
+        <circle
+          cx={currentPoint[0]}
+          cy={currentPoint[1]}
+          r={pointRadius}
+          fill={getDotColor(values[currentIndex])}
+          className="animate-pulse"
+        />
       </svg>
       {fade && (
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--glass-bg)] opacity-60" />

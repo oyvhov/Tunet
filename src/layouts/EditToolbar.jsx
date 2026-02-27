@@ -21,14 +21,14 @@ export default function EditToolbar({
   t,
 }) {
   return (
-    <div className="relative flex items-center gap-6 flex-shrink-0 overflow-visible pb-2 justify-end">
+    <div className="relative flex flex-shrink-0 items-center justify-end gap-6 overflow-visible pb-2">
       {editMode && (
         <button
           onClick={() => setShowAddCardModal(true)}
-          className="group flex items-center gap-2 px-2.5 py-1.5 rounded-full border border-transparent hover:border-[var(--glass-border)] hover:bg-white/10 text-xs font-bold text-[var(--accent-color)] hover:text-white transition-all duration-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-color)]"
+          className="group flex items-center gap-2 rounded-full border border-transparent px-2.5 py-1.5 text-xs font-bold whitespace-nowrap text-[var(--accent-color)] transition-all duration-200 hover:border-[var(--glass-border)] hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:outline-none"
         >
-          <span className="p-2 rounded-full bg-[var(--accent-bg)] text-[var(--accent-color)] transition-all duration-300 group-hover:bg-[var(--accent-color)] group-hover:text-white group-hover:scale-105 group-hover:shadow-lg group-hover:">
-            <Plus className="w-4 h-4 transition-transform duration-300 group-hover:rotate-90" />
+          <span className="group-hover: rounded-full bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] transition-all duration-300 group-hover:scale-105 group-hover:bg-[var(--accent-color)] group-hover:text-white group-hover:shadow-lg">
+            <Plus className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
           </span>
           <span className="transition-colors duration-200">{t('nav.addCard')}</span>
         </button>
@@ -43,33 +43,45 @@ export default function EditToolbar({
           }
           setEditMode(!editMode);
         }}
-        className={`p-2 rounded-full group border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] ${editMode ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)] hover:bg-[var(--accent-bg)] hover:text-white hover:shadow-lg hover:' : 'text-[var(--text-secondary)] border-transparent hover:border-[var(--glass-border)] hover:bg-white/10 hover:text-white'}`}
+        className={`group rounded-full border p-2 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:outline-none ${editMode ? 'hover: border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] hover:bg-[var(--accent-bg)] hover:text-white hover:shadow-lg' : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-white/10 hover:text-white'}`}
         title={editMode ? t('nav.done') : t('menu.edit')}
         aria-label={editMode ? t('nav.done') : t('menu.edit')}
         aria-pressed={editMode}
       >
-        {editMode ? <Check className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" /> : <Edit2 className="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" />}
+        {editMode ? (
+          <Check className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+        ) : (
+          <Edit2 className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12" />
+        )}
       </button>
 
       <div className="relative">
         <SettingsDropdown
-          onOpenSettings={() => { setShowConfigModal(true); setConfigTab('connection'); }}
+          onOpenSettings={() => {
+            setShowConfigModal(true);
+            setConfigTab('connection');
+          }}
           onOpenTheme={() => setShowThemeSidebar(true)}
           onOpenLayout={() => setShowLayoutSidebar(true)}
           onOpenHeader={() => setShowHeaderEditModal(true)}
           t={t}
         />
         {updateCount > 0 && (
-          <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center border-2 border-[var(--card-bg)] pointer-events-none shadow-sm">
-            <span className="text-[11px] font-bold text-white leading-none pt-[1px]">{updateCount}</span>
+          <div className="pointer-events-none absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--card-bg)] bg-gray-600 shadow-sm">
+            <span className="pt-[1px] text-[11px] leading-none font-bold text-white">
+              {updateCount}
+            </span>
           </div>
         )}
       </div>
 
       {!connected && (
         <div
-          className="flex items-center justify-center h-8 w-8 rounded-full transition-all border flex-shrink-0"
-          style={{ backgroundColor: 'rgba(255,255,255,0.01)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border transition-all"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.01)',
+            borderColor: 'rgba(239, 68, 68, 0.2)',
+          }}
         >
           <div className="h-2 w-2 rounded-full" style={{ backgroundColor: '#ef4444' }} />
         </div>

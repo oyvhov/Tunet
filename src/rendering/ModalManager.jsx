@@ -12,7 +12,18 @@ export default function ModalManager({
   cardConfig,
   mediaTick,
 }) {
-  const { entities, conn, activeUrl, connected, authRef, config, setConfig, t, language, setLanguage } = core;
+  const {
+    entities,
+    conn,
+    activeUrl,
+    connected,
+    authRef,
+    config,
+    setConfig,
+    t,
+    language,
+    setLanguage,
+  } = core;
 
   return (
     <ModalOrchestrator
