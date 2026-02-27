@@ -115,6 +115,27 @@ Where data lives:
 | `NODE_ENV` | `production` | Environment mode |
 | `VITE_PORT` | `5173` | Vite dev server port (dev only) |
 | `VITE_PROXY_TARGET` | `http://localhost:3002` | API proxy target (dev) |
+| `TUNET_ENCRYPTION_MODE` | `off` | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only` |
+| `TUNET_DATA_KEY` | _(unset)_ | Secret used for encryption when mode is `dual` or `enc_only` |
+
+### Data-at-rest encryption rollout (safe migration)
+
+- `off`: legacy behavior (plaintext DB storage only).
+- `dual`: writes plaintext + encrypted data, reads encrypted first then falls back to plaintext.
+- `enc_only`: requires encrypted writes and stores only a minimal plaintext stub for new writes; reads encrypted first and only falls back to legacy plaintext rows that have no encrypted payload.
+
+Key guidance:
+- Use a high-entropy key (recommended: 32 random bytes encoded as base64 or 64-char hex).
+- Example base64 key generation:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Recommended rollout to avoid data loss:
+1. Set `TUNET_ENCRYPTION_MODE=dual` with a strong `TUNET_DATA_KEY`.
+2. Keep `dual` for at least one full release cycle.
+3. Move to `enc_only` only after confirming all rows/devices are migrated and keep the same key.
 
 ## Troubleshooting
 

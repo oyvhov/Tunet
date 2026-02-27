@@ -19,5 +19,9 @@ ports:
   3002/tcp: null
 ports_description:
   3002/tcp: "Tunet Web Interface (not needed when using Ingress)"
-options: {}
-schema: {}
+options:
+  data_encryption_mode: "off"
+  data_encryption_key: ""
+schema:
+  data_encryption_mode: "list(off|dual|enc_only)?"
+  data_encryption_key: "password?"
