@@ -671,6 +671,7 @@
   "room.showVacuumChip": "Show vacuum chip",
   "room.showMotion": "Show motion",
   "room.showOccupiedIndicator": "Show occupied indicator",
+  "room.showIconWatermark": "Show icon watermark",
   "room.showPopupClimate": "Show climate section",
   "room.showPopupLights": "Show lights section",
   "room.showPopupMedia": "Show media section",

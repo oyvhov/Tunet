@@ -1,7 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { existsSync, readFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { existsSync, readFileSync, readdirSync } from 'fs';
+import { join, dirname, extname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import profilesRouter from './routes/profiles.js';
 import iconsRouter from './routes/icons.js';
@@ -65,6 +65,21 @@ if (isProduction) {
     const assetsPath = join(distPath, 'assets');
     const indexHtmlPath = join(distPath, 'index.html');
     const indexHtml = existsSync(indexHtmlPath) ? readFileSync(indexHtmlPath, 'utf8') : null;
+    const assetFiles = existsSync(assetsPath) ? readdirSync(assetsPath) : [];
+    const hashedAssetFallbackMap = new Map();
+
+    assetFiles.forEach((fileName) => {
+      const fileExt = extname(fileName).toLowerCase();
+      if (fileExt !== '.js' && fileExt !== '.css') return;
+
+      const baseName = basename(fileName, fileExt);
+      const hashSeparatorIndex = baseName.lastIndexOf('-');
+      if (hashSeparatorIndex <= 0) return;
+
+      const stem = baseName.slice(0, hashSeparatorIndex);
+      const key = `${stem}${fileExt}`;
+      hashedAssetFallbackMap.set(key, fileName);
+    });
 
     const setNoCacheHeaders = (res) => {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -81,10 +96,31 @@ if (isProduction) {
     };
 
     app.use('/assets', express.static(assetsPath, {
-      fallthrough: false,
+      fallthrough: true,
       immutable: true,
       maxAge: '1y',
     }));
+
+    app.get('/assets/*', (req, res, next) => {
+      const requested = basename(req.path || '');
+      if (!requested) return next();
+
+      const fileExt = extname(requested).toLowerCase();
+      if (fileExt !== '.js' && fileExt !== '.css') return next();
+
+      const requestedBase = basename(requested, fileExt);
+      const hashSeparatorIndex = requestedBase.lastIndexOf('-');
+      if (hashSeparatorIndex <= 0) return next();
+
+      const stem = requestedBase.slice(0, hashSeparatorIndex);
+      const fallbackKey = `${stem}${fileExt}`;
+      const fallbackFileName = hashedAssetFallbackMap.get(fallbackKey);
+      if (!fallbackFileName || fallbackFileName === requested) return next();
+
+      res.setHeader('X-Tunet-Asset-Fallback', fallbackFileName);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return res.sendFile(join(assetsPath, fallbackFileName));
+    });
 
     app.use(express.static(distPath, {
       index: false,

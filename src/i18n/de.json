@@ -661,6 +661,7 @@
   "room.showVacuumChip": "Staubsauger-Chip anzeigen",
   "room.showMotion": "Bewegung anzeigen",
   "room.showOccupiedIndicator": "Belegt-Indikator anzeigen",
+  "room.showIconWatermark": "Icon-Wasserzeichen anzeigen",
   "room.showPopupClimate": "Klima-Sektion anzeigen",
   "room.showPopupLights": "Licht-Sektion anzeigen",
   "room.showPopupMedia": "Medien-Sektion anzeigen",

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { Home, Thermometer, Lightbulb, Tv, Activity, Bot } from 'lucide-react';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import { getIconComponent } from '../../icons';
@@ -28,8 +28,13 @@ export default function RoomCard({
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
 
   const areaName = customNames?.[cardId] || settings?.areaName || t('room.defaultName');
-  const roomIconName = customIcons?.[cardId] || settings?.icon;
-  const RoomIcon = roomIconName ? (getIconComponent(roomIconName) || Home) : Home;
+  const roomIconName = customIcons?.[cardId] || settings?.icon || settings?.areaIcon;
+  const RoomIcon = roomIconName ? (getIconComponent(roomIconName, Home) || Home) : Home;
+  const isMdiRoomIcon = typeof roomIconName === 'string' && roomIconName.startsWith('mdi:');
+  const watermarkSize = isMdiRoomIcon ? '200px' : 208;
+  const watermarkPositionClass = isMdiRoomIcon
+    ? 'right-0 top-1/2 -translate-y-1/2 translate-x-1/4'
+    : '-right-14 top-1/2 -translate-y-1/2';
 
   const showLights = settings?.showLights !== false;
   const showTemp = settings?.showTemp !== false;
@@ -39,6 +44,47 @@ export default function RoomCard({
   const showActiveChip = settings?.showActiveChip !== false;
   const showVacuumChip = settings?.showVacuumChip !== false;
   const showOccupiedIndicator = settings?.showOccupiedIndicator !== false;
+  const showIconWatermark = settings?.showIconWatermark !== false;
+  const cardRef = useRef(null);
+  const chipContainerRef = useRef(null);
+  const [isSpacious, setIsSpacious] = useState(false);
+  const [forceCompactPills, setForceCompactPills] = useState(false);
+
+  useEffect(() => {
+    const element = cardRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+
+    const updateByWidth = (width) => {
+      setIsSpacious((prev) => {
+        if (prev) return width >= 372;
+        return width >= 388;
+      });
+      setForceCompactPills(false);
+    };
+
+    updateByWidth(element.clientWidth);
+
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect?.width ?? element.clientWidth;
+      updateByWidth(width);
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const useLargePills = isSpacious && !forceCompactPills;
+
+  const chipContainerClass = useLargePills
+    ? 'mt-5 flex flex-wrap items-start justify-start gap-3.5 w-full max-w-none pb-1'
+    : 'mt-5 flex flex-wrap items-start justify-start gap-3 max-w-[232px] pb-1';
+  const chipClass = useLargePills
+    ? 'flex items-center gap-2.5 px-4.5 py-2 rounded-full backdrop-blur-sm'
+    : 'flex items-center gap-2 px-3.5 py-1.5 rounded-full backdrop-blur-sm';
+  const chipTextClass = useLargePills
+    ? 'text-[15px] tracking-wide font-bold uppercase'
+    : 'text-[13px] tracking-wider font-bold uppercase';
+  const chipIconClass = useLargePills ? 'w-[18px] h-[18px]' : 'w-[14px] h-[14px]';
 
   const roomEntityIds = useMemo(() => getEffectiveRoomEntityIds(settings), [settings]);
 
@@ -146,23 +192,23 @@ export default function RoomCard({
   const vacuumPillToneClass = useMemo(() => {
     switch (activeVacuum?.state) {
       case 'cleaning':
-        return 'bg-emerald-500/12 border-emerald-400/30 text-emerald-300';
+        return 'bg-emerald-500/14 text-emerald-300';
       case 'returning':
       case 'returning_home':
-        return 'bg-sky-500/12 border-sky-400/30 text-sky-300';
+        return 'bg-sky-500/14 text-sky-300';
       case 'error':
-        return 'bg-red-500/12 border-red-400/30 text-red-300';
+        return 'bg-red-500/14 text-red-300';
       case 'paused':
       case 'idle':
       case 'stopped':
-        return 'bg-amber-500/12 border-amber-400/30 text-amber-300';
+        return 'bg-amber-500/14 text-amber-300';
       default:
-        return 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]';
+        return 'bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]';
     }
   }, [activeVacuum]);
 
   const activeDeviceCount = useMemo(() => {
-    const toggleDomains = new Set(['light', 'switch', 'fan', 'cover', 'climate', 'media_player']);
+    const toggleDomains = new Set(['switch', 'fan', 'cover', 'climate', 'media_player']);
     return roomEntityIds.filter((entityId) => {
       const entity = entities[entityId];
       if (!entity) return false;
@@ -175,6 +221,45 @@ export default function RoomCard({
     }).length;
   }, [roomEntityIds, entities]);
 
+  const visiblePillCount =
+    (showMotion && showOccupiedIndicator && isOccupied ? 1 : 0)
+    + (showTemp && Boolean(displayTempValue) ? 1 : 0)
+    + (showLightChip && showLights && lightsOnCount > 0 ? 1 : 0)
+    + (showMediaChip && mediaPlayingCount > 0 ? 1 : 0)
+    + (showActiveChip && activeDeviceCount > 0 ? 1 : 0)
+    + (showVacuumChip && Boolean(vacuumStatusLabel) ? 1 : 0);
+
+  useEffect(() => {
+    setForceCompactPills(false);
+  }, [visiblePillCount]);
+
+  useEffect(() => {
+    if (!isSpacious || forceCompactPills) return;
+    const container = chipContainerRef.current;
+    if (!container) return;
+
+    let cancelled = false;
+    const frame = globalThis.requestAnimationFrame(() => {
+      if (cancelled) return;
+      const children = Array.from(container.children);
+      if (children.length <= 1) return;
+      const rowTops = [];
+      children.forEach((child) => {
+        const top = child.offsetTop;
+        if (!rowTops.some((value) => Math.abs(value - top) <= 1)) {
+          rowTops.push(top);
+        }
+      });
+      const wrapsToSecondRow = rowTops.length > 1;
+      if (wrapsToSecondRow) setForceCompactPills(true);
+    });
+
+    return () => {
+      cancelled = true;
+      globalThis.cancelAnimationFrame(frame);
+    };
+  }, [isSpacious, forceCompactPills, visiblePillCount]);
+
   const handleMainLightToggle = useCallback((e) => {
     e.stopPropagation();
     if (!conn || !mainLightId) return;
@@ -184,6 +269,7 @@ export default function RoomCard({
 
   return (
     <div
+      ref={cardRef}
       {...dragProps}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => { e.stopPropagation(); if (!editMode) onOpen?.(); }}
@@ -197,9 +283,18 @@ export default function RoomCard({
     >
       {controls}
 
+      {showIconWatermark && (
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute z-0 text-[var(--text-primary)] opacity-[0.03] ${watermarkPositionClass}`}
+        >
+          <RoomIcon size={watermarkSize} className="stroke-[1.25px]" />
+        </div>
+      )}
+
       <div className="flex flex-col justify-between flex-1 min-w-0 text-[var(--text-primary)] z-10">
         <div className="flex justify-between items-start gap-2">
-           <div className="flex flex-col items-start min-w-0 max-w-[220px]">
+           <div className={`flex flex-col items-start min-w-0 ${useLargePills ? 'max-w-none w-full' : 'max-w-[220px]'}`}>
              <button
                 type="button"
                 onClick={handleMainLightToggle}
@@ -219,42 +314,42 @@ export default function RoomCard({
 
            <div className="flex flex-col items-end gap-2">
              {showMotion && showOccupiedIndicator && isOccupied && (
-               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-green-500/12 border-green-400/30 text-green-300">
-                 <span className="text-xs tracking-widest font-bold uppercase">{occupancyPillLabel}</span>
+               <div className={`${chipClass} bg-green-500/14 text-green-300`}>
+                 <span className={chipTextClass}>{occupancyPillLabel}</span>
                </div>
              )}
            </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-start justify-start gap-2.5 max-w-[220px]">
+        <div ref={chipContainerRef} className={chipContainerClass}>
           {showTemp && displayTempValue && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-              <Thermometer className="w-3 h-3 fill-current stroke-[1.75px]" />
-              <span className="text-xs tracking-widest font-bold uppercase">{displayTempValue}{displayTempUnit}</span>
+            <div className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}>
+              <Thermometer className={`${chipIconClass} fill-current stroke-[1.75px]`} />
+              <span className={chipTextClass}>{displayTempValue}{displayTempUnit}</span>
             </div>
           )}
           {showLightChip && showLights && lightsOnCount > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-              <Lightbulb className={`w-3 h-3 fill-current stroke-[1.75px] ${lightsOnCount > 0 ? 'text-amber-400' : ''}`} />
-              <span className="text-xs tracking-widest font-bold uppercase">{lightsOnCount}</span>
+            <div className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}>
+              <Lightbulb className={`${chipIconClass} fill-current stroke-[1.75px] ${lightsOnCount > 0 ? 'text-amber-400' : ''}`} />
+              <span className={chipTextClass}>{lightsOnCount}</span>
             </div>
           )}
           {showMediaChip && mediaPlayingCount > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-              <Tv className={`w-3 h-3 ${mediaPlayingCount > 0 ? 'text-[var(--accent-color)]' : ''}`} />
-              <span className="text-xs tracking-widest font-bold uppercase">{mediaPlayingCount}</span>
+            <div className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}>
+              <Tv className={`${chipIconClass} ${mediaPlayingCount > 0 ? 'text-[var(--accent-color)]' : ''}`} />
+              <span className={chipTextClass}>{mediaPlayingCount}</span>
             </div>
           )}
           {showActiveChip && activeDeviceCount > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]">
-              <Activity className="w-3 h-3" />
-              <span className="text-xs tracking-widest font-bold uppercase">{activeDeviceCount}</span>
+            <div className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}>
+              <Activity className={chipIconClass} />
+              <span className={chipTextClass}>{activeDeviceCount}</span>
             </div>
           )}
           {showVacuumChip && vacuumStatusLabel && (
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${vacuumPillToneClass}`}>
-              <Bot className="w-3 h-3" />
-              <span className="text-xs tracking-widest font-bold uppercase">{vacuumStatusLabel}</span>
+            <div className={`${chipClass} ${vacuumPillToneClass}`}>
+              <Bot className={chipIconClass} />
+              <span className={chipTextClass}>{vacuumStatusLabel}</span>
             </div>
           )}
         </div>

@@ -64,6 +64,7 @@ const ROOM_CARD_DEFAULTS = {
   showActiveChip: true,
   showVacuumChip: true,
   showOccupiedIndicator: true,
+  showIconWatermark: true,
   showPopupClimate: true,
   showPopupLights: true,
   showPopupTempOverview: true,

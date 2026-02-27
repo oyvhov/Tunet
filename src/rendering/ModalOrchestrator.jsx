@@ -713,17 +713,28 @@ export default function ModalOrchestrator({
             selectedSpacerVariant={selectedSpacerVariant}
             setSelectedSpacerVariant={setSelectedSpacerVariant}
             onAddSelected={onAddSelected}
-            onAddRoom={(area, areaEntityIds) => {
-              const cardId = `room_card_${Date.now()}`;
+            onAddRoom={(areas, areaEntitiesById) => {
+              if (!Array.isArray(areas) || areas.length === 0) return;
+
+              const timestamp = Date.now();
               const newConfig = { ...pagesConfig };
-              newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), cardId];
-              persistConfig(newConfig);
-              const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
-              const newSettings = {
-                ...cardSettings,
-                [settingsKey]: {
+              const targetCards = [...(newConfig[addCardTargetPage] || [])];
+              const newSettings = { ...cardSettings };
+
+              let firstCardId = null;
+              let firstSettingsKey = null;
+
+              areas.forEach((area, index) => {
+                const cardId = `room_card_${timestamp}_${index}`;
+                const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+                const areaEntityIds = areaEntitiesById?.[area.area_id] || [];
+
+                targetCards.push(cardId);
+                newSettings[settingsKey] = {
                   areaId: area.area_id,
                   areaName: area.name || area.area_id,
+                  areaIcon: area.icon || null,
+                  icon: area.icon || null,
                   entityIds: areaEntityIds,
                   includedEntityIds: [],
                   excludedEntityIds: [],
@@ -737,19 +748,32 @@ export default function ModalOrchestrator({
                   showActiveChip: true,
                   showVacuumChip: true,
                   showOccupiedIndicator: true,
+                  showIconWatermark: true,
                   showPopupClimate: true,
                   showPopupLights: true,
                   showPopupTempOverview: true,
                   showPopupMedia: true,
                   showPopupVacuum: true,
                   size: 'large',
+                };
+
+                saveCustomName(cardId, area.name || area.area_id);
+
+                if (index === 0) {
+                  firstCardId = cardId;
+                  firstSettingsKey = settingsKey;
                 }
-              };
+              });
+
+              newConfig[addCardTargetPage] = targetCards;
+              persistConfig(newConfig);
               persistCardSettings(newSettings);
-              saveCustomName(cardId, area.name || area.area_id);
               setShowAddCardModal(false);
-              setShowEditCardModal(cardId);
-              setEditCardSettingsKey(settingsKey);
+
+              if (areas.length === 1 && firstCardId && firstSettingsKey) {
+                setShowEditCardModal(firstCardId);
+                setEditCardSettingsKey(firstSettingsKey);
+              }
             }}
             conn={conn}
             getAddCardAvailableLabel={getAddCardAvailableLabel}

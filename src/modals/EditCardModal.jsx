@@ -515,6 +515,7 @@ function RoomSettingsSection({ conn, editSettings, editSettingsKey, saveCardSett
     { key: 'showActiveChip', label: t('room.showActiveChip') || 'Show active devices chip', defaultVal: true },
     { key: 'showVacuumChip', label: t('room.showVacuumChip') || 'Show vacuum chip', defaultVal: true },
     { key: 'showOccupiedIndicator', label: t('room.showOccupiedIndicator') || 'Show occupied indicator', defaultVal: true },
+    { key: 'showIconWatermark', label: t('room.showIconWatermark') || 'Show icon watermark', defaultVal: true },
   ];
 
   const hasAutoCandidates = React.useMemo(() => ({

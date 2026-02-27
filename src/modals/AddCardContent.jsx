@@ -44,10 +44,18 @@ const TypeButton = ({ type, icon: Icon, label, isActive, onSelect }) => (
 );
 
 /** Room area picker — extracted outside AddCardContent so state persists across parent re-renders. */
-function RoomSection({ conn, searchTerm, selectedArea, setSelectedArea, setAreaEntities, areaEntities, t }) {
+function RoomSection({
+  conn,
+  searchTerm,
+  selectedAreas,
+  setSelectedAreas,
+  selectedAreaEntitiesById,
+  setSelectedAreaEntitiesById,
+  t,
+}) {
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingEntities, setLoadingEntities] = useState(false);
+  const [loadingEntitiesByAreaId, setLoadingEntitiesByAreaId] = useState({});
 
   useEffect(() => {
     if (!conn) {
@@ -70,25 +78,31 @@ function RoomSection({ conn, searchTerm, selectedArea, setSelectedArea, setAreaE
     return () => { cancelled = true; };
   }, [conn]);
 
-  useEffect(() => {
-    if (!selectedArea || !conn) {
-      setAreaEntities([]);
+  const fetchAreaEntities = async (areaId) => {
+    if (!conn || !areaId) return;
+    if (Array.isArray(selectedAreaEntitiesById?.[areaId])) return;
+
+    setLoadingEntitiesByAreaId((prev) => ({ ...prev, [areaId]: true }));
+    try {
+      const result = await getEntitiesForArea(conn, areaId);
+      setSelectedAreaEntitiesById((prev) => ({ ...prev, [areaId]: result }));
+    } catch (err) {
+      console.error('Failed to load area entities:', err);
+    } finally {
+      setLoadingEntitiesByAreaId((prev) => ({ ...prev, [areaId]: false }));
+    }
+  };
+
+  const toggleAreaSelection = async (area) => {
+    const isSelected = selectedAreas.some((item) => item.area_id === area.area_id);
+    if (isSelected) {
+      setSelectedAreas((prev) => prev.filter((item) => item.area_id !== area.area_id));
       return;
     }
-    let cancelled = false;
-    setLoadingEntities(true);
-    (async () => {
-      try {
-        const result = await getEntitiesForArea(conn, selectedArea.area_id);
-        if (!cancelled) setAreaEntities(result);
-      } catch (err) {
-        console.error('Failed to load area entities:', err);
-      } finally {
-        if (!cancelled) setLoadingEntities(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [selectedArea, conn, setAreaEntities]);
+
+    setSelectedAreas((prev) => [...prev, area]);
+    await fetchAreaEntities(area.area_id);
+  };
 
   const filteredAreas = areas.filter(a => {
     if (!searchTerm) return true;
@@ -106,12 +120,14 @@ function RoomSection({ conn, searchTerm, selectedArea, setSelectedArea, setAreaE
       )}
       <div className="space-y-3">
         {filteredAreas.map(area => {
-          const isSelected = selectedArea?.area_id === area.area_id;
+          const isSelected = selectedAreas.some((item) => item.area_id === area.area_id);
+          const areaEntities = selectedAreaEntitiesById?.[area.area_id] || [];
+          const loadingEntities = loadingEntitiesByAreaId?.[area.area_id] === true;
           return (
             <button
               type="button"
               key={area.area_id}
-              onClick={() => setSelectedArea(isSelected ? null : area)}
+              onClick={() => { void toggleAreaSelection(area); }}
               className={`w-full text-left p-3 rounded-2xl transition-colors flex items-center justify-between group entity-item border ${isSelected ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}
             >
               <div className="flex flex-col overflow-hidden mr-4">
@@ -177,7 +193,8 @@ function AddCardContent({
   t,
 }) {
   const [selectedRoomArea, setSelectedRoomArea] = useState(null);
-  const [selectedRoomEntities, setSelectedRoomEntities] = useState([]);
+  const [selectedRoomAreas, setSelectedRoomAreas] = useState([]);
+  const [selectedRoomEntitiesById, setSelectedRoomEntitiesById] = useState({});
   const [localSpacerVariant, setLocalSpacerVariant] = useState(selectedSpacerVariant || 'divider');
   const [calendarOptionsSnapshot, setCalendarOptionsSnapshot] = useState([]);
   const [weatherOptionsSnapshot, setWeatherOptionsSnapshot] = useState([]);
@@ -694,10 +711,10 @@ function AddCardContent({
                   conn={conn} 
                   searchTerm={searchTerm} 
                   t={t}
-                  selectedArea={selectedRoomArea}
-                  setSelectedArea={setSelectedRoomArea}
-                  areaEntities={selectedRoomEntities}
-                  setAreaEntities={setSelectedRoomEntities}
+                  selectedAreas={selectedRoomAreas}
+                  setSelectedAreas={setSelectedRoomAreas}
+                  selectedAreaEntitiesById={selectedRoomEntitiesById}
+                  setSelectedAreaEntitiesById={setSelectedRoomEntitiesById}
                 />
               )
               : renderGenericEntityList()
@@ -737,12 +754,12 @@ function AddCardContent({
               <Plus className="w-5 h-5" /> {t('addCard.add')}
             </button>
           )}
-          {addCardType === 'room' && selectedRoomArea && (
+          {addCardType === 'room' && selectedRoomAreas.length > 0 && (
             <button 
-              onClick={() => onAddRoom && onAddRoom(selectedRoomArea, selectedRoomEntities)} 
+              onClick={() => onAddRoom && onAddRoom(selectedRoomAreas, selectedRoomEntitiesById)} 
               className={PRIMARY_ADD_BUTTON}
             >
-              <Plus className="w-5 h-5" /> {selectedRoomArea.name || t('room.defaultName') || 'Room'}
+              <Plus className="w-5 h-5" /> {`${t('addCard.add')} ${selectedRoomAreas.length} ${t('addCard.cards')}`}
             </button>
           )}
           <button onClick={onClose} className="w-full py-3 rounded-2xl popup-surface popup-surface-hover text-[var(--text-secondary)] font-bold uppercase tracking-widest transition-colors">OK</button>

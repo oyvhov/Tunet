@@ -247,7 +247,7 @@ export function getAllIconKeys() {
   return cachedAllIconKeys;
 }
 
-export function getIconComponent(iconName) {
+export function getIconComponent(iconName, fallbackIcon = FALLBACK_ICON) {
   if (!iconName) return null;
   if (ICON_MAP[iconName]) return ICON_MAP[iconName];
   if (iconName.startsWith('mdi:')) {
@@ -274,9 +274,9 @@ export function getIconComponent(iconName) {
         };
       }, [path]);
 
-      if (!path) return React.createElement(FALLBACK_ICON, props);
+      if (!path) return React.createElement(fallbackIcon, props);
       return React.createElement(MdiIcon, { path, size: '1.4em', ...props });
     };
   }
-  return FALLBACK_ICON;
+  return fallbackIcon;
 }
