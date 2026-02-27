@@ -244,7 +244,26 @@ export function useCardRendering({
       },
     };
 
-    return dispatchCardRender(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
+    try {
+      return dispatchCardRender(cardId, dragProps, getControls, cardStyle, settingsKey, ctx);
+    } catch (error) {
+      console.error('[CardRenderGuard] Failed to render card', { cardId, settingsKey, error });
+      return (
+        <div
+          key={`${cardId}-render-error`}
+          {...dragProps}
+          className="w-full h-full rounded-2xl border p-3 text-xs flex items-center justify-center text-center"
+          style={{
+            ...cardStyle,
+            backgroundColor: 'var(--glass-bg)',
+            borderColor: 'var(--glass-border)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          {t('card.error.render')}
+        </div>
+      );
+    }
   }, [
     hiddenCards,
     isCardHiddenByLogic,

@@ -15,3 +15,5 @@ export { useAppComposition } from './useAppComposition';
 export { useAppUiState } from './useAppUiState';
 export { useSettingsAccessControl } from './useSettingsAccessControl';
 export { usePopupTriggers } from './usePopupTriggers';
+export { useDashboardStateCoordinator } from './useDashboardStateCoordinator';
+export { useGuardedUiActions } from './useGuardedUiActions';
