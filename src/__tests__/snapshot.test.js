@@ -54,6 +54,54 @@ describe('snapshot service', () => {
     expect(setCardBgColor).toHaveBeenCalledWith('#445566');
   });
 
+  it('collectSnapshot includes app font from storage', () => {
+    localStorage.setItem('tunet_app_font', 'Montserrat');
+
+    const snapshot = collectSnapshot();
+
+    expect(snapshot.appearance.appFont).toBe('Montserrat');
+  });
+
+  it('applySnapshot persists and applies app font', () => {
+    const setAppFont = vi.fn();
+
+    applySnapshot(
+      {
+        version: 1,
+        layout: {},
+        appearance: { appFont: 'Inter' },
+      },
+      { setAppFont },
+    );
+
+    expect(localStorage.getItem('tunet_app_font')).toBe('Inter');
+    expect(setAppFont).toHaveBeenCalledWith('Inter');
+  });
+
+  it('collectSnapshot includes units mode from storage', () => {
+    localStorage.setItem('tunet_units_mode', 'imperial');
+
+    const snapshot = collectSnapshot();
+
+    expect(snapshot.appearance.unitsMode).toBe('imperial');
+  });
+
+  it('applySnapshot persists and applies units mode', () => {
+    const setUnitsMode = vi.fn();
+
+    applySnapshot(
+      {
+        version: 1,
+        layout: {},
+        appearance: { unitsMode: 'metric' },
+      },
+      { setUnitsMode },
+    );
+
+    expect(localStorage.getItem('tunet_units_mode')).toBe('metric');
+    expect(setUnitsMode).toHaveBeenCalledWith('metric');
+  });
+
   it('collectSnapshot includes spacer/divider card settings from tunet_card_settings', () => {
     const cardSettings = {
       'home::spacer_card_123': {

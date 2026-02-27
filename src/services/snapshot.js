@@ -66,6 +66,8 @@ export function collectSnapshot() {
     appearance: {
       theme:              localStorage.getItem('tunet_theme') || 'dark',
       language:           normalizeSnapshotLanguage(localStorage.getItem('tunet_language') || DEFAULT_LANGUAGE),
+      appFont:            localStorage.getItem('tunet_app_font') || 'sans',
+      unitsMode:          localStorage.getItem('tunet_units_mode') || 'follow_ha',
       bgMode:             localStorage.getItem('tunet_bg_mode') || 'theme',
       bgColor:            localStorage.getItem('tunet_bg_color') || '#0f172a',
       bgGradient:         localStorage.getItem('tunet_bg_gradient') || 'midnight',
@@ -114,6 +116,8 @@ export function applySnapshot(snapshot, contextSetters = {}) {
   // ── Appearance → localStorage ──
   if (appearance.theme)              localStorage.setItem('tunet_theme',              appearance.theme);
   if (appearance.language)           localStorage.setItem('tunet_language',           normalizeSnapshotLanguage(appearance.language));
+  if (appearance.appFont)            localStorage.setItem('tunet_app_font',           appearance.appFont);
+  if (appearance.unitsMode)          localStorage.setItem('tunet_units_mode',         appearance.unitsMode);
   if (appearance.bgMode)             localStorage.setItem('tunet_bg_mode',            appearance.bgMode);
   if (appearance.bgColor)            localStorage.setItem('tunet_bg_color',           appearance.bgColor);
   if (appearance.bgGradient)         localStorage.setItem('tunet_bg_gradient',        appearance.bgGradient);
@@ -153,6 +157,8 @@ export function applySnapshot(snapshot, contextSetters = {}) {
   // ConfigContext setters
   if (s.setCurrentTheme && appearance.theme)                     s.setCurrentTheme(appearance.theme);
   if (s.setLanguage && appearance.language)                      s.setLanguage(normalizeSnapshotLanguage(appearance.language));
+  if (s.setAppFont && appearance.appFont)                        s.setAppFont(appearance.appFont);
+  if (s.setUnitsMode && appearance.unitsMode)                    s.setUnitsMode(appearance.unitsMode);
   if (s.setBgMode && appearance.bgMode)                          s.setBgMode(appearance.bgMode);
   if (s.setBgColor && appearance.bgColor)                        s.setBgColor(appearance.bgColor);
   if (s.setBgGradient && appearance.bgGradient)                  s.setBgGradient(appearance.bgGradient);
