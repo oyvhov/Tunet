@@ -38,7 +38,7 @@ import {
   Edit2,
 } from '../icons';
 
-const SETTINGS_STATIC_VERSION = '1.9.0';
+const SETTINGS_STATIC_VERSION = '1.10.0';
 
 export default function ConfigModal({
   open,

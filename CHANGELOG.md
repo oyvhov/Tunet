@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.10.0] — 2026-02-27
+
+### Added
+- Room Card (BETA) enhancements: oversized icon watermark option, Home Assistant area-icon default/fallback handling, and richer room popup grouping/controls.
+- Bulk Room Card add flow in Add Card modal (select and add multiple rooms at once).
+- Room entities utility coverage with dedicated unit tests.
+
+### Changed
+- Improved Room Card visual system with responsive pill sizing, wrap-aware compact fallback, and cleaner borderless pill styling.
+- Updated Room Card active-device counting to exclude lights from the active devices pill.
+- Expanded Room Card editor options and defaults (including icon watermark toggle and persisted room display behaviors).
+- Improved runtime resilience for stale lazy-loaded chunk hashes via server-side asset fallback mapping.
+- Updated Room-related translations across supported locales.
+
 ## [1.9.0] — 2026-02-25
 
 ### Added
