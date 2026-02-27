@@ -34,6 +34,7 @@ import {
   usePopupTriggers,
   useDashboardStateCoordinator,
   useGuardedUiActions,
+  useAppViewModels,
 } from './hooks';
 
 import './styles/dashboard.css';
@@ -536,424 +537,186 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     isCardRemovable,
   });
 
-  const dashboardGridPage = useMemo(
-    () => ({
-      activePage,
-      pagesConfig,
-      pageSettings,
-      editMode,
-      isMediaPage,
-    }),
-    [activePage, pagesConfig, pageSettings, editMode, isMediaPage]
-  );
-
-  const dashboardGridMedia = useMemo(
-    () => ({
-      entities,
-      conn,
-      isSonosActive,
-      activeMediaId,
-      setActiveMediaId,
-      getA,
-      getEntityImageUrl,
-      callService,
-      savePageSetting,
-    }),
-    [
-      entities,
-      conn,
-      isSonosActive,
-      activeMediaId,
-      setActiveMediaId,
-      getA,
-      getEntityImageUrl,
-      callService,
-      savePageSetting,
-    ]
-  );
-
-  const dashboardGridGrid = useMemo(
-    () => ({
-      gridLayout,
-      isMobile,
-      gridGapV,
-      gridGapH,
-      gridColCount,
-      isCompactCards,
-    }),
-    [gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards]
-  );
-
-  const dashboardGridCards = useMemo(
-    () => ({
-      cardSettings,
-      getCardSettingsKey,
-      hiddenCards,
-      isCardHiddenByLogic,
-      renderCard,
-    }),
-    [cardSettings, getCardSettingsKey, hiddenCards, isCardHiddenByLogic, renderCard]
-  );
-
-  const dashboardGridActions = useMemo(
-    () => ({
-      setShowAddCardModal,
-      setConfigTab,
-      setShowConfigModal,
-    }),
-    [setShowAddCardModal, setConfigTab, setShowConfigModal]
-  );
-
-  const modalManagerCore = useMemo(
-    () => ({
-      entities,
-      conn,
-      activeUrl,
-      connected,
-      authRef,
-      config,
-      setConfig,
-      t,
-      language,
-      setLanguage,
-    }),
-    [entities, conn, activeUrl, connected, authRef, config, setConfig, t, language, setLanguage]
-  );
-
-  const modalManagerState = useMemo(
-    () => ({
-      ...modals,
-      activeVacuumId,
-      setActiveVacuumId,
-      showThemeSidebar,
-      setShowThemeSidebar,
-      showLayoutSidebar,
-      setShowLayoutSidebar,
-      editCardSettingsKey,
-      setEditCardSettingsKey,
-      configTab,
-      setConfigTab,
-    }),
-    [
-      modals,
-      activeVacuumId,
-      setActiveVacuumId,
-      showThemeSidebar,
-      setShowThemeSidebar,
-      showLayoutSidebar,
-      setShowLayoutSidebar,
-      editCardSettingsKey,
-      setEditCardSettingsKey,
-      configTab,
-      setConfigTab,
-    ]
-  );
-
-  const modalManagerAppearance = useMemo(
-    () => ({
-      currentTheme,
-      setCurrentTheme,
-      bgMode,
-      setBgMode,
-      bgColor,
-      setBgColor,
-      bgGradient,
-      setBgGradient,
-      bgImage,
-      setBgImage,
-      cardTransparency,
-      setCardTransparency,
-      cardBorderOpacity,
-      setCardBorderOpacity,
-      cardBgColor,
-      setCardBgColor,
-      inactivityTimeout,
-      setInactivityTimeout,
-    }),
-    [
-      currentTheme,
-      setCurrentTheme,
-      bgMode,
-      setBgMode,
-      bgColor,
-      setBgColor,
-      bgGradient,
-      setBgGradient,
-      bgImage,
-      setBgImage,
-      cardTransparency,
-      setCardTransparency,
-      cardBorderOpacity,
-      setCardBorderOpacity,
-      cardBgColor,
-      setCardBgColor,
-      inactivityTimeout,
-      setInactivityTimeout,
-    ]
-  );
-
-  const modalManagerLayout = useMemo(
-    () => ({
-      gridGapH,
-      setGridGapH,
-      gridGapV,
-      setGridGapV,
-      gridColumns,
-      setGridColumns,
-      dynamicGridColumns,
-      setDynamicGridColumns,
-      effectiveGridColumns,
-      cardBorderRadius,
-      setCardBorderRadius,
-      sectionSpacing,
-      updateSectionSpacing,
-      headerTitle,
-      headerScale,
-      headerSettings,
-      updateHeaderTitle,
-      updateHeaderScale,
-      updateHeaderSettings,
-    }),
-    [
-      gridGapH,
-      setGridGapH,
-      gridGapV,
-      setGridGapV,
-      gridColumns,
-      setGridColumns,
-      dynamicGridColumns,
-      setDynamicGridColumns,
-      effectiveGridColumns,
-      cardBorderRadius,
-      setCardBorderRadius,
-      sectionSpacing,
-      updateSectionSpacing,
-      headerTitle,
-      headerScale,
-      headerSettings,
-      updateHeaderTitle,
-      updateHeaderScale,
-      updateHeaderSettings,
-    ]
-  );
-
-  const modalManagerOnboarding = useMemo(
-    () => ({
-      showOnboarding,
-      setShowOnboarding,
-      isOnboardingActive,
-      onboardingStep,
-      setOnboardingStep,
-      onboardingUrlError,
-      setOnboardingUrlError,
-      onboardingTokenError,
-      setOnboardingTokenError,
-      testingConnection,
-      testConnection,
-      connectionTestResult,
-      setConnectionTestResult,
-      startOAuthLogin,
-      handleOAuthLogout,
-      canAdvanceOnboarding,
-    }),
-    [
-      showOnboarding,
-      setShowOnboarding,
-      isOnboardingActive,
-      onboardingStep,
-      setOnboardingStep,
-      onboardingUrlError,
-      setOnboardingUrlError,
-      onboardingTokenError,
-      setOnboardingTokenError,
-      testingConnection,
-      testConnection,
-      connectionTestResult,
-      setConnectionTestResult,
-      startOAuthLogin,
-      handleOAuthLogout,
-      canAdvanceOnboarding,
-    ]
-  );
-
-  const modalManagerPageManagement = useMemo(
-    () => ({
-      pageDefaults,
-      editingPage,
-      setEditingPage,
-      newPageLabel,
-      setNewPageLabel,
-      newPageIcon,
-      setNewPageIcon,
-      createPage,
-      createMediaPage,
-      deletePage,
-      removeCard,
-      pageSettings,
-      savePageSetting,
-      persistPageSettings,
-      pagesConfig,
-      persistConfig,
-      activePage,
-    }),
-    [
-      pageDefaults,
-      editingPage,
-      setEditingPage,
-      newPageLabel,
-      setNewPageLabel,
-      newPageIcon,
-      setNewPageIcon,
-      createPage,
-      createMediaPage,
-      deletePage,
-      removeCard,
-      pageSettings,
-      savePageSetting,
-      persistPageSettings,
-      pagesConfig,
-      persistConfig,
-      activePage,
-    ]
-  );
-
-  const modalManagerEntityHelpers = useMemo(
-    () => ({
-      callService,
-      getEntityImageUrl,
-      getA,
-      getS,
-      optimisticLightBrightness,
-      setOptimisticLightBrightness,
-      hvacMap,
-      fanMap,
-      swingMap,
-      isSonosActive,
-      isMediaActive,
-    }),
-    [
-      callService,
-      getEntityImageUrl,
-      getA,
-      getS,
-      optimisticLightBrightness,
-      setOptimisticLightBrightness,
-      hvacMap,
-      fanMap,
-      swingMap,
-      isSonosActive,
-      isMediaActive,
-    ]
-  );
-
-  const modalManagerAddCard = useMemo(
-    () => ({
-      addCardTargetPage,
-      addCardType,
-      setAddCardType,
-      searchTerm,
-      setSearchTerm,
-      selectedEntities,
-      setSelectedEntities,
-      selectedWeatherId,
-      setSelectedWeatherId,
-      selectedTempId,
-      setSelectedTempId,
-      selectedAndroidTVMediaId,
-      setSelectedAndroidTVMediaId,
-      selectedAndroidTVRemoteId,
-      setSelectedAndroidTVRemoteId,
-      selectedCostTodayId,
-      setSelectedCostTodayId,
-      selectedCostMonthId,
-      setSelectedCostMonthId,
-      costSelectionTarget,
-      setCostSelectionTarget,
-      selectedNordpoolId,
-      setSelectedNordpoolId,
-      nordpoolDecimals,
-      setNordpoolDecimals,
-      selectedSpacerVariant,
-      setSelectedSpacerVariant,
-      onAddSelected,
-      getAddCardAvailableLabel,
-      getAddCardNoneLeftLabel,
-    }),
-    [
-      addCardTargetPage,
-      addCardType,
-      setAddCardType,
-      searchTerm,
-      setSearchTerm,
-      selectedEntities,
-      setSelectedEntities,
-      selectedWeatherId,
-      setSelectedWeatherId,
-      selectedTempId,
-      setSelectedTempId,
-      selectedAndroidTVMediaId,
-      setSelectedAndroidTVMediaId,
-      selectedAndroidTVRemoteId,
-      setSelectedAndroidTVRemoteId,
-      selectedCostTodayId,
-      setSelectedCostTodayId,
-      selectedCostMonthId,
-      setSelectedCostMonthId,
-      costSelectionTarget,
-      setCostSelectionTarget,
-      selectedNordpoolId,
-      setSelectedNordpoolId,
-      nordpoolDecimals,
-      setNordpoolDecimals,
-      selectedSpacerVariant,
-      setSelectedSpacerVariant,
-      onAddSelected,
-      getAddCardAvailableLabel,
-      getAddCardNoneLeftLabel,
-    ]
-  );
-
-  const modalManagerCardConfig = useMemo(
-    () => ({
-      cardSettings,
-      saveCardSetting,
-      persistCardSettings,
-      customNames,
-      saveCustomName,
-      persistCustomNames,
-      customIcons,
-      saveCustomIcon,
-      persistCustomIcons,
-      hiddenCards,
-      toggleCardVisibility,
-      persistHiddenCards,
-      getCardSettingsKey,
-      statusPillsConfig,
-      saveStatusPillsConfig,
-    }),
-    [
-      cardSettings,
-      saveCardSetting,
-      persistCardSettings,
-      customNames,
-      saveCustomName,
-      persistCustomNames,
-      customIcons,
-      saveCustomIcon,
-      persistCustomIcons,
-      hiddenCards,
-      toggleCardVisibility,
-      persistHiddenCards,
-      getCardSettingsKey,
-      statusPillsConfig,
-      saveStatusPillsConfig,
-    ]
-  );
+  const {
+    dashboardGridPage,
+    dashboardGridMedia,
+    dashboardGridGrid,
+    dashboardGridCards,
+    dashboardGridActions,
+    modalManagerCore,
+    modalManagerState,
+    modalManagerAppearance,
+    modalManagerLayout,
+    modalManagerOnboarding,
+    modalManagerPageManagement,
+    modalManagerEntityHelpers,
+    modalManagerAddCard,
+    modalManagerCardConfig,
+  } = useAppViewModels({
+    activePage,
+    pagesConfig,
+    pageSettings,
+    editMode,
+    isMediaPage,
+    entities,
+    conn,
+    isSonosActive,
+    activeMediaId,
+    setActiveMediaId,
+    getA,
+    getS,
+    getEntityImageUrl,
+    callService,
+    savePageSetting,
+    gridLayout,
+    isMobile,
+    gridGapV,
+    gridGapH,
+    gridColCount,
+    isCompactCards,
+    cardSettings,
+    getCardSettingsKey,
+    hiddenCards,
+    isCardHiddenByLogic,
+    renderCard,
+    setShowAddCardModal,
+    setConfigTab,
+    setShowConfigModal,
+    activeUrl,
+    connected,
+    authRef,
+    config,
+    setConfig,
+    t,
+    language,
+    setLanguage,
+    modals,
+    activeVacuumId,
+    setActiveVacuumId,
+    showThemeSidebar,
+    setShowThemeSidebar,
+    showLayoutSidebar,
+    setShowLayoutSidebar,
+    editCardSettingsKey,
+    setEditCardSettingsKey,
+    configTab,
+    currentTheme,
+    setCurrentTheme,
+    bgMode,
+    setBgMode,
+    bgColor,
+    setBgColor,
+    bgGradient,
+    setBgGradient,
+    bgImage,
+    setBgImage,
+    cardTransparency,
+    setCardTransparency,
+    cardBorderOpacity,
+    setCardBorderOpacity,
+    cardBgColor,
+    setCardBgColor,
+    inactivityTimeout,
+    setInactivityTimeout,
+    setGridGapH,
+    setGridGapV,
+    gridColumns,
+    setGridColumns,
+    dynamicGridColumns,
+    setDynamicGridColumns,
+    effectiveGridColumns,
+    cardBorderRadius,
+    setCardBorderRadius,
+    sectionSpacing,
+    updateSectionSpacing,
+    headerTitle,
+    headerScale,
+    headerSettings,
+    updateHeaderTitle,
+    updateHeaderScale,
+    updateHeaderSettings,
+    showOnboarding,
+    setShowOnboarding,
+    isOnboardingActive,
+    onboardingStep,
+    setOnboardingStep,
+    onboardingUrlError,
+    setOnboardingUrlError,
+    onboardingTokenError,
+    setOnboardingTokenError,
+    testingConnection,
+    testConnection,
+    connectionTestResult,
+    setConnectionTestResult,
+    startOAuthLogin,
+    handleOAuthLogout,
+    canAdvanceOnboarding,
+    pageDefaults,
+    editingPage,
+    setEditingPage,
+    newPageLabel,
+    setNewPageLabel,
+    newPageIcon,
+    setNewPageIcon,
+    createPage,
+    createMediaPage,
+    deletePage,
+    removeCard,
+    persistPageSettings,
+    persistConfig,
+    optimisticLightBrightness,
+    setOptimisticLightBrightness,
+    hvacMap,
+    fanMap,
+    swingMap,
+    isMediaActive,
+    addCardTargetPage,
+    addCardType,
+    setAddCardType,
+    searchTerm,
+    setSearchTerm,
+    selectedEntities,
+    setSelectedEntities,
+    selectedWeatherId,
+    setSelectedWeatherId,
+    selectedTempId,
+    setSelectedTempId,
+    selectedAndroidTVMediaId,
+    setSelectedAndroidTVMediaId,
+    selectedAndroidTVRemoteId,
+    setSelectedAndroidTVRemoteId,
+    selectedCostTodayId,
+    setSelectedCostTodayId,
+    selectedCostMonthId,
+    setSelectedCostMonthId,
+    costSelectionTarget,
+    setCostSelectionTarget,
+    selectedNordpoolId,
+    setSelectedNordpoolId,
+    nordpoolDecimals,
+    setNordpoolDecimals,
+    selectedSpacerVariant,
+    setSelectedSpacerVariant,
+    onAddSelected,
+    getAddCardAvailableLabel,
+    getAddCardNoneLeftLabel,
+    saveCardSetting,
+    persistCardSettings,
+    customNames,
+    saveCustomName,
+    persistCustomNames,
+    customIcons,
+    saveCustomIcon,
+    persistCustomIcons,
+    toggleCardVisibility,
+    persistHiddenCards,
+    statusPillsConfig,
+    saveStatusPillsConfig,
+  });
 
   return (
     <DashboardLayout
       resolvedAppFontFamily={resolvedAppFontFamily}
-      bgMode={bgMode}
       editMode={editMode}
       draggingId={draggingId}
       touchPath={touchPath}
@@ -967,37 +730,21 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
       headerSettings={headerSettings}
       setShowHeaderEditModal={setShowHeaderEditModal}
       t={t}
-      language={language}
       sectionSpacing={sectionSpacing}
       pagesConfig={pagesConfig}
       personStatus={personStatus}
       requestSettingsAccess={requestSettingsAccess}
       setAddCardTargetPage={setAddCardTargetPage}
       setShowAddCardModal={setShowAddCardModal}
-      entities={entities}
-      setActiveMediaId={setActiveMediaId}
-      setActiveMediaGroupKey={setActiveMediaGroupKey}
-      setActiveMediaGroupIds={setActiveMediaGroupIds}
-      setActiveMediaSessionSensorIds={setActiveMediaSessionSensorIds}
-      setActiveMediaModal={setActiveMediaModal}
-      setShowAlarmModal={setShowAlarmModal}
-      setShowConfigModal={setShowConfigModal}
       setConfigTab={setConfigTab}
-      setShowStatusPillsConfig={setShowStatusPillsConfig}
       isSonosActive={isSonosActive}
       isMediaActive={isMediaActive}
       getA={getA}
       getEntityImageUrl={getEntityImageUrl}
-      statusPillsConfig={statusPillsConfig}
-      haUnavailableVisible={haUnavailableVisible}
-      oauthExpired={oauthExpired}
       pages={pages}
-      persistConfig={persistConfig}
-      pageSettings={pageSettings}
       activePage={activePage}
       setActivePage={setActivePage}
       setEditingPage={setEditingPage}
-      setShowAddPageModal={setShowAddPageModal}
       guardedSetEditMode={guardedSetEditMode}
       guardedSetShowAddCardModal={guardedSetShowAddCardModal}
       guardedSetShowConfigModal={guardedSetShowConfigModal}

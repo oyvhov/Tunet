@@ -1,5 +1,6 @@
 import { Edit2 } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
+import { useConfig } from '../contexts';
 
 /**
  * Header component with title, time and edit controls
@@ -21,11 +22,12 @@ export default function Header({
   headerSettings = { showTitle: true, showClock: true, showDate: true },
   setShowHeaderEditModal,
   t,
-  language,
   children,
   isMobile,
   sectionSpacing,
 }) {
+  const { language } = useConfig();
+
   const headerBottom = Number.isFinite(sectionSpacing?.statusToNav)
     ? sectionSpacing.statusToNav
     : isMobile

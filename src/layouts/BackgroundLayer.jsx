@@ -1,9 +1,12 @@
 import AuroraBackground from '../components/effects/AuroraBackground';
+import { useConfig } from '../contexts';
 
 /**
  * BackgroundLayer — renders the animated aurora or static gradient background.
  */
-export default function BackgroundLayer({ bgMode }) {
+export default function BackgroundLayer() {
+  const { bgMode } = useConfig();
+
   if (bgMode === 'animated') {
     return <AuroraBackground />;
   }

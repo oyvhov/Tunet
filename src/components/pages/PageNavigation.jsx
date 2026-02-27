@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit2 } from '../../icons';
 import { getIconComponent } from '../../icons';
+import { useModalState, usePages } from '../../contexts';
 
 /**
  * PageNavigation - Navigation component for switching between pages
@@ -19,16 +20,14 @@ import { getIconComponent } from '../../icons';
  */
 export default function PageNavigation({
   pages,
-  pagesConfig,
-  persistConfig,
-  pageSettings,
   activePage,
   setActivePage,
   editMode,
   setEditingPage,
-  setShowAddPageModal,
   t,
 }) {
+  const { pagesConfig, persistConfig, pageSettings } = usePages();
+  const { setShowAddPageModal } = useModalState();
   const [dragOverId, setDragOverId] = useState(null);
   const pageOrder = pagesConfig?.pages || [];
 

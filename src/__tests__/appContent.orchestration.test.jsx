@@ -311,6 +311,22 @@ vi.mock('../hooks', () => ({
     guardedToggleCardVisibility: vi.fn(),
     guardedRemoveCard: vi.fn(),
   }),
+  useAppViewModels: () => ({
+    dashboardGridPage: {},
+    dashboardGridMedia: {},
+    dashboardGridGrid: {},
+    dashboardGridCards: {},
+    dashboardGridActions: {},
+    modalManagerCore: {},
+    modalManagerState: {},
+    modalManagerAppearance: {},
+    modalManagerLayout: {},
+    modalManagerOnboarding: {},
+    modalManagerPageManagement: {},
+    modalManagerEntityHelpers: {},
+    modalManagerAddCard: {},
+    modalManagerCardConfig: {},
+  }),
 }));
 
 describe('AppContent orchestration flow', () => {

@@ -19,7 +19,6 @@ const MemoModalManager = memo(ModalManager);
 export default function DashboardLayout(props) {
   const {
     resolvedAppFontFamily,
-    bgMode,
     editMode,
     draggingId,
     touchPath,
@@ -33,37 +32,21 @@ export default function DashboardLayout(props) {
     headerSettings,
     setShowHeaderEditModal,
     t,
-    language,
     sectionSpacing,
     pagesConfig,
     personStatus,
     requestSettingsAccess,
     setAddCardTargetPage,
     setShowAddCardModal,
-    entities,
-    setActiveMediaId,
-    setActiveMediaGroupKey,
-    setActiveMediaGroupIds,
-    setActiveMediaSessionSensorIds,
-    setActiveMediaModal,
-    setShowAlarmModal,
-    setShowConfigModal,
     setConfigTab,
-    setShowStatusPillsConfig,
     isSonosActive,
     isMediaActive,
     getA,
     getEntityImageUrl,
-    statusPillsConfig,
-    haUnavailableVisible,
-    oauthExpired,
     pages,
-    persistConfig,
-    pageSettings,
     activePage,
     setActivePage,
     setEditingPage,
-    setShowAddPageModal,
     guardedSetEditMode,
     guardedSetShowAddCardModal,
     guardedSetShowConfigModal,
@@ -124,16 +107,6 @@ export default function DashboardLayout(props) {
     [profilingEnabled, onProfileRender]
   );
 
-  const handleShowUpdates = useCallback(() => {
-    setShowConfigModal(true);
-    setConfigTab('updates');
-  }, [setShowConfigModal, setConfigTab]);
-
-  const handleReconnect = useCallback(() => {
-    setShowConfigModal(true);
-    setConfigTab('connection');
-  }, [setShowConfigModal, setConfigTab]);
-
   return (
     <div
       className="min-h-screen overflow-x-hidden font-sans transition-colors duration-500 selection:bg-[var(--accent-bg)]"
@@ -144,7 +117,7 @@ export default function DashboardLayout(props) {
         fontFamily: resolvedAppFontFamily,
       }}
     >
-      <BackgroundLayer bgMode={bgMode} />
+      <BackgroundLayer />
       {editMode && draggingId && touchPath && <DragOverlaySVG touchPath={touchPath} />}
       <div
         role="main"
@@ -169,7 +142,6 @@ export default function DashboardLayout(props) {
           headerSettings={headerSettings}
           setShowHeaderEditModal={setShowHeaderEditModal}
           t={t}
-          language={language}
           isMobile={isMobile}
           sectionSpacing={sectionSpacing}
         >
@@ -207,23 +179,12 @@ export default function DashboardLayout(props) {
               {withProfiler(
                 'StatusBar',
                 <MemoStatusBar
-                  entities={entities}
-                  now={now}
-                  setActiveMediaId={setActiveMediaId}
-                  setActiveMediaGroupKey={setActiveMediaGroupKey}
-                  setActiveMediaGroupIds={setActiveMediaGroupIds}
-                  setActiveMediaSessionSensorIds={setActiveMediaSessionSensorIds}
-                  setActiveMediaModal={setActiveMediaModal}
-                  setShowAlarmModal={setShowAlarmModal}
-                  setShowUpdateModal={handleShowUpdates}
-                  setShowStatusPillsConfig={setShowStatusPillsConfig}
                   editMode={editMode}
                   t={t}
                   isSonosActive={isSonosActive}
                   isMediaActive={isMediaActive}
                   getA={getA}
                   getEntityImageUrl={getEntityImageUrl}
-                  statusPillsConfig={statusPillsConfig}
                   isMobile={isMobile}
                 />
               )}
@@ -231,9 +192,7 @@ export default function DashboardLayout(props) {
           </div>
         </Header>
 
-        {haUnavailableVisible && (
-          <ConnectionBanner oauthExpired={oauthExpired} onReconnect={handleReconnect} t={t} />
-        )}
+        <ConnectionBanner t={t} />
 
         <div
           className="flex flex-nowrap items-center justify-between gap-4"
@@ -241,22 +200,15 @@ export default function DashboardLayout(props) {
         >
           <PageNavigation
             pages={pages}
-            pagesConfig={pagesConfig}
-            persistConfig={persistConfig}
-            pageSettings={pageSettings}
             activePage={activePage}
             setActivePage={setActivePage}
             editMode={editMode}
             setEditingPage={setEditingPage}
-            setShowAddPageModal={setShowAddPageModal}
             t={t}
           />
           <EditToolbar
             editMode={editMode}
             setEditMode={guardedSetEditMode}
-            activePage={activePage}
-            pageSettings={pageSettings}
-            setActivePage={setActivePage}
             setShowAddCardModal={guardedSetShowAddCardModal}
             setShowConfigModal={guardedSetShowConfigModal}
             setConfigTab={setConfigTab}

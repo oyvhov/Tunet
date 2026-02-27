@@ -1,5 +1,6 @@
 import { Edit2 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
+import { useHomeAssistant, useModalState, usePages } from '../contexts';
 
 /**
  * StatusBar component showing various status indicators
@@ -19,25 +20,26 @@ import StatusPill from '../components/cards/StatusPill';
  * @param {Array} props.statusPillsConfig - Status pills configuration
  */
 export default function StatusBar({
-  entities,
-  _now,
-  setActiveMediaId,
-  setActiveMediaGroupKey,
-  setActiveMediaGroupIds,
-  setActiveMediaSessionSensorIds,
-  setActiveMediaModal,
-  setShowAlarmModal,
-  _setShowUpdateModal,
-  setShowStatusPillsConfig,
   editMode,
   t,
   isSonosActive,
   isMediaActive,
   getA,
   getEntityImageUrl,
-  statusPillsConfig = [],
   isMobile = false,
 }) {
+  const { entities } = useHomeAssistant();
+  const { statusPillsConfig = [] } = usePages();
+  const {
+    setActiveMediaId,
+    setActiveMediaGroupKey,
+    setActiveMediaGroupIds,
+    setActiveMediaSessionSensorIds,
+    setActiveMediaModal,
+    setShowAlarmModal,
+    setShowStatusPillsConfig,
+  } = useModalState();
+
   const isSonosEntity = (entity) => {
     if (!entity) return false;
     const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
