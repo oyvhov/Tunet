@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:
 
 const SUPPORTED_MODES = new Set(['off', 'dual', 'enc_only']);
 const ENCRYPTION_PREFIX = 'enc:v1:';
-const PASSPHRASE_SALT = process.env.TUNET_DATA_KEY_SALT || 'tunet-data-key-v1';
+const PASSPHRASE_SALT = process.env.TUNET_DATA_KEY_SALT || '';
 const warnedMessages = new Set();
 
 const warnOnce = (message) => {
@@ -49,6 +49,11 @@ const deriveEncryptionKey = (rawKey) => {
 
   if (trimmed.length < 16) {
     warnOnce('[data-crypto] TUNET_DATA_KEY is too short. Use a 32-byte base64/hex key or a long passphrase.');
+    return null;
+  }
+
+  if (!PASSPHRASE_SALT) {
+    warnOnce('[data-crypto] TUNET_DATA_KEY_SALT is required when TUNET_DATA_KEY is a passphrase. Use a 32-byte base64/hex key to avoid salt requirements.');
     return null;
   }
 

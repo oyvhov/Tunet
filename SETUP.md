@@ -117,6 +117,7 @@ Where data lives:
 | `VITE_PROXY_TARGET` | `http://localhost:3002` | API proxy target (dev) |
 | `TUNET_ENCRYPTION_MODE` | `off` | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only` |
 | `TUNET_DATA_KEY` | _(unset)_ | Secret used for encryption when mode is `dual` or `enc_only` |
+| `TUNET_DATA_KEY_SALT` | _(unset)_ | Required only when `TUNET_DATA_KEY` is a passphrase instead of a 32-byte base64/hex key |
 
 ### Data-at-rest encryption rollout (safe migration)
 
@@ -131,6 +132,9 @@ Key guidance:
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
+
+- If using a passphrase key, set `TUNET_DATA_KEY_SALT` explicitly and keep it stable.
+- Migration note: if you previously relied on default passphrase salt behavior, set `TUNET_DATA_KEY_SALT=tunet-data-key-v1` to preserve decrypt compatibility.
 
 Recommended rollout to avoid data loss:
 1. Set `TUNET_ENCRYPTION_MODE=dual` with a strong `TUNET_DATA_KEY`.

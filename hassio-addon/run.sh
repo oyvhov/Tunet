@@ -12,6 +12,10 @@ if bashio::config.has_value 'data_encryption_key'; then
 	export TUNET_DATA_KEY="$(bashio::config 'data_encryption_key')"
 fi
 
+if bashio::config.has_value 'data_encryption_salt'; then
+	export TUNET_DATA_KEY_SALT="$(bashio::config 'data_encryption_salt')"
+fi
+
 if [ "${TUNET_ENCRYPTION_MODE}" = "dual" ] || [ "${TUNET_ENCRYPTION_MODE}" = "enc_only" ]; then
 	if [ -z "${TUNET_DATA_KEY}" ]; then
 		bashio::log.fatal "data_encryption_key is required when data_encryption_mode is '${TUNET_ENCRYPTION_MODE}'"

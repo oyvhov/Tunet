@@ -10,6 +10,7 @@ services:
       - DATA_DIR=/app/data
       - TUNET_ENCRYPTION_MODE=${TUNET_ENCRYPTION_MODE:-off}
       - TUNET_DATA_KEY=${TUNET_DATA_KEY:-}
+      - TUNET_DATA_KEY_SALT=${TUNET_DATA_KEY_SALT:-}
     volumes:
       - tunet-data:/app/data
     healthcheck:

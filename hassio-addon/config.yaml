@@ -22,6 +22,8 @@ ports_description:
 options:
   data_encryption_mode: "off"
   data_encryption_key: ""
+  data_encryption_salt: ""
 schema:
   data_encryption_mode: "list(off|dual|enc_only)?"
   data_encryption_key: "password?"
+  data_encryption_salt: "password?"
