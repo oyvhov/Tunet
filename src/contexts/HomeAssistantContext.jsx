@@ -1,5 +1,18 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { createConnection, createLongLivedTokenAuth, subscribeEntities, getAuth } from 'home-assistant-js-websocket';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
+import {
+  createConnection,
+  createLongLivedTokenAuth,
+  subscribeEntities,
+  getAuth,
+} from 'home-assistant-js-websocket';
 import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
 import { isEntityDataStale } from '../utils';
 
@@ -117,7 +130,9 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const isOAuth = config.authMethod === 'oauth';
     const hasToken = !!config.token;
     const hasOAuth = hasOAuthTokens();
-    const isOAuthCallback = typeof globalThis.window !== 'undefined' && new URLSearchParams(globalThis.window.location.search).has('auth_callback');
+    const isOAuthCallback =
+      typeof globalThis.window !== 'undefined' &&
+      new URLSearchParams(globalThis.window.location.search).has('auth_callback');
 
     if (!config.url) {
       cleanupConnection();
@@ -167,18 +182,23 @@ export const HomeAssistantProvider = ({ children, config }) => {
       try {
         const user = await connInstance.sendMessagePromise({ type: 'auth/current_user' });
         if (isCurrentAttempt() && user) {
-          setHaUser({ id: user.id, name: user.name, is_owner: user.is_owner, is_admin: user.is_admin });
+          setHaUser({
+            id: user.id,
+            name: user.name,
+            is_owner: user.is_owner,
+            is_admin: user.is_admin,
+          });
         }
       } catch (err) {
         const resultError = err?.error || err;
         const errorCode = resultError?.code;
         const errorMessage = String(resultError?.message || '').toLowerCase();
         const isUnsupportedCommand =
-          errorCode === 'unknown_command'
-          || errorCode === 'not_found'
-          || errorMessage.includes('unknown command')
-          || errorMessage.includes('not found')
-          || errorMessage.includes('auth/current_user');
+          errorCode === 'unknown_command' ||
+          errorCode === 'not_found' ||
+          errorMessage.includes('unknown command') ||
+          errorMessage.includes('not found') ||
+          errorMessage.includes('auth/current_user');
 
         if (isCurrentAttempt()) {
           setHaUser(null);
@@ -200,15 +220,15 @@ export const HomeAssistantProvider = ({ children, config }) => {
         const errorCode = resultError?.code;
         const errorMessage = String(resultError?.message || '').toLowerCase();
         const isUnsupportedCommand =
-          errorCode === 'unknown_command'
-          || errorCode === 'not_found'
-          || errorCode === 'unauthorized'
-          || errorCode === 'forbidden'
-          || errorMessage.includes('unknown command')
-          || errorMessage.includes('not found')
-          || errorMessage.includes('unauthorized')
-          || errorMessage.includes('forbidden')
-          || errorMessage.includes('get_config');
+          errorCode === 'unknown_command' ||
+          errorCode === 'not_found' ||
+          errorCode === 'unauthorized' ||
+          errorCode === 'forbidden' ||
+          errorMessage.includes('unknown command') ||
+          errorMessage.includes('not found') ||
+          errorMessage.includes('unauthorized') ||
+          errorMessage.includes('forbidden') ||
+          errorMessage.includes('get_config');
 
         if (isCurrentAttempt()) {
           setHaConfig(null);
@@ -217,8 +237,6 @@ export const HomeAssistantProvider = ({ children, config }) => {
         if (!isUnsupportedCommand) return;
       }
     }
-    
-
 
     const persistConfig = (urlUsed) => {
       try {
@@ -228,7 +246,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
           globalThis.sessionStorage.removeItem('ha_token');
         }
         localStorage.setItem('ha_auth_method', config.authMethod || 'token');
-        if (config.fallbackUrl) localStorage.setItem('ha_fallback_url', config.fallbackUrl.replace(/\/$/, ''));
+        if (config.fallbackUrl)
+          localStorage.setItem('ha_fallback_url', config.fallbackUrl.replace(/\/$/, ''));
       } catch (error) {
         console.error('Failed to persist HA config to localStorage:', error);
       }
@@ -241,8 +260,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
       const connInstance = await createConnection({ auth });
       fetchHaConfig(connInstance);
       if (!isCurrentAttempt()) {
-        connInstance.close(); 
-        return null; 
+        connInstance.close();
+        return null;
       }
       connection = connInstance;
       connectionRef.current = connInstance;
@@ -331,7 +350,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
           }
           return;
         }
-        
+
         // Try fallback URL (token mode only)
         if (!isOAuth && config.fallbackUrl) {
           try {
@@ -360,7 +379,15 @@ export const HomeAssistantProvider = ({ children, config }) => {
       }
       cleanupConnection();
     };
-  }, [config.url, config.fallbackUrl, config.token, config.authMethod, config.isIngress, cleanupConnection, setEntities]);
+  }, [
+    config.url,
+    config.fallbackUrl,
+    config.token,
+    config.authMethod,
+    config.isIngress,
+    cleanupConnection,
+    setEntities,
+  ]);
 
   // Handle connection events
   useEffect(() => {
@@ -394,12 +421,14 @@ export const HomeAssistantProvider = ({ children, config }) => {
 
   useEffect(() => {
     const updateStaleState = () => {
-      setEntityDataStale(isEntityDataStale({
-        entitiesLoaded,
-        connected,
-        disconnectedSince,
-        lastEntityUpdateAt,
-      }));
+      setEntityDataStale(
+        isEntityDataStale({
+          entitiesLoaded,
+          connected,
+          disconnectedSince,
+          lastEntityUpdateAt,
+        })
+      );
     };
 
     updateStaleState();
@@ -418,20 +447,35 @@ export const HomeAssistantProvider = ({ children, config }) => {
   }, [haUnavailable]);
 
   /** @type {HomeAssistantMetaValue} */
-  const metaValue = useMemo(() => ({
-    entitiesLoaded,
-    connected,
-    haUnavailable,
-    haUnavailableVisible,
-    oauthExpired,
-    conn,
-    activeUrl,
-    haConfig,
-    entityDataStale,
-    lastEntityUpdateAt,
-    authRef,
-    haUser,
-  }), [entitiesLoaded, connected, haUnavailable, haUnavailableVisible, oauthExpired, conn, activeUrl, haConfig, entityDataStale, lastEntityUpdateAt, haUser]);
+  const metaValue = useMemo(
+    () => ({
+      entitiesLoaded,
+      connected,
+      haUnavailable,
+      haUnavailableVisible,
+      oauthExpired,
+      conn,
+      activeUrl,
+      haConfig,
+      entityDataStale,
+      lastEntityUpdateAt,
+      authRef,
+      haUser,
+    }),
+    [
+      entitiesLoaded,
+      connected,
+      haUnavailable,
+      haUnavailableVisible,
+      oauthExpired,
+      conn,
+      activeUrl,
+      haConfig,
+      entityDataStale,
+      lastEntityUpdateAt,
+      haUser,
+    ]
+  );
 
   return (
     <HomeAssistantMetaContext.Provider value={metaValue}>

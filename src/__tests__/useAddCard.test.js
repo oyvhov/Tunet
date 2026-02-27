@@ -110,7 +110,7 @@ describe('useAddCard › modal open resets', () => {
 describe('useAddCard › type inference', () => {
   it('sets type to "entity" for media pages', () => {
     const { result } = renderHook(() =>
-      useAddCard(makeProps({ showAddCardModal: true, activePage: 'media' })),
+      useAddCard(makeProps({ showAddCardModal: true, activePage: 'media' }))
     );
     expect(result.current.addCardType).toBe('entity');
   });
@@ -125,7 +125,7 @@ describe('useAddCard › type inference', () => {
 
   it('sets type to "sensor" for normal pages', () => {
     const { result } = renderHook(() =>
-      useAddCard(makeProps({ showAddCardModal: true, activePage: 'home' })),
+      useAddCard(makeProps({ showAddCardModal: true, activePage: 'home' }))
     );
     expect(result.current.addCardType).toBe('sensor');
   });
@@ -144,24 +144,18 @@ describe('useAddCard › labels', () => {
   });
 
   it('getAddCardAvailableLabel returns sensors for default sensor type', () => {
-    const { result } = renderHook(() =>
-      useAddCard(makeProps({ showAddCardModal: true })),
-    );
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
     expect(result.current.getAddCardAvailableLabel()).toBe('Available sensors');
   });
 
   it('getAddCardAvailableLabel returns correct label for vacuum type', () => {
-    const { result } = renderHook(() =>
-      useAddCard(makeProps({ showAddCardModal: true })),
-    );
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
     act(() => result.current.setAddCardType('vacuum'));
     expect(result.current.getAddCardAvailableLabel()).toBe('Vacuums');
   });
 
   it('getAddCardNoneLeftLabel includes the item type', () => {
-    const { result } = renderHook(() =>
-      useAddCard(makeProps({ showAddCardModal: true })),
-    );
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
     act(() => result.current.setAddCardType('climate'));
     expect(result.current.getAddCardNoneLeftLabel()).toBe('No more climates to add');
   });
@@ -185,7 +179,7 @@ describe('useAddCard › onAddSelected', () => {
         addCardTargetPage: expect.any(String),
         addCardType: expect.any(String),
         selectedEntities: [],
-      }),
+      })
     );
   });
 
@@ -201,7 +195,7 @@ describe('useAddCard › onAddSelected', () => {
       expect.objectContaining({
         addCardType: 'spacer',
         selectedSpacerVariant: 'spacer',
-      }),
+      })
     );
   });
 
@@ -216,7 +210,7 @@ describe('useAddCard › onAddSelected', () => {
       expect.objectContaining({
         addCardType: 'spacer',
         selectedSpacerVariant: 'spacer',
-      }),
+      })
     );
   });
 });

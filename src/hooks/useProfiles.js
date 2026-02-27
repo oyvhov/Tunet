@@ -6,11 +6,7 @@ import {
   deleteProfile as apiDeleteProfile,
 } from '../services/profileApi';
 import { useSettingsSync } from './useSettingsSync';
-import {
-  collectSnapshot,
-  applySnapshot,
-  isValidSnapshot,
-} from '../services/snapshot';
+import { collectSnapshot, applySnapshot, isValidSnapshot } from '../services/snapshot';
 
 function cloneJson(value, fallback = {}) {
   try {
@@ -34,16 +30,16 @@ function normalizePagesConfig(candidate, fallback) {
     next.header = Array.isArray(fallbackConfig.header) ? [...fallbackConfig.header] : [];
   }
 
-  const detectedPages = Object.keys(next)
-    .filter((key) => Array.isArray(next[key]) && !['header', 'settings', 'automations'].includes(key));
+  const detectedPages = Object.keys(next).filter(
+    (key) => Array.isArray(next[key]) && !['header', 'settings', 'automations'].includes(key)
+  );
 
   if (!Array.isArray(next.pages) || next.pages.length === 0) {
-    const fallbackPages = Array.isArray(fallbackConfig.pages) && fallbackConfig.pages.length > 0
-      ? [...fallbackConfig.pages]
-      : ['home'];
-    next.pages = detectedPages.length > 0
-      ? detectedPages
-      : fallbackPages;
+    const fallbackPages =
+      Array.isArray(fallbackConfig.pages) && fallbackConfig.pages.length > 0
+        ? [...fallbackConfig.pages]
+        : ['home'];
+    next.pages = detectedPages.length > 0 ? detectedPages : fallbackPages;
     notes.push('Profile page list was rebuilt.');
   }
 
@@ -62,9 +58,10 @@ function normalizePagesConfig(candidate, fallback) {
   }
 
   if (next.pages.length === 0) {
-    next.pages = Array.isArray(fallbackConfig.pages) && fallbackConfig.pages.length > 0
-      ? [...fallbackConfig.pages]
-      : ['home'];
+    next.pages =
+      Array.isArray(fallbackConfig.pages) && fallbackConfig.pages.length > 0
+        ? [...fallbackConfig.pages]
+        : ['home'];
     notes.push('No valid pages were found; previous pages were restored.');
   }
 
@@ -82,9 +79,10 @@ function normalizeImportedSnapshot(snapshotCandidate) {
     return null;
   }
 
-  const payload = (snapshotCandidate.data && typeof snapshotCandidate.data === 'object')
-    ? snapshotCandidate.data
-    : snapshotCandidate;
+  const payload =
+    snapshotCandidate.data && typeof snapshotCandidate.data === 'object'
+      ? snapshotCandidate.data
+      : snapshotCandidate;
 
   if (!payload || typeof payload !== 'object') {
     return null;
@@ -128,51 +126,61 @@ export function useProfiles({ haUser, contextSetters }) {
   }, [refreshProfiles]);
 
   // ── Save current dashboard as a new profile ──
-  const saveProfile = useCallback(async (name, deviceLabel = '') => {
-    if (!haUser?.id) throw new Error('No HA user');
-    setLoading(true);
-    setError(null);
-    try {
-      const snapshot = collectSnapshot();
-      if (!isValidSnapshot(snapshot)) {
-        throw new Error('Invalid snapshot data');
+  const saveProfile = useCallback(
+    async (name, deviceLabel = '') => {
+      if (!haUser?.id) throw new Error('No HA user');
+      setLoading(true);
+      setError(null);
+      try {
+        const snapshot = collectSnapshot();
+        if (!isValidSnapshot(snapshot)) {
+          throw new Error('Invalid snapshot data');
+        }
+        const profile = await apiCreateProfile({
+          ha_user_id: haUser.id,
+          name,
+          device_label: deviceLabel || null,
+          data: snapshot,
+        });
+        setProfiles((prev) => [profile, ...prev]);
+        return profile;
+      } catch (err) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-      const profile = await apiCreateProfile({
-        ha_user_id: haUser.id,
-        name,
-        device_label: deviceLabel || null,
-        data: snapshot,
-      });
-      setProfiles(prev => [profile, ...prev]);
-      return profile;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [haUser?.id]);
+    },
+    [haUser?.id]
+  );
 
   // ── Overwrite an existing profile with current dashboard ──
-  const overwriteProfile = useCallback(async (profileId, name) => {
-    if (!haUser?.id) throw new Error('No HA user');
-    setLoading(true);
-    setError(null);
-    try {
-      const snapshot = collectSnapshot();
-      if (!isValidSnapshot(snapshot)) {
-        throw new Error('Invalid snapshot data');
+  const overwriteProfile = useCallback(
+    async (profileId, name) => {
+      if (!haUser?.id) throw new Error('No HA user');
+      setLoading(true);
+      setError(null);
+      try {
+        const snapshot = collectSnapshot();
+        if (!isValidSnapshot(snapshot)) {
+          throw new Error('Invalid snapshot data');
+        }
+        const updated = await apiUpdateProfile(profileId, {
+          ha_user_id: haUser.id,
+          name,
+          data: snapshot,
+        });
+        setProfiles((prev) => prev.map((p) => (p.id === profileId ? updated : p)));
+        return updated;
+      } catch (err) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
       }
-      const updated = await apiUpdateProfile(profileId, { ha_user_id: haUser.id, name, data: snapshot });
-      setProfiles(prev => prev.map(p => p.id === profileId ? updated : p));
-      return updated;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [haUser?.id]);
+    },
+    [haUser?.id]
+  );
 
   // ── Load a profile onto this device ──
   const loadProfile = useCallback((profile) => {
@@ -196,7 +204,7 @@ export function useProfiles({ haUser, contextSetters }) {
 
     const { pagesConfig, notes } = normalizePagesConfig(
       normalizedSnapshot.layout.pagesConfig,
-      currentPagesConfig,
+      currentPagesConfig
     );
 
     normalizedSnapshot.layout.pagesConfig = pagesConfig;
@@ -230,7 +238,7 @@ export function useProfiles({ haUser, contextSetters }) {
 
     const { pagesConfig, notes } = normalizePagesConfig(
       normalizedSnapshot.layout.pagesConfig,
-      currentPagesConfig,
+      currentPagesConfig
     );
 
     normalizedSnapshot.layout.pagesConfig = pagesConfig;
@@ -259,37 +267,47 @@ export function useProfiles({ haUser, contextSetters }) {
   }, []);
 
   // ── Edit profile name/label (no data change) ──
-  const editProfile = useCallback(async (profileId, name, deviceLabel) => {
-    if (!haUser?.id) throw new Error('No HA user');
-    setLoading(true);
-    setError(null);
-    try {
-      const updated = await apiUpdateProfile(profileId, { ha_user_id: haUser.id, name, device_label: deviceLabel || null });
-      setProfiles(prev => prev.map(p => p.id === profileId ? updated : p));
-      return updated;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [haUser?.id]);
+  const editProfile = useCallback(
+    async (profileId, name, deviceLabel) => {
+      if (!haUser?.id) throw new Error('No HA user');
+      setLoading(true);
+      setError(null);
+      try {
+        const updated = await apiUpdateProfile(profileId, {
+          ha_user_id: haUser.id,
+          name,
+          device_label: deviceLabel || null,
+        });
+        setProfiles((prev) => prev.map((p) => (p.id === profileId ? updated : p)));
+        return updated;
+      } catch (err) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [haUser?.id]
+  );
 
   // ── Delete a profile ──
-  const removeProfile = useCallback(async (profileId) => {
-    if (!haUser?.id) throw new Error('No HA user');
-    setLoading(true);
-    setError(null);
-    try {
-      await apiDeleteProfile(profileId, haUser.id);
-      setProfiles(prev => prev.filter(p => p.id !== profileId));
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [haUser?.id]);
+  const removeProfile = useCallback(
+    async (profileId) => {
+      if (!haUser?.id) throw new Error('No HA user');
+      setLoading(true);
+      setError(null);
+      try {
+        await apiDeleteProfile(profileId, haUser.id);
+        setProfiles((prev) => prev.filter((p) => p.id !== profileId));
+      } catch (err) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [haUser?.id]
+  );
 
   // ── Start blank (reset dashboard layout) ──
   const startBlank = useCallback(() => {

@@ -17,7 +17,9 @@ const paths = {
 };
 
 function usage() {
-  console.log(`\nUsage:\n  npm run release:check\n  npm run release:prep -- --version 1.1.0 [--date 2026-02-14]\n  npm run release:publish\n`);
+  console.log(
+    `\nUsage:\n  npm run release:check\n  npm run release:prep -- --version 1.1.0 [--date 2026-02-14]\n  npm run release:publish\n`
+  );
 }
 
 function fail(message) {
@@ -84,7 +86,10 @@ function upsertMainChangelogEntry(changelog, appVersion, releaseDate) {
 }
 
 function extractMainChangelogNotes(changelog, appVersion) {
-  const headingRegex = new RegExp(`^## \\[${appVersion.replace(/[.*+?^${}()|[\\]\\]/g, '\\\\$&')}\\].*$`, 'm');
+  const headingRegex = new RegExp(
+    `^## \\[${appVersion.replace(/[.*+?^${}()|[\\]\\]/g, '\\\\$&')}\\].*$`,
+    'm'
+  );
   const headingMatch = changelog.match(headingRegex);
   if (!headingMatch || headingMatch.index === undefined) {
     return `Release ${appVersion}`;
@@ -93,9 +98,10 @@ function extractMainChangelogNotes(changelog, appVersion) {
   const start = headingMatch.index + headingMatch[0].length;
   const rest = changelog.slice(start);
   const nextHeadingMatch = rest.match(/^##\s+/m);
-  const end = nextHeadingMatch && nextHeadingMatch.index !== undefined
-    ? start + nextHeadingMatch.index
-    : changelog.length;
+  const end =
+    nextHeadingMatch && nextHeadingMatch.index !== undefined
+      ? start + nextHeadingMatch.index
+      : changelog.length;
 
   const sectionBody = changelog.slice(start, end).trim();
   return sectionBody || `Release ${appVersion}`;
@@ -137,18 +143,21 @@ async function runPublish() {
   }
 
   await execFileAsync('gh', createArgs, { cwd: root, maxBuffer: 1024 * 1024 * 4 });
-  console.log(`✅ Published GitHub release ${tag}${isPreRelease(appVersion) ? ' (pre-release)' : ''}.`);
+  console.log(
+    `✅ Published GitHub release ${tag}${isPreRelease(appVersion) ? ' (pre-release)' : ''}.`
+  );
 }
 
 async function runCheck() {
-  const [pkg, lock, mainChangelog, addonConfig, addonChangelog, addonDockerfile] = await Promise.all([
-    readJson(paths.pkg),
-    readJson(paths.lock),
-    readFile(paths.changelog, 'utf8'),
-    readFile(paths.addonConfig, 'utf8'),
-    readFile(paths.addonChangelog, 'utf8'),
-    readFile(paths.addonDockerfile, 'utf8'),
-  ]);
+  const [pkg, lock, mainChangelog, addonConfig, addonChangelog, addonDockerfile] =
+    await Promise.all([
+      readJson(paths.pkg),
+      readJson(paths.lock),
+      readFile(paths.changelog, 'utf8'),
+      readFile(paths.addonConfig, 'utf8'),
+      readFile(paths.addonChangelog, 'utf8'),
+      readFile(paths.addonDockerfile, 'utf8'),
+    ]);
 
   const errors = [];
   const pkgVersion = pkg.version;
@@ -157,15 +166,22 @@ async function runCheck() {
   const addonVersion = extractAddonVersion(addonConfig);
 
   if (!pkgVersion) errors.push('Missing package.json version.');
-  if (lockVersion !== pkgVersion) errors.push(`package-lock.json version (${lockVersion}) != package.json (${pkgVersion}).`);
-  if (lockRootVersion !== pkgVersion) errors.push(`package-lock.json root package version (${lockRootVersion}) != package.json (${pkgVersion}).`);
-  if (!mainChangelog.includes(`## [${pkgVersion}]`)) errors.push(`CHANGELOG.md is missing entry for ${pkgVersion}.`);
+  if (lockVersion !== pkgVersion)
+    errors.push(`package-lock.json version (${lockVersion}) != package.json (${pkgVersion}).`);
+  if (lockRootVersion !== pkgVersion)
+    errors.push(
+      `package-lock.json root package version (${lockRootVersion}) != package.json (${pkgVersion}).`
+    );
+  if (!mainChangelog.includes(`## [${pkgVersion}]`))
+    errors.push(`CHANGELOG.md is missing entry for ${pkgVersion}.`);
 
   if (!addonVersion) {
     errors.push('Could not read hassio-addon/config.yaml version.');
   } else {
     if (pkgVersion !== addonVersion) {
-      errors.push(`package.json version (${pkgVersion}) must equal hassio-addon/config.yaml version (${addonVersion}) for lockstep versioning.`);
+      errors.push(
+        `package.json version (${pkgVersion}) must equal hassio-addon/config.yaml version (${addonVersion}) for lockstep versioning.`
+      );
     }
     if (!addonChangelog.includes(`## ${addonVersion}`)) {
       errors.push(`hassio-addon/CHANGELOG.md is missing entry for ${addonVersion}.`);
@@ -173,7 +189,9 @@ async function runCheck() {
   }
 
   if (!addonDockerfile.includes('BUILD_VERSION')) {
-    errors.push('hassio-addon/Dockerfile must use BUILD_VERSION to select source revision and avoid stale cached main builds.');
+    errors.push(
+      'hassio-addon/Dockerfile must use BUILD_VERSION to select source revision and avoid stale cached main builds.'
+    );
   }
 
   if (errors.length) {

@@ -1,17 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { en, nb, nn, sv, de, DEFAULT_LANGUAGE, normalizeLanguage } from './i18n';
-import {
-  LayoutGrid,
-} from './icons';
-
+import { LayoutGrid } from './icons';
 
 import { DashboardLayout } from './layouts';
 
-import {
-  PersonStatus,
-} from './components';
-
+import { PersonStatus } from './components';
 
 import {
   HomeAssistantProvider,
@@ -19,16 +13,27 @@ import {
   useConfig,
   useHomeAssistant,
   useModalState,
-  usePages
+  usePages,
 } from './contexts';
 
 import {
-  useSmartTheme, useTempHistory, useWeatherForecast,
-  useAddCard, useConnectionSetup,
-  useResponsiveGrid, useEntityHelpers,
-  usePageManagement, useDashboardEffects, usePageRouting, useCardRendering,
-  useAppComposition, useAppUiState, useSettingsAccessControl, usePopupTriggers,
-  useDashboardStateCoordinator, useGuardedUiActions,
+  useSmartTheme,
+  useTempHistory,
+  useWeatherForecast,
+  useAddCard,
+  useConnectionSetup,
+  useResponsiveGrid,
+  useEntityHelpers,
+  usePageManagement,
+  useDashboardEffects,
+  usePageRouting,
+  useCardRendering,
+  useAppComposition,
+  useAppUiState,
+  useSettingsAccessControl,
+  usePopupTriggers,
+  useDashboardStateCoordinator,
+  useGuardedUiActions,
 } from './hooks';
 
 import './styles/dashboard.css';
@@ -64,7 +69,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     settingsLockSessionUnlocked,
     unlockSettingsLock,
     config,
-    setConfig
+    setConfig,
   } = useConfig();
 
   const {
@@ -105,7 +110,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     updateSectionSpacing,
     persistCardSettings,
     statusPillsConfig,
-    saveStatusPillsConfig
+    saveStatusPillsConfig,
   } = usePages();
 
   const {
@@ -116,27 +121,33 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     oauthExpired,
     conn,
     activeUrl,
-    authRef
+    authRef,
   } = useHomeAssistant();
   const translations = useMemo(() => ({ en, nb, nn, sv, de }), []);
-  const appFontFamilyMap = useMemo(() => ({
-    sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
-    Inter: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
-    Roboto: 'Roboto, "Helvetica Neue", Arial, sans-serif',
-    Lato: 'Lato, "Helvetica Neue", Arial, sans-serif',
-    Montserrat: 'Montserrat, "Helvetica Neue", Arial, sans-serif',
-    'Open Sans': '"Open Sans", "Helvetica Neue", Arial, sans-serif',
-    Raleway: 'Raleway, "Helvetica Neue", Arial, sans-serif',
-  }), []);
+  const appFontFamilyMap = useMemo(
+    () => ({
+      sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
+      Inter: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+      Roboto: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+      Lato: 'Lato, "Helvetica Neue", Arial, sans-serif',
+      Montserrat: 'Montserrat, "Helvetica Neue", Arial, sans-serif',
+      'Open Sans': '"Open Sans", "Helvetica Neue", Arial, sans-serif',
+      Raleway: 'Raleway, "Helvetica Neue", Arial, sans-serif',
+    }),
+    []
+  );
   const resolvedAppFontFamily = appFontFamilyMap[appFont] || appFontFamilyMap.sans;
-  const t = useCallback((key) => {
-    const selectedLanguage = normalizeLanguage(language);
-    const value = translations[selectedLanguage]?.[key] ?? translations[DEFAULT_LANGUAGE]?.[key];
-    if (value !== undefined) return value;
-    return key;
-  }, [language, translations]);
+  const t = useCallback(
+    (key) => {
+      const selectedLanguage = normalizeLanguage(language);
+      const value = translations[selectedLanguage]?.[key] ?? translations[DEFAULT_LANGUAGE]?.[key];
+      if (value !== undefined) return value;
+      return key;
+    },
+    [language, translations]
+  );
   const resolvedHeaderTitle = headerTitle || t('page.home');
-  
+
   // Modal state management
   const modals = useModalState();
   const {
@@ -177,7 +188,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     hasOpenModal,
     closeAllModals,
   } = modals;
-  
+
   const {
     activeVacuumId,
     setActiveVacuumId,
@@ -213,36 +224,66 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   // Use page-specific gridColumns if set, otherwise fall back to global
   const pageGridColumns = pageSettings[activePage]?.gridColumns;
   const effectiveGridColumns = Number.isFinite(pageGridColumns) ? pageGridColumns : gridColumns;
-  const { gridColCount, isCompactCards, isMobile } = useResponsiveGrid(effectiveGridColumns, dynamicGridColumns);
+  const { gridColCount, isCompactCards, isMobile } = useResponsiveGrid(
+    effectiveGridColumns,
+    dynamicGridColumns
+  );
 
   // ── Connection / onboarding hook ───────────────────────────────────────
   const {
-    onboardingStep, setOnboardingStep,
-    onboardingUrlError, setOnboardingUrlError,
-    onboardingTokenError, setOnboardingTokenError,
-    testingConnection, testConnection,
-    connectionTestResult, setConnectionTestResult,
-    configTab, setConfigTab,
-    startOAuthLogin, handleOAuthLogout,
-    canAdvanceOnboarding, isOnboardingActive,
+    onboardingStep,
+    setOnboardingStep,
+    onboardingUrlError,
+    setOnboardingUrlError,
+    onboardingTokenError,
+    setOnboardingTokenError,
+    testingConnection,
+    testConnection,
+    connectionTestResult,
+    setConnectionTestResult,
+    configTab,
+    setConfigTab,
+    startOAuthLogin,
+    handleOAuthLogout,
+    canAdvanceOnboarding,
+    isOnboardingActive,
   } = useConnectionSetup({
-    config, setConfig, connected,
-    showOnboarding, setShowOnboarding,
-    showConfigModal, setShowConfigModal, t,
+    config,
+    setConfig,
+    connected,
+    showOnboarding,
+    setShowOnboarding,
+    showConfigModal,
+    setShowConfigModal,
+    t,
   });
 
   // ── Page management ────────────────────────────────────────────────────
   const {
-    newPageLabel, setNewPageLabel,
-    newPageIcon, setNewPageIcon,
-    editingPage, setEditingPage,
-    createPage, createMediaPage, deletePage, removeCard,
+    newPageLabel,
+    setNewPageLabel,
+    newPageIcon,
+    setNewPageIcon,
+    editingPage,
+    setEditingPage,
+    createPage,
+    createMediaPage,
+    deletePage,
+    removeCard,
   } = usePageManagement({
-    pagesConfig, persistConfig, pageSettings, persistPageSettings,
-    savePageSetting, pageDefaults: { home: { label: t('page.home'), icon: LayoutGrid } },
-    activePage, setActivePage,
-    showAddPageModal, setShowAddPageModal,
-    showAddCardModal, setShowAddCardModal, t,
+    pagesConfig,
+    persistConfig,
+    pageSettings,
+    persistPageSettings,
+    savePageSetting,
+    pageDefaults: { home: { label: t('page.home'), icon: LayoutGrid } },
+    activePage,
+    setActivePage,
+    showAddPageModal,
+    setShowAddPageModal,
+    showAddCardModal,
+    setShowAddCardModal,
+    t,
   });
 
   const {
@@ -297,30 +338,43 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   });
 
   // ── Dashboard-level side-effects (timers, title, haptics, idle) ────────
-  const {
-    now, mediaTick,
-    optimisticLightBrightness, setOptimisticLightBrightness,
-  } = useDashboardEffects({
-    resolvedHeaderTitle, inactivityTimeout,
-    resetToHome, activeMediaModal, entities,
-  });
+  const { now, mediaTick, optimisticLightBrightness, setOptimisticLightBrightness } =
+    useDashboardEffects({
+      resolvedHeaderTitle,
+      inactivityTimeout,
+      resetToHome,
+      activeMediaModal,
+      entities,
+    });
 
   // Smart Theme Logic — only active when bgMode is 'theme'
   useSmartTheme({ currentTheme, bgMode, entities, now });
 
   // ── Entity accessor helpers ────────────────────────────────────────────
   const {
-    getS, getA, getEntityImageUrl, callService,
-    isSonosActive, isMediaActive,
-    hvacMap, fanMap, swingMap,
+    getS,
+    getA,
+    getEntityImageUrl,
+    callService,
+    isSonosActive,
+    isMediaActive,
+    hvacMap,
+    fanMap,
+    swingMap,
   } = useEntityHelpers({ entities, conn, activeUrl, language, now, t });
 
   const personStatus = (id) => (
     <PersonStatus
-      key={id} id={id} entities={entities} editMode={editMode}
-      customNames={customNames} customIcons={customIcons}
-      cardSettings={cardSettings} getCardSettingsKey={getCardSettingsKey}
-      getEntityImageUrl={getEntityImageUrl} getS={getS}
+      key={id}
+      id={id}
+      entities={entities}
+      editMode={editMode}
+      customNames={customNames}
+      customIcons={customIcons}
+      cardSettings={cardSettings}
+      getCardSettingsKey={getCardSettingsKey}
+      getEntityImageUrl={getEntityImageUrl}
+      getS={getS}
       onOpenPerson={(pid) => setShowPersonModal(pid)}
       onEditCard={(eid, sk) => {
         requestSettingsAccess(() => {
@@ -351,28 +405,51 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
 
   // ── Add-card dialog hook ───────────────────────────────────────────────
   const {
-    addCardTargetPage, setAddCardTargetPage,
-    addCardType, setAddCardType,
-    searchTerm, setSearchTerm,
-    selectedEntities, setSelectedEntities,
-    selectedWeatherId, setSelectedWeatherId,
-    selectedTempId, setSelectedTempId,
-    selectedAndroidTVMediaId, setSelectedAndroidTVMediaId,
-    selectedAndroidTVRemoteId, setSelectedAndroidTVRemoteId,
-    selectedCostTodayId, setSelectedCostTodayId,
-    selectedCostMonthId, setSelectedCostMonthId,
-    costSelectionTarget, setCostSelectionTarget,
-    selectedNordpoolId, setSelectedNordpoolId,
-    nordpoolDecimals, setNordpoolDecimals,
-    selectedSpacerVariant, setSelectedSpacerVariant,
+    addCardTargetPage,
+    setAddCardTargetPage,
+    addCardType,
+    setAddCardType,
+    searchTerm,
+    setSearchTerm,
+    selectedEntities,
+    setSelectedEntities,
+    selectedWeatherId,
+    setSelectedWeatherId,
+    selectedTempId,
+    setSelectedTempId,
+    selectedAndroidTVMediaId,
+    setSelectedAndroidTVMediaId,
+    selectedAndroidTVRemoteId,
+    setSelectedAndroidTVRemoteId,
+    selectedCostTodayId,
+    setSelectedCostTodayId,
+    selectedCostMonthId,
+    setSelectedCostMonthId,
+    costSelectionTarget,
+    setCostSelectionTarget,
+    selectedNordpoolId,
+    setSelectedNordpoolId,
+    nordpoolDecimals,
+    setNordpoolDecimals,
+    selectedSpacerVariant,
+    setSelectedSpacerVariant,
     onAddSelected,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
   } = useAddCard({
-    showAddCardModal, activePage, isMediaPage,
-    pagesConfig, persistConfig,
-    cardSettings, persistCardSettings, getCardSettingsKey, saveCardSetting,
-    setShowAddCardModal, setShowEditCardModal, setEditCardSettingsKey, t,
+    showAddCardModal,
+    activePage,
+    isMediaPage,
+    pagesConfig,
+    persistConfig,
+    cardSettings,
+    persistCardSettings,
+    getCardSettingsKey,
+    saveCardSetting,
+    setShowAddCardModal,
+    setShowEditCardModal,
+    setEditCardSettingsKey,
+    t,
   });
 
   const {
@@ -399,12 +476,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     removeCard,
   });
 
-  const {
-    renderCard,
-    gridLayout,
-    draggingId,
-    touchPath,
-  } = useCardRendering({
+  const { renderCard, gridLayout, draggingId, touchPath } = useCardRendering({
     editMode,
     pagesConfig,
     setPagesConfig,
@@ -722,19 +794,25 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
 export default function App() {
   const { config } = useConfig();
   const [initialPage] = useState(() => {
-    try { return localStorage.getItem('tunet_active_page') || 'home'; }
-    catch { return 'home'; }
+    try {
+      return localStorage.getItem('tunet_active_page') || 'home';
+    } catch {
+      return 'home';
+    }
   });
   // Detect if we're returning from an OAuth2 redirect
-  const isOAuthCallback = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('auth_callback');
-  const hasAuth = config.token || (config.authMethod === 'oauth' && (hasOAuthTokens() || isOAuthCallback));
+  const isOAuthCallback =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('auth_callback');
+  const hasAuth =
+    config.token || (config.authMethod === 'oauth' && (hasOAuthTokens() || isOAuthCallback));
   const [showOnboarding, setShowOnboarding] = useState(() => !hasAuth);
 
   // During onboarding, block token connections but ALLOW OAuth (including callbacks)
   const haConfig = showOnboarding
     ? config.authMethod === 'oauth'
-      ? config                     // OAuth: pass config through so callback can be processed
-      : { ...config, token: '' }   // Token: block until onboarding finishes
+      ? config // OAuth: pass config through so callback can be processed
+      : { ...config, token: '' } // Token: block until onboarding finishes
     : config;
 
   // Key forces HomeAssistantProvider to remount when onboarding completes,
@@ -748,12 +826,9 @@ export default function App() {
           <Route path="/" element={<Navigate to={`/page/${initialPage}`} replace />} />
           <Route
             path="/page/:pageId"
-            element={(
-              <AppContent
-                showOnboarding={showOnboarding}
-                setShowOnboarding={setShowOnboarding}
-              />
-            )}
+            element={
+              <AppContent showOnboarding={showOnboarding} setShowOnboarding={setShowOnboarding} />
+            }
           />
           <Route path="*" element={<Navigate to={`/page/${initialPage}`} replace />} />
         </Routes>

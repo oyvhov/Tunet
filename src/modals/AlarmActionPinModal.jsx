@@ -6,7 +6,11 @@ const ACTION_META = {
   arm_away: { labelKey: 'alarm.action.armAway', icon: LogOut, service: 'alarm_arm_away' },
   arm_night: { labelKey: 'alarm.action.armNight', icon: Moon, service: 'alarm_arm_night' },
   arm_vacation: { labelKey: 'alarm.action.armVacation', icon: Sun, service: 'alarm_arm_vacation' },
-  arm_custom_bypass: { labelKey: 'alarm.action.armCustomBypass', icon: Shield, service: 'alarm_arm_custom_bypass' },
+  arm_custom_bypass: {
+    labelKey: 'alarm.action.armCustomBypass',
+    icon: Shield,
+    service: 'alarm_arm_custom_bypass',
+  },
   disarm: { labelKey: 'alarm.action.disarm', icon: Unlock, service: 'alarm_disarm' },
 };
 
@@ -20,8 +24,20 @@ function requiresCode(actionKey, entity) {
     if (typeof value === 'number') return value !== 0;
     if (typeof value === 'string') {
       const normalized = value.trim().toLowerCase();
-      if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') return true;
-      if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') return false;
+      if (
+        normalized === 'true' ||
+        normalized === '1' ||
+        normalized === 'yes' ||
+        normalized === 'on'
+      )
+        return true;
+      if (
+        normalized === 'false' ||
+        normalized === '0' ||
+        normalized === 'no' ||
+        normalized === 'off'
+      )
+        return false;
     }
     return undefined;
   };
@@ -107,25 +123,33 @@ export default function AlarmActionPinModal({
       onClick={onClose}
     >
       <div
-        className="border w-full max-w-md rounded-3xl p-6 font-sans relative backdrop-blur-xl popup-anim"
-        style={{ background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+        className="popup-anim relative w-full max-w-md rounded-3xl border p-6 font-sans backdrop-blur-xl"
+        style={{
+          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+          borderColor: 'var(--glass-border)',
+          color: 'var(--text-primary)',
+        }}
         onClick={(event) => event.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 modal-close">
-          <X className="w-4 h-4" />
+        <button onClick={onClose} className="modal-close absolute top-4 right-4">
+          <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 rounded-2xl popup-surface border border-[var(--glass-border)]">
-            <ActionIcon className="w-5 h-5" />
+        <div className="mb-4 flex items-center gap-3">
+          <div className="popup-surface rounded-2xl border border-[var(--glass-border)] p-3">
+            <ActionIcon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-[var(--text-secondary)]">{translate('alarm.modal.actions')}</p>
-            <p className="text-sm font-semibold uppercase tracking-wide">{translate(actionMeta.labelKey)}</p>
+            <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+              {translate('alarm.modal.actions')}
+            </p>
+            <p className="text-sm font-semibold tracking-wide uppercase">
+              {translate(actionMeta.labelKey)}
+            </p>
           </div>
         </div>
 
-        <div className="popup-surface rounded-2xl p-4 space-y-3">
+        <div className="popup-surface space-y-3 rounded-2xl p-4">
           <input
             ref={inputRef}
             type="password"
@@ -137,7 +161,7 @@ export default function AlarmActionPinModal({
               if (error) setError('');
             }}
             placeholder={translate('alarm.pin.placeholder')}
-            className="w-full px-4 py-3 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-primary)] text-lg tracking-[0.35em] text-center outline-none"
+            className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.35em] text-[var(--text-primary)] outline-none"
           />
 
           <div className="grid grid-cols-3 gap-3">
@@ -148,7 +172,7 @@ export default function AlarmActionPinModal({
                     key={`undo-${index}`}
                     type="button"
                     onClick={() => setPin((value) => value.slice(0, -1))}
-                    className="h-14 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] text-xl font-semibold transition-colors hover:bg-[var(--glass-bg-hover)]"
+                    className="h-14 rounded-2xl bg-[var(--glass-bg)] text-xl font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
                   >
                     {digit}
                   </button>
@@ -162,7 +186,7 @@ export default function AlarmActionPinModal({
                     type="button"
                     onClick={submit}
                     disabled={submitting}
-                    className="h-14 rounded-2xl bg-[var(--accent-bg)] text-[var(--accent-color)] text-2xl font-semibold disabled:opacity-50"
+                    className="h-14 rounded-2xl bg-[var(--accent-bg)] text-2xl font-semibold text-[var(--accent-color)] disabled:opacity-50"
                   >
                     {digit}
                   </button>
@@ -174,7 +198,7 @@ export default function AlarmActionPinModal({
                   key={digit}
                   type="button"
                   onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
-                  className="h-14 rounded-2xl bg-[var(--glass-bg)] text-[var(--text-primary)] text-2xl font-semibold transition-colors hover:bg-[var(--glass-bg-hover)]"
+                  className="h-14 rounded-2xl bg-[var(--glass-bg)] text-2xl font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
                 >
                   {digit}
                 </button>

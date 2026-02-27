@@ -32,7 +32,7 @@ export default function GenericEnergyCostCard({
   decimals = 0,
   settings,
   onOpen,
-  t
+  t,
 }) {
   const { haConfig } = useHomeAssistantMeta();
   const currency = settings?.currency || haConfig?.currency || 'kr';
@@ -42,7 +42,7 @@ export default function GenericEnergyCostCard({
   const monthEntity = monthEntityId ? entities[monthEntityId] : null;
 
   const name = customNames[cardId] || t('energyCost.title');
-  const Icon = customIcons[cardId] ? (getIconComponent(customIcons[cardId]) || Coins) : Coins;
+  const Icon = customIcons[cardId] ? getIconComponent(customIcons[cardId]) || Coins : Coins;
   const translate = t || ((key) => key);
   const todayLabel = settings?.todayLabel || translate('energyCost.today');
   const monthLabel = settings?.monthLabel || translate('energyCost.thisMonth');
@@ -52,19 +52,29 @@ export default function GenericEnergyCostCard({
       <div
         {...dragProps}
         data-haptic={editMode ? undefined : 'card'}
-        onClick={(e) => { e.stopPropagation(); if (!editMode && onOpen) onOpen(); }}
-        className={`glass-texture touch-feedback p-4 pl-5 rounded-3xl flex items-center justify-between gap-4 transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!editMode && onOpen) onOpen();
+        }}
+        className={`glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={cardStyle}
       >
         {controls}
-        <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all duration-500 group-hover:scale-110" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
-            <Icon className="w-6 h-6 stroke-[1.5px]" />
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div
+            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 group-hover:scale-110"
+            style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}
+          >
+            <Icon className="h-6 w-6 stroke-[1.5px]" />
           </div>
-          <div className="flex flex-col min-w-0">
-            <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 whitespace-normal break-words leading-none mb-1.5">{name}</p>
+          <div className="flex min-w-0 flex-col">
+            <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
+              {name}
+            </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-sm font-bold text-[var(--text-primary)] leading-none">{getEntityValue(todayEntity, decimals)} {currency}</span>
+              <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
+                {getEntityValue(todayEntity, decimals)} {currency}
+              </span>
               <span className="text-xs text-[var(--text-secondary)]">{todayLabel}</span>
             </div>
           </div>
@@ -78,32 +88,59 @@ export default function GenericEnergyCostCard({
       key="energy_cost"
       {...dragProps}
       data-haptic={editMode ? undefined : 'card'}
-      onClick={(e) => { e.stopPropagation(); if (!editMode && onOpen) onOpen(); }}
-      className={`glass-texture touch-feedback p-7 rounded-3xl flex flex-col justify-between transition-all duration-500 border group relative overflow-hidden font-sans h-full ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!editMode && onOpen) onOpen();
+      }}
+      className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border p-7 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
       style={cardStyle}
     >
       {controls}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50 pointer-events-none" />
-      <div className="flex justify-between items-start relative z-10">
-        <div className="p-3 rounded-2xl transition-all duration-500 group-hover:scale-110" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}>
-          <Icon className="w-5 h-5" style={{ strokeWidth: 1.5 }} />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50" />
+      <div className="relative z-10 flex items-start justify-between">
+        <div
+          className="rounded-2xl p-3 transition-all duration-500 group-hover:scale-110"
+          style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399' }}
+        >
+          <Icon className="h-5 w-5" style={{ strokeWidth: 1.5 }} />
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
-          <span className="text-xs tracking-widest font-bold uppercase">{name}</span>
+        <div
+          className="flex items-center gap-1.5 rounded-full border px-3 py-1 transition-all"
+          style={{
+            backgroundColor: 'var(--glass-bg)',
+            borderColor: 'var(--glass-border)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          <span className="text-xs font-bold tracking-widest uppercase">{name}</span>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-y-1 relative z-10 mt-2">
+      <div className="relative z-10 mt-2 grid grid-cols-2 gap-y-1">
         <div className="col-start-1 row-start-1 pb-1">
-            <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{todayLabel}</p>
-          <div className="flex items-baseline gap-1 mt-0.5">
-            <span className="text-4xl font-thin" style={{ color: 'var(--text-primary)' }}>{getEntityValue(todayEntity, decimals)}</span>
+          <p
+            className="text-[11px] font-bold tracking-widest uppercase opacity-60"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {todayLabel}
+          </p>
+          <div className="mt-0.5 flex items-baseline gap-1">
+            <span className="text-4xl font-thin" style={{ color: 'var(--text-primary)' }}>
+              {getEntityValue(todayEntity, decimals)}
+            </span>
             <span className="text-lg text-[var(--text-secondary)]">{currency}</span>
           </div>
         </div>
-        <div className="col-span-2 row-start-2 h-px bg-[var(--glass-border)] opacity-30 my-0.5" />
-        <div className="col-start-2 row-start-3 justify-self-end text-right pt-1">
-           <p className="text-[11px] tracking-widest font-bold uppercase opacity-60" style={{ color: 'var(--text-secondary)' }}>{monthLabel}</p>
-          <p className="text-xl font-light text-[var(--text-primary)] leading-none mt-0.5">{formatMonthValue(monthEntity)} {currency}</p>
+        <div className="col-span-2 row-start-2 my-0.5 h-px bg-[var(--glass-border)] opacity-30" />
+        <div className="col-start-2 row-start-3 justify-self-end pt-1 text-right">
+          <p
+            className="text-[11px] font-bold tracking-widest uppercase opacity-60"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {monthLabel}
+          </p>
+          <p className="mt-0.5 text-xl leading-none font-light text-[var(--text-primary)]">
+            {formatMonthValue(monthEntity)} {currency}
+          </p>
         </div>
       </div>
     </div>

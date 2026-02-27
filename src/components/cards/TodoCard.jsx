@@ -20,12 +20,12 @@ class TodoErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] p-5 text-red-400">
+        <div className="flex h-full flex-col rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-5 text-red-400">
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5" />
+            <AlertCircle className="h-5 w-5" />
             <span className="text-sm font-semibold">Todo error</span>
           </div>
-          <p className="text-xs mt-2 opacity-80">{this.state.message}</p>
+          <p className="mt-2 text-xs opacity-80">{this.state.message}</p>
         </div>
       );
     }
@@ -46,7 +46,7 @@ function TodoCard({
   isEditMode,
   size,
   iconName,
-  customName
+  customName,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -76,7 +76,7 @@ function TodoCard({
 
   const fetchItems = useCallback(async () => {
     if (!conn || !todoEntityId) {
-        return;
+      return;
     }
     setLoading(true);
     setError(null);
@@ -116,7 +116,7 @@ function TodoCard({
     const newStatus = item.status === 'completed' ? 'needs_action' : 'completed';
     try {
       // Optimistic update
-      setItems(prev => prev.map(i => (i.uid === item.uid ? { ...i, status: newStatus } : i)));
+      setItems((prev) => prev.map((i) => (i.uid === item.uid ? { ...i, status: newStatus } : i)));
       await updateTodoItem(conn, todoEntityId, item.uid, newStatus);
       setTimeout(fetchItems, 500);
     } catch (err) {
@@ -130,41 +130,41 @@ function TodoCard({
     e.stopPropagation();
     if (!conn || !todoEntityId) return;
     try {
-        setItems(prev => prev.filter(i => i.uid !== item.uid));
-        await removeTodoItem(conn, todoEntityId, item.uid);
-        setTimeout(fetchItems, 500);
+      setItems((prev) => prev.filter((i) => i.uid !== item.uid));
+      await removeTodoItem(conn, todoEntityId, item.uid);
+      setTimeout(fetchItems, 500);
     } catch (err) {
-        console.error('TodoCard: Failed to remove item', err);
-        fetchItems();
+      console.error('TodoCard: Failed to remove item', err);
+      fetchItems();
     }
-  }
+  };
 
   const handleAdd = async (e) => {
     e.stopPropagation();
     if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const text = newItemText.trim();
-        if (!text || !conn || !todoEntityId) return;
-        setAdding(true);
-        try {
-            await addTodoItem(conn, todoEntityId, text);
-            setNewItemText('');
-            await fetchItems();
-        } catch (err) {
-            console.error('TodoCard: Failed to add item', err);
-        } finally {
-            setAdding(false);
-        }
+      e.preventDefault();
+      const text = newItemText.trim();
+      if (!text || !conn || !todoEntityId) return;
+      setAdding(true);
+      try {
+        await addTodoItem(conn, todoEntityId, text);
+        setNewItemText('');
+        await fetchItems();
+      } catch (err) {
+        console.error('TodoCard: Failed to add item', err);
+      } finally {
+        setAdding(false);
+      }
     }
   };
 
-  const pendingItems = useMemo(() => items.filter(i => i.status === 'needs_action'), [items]);
-  const completedItems = useMemo(() => items.filter(i => i.status === 'completed'), [items]);
+  const pendingItems = useMemo(() => items.filter((i) => i.status === 'needs_action'), [items]);
+  const completedItems = useMemo(() => items.filter((i) => i.status === 'completed'), [items]);
   const pendingCount = pendingItems.length;
   const completedCount = completedItems.length;
   const totalCount = items.length;
 
-  const IconComp = iconName ? (getIconComponent(iconName) || ListChecks) : ListChecks;
+  const IconComp = iconName ? getIconComponent(iconName) || ListChecks : ListChecks;
   const displayName = customName || settings?.name || t('todo.title') || 'To-do';
   const isSmall = size === 'small';
 
@@ -175,35 +175,37 @@ function TodoCard({
         {...dragProps}
         data-haptic={isEditMode ? undefined : 'card'}
         onClick={onClick}
-        className={`glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex items-center p-4 pl-5 gap-4 bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${className}`}
+        className={`glass-texture touch-feedback relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4 pl-5 font-sans backdrop-blur-xl transition-all duration-300 ${className}`}
         style={style}
       >
         {getControls && getControls(cardId)}
-        <div className="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center bg-[var(--glass-bg)] text-[var(--text-secondary)] group">
-          <IconComp className="w-6 h-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
+        <div className="group flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)]">
+          <IconComp className="h-6 w-6 stroke-[1.5px] transition-transform duration-300 group-hover:scale-110" />
         </div>
-        <div className="flex flex-col min-w-0 justify-center">
+        <div className="flex min-w-0 flex-col justify-center">
           {!todoEntityId ? (
-            <p className="text-xs uppercase font-bold tracking-widest opacity-60 text-[var(--text-secondary)] truncate">
+            <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
               {t('todo.selectList') || 'Select Todo List'}
-            </p>          ) : error ? (
-            <p className="text-xs text-red-400 truncate" title={error}>
+            </p>
+          ) : error ? (
+            <p className="truncate text-xs text-red-400" title={error}>
               Error: {error}
-            </p>          ) : loading && items.length === 0 ? (
-            <p className="text-xs uppercase font-bold tracking-widest opacity-60 text-[var(--text-secondary)] truncate">
+            </p>
+          ) : loading && items.length === 0 ? (
+            <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
               {t('common.loading') || 'Loading...'}
             </p>
           ) : (
             <>
-              <p className="text-[var(--text-secondary)] text-xs tracking-widest uppercase font-bold opacity-60 truncate leading-none mb-1.5">
+              <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
                 {displayName}
               </p>
-              <p className="text-sm font-bold text-[var(--text-primary)] leading-none truncate">
+              <p className="truncate text-sm leading-none font-bold text-[var(--text-primary)]">
                 {pendingCount > 0
                   ? `${pendingCount} ${t('todo.pending') || 'pending'}`
-                  : items.length === 0 
-                    ? `Empty (${todoEntityId})` 
-                    : (t('todo.allDone') || 'All done!')}
+                  : items.length === 0
+                    ? `Empty (${todoEntityId})`
+                    : t('todo.allDone') || 'All done!'}
               </p>
             </>
           )}
@@ -219,23 +221,23 @@ function TodoCard({
       {...dragProps}
       data-haptic={isEditMode ? undefined : 'card'}
       onClick={onClick}
-      className={`glass-texture touch-feedback relative overflow-hidden font-sans h-full rounded-3xl flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
+      className={`glass-texture touch-feedback relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] font-sans backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
       style={style}
     >
       {getControls && getControls(cardId)}
 
       {/* Header */}
-      <div className="p-5 pb-2 flex items-center justify-between z-10 group">
+      <div className="group z-10 flex items-center justify-between p-5 pb-2">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 transition-transform duration-300 group-hover:scale-110">
-            <IconComp className="w-5 h-5" />
+          <div className="rounded-xl bg-emerald-500/10 p-2 text-emerald-400 transition-transform duration-300 group-hover:scale-110">
+            <IconComp className="h-5 w-5" />
           </div>
-          <h3 className="text-lg font-medium text-[var(--text-primary)] tracking-tight">
+          <h3 className="text-lg font-medium tracking-tight text-[var(--text-primary)]">
             {displayName}
           </h3>
         </div>
         {totalCount > 0 ? (
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
             <span className="text-emerald-400">{completedCount}</span>
             <span>/</span>
             <span>{totalCount}</span>
@@ -248,7 +250,7 @@ function TodoCard({
       {/* Progress bar */}
       {totalCount > 0 && (
         <div className="px-5 pb-2">
-          <div className="h-1 rounded-full bg-[var(--glass-bg)] overflow-hidden">
+          <div className="h-1 overflow-hidden rounded-full bg-[var(--glass-bg)]">
             <div
               className="h-full rounded-full bg-emerald-400/60 transition-all duration-500"
               style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
@@ -258,30 +260,30 @@ function TodoCard({
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-5 pt-1 hide-scrollbar space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+      <div className="hide-scrollbar flex-1 space-y-1 overflow-y-auto p-5 pt-1 [-ms-overflow-style:'none'] [scrollbar-width:'none'] [&::-webkit-scrollbar]:hidden">
         {!todoEntityId ? (
-          <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-60">
-            <IconComp className="w-8 h-8 mb-2" />
-            <p className="text-xs uppercase font-bold tracking-widest">
+          <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
+            <IconComp className="mb-2 h-8 w-8" />
+            <p className="text-xs font-bold tracking-widest uppercase">
               {t('todo.selectList') || 'Select Todo List'}
             </p>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center h-full text-red-400">
-            <AlertCircle className="w-8 h-8 mb-2" />
-            <p className="text-xs uppercase font-bold tracking-widest text-center px-4">{error}</p>
+          <div className="flex h-full flex-col items-center justify-center text-red-400">
+            <AlertCircle className="mb-2 h-8 w-8" />
+            <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">{error}</p>
           </div>
         ) : loading && items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)]">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500 mb-2" />
-            <p className="text-xs uppercase font-bold tracking-widest">
+          <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)]">
+            <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-emerald-500" />
+            <p className="text-xs font-bold tracking-widest uppercase">
               {t('common.loading') || 'Loading...'}
             </p>
           </div>
         ) : pendingItems.length === 0 && completedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-60">
-            <CheckCircle2 className="w-8 h-8 mb-2 text-emerald-400" />
-            <p className="text-xs uppercase font-bold tracking-widest">
+          <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
+            <CheckCircle2 className="mb-2 h-8 w-8 text-emerald-400" />
+            <p className="text-xs font-bold tracking-widest uppercase">
               {t('todo.empty') || 'No items'}
             </p>
           </div>
@@ -291,87 +293,89 @@ function TodoCard({
             {pendingItems.map((item, idx) => (
               <div
                 key={item.uid || `pending-${idx}`}
-                className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--glass-bg)] transition-colors group cursor-pointer"
+                className="group flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--glass-bg)]"
                 onClick={(e) => handleToggle(e, item)}
               >
                 <div className="mt-0.5">
-                     <Circle className={`w-4 h-4 text-[var(--text-secondary)] opacity-40 group-hover:text-emerald-400 group-hover:opacity-100 transition-colors ${loading ? 'opacity-20' : ''}`} />
+                  <Circle
+                    className={`h-4 w-4 text-[var(--text-secondary)] opacity-40 transition-colors group-hover:text-emerald-400 group-hover:opacity-100 ${loading ? 'opacity-20' : ''}`}
+                  />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[var(--text-primary)] leading-snug line-clamp-2 select-none">
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-sm leading-snug text-[var(--text-primary)] select-none">
                     {item.summary}
                   </p>
                   {item.due && (
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1 opacity-60 select-none">
+                    <p className="mt-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60 select-none">
                       {formatDueDate(item.due, t)}
                     </p>
                   )}
                 </div>
-                 <button
-                    onClick={(e) => handleDelete(e, item)}
-                    className="mt-0.5 flex-shrink-0 text-transparent group-hover:text-red-400/60 hover:!text-red-400 transition-colors p-1 -m-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                <button
+                  onClick={(e) => handleDelete(e, item)}
+                  className="-m-1 mt-0.5 flex-shrink-0 p-1 text-transparent transition-colors group-hover:text-red-400/60 hover:!text-red-400"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             ))}
 
             {/* Completed items */}
             {completedItems.length > 0 && (
-                <div className="pt-2 opacity-50">
-                    <div className="pt-2 pb-1">
-                      <p className="text-[10px] font-bold text-emerald-400/60 uppercase tracking-widest px-3">
-                        {t('todo.completed') || 'Completed'} ({completedCount})
+              <div className="pt-2 opacity-50">
+                <div className="pt-2 pb-1">
+                  <p className="px-3 text-[10px] font-bold tracking-widest text-emerald-400/60 uppercase">
+                    {t('todo.completed') || 'Completed'} ({completedCount})
+                  </p>
+                </div>
+                {completedItems.map((item, idx) => (
+                  <div
+                    key={item.uid || `completed-${idx}`}
+                    className="group flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2 transition-colors"
+                    onClick={(e) => handleToggle(e, item)}
+                  >
+                    <div className="mt-0.5 flex-shrink-0 text-emerald-400">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-1 text-sm leading-snug text-[var(--text-primary)] line-through opacity-70">
+                        {item.summary}
                       </p>
                     </div>
-                    {completedItems.map((item, idx) => (
-                        <div
-                            key={item.uid || `completed-${idx}`}
-                            className="flex items-start gap-3 px-3 py-2 rounded-xl transition-colors group cursor-pointer"
-                            onClick={(e) => handleToggle(e, item)}
-                        >
-                             <div className="mt-0.5 flex-shrink-0 text-emerald-400">
-                                <CheckCircle2 className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm text-[var(--text-primary)] leading-snug line-clamp-1 line-through opacity-70">
-                                    {item.summary}
-                                </p>
-                            </div>
-                             <button
-                                onClick={(e) => handleDelete(e, item)}
-                                className="mt-0.5 flex-shrink-0 text-transparent group-hover:text-red-400/60 hover:!text-red-400 transition-colors p-1 -m-1"
-                            >
-                                <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                    <button
+                      onClick={(e) => handleDelete(e, item)}
+                      className="-m-1 mt-0.5 flex-shrink-0 p-1 text-transparent transition-colors group-hover:text-red-400/60 hover:!text-red-400"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </>
         )}
       </div>
 
-       {/* Quick Add */}
-       <div className="px-5 pb-5 pt-2">
-         <div className="relative group">
-            <input 
-                type="text" 
-                value={newItemText}
-                onChange={(e) => setNewItemText(e.target.value)}
-                onKeyDown={handleAdd}
-                placeholder={t('todo.addPlaceholder') || 'Add item...'}
-                className="w-full bg-[var(--glass-bg)] border border-transparent focus:border-[var(--glass-border)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] pl-9"
-                onClick={(e) => e.stopPropagation()} 
-            />
-            <Plus className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-emerald-400 transition-colors" />
-             {adding && (
-                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <div className="w-3 h-3 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                 </div>
-             )}
-         </div>
-       </div>
+      {/* Quick Add */}
+      <div className="px-5 pt-2 pb-5">
+        <div className="group relative">
+          <input
+            type="text"
+            value={newItemText}
+            onChange={(e) => setNewItemText(e.target.value)}
+            onKeyDown={handleAdd}
+            placeholder={t('todo.addPlaceholder') || 'Add item...'}
+            className="w-full rounded-xl border border-transparent bg-[var(--glass-bg)] px-3 py-2 pl-9 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--glass-border)]"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <Plus className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)] transition-colors group-focus-within:text-emerald-400" />
+          {adding && (
+            <div className="absolute top-1/2 right-3 -translate-y-1/2">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"></div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -385,7 +389,8 @@ function formatDueDate(due, t) {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   if (date.toDateString() === today.toDateString()) return t('todo.dueToday') || 'Due today';
-  if (date.toDateString() === tomorrow.toDateString()) return t('todo.dueTomorrow') || 'Due tomorrow';
+  if (date.toDateString() === tomorrow.toDateString())
+    return t('todo.dueTomorrow') || 'Due tomorrow';
 
   const isPast = date < today && date.toDateString() !== today.toDateString();
   const label = date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });

@@ -8,7 +8,7 @@ export {
   getTodoItems,
   addTodoItem,
   updateTodoItem,
-  removeTodoItem
+  removeTodoItem,
 } from './haClient';
 
 export { handleAddSelected } from './cardActions';

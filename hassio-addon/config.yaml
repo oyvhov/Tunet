@@ -1,8 +1,8 @@
-name: "Tunet"
-description: "A modern, responsive dashboard for Home Assistant"
-version: "1.10.0"
-slug: "tunet"
-url: "https://github.com/oyvhov/Tunet"
+name: 'Tunet'
+description: 'A modern, responsive dashboard for Home Assistant'
+version: '1.10.0'
+slug: 'tunet'
+url: 'https://github.com/oyvhov/Tunet'
 init: false
 startup: application
 arch:
@@ -13,17 +13,17 @@ homeassistant_api: true
 auth_api: true
 ingress: true
 ingress_port: 3002
-panel_icon: "mdi:view-dashboard-variant"
-panel_title: "Tunet"
+panel_icon: 'mdi:view-dashboard-variant'
+panel_title: 'Tunet'
 ports:
   3002/tcp: null
 ports_description:
-  3002/tcp: "Tunet Web Interface (not needed when using Ingress)"
+  3002/tcp: 'Tunet Web Interface (not needed when using Ingress)'
 options:
-  data_encryption_mode: "off"
-  data_encryption_key: ""
-  data_encryption_salt: ""
+  data_encryption_mode: 'off'
+  data_encryption_key: ''
+  data_encryption_salt: ''
 schema:
-  data_encryption_mode: "list(off|dual|enc_only)?"
-  data_encryption_key: "password?"
-  data_encryption_salt: "password?"
+  data_encryption_mode: 'list(off|dual|enc_only)?'
+  data_encryption_key: 'password?'
+  data_encryption_salt: 'password?'

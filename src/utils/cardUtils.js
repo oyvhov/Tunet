@@ -3,21 +3,51 @@
  * These are extracted from App.jsx to reduce file size and improve testability.
  */
 
-import { evaluateVisibilityConditionConfig, isConditionConfigured, resolveConditionEntityId } from './conditionUtils';
+import {
+  evaluateVisibilityConditionConfig,
+  isConditionConfigured,
+  resolveConditionEntityId,
+} from './conditionUtils';
 
 /** Prefixes for card types that can always be removed from user pages. */
 const REMOVABLE_PREFIXES = [
-  'light_', 'light.', 'vacuum.', 'media_player.', 'media_group_',
-  'weather_temp_', 'calendar_card_', 'climate_card_', 'cost_card_',
-  'androidtv_card_', 'car_card_', 'nordpool_card_', 'todo_card_', 'room_card_',
-  'cover_card_', 'camera_card_', 'alarm_card_', 'spacer_card_', 'fan.',
+  'light_',
+  'light.',
+  'vacuum.',
+  'media_player.',
+  'media_group_',
+  'weather_temp_',
+  'calendar_card_',
+  'climate_card_',
+  'cost_card_',
+  'androidtv_card_',
+  'car_card_',
+  'nordpool_card_',
+  'todo_card_',
+  'room_card_',
+  'cover_card_',
+  'camera_card_',
+  'alarm_card_',
+  'spacer_card_',
+  'fan.',
 ];
 
 /** Prefixes for "special" composite cards that don't map 1:1 to an entity. */
 const SPECIAL_CARD_PREFIXES = [
-  'media_group_', 'weather_temp_', 'calendar_card_', 'climate_card_',
-  'cost_card_', 'androidtv_card_', 'car_card_', 'nordpool_card_',
-  'todo_card_', 'room_card_', 'cover_card_', 'camera_card_', 'alarm_card_', 'spacer_card_',
+  'media_group_',
+  'weather_temp_',
+  'calendar_card_',
+  'climate_card_',
+  'cost_card_',
+  'androidtv_card_',
+  'car_card_',
+  'nordpool_card_',
+  'todo_card_',
+  'room_card_',
+  'cover_card_',
+  'camera_card_',
+  'alarm_card_',
+  'spacer_card_',
 ];
 
 /**
@@ -34,13 +64,16 @@ export function isCardRemovable(cardId, pageId, { getCardSettingsKey, cardSettin
   const typeSetting = cardSettings[settingsKey]?.type || cardSettings[cardId]?.type;
   if (typeSetting === 'entity' || typeSetting === 'toggle' || typeSetting === 'sensor') return true;
   if (cardId === 'media_player') return true;
-  return REMOVABLE_PREFIXES.some(p => cardId.startsWith(p));
+  return REMOVABLE_PREFIXES.some((p) => cardId.startsWith(p));
 }
 
 /**
  * Determine whether a card should be hidden in view mode based on entity availability.
  */
-export function isCardHiddenByLogic(cardId, { activePage, getCardSettingsKey, cardSettings, entities }) {
+export function isCardHiddenByLogic(
+  cardId,
+  { activePage, getCardSettingsKey, cardSettings, entities }
+) {
   const settingsKey = getCardSettingsKey(cardId);
   const cardConfig = cardSettings[settingsKey] || cardSettings[cardId] || {};
   let hiddenByBaseLogic = false;
@@ -52,20 +85,24 @@ export function isCardHiddenByLogic(cardId, { activePage, getCardSettingsKey, ca
   if (cardId.startsWith('media_group_')) {
     const groupSettings = cardConfig;
     const selectedIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
-    const hasEntities = selectedIds.some(id => entities[id]);
+    const hasEntities = selectedIds.some((id) => entities[id]);
     hiddenByBaseLogic = !hasEntities;
   }
 
-  if (activePage === 'settings' && !['car'].includes(cardId) && !cardId.startsWith('light_') && !cardId.startsWith('media_player')) {
+  if (
+    activePage === 'settings' &&
+    !['car'].includes(cardId) &&
+    !cardId.startsWith('light_') &&
+    !cardId.startsWith('media_player')
+  ) {
     hiddenByBaseLogic = hiddenByBaseLogic || !entities[cardId];
   }
 
-  const isSpecialCard = cardId === 'car' || 
-    SPECIAL_CARD_PREFIXES.some(p => cardId.startsWith(p));
+  const isSpecialCard = cardId === 'car' || SPECIAL_CARD_PREFIXES.some((p) => cardId.startsWith(p));
 
   if (!isSpecialCard && !entities[cardId]) {
-     if (cardId.startsWith('light_') || cardId.startsWith('light.')) return false;
-     hiddenByBaseLogic = true;
+    if (cardId.startsWith('light_') || cardId.startsWith('light.')) return false;
+    hiddenByBaseLogic = true;
   }
 
   if (hiddenByBaseLogic) {
@@ -99,5 +136,10 @@ export function isCardHiddenByLogic(cardId, { activePage, getCardSettingsKey, ca
 export function isMediaPage(pageId, pageSettings) {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
-  return settings?.type === 'media' || settings?.type === 'sonos' || pageId.startsWith('media') || pageId.startsWith('sonos');
+  return (
+    settings?.type === 'media' ||
+    settings?.type === 'sonos' ||
+    pageId.startsWith('media') ||
+    pageId.startsWith('sonos')
+  );
 }

@@ -44,7 +44,7 @@ describe('usePageManagement › createPage', () => {
       expect.objectContaining({
         pages: ['home', 'kitchen'],
         kitchen: [],
-      }),
+      })
     );
     expect(props.savePageSetting).toHaveBeenCalledWith('kitchen', 'label', 'Kitchen');
     expect(props.setActivePage).toHaveBeenCalledWith('kitchen');
@@ -57,11 +57,7 @@ describe('usePageManagement › createPage', () => {
 
     act(() => result.current.createPage());
 
-    expect(props.savePageSetting).toHaveBeenCalledWith(
-      expect.any(String),
-      'label',
-      'New Page',
-    );
+    expect(props.savePageSetting).toHaveBeenCalledWith(expect.any(String), 'label', 'New Page');
   });
 
   it('deduplicates page IDs when slug already exists', () => {
@@ -77,7 +73,7 @@ describe('usePageManagement › createPage', () => {
     expect(props.persistConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         pages: ['home', 'kitchen', 'kitchen_2'],
-      }),
+      })
     );
   });
 
@@ -92,7 +88,7 @@ describe('usePageManagement › createPage', () => {
       expect.objectContaining({
         pages: ['home', 'page_media'],
         page_media: [],
-      }),
+      })
     );
     expect(props.savePageSetting).toHaveBeenCalledWith('page_media', 'label', 'Media');
     expect(props.setActivePage).toHaveBeenCalledWith('page_media');
@@ -112,7 +108,7 @@ describe('usePageManagement › createMediaPage', () => {
     expect(props.persistConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         pages: expect.arrayContaining(['media']),
-      }),
+      })
     );
     expect(props.savePageSetting).toHaveBeenCalledWith('media', 'label', 'Media');
     expect(props.savePageSetting).toHaveBeenCalledWith('media', 'icon', 'Speaker');
@@ -152,11 +148,9 @@ describe('usePageManagement › deletePage', () => {
 
     act(() => result.current.deletePage('kitchen'));
 
-    expect(props.persistConfig).toHaveBeenCalledWith(
-      expect.objectContaining({ pages: ['home'] }),
-    );
+    expect(props.persistConfig).toHaveBeenCalledWith(expect.objectContaining({ pages: ['home'] }));
     expect(props.persistPageSettings).toHaveBeenCalledWith(
-      expect.not.objectContaining({ kitchen: expect.anything() }),
+      expect.not.objectContaining({ kitchen: expect.anything() })
     );
     expect(props.setActivePage).toHaveBeenCalledWith('home');
   });
@@ -207,7 +201,7 @@ describe('usePageManagement › removeCard', () => {
     act(() => result.current.removeCard('card2'));
 
     expect(props.persistConfig).toHaveBeenCalledWith(
-      expect.objectContaining({ home: ['card1', 'card3'] }),
+      expect.objectContaining({ home: ['card1', 'card3'] })
     );
   });
 
@@ -219,9 +213,7 @@ describe('usePageManagement › removeCard', () => {
 
     act(() => result.current.removeCard('h1', 'header'));
 
-    expect(props.persistConfig).toHaveBeenCalledWith(
-      expect.objectContaining({ header: ['h2'] }),
-    );
+    expect(props.persistConfig).toHaveBeenCalledWith(expect.objectContaining({ header: ['h2'] }));
   });
 });
 
@@ -231,10 +223,7 @@ describe('usePageManagement › removeCard', () => {
 describe('usePageManagement › modal form reset', () => {
   it('resets newPageLabel and newPageIcon when modal opens', () => {
     const props = makeProps({ showAddPageModal: false });
-    const { result, rerender } = renderHook(
-      (p) => usePageManagement(p),
-      { initialProps: props },
-    );
+    const { result, rerender } = renderHook((p) => usePageManagement(p), { initialProps: props });
 
     // Set some values
     act(() => {

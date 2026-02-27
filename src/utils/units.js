@@ -1,4 +1,7 @@
-const normalizeUnit = (unit) => String(unit || '').trim().toLowerCase();
+const normalizeUnit = (unit) =>
+  String(unit || '')
+    .trim()
+    .toLowerCase();
 
 /** @typedef {'temperature' | 'wind' | 'pressure' | 'precipitation' | 'length'} UnitKind */
 /** @typedef {'follow_ha' | 'metric' | 'imperial'} UnitsMode */
@@ -9,7 +12,15 @@ const isImperialHaConfig = (haConfig) => {
   const temp = normalizeUnit(haConfig?.unit_system?.temperature || haConfig?.temperature_unit);
   const length = normalizeUnit(haConfig?.unit_system?.length || haConfig?.length_unit);
   if (temp.includes('f')) return true;
-  if (length === 'mi' || length === 'mile' || length === 'miles' || length === 'ft' || length === 'foot' || length === 'feet') return true;
+  if (
+    length === 'mi' ||
+    length === 'mile' ||
+    length === 'miles' ||
+    length === 'ft' ||
+    length === 'foot' ||
+    length === 'feet'
+  )
+    return true;
   return false;
 };
 
@@ -28,10 +39,46 @@ export const inferUnitKind = (deviceClass, unit) => {
   if (['precipitation', 'precipitation_intensity'].includes(cls)) return 'precipitation';
 
   if (u.includes('°c') || u.includes('°f')) return 'temperature';
-  if (u === 'km/h' || u === 'kmh' || u === 'km/t' || u === 'm/s' || u === 'ms' || u === 'mph' || u === 'kn' || u === 'kt' || u === 'knot' || u === 'knots') return 'wind';
-  if (u === 'hpa' || u === 'mbar' || u === 'bar' || u === 'pa' || u === 'kpa' || u === 'inhg' || u === 'psi') return 'pressure';
-  if (u === 'mm' || u === 'cm' || u === 'm' || u === 'in' || u === 'inch' || u === 'inches') return 'precipitation';
-  if (u === 'km' || u === 'kilometer' || u === 'kilometers' || u === 'mi' || u === 'mile' || u === 'miles' || u === 'm' || u === 'meter' || u === 'meters' || u === 'ft' || u === 'foot' || u === 'feet') return 'length';
+  if (
+    u === 'km/h' ||
+    u === 'kmh' ||
+    u === 'km/t' ||
+    u === 'm/s' ||
+    u === 'ms' ||
+    u === 'mph' ||
+    u === 'kn' ||
+    u === 'kt' ||
+    u === 'knot' ||
+    u === 'knots'
+  )
+    return 'wind';
+  if (
+    u === 'hpa' ||
+    u === 'mbar' ||
+    u === 'bar' ||
+    u === 'pa' ||
+    u === 'kpa' ||
+    u === 'inhg' ||
+    u === 'psi'
+  )
+    return 'pressure';
+  if (u === 'mm' || u === 'cm' || u === 'm' || u === 'in' || u === 'inch' || u === 'inches')
+    return 'precipitation';
+  if (
+    u === 'km' ||
+    u === 'kilometer' ||
+    u === 'kilometers' ||
+    u === 'mi' ||
+    u === 'mile' ||
+    u === 'miles' ||
+    u === 'm' ||
+    u === 'meter' ||
+    u === 'meters' ||
+    u === 'ft' ||
+    u === 'foot' ||
+    u === 'feet'
+  )
+    return 'length';
 
   return null;
 };
@@ -41,8 +88,12 @@ export const getUnitModeFromUnit = (kind, unit) => {
   if (kind === 'temperature') return u.includes('f') ? 'imperial' : 'metric';
   if (kind === 'wind') return u === 'mph' ? 'imperial' : 'metric';
   if (kind === 'pressure') return u === 'inhg' ? 'imperial' : 'metric';
-  if (kind === 'precipitation') return (u === 'in' || u === 'inch' || u === 'inches') ? 'imperial' : 'metric';
-  if (kind === 'length') return (u === 'mi' || u === 'mile' || u === 'miles' || u === 'ft' || u === 'foot' || u === 'feet') ? 'imperial' : 'metric';
+  if (kind === 'precipitation')
+    return u === 'in' || u === 'inch' || u === 'inches' ? 'imperial' : 'metric';
+  if (kind === 'length')
+    return u === 'mi' || u === 'mile' || u === 'miles' || u === 'ft' || u === 'foot' || u === 'feet'
+      ? 'imperial'
+      : 'metric';
   return 'metric';
 };
 
@@ -70,7 +121,7 @@ const toCelsius = (value, fromUnit) => {
 
 const fromCelsius = (value, unitMode) => {
   if (!Number.isFinite(value)) return null;
-  if (unitMode === 'imperial') return (value * 9 / 5) + 32;
+  if (unitMode === 'imperial') return (value * 9) / 5 + 32;
   return value;
 };
 
@@ -151,8 +202,13 @@ export const convertValueByKind = (value, { kind, fromUnit, unitMode }) => {
   return toNumber(value);
 };
 
-export const formatUnitValue = (value, /** @type {FormatUnitValueOptions} */ { kind, fromUnit, unitMode, fallback = '--' } = {}) => {
-  const converted = kind ? convertValueByKind(value, { kind, fromUnit, unitMode }) : toNumber(value);
+export const formatUnitValue = (
+  value,
+  /** @type {FormatUnitValueOptions} */ { kind, fromUnit, unitMode, fallback = '--' } = {}
+) => {
+  const converted = kind
+    ? convertValueByKind(value, { kind, fromUnit, unitMode })
+    : toNumber(value);
   if (!Number.isFinite(converted)) return fallback;
 
   let decimals = 1;
@@ -161,7 +217,10 @@ export const formatUnitValue = (value, /** @type {FormatUnitValueOptions} */ { k
   if (kind === 'precipitation') decimals = displayUnit === 'in' ? 2 : 1;
   if (kind === 'length') decimals = 1;
 
-  const rendered = converted.toFixed(decimals).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+  const rendered = converted
+    .toFixed(decimals)
+    .replace(/\.0+$/, '')
+    .replace(/(\.\d*?)0+$/, '$1');
   return rendered;
 };
 
@@ -173,7 +232,7 @@ export const formatKindValueForDisplay = (
     unitMode,
     fallback = '--',
     includeUnit = true,
-  } = {},
+  } = {}
 ) => {
   const renderedValue = formatUnitValue(value, { kind, fromUnit, unitMode, fallback });
   const unit = kind ? getDisplayUnitForKind(kind, unitMode) : '';

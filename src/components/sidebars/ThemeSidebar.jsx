@@ -14,14 +14,28 @@ import {
   Palette,
   Globe,
   LayoutGrid,
-  Type
+  Type,
 } from '../../icons';
 import SidebarContainer from './SidebarContainer';
 
 const APP_FONT_OPTIONS = ['sans', 'Inter', 'Roboto', 'Lato', 'Montserrat', 'Open Sans', 'Raleway'];
 
 const LinkIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
 );
 
 export default function ThemeSidebar({
@@ -44,7 +58,7 @@ export default function ThemeSidebar({
   bgImage,
   setBgImage,
   inactivityTimeout,
-  setInactivityTimeout
+  setInactivityTimeout,
 }) {
   const {
     unitsMode,
@@ -128,38 +142,40 @@ export default function ThemeSidebar({
       icon={Palette}
     >
       <div className="space-y-8 font-sans">
-        
         {/* Switcher Tab */}
-        <div className="flex items-center justify-center mb-6">
-          <div className="flex p-1 rounded-2xl border shadow-sm" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
-             <button
-                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all shadow-md relative z-10 font-medium"
-               style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}
-                disabled
-                title={t('system.tabAppearance')}
-             >
-                <Palette className="w-5 h-5" />
-             </button>
+        <div className="mb-6 flex items-center justify-center">
+          <div
+            className="flex rounded-2xl border p-1 shadow-sm"
+            style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+          >
+            <button
+              className="relative z-10 flex h-9 w-12 items-center justify-center rounded-xl font-medium shadow-md transition-all"
+              style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}
+              disabled
+              title={t('system.tabAppearance')}
+            >
+              <Palette className="h-5 w-5" />
+            </button>
 
-             <div className="w-px my-1 mx-1" style={{ backgroundColor: 'var(--glass-border)' }} />
+            <div className="mx-1 my-1 w-px" style={{ backgroundColor: 'var(--glass-border)' }} />
 
-             <button
-                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5"
-                onClick={onSwitchToLayout}
-                title={t('system.tabLayout')}
-             >
-                <LayoutGrid className="w-5 h-5" />
-             </button>
+            <button
+              className="flex h-9 w-12 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-all hover:bg-white/5 hover:text-[var(--text-primary)]"
+              onClick={onSwitchToLayout}
+              title={t('system.tabLayout')}
+            >
+              <LayoutGrid className="h-5 w-5" />
+            </button>
 
-             <div className="w-px my-1 mx-1" style={{ backgroundColor: 'var(--glass-border)' }} />
+            <div className="mx-1 my-1 w-px" style={{ backgroundColor: 'var(--glass-border)' }} />
 
-             <button
-                className="w-12 h-9 rounded-xl flex items-center justify-center transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5"
-                onClick={onSwitchToHeader}
-                title={t('system.tabHeader')}
-             >
-                <Type className="w-5 h-5" />
-             </button>
+            <button
+              className="flex h-9 w-12 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-all hover:bg-white/5 hover:text-[var(--text-primary)]"
+              onClick={onSwitchToHeader}
+              title={t('system.tabHeader')}
+            >
+              <Type className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
@@ -181,7 +197,13 @@ export default function ThemeSidebar({
               options={['en', 'nb', 'nn', 'sv', 'de']}
               current={language}
               onChange={setLanguage}
-              map={{ en: t('language.en'), nb: t('language.nb'), nn: t('language.nn'), sv: t('language.sv'), de: t('language.de') }}
+              map={{
+                en: t('language.en'),
+                nb: t('language.nb'),
+                nn: t('language.nn'),
+                sv: t('language.sv'),
+                de: t('language.de'),
+              }}
               placeholder={t('dropdown.noneSelected')}
             />
             <ModernDropdown
@@ -193,7 +215,7 @@ export default function ThemeSidebar({
               map={{
                 follow_ha: t('settings.unitSystem.followHa'),
                 metric: t('settings.unitSystem.metric'),
-                imperial: t('settings.unitSystem.imperial')
+                imperial: t('settings.unitSystem.imperial'),
               }}
               placeholder={t('dropdown.noneSelected')}
             />
@@ -210,7 +232,7 @@ export default function ThemeSidebar({
                 Lato: 'Lato',
                 Montserrat: 'Montserrat',
                 'Open Sans': 'Open Sans',
-                Raleway: 'Raleway'
+                Raleway: 'Raleway',
               }}
               placeholder={t('dropdown.noneSelected')}
             />
@@ -220,15 +242,22 @@ export default function ThemeSidebar({
         <div className="h-px" style={{ backgroundColor: 'var(--glass-border)' }} />
 
         <div className="space-y-4">
-          <p className="text-xs uppercase font-bold tracking-widest pl-1" style={{ color: 'var(--text-secondary)' }}>
+          <p
+            className="pl-1 text-xs font-bold tracking-widest uppercase"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             {t('settings.lock.title')}
           </p>
-          <div className="popup-surface rounded-xl p-3 space-y-3">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('settings.lock.description')}</p>
+          <div className="popup-surface space-y-3 rounded-xl p-3">
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {t('settings.lock.description')}
+            </p>
             {settingsLockEnabled ? (
               <>
                 <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {settingsLockSessionUnlocked ? t('settings.lock.statusUnlocked') : t('settings.lock.statusLocked')}
+                  {settingsLockSessionUnlocked
+                    ? t('settings.lock.statusUnlocked')
+                    : t('settings.lock.statusLocked')}
                 </p>
                 {!settingsLockSessionUnlocked && (
                   <div className="flex items-center gap-2">
@@ -239,15 +268,23 @@ export default function ThemeSidebar({
                       maxLength={4}
                       value={unlockPin}
                       onChange={(e) => setUnlockPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none"
-                      style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                      className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none"
+                      style={{
+                        backgroundColor: 'var(--glass-bg)',
+                        borderColor: 'var(--glass-border)',
+                        color: 'var(--text-primary)',
+                      }}
                       placeholder={t('settings.lock.pin')}
                     />
                     <button
                       type="button"
                       onClick={handleUnlock}
-                      className="px-3 py-2 rounded-lg text-xs font-semibold border"
-                      style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                      className="rounded-lg border px-3 py-2 text-xs font-semibold"
+                      style={{
+                        backgroundColor: 'var(--glass-bg)',
+                        borderColor: 'var(--glass-border)',
+                        color: 'var(--text-primary)',
+                      }}
                     >
                       {t('settings.lock.unlock')}
                     </button>
@@ -258,8 +295,12 @@ export default function ThemeSidebar({
                     <button
                       type="button"
                       onClick={lockSettingsSession}
-                      className="px-3 py-2 rounded-lg text-xs font-semibold border"
-                      style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                      className="rounded-lg border px-3 py-2 text-xs font-semibold"
+                      style={{
+                        backgroundColor: 'var(--glass-bg)',
+                        borderColor: 'var(--glass-border)',
+                        color: 'var(--text-primary)',
+                      }}
                     >
                       {t('settings.lock.lockNow')}
                     </button>
@@ -267,8 +308,12 @@ export default function ThemeSidebar({
                   <button
                     type="button"
                     onClick={handleDisableLock}
-                    className="px-3 py-2 rounded-lg text-xs font-semibold border"
-                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    className="rounded-lg border px-3 py-2 text-xs font-semibold"
+                    style={{
+                      backgroundColor: 'var(--glass-bg)',
+                      borderColor: 'var(--glass-border)',
+                      color: 'var(--text-primary)',
+                    }}
                   >
                     {t('settings.lock.disable')}
                   </button>
@@ -284,8 +329,12 @@ export default function ThemeSidebar({
                     maxLength={4}
                     value={newPin}
                     onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
-                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+                    style={{
+                      backgroundColor: 'var(--glass-bg)',
+                      borderColor: 'var(--glass-border)',
+                      color: 'var(--text-primary)',
+                    }}
                     placeholder={t('settings.lock.pin')}
                   />
                   <input
@@ -295,23 +344,33 @@ export default function ThemeSidebar({
                     maxLength={4}
                     value={confirmPin}
                     onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
-                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+                    style={{
+                      backgroundColor: 'var(--glass-bg)',
+                      borderColor: 'var(--glass-border)',
+                      color: 'var(--text-primary)',
+                    }}
                     placeholder={t('settings.lock.pinConfirm')}
                   />
                 </div>
                 <button
                   type="button"
                   onClick={handleEnableLock}
-                  className="px-3 py-2 rounded-lg text-xs font-semibold border"
-                  style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                  className="rounded-lg border px-3 py-2 text-xs font-semibold"
+                  style={{
+                    backgroundColor: 'var(--glass-bg)',
+                    borderColor: 'var(--glass-border)',
+                    color: 'var(--text-primary)',
+                  }}
                 >
                   {t('settings.lock.enable')}
                 </button>
               </>
             )}
             {lockError && (
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{lockError}</p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                {lockError}
+              </p>
             )}
           </div>
         </div>
@@ -319,11 +378,16 @@ export default function ThemeSidebar({
         {/* Background */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase font-bold tracking-widest pl-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.background')}</p>
-            <button 
+            <p
+              className="pl-1 text-xs font-bold tracking-widest uppercase"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t('settings.background')}
+            </p>
+            <button
               type="button"
               onClick={resetBackground}
-              className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] rounded-sm transition-colors"
+              className="rounded-sm px-2 py-1 text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)]"
             >
               {t('settings.reset')}
             </button>
@@ -331,22 +395,24 @@ export default function ThemeSidebar({
 
           {/* Mode Selector - Compact */}
           <div className="grid grid-cols-4 gap-2">
-            {bgModes.map(mode => {
+            {bgModes.map((mode) => {
               const active = bgMode === mode.key;
               const ModeIcon = mode.icon;
               return (
                 <button
                   key={mode.key}
                   onClick={() => setBgMode(mode.key)}
-                  className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all text-center border ${
+                  className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 text-center transition-all ${
                     active
-                      ? 'bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)]'
-                      : 'border-transparent hover:bg-white/10 text-[var(--text-secondary)]'
+                      ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                      : 'border-transparent text-[var(--text-secondary)] hover:bg-white/10'
                   }`}
                   style={!active ? { backgroundColor: 'var(--glass-bg)' } : {}}
                 >
-                  <ModeIcon className="w-4 h-4" />
-                  <span className="text-[9px] font-bold uppercase tracking-wider leading-tight">{mode.label}</span>
+                  <ModeIcon className="h-4 w-4" />
+                  <span className="text-[9px] leading-tight font-bold tracking-wider uppercase">
+                    {mode.label}
+                  </span>
                 </button>
               );
             })}
@@ -354,22 +420,30 @@ export default function ThemeSidebar({
 
           {/* Mode-specific controls */}
           {bgMode === 'theme' && (
-             <div className="p-3 rounded-xl border text-center" style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
-               <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('settings.bgFollowThemeHint')}</p>
-             </div>
+            <div
+              className="rounded-xl border p-3 text-center"
+              style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+            >
+              <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {t('settings.bgFollowThemeHint')}
+              </p>
+            </div>
           )}
 
           {bgMode === 'solid' && (
-            <div className="py-2 flex items-center gap-4">
-              <div className="relative cursor-pointer group w-12 h-12 rounded-xl overflow-hidden border shadow-lg" style={{ borderColor: 'var(--glass-border)' }}>
+            <div className="flex items-center gap-4 py-2">
+              <div
+                className="group relative h-12 w-12 cursor-pointer overflow-hidden rounded-xl border shadow-lg"
+                style={{ borderColor: 'var(--glass-border)' }}
+              >
                 <input
                   type="color"
                   value={bgColor}
                   onChange={(e) => setBgColor(e.target.value)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                 />
                 <div
-                  className="w-full h-full transition-colors"
+                  className="h-full w-full transition-colors"
                   style={{ backgroundColor: bgColor }}
                 />
               </div>
@@ -381,8 +455,12 @@ export default function ThemeSidebar({
                     const val = e.target.value;
                     if (/^#[0-9a-fA-F]{0,6}$/.test(val)) setBgColor(val);
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border font-mono text-sm outline-none transition-colors uppercase focus:border-[var(--glass-border)]"
-                  style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                  className="w-full rounded-xl border px-3 py-2.5 font-mono text-sm uppercase transition-colors outline-none focus:border-[var(--glass-border)]"
+                  style={{
+                    backgroundColor: 'var(--glass-bg)',
+                    borderColor: 'var(--glass-border)',
+                    color: 'var(--text-primary)',
+                  }}
                   placeholder="#0f172a"
                   maxLength={7}
                 />
@@ -402,10 +480,14 @@ export default function ThemeSidebar({
                     title={preset.label}
                   >
                     <div
-                      className={`w-12 h-12 rounded-xl transition-all ${
-                        active ? 'ring-2 ring-[var(--accent-color)] scale-105' : 'hover:scale-105 opacity-80 hover:opacity-100'
+                      className={`h-12 w-12 rounded-xl transition-all ${
+                        active
+                          ? 'scale-105 ring-2 ring-[var(--accent-color)]'
+                          : 'opacity-80 hover:scale-105 hover:opacity-100'
                       }`}
-                      style={{ background: `linear-gradient(135deg, ${preset.from}, ${preset.to})` }}
+                      style={{
+                        background: `linear-gradient(135deg, ${preset.from}, ${preset.to})`,
+                      }}
                     />
                   </button>
                 );
@@ -421,11 +503,18 @@ export default function ThemeSidebar({
                     type="url"
                     value={bgImage}
                     onChange={(e) => setBgImage(e.target.value)}
-                    className="w-full px-4 py-3 pl-10 rounded-xl border text-xs outline-none transition-colors placeholder:text-[var(--text-secondary)] focus:border-[var(--glass-border)]"
-                    style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                    className="w-full rounded-xl border px-4 py-3 pl-10 text-xs transition-colors outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--glass-border)]"
+                    style={{
+                      backgroundColor: 'var(--glass-bg)',
+                      borderColor: 'var(--glass-border)',
+                      color: 'var(--text-primary)',
+                    }}
                     placeholder={t('settings.bgUrl')}
                   />
-                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                  <LinkIcon
+                    className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
+                    style={{ color: 'var(--text-secondary)' }}
+                  />
                 </div>
               </div>
             </div>
@@ -436,44 +525,55 @@ export default function ThemeSidebar({
 
         {/* Behavior */}
         <div className="space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs uppercase font-bold tracking-widest flex items-center gap-2 pl-1" style={{ color: 'var(--text-secondary)' }}>
-                  <Home className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                  {t('settings.inactivity')}
+          <div className="mb-4 flex items-center justify-between">
+            <span
+              className="flex items-center gap-2 pl-1 text-xs font-bold tracking-widest uppercase"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <Home className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
+              {t('settings.inactivity')}
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  const newVal = inactivityTimeout > 0 ? 0 : 60;
+                  setInactivityTimeout(newVal);
+                  try {
+                    localStorage.setItem('tunet_inactivity_timeout', String(newVal));
+                  } catch {}
+                }}
+                className={`relative h-6 w-10 rounded-full p-1 transition-colors ${inactivityTimeout > 0 ? 'bg-[var(--glass-bg-hover)]' : 'bg-gray-500/30'}`}
+              >
+                <div
+                  className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${inactivityTimeout > 0 ? 'translate-x-4' : 'translate-x-0'}`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {inactivityTimeout > 0 && (
+            <div className="animate-in fade-in slide-in-from-top-1 px-1 pt-2 duration-200">
+              <div className="mb-1 flex justify-end">
+                <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {inactivityTimeout}s
                 </span>
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => {
-                      const newVal = inactivityTimeout > 0 ? 0 : 60;
-                      setInactivityTimeout(newVal);
-                      try { localStorage.setItem('tunet_inactivity_timeout', String(newVal)); } catch {}
-                    }}
-                    className={`w-10 h-6 rounded-full p-1 transition-colors relative ${inactivityTimeout > 0 ? 'bg-[var(--glass-bg-hover)]' : 'bg-gray-500/30'}`}
-                  >
-                    <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${inactivityTimeout > 0 ? 'translate-x-4' : 'translate-x-0'}`} />
-                  </button>
-                </div>
               </div>
-              
-              {inactivityTimeout > 0 && (
-                <div className="px-1 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                   <div className="flex justify-end mb-1">
-                     <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{inactivityTimeout}s</span>
-                  </div>
-                  <M3Slider
-                    min={10}
-                    max={300}
-                    step={10}
-                    value={inactivityTimeout}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      setInactivityTimeout(val);
-                      try { localStorage.setItem('tunet_inactivity_timeout', String(val)); } catch {}
-                    }}
-                    colorClass="bg-[var(--text-secondary)]"
-                  />
-                </div>
-              )}
+              <M3Slider
+                min={10}
+                max={300}
+                step={10}
+                value={inactivityTimeout}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setInactivityTimeout(val);
+                  try {
+                    localStorage.setItem('tunet_inactivity_timeout', String(val));
+                  } catch {}
+                }}
+                colorClass="bg-[var(--text-secondary)]"
+              />
+            </div>
+          )}
         </div>
       </div>
     </SidebarContainer>

@@ -16,23 +16,29 @@
 // Size-to-span mappings per card type category
 const SPAN_TABLE = {
   // { small, medium, large } → row span
-  triSize:  { small: 1, medium: 2, default: 4 },   // calendar, todo
-  dualSize: { small: 1, default: 2 },               // light, car, room
+  triSize: { small: 1, medium: 2, default: 4 }, // calendar, todo
+  dualSize: { small: 1, default: 2 }, // light, car, room
 };
 
 const CARD_SPAN_RULES = [
   // prefix match → category  (checked in order)
   { prefix: 'calendar_card_', category: 'triSize' },
-  { prefix: 'todo_card_',     category: 'triSize' },
-  { prefix: 'light_',         category: 'dualSize' },
-  { prefix: 'light.',         category: 'dualSize' },
-  { prefix: 'car_card_',      category: 'dualSize' },
-  { prefix: 'room_card_',     category: 'dualSize' },
-  { prefix: 'camera_card_',   category: 'dualSize' },
-  { prefix: 'spacer_card_',   category: 'dualSize' },
+  { prefix: 'todo_card_', category: 'triSize' },
+  { prefix: 'light_', category: 'dualSize' },
+  { prefix: 'light.', category: 'dualSize' },
+  { prefix: 'car_card_', category: 'dualSize' },
+  { prefix: 'room_card_', category: 'dualSize' },
+  { prefix: 'camera_card_', category: 'dualSize' },
+  { prefix: 'spacer_card_', category: 'dualSize' },
 ];
 
-export const getCardGridSpan = (cardId, getCardSettingsKey, cardSettings, activePage, layoutMetrics = {}) => {
+export const getCardGridSpan = (
+  cardId,
+  getCardSettingsKey,
+  cardSettings,
+  activePage,
+  layoutMetrics = {}
+) => {
   const settings = cardSettings[getCardSettingsKey(cardId)] || cardSettings[cardId] || {};
   const rowPx = Number.isFinite(layoutMetrics?.rowPx) ? layoutMetrics.rowPx : 100;
   const gapPx = Number.isFinite(layoutMetrics?.gapPx) ? layoutMetrics.gapPx : 20;

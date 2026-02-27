@@ -80,9 +80,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
     try {
       await updateTodoItem(conn, todoEntityId, item.uid, newStatus);
       // Optimistic update
-      setItems(prev =>
-        prev.map(i => (i.uid === item.uid ? { ...i, status: newStatus } : i))
-      );
+      setItems((prev) => prev.map((i) => (i.uid === item.uid ? { ...i, status: newStatus } : i)));
       // Fetch fresh data after a short delay
       setTimeout(fetchItems, 500);
     } catch (err) {
@@ -96,7 +94,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
     if (!conn || !todoEntityId) return;
     try {
       await removeTodoItem(conn, todoEntityId, item.uid);
-      setItems(prev => prev.filter(i => i.uid !== item.uid));
+      setItems((prev) => prev.filter((i) => i.uid !== item.uid));
       setTimeout(fetchItems, 500);
     } catch (err) {
       console.error('TodoModal: Failed to remove item', err);
@@ -112,8 +110,8 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
     }
   };
 
-  const pendingItems = items.filter(i => i.status === 'needs_action');
-  const completedItems = items.filter(i => i.status === 'completed');
+  const pendingItems = items.filter((i) => i.status === 'needs_action');
+  const completedItems = items.filter((i) => i.status === 'completed');
   const totalCount = items.length;
   const completedCount = completedItems.length;
 
@@ -128,33 +126,36 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
       onClick={onClose}
     >
       <div
-        className="border w-full max-w-xl max-h-[85vh] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-2xl relative font-sans flex flex-col backdrop-blur-xl popup-anim"
+        className="popup-anim relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-3xl border p-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[2.5rem] md:p-8"
         style={{
           background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
           borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)'
+          color: 'var(--text-primary)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
-        <button onClick={onClose} className="absolute top-4 right-4 md:top-6 md:right-6 modal-close">
-          <X className="w-4 h-4" />
+        <button
+          onClick={onClose}
+          className="modal-close absolute top-4 right-4 md:top-6 md:right-6"
+        >
+          <X className="h-4 w-4" />
         </button>
 
         {error && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-red-500/90 text-white text-xs font-bold rounded-full shadow-lg">
-                {error}
-            </div>
+          <div className="absolute top-4 left-1/2 z-50 -translate-x-1/2 rounded-full bg-red-500/90 px-4 py-2 text-xs font-bold text-white shadow-lg">
+            {error}
+          </div>
         )}
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-            <ListChecks className="w-5 h-5" />
+        <div className="mb-2 flex items-center gap-3">
+          <div className="rounded-xl bg-emerald-500/10 p-2 text-emerald-400">
+            <ListChecks className="h-5 w-5" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-light text-[var(--text-primary)] uppercase tracking-widest italic truncate">
-              {entityName || (translate('todo.title') || 'To-do')}
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic">
+              {entityName || translate('todo.title') || 'To-do'}
             </h3>
           </div>
         </div>
@@ -162,15 +163,15 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
         {/* Progress */}
         {totalCount > 0 && (
           <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
                 {completedCount}/{totalCount} {translate('todo.completed') || 'completed'}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+              <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">
                 {totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0}%
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-[var(--glass-bg)] overflow-hidden">
+            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--glass-bg)]">
               <div
                 className="h-full rounded-full bg-emerald-400/70 transition-all duration-500"
                 style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
@@ -180,7 +181,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
         )}
 
         {/* Add item */}
-        <div className="flex gap-2 mb-4">
+        <div className="mb-4 flex gap-2">
           <input
             ref={inputRef}
             type="text"
@@ -189,34 +190,40 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
             onKeyDown={handleKeyDown}
             placeholder={translate('todo.addPlaceholder') || 'Add a new item...'}
             disabled={!todoEntityId || adding}
-            className="flex-1 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-2xl px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-emerald-500/50 transition-colors placeholder:text-[var(--text-muted)] disabled:opacity-50"
+            className="flex-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors outline-none placeholder:text-[var(--text-muted)] focus:border-emerald-500/50 disabled:opacity-50"
           />
           <button
             onClick={handleAdd}
             disabled={!newItemText.trim() || adding}
-            className="px-4 py-3 rounded-2xl bg-emerald-500 text-white font-bold transition-colors hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            className="flex-shrink-0 rounded-2xl bg-emerald-500 px-4 py-3 font-bold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="h-5 w-5" />
           </button>
         </div>
 
         {/* Item list */}
-        <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-1">
+        <div className="custom-scrollbar flex-1 space-y-1 overflow-y-auto pr-1">
           {!todoEntityId ? (
             <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)] opacity-60">
-              <AlertCircle className="w-8 h-8 mb-2" />
-              <p className="text-xs uppercase font-bold tracking-widest">{translate('todo.noListSelected') || 'No list selected'}</p>
+              <AlertCircle className="mb-2 h-8 w-8" />
+              <p className="text-xs font-bold tracking-widest uppercase">
+                {translate('todo.noListSelected') || 'No list selected'}
+              </p>
             </div>
           ) : loading && items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)]">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500 mb-2" />
-              <p className="text-xs uppercase font-bold tracking-widest">{translate('common.loading') || 'Loading...'}</p>
+              <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-emerald-500" />
+              <p className="text-xs font-bold tracking-widest uppercase">
+                {translate('common.loading') || 'Loading...'}
+              </p>
             </div>
           ) : pendingItems.length === 0 && completedItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)] opacity-60">
-              <CheckCircle2 className="w-10 h-10 mb-3 text-emerald-400" />
+              <CheckCircle2 className="mb-3 h-10 w-10 text-emerald-400" />
               <p className="text-sm font-medium">{translate('todo.allDone') || 'All done!'}</p>
-              <p className="text-xs text-[var(--text-muted)] mt-1">{translate('todo.addHint') || 'Add a new item above'}</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                {translate('todo.addHint') || 'Add a new item above'}
+              </p>
             </div>
           ) : (
             <>
@@ -224,70 +231,74 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
               {pendingItems.map((item, idx) => (
                 <div
                   key={item.uid || `pending-${idx}`}
-                  className="flex items-start gap-3 px-3 py-3 rounded-xl hover:bg-[var(--glass-bg)] transition-colors group"
+                  className="group flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-[var(--glass-bg)]"
                 >
                   <button
                     onClick={() => handleToggle(item)}
-                    className="mt-0.5 flex-shrink-0 text-[var(--text-secondary)] opacity-40 hover:text-emerald-400 hover:opacity-100 transition-colors"
+                    className="mt-0.5 flex-shrink-0 text-[var(--text-secondary)] opacity-40 transition-colors hover:text-emerald-400 hover:opacity-100"
                     title={translate('todo.markDone') || 'Mark as done'}
                   >
-                    <Circle className="w-5 h-5" />
+                    <Circle className="h-5 w-5" />
                   </button>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[var(--text-primary)] leading-snug">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm leading-snug text-[var(--text-primary)]">
                       {item.summary}
                     </p>
                     {item.description && (
-                      <p className="text-[11px] text-[var(--text-muted)] mt-1 line-clamp-2">{item.description}</p>
+                      <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-muted)]">
+                        {item.description}
+                      </p>
                     )}
                     {item.due && (
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1 opacity-60">
+                      <p className="mt-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
                         {formatDueDate(item.due, translate)}
                       </p>
                     )}
                   </div>
                   <button
                     onClick={() => handleDelete(item)}
-                    className="mt-0.5 flex-shrink-0 text-transparent group-hover:text-red-400/60 hover:!text-red-400 transition-colors"
+                    className="mt-0.5 flex-shrink-0 text-transparent transition-colors group-hover:text-red-400/60 hover:!text-red-400"
                     title={translate('todo.delete') || 'Delete'}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))}
 
               {/* Completed section */}
               {completedItems.length > 0 && (
-                <div className="pt-3 mt-2 border-t border-[var(--glass-border)]">
+                <div className="mt-2 border-t border-[var(--glass-border)] pt-3">
                   <button
-                    onClick={() => setShowCompleted(prev => !prev)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-emerald-400/60 hover:text-emerald-400 transition-colors"
+                    onClick={() => setShowCompleted((prev) => !prev)}
+                    className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold tracking-widest text-emerald-400/60 uppercase transition-colors hover:text-emerald-400"
                   >
-                    <span>{translate('todo.completed') || 'Completed'} ({completedCount})</span>
+                    <span>
+                      {translate('todo.completed') || 'Completed'} ({completedCount})
+                    </span>
                     <span>{showCompleted ? '▾' : '▸'}</span>
                   </button>
                   {showCompleted &&
                     completedItems.map((item, idx) => (
                       <div
                         key={item.uid || `completed-${idx}`}
-                        className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--glass-bg)] transition-colors group opacity-50 hover:opacity-70"
+                        className="group flex items-start gap-3 rounded-xl px-3 py-2.5 opacity-50 transition-colors hover:bg-[var(--glass-bg)] hover:opacity-70"
                       >
                         <button
                           onClick={() => handleToggle(item)}
                           className="mt-0.5 flex-shrink-0 text-emerald-400 transition-colors"
                           title={translate('todo.markUndone') || 'Mark as not done'}
                         >
-                          <CheckCircle2 className="w-5 h-5" />
+                          <CheckCircle2 className="h-5 w-5" />
                         </button>
-                        <p className="flex-1 text-sm text-[var(--text-primary)] leading-snug line-through min-w-0 line-clamp-1">
+                        <p className="line-clamp-1 min-w-0 flex-1 text-sm leading-snug text-[var(--text-primary)] line-through">
                           {item.summary}
                         </p>
                         <button
                           onClick={() => handleDelete(item)}
-                          className="mt-0.5 flex-shrink-0 text-transparent group-hover:text-red-400/60 hover:!text-red-400 transition-colors"
+                          className="mt-0.5 flex-shrink-0 text-transparent transition-colors group-hover:text-red-400/60 hover:!text-red-400"
                           title={translate('todo.delete') || 'Delete'}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     ))}
@@ -298,10 +309,10 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
         </div>
 
         {/* Footer */}
-        <div className="pt-4 mt-4 border-t border-[var(--glass-border)]">
+        <div className="mt-4 border-t border-[var(--glass-border)] pt-4">
           <button
             onClick={onClose}
-            className="w-full py-3 rounded-2xl popup-surface popup-surface-hover text-[var(--text-secondary)] font-bold uppercase tracking-widest transition-colors"
+            className="popup-surface popup-surface-hover w-full rounded-2xl py-3 font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors"
           >
             {translate('common.ok') || 'OK'}
           </button>
@@ -320,7 +331,8 @@ function formatDueDate(due, t) {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   if (date.toDateString() === today.toDateString()) return t('todo.dueToday') || 'Due today';
-  if (date.toDateString() === tomorrow.toDateString()) return t('todo.dueTomorrow') || 'Due tomorrow';
+  if (date.toDateString() === tomorrow.toDateString())
+    return t('todo.dueTomorrow') || 'Due tomorrow';
 
   const isPast = date < today && date.toDateString() !== today.toDateString();
   const label = date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });

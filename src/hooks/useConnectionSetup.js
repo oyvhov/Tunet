@@ -41,8 +41,9 @@ export function useConnectionSetup({
   useEffect(() => {
     // Don't re-open during an active OAuth callback — tokens haven't been
     // saved yet so hasOAuthTokens() is false, but the exchange is in flight.
-    const isOAuthCallback = typeof window !== 'undefined'
-      && new URLSearchParams(window.location.search).has('auth_callback');
+    const isOAuthCallback =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('auth_callback');
     if (isOAuthCallback) return;
 
     const hasAuth = config.token || (config.authMethod === 'oauth' && hasOAuthTokens());
@@ -103,21 +104,30 @@ export function useConnectionSetup({
   };
 
   // ── Derived: can the user advance past onboarding step 0? ──────────────
-  const canAdvanceOnboarding = onboardingStep === 0
-    ? config.authMethod === 'oauth'
-      ? Boolean(config.url && validateUrl(config.url) && hasOAuthTokens())
-      : Boolean(config.url && config.token && validateUrl(config.url) && connectionTestResult?.success)
-    : true;
+  const canAdvanceOnboarding =
+    onboardingStep === 0
+      ? config.authMethod === 'oauth'
+        ? Boolean(config.url && validateUrl(config.url) && hasOAuthTokens())
+        : Boolean(
+            config.url && config.token && validateUrl(config.url) && connectionTestResult?.success
+          )
+      : true;
 
   const isOnboardingActive = showOnboarding;
 
   return {
-    onboardingStep, setOnboardingStep,
-    onboardingUrlError, setOnboardingUrlError,
-    onboardingTokenError, setOnboardingTokenError,
-    testingConnection, testConnection,
-    connectionTestResult, setConnectionTestResult,
-    configTab, setConfigTab,
+    onboardingStep,
+    setOnboardingStep,
+    onboardingUrlError,
+    setOnboardingUrlError,
+    onboardingTokenError,
+    setOnboardingTokenError,
+    testingConnection,
+    testConnection,
+    connectionTestResult,
+    setConnectionTestResult,
+    configTab,
+    setConfigTab,
     startOAuthLogin,
     handleOAuthLogout,
     canAdvanceOnboarding,

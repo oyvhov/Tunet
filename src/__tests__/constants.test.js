@@ -5,7 +5,7 @@ import {
   MEDIA_TIMEOUT,
   MEDIA_TICK_INTERVAL,
   INITIAL_FETCH_DELAY,
-  MOBILE_BREAKPOINT
+  MOBILE_BREAKPOINT,
 } from '../config/constants';
 
 describe('constants', () => {

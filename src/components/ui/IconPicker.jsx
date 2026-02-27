@@ -2,13 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { getAllIconKeys, getIconComponent, preloadMdiIcons } from '../../icons';
 
-export default function IconPicker({
-  value,
-  onSelect,
-  onClear,
-  t,
-  maxHeightClass = 'max-h-72'
-}) {
+export default function IconPicker({ value, onSelect, onClear, t, maxHeightClass = 'max-h-72' }) {
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
@@ -35,7 +29,9 @@ export default function IconPicker({
 
   const iconKeys = useMemo(() => {
     void mdiLoadedVersion;
-    return getAllIconKeys().slice().sort((a, b) => a.localeCompare(b));
+    return getAllIconKeys()
+      .slice()
+      .sort((a, b) => a.localeCompare(b));
   }, [mdiLoadedVersion]);
   const filteredKeys = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -77,24 +73,26 @@ export default function IconPicker({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="w-full px-4 py-3 rounded-2xl popup-surface flex items-center justify-between"
+        className="popup-surface flex w-full items-center justify-between rounded-2xl px-4 py-3"
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${value ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}>
-            <SelectedIcon className="w-4 h-4" />
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={`flex h-9 w-9 items-center justify-center rounded-xl ${value ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+          >
+            <SelectedIcon className="h-4 w-4" />
           </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs uppercase font-bold tracking-widest text-[var(--text-secondary)]">
+          <div className="flex min-w-0 flex-col">
+            <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               {translate('form.chooseIcon')}
             </span>
             {selectedLabel && (
-              <span className="text-sm font-medium text-[var(--text-primary)] truncate">
+              <span className="truncate text-sm font-medium text-[var(--text-primary)]">
                 {selectedLabel}
               </span>
             )}
           </div>
         </div>
-        <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--text-muted)]">
+        <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
           {open ? translate('common.cancel') : translate('form.searchIcon')}
         </span>
       </button>
@@ -103,15 +101,18 @@ export default function IconPicker({
         <div className="space-y-3">
           <input
             type="text"
-            className="w-full px-4 py-2 text-[var(--text-primary)] rounded-xl popup-surface focus:border-[var(--accent-color)] outline-none transition-colors"
+            className="popup-surface w-full rounded-xl px-4 py-2 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             placeholder={translate('form.searchIcon')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           {onClear && (
             <button
-              onClick={() => { onClear(); setOpen(false); }}
-              className={`w-full px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-widest ${!value ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+              onClick={() => {
+                onClear();
+                setOpen(false);
+              }}
+              className={`w-full rounded-xl px-3 py-2 text-xs font-bold tracking-widest uppercase ${!value ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
               title={translate('form.defaultIcon')}
             >
               {translate('form.defaultIcon')}
@@ -120,15 +121,17 @@ export default function IconPicker({
           <div
             ref={scrollRef}
             onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-            className={`grid grid-cols-5 sm:grid-cols-6 gap-2 content-start items-start overflow-y-auto custom-scrollbar pr-2 h-60 sm:h-72 ${maxHeightClass}`}
+            className={`custom-scrollbar grid h-60 grid-cols-5 content-start items-start gap-2 overflow-y-auto pr-2 sm:h-72 sm:grid-cols-6 ${maxHeightClass}`}
           >
             {filteredKeys.length === 0 ? (
-              <div className="col-span-6 text-center text-xs text-[var(--text-secondary)] py-2">
+              <div className="col-span-6 py-2 text-center text-xs text-[var(--text-secondary)]">
                 {translate('form.noIconsFound')}
               </div>
             ) : (
               <>
-                {topSpacerHeight > 0 && <div className="col-span-6" style={{ height: topSpacerHeight }} />}
+                {topSpacerHeight > 0 && (
+                  <div className="col-span-6" style={{ height: topSpacerHeight }} />
+                )}
                 {visibleKeys.map((iconName) => {
                   const Icon = getIconComponent(iconName);
                   if (!Icon) return null;
@@ -136,15 +139,20 @@ export default function IconPicker({
                   return (
                     <button
                       key={iconName}
-                      onClick={() => { onSelect(iconName); setOpen(false); }}
-                      className={`p-3 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'popup-surface popup-surface-hover text-gray-500'}`}
+                      onClick={() => {
+                        onSelect(iconName);
+                        setOpen(false);
+                      }}
+                      className={`flex items-center justify-center rounded-xl p-3 transition-all ${isSelected ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'popup-surface popup-surface-hover text-gray-500'}`}
                       title={iconName}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="h-5 w-5" />
                     </button>
                   );
                 })}
-                {bottomSpacerHeight > 0 && <div className="col-span-6" style={{ height: bottomSpacerHeight }} />}
+                {bottomSpacerHeight > 0 && (
+                  <div className="col-span-6" style={{ height: bottomSpacerHeight }} />
+                )}
               </>
             )}
           </div>

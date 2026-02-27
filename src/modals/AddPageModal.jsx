@@ -2,36 +2,61 @@ import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 
-export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewPageLabel, newPageIcon, setNewPageIcon, onCreate, onCreateMedia }) {
+export default function AddPageModal({
+  isOpen,
+  onClose,
+  t,
+  newPageLabel,
+  setNewPageLabel,
+  newPageIcon,
+  setNewPageIcon,
+  onCreate,
+  onCreateMedia,
+}) {
   const [activeTab, setActiveTab] = useState('standard');
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center p-6" style={{
-      backdropFilter: 'blur(20px)', 
-      backgroundColor: 'rgba(0,0,0,0.3)'
-    }} onClick={onClose}>
-      <div className="border w-full max-w-lg rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl relative font-sans backdrop-blur-xl popup-anim" style={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)', 
-        borderColor: 'var(--glass-border)', 
-        color: 'var(--text-primary)'
-      }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-6 right-6 md:top-10 md:right-10 modal-close"><X className="w-4 h-4" /></button>
-        <h3 className="text-2xl font-light mb-6 text-[var(--text-primary)] uppercase tracking-widest italic">{t('modal.addPage.title')}</h3>
+    <div
+      className="fixed inset-0 z-[130] flex items-center justify-center p-6"
+      style={{
+        backdropFilter: 'blur(20px)',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="popup-anim relative w-full max-w-lg rounded-3xl border p-6 font-sans shadow-2xl backdrop-blur-xl md:rounded-[3rem] md:p-10"
+        style={{
+          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+          borderColor: 'var(--glass-border)',
+          color: 'var(--text-primary)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="modal-close absolute top-6 right-6 md:top-10 md:right-10"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <h3 className="mb-6 text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic">
+          {t('modal.addPage.title')}
+        </h3>
 
-        <div className="flex gap-2 mb-6">
+        <div className="mb-6 flex gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('standard')}
-            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'standard' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'standard' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
           >
             {t('page.create')}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('media')}
-            className={`flex-1 py-2.5 rounded-full font-bold uppercase tracking-widest text-[11px] border transition-all ${activeTab === 'media' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'media' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
           >
             {t('addCard.type.sonos')}
           </button>
@@ -41,10 +66,12 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
           {activeTab === 'standard' ? (
             <>
               <div className="space-y-2">
-                <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.name')}</label>
+                <label className="ml-4 text-xs font-bold text-gray-500 uppercase">
+                  {t('form.name')}
+                </label>
                 <input
                   type="text"
-                  className="w-full px-6 py-4 text-[var(--text-primary)] rounded-2xl popup-surface focus:border-[var(--glass-border)] outline-none transition-colors"
+                  className="popup-surface w-full rounded-2xl px-6 py-4 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
                   value={newPageLabel}
                   onChange={(e) => setNewPageLabel(e.target.value)}
                   placeholder={t('form.exampleName')}
@@ -53,7 +80,9 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase font-bold text-gray-500 ml-4">{t('form.chooseIcon')}</label>
+                <label className="ml-4 text-xs font-bold text-gray-500 uppercase">
+                  {t('form.chooseIcon')}
+                </label>
                 <IconPicker
                   value={newPageIcon}
                   onSelect={setNewPageIcon}
@@ -65,22 +94,24 @@ export default function AddPageModal({ isOpen, onClose, t, newPageLabel, setNewP
 
               <button
                 onClick={onCreate}
-                className="w-full py-4 rounded-2xl border font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] hover:opacity-90"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] py-4 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
               >
-                <Plus className="w-5 h-5" /> {t('page.create')}
+                <Plus className="h-5 w-5" /> {t('page.create')}
               </button>
             </>
           ) : (
             <>
-              <div className="p-4 rounded-2xl popup-surface text-sm text-[var(--text-secondary)]">
-                <p className="font-bold uppercase tracking-widest text-[10px] text-gray-500 mb-2">{t('sonos.createTitle')}</p>
+              <div className="popup-surface rounded-2xl p-4 text-sm text-[var(--text-secondary)]">
+                <p className="mb-2 text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+                  {t('sonos.createTitle')}
+                </p>
                 <p className="leading-relaxed">{t('sonos.createDescription')}</p>
               </div>
               <button
                 onClick={onCreateMedia}
-                className="w-full py-4 rounded-2xl border font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] hover:opacity-90"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] py-4 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
               >
-                <Plus className="w-5 h-5" /> {t('sonos.createPage')}
+                <Plus className="h-5 w-5" /> {t('sonos.createPage')}
               </button>
             </>
           )}

@@ -74,7 +74,8 @@ const ROOM_CARD_DEFAULTS = {
 };
 
 function migrateCardSettings(rawSettings) {
-  if (!rawSettings || typeof rawSettings !== 'object') return { migratedSettings: {}, changed: false };
+  if (!rawSettings || typeof rawSettings !== 'object')
+    return { migratedSettings: {}, changed: false };
 
   let changed = false;
   const migratedSettings = { ...rawSettings };
@@ -82,9 +83,10 @@ function migrateCardSettings(rawSettings) {
   Object.entries(migratedSettings).forEach(([settingsKey, settings]) => {
     if (!settings || typeof settings !== 'object') return;
 
-    const isRoomSettings = settingsKey.includes('room_card_')
-      || String(settings.type || '').toLowerCase() === 'room'
-      || typeof settings.areaId === 'string';
+    const isRoomSettings =
+      settingsKey.includes('room_card_') ||
+      String(settings.type || '').toLowerCase() === 'room' ||
+      typeof settings.areaId === 'string';
 
     if (!isRoomSettings) return;
 
@@ -110,28 +112,40 @@ function loadPagesConfig() {
   let modified = false;
 
   // Remove legacy automations page config entirely
-  if (parsed.automations) { delete parsed.automations; modified = true; }
+  if (parsed.automations) {
+    delete parsed.automations;
+    modified = true;
+  }
 
   // Ensure pages array exists
   if (!Array.isArray(parsed.pages)) {
-    const detectedPages = Object.keys(parsed)
-      .filter(key => Array.isArray(parsed[key]) &&
-        !['header', 'settings', 'automations'].includes(key));
+    const detectedPages = Object.keys(parsed).filter(
+      (key) => Array.isArray(parsed[key]) && !['header', 'settings', 'automations'].includes(key)
+    );
     parsed.pages = detectedPages.length > 0 ? detectedPages : ['home'];
     modified = true;
   }
 
   // Filter out settings and legacy automations from pages
-  parsed.pages = parsed.pages.filter(id => id !== 'settings' && id !== 'automations');
-  if (parsed.pages.length === 0) { parsed.pages = ['home']; modified = true; }
+  parsed.pages = parsed.pages.filter((id) => id !== 'settings' && id !== 'automations');
+  if (parsed.pages.length === 0) {
+    parsed.pages = ['home'];
+    modified = true;
+  }
 
   // Ensure all pages have arrays
   parsed.pages.forEach((pageId) => {
-    if (!Array.isArray(parsed[pageId])) { parsed[pageId] = []; modified = true; }
+    if (!Array.isArray(parsed[pageId])) {
+      parsed[pageId] = [];
+      modified = true;
+    }
   });
 
   // Ensure header exists
-  if (!parsed.header) { parsed.header = []; modified = true; }
+  if (!parsed.header) {
+    parsed.header = [];
+    modified = true;
+  }
 
   if (modified) writeJSON('tunet_pages_config', parsed);
   return parsed;
@@ -199,8 +213,8 @@ export const PageProvider = ({ children }) => {
   const [cardBorderRadius, setCardBorderRadius] = useState(16);
   const [headerScale, setHeaderScale] = useState(1);
   const [sectionSpacing, setSectionSpacing] = useState(DEFAULT_SECTION_SPACING);
-  const [headerTitle, setHeaderTitle] = useState(() => 
-    localStorage.getItem('tunet_header_title') || ''
+  const [headerTitle, setHeaderTitle] = useState(
+    () => localStorage.getItem('tunet_header_title') || ''
   );
 
   // Load remaining configuration from localStorage
@@ -241,9 +255,15 @@ export const PageProvider = ({ children }) => {
     const spacingSaved = readJSON('tunet_section_spacing', null);
     if (spacingSaved) {
       const nextSpacing = {
-        headerToStatus: Number.isFinite(spacingSaved.headerToStatus) ? spacingSaved.headerToStatus : DEFAULT_SECTION_SPACING.headerToStatus,
-        statusToNav: Number.isFinite(spacingSaved.statusToNav) ? spacingSaved.statusToNav : DEFAULT_SECTION_SPACING.statusToNav,
-        navToGrid: Number.isFinite(spacingSaved.navToGrid) ? spacingSaved.navToGrid : DEFAULT_SECTION_SPACING.navToGrid,
+        headerToStatus: Number.isFinite(spacingSaved.headerToStatus)
+          ? spacingSaved.headerToStatus
+          : DEFAULT_SECTION_SPACING.headerToStatus,
+        statusToNav: Number.isFinite(spacingSaved.statusToNav)
+          ? spacingSaved.statusToNav
+          : DEFAULT_SECTION_SPACING.statusToNav,
+        navToGrid: Number.isFinite(spacingSaved.navToGrid)
+          ? spacingSaved.navToGrid
+          : DEFAULT_SECTION_SPACING.navToGrid,
       };
       setSectionSpacing(nextSpacing);
     }
@@ -294,7 +314,7 @@ export const PageProvider = ({ children }) => {
     setCardSettings((prev) => {
       const newSettings = {
         ...prev,
-        [id]: { ...(prev[id] || {}), [setting]: value }
+        [id]: { ...(prev[id] || {}), [setting]: value },
       };
       writeJSON('tunet_card_settings', newSettings);
       return newSettings;
@@ -302,10 +322,10 @@ export const PageProvider = ({ children }) => {
   };
 
   const savePageSetting = (id, setting, value) => {
-    setPageSettings(prev => {
-      const newSettings = { 
-        ...prev, 
-        [id]: { ...(prev[id] || {}), [setting]: value } 
+    setPageSettings((prev) => {
+      const newSettings = {
+        ...prev,
+        [id]: { ...(prev[id] || {}), [setting]: value },
       };
       writeJSON('tunet_page_settings', newSettings);
       return newSettings;
@@ -333,8 +353,8 @@ export const PageProvider = ({ children }) => {
   };
 
   const toggleCardVisibility = (cardId) => {
-    const newHidden = hiddenCards.includes(cardId) 
-      ? hiddenCards.filter(id => id !== cardId)
+    const newHidden = hiddenCards.includes(cardId)
+      ? hiddenCards.filter((id) => id !== cardId)
       : [...hiddenCards, cardId];
     setHiddenCards(newHidden);
     writeJSON('tunet_hidden_cards', newHidden);
@@ -470,9 +490,5 @@ export const PageProvider = ({ children }) => {
     },
   };
 
-  return (
-    <PageContext.Provider value={value}>
-      {children}
-    </PageContext.Provider>
-  );
+  return <PageContext.Provider value={value}>{children}</PageContext.Provider>;
 };

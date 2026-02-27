@@ -1,13 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from '../../icons';
 
-export default function PinLockModal({
-  open,
-  onClose,
-  onSubmit,
-  t,
-  error,
-}) {
+export default function PinLockModal({ open, onClose, onSubmit, t, error }) {
   const [pin, setPin] = useState('');
   const inputRef = useRef(null);
 
@@ -40,31 +34,42 @@ export default function PinLockModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/55 backdrop-blur-sm popup-anim">
-      <div className="w-full max-w-[360px] rounded-2xl border p-4" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--glass-border)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{t('settings.lock.pinPrompt')}</h3>
+    <div className="popup-anim fixed inset-0 z-[200] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+      <div
+        className="w-full max-w-[360px] rounded-2xl border p-4"
+        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--glass-border)' }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+            {t('settings.lock.pinPrompt')}
+          </h3>
           <button
             type="button"
             onClick={() => {
               setPin('');
               onClose();
             }}
-            className="p-2 rounded-lg border"
-            style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}
+            className="rounded-lg border p-2"
+            style={{
+              backgroundColor: 'var(--glass-bg)',
+              borderColor: 'var(--glass-border)',
+              color: 'var(--text-secondary)',
+            }}
             aria-label={t('common.close')}
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="popup-surface rounded-xl p-3 mb-3">
-          <div className="flex justify-center gap-2 mb-2">
+        <div className="popup-surface mb-3 rounded-xl p-3">
+          <div className="mb-2 flex justify-center gap-2">
             {[0, 1, 2, 3].map((index) => (
               <div
                 key={index}
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: pin[index] ? 'var(--text-primary)' : 'var(--glass-border)' }}
+                className="h-3 w-3 rounded-full"
+                style={{
+                  backgroundColor: pin[index] ? 'var(--text-primary)' : 'var(--glass-border)',
+                }}
               />
             ))}
           </div>
@@ -82,12 +87,20 @@ export default function PinLockModal({
                 submit();
               }
             }}
-            className="w-full px-3 py-2 rounded-lg border text-sm text-center tracking-[0.35em] outline-none"
-            style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+            className="w-full rounded-lg border px-3 py-2 text-center text-sm tracking-[0.35em] outline-none"
+            style={{
+              backgroundColor: 'var(--glass-bg)',
+              borderColor: 'var(--glass-border)',
+              color: 'var(--text-primary)',
+            }}
             placeholder={t('settings.lock.pin')}
             aria-label={t('settings.lock.pin')}
           />
-          {error && <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>{error}</p>}
+          {error && (
+            <p className="text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {error}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-2">
@@ -102,8 +115,12 @@ export default function PinLockModal({
                   key="backspace"
                   type="button"
                   onClick={backspace}
-                  className="h-12 rounded-xl border flex items-center justify-center"
-                  style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                  className="flex h-12 items-center justify-center rounded-xl border"
+                  style={{
+                    backgroundColor: 'var(--glass-bg)',
+                    borderColor: 'var(--glass-border)',
+                    color: 'var(--text-primary)',
+                  }}
                   aria-label={t('settings.lock.backspace')}
                 >
                   <span className="text-sm font-semibold">⌫</span>
@@ -117,7 +134,11 @@ export default function PinLockModal({
                 type="button"
                 onClick={() => addDigit(value)}
                 className="h-12 rounded-xl border text-base font-semibold"
-                style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                style={{
+                  backgroundColor: 'var(--glass-bg)',
+                  borderColor: 'var(--glass-border)',
+                  color: 'var(--text-primary)',
+                }}
               >
                 {value}
               </button>
@@ -130,8 +151,12 @@ export default function PinLockModal({
             type="button"
             onClick={submit}
             disabled={pin.length !== 4}
-            className="w-full h-11 rounded-xl border text-sm font-semibold disabled:opacity-50"
-            style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+            className="h-11 w-full rounded-xl border text-sm font-semibold disabled:opacity-50"
+            style={{
+              backgroundColor: 'var(--glass-bg)',
+              borderColor: 'var(--glass-border)',
+              color: 'var(--text-primary)',
+            }}
           >
             {t('settings.lock.unlock')}
           </button>

@@ -25,18 +25,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check formatting on changed files
-        shell: bash
-        run: |
-          mapfile -t files < <(
-            git diff --name-only --diff-filter=ACMR "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" \
-              | grep -E '\.(js|jsx|ts|tsx|json|css|md|yml|yaml|mjs|cjs|html)$' || true
-          )
-
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No formatter-target files changed in this PR."
-            exit 0
-          fi
-
-          printf 'Checking %s changed file(s) with Prettier\n' "${#files[@]}"
-          npx prettier --check "${files[@]}"
+      - name: Check formatting
+        run: npm run format:check

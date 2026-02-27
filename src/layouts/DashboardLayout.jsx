@@ -95,20 +95,34 @@ export default function DashboardLayout(props) {
 
   let profilingEnabled = false;
   try {
-    profilingEnabled = typeof window !== 'undefined' && window.localStorage?.getItem('tunet_profile_renders') === '1';
+    profilingEnabled =
+      typeof window !== 'undefined' &&
+      window.localStorage?.getItem('tunet_profile_renders') === '1';
   } catch {
     profilingEnabled = false;
   }
 
-  const onProfileRender = useCallback((id, phase, actualDuration, baseDuration) => {
-    if (!profilingEnabled || actualDuration < 8) return;
-    console.info(`[RenderProfile] ${id} ${phase} actual=${actualDuration.toFixed(2)}ms base=${baseDuration.toFixed(2)}ms`);
-  }, [profilingEnabled]);
+  const onProfileRender = useCallback(
+    (id, phase, actualDuration, baseDuration) => {
+      if (!profilingEnabled || actualDuration < 8) return;
+      console.info(
+        `[RenderProfile] ${id} ${phase} actual=${actualDuration.toFixed(2)}ms base=${baseDuration.toFixed(2)}ms`
+      );
+    },
+    [profilingEnabled]
+  );
 
-  const withProfiler = useCallback((id, element) => {
-    if (!profilingEnabled) return element;
-    return <Profiler id={id} onRender={onProfileRender}>{element}</Profiler>;
-  }, [profilingEnabled, onProfileRender]);
+  const withProfiler = useCallback(
+    (id, element) => {
+      if (!profilingEnabled) return element;
+      return (
+        <Profiler id={id} onRender={onProfileRender}>
+          {element}
+        </Profiler>
+      );
+    },
+    [profilingEnabled, onProfileRender]
+  );
 
   const handleShowUpdates = useCallback(() => {
     setShowConfigModal(true);
@@ -121,20 +135,30 @@ export default function DashboardLayout(props) {
   }, [setShowConfigModal, setConfigTab]);
 
   return (
-    <div className="min-h-screen font-sans selection:bg-[var(--accent-bg)] overflow-x-hidden transition-colors duration-500" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', '--font-sans': resolvedAppFontFamily, fontFamily: resolvedAppFontFamily }}>
+    <div
+      className="min-h-screen overflow-x-hidden font-sans transition-colors duration-500 selection:bg-[var(--accent-bg)]"
+      style={{
+        backgroundColor: 'var(--bg-primary)',
+        color: 'var(--text-primary)',
+        '--font-sans': resolvedAppFontFamily,
+        fontFamily: resolvedAppFontFamily,
+      }}
+    >
       <BackgroundLayer bgMode={bgMode} />
       {editMode && draggingId && touchPath && <DragOverlaySVG touchPath={touchPath} />}
       <div
         role="main"
         aria-label="Dashboard"
-        className={`relative z-10 w-full max-w-[1600px] mx-auto py-6 md:py-10 ${
+        className={`relative z-10 mx-auto w-full max-w-[1600px] py-6 md:py-10 ${
           isMobile
-            ? 'px-5 mobile-grid'
-            : (gridColCount === 1
+            ? 'mobile-grid px-5'
+            : gridColCount === 1
               ? 'px-10 sm:px-16 md:px-24'
-              : (gridColCount === 3
-                ? (dynamicGridColumns ? 'px-4 md:px-12' : 'px-4 md:px-20')
-                : 'px-6 md:px-20'))
+              : gridColCount === 3
+                ? dynamicGridColumns
+                  ? 'px-4 md:px-12'
+                  : 'px-4 md:px-20'
+                : 'px-6 md:px-20'
         } ${isCompactCards ? 'compact-cards' : ''}`}
       >
         <Header
@@ -150,11 +174,13 @@ export default function DashboardLayout(props) {
           sectionSpacing={sectionSpacing}
         >
           <div
-            className={`w-full mt-0 font-sans ${isMobile ? 'flex flex-col items-start gap-3' : 'flex items-center justify-between'}`}
+            className={`mt-0 w-full font-sans ${isMobile ? 'flex flex-col items-start gap-3' : 'flex items-center justify-between'}`}
             style={{ marginTop: `${sectionSpacing?.headerToStatus ?? 0}px` }}
           >
-            <div className={`flex flex-wrap gap-2.5 items-center min-w-0 ${isMobile ? 'scale-90 origin-left w-full' : ''}`}>
-              {(pagesConfig.header || []).map(id => personStatus(id))}
+            <div
+              className={`flex min-w-0 flex-wrap items-center gap-2.5 ${isMobile ? 'w-full origin-left scale-90' : ''}`}
+            >
+              {(pagesConfig.header || []).map((id) => personStatus(id))}
               {editMode && (
                 <button
                   onClick={() => {
@@ -163,20 +189,23 @@ export default function DashboardLayout(props) {
                       setShowAddCardModal(true);
                     });
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full border transition-all text-[10px] font-bold uppercase tracking-[0.2em]"
+                  className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold tracking-[0.2em] uppercase transition-all"
                   style={{
                     backgroundColor: 'color-mix(in srgb, var(--accent-color) 14%, transparent)',
                     borderColor: 'color-mix(in srgb, var(--accent-color) 28%, transparent)',
-                    color: 'var(--accent-color)'
+                    color: 'var(--accent-color)',
                   }}
                 >
-                  <Plus className="w-3 h-3" /> {t('addCard.type.entity')}
+                  <Plus className="h-3 w-3" /> {t('addCard.type.entity')}
                 </button>
               )}
-              {(pagesConfig.header || []).length > 0 && <div className="w-px h-8 bg-[var(--glass-border)] mx-2"></div>}
+              {(pagesConfig.header || []).length > 0 && (
+                <div className="mx-2 h-8 w-px bg-[var(--glass-border)]"></div>
+              )}
             </div>
             <div className={`min-w-0 ${isMobile ? 'w-full' : 'flex-1'}`}>
-              {withProfiler('StatusBar', (
+              {withProfiler(
+                'StatusBar',
                 <MemoStatusBar
                   entities={entities}
                   now={now}
@@ -197,17 +226,13 @@ export default function DashboardLayout(props) {
                   statusPillsConfig={statusPillsConfig}
                   isMobile={isMobile}
                 />
-              ))}
+              )}
             </div>
           </div>
         </Header>
 
         {haUnavailableVisible && (
-          <ConnectionBanner
-            oauthExpired={oauthExpired}
-            onReconnect={handleReconnect}
-            t={t}
-          />
+          <ConnectionBanner oauthExpired={oauthExpired} onReconnect={handleReconnect} t={t} />
         )}
 
         <div
@@ -244,7 +269,8 @@ export default function DashboardLayout(props) {
           />
         </div>
 
-        {withProfiler('DashboardGrid', (
+        {withProfiler(
+          'DashboardGrid',
           <MemoDashboardGrid
             page={dashboardGridPage}
             media={dashboardGridMedia}
@@ -253,9 +279,10 @@ export default function DashboardLayout(props) {
             actions={dashboardGridActions}
             t={t}
           />
-        ))}
+        )}
 
-        {withProfiler('ModalManager', (
+        {withProfiler(
+          'ModalManager',
           <MemoModalManager
             core={modalManagerCore}
             modalState={modalManagerState}
@@ -268,7 +295,7 @@ export default function DashboardLayout(props) {
             cardConfig={modalManagerCardConfig}
             mediaTick={mediaTick}
           />
-        ))}
+        )}
 
         <PinLockModal
           open={showPinLockModal}

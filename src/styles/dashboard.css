@@ -1,20 +1,44 @@
 /* Dashboard component animations and styles */
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes popupIn {
-  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 @keyframes editControlsIn {
-  from { opacity: 0; transform: scale(0.9) translateY(-5px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 .edit-controls-anim {
   animation: editControlsIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -23,9 +47,15 @@
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes editJiggle {
-  0% { transform: rotate(-0.15deg) scale(0.99); }
-  50% { transform: rotate(0.15deg) scale(0.99); }
-  100% { transform: rotate(-0.15deg) scale(0.99); }
+  0% {
+    transform: rotate(-0.15deg) scale(0.99);
+  }
+  50% {
+    transform: rotate(0.15deg) scale(0.99);
+  }
+  100% {
+    transform: rotate(-0.15deg) scale(0.99);
+  }
 }
 .popup-anim {
   animation: popupIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -51,8 +81,12 @@
   animation: shimmer 2s infinite;
 }
 @keyframes shimmer {
-  0% { left: -100%; }
-  100% { left: 100%; }
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
@@ -119,7 +153,10 @@
   border: 1px solid transparent;
   box-shadow: var(--modal-surface-shadow, 0 10px 24px rgba(0, 0, 0, 0.25));
   backdrop-filter: blur(16px);
-  transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 .popup-surface-hover:hover {
   background: var(--modal-surface-hover, var(--glass-bg-hover));
@@ -160,8 +197,13 @@
   background: color-mix(in srgb, var(--glass-bg) 85%, transparent);
   color: var(--text-secondary);
   border: none;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: transform 150ms ease, background 150ms ease, color 150ms ease;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
 }
 .modal-close:hover {
   background: color-mix(in srgb, var(--glass-bg-hover) 90%, transparent);
@@ -174,24 +216,32 @@
 .modal-close-dark {
   background: rgba(0, 0, 0, 0.55);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .modal-close-dark:hover {
   background: rgba(0, 0, 0, 0.7);
 }
 .touch-feedback {
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.25s, border-color 0.25s;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 0.25s,
+    border-color 0.25s;
   -webkit-tap-highlight-color: transparent;
 }
 .touch-feedback:hover {
   transform: translateY(-2px) scale(1.005);
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 10px 30px -5px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
   border-color: var(--glass-border) !important;
   z-index: 10;
 }
 .touch-feedback:active {
   transform: scale(0.97);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   filter: brightness(0.95);
 }
 
@@ -201,9 +251,18 @@
 }
 
 @keyframes pulse-soft {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.9; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 ::selection {
   background: var(--selection-bg, rgba(59, 130, 246, 0.3));

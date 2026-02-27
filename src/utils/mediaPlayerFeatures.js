@@ -8,17 +8,17 @@ const supportsMediaPlayerFeature = (supportedFeatures, bitMask) => {
   return (supportedFeatures & bitMask) !== 0;
 };
 
-const getMediaPlayerSupportedFeatures = (entity) => Number(entity?.attributes?.supported_features || 0);
+const getMediaPlayerSupportedFeatures = (entity) =>
+  Number(entity?.attributes?.supported_features || 0);
 
-export const canTurnMediaPlayerOn = (entity) => supportsMediaPlayerFeature(
-  getMediaPlayerSupportedFeatures(entity),
-  MEDIA_PLAYER_FEATURE.TURN_ON,
-);
+export const canTurnMediaPlayerOn = (entity) =>
+  supportsMediaPlayerFeature(getMediaPlayerSupportedFeatures(entity), MEDIA_PLAYER_FEATURE.TURN_ON);
 
-export const canTurnMediaPlayerOff = (entity) => supportsMediaPlayerFeature(
-  getMediaPlayerSupportedFeatures(entity),
-  MEDIA_PLAYER_FEATURE.TURN_OFF,
-);
+export const canTurnMediaPlayerOff = (entity) =>
+  supportsMediaPlayerFeature(
+    getMediaPlayerSupportedFeatures(entity),
+    MEDIA_PLAYER_FEATURE.TURN_OFF
+  );
 
 export const getMediaPlayerPowerAction = (entity) => {
   if (!entity) return null;

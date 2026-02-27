@@ -75,12 +75,14 @@ router.get('/', (req, res) => {
     return res.status(403).json({ error: 'Forbidden: user mismatch' });
   }
 
-  const profiles = db.prepare(
-    'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE ha_user_id = ? ORDER BY updated_at DESC'
-  ).all(ha_user_id);
+  const profiles = db
+    .prepare(
+      'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE ha_user_id = ? ORDER BY updated_at DESC'
+    )
+    .all(ha_user_id);
 
   // Parse data JSON for each profile
-  const parsed = profiles.map(p => ({
+  const parsed = profiles.map((p) => ({
     id: p.id,
     ha_user_id: p.ha_user_id,
     name: p.name,
@@ -98,9 +100,11 @@ router.get('/:id', (req, res) => {
   const requestUserId = ensureRequestUser(req, res);
   if (!requestUserId) return;
 
-  const profile = db.prepare(
-    'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
-  ).get(req.params.id, requestUserId);
+  const profile = db
+    .prepare(
+      'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
+    )
+    .get(req.params.id, requestUserId);
 
   if (!profile) {
     return res.status(404).json({ error: 'Profile not found' });
@@ -147,7 +151,9 @@ router.post('/', (req, res) => {
     'INSERT INTO profiles (id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(id, ha_user_id, name, device_label || null, plainPayload, encryptedPayload, now, now);
 
-  res.status(201).json({ id, ha_user_id, name, device_label, data, created_at: now, updated_at: now });
+  res
+    .status(201)
+    .json({ id, ha_user_id, name, device_label, data, created_at: now, updated_at: now });
 });
 
 // Update a profile
@@ -160,7 +166,9 @@ router.put('/:id', (req, res) => {
     return res.status(403).json({ error: 'Forbidden: user mismatch' });
   }
 
-  const existing = db.prepare('SELECT id FROM profiles WHERE id = ? AND ha_user_id = ?').get(req.params.id, requestUserId);
+  const existing = db
+    .prepare('SELECT id FROM profiles WHERE id = ? AND ha_user_id = ?')
+    .get(req.params.id, requestUserId);
   if (!existing) {
     return res.status(404).json({ error: 'Profile not found' });
   }
@@ -174,9 +182,12 @@ router.put('/:id', (req, res) => {
       return res.status(503).json({ error: 'Encryption is required but unavailable' });
     }
   }
-  const plainPayload = payload === null
-    ? null
-    : (shouldPersistPlaintextData() ? payload : getEncryptedOnlyPlaintextStub());
+  const plainPayload =
+    payload === null
+      ? null
+      : shouldPersistPlaintextData()
+        ? payload
+        : getEncryptedOnlyPlaintextStub();
   db.prepare(
     'UPDATE profiles SET name = CASE WHEN ? THEN ? ELSE name END, device_label = CASE WHEN ? THEN ? ELSE device_label END, data = CASE WHEN ? THEN ? ELSE data END, data_enc = CASE WHEN ? THEN ? ELSE data_enc END, updated_at = ? WHERE id = ? AND ha_user_id = ?'
   ).run(
@@ -193,9 +204,11 @@ router.put('/:id', (req, res) => {
     requestUserId
   );
 
-  const updated = db.prepare(
-    'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
-  ).get(req.params.id, requestUserId);
+  const updated = db
+    .prepare(
+      'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
+    )
+    .get(req.params.id, requestUserId);
 
   res.json({
     id: updated.id,
@@ -213,7 +226,9 @@ router.delete('/:id', (req, res) => {
   const requestUserId = ensureRequestUser(req, res);
   if (!requestUserId) return;
 
-  const result = db.prepare('DELETE FROM profiles WHERE id = ? AND ha_user_id = ?').run(req.params.id, requestUserId);
+  const result = db
+    .prepare('DELETE FROM profiles WHERE id = ? AND ha_user_id = ?')
+    .run(req.params.id, requestUserId);
   if (result.changes === 0) {
     return res.status(404).json({ error: 'Profile not found' });
   }

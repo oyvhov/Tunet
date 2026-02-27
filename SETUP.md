@@ -4,12 +4,12 @@
 
 ## Prerequisites
 
-| Requirement | Version |
-|---|---|
-| Node.js | 20+ |
-| npm | 9+ |
-| Docker (optional) | 20+ |
-| Home Assistant | Recent (2023.8+) |
+| Requirement       | Version          |
+| ----------------- | ---------------- |
+| Node.js           | 20+              |
+| npm               | 9+               |
+| Docker (optional) | 20+              |
+| Home Assistant    | Recent (2023.8+) |
 
 ## Project Structure
 
@@ -102,22 +102,23 @@ docker rm tunet-dashboard         # Remove container
 6. Optional: set a fallback URL for token mode if you expose HA internally/externally.
 
 Where data lives:
+
 - Dashboard/layout/theme/language: browser `localStorage` (`tunet_*` keys) by default; can also be saved/restored via Profiles (server-side) per HA user.
 - HA credentials: `ha_url`, `ha_token` (or OAuth tokens) stored locally.
 - Profiles: server-side SQLite (`server/db.js`, default `data/` dir).
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3002` | Backend server port |
-| `DATA_DIR` | `/app/data` | SQLite database directory |
-| `NODE_ENV` | `production` | Environment mode |
-| `VITE_PORT` | `5173` | Vite dev server port (dev only) |
-| `VITE_PROXY_TARGET` | `http://localhost:3002` | API proxy target (dev) |
-| `TUNET_ENCRYPTION_MODE` | `off` | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only` |
-| `TUNET_DATA_KEY` | _(unset)_ | Secret used for encryption when mode is `dual` or `enc_only` |
-| `TUNET_DATA_KEY_SALT` | _(unset)_ | Required only when `TUNET_DATA_KEY` is a passphrase instead of a 32-byte base64/hex key |
+| Variable                | Default                 | Description                                                                             |
+| ----------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
+| `PORT`                  | `3002`                  | Backend server port                                                                     |
+| `DATA_DIR`              | `/app/data`             | SQLite database directory                                                               |
+| `NODE_ENV`              | `production`            | Environment mode                                                                        |
+| `VITE_PORT`             | `5173`                  | Vite dev server port (dev only)                                                         |
+| `VITE_PROXY_TARGET`     | `http://localhost:3002` | API proxy target (dev)                                                                  |
+| `TUNET_ENCRYPTION_MODE` | `off`                   | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only`              |
+| `TUNET_DATA_KEY`        | _(unset)_               | Secret used for encryption when mode is `dual` or `enc_only`                            |
+| `TUNET_DATA_KEY_SALT`   | _(unset)_               | Required only when `TUNET_DATA_KEY` is a passphrase instead of a 32-byte base64/hex key |
 
 ### Data-at-rest encryption rollout (safe migration)
 
@@ -126,6 +127,7 @@ Where data lives:
 - `enc_only`: requires encrypted writes and stores only a minimal plaintext stub for new writes; reads encrypted first and only falls back to legacy plaintext rows that have no encrypted payload.
 
 Key guidance:
+
 - Use a high-entropy key (recommended: 32 random bytes encoded as base64 or 64-char hex).
 - Example base64 key generation:
 
@@ -137,20 +139,21 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 - Migration note: if you previously relied on default passphrase salt behavior, set `TUNET_DATA_KEY_SALT=tunet-data-key-v1` to preserve decrypt compatibility.
 
 Recommended rollout to avoid data loss:
+
 1. Set `TUNET_ENCRYPTION_MODE=dual` with a strong `TUNET_DATA_KEY`.
 2. Keep `dual` for at least one full release cycle.
 3. Move to `enc_only` only after confirming all rows/devices are migrated and keep the same key.
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---|---|
-| Port in use | Change the port mapping in `docker-compose.yml` |
-| Build fails | Ensure Docker has enough memory. Try `docker system prune -a` then rebuild |
+| Problem             | Solution                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Port in use         | Change the port mapping in `docker-compose.yml`                                                                           |
+| Build fails         | Ensure Docker has enough memory. Try `docker system prune -a` then rebuild                                                |
 | Native module error | The Dockerfile installs build tools automatically. If building locally, ensure `python3`, `make`, and `g++` are available |
-| Connection error | Check HA URL (no trailing `/api`) and token. For external origins ensure HA `cors_allowed_origins` includes your host |
-| Profiles not saving | Check that the backend is running (`/api/health`) |
-| History/CORS issues | Prefer WebSocket history; otherwise allow your origin in HA `cors_allowed_origins` |
+| Connection error    | Check HA URL (no trailing `/api`) and token. For external origins ensure HA `cors_allowed_origins` includes your host     |
+| Profiles not saving | Check that the backend is running (`/api/health`)                                                                         |
+| History/CORS issues | Prefer WebSocket history; otherwise allow your origin in HA `cors_allowed_origins`                                        |
 
 ## Release Workflow (Maintainers)
 
@@ -173,4 +176,3 @@ npm run release
 ```
 
 The `release:check` step is also enforced in CI on `main` PRs/pushes.
-

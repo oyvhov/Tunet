@@ -7,7 +7,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, u
   const [hoverIndex, setHoverIndex] = useState(null);
   const svgRef = useRef(null);
   if (!data || data.length === 0) return null;
-  const values = data.map(d => d.value);
+  const values = data.map((d) => d.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
@@ -23,13 +23,16 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, u
     x: values.length === 1 ? width / 2 : (i / (values.length - 1)) * width,
     y: chartBottom - ((v - min) / range) * chartHeight,
     val: v,
-    time: new Date(data[i].start).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' })
+    time: new Date(data[i].start).toLocaleTimeString(timeLocale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
   }));
 
   // Bezier smoothing helper
   const getBezierPath = (points, _isClosed = false) => {
-    if (points.length === 0) return "";
-    
+    if (points.length === 0) return '';
+
     const controlPoint = (current, previous, next, reverse) => {
       const p = previous || current;
       const n = next || current;
@@ -47,7 +50,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, u
       const lengthY = pointB.y - pointA.y;
       return {
         length: Math.sqrt(Math.pow(lengthX, 2) + Math.pow(lengthY, 2)),
-        angle: Math.atan2(lengthY, lengthX)
+        angle: Math.atan2(lengthY, lengthX),
       };
     };
 
@@ -56,7 +59,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, u
       const cps = controlPoint(a[i - 1], a[i - 2], point);
       const cpe = controlPoint(point, a[i - 1], a[i + 1], true);
       return `${acc} C ${cps.x},${cps.y} ${cpe.x},${cpe.y} ${point.x},${point.y}`;
-    }, "");
+    }, '');
 
     return d;
   };
@@ -76,37 +79,113 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, u
 
   const getDotColor = (val) => {
     const t = (val - min) / range;
-    if (t > 0.6) return "#ef4444";
-    if (t > 0.3) return "#eab308";
-    return "#3b82f6";
+    if (t > 0.6) return '#ef4444';
+    if (t > 0.3) return '#eab308';
+    return '#3b82f6';
   };
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-end mb-4 px-2">
-        <div><p className="text-[10px] tracking-widest text-gray-500 uppercase font-bold mb-0.5">{translate('power.time')}</p><p className="text-xl font-medium text-[var(--text-primary)]">{hoverPointData.time}</p></div>
-        <div className="text-right"><p className="text-[10px] tracking-widest uppercase font-bold mb-0.5" style={{color: getDotColor(hoverPointData.val)}}>{translate('power.price')}</p><p className="text-3xl font-light text-[var(--text-primary)] italic leading-none tracking-tighter">{hoverPointData.val.toFixed(2)} <span className="text-sm text-gray-600 not-italic ml-1">{currency}</span></p></div>
+      <div className="mb-4 flex items-end justify-between px-2">
+        <div>
+          <p className="mb-0.5 text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+            {translate('power.time')}
+          </p>
+          <p className="text-xl font-medium text-[var(--text-primary)]">{hoverPointData.time}</p>
+        </div>
+        <div className="text-right">
+          <p
+            className="mb-0.5 text-[10px] font-bold tracking-widest uppercase"
+            style={{ color: getDotColor(hoverPointData.val) }}
+          >
+            {translate('power.price')}
+          </p>
+          <p className="text-3xl leading-none font-light tracking-tighter text-[var(--text-primary)] italic">
+            {hoverPointData.val.toFixed(2)}{' '}
+            <span className="ml-1 text-sm text-gray-600 not-italic">{currency}</span>
+          </p>
+        </div>
       </div>
       <div className="relative h-60 w-full" onMouseLeave={() => setHoverIndex(null)}>
-        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-600 font-bold py-1 pointer-events-none"><span>{max.toFixed(0)}</span><span>{min.toFixed(0)}</span></div>
+        <div className="pointer-events-none absolute top-0 left-0 flex h-full flex-col justify-between py-1 text-xs font-bold text-gray-600">
+          <span>{max.toFixed(0)}</span>
+          <span>{min.toFixed(0)}</span>
+        </div>
         {/* "Now" indicator */}
-        <div className="absolute left-0 top-0 h-full pointer-events-none" style={{ width: '100%' }}>
-          <div 
-            className="absolute top-0 h-full border-l border-[var(--accent-color)] opacity-60" 
+        <div className="pointer-events-none absolute top-0 left-0 h-full" style={{ width: '100%' }}>
+          <div
+            className="absolute top-0 h-full border-l border-[var(--accent-color)] opacity-60"
             style={{ left: `${(currentPointData.x / width) * 100}%` }}
           >
-            <span className="absolute -top-6 -left-8 text-[10px] font-bold text-[var(--accent-color)] uppercase tracking-widest bg-[var(--card-bg)] px-2 py-0.5 rounded">Now</span>
+            <span className="absolute -top-6 -left-8 rounded bg-[var(--card-bg)] px-2 py-0.5 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
+              Now
+            </span>
           </div>
         </div>
-        <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible cursor-crosshair" onMouseMove={handleMouseMove} onTouchMove={(e) => handleMouseMove(e.touches[0])}>
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${width} ${height}`}
+          className="h-full w-full cursor-crosshair overflow-visible"
+          onMouseMove={handleMouseMove}
+          onTouchMove={(e) => handleMouseMove(e.touches[0])}
+        >
           <defs>
-            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" /><stop offset="50%" stopColor="#eab308" stopOpacity="0.2" /><stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" /></linearGradient>
-            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ef4444" /><stop offset="50%" stopColor="#eab308" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+              <stop offset="50%" stopColor="#eab308" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
+            </linearGradient>
+            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ef4444" />
+              <stop offset="50%" stopColor="#eab308" />
+              <stop offset="100%" stopColor="#3b82f6" />
+            </linearGradient>
           </defs>
-          <path d={areaData} fill="url(#areaGrad)" /><path d={pathData} fill="none" stroke="url(#lineGrad)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={areaData} fill="url(#areaGrad)" />
+          <path
+            d={pathData}
+            fill="none"
+            stroke="url(#lineGrad)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
           {/* Current time permanent indicator */}
-          <line x1={currentPointData.x} y1="0" x2={currentPointData.x} y2={height} stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1.5" strokeDasharray="3,2" />
-          {hoverPointData && <><line x1={hoverPointData.x} y1="0" x2={hoverPointData.x} y2={height} stroke={getDotColor(hoverPointData.val)} strokeWidth="2" opacity="0.4" /><circle cx={hoverPointData.x} cy={hoverPointData.y} r="5" fill={getDotColor(hoverPointData.val)} /><circle cx={hoverPointData.x} cy={hoverPointData.y} r="11" fill={getDotColor(hoverPointData.val)} fillOpacity="0.1" /></>}
+          <line
+            x1={currentPointData.x}
+            y1="0"
+            x2={currentPointData.x}
+            y2={height}
+            stroke="rgba(59, 130, 246, 0.3)"
+            strokeWidth="1.5"
+            strokeDasharray="3,2"
+          />
+          {hoverPointData && (
+            <>
+              <line
+                x1={hoverPointData.x}
+                y1="0"
+                x2={hoverPointData.x}
+                y2={height}
+                stroke={getDotColor(hoverPointData.val)}
+                strokeWidth="2"
+                opacity="0.4"
+              />
+              <circle
+                cx={hoverPointData.x}
+                cy={hoverPointData.y}
+                r="5"
+                fill={getDotColor(hoverPointData.val)}
+              />
+              <circle
+                cx={hoverPointData.x}
+                cy={hoverPointData.y}
+                r="11"
+                fill={getDotColor(hoverPointData.val)}
+                fillOpacity="0.1"
+              />
+            </>
+          )}
         </svg>
       </div>
     </div>

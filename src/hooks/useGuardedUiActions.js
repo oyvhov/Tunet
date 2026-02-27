@@ -26,46 +26,67 @@ export function useGuardedUiActions(deps) {
     });
   };
 
-  const applySettingsGuardToBooleanSetter = useCallback((show, setter) => {
-    if (!show) {
-      setter(false);
-      return;
-    }
-    requestSettingsAccess(() => {
-      setter(true);
-    });
-  }, [requestSettingsAccess]);
+  const applySettingsGuardToBooleanSetter = useCallback(
+    (show, setter) => {
+      if (!show) {
+        setter(false);
+        return;
+      }
+      requestSettingsAccess(() => {
+        setter(true);
+      });
+    },
+    [requestSettingsAccess]
+  );
 
-  const guardedSetEditMode = useCallback((nextValue) => {
-    const resolved = typeof nextValue === 'function' ? nextValue(editMode) : nextValue;
-    if (!resolved) {
-      setEditMode(false);
-      return;
-    }
-    requestSettingsAccess(() => {
-      setEditMode(true);
-    });
-  }, [editMode, requestSettingsAccess, setEditMode]);
+  const guardedSetEditMode = useCallback(
+    (nextValue) => {
+      const resolved = typeof nextValue === 'function' ? nextValue(editMode) : nextValue;
+      if (!resolved) {
+        setEditMode(false);
+        return;
+      }
+      requestSettingsAccess(() => {
+        setEditMode(true);
+      });
+    },
+    [editMode, requestSettingsAccess, setEditMode]
+  );
 
-  const guardedSetShowAddCardModal = useCallback((show) => {
-    applySettingsGuardToBooleanSetter(show, setShowAddCardModal);
-  }, [applySettingsGuardToBooleanSetter, setShowAddCardModal]);
+  const guardedSetShowAddCardModal = useCallback(
+    (show) => {
+      applySettingsGuardToBooleanSetter(show, setShowAddCardModal);
+    },
+    [applySettingsGuardToBooleanSetter, setShowAddCardModal]
+  );
 
-  const guardedSetShowConfigModal = useCallback((show) => {
-    applySettingsGuardToBooleanSetter(show, setShowConfigModal);
-  }, [applySettingsGuardToBooleanSetter, setShowConfigModal]);
+  const guardedSetShowConfigModal = useCallback(
+    (show) => {
+      applySettingsGuardToBooleanSetter(show, setShowConfigModal);
+    },
+    [applySettingsGuardToBooleanSetter, setShowConfigModal]
+  );
 
-  const guardedSetShowThemeSidebar = useCallback((show) => {
-    applySettingsGuardToBooleanSetter(show, setShowThemeSidebar);
-  }, [applySettingsGuardToBooleanSetter, setShowThemeSidebar]);
+  const guardedSetShowThemeSidebar = useCallback(
+    (show) => {
+      applySettingsGuardToBooleanSetter(show, setShowThemeSidebar);
+    },
+    [applySettingsGuardToBooleanSetter, setShowThemeSidebar]
+  );
 
-  const guardedSetShowLayoutSidebar = useCallback((show) => {
-    applySettingsGuardToBooleanSetter(show, setShowLayoutSidebar);
-  }, [applySettingsGuardToBooleanSetter, setShowLayoutSidebar]);
+  const guardedSetShowLayoutSidebar = useCallback(
+    (show) => {
+      applySettingsGuardToBooleanSetter(show, setShowLayoutSidebar);
+    },
+    [applySettingsGuardToBooleanSetter, setShowLayoutSidebar]
+  );
 
-  const guardedSetShowHeaderEditModal = useCallback((show) => {
-    applySettingsGuardToBooleanSetter(show, setShowHeaderEditModal);
-  }, [applySettingsGuardToBooleanSetter, setShowHeaderEditModal]);
+  const guardedSetShowHeaderEditModal = useCallback(
+    (show) => {
+      applySettingsGuardToBooleanSetter(show, setShowHeaderEditModal);
+    },
+    [applySettingsGuardToBooleanSetter, setShowHeaderEditModal]
+  );
 
   const guardedToggleCardVisibility = (cardId) => {
     requestSettingsAccess(() => {

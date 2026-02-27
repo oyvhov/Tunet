@@ -30,8 +30,12 @@ const SpacerCard = ({
   return (
     <div
       {...dragProps}
-      className={`relative rounded-3xl flex items-center justify-center h-full transition-all duration-300 ${editClass} ${className}`}
-      style={editMode ? cardStyle : { ...cardStyle, backgroundColor: 'transparent', borderColor: 'transparent' }}
+      className={`relative flex h-full items-center justify-center rounded-3xl transition-all duration-300 ${editClass} ${className}`}
+      style={
+        editMode
+          ? cardStyle
+          : { ...cardStyle, backgroundColor: 'transparent', borderColor: 'transparent' }
+      }
     >
       {controls}
 
@@ -39,23 +43,23 @@ const SpacerCard = ({
         <div className="w-full">
           {heading ? (
             headingAlign === 'left' ? (
-              <div className="w-full px-4 flex items-center gap-3">
-                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)] whitespace-nowrap">
+              <div className="flex w-full items-center gap-3 px-4">
+                <span className="text-[10px] font-bold tracking-[0.2em] whitespace-nowrap text-[var(--text-secondary)] uppercase">
                   {heading}
                 </span>
                 <span className="h-px flex-1 bg-[var(--text-muted)] opacity-30" />
               </div>
             ) : headingAlign === 'right' ? (
-              <div className="w-full px-4 flex items-center gap-3">
+              <div className="flex w-full items-center gap-3 px-4">
                 <span className="h-px flex-1 bg-[var(--text-muted)] opacity-30" />
-                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)] whitespace-nowrap">
+                <span className="text-[10px] font-bold tracking-[0.2em] whitespace-nowrap text-[var(--text-secondary)] uppercase">
                   {heading}
                 </span>
               </div>
             ) : (
-              <div className="w-full flex items-center gap-3">
+              <div className="flex w-full items-center gap-3">
                 <span className="h-px flex-1 bg-[var(--text-muted)] opacity-30" />
-                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)] whitespace-nowrap">
+                <span className="text-[10px] font-bold tracking-[0.2em] whitespace-nowrap text-[var(--text-secondary)] uppercase">
                   {heading}
                 </span>
                 <span className="h-px flex-1 bg-[var(--text-muted)] opacity-30" />

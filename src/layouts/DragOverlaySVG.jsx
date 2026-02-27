@@ -3,7 +3,7 @@
  */
 export default function DragOverlaySVG({ touchPath }) {
   return (
-    <svg className="fixed inset-0 pointer-events-none z-40">
+    <svg className="pointer-events-none fixed inset-0 z-40">
       <line
         x1={touchPath.startX}
         y1={touchPath.startY}

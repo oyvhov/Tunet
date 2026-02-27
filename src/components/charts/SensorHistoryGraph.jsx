@@ -23,7 +23,13 @@ const createBezierPath = (points, smoothing = 0.3) => {
   }, '');
 };
 
-export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f6", noDataLabel = "No history data available", formatXLabel }) {
+export default function SensorHistoryGraph({
+  data,
+  height = 200,
+  color = '#3b82f6',
+  noDataLabel = 'No history data available',
+  formatXLabel,
+}) {
   const hasData = Array.isArray(data) && data.length > 0;
   const safeData = hasData ? data : [];
 
@@ -34,35 +40,38 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
   const graphHeight = height - padding.top - padding.bottom;
 
   // Calculate min/max values
-  const values = safeData.map(d => d.value);
+  const values = safeData.map((d) => d.value);
   let min = Math.min(...values);
   let max = Math.max(...values);
-  
+
   if (min === max) {
     min -= 1;
     max += 1;
   }
-  
+
   // Add some padding to top of Y-axis range only
   const range = max - min;
   const renderMin = min; // No bottom padding
-  const renderMax = max + (range * 0.05);
+  const renderMax = max + range * 0.05;
   const renderRange = renderMax - renderMin;
 
   // Create points for Bezier curve
   const pointsArray = safeData.map((d, i) => [
     padding.left + (i / Math.max(safeData.length - 1, 1)) * graphWidth,
-    padding.top + graphHeight - ((d.value - renderMin) / renderRange) * graphHeight
+    padding.top + graphHeight - ((d.value - renderMin) / renderRange) * graphHeight,
   ]);
 
   const pathData = useMemo(() => createBezierPath(pointsArray, 0.3), [pointsArray]);
-  const areaData = useMemo(() => `${pathData} L ${padding.left + graphWidth},${height} L ${padding.left},${height} Z`, [pathData, padding.left, graphWidth, height]);
+  const areaData = useMemo(
+    () => `${pathData} L ${padding.left + graphWidth},${height} L ${padding.left},${height} Z`,
+    [pathData, padding.left, graphWidth, height]
+  );
 
   // Generate Y-axis labels (Max, Mid, Min)
   const yLabels = [
     { value: max, y: padding.top },
     { value: (max + min) / 2, y: padding.top + graphHeight / 2 },
-    { value: min, y: height - padding.bottom }
+    { value: min, y: height - padding.bottom },
   ];
 
   // Generate X-axis labels (Start, End + Intermediates)
@@ -75,10 +84,10 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
     const point = safeData[index];
     if (point) {
       const x = padding.left + fraction * graphWidth;
-      const label = formatXLabel 
+      const label = formatXLabel
         ? formatXLabel(new Date(point.time))
         : new Date(point.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const anchor = i === 0 ? 'start' : (i === numLabels - 1 ? 'end' : 'middle');
+      const anchor = i === 0 ? 'start' : i === numLabels - 1 ? 'end' : 'middle';
       xLabels.push({ x, label, anchor });
     }
   }
@@ -90,17 +99,17 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
 
   if (!hasData) {
     return (
-      <div className="h-[200px] flex items-center justify-center text-gray-500 text-sm">
+      <div className="flex h-[200px] items-center justify-center text-sm text-gray-500">
         {noDataLabel}
       </div>
     );
   }
 
   return (
-    <div className="w-full relative select-none">
+    <div className="relative w-full select-none">
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-full overflow-visible"
+        className="h-full w-full overflow-visible"
         preserveAspectRatio="none"
       >
         <defs>
@@ -110,14 +119,14 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
             <stop offset="50%" stopColor={color} stopOpacity="0.12" />
             <stop offset="100%" stopColor={color} stopOpacity="0.02" />
           </linearGradient>
-          
+
           {/* Fade mask for smooth bottom edge */}
           <linearGradient id={fadeGradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="white" stopOpacity="1" />
             <stop offset="80%" stopColor="white" stopOpacity="0.6" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </linearGradient>
-          
+
           <mask id={maskId}>
             <rect x="0" y="0" width={width} height={height} fill={`url(#${fadeGradientId})`} />
           </mask>
@@ -159,8 +168,8 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
             y={label.y}
             textAnchor="end"
             dominantBaseline="middle"
-            className="text-[10px] fill-current opacity-60 font-mono tracking-tighter"
-            style={{fill: 'var(--text-secondary)'}}
+            className="fill-current font-mono text-[10px] tracking-tighter opacity-60"
+            style={{ fill: 'var(--text-secondary)' }}
           >
             {label.value.toFixed(1)}
           </text>
@@ -173,8 +182,8 @@ export default function SensorHistoryGraph({ data, height = 200, color = "#3b82f
             x={l.x}
             y={height - 5}
             textAnchor={l.anchor}
-            className="text-[10px] fill-current opacity-60 font-mono tracking-tighter"
-            style={{fill: 'var(--text-secondary)'}}
+            className="fill-current font-mono text-[10px] tracking-tighter opacity-60"
+            style={{ fill: 'var(--text-secondary)' }}
           >
             {l.label}
           </text>

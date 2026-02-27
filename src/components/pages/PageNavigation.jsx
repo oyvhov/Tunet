@@ -4,7 +4,7 @@ import { getIconComponent } from '../../icons';
 
 /**
  * PageNavigation - Navigation component for switching between pages
- * 
+ *
  * @param {Object} props
  * @param {Array} props.pages - Array of page objects with id, label, icon
  * @param {Object} props.pageSettings - Settings for each page (label, icon, hidden)
@@ -27,7 +27,7 @@ export default function PageNavigation({
   editMode,
   setEditingPage,
   setShowAddPageModal,
-  t
+  t,
 }) {
   const [dragOverId, setDragOverId] = useState(null);
   const pageOrder = pagesConfig?.pages || [];
@@ -45,21 +45,21 @@ export default function PageNavigation({
   };
 
   return (
-    <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide flex-1 min-w-0">
-      {pages.map(page => {
+    <div className="scrollbar-hide flex min-w-0 flex-1 items-center gap-4 overflow-x-auto pb-2">
+      {pages.map((page) => {
         const settings = pageSettings[page.id] || {};
         const label = settings.label || page.label;
         const isHidden = settings.hidden;
-        const Icon = settings.icon ? (getIconComponent(settings.icon) || page.icon) : page.icon;
+        const Icon = settings.icon ? getIconComponent(settings.icon) || page.icon : page.icon;
         const isDragOver = dragOverId === page.id;
-        
+
         if (!editMode && isHidden) return null;
-        
+
         return (
           <button
             key={page.id}
             draggable={editMode}
-            onClick={() => editMode ? setEditingPage(page.id) : setActivePage(page.id)}
+            onClick={() => (editMode ? setEditingPage(page.id) : setActivePage(page.id))}
             onDragStart={(event) => {
               if (!editMode) return;
               event.dataTransfer.effectAllowed = 'move';
@@ -83,25 +83,27 @@ export default function PageNavigation({
               movePage(sourceId, page.id);
             }}
             onDragEnd={() => setDragOverId(null)}
-            className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl sm:rounded-full transition-all font-bold uppercase tracking-widest text-[10px] sm:text-xs whitespace-nowrap border ${
-              activePage === page.id 
-                ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] border-[var(--glass-border)]' 
-                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-transparent hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-            } ${editMode && isHidden ? 'opacity-50 border-gray-500 scale-95' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-[var(--accent-color)]' : ''}`}
+            className={`flex items-center gap-1.5 rounded-2xl border px-4 py-2 text-[10px] font-bold tracking-widest whitespace-nowrap uppercase transition-all sm:gap-2 sm:rounded-full sm:px-5 sm:py-2.5 sm:text-xs ${
+              activePage === page.id
+                ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]'
+                : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+            } ${editMode && isHidden ? 'scale-95 border-gray-500 opacity-50' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-[var(--accent-color)]' : ''}`}
           >
-            <Icon className={`w-4 h-4 ${editMode && isHidden ? 'animate-pulse' : ''}`} />
+            <Icon className={`h-4 w-4 ${editMode && isHidden ? 'animate-pulse' : ''}`} />
             <span className="hidden sm:inline">{label}</span>
-            {editMode && <Edit2 className="w-4 h-4 ml-1 text-[var(--accent-color)] hidden sm:inline" />}
+            {editMode && (
+              <Edit2 className="ml-1 hidden h-4 w-4 text-[var(--accent-color)] sm:inline" />
+            )}
           </button>
         );
       })}
-      
+
       {editMode && (
         <button
           onClick={() => setShowAddPageModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-2xl sm:rounded-full font-bold uppercase tracking-[0.2em] text-[10px] whitespace-nowrap border-2 bg-white/5 text-white border-white/20 hover:bg-white/10 hover:border-white/30 transition-all"
+          className="flex items-center gap-1.5 rounded-2xl border-2 border-white/20 bg-white/5 px-3 py-1 text-[10px] font-bold tracking-[0.2em] whitespace-nowrap text-white uppercase transition-all hover:border-white/30 hover:bg-white/10 sm:rounded-full"
         >
-          <Plus className="w-3 h-3" />
+          <Plus className="h-3 w-3" />
           <span className="hidden sm:inline">{t('nav.addPage')}</span>
         </button>
       )}

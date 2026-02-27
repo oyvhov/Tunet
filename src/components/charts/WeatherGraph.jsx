@@ -40,7 +40,12 @@ const smoothData = (data, windowSize = 3) => {
   });
 };
 
-export default function WeatherGraph({ history, currentTemp, historyHours = 12, colorLimits = [0, 10, 20, 28] }) {
+export default function WeatherGraph({
+  history,
+  currentTemp,
+  historyHours = 12,
+  colorLimits = [0, 10, 20, 28],
+}) {
   const gradientIdBase = useId().replace(/:/g, '');
   const width = 800;
   const height = 200;
@@ -55,33 +60,33 @@ export default function WeatherGraph({ history, currentTemp, historyHours = 12, 
 
     // Process history
     let points = history
-        .map(d => ({
-          time: new Date(d.last_updated),
-          temp: parseFloat(d.state),
-        }))
-        .filter(p => !isNaN(p.temp) && p.time >= historyAgo)
-        .sort((a, b) => a.time - b.time);
+      .map((d) => ({
+        time: new Date(d.last_updated),
+        temp: parseFloat(d.state),
+      }))
+      .filter((p) => !isNaN(p.temp) && p.time >= historyAgo)
+      .sort((a, b) => a.time - b.time);
 
     // Add current time point
     if (currentTemp !== undefined && !isNaN(currentTemp)) {
-        const now = new Date();
-        
-        // Check if we already have a point very close to now (within 1 minute)
-        const hasClosePoint = points.some(p => Math.abs(p.time - now) < 60000);
-        
-        if (!hasClosePoint) {
-            points.push({
-                time: now,
-                temp: parseFloat(currentTemp)
-            });
-            // Re-sort to place current temp correctly (e.g. between history and forecast)
-            points.sort((a, b) => a.time - b.time);
-        }
+      const now = new Date();
+
+      // Check if we already have a point very close to now (within 1 minute)
+      const hasClosePoint = points.some((p) => Math.abs(p.time - now) < 60000);
+
+      if (!hasClosePoint) {
+        points.push({
+          time: now,
+          temp: parseFloat(currentTemp),
+        });
+        // Re-sort to place current temp correctly (e.g. between history and forecast)
+        points.sort((a, b) => a.time - b.time);
+      }
     }
 
     // Downsample: if there are many points, take every other to reduce noise
     if (points.length > 40) {
-        points = points.filter((_, i) => i % 2 === 0);
+      points = points.filter((_, i) => i % 2 === 0);
     }
 
     // Use moving average to smooth the curve
@@ -89,10 +94,18 @@ export default function WeatherGraph({ history, currentTemp, historyHours = 12, 
   }, [history, currentTemp, historyHours]);
 
   // Ensure we always have data to plot, even if just dummy data to show the grid
-  const plotData = data.length === 1 ? [data[0], { ...data[0], time: new Date(data[0].time.getTime() + 1000) }] : (data.length === 0 ? [{time: new Date(), temp: 0}, {time: new Date(Date.now() + 1000), temp: 0}] : data);
+  const plotData =
+    data.length === 1
+      ? [data[0], { ...data[0], time: new Date(data[0].time.getTime() + 1000) }]
+      : data.length === 0
+        ? [
+            { time: new Date(), temp: 0 },
+            { time: new Date(Date.now() + 1000), temp: 0 },
+          ]
+        : data;
 
-  const minTemp = Math.min(...plotData.map(d => d.temp));
-  const maxTemp = Math.max(...plotData.map(d => d.temp));
+  const minTemp = Math.min(...plotData.map((d) => d.temp));
+  const maxTemp = Math.max(...plotData.map((d) => d.temp));
 
   // Add dynamic padding based on data interval
   const baseRange = maxTemp - minTemp || 1;
@@ -113,13 +126,13 @@ export default function WeatherGraph({ history, currentTemp, historyHours = 12, 
   const getY = (temp) => chartBottom - ((temp - yMin) / yRange) * chartHeight;
 
   // Generate points and smooth path
-  const points = plotData.map(p => [getX(p.time), getY(p.temp)]);
+  const points = plotData.map((p) => [getX(p.time), getY(p.temp)]);
   const smoothPath = getSvgPath(points);
 
   // Generate fill area
   // Extend way below height to cover rounded corners fully
   const extendedHeight = chartBottom + 40;
-  const dArea = `${smoothPath} L ${points[points.length-1][0]},${extendedHeight} L ${points[0][0]},${extendedHeight} Z`;
+  const dArea = `${smoothPath} L ${points[points.length - 1][0]},${extendedHeight} L ${points[0][0]},${extendedHeight} Z`;
 
   const sortedLimits = useMemo(() => {
     const values = Array.isArray(colorLimits) ? colorLimits : [0, 10, 20, 28];
@@ -149,11 +162,13 @@ export default function WeatherGraph({ history, currentTemp, historyHours = 12, 
       .filter((temp) => temp >= yMin && temp <= yMax)
       .sort((a, b) => a - b);
 
-    const deduped = thresholds.filter((temp, index, arr) => index === 0 || Math.abs(temp - arr[index - 1]) > 0.001);
+    const deduped = thresholds.filter(
+      (temp, index, arr) => index === 0 || Math.abs(temp - arr[index - 1]) > 0.001
+    );
 
     return deduped.map((temp) => ({
       offset: `${Math.max(0, Math.min(100, ((temp - yMin) / yRange) * 100)).toFixed(2)}%`,
-      color: getColorForTemp(temp)
+      color: getColorForTemp(temp),
     }));
   }, [yMin, yMax, yRange, sortedLimits]);
 
@@ -162,41 +177,83 @@ export default function WeatherGraph({ history, currentTemp, historyHours = 12, 
   const fillMaskId = `${gradientIdBase}-fill-mask`;
 
   return (
-    <div className="w-full h-full relative">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
+    <div className="relative h-full w-full">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-full w-full overflow-visible"
+        preserveAspectRatio="none"
+      >
         <defs>
-          <linearGradient id={weatherGradientId} x1="0" y1={chartBottom} x2="0" y2={chartTop} gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id={weatherGradientId}
+            x1="0"
+            y1={chartBottom}
+            x2="0"
+            y2={chartTop}
+            gradientUnits="userSpaceOnUse"
+          >
             {colorStops.map((stop) => (
-              <stop key={`${stop.offset}-${stop.color}`} offset={stop.offset} stopColor={stop.color} />
+              <stop
+                key={`${stop.offset}-${stop.color}`}
+                offset={stop.offset}
+                stopColor={stop.color}
+              />
             ))}
           </linearGradient>
-          
+
           {/* Enhanced fade mask for smoother bottom edge */}
           <linearGradient id={fillFadeId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="white" stopOpacity="0.8" />
             <stop offset="60%" stopColor="white" stopOpacity="0.3" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </linearGradient>
-          
+
           <mask id={fillMaskId}>
-             <rect x="0" y="0" width={width} height={height} fill={`url(#${fillFadeId})`} />
+            <rect x="0" y="0" width={width} height={height} fill={`url(#${fillFadeId})`} />
           </mask>
         </defs>
 
         {/* Fill under the graph */}
-        <path d={dArea} fill={`url(#${weatherGradientId})`} mask={`url(#${fillMaskId})`} opacity="0.85" />
+        <path
+          d={dArea}
+          fill={`url(#${weatherGradientId})`}
+          mask={`url(#${fillMaskId})`}
+          opacity="0.85"
+        />
 
         {/* Full line — Bezier curve with gradient */}
-        <path d={smoothPath} fill="none" stroke={`url(#${weatherGradientId})`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />
-        
+        <path
+          d={smoothPath}
+          fill="none"
+          stroke={`url(#${weatherGradientId})`}
+          strokeWidth="4.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.95"
+        />
+
         {/* Dot for current temperature */}
         {!isNaN(currentTemp) && (
           <>
-            <circle cx={points[points.length-1][0]} cy={points[points.length-1][1]} r="6" fill="var(--card-bg)" stroke={`url(#${weatherGradientId})`} strokeWidth="4" />
-            <circle cx={points[points.length-1][0]} cy={points[points.length-1][1]} r="8" fill="none" stroke={`url(#${weatherGradientId})`} strokeWidth="2" opacity="0.3" />
+            <circle
+              cx={points[points.length - 1][0]}
+              cy={points[points.length - 1][1]}
+              r="6"
+              fill="var(--card-bg)"
+              stroke={`url(#${weatherGradientId})`}
+              strokeWidth="4"
+            />
+            <circle
+              cx={points[points.length - 1][0]}
+              cy={points[points.length - 1][1]}
+              r="8"
+              fill="none"
+              stroke={`url(#${weatherGradientId})`}
+              strokeWidth="2"
+              opacity="0.3"
+            />
           </>
         )}
-
       </svg>
     </div>
   );

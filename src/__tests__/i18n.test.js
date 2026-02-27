@@ -12,8 +12,14 @@ const expectParityWithEnglish = (targetTranslations, languageCode) => {
   const missingInTarget = enKeys.filter((key) => !targetKeys.includes(key));
   const extraInTarget = targetKeys.filter((key) => !enKeys.includes(key));
 
-  expect(missingInTarget, `Keys in en.json missing from ${languageCode}.json: ${missingInTarget.join(', ')}`).toHaveLength(0);
-  expect(extraInTarget, `Keys in ${languageCode}.json missing from en.json: ${extraInTarget.join(', ')}`).toHaveLength(0);
+  expect(
+    missingInTarget,
+    `Keys in en.json missing from ${languageCode}.json: ${missingInTarget.join(', ')}`
+  ).toHaveLength(0);
+  expect(
+    extraInTarget,
+    `Keys in ${languageCode}.json missing from en.json: ${extraInTarget.join(', ')}`
+  ).toHaveLength(0);
 
   enKeys.forEach((key) => {
     const enPlaceholders = getPlaceholders(en[key]);

@@ -23,12 +23,7 @@ const ENTITY_SETTING_KEYS = [
   'mediaEntityId',
 ];
 
-const ENTITY_ARRAY_SETTING_KEYS = [
-  'entityIds',
-  'mediaIds',
-  'linkedMediaPlayers',
-  'calendars',
-];
+const ENTITY_ARRAY_SETTING_KEYS = ['entityIds', 'mediaIds', 'linkedMediaPlayers', 'calendars'];
 
 const ENTITY_ID_PATTERN = /^[a-z0-9_]+\.[a-z0-9_]+(?:[a-z0-9_\-.]*)$/i;
 
@@ -63,7 +58,10 @@ export function normalizeVisibilityConditionConfig(condition) {
 
   if (Array.isArray(condition.rules)) {
     const rules = condition.rules
-      .filter((rule) => !!(rule && typeof rule === 'object' && typeof rule.type === 'string' && rule.type.trim()))
+      .filter(
+        (rule) =>
+          !!(rule && typeof rule === 'object' && typeof rule.type === 'string' && rule.type.trim())
+      )
       .slice(0, 2)
       .map((rule) => ({ ...rule }));
     const enabled = condition.enabled !== false;
@@ -90,9 +88,7 @@ export function normalizeVisibilityConditionConfig(condition) {
 
 function parseStates(states) {
   if (Array.isArray(states)) {
-    return states
-      .map((state) => String(state).trim())
-      .filter(Boolean);
+    return states.map((state) => String(state).trim()).filter(Boolean);
   }
 
   if (typeof states === 'string') {
@@ -134,18 +130,14 @@ export function evaluateEntityCondition({ condition, entity, getAttribute }) {
   if (type === 'state') {
     const expectedStates = parseStates(states);
     matchesBase = expectedStates.length === 0 ? true : expectedStates.includes(entity.state);
-  }
-
-  else if (type === 'not_state') {
+  } else if (type === 'not_state') {
     const expectedStates = parseStates(states);
     matchesBase = expectedStates.length === 0 ? true : !expectedStates.includes(entity.state);
-  }
-
-  else if (type === 'numeric') {
+  } else if (type === 'numeric') {
     const sourceValue = attribute
-      ? (getAttribute
+      ? getAttribute
         ? getAttribute(entity.entity_id, attribute)
-        : entity.attributes?.[attribute])
+        : entity.attributes?.[attribute]
       : entity.state;
     const numericValue = parseFloat(sourceValue);
     const compareValue = parseFloat(value);
@@ -153,9 +145,7 @@ export function evaluateEntityCondition({ condition, entity, getAttribute }) {
     matchesBase = !(Number.isNaN(numericValue) || Number.isNaN(compareValue))
       ? evaluateNumeric(usedOperator, numericValue, compareValue)
       : false;
-  }
-
-  else if (type === 'attribute') {
+  } else if (type === 'attribute') {
     const attrName = typeof attribute === 'string' ? attribute.trim() : '';
     if (!attrName) {
       matchesBase = false;
@@ -164,7 +154,8 @@ export function evaluateEntityCondition({ condition, entity, getAttribute }) {
         ? getAttribute(entity.entity_id, attrName)
         : entity.attributes?.[attrName];
       if (value === undefined || value === null || value === '') {
-        matchesBase = attrValue !== undefined && attrValue !== null && String(attrValue).trim() !== '';
+        matchesBase =
+          attrValue !== undefined && attrValue !== null && String(attrValue).trim() !== '';
       } else {
         matchesBase = String(attrValue) === String(value);
       }
@@ -176,27 +167,39 @@ export function evaluateEntityCondition({ condition, entity, getAttribute }) {
   const durationSeconds = Number(forSeconds);
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return true;
 
-  const referenceTimestampRaw = (type === 'attribute' || (type === 'numeric' && attribute))
-    ? (entity.last_updated || entity.last_changed)
-    : entity.last_changed;
+  const referenceTimestampRaw =
+    type === 'attribute' || (type === 'numeric' && attribute)
+      ? entity.last_updated || entity.last_changed
+      : entity.last_changed;
   if (!referenceTimestampRaw) return false;
 
   const referenceTimestamp = Date.parse(referenceTimestampRaw);
   if (!Number.isFinite(referenceTimestamp)) return false;
 
-  return (Date.now() - referenceTimestamp) >= durationSeconds * 1000;
+  return Date.now() - referenceTimestamp >= durationSeconds * 1000;
 }
 
-export function evaluateVisibilityConditionConfig({ condition, entity, entities, getAttribute, fallbackEntityId }) {
+export function evaluateVisibilityConditionConfig({
+  condition,
+  entity,
+  entities,
+  getAttribute,
+  fallbackEntityId,
+}) {
   const normalized = normalizeVisibilityConditionConfig(condition);
   if (!normalized.enabled) return true;
   if (normalized.rules.length === 0) return true;
   const resolvedFallbackEntityId = fallbackEntityId || entity?.entity_id || null;
 
   const resolveRuleEntity = (rule) => {
-    const explicitRuleEntityId = typeof rule?.entityId === 'string' && rule.entityId.trim() ? rule.entityId.trim() : null;
-    const explicitConfigEntityId = typeof normalized.entityId === 'string' && normalized.entityId.trim() ? normalized.entityId.trim() : null;
-    const targetEntityId = explicitRuleEntityId || explicitConfigEntityId || resolvedFallbackEntityId;
+    const explicitRuleEntityId =
+      typeof rule?.entityId === 'string' && rule.entityId.trim() ? rule.entityId.trim() : null;
+    const explicitConfigEntityId =
+      typeof normalized.entityId === 'string' && normalized.entityId.trim()
+        ? normalized.entityId.trim()
+        : null;
+    const targetEntityId =
+      explicitRuleEntityId || explicitConfigEntityId || resolvedFallbackEntityId;
 
     if (targetEntityId && entities && entities[targetEntityId]) {
       return entities[targetEntityId];
@@ -209,11 +212,13 @@ export function evaluateVisibilityConditionConfig({ condition, entity, entities,
     return null;
   };
 
-  const results = normalized.rules.map((rule) => evaluateEntityCondition({
-    condition: rule,
-    entity: resolveRuleEntity(rule),
-    getAttribute,
-  }));
+  const results = normalized.rules.map((rule) =>
+    evaluateEntityCondition({
+      condition: rule,
+      entity: resolveRuleEntity(rule),
+      getAttribute,
+    })
+  );
   if (results.length === 1) return results[0];
 
   if (normalized.logic === 'OR') {

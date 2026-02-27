@@ -22,16 +22,16 @@ export default class CardErrorBoundary extends Component {
     if (this.state.hasError) {
       const { t, cardId } = this.props;
       return (
-        <div className="h-full rounded-2xl border border-red-500/20 bg-red-500/5 flex flex-col items-center justify-center p-4 text-center gap-2">
-          <div className="text-red-400 text-xs font-bold uppercase tracking-widest">
+        <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-center">
+          <div className="text-xs font-bold tracking-widest text-red-400 uppercase">
             {t?.('error.cardCrash') || 'Card Error'}
           </div>
-          <div className="text-[var(--text-muted)] text-[10px] font-mono truncate max-w-full">
+          <div className="max-w-full truncate font-mono text-[10px] text-[var(--text-muted)]">
             {cardId}
           </div>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="mt-1 px-3 py-1 rounded-lg bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors border border-red-500/20"
+            className="mt-1 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1 text-[10px] font-bold tracking-wider text-red-400 uppercase transition-colors hover:bg-red-500/20"
           >
             {t?.('error.retry') || 'Retry'}
           </button>

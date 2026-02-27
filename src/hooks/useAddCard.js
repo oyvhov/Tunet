@@ -121,72 +121,105 @@ export function useAddCard({
   };
 
   const getAddCardNoneLeftLabel = () => {
-    const itemKey = addCardTargetPage === 'header'
-      ? 'addCard.item.people'
-      : addCardTargetPage === 'settings'
-        ? 'addCard.item.entities'
-        : addCardType === 'vacuum'
-          ? 'addCard.item.vacuums'
-          : addCardType === 'fan'
-            ? 'addCard.item.fans'
-          : addCardType === 'camera'
-            ? 'addCard.item.cameras'
-          : addCardType === 'climate'
-            ? 'addCard.item.climates'
-            : addCardType === 'cover'
-              ? 'addCard.item.covers'
-            : addCardType === 'alarm'
-              ? 'addCard.item.alarms'
-            : addCardType === 'cost'
-              ? 'addCard.item.costs'
-          : addCardType === 'media'
-            ? 'addCard.item.players'
-            : addCardType === 'car'
-              ? 'addCard.item.cars'
-            : addCardType === 'toggle'
-              ? 'addCard.item.toggles'
-            : addCardType === 'sensor'
-              ? 'addCard.item.sensors'
-              : addCardType === 'entity'
-                ? 'addCard.item.entities'
-                : 'addCard.item.lights';
+    const itemKey =
+      addCardTargetPage === 'header'
+        ? 'addCard.item.people'
+        : addCardTargetPage === 'settings'
+          ? 'addCard.item.entities'
+          : addCardType === 'vacuum'
+            ? 'addCard.item.vacuums'
+            : addCardType === 'fan'
+              ? 'addCard.item.fans'
+              : addCardType === 'camera'
+                ? 'addCard.item.cameras'
+                : addCardType === 'climate'
+                  ? 'addCard.item.climates'
+                  : addCardType === 'cover'
+                    ? 'addCard.item.covers'
+                    : addCardType === 'alarm'
+                      ? 'addCard.item.alarms'
+                      : addCardType === 'cost'
+                        ? 'addCard.item.costs'
+                        : addCardType === 'media'
+                          ? 'addCard.item.players'
+                          : addCardType === 'car'
+                            ? 'addCard.item.cars'
+                            : addCardType === 'toggle'
+                              ? 'addCard.item.toggles'
+                              : addCardType === 'sensor'
+                                ? 'addCard.item.sensors'
+                                : addCardType === 'entity'
+                                  ? 'addCard.item.entities'
+                                  : 'addCard.item.lights';
 
     return t('addCard.noneLeft').replace('{item}', t(itemKey));
   };
 
   // ── Submit handler ─────────────────────────────────────────────────────
-  const onAddSelected = (options = {}) => handleAddSelected({
-    pagesConfig, persistConfig, addCardTargetPage, addCardType,
-    selectedEntities, selectedWeatherId, selectedTempId,
-    selectedAndroidTVMediaId, selectedAndroidTVRemoteId,
-    selectedCostTodayId, selectedCostMonthId,
-    selectedNordpoolId, nordpoolDecimals,
-    selectedSpacerVariant: options.spacerVariant || selectedSpacerVariant,
-    cardSettings, persistCardSettings, getCardSettingsKey,
-    setSelectedEntities, setShowAddCardModal,
-    setSelectedWeatherId, setSelectedTempId,
-    setSelectedAndroidTVMediaId, setSelectedAndroidTVRemoteId,
-    setSelectedCostTodayId, setSelectedCostMonthId,
-    setCostSelectionTarget, setSelectedNordpoolId,
-    setNordpoolDecimals, saveCardSetting,
-    setShowEditCardModal, setEditCardSettingsKey,
-  });
+  const onAddSelected = (options = {}) =>
+    handleAddSelected({
+      pagesConfig,
+      persistConfig,
+      addCardTargetPage,
+      addCardType,
+      selectedEntities,
+      selectedWeatherId,
+      selectedTempId,
+      selectedAndroidTVMediaId,
+      selectedAndroidTVRemoteId,
+      selectedCostTodayId,
+      selectedCostMonthId,
+      selectedNordpoolId,
+      nordpoolDecimals,
+      selectedSpacerVariant: options.spacerVariant || selectedSpacerVariant,
+      cardSettings,
+      persistCardSettings,
+      getCardSettingsKey,
+      setSelectedEntities,
+      setShowAddCardModal,
+      setSelectedWeatherId,
+      setSelectedTempId,
+      setSelectedAndroidTVMediaId,
+      setSelectedAndroidTVRemoteId,
+      setSelectedCostTodayId,
+      setSelectedCostMonthId,
+      setCostSelectionTarget,
+      setSelectedNordpoolId,
+      setNordpoolDecimals,
+      saveCardSetting,
+      setShowEditCardModal,
+      setEditCardSettingsKey,
+    });
 
   return {
-    addCardTargetPage, setAddCardTargetPage,
-    addCardType, setAddCardType,
-    searchTerm, setSearchTerm,
-    selectedEntities, setSelectedEntities,
-    selectedWeatherId, setSelectedWeatherId,
-    selectedTempId, setSelectedTempId,
-    selectedAndroidTVMediaId, setSelectedAndroidTVMediaId,
-    selectedAndroidTVRemoteId, setSelectedAndroidTVRemoteId,
-    selectedCostTodayId, setSelectedCostTodayId,
-    selectedCostMonthId, setSelectedCostMonthId,
-    costSelectionTarget, setCostSelectionTarget,
-    selectedNordpoolId, setSelectedNordpoolId,
-    nordpoolDecimals, setNordpoolDecimals,
-    selectedSpacerVariant, setSelectedSpacerVariant,
+    addCardTargetPage,
+    setAddCardTargetPage,
+    addCardType,
+    setAddCardType,
+    searchTerm,
+    setSearchTerm,
+    selectedEntities,
+    setSelectedEntities,
+    selectedWeatherId,
+    setSelectedWeatherId,
+    selectedTempId,
+    setSelectedTempId,
+    selectedAndroidTVMediaId,
+    setSelectedAndroidTVMediaId,
+    selectedAndroidTVRemoteId,
+    setSelectedAndroidTVRemoteId,
+    selectedCostTodayId,
+    setSelectedCostTodayId,
+    selectedCostMonthId,
+    setSelectedCostMonthId,
+    costSelectionTarget,
+    setCostSelectionTarget,
+    selectedNordpoolId,
+    setSelectedNordpoolId,
+    nordpoolDecimals,
+    setNordpoolDecimals,
+    selectedSpacerVariant,
+    setSelectedSpacerVariant,
     onAddSelected,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,

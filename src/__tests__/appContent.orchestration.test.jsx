@@ -12,10 +12,18 @@ const mockFns = {
 vi.mock('../layouts', () => ({
   DashboardLayout: (props) => (
     <div>
-      <button data-testid="page-switch" onClick={() => props.setActivePage('kitchen')}>switch</button>
-      <button data-testid="edit-on" onClick={() => props.guardedSetEditMode(true)}>edit</button>
-      <button data-testid="modal-open" onClick={() => props.guardedSetShowAddCardModal(true)}>open</button>
-      <button data-testid="modal-close" onClick={() => props.guardedSetShowAddCardModal(false)}>close</button>
+      <button data-testid="page-switch" onClick={() => props.setActivePage('kitchen')}>
+        switch
+      </button>
+      <button data-testid="edit-on" onClick={() => props.guardedSetEditMode(true)}>
+        edit
+      </button>
+      <button data-testid="modal-open" onClick={() => props.guardedSetShowAddCardModal(true)}>
+        open
+      </button>
+      <button data-testid="modal-close" onClick={() => props.guardedSetShowAddCardModal(false)}>
+        close
+      </button>
     </div>
   ),
 }));
@@ -226,9 +234,19 @@ vi.mock('../hooks', () => ({
     deletePage: vi.fn(),
     removeCard: vi.fn(),
   }),
-  useDashboardEffects: () => ({ now: new Date('2026-01-01T00:00:00Z'), mediaTick: 0, optimisticLightBrightness: {}, setOptimisticLightBrightness: vi.fn() }),
+  useDashboardEffects: () => ({
+    now: new Date('2026-01-01T00:00:00Z'),
+    mediaTick: 0,
+    optimisticLightBrightness: {},
+    setOptimisticLightBrightness: vi.fn(),
+  }),
   usePageRouting: () => ({ activePage: 'home', setActivePage: mockFns.setActivePage }),
-  useCardRendering: () => ({ renderCard: vi.fn(), gridLayout: {}, draggingId: null, touchPath: null }),
+  useCardRendering: () => ({
+    renderCard: vi.fn(),
+    gridLayout: {},
+    draggingId: null,
+    touchPath: null,
+  }),
   useAppComposition: () => ({
     dashboardGridPage: {},
     dashboardGridMedia: {},
@@ -270,7 +288,10 @@ vi.mock('../hooks', () => ({
     updateCount: 0,
     resetToHome: vi.fn(),
     pageDefaults: { home: { label: 'Home' } },
-    pages: [{ id: 'home', label: 'Home' }, { id: 'kitchen', label: 'kitchen' }],
+    pages: [
+      { id: 'home', label: 'Home' },
+      { id: 'kitchen', label: 'kitchen' },
+    ],
     getCardSettingsKey: (cardId, pageId = 'home') => `${pageId}::${cardId}`,
     isCardRemovable: vi.fn(() => true),
     isCardHiddenByLogic: vi.fn(() => false),
