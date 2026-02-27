@@ -118,8 +118,6 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     entities,
     entitiesLoaded,
     connected,
-    haUnavailableVisible,
-    oauthExpired,
     conn,
     activeUrl,
     authRef,

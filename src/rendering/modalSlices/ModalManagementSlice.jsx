@@ -40,7 +40,6 @@ export function ModalManagementSlice({
     setShowEditCardModal: setEditCardModalVisibility,
     showStatusPillsConfig,
     setShowStatusPillsConfig,
-    editCardSettingsKey,
     setEditCardSettingsKey,
   } = modals;
   const {
