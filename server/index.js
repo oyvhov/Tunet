@@ -101,11 +101,15 @@ if (isProduction) {
       return res.status(503).send('Frontend unavailable');
     };
 
-    app.use('/assets', assetsRateLimiter, express.static(assetsPath, {
-      fallthrough: true,
-      immutable: true,
-      maxAge: '1y',
-    }));
+    app.use(
+      '/assets',
+      assetsRateLimiter,
+      express.static(assetsPath, {
+        fallthrough: true,
+        immutable: true,
+        maxAge: '1y',
+      })
+    );
 
     app.get('/assets/*', assetsRateLimiter, (req, res, next) => {
       const requested = basename(req.path || '');
