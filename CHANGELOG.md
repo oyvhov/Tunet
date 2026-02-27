@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - Room Card (BETA) enhancements: oversized icon watermark option, Home Assistant area-icon default/fallback handling, and richer room popup grouping/controls.
 - Bulk Room Card add flow in Add Card modal (select and add multiple rooms at once).
+- [Feature] Ability to filter entities using labels (#76).
 - Room entities utility coverage with dedicated unit tests.
 
 ### Changed
