@@ -11,6 +11,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3002', 10);
 const isProduction = process.env.NODE_ENV === 'production';
 
+const assetsRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs for asset routes
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const packageJsonPath = join(__dirname, '..', 'package.json');
 let appVersion = 'unknown';
 try {
@@ -95,16 +101,13 @@ if (isProduction) {
       return res.status(503).send('Frontend unavailable');
     };
 
-    app.use(
-      '/assets',
-      express.static(assetsPath, {
-        fallthrough: true,
-        immutable: true,
-        maxAge: '1y',
-      })
-    );
+    app.use('/assets', assetsRateLimiter, express.static(assetsPath, {
+      fallthrough: true,
+      immutable: true,
+      maxAge: '1y',
+    }));
 
-    app.get('/assets/*', (req, res, next) => {
+    app.get('/assets/*', assetsRateLimiter, (req, res, next) => {
       const requested = basename(req.path || '');
       if (!requested) return next();
 
