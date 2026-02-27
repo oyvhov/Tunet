@@ -88,7 +88,7 @@ export default function DashboardLayout(props) {
   const onProfileRender = useCallback(
     (id, phase, actualDuration, baseDuration) => {
       if (!profilingEnabled || actualDuration < 8) return;
-      console.info(
+      console.warn(
         `[RenderProfile] ${id} ${phase} actual=${actualDuration.toFixed(2)}ms base=${baseDuration.toFixed(2)}ms`
       );
     },

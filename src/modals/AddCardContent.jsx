@@ -206,7 +206,6 @@ function AddCardContent({
   getAddCardNoneLeftLabel,
   t,
 }) {
-  const [selectedRoomArea, setSelectedRoomArea] = useState(null);
   const [selectedRoomAreas, setSelectedRoomAreas] = useState([]);
   const [selectedRoomEntitiesById, setSelectedRoomEntitiesById] = useState({});
   const [localSpacerVariant, setLocalSpacerVariant] = useState(selectedSpacerVariant || 'divider');
