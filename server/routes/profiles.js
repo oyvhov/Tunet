@@ -2,9 +2,17 @@ import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import db from '../db.js';
-import { encryptDataText, resolveStoredDataText } from '../utils/dataCrypto.js';
+import {
+  encryptDataText,
+  getEncryptedOnlyPlaintextStub,
+  isDataEncryptionEnabled,
+  isEncryptionWriteRequired,
+  resolveStoredDataText,
+  shouldPersistPlaintextData,
+} from '../utils/dataCrypto.js';
 
 const router = Router();
+const warnedWriteFailures = new Set();
 
 const profilesRateLimiter = rateLimit({
   windowMs: Math.max(Number(process.env.PROFILES_RATE_LIMIT_WINDOW_MS) || 60_000, 1_000),
@@ -45,6 +53,13 @@ const parseStoredProfileData = (row, context) => {
     context,
   });
   return safeParseJson(resolvedText, {});
+};
+
+const warnEncryptionWriteFailure = (context) => {
+  if (!isDataEncryptionEnabled()) return;
+  if (warnedWriteFailures.has(context)) return;
+  warnedWriteFailures.add(context);
+  console.warn(`[profiles] Failed to produce encrypted payload in ${context}.`);
 };
 
 // List profiles for a HA user
@@ -120,10 +135,17 @@ router.post('/', (req, res) => {
   const now = new Date().toISOString();
   const payload = JSON.stringify(data);
   const encryptedPayload = encryptDataText(payload);
+  if (encryptedPayload === null) {
+    warnEncryptionWriteFailure('create');
+    if (isEncryptionWriteRequired()) {
+      return res.status(503).json({ error: 'Encryption is required but unavailable' });
+    }
+  }
+  const plainPayload = shouldPersistPlaintextData() ? payload : getEncryptedOnlyPlaintextStub();
 
   db.prepare(
     'INSERT INTO profiles (id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, ha_user_id, name, device_label || null, payload, encryptedPayload, now, now);
+  ).run(id, ha_user_id, name, device_label || null, plainPayload, encryptedPayload, now, now);
 
   res.status(201).json({ id, ha_user_id, name, device_label, data, created_at: now, updated_at: now });
 });
@@ -146,6 +168,15 @@ router.put('/:id', (req, res) => {
   const now = new Date().toISOString();
   const payload = data === undefined ? null : JSON.stringify(data);
   const encryptedPayload = payload === null ? null : encryptDataText(payload);
+  if (payload !== null && encryptedPayload === null) {
+    warnEncryptionWriteFailure('update');
+    if (isEncryptionWriteRequired()) {
+      return res.status(503).json({ error: 'Encryption is required but unavailable' });
+    }
+  }
+  const plainPayload = payload === null
+    ? null
+    : (shouldPersistPlaintextData() ? payload : getEncryptedOnlyPlaintextStub());
   db.prepare(
     'UPDATE profiles SET name = CASE WHEN ? THEN ? ELSE name END, device_label = CASE WHEN ? THEN ? ELSE device_label END, data = CASE WHEN ? THEN ? ELSE data END, data_enc = CASE WHEN ? THEN ? ELSE data_enc END, updated_at = ? WHERE id = ? AND ha_user_id = ?'
   ).run(
@@ -154,7 +185,7 @@ router.put('/:id', (req, res) => {
     device_label !== undefined ? 1 : 0,
     device_label,
     data !== undefined ? 1 : 0,
-    payload,
+    plainPayload,
     data !== undefined ? 1 : 0,
     encryptedPayload,
     now,

@@ -1,10 +1,18 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import db from '../db.js';
-import { encryptDataText, resolveStoredDataText } from '../utils/dataCrypto.js';
+import {
+  encryptDataText,
+  getEncryptedOnlyPlaintextStub,
+  isDataEncryptionEnabled,
+  isEncryptionWriteRequired,
+  resolveStoredDataText,
+  shouldPersistPlaintextData,
+} from '../utils/dataCrypto.js';
 
 const router = Router();
 const HISTORY_KEEP_LIMIT = Math.min(Math.max(Number(process.env.SETTINGS_HISTORY_KEEP_LIMIT) || 50, 5), 500);
+const warnedWriteFailures = new Set();
 
 const settingsRateLimiter = rateLimit({
   windowMs: Math.max(Number(process.env.SETTINGS_RATE_LIMIT_WINDOW_MS) || 60_000, 1_000),
@@ -57,6 +65,13 @@ const parseStoredData = (row, context) => {
     context,
   });
   return safeParseJson(resolvedText, {});
+};
+
+const warnEncryptionWriteFailure = (context) => {
+  if (!isDataEncryptionEnabled()) return;
+  if (warnedWriteFailures.has(context)) return;
+  warnedWriteFailures.add(context);
+  console.warn(`[settings] Failed to produce encrypted payload in ${context}.`);
 };
 
 const pruneHistory = (haUserId, deviceId, keepLimitRaw) => {
@@ -289,16 +304,23 @@ router.put('/current', (req, res) => {
   if (!existing) {
     const payload = JSON.stringify(data);
     const encryptedPayload = encryptDataText(payload);
+    if (encryptedPayload === null) {
+      warnEncryptionWriteFailure('put-current:create');
+      if (isEncryptionWriteRequired()) {
+        return res.status(503).json({ error: 'Encryption is required but unavailable' });
+      }
+    }
+    const plainPayload = shouldPersistPlaintextData() ? payload : getEncryptedOnlyPlaintextStub();
     const normalizedLabel = normalizeDeviceLabel(device_label);
     db.prepare(
       `INSERT INTO current_settings (ha_user_id, device_id, device_label, data, data_enc, revision, updated_at)
        VALUES (?, ?, ?, ?, ?, 1, ?)`
-    ).run(ha_user_id, device_id, normalizedLabel, payload, encryptedPayload, now);
+    ).run(ha_user_id, device_id, normalizedLabel, plainPayload, encryptedPayload, now);
 
     db.prepare(
       `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
        VALUES (?, ?, 1, ?, ?, ?)`
-    ).run(ha_user_id, device_id, payload, encryptedPayload, now);
+    ).run(ha_user_id, device_id, plainPayload, encryptedPayload, now);
 
     pruneHistory(ha_user_id, device_id, history_keep_limit);
 
@@ -315,6 +337,13 @@ router.put('/current', (req, res) => {
   const nextRevision = Number(existing.revision) + 1;
   const payload = JSON.stringify(data);
   const encryptedPayload = encryptDataText(payload);
+  if (encryptedPayload === null) {
+    warnEncryptionWriteFailure('put-current:update');
+    if (isEncryptionWriteRequired()) {
+      return res.status(503).json({ error: 'Encryption is required but unavailable' });
+    }
+  }
+  const plainPayload = shouldPersistPlaintextData() ? payload : getEncryptedOnlyPlaintextStub();
   const normalizedLabel = device_label === undefined
     ? (existing.device_label || null)
     : normalizeDeviceLabel(device_label);
@@ -322,12 +351,12 @@ router.put('/current', (req, res) => {
     `UPDATE current_settings
      SET data = ?, data_enc = ?, device_label = ?, revision = ?, updated_at = ?
      WHERE ha_user_id = ? AND device_id = ?`
-  ).run(payload, encryptedPayload, normalizedLabel, nextRevision, now, ha_user_id, device_id);
+  ).run(plainPayload, encryptedPayload, normalizedLabel, nextRevision, now, ha_user_id, device_id);
 
   db.prepare(
     `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(ha_user_id, device_id, nextRevision, payload, encryptedPayload, now);
+  ).run(ha_user_id, device_id, nextRevision, plainPayload, encryptedPayload, now);
 
   pruneHistory(ha_user_id, device_id, history_keep_limit);
 
@@ -364,6 +393,13 @@ router.post('/publish', (req, res) => {
     return res.status(500).json({ error: 'Source device config is unreadable' });
   }
   const sourceEncryptedPayload = encryptDataText(sourcePayload);
+  if (sourceEncryptedPayload === null) {
+    warnEncryptionWriteFailure('publish:source');
+    if (isEncryptionWriteRequired()) {
+      return res.status(503).json({ error: 'Encryption is required but unavailable' });
+    }
+  }
+  const sourcePlainPayload = shouldPersistPlaintextData() ? sourcePayload : getEncryptedOnlyPlaintextStub();
 
   const now = new Date().toISOString();
 
@@ -377,12 +413,12 @@ router.post('/publish', (req, res) => {
       db.prepare(
         `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
          VALUES (?, ?, ?, ?, 1, ?)`
-      ).run(ha_user_id, deviceId, sourcePayload, sourceEncryptedPayload, now);
+      ).run(ha_user_id, deviceId, sourcePlainPayload, sourceEncryptedPayload, now);
 
       db.prepare(
         `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
          VALUES (?, ?, 1, ?, ?, ?)`
-      ).run(ha_user_id, deviceId, sourcePayload, sourceEncryptedPayload, now);
+      ).run(ha_user_id, deviceId, sourcePlainPayload, sourceEncryptedPayload, now);
       pruneHistory(ha_user_id, deviceId, history_keep_limit);
       return 1;
     }
@@ -392,12 +428,12 @@ router.post('/publish', (req, res) => {
       `UPDATE current_settings
        SET data = ?, data_enc = ?, revision = ?, updated_at = ?
        WHERE ha_user_id = ? AND device_id = ?`
-    ).run(sourcePayload, sourceEncryptedPayload, nextRevision, now, ha_user_id, deviceId);
+    ).run(sourcePlainPayload, sourceEncryptedPayload, nextRevision, now, ha_user_id, deviceId);
 
     db.prepare(
       `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(ha_user_id, deviceId, nextRevision, sourcePayload, sourceEncryptedPayload, now);
+    ).run(ha_user_id, deviceId, nextRevision, sourcePlainPayload, sourceEncryptedPayload, now);
     pruneHistory(ha_user_id, deviceId, history_keep_limit);
     return 1;
   };

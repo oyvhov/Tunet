@@ -1,7 +1,8 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 
 const SUPPORTED_MODES = new Set(['off', 'dual', 'enc_only']);
 const ENCRYPTION_PREFIX = 'enc:v1:';
+const PASSPHRASE_SALT = process.env.TUNET_DATA_KEY_SALT || 'tunet-data-key-v1';
 const warnedMessages = new Set();
 
 const warnOnce = (message) => {
@@ -46,7 +47,17 @@ const deriveEncryptionKey = (rawKey) => {
   const fromBase64 = decodeBase64Candidate(trimmed);
   if (fromBase64) return fromBase64;
 
-  return createHash('sha256').update(trimmed, 'utf8').digest();
+  if (trimmed.length < 16) {
+    warnOnce('[data-crypto] TUNET_DATA_KEY is too short. Use a 32-byte base64/hex key or a long passphrase.');
+    return null;
+  }
+
+  try {
+    return scryptSync(trimmed, PASSPHRASE_SALT, 32, { N: 16384, r: 8, p: 1 });
+  } catch {
+    warnOnce('[data-crypto] Failed to derive encryption key from TUNET_DATA_KEY.');
+    return null;
+  }
 };
 
 const DATA_ENCRYPTION_MODE = normalizeMode(process.env.TUNET_ENCRYPTION_MODE);
@@ -57,6 +68,10 @@ if (DATA_ENCRYPTION_MODE !== 'off' && !DATA_ENCRYPTION_KEY) {
 }
 
 export const getDataEncryptionMode = () => DATA_ENCRYPTION_MODE;
+export const isDataEncryptionEnabled = () => DATA_ENCRYPTION_MODE !== 'off';
+export const isEncryptionWriteRequired = () => DATA_ENCRYPTION_MODE === 'enc_only';
+export const shouldPersistPlaintextData = () => DATA_ENCRYPTION_MODE !== 'enc_only';
+export const getEncryptedOnlyPlaintextStub = () => '{"_enc_only":true}';
 
 const canWriteEncryptedData = () => DATA_ENCRYPTION_MODE !== 'off' && Boolean(DATA_ENCRYPTION_KEY);
 
@@ -104,6 +119,10 @@ export const resolveStoredDataText = ({ plainText, encryptedText, context = 'unk
   if (encrypted) {
     const decrypted = decryptPayload(encrypted);
     if (decrypted !== null) return decrypted;
+    if (DATA_ENCRYPTION_MODE === 'enc_only') {
+      warnOnce(`[data-crypto] Failed to decrypt payload in ${context} while in enc_only mode.`);
+      return null;
+    }
     warnOnce(`[data-crypto] Failed to decrypt payload in ${context}. Falling back to plaintext data.`);
   }
 

@@ -122,12 +122,20 @@ Where data lives:
 
 - `off`: legacy behavior (plaintext DB storage only).
 - `dual`: writes plaintext + encrypted data, reads encrypted first then falls back to plaintext.
-- `enc_only`: keeps encrypted-first reads and still falls back to plaintext for compatibility during migration.
+- `enc_only`: requires encrypted writes and stores only a minimal plaintext stub for new writes; reads encrypted first and only falls back to legacy plaintext rows that have no encrypted payload.
+
+Key guidance:
+- Use a high-entropy key (recommended: 32 random bytes encoded as base64 or 64-char hex).
+- Example base64 key generation:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
 
 Recommended rollout to avoid data loss:
 1. Set `TUNET_ENCRYPTION_MODE=dual` with a strong `TUNET_DATA_KEY`.
 2. Keep `dual` for at least one full release cycle.
-3. Move to `enc_only` only after confirming all rows/devices are migrated.
+3. Move to `enc_only` only after confirming all rows/devices are migrated and keep the same key.
 
 ## Troubleshooting
 
