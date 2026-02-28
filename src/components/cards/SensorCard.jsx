@@ -639,7 +639,7 @@ export default function SensorCard({
           )}
         </div>
 
-        {domain !== 'input_number' && showStatus && (
+        {domain !== 'input_number' && showStatus && isNumeric && (
           <div className="flex items-baseline gap-1.5 text-right">
             <span className="text-3xl font-thin leading-none text-[var(--text-primary)]">
               {chartDisplayValue ?? displayState}
@@ -654,6 +654,14 @@ export default function SensorCard({
       </div>
 
       <div className="relative z-10 mt-4">
+        {domain !== 'input_number' && showStatus && !isNumeric && (
+          <div className="mb-3">
+            <span className="text-3xl font-thin leading-none text-[var(--text-primary)]">
+              {displayState}
+            </span>
+          </div>
+        )}
+
         {showToggleControls ? (
           <div className="mt-4 flex w-fit items-center gap-2 rounded-full bg-[var(--glass-bg)] p-1">
             <button
