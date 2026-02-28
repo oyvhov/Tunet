@@ -517,7 +517,7 @@ export default function SensorCard({
               min={chartMin}
               max={chartMax}
               size={140}
-              strokeWidth={12}
+              strokeWidth={18}
             />
           )}
           {variant === 'donut' && (
