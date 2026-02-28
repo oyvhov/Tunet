@@ -104,6 +104,7 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
     <SensorCard
       key={cardId}
       entity={entity}
+      entities={entities}
       conn={conn}
       settings={settings}
       dragProps={dragProps}

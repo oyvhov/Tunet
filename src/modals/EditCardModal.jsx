@@ -2590,9 +2590,190 @@ export default function EditCardModal({
                   ? /^\s*-?\d+(\.\d+)?\s*$/.test(state)
                   : !isNaN(parseFloat(state));
               const canGraph = isNumeric && domain !== 'input_number';
+              const variant = editSettings.sensorVariant || 'default';
+              const needsMinMax = ['gauge', 'donut', 'bar'].includes(variant) && isNumeric;
+              const numericEntityOptions = sortByName(
+                entityEntries
+                  .filter(([id]) => id.startsWith('sensor.') || id.startsWith('input_number.'))
+                  .map(([id]) => id)
+              );
 
               return (
                 <div className="popup-surface space-y-4 rounded-2xl p-4">
+                  {canGraph && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                        {t('sensor.variant') || 'Card style'}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { key: 'default', label: t('sensor.variantDefault') || 'Default' },
+                          { key: 'number', label: t('sensor.variantNumber') || 'Number' },
+                          { key: 'gauge', label: t('sensor.variantGauge') || 'Gauge' },
+                          { key: 'bar', label: t('sensor.variantBar') || 'Bar' },
+                          { key: 'donut', label: t('sensor.variantDonut') || 'Donut' },
+                        ].map((v) => (
+                          <button
+                            key={v.key}
+                            onClick={() =>
+                              editSettingsKey && saveCardSetting(editSettingsKey, 'sensorVariant', v.key)
+                            }
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest border transition-colors ${
+                              variant === v.key
+                                ? 'bg-blue-500 text-white border-blue-500'
+                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'
+                            }`}
+                          >
+                            {v.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {needsMinMax && (
+                    <div className="space-y-3 rounded-xl bg-[var(--glass-bg)] p-3">
+                      <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                        {t('sensor.range') || 'Min / Max range'}
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-[var(--text-muted)]">
+                            {t('sensor.minValue') || 'Min'}
+                          </span>
+                          <div className="flex gap-1">
+                            <input
+                              type="number"
+                              placeholder="0"
+                              value={
+                                editSettings.sensorMinType === 'entity'
+                                  ? ''
+                                  : (editSettings.sensorMin ?? '')
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                saveCardSetting(editSettingsKey, 'sensorMin', v === '' ? null : parseFloat(v));
+                                saveCardSetting(editSettingsKey, 'sensorMinType', 'value');
+                              }}
+                              disabled={editSettings.sensorMinType === 'entity'}
+                              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] text-sm outline-none border-0"
+                            />
+                            <select
+                              value={editSettings.sensorMinType || 'value'}
+                              onChange={(e) => {
+                                const ty = e.target.value;
+                                saveCardSetting(editSettingsKey, 'sensorMinType', ty);
+                                if (ty === 'value') saveCardSetting(editSettingsKey, 'sensorMinEntity', null);
+                              }}
+                              className="w-16 px-1 py-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] text-xs outline-none border-0"
+                            >
+                              <option value="value">#</option>
+                              <option value="entity">{t('sensor.entity') || 'Entity'}</option>
+                            </select>
+                          </div>
+                          {editSettings.sensorMinType === 'entity' && (
+                            <select
+                              value={editSettings.sensorMinEntity || ''}
+                              onChange={(e) =>
+                                saveCardSetting(editSettingsKey, 'sensorMinEntity', e.target.value || null)
+                              }
+                              className="w-full mt-1 px-2 py-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] text-xs outline-none border-0"
+                            >
+                              <option value="">{t('sensor.selectEntity') || 'Select...'}</option>
+                              {numericEntityOptions.map((id) => (
+                                <option key={id} value={id}>
+                                  {entities[id]?.attributes?.friendly_name || id}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-[var(--text-muted)]">
+                            {t('sensor.maxValue') || 'Max'}
+                          </span>
+                          <div className="flex gap-1">
+                            <input
+                              type="number"
+                              placeholder="100"
+                              value={
+                                editSettings.sensorMaxType === 'entity'
+                                  ? ''
+                                  : (editSettings.sensorMax ?? '')
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                saveCardSetting(editSettingsKey, 'sensorMax', v === '' ? null : parseFloat(v));
+                                saveCardSetting(editSettingsKey, 'sensorMaxType', 'value');
+                              }}
+                              disabled={editSettings.sensorMaxType === 'entity'}
+                              className="flex-1 px-2 py-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] text-sm outline-none border-0"
+                            />
+                            <select
+                              value={editSettings.sensorMaxType || 'value'}
+                              onChange={(e) => {
+                                const ty = e.target.value;
+                                saveCardSetting(editSettingsKey, 'sensorMaxType', ty);
+                                if (ty === 'value') saveCardSetting(editSettingsKey, 'sensorMaxEntity', null);
+                              }}
+                              className="w-16 px-1 py-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] text-xs outline-none border-0"
+                            >
+                              <option value="value">#</option>
+                              <option value="entity">{t('sensor.entity') || 'Entity'}</option>
+                            </select>
+                          </div>
+                          {editSettings.sensorMaxType === 'entity' && (
+                            <select
+                              value={editSettings.sensorMaxEntity || ''}
+                              onChange={(e) =>
+                                saveCardSetting(editSettingsKey, 'sensorMaxEntity', e.target.value || null)
+                              }
+                              className="w-full mt-1 px-2 py-1.5 rounded-lg bg-[var(--modal-bg)] text-[var(--text-primary)] text-xs outline-none border-0"
+                            >
+                              <option value="">{t('sensor.selectEntity') || 'Select...'}</option>
+                              {numericEntityOptions.map((id) => (
+                                <option key={id} value={id}>
+                                  {entities[id]?.attributes?.friendly_name || id}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-[var(--text-muted)]">
+                          {t('sensor.valueDisplay') || 'Value display'}
+                        </label>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() =>
+                              saveCardSetting(editSettingsKey, 'sensorValueMode', 'actual')
+                            }
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                              (editSettings.sensorValueMode || 'actual') === 'actual'
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            {t('sensor.valueActual') || 'Actual value'}
+                          </button>
+                          <button
+                            onClick={() =>
+                              saveCardSetting(editSettingsKey, 'sensorValueMode', 'percent')
+                            }
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                              editSettings.sensorValueMode === 'percent'
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            {t('sensor.valuePercent') || '% of range'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">
                       {t('form.showName') || 'Show Name'}

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Minus, Plus, Activity, Play } from 'lucide-react';
 import { getHistory, getStatistics } from '../../services/haClient';
 import SparkLine from '../charts/SparkLine';
+import { Gauge, Donut, Bar } from '../charts/SensorGauge';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import {
   convertValueByKind,
@@ -13,6 +14,7 @@ import {
 
 export default function SensorCard({
   entity,
+  entities = {},
   conn,
   settings,
   dragProps,
@@ -97,8 +99,62 @@ export default function SensorCard({
   const showName = settings?.showName !== false;
   const showStatus = settings?.showStatus !== false;
   const isSmall = settings?.size === 'small';
+  const variant = settings?.sensorVariant || 'default';
   const showGraph =
-    !isSmall && isNumeric && domain !== 'input_number' && settings?.showGraph !== false;
+    !isSmall &&
+    isNumeric &&
+    domain !== 'input_number' &&
+    settings?.showGraph !== false &&
+    variant === 'default';
+
+  // Resolve min/max for gauge/donut/bar
+  const { chartMin, chartMax } = useMemo(() => {
+    if (!isNumeric || numericState === null) return { chartMin: 0, chartMax: 100 };
+    const needsRange = ['gauge', 'donut', 'bar'].includes(variant);
+    if (!needsRange) return { chartMin: 0, chartMax: 100 };
+
+    const resolveVal = (type, val, entityId) => {
+      if (type === 'entity' && entityId && entities[entityId]) {
+        const s = entities[entityId]?.state;
+        const n = parseFloat(s);
+        return !isNaN(n) ? n : null;
+      }
+      return typeof val === 'number' ? val : null;
+    };
+
+    const minType = settings?.sensorMinType || 'value';
+    const maxType = settings?.sensorMaxType || 'value';
+    const minVal = resolveVal(minType, settings?.sensorMin, settings?.sensorMinEntity);
+    const maxVal = resolveVal(maxType, settings?.sensorMax, settings?.sensorMaxEntity);
+
+    return {
+      chartMin: minVal ?? 0,
+      chartMax: maxVal ?? 100,
+    };
+  }, [
+    isNumeric,
+    numericState,
+    variant,
+    settings?.sensorMinType,
+    settings?.sensorMin,
+    settings?.sensorMinEntity,
+    settings?.sensorMaxType,
+    settings?.sensorMax,
+    settings?.sensorMaxEntity,
+    entities,
+  ]);
+
+  const valueMode = settings?.sensorValueMode || 'actual';
+  const chartValue =
+    variant !== 'default' && isNumeric && numericState !== null
+      ? valueMode === 'percent'
+        ? Math.max(0, Math.min(100, ((numericState - chartMin) / (chartMax - chartMin || 1)) * 100))
+        : numericState
+      : null;
+  const chartDisplayValue =
+    valueMode === 'percent' && chartValue !== null
+      ? `${Math.round(chartValue)}%`
+      : displayState;
 
   const [history, setHistory] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -450,20 +506,52 @@ export default function SensorCard({
         </div>
       )}
 
+      {variant === 'gauge' && isNumeric && numericState !== null && (
+        <div className="relative z-10 flex justify-center py-2">
+          <Gauge
+            value={numericState}
+            min={chartMin}
+            max={chartMax}
+            size={100}
+            strokeWidth={10}
+          />
+        </div>
+      )}
+      {variant === 'donut' && isNumeric && numericState !== null && (
+        <div className="relative z-10 flex justify-center py-2">
+          <Donut
+            value={numericState}
+            min={chartMin}
+            max={chartMax}
+            size={90}
+            strokeWidth={10}
+          />
+        </div>
+      )}
+      {variant === 'bar' && isNumeric && numericState !== null && (
+        <div className="relative z-10 mt-2 px-2">
+          <Bar value={numericState} min={chartMin} max={chartMax} height={14} />
+        </div>
+      )}
+
       <div className="relative z-10 flex items-start justify-between">
         <div
           className={`rounded-2xl p-3 ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
         >
           {Icon ? <Icon className="h-5 w-5 stroke-[1.5px]" /> : <Activity className="h-5 w-5" />}
         </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1 text-[var(--text-secondary)]">
-          <span className="text-xs font-bold tracking-widest uppercase">{displayState}</span>
-          {displayNumericUnit && (
-            <span className="text-[10px] font-medium tracking-wider uppercase">
-              {displayNumericUnit}
+        {domain !== 'input_number' && showStatus && (
+          <div className="flex items-baseline gap-1.5 text-right">
+            <span className="text-3xl font-thin leading-none text-[var(--text-primary)]">
+              {chartDisplayValue ?? displayState}
             </span>
-          )}
-        </div>
+            {displayNumericUnit && valueMode !== 'percent' && (
+              <span className="text-sm font-medium tracking-wider text-[var(--text-secondary)] uppercase">
+                {displayNumericUnit}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="relative z-10 mt-4">
@@ -494,14 +582,7 @@ export default function SensorCard({
             </button>
           </div>
         ) : (
-          <>
-            {domain !== 'input_number' && showStatus && (
-              <h3 className="mt-2 text-3xl leading-none font-thin text-[var(--text-primary)]">
-                {displayState}
-              </h3>
-            )}
-            {renderControls()}
-          </>
+          <>{renderControls()}</>
         )}
       </div>
     </div>
