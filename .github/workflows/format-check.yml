@@ -25,5 +25,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check formatting
-        run: npm run format:check
+      - name: Get changed files
+        id: changed
+        uses: tj-actions/changed-files@v45
+        with:
+          separator: "\n"
+          files: |
+            **/*.js
+            **/*.jsx
+            **/*.ts
+            **/*.tsx
+            **/*.json
+            **/*.css
+            **/*.md
+            **/*.yml
+            **/*.yaml
+            **/*.mjs
+            **/*.cjs
+            **/*.html
+
+      - name: Check formatting (changed files only)
+        if: steps.changed.outputs.any_changed == 'true'
+        run: |
+          files='${{ steps.changed.outputs.all_changed_files }}'
+          printf '%s\n' "$files" | xargs -d '\n' npx prettier --check
+
+      - name: No format-relevant changes
+        if: steps.changed.outputs.any_changed != 'true'
+        run: echo "No format-relevant changed files."
