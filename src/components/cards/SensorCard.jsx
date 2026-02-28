@@ -12,6 +12,18 @@ import {
   inferUnitKind,
 } from '../../utils';
 
+const SENSOR_THRESHOLD_COLOR_MAP = {
+  red: 'var(--color-red-500)',
+  amber: 'var(--color-amber-400)',
+  green: 'var(--color-green-400)',
+};
+
+const DEFAULT_SENSOR_COLOR_THRESHOLDS = [
+  { limit: 20, color: 'red' },
+  { limit: 60, color: 'amber' },
+  { limit: 100, color: 'green' },
+];
+
 export default function SensorCard({
   entity,
   entities = {},
@@ -101,6 +113,7 @@ export default function SensorCard({
   const showIcon = settings?.showIcon !== false;
   const isSmall = settings?.size === 'small';
   const variant = settings?.sensorVariant || 'default';
+  const isRangeVariant = ['gauge', 'donut', 'bar'].includes(variant);
   const showGraph =
     !isSmall &&
     isNumeric &&
@@ -111,14 +124,25 @@ export default function SensorCard({
   // Resolve min/max for gauge/donut/bar
   const { chartMin, chartMax } = useMemo(() => {
     if (!isNumeric || numericState === null) return { chartMin: 0, chartMax: 100 };
-    const needsRange = ['gauge', 'donut', 'bar'].includes(variant);
+    const needsRange = isRangeVariant;
     if (!needsRange) return { chartMin: 0, chartMax: 100 };
 
     const resolveVal = (type, val, entityId) => {
       if (type === 'entity' && entityId && entities[entityId]) {
-        const s = entities[entityId]?.state;
-        const n = parseFloat(s);
-        return !isNaN(n) ? n : null;
+        const entityState = entities[entityId]?.state;
+        const parsed = parseFloat(entityState);
+        if (isNaN(parsed)) return null;
+        const sourceUnit = entities[entityId]?.attributes?.unit_of_measurement || '';
+        const sourceDeviceClass = entities[entityId]?.attributes?.device_class;
+        const sourceKind = inferUnitKind(sourceDeviceClass, sourceUnit);
+
+        if (!sourceKind) return parsed;
+
+        return convertValueByKind(parsed, {
+          kind: sourceKind,
+          fromUnit: sourceUnit,
+          unitMode: effectiveUnitMode,
+        });
       }
       return typeof val === 'number' ? val : null;
     };
@@ -135,7 +159,6 @@ export default function SensorCard({
   }, [
     isNumeric,
     numericState,
-    variant,
     settings?.sensorMinType,
     settings?.sensorMin,
     settings?.sensorMinEntity,
@@ -143,19 +166,69 @@ export default function SensorCard({
     settings?.sensorMax,
     settings?.sensorMaxEntity,
     entities,
+    effectiveUnitMode,
+    isRangeVariant,
   ]);
 
+  const normalizedNumericState =
+    typeof convertedNumericState === 'number' ? convertedNumericState : numericState;
+  const safeChartMax = chartMax <= chartMin ? chartMin + 1 : chartMax;
   const valueMode = settings?.sensorValueMode || 'actual';
   const chartValue =
     variant !== 'default' && isNumeric && numericState !== null
       ? valueMode === 'percent'
-        ? Math.max(0, Math.min(100, ((numericState - chartMin) / (chartMax - chartMin || 1)) * 100))
-        : numericState
+        ? Math.max(
+            0,
+            Math.min(100, ((normalizedNumericState - chartMin) / (safeChartMax - chartMin || 1)) * 100)
+          )
+        : normalizedNumericState
       : null;
   const chartDisplayValue =
     valueMode === 'percent' && chartValue !== null
       ? `${Math.round(chartValue)}%`
-      : displayState;
+      : isNumeric
+        ? formatUnitValue(normalizedNumericState, { fallback: displayState })
+        : displayState;
+  const useColorThresholds = settings?.sensorUseColorThresholds !== false;
+  const colorThresholds = useMemo(() => {
+    const source =
+      Array.isArray(settings?.sensorColorThresholds) && settings.sensorColorThresholds.length === 3
+        ? settings.sensorColorThresholds
+        : DEFAULT_SENSOR_COLOR_THRESHOLDS;
+
+    return source
+      .map((item, index) => {
+        const parsedLimit = parseFloat(item?.limit);
+        const fallbackLimit = DEFAULT_SENSOR_COLOR_THRESHOLDS[index]?.limit ?? 100;
+        return {
+          limit: Number.isFinite(parsedLimit) ? parsedLimit : fallbackLimit,
+          color: item?.color || DEFAULT_SENSOR_COLOR_THRESHOLDS[index]?.color || 'green',
+        };
+      })
+      .sort((a, b) => a.limit - b.limit);
+  }, [settings?.sensorColorThresholds]);
+  const thresholdInputValue = valueMode === 'percent' ? chartValue : normalizedNumericState;
+  const variantColor = useMemo(() => {
+    if (!useColorThresholds) {
+      return 'var(--accent-color)';
+    }
+
+    if (!isRangeVariant || thresholdInputValue === null || !Number.isFinite(thresholdInputValue)) {
+      return 'var(--accent-color)';
+    }
+
+    const matchedThreshold = colorThresholds.find((threshold) => thresholdInputValue <= threshold.limit);
+    const selectedColor = matchedThreshold?.color || colorThresholds[colorThresholds.length - 1]?.color;
+    return SENSOR_THRESHOLD_COLOR_MAP[selectedColor] || 'var(--accent-color)';
+  }, [useColorThresholds, isRangeVariant, thresholdInputValue, colorThresholds]);
+  const showVariantPanel =
+    !isSmall &&
+    variant !== 'default' &&
+    domain !== 'input_number' &&
+    showStatus &&
+    (variant === 'number' || (isNumeric && normalizedNumericState !== null));
+  const showSmallVariantVisual =
+    isSmall && isRangeVariant && ['gauge', 'donut'].includes(variant) && isNumeric && normalizedNumericState !== null;
 
   const [history, setHistory] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -416,6 +489,38 @@ export default function SensorCard({
     return null;
   };
 
+  const renderSmallVariantVisual = () => {
+    if (!showSmallVariantVisual) return null;
+
+    if (variant === 'gauge') {
+      return (
+        <Gauge
+          value={normalizedNumericState}
+          min={chartMin}
+          max={safeChartMax}
+          size={56}
+          strokeWidth={8}
+          color={variantColor}
+        />
+      );
+    }
+
+    if (variant === 'donut') {
+      return (
+        <Donut
+          value={normalizedNumericState}
+          min={chartMin}
+          max={safeChartMax}
+          size={42}
+          strokeWidth={6}
+          color={variantColor}
+        />
+      );
+    }
+
+    return null;
+  };
+
   if (isSmall) {
     return (
       <div
@@ -429,7 +534,7 @@ export default function SensorCard({
         style={{ ...cardStyle, containerType: 'inline-size' }}
       >
         {controls}
-        <div className="flex min-w-0 flex-1 items-center gap-4">
+        <div className="relative flex min-w-0 flex-1 items-center gap-4">
           {showIcon && (
             <div
               className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
@@ -437,7 +542,7 @@ export default function SensorCard({
               {Icon ? <Icon className="h-6 w-6 stroke-[1.5px]" /> : <Activity className="h-6 w-6" />}
             </div>
           )}
-          <div className="flex min-w-0 flex-col">
+          <div className={`flex min-w-0 flex-col ${showSmallVariantVisual ? 'pr-14' : ''}`}>
             {showName && (
               <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
                 {String(name)}
@@ -446,7 +551,7 @@ export default function SensorCard({
             <div className="flex items-baseline gap-1">
               {showStatus && (
                 <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
-                  {displayState}
+                  {chartDisplayValue ?? displayState}
                 </span>
               )}
               {showStatus && displayNumericUnit && (
@@ -456,6 +561,12 @@ export default function SensorCard({
               )}
             </div>
           </div>
+
+          {showSmallVariantVisual && (
+            <div className="pointer-events-none absolute top-1/2 right-0 -translate-y-1/2 shrink-0">
+              {renderSmallVariantVisual()}
+            </div>
+          )}
         </div>
 
         {showToggleControls ? (
@@ -509,44 +620,25 @@ export default function SensorCard({
         </div>
       )}
 
-      {['gauge', 'donut', 'bar'].includes(variant) && isNumeric && numericState !== null && (
-        <div className="relative z-10 flex flex-1 min-h-0 items-center justify-center px-4">
-          {variant === 'gauge' && (
-            <Gauge
-              value={numericState}
-              min={chartMin}
-              max={chartMax}
-              size={140}
-              strokeWidth={18}
-            />
-          )}
-          {variant === 'donut' && (
-            <Donut
-              value={numericState}
-              min={chartMin}
-              max={chartMax}
-              size={120}
-              strokeWidth={12}
-            />
-          )}
-          {variant === 'bar' && (
-            <div className="w-full max-w-xs">
-              <Bar value={numericState} min={chartMin} max={chartMax} height={28} />
+      <div className="relative z-10 flex items-start justify-between shrink-0">
+        <div className="flex min-w-0 flex-col items-start">
+          {showIcon ? (
+            <div
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+            >
+              {Icon ? <Icon className="h-5 w-5 stroke-[1.5px]" /> : <Activity className="h-5 w-5" />}
             </div>
+          ) : (
+            <div className="h-11 w-11" />
+          )}
+
+          {showName && (
+            <p className="mt-2 w-full truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+              {String(name)}
+            </p>
           )}
         </div>
-      )}
 
-      <div className="relative z-10 flex items-start justify-between shrink-0">
-        {showIcon ? (
-          <div
-            className={`rounded-2xl p-3 ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
-          >
-            {Icon ? <Icon className="h-5 w-5 stroke-[1.5px]" /> : <Activity className="h-5 w-5" />}
-          </div>
-        ) : (
-          <div className="w-11" />
-        )}
         {domain !== 'input_number' && showStatus && (
           <div className="flex items-baseline gap-1.5 text-right">
             <span className="text-3xl font-thin leading-none text-[var(--text-primary)]">
@@ -562,11 +654,6 @@ export default function SensorCard({
       </div>
 
       <div className="relative z-10 mt-4">
-        {showName && (
-          <p className="mb-1 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-            {String(name)}
-          </p>
-        )}
         {showToggleControls ? (
           <div className="mt-4 flex w-fit items-center gap-2 rounded-full bg-[var(--glass-bg)] p-1">
             <button
@@ -590,6 +677,46 @@ export default function SensorCard({
           </div>
         ) : (
           <>{renderControls()}</>
+        )}
+
+        {showVariantPanel && (
+          <div className="mt-4 space-y-3 transition-all duration-300">
+            {variant === 'gauge' && isNumeric && normalizedNumericState !== null && (
+              <div className="-mt-1 flex items-center justify-center">
+                <Gauge
+                  value={normalizedNumericState}
+                  min={chartMin}
+                  max={safeChartMax}
+                  size={124}
+                  strokeWidth={14}
+                  color={variantColor}
+                />
+              </div>
+            )}
+
+            {variant === 'donut' && isNumeric && normalizedNumericState !== null && (
+              <div className="-mt-5 flex items-center justify-center">
+                <Donut
+                  value={normalizedNumericState}
+                  min={chartMin}
+                  max={safeChartMax}
+                  size={96}
+                  strokeWidth={10}
+                  color={variantColor}
+                />
+              </div>
+            )}
+
+            {variant === 'bar' && isNumeric && normalizedNumericState !== null && (
+              <Bar
+                value={normalizedNumericState}
+                min={chartMin}
+                max={safeChartMax}
+                height={20}
+                color={variantColor}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>
