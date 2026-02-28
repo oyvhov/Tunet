@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Minus, Plus, Activity, Play } from 'lucide-react';
 import { getHistory, getStatistics } from '../../services/haClient';
 import SparkLine from '../charts/SparkLine';
+import { Gauge, Donut, Bar } from '../charts/SensorGauge';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import {
   convertValueByKind,
@@ -11,8 +12,21 @@ import {
   inferUnitKind,
 } from '../../utils';
 
+const SENSOR_THRESHOLD_COLOR_MAP = {
+  red: 'var(--color-red-500)',
+  amber: 'var(--color-amber-400)',
+  green: 'var(--color-green-400)',
+};
+
+const DEFAULT_SENSOR_COLOR_THRESHOLDS = [
+  { limit: 20, color: 'red' },
+  { limit: 60, color: 'amber' },
+  { limit: 100, color: 'green' },
+];
+
 export default function SensorCard({
   entity,
+  entities = {},
   conn,
   settings,
   dragProps,
@@ -96,9 +110,125 @@ export default function SensorCard({
   const showControls = settings?.showControls !== false;
   const showName = settings?.showName !== false;
   const showStatus = settings?.showStatus !== false;
+  const showIcon = settings?.showIcon !== false;
   const isSmall = settings?.size === 'small';
+  const variant = settings?.sensorVariant || 'default';
+  const isRangeVariant = ['gauge', 'donut', 'bar'].includes(variant);
   const showGraph =
-    !isSmall && isNumeric && domain !== 'input_number' && settings?.showGraph !== false;
+    !isSmall &&
+    isNumeric &&
+    domain !== 'input_number' &&
+    settings?.showGraph !== false &&
+    variant === 'default';
+
+  // Resolve min/max for gauge/donut/bar
+  const { chartMin, chartMax } = useMemo(() => {
+    if (!isNumeric || numericState === null) return { chartMin: 0, chartMax: 100 };
+    const needsRange = isRangeVariant;
+    if (!needsRange) return { chartMin: 0, chartMax: 100 };
+
+    const resolveVal = (type, val, entityId) => {
+      if (type === 'entity' && entityId && entities[entityId]) {
+        const entityState = entities[entityId]?.state;
+        const parsed = parseFloat(entityState);
+        if (isNaN(parsed)) return null;
+        const sourceUnit = entities[entityId]?.attributes?.unit_of_measurement || '';
+        const sourceDeviceClass = entities[entityId]?.attributes?.device_class;
+        const sourceKind = inferUnitKind(sourceDeviceClass, sourceUnit);
+
+        if (!sourceKind) return parsed;
+
+        return convertValueByKind(parsed, {
+          kind: sourceKind,
+          fromUnit: sourceUnit,
+          unitMode: effectiveUnitMode,
+        });
+      }
+      return typeof val === 'number' ? val : null;
+    };
+
+    const minType = settings?.sensorMinType || 'value';
+    const maxType = settings?.sensorMaxType || 'value';
+    const minVal = resolveVal(minType, settings?.sensorMin, settings?.sensorMinEntity);
+    const maxVal = resolveVal(maxType, settings?.sensorMax, settings?.sensorMaxEntity);
+
+    return {
+      chartMin: minVal ?? 0,
+      chartMax: maxVal ?? 100,
+    };
+  }, [
+    isNumeric,
+    numericState,
+    settings?.sensorMinType,
+    settings?.sensorMin,
+    settings?.sensorMinEntity,
+    settings?.sensorMaxType,
+    settings?.sensorMax,
+    settings?.sensorMaxEntity,
+    entities,
+    effectiveUnitMode,
+    isRangeVariant,
+  ]);
+
+  const normalizedNumericState =
+    typeof convertedNumericState === 'number' ? convertedNumericState : numericState;
+  const safeChartMax = chartMax <= chartMin ? chartMin + 1 : chartMax;
+  const valueMode = settings?.sensorValueMode || 'actual';
+  const chartValue =
+    variant !== 'default' && isNumeric && numericState !== null
+      ? valueMode === 'percent'
+        ? Math.max(
+            0,
+            Math.min(100, ((normalizedNumericState - chartMin) / (safeChartMax - chartMin || 1)) * 100)
+          )
+        : normalizedNumericState
+      : null;
+  const chartDisplayValue =
+    valueMode === 'percent' && chartValue !== null
+      ? `${Math.round(chartValue)}%`
+      : isNumeric
+        ? formatUnitValue(normalizedNumericState, { fallback: displayState })
+        : displayState;
+  const useColorThresholds = settings?.sensorUseColorThresholds !== false;
+  const colorThresholds = useMemo(() => {
+    const source =
+      Array.isArray(settings?.sensorColorThresholds) && settings.sensorColorThresholds.length === 3
+        ? settings.sensorColorThresholds
+        : DEFAULT_SENSOR_COLOR_THRESHOLDS;
+
+    return source
+      .map((item, index) => {
+        const parsedLimit = parseFloat(item?.limit);
+        const fallbackLimit = DEFAULT_SENSOR_COLOR_THRESHOLDS[index]?.limit ?? 100;
+        return {
+          limit: Number.isFinite(parsedLimit) ? parsedLimit : fallbackLimit,
+          color: item?.color || DEFAULT_SENSOR_COLOR_THRESHOLDS[index]?.color || 'green',
+        };
+      })
+      .sort((a, b) => a.limit - b.limit);
+  }, [settings?.sensorColorThresholds]);
+  const thresholdInputValue = valueMode === 'percent' ? chartValue : normalizedNumericState;
+  const variantColor = useMemo(() => {
+    if (!useColorThresholds) {
+      return 'var(--accent-color)';
+    }
+
+    if (!isRangeVariant || thresholdInputValue === null || !Number.isFinite(thresholdInputValue)) {
+      return 'var(--accent-color)';
+    }
+
+    const matchedThreshold = colorThresholds.find((threshold) => thresholdInputValue <= threshold.limit);
+    const selectedColor = matchedThreshold?.color || colorThresholds[colorThresholds.length - 1]?.color;
+    return SENSOR_THRESHOLD_COLOR_MAP[selectedColor] || 'var(--accent-color)';
+  }, [useColorThresholds, isRangeVariant, thresholdInputValue, colorThresholds]);
+  const showVariantPanel =
+    !isSmall &&
+    variant !== 'default' &&
+    domain !== 'input_number' &&
+    showStatus &&
+    (variant === 'number' || (isNumeric && normalizedNumericState !== null));
+  const showSmallVariantVisual =
+    isSmall && isRangeVariant && ['gauge', 'donut'].includes(variant) && isNumeric && normalizedNumericState !== null;
 
   const [history, setHistory] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -359,6 +489,38 @@ export default function SensorCard({
     return null;
   };
 
+  const renderSmallVariantVisual = () => {
+    if (!showSmallVariantVisual) return null;
+
+    if (variant === 'gauge') {
+      return (
+        <Gauge
+          value={normalizedNumericState}
+          min={chartMin}
+          max={safeChartMax}
+          size={56}
+          strokeWidth={8}
+          color={variantColor}
+        />
+      );
+    }
+
+    if (variant === 'donut') {
+      return (
+        <Donut
+          value={normalizedNumericState}
+          min={chartMin}
+          max={safeChartMax}
+          size={42}
+          strokeWidth={6}
+          color={variantColor}
+        />
+      );
+    }
+
+    return null;
+  };
+
   if (isSmall) {
     return (
       <div
@@ -372,13 +534,15 @@ export default function SensorCard({
         style={{ ...cardStyle, containerType: 'inline-size' }}
       >
         {controls}
-        <div className="flex min-w-0 flex-1 items-center gap-4">
-          <div
-            className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
-          >
-            {Icon ? <Icon className="h-6 w-6 stroke-[1.5px]" /> : <Activity className="h-6 w-6" />}
-          </div>
-          <div className="flex min-w-0 flex-col">
+        <div className="relative flex min-w-0 flex-1 items-center gap-4">
+          {showIcon && (
+            <div
+              className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
+            >
+              {Icon ? <Icon className="h-6 w-6 stroke-[1.5px]" /> : <Activity className="h-6 w-6" />}
+            </div>
+          )}
+          <div className={`flex min-w-0 flex-col ${showSmallVariantVisual ? 'pr-14' : ''}`}>
             {showName && (
               <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
                 {String(name)}
@@ -387,7 +551,7 @@ export default function SensorCard({
             <div className="flex items-baseline gap-1">
               {showStatus && (
                 <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
-                  {displayState}
+                  {chartDisplayValue ?? displayState}
                 </span>
               )}
               {showStatus && displayNumericUnit && (
@@ -397,6 +561,12 @@ export default function SensorCard({
               )}
             </div>
           </div>
+
+          {showSmallVariantVisual && (
+            <div className="pointer-events-none absolute top-1/2 right-0 -translate-y-1/2 shrink-0">
+              {renderSmallVariantVisual()}
+            </div>
+          )}
         </div>
 
         {showToggleControls ? (
@@ -450,28 +620,40 @@ export default function SensorCard({
         </div>
       )}
 
-      <div className="relative z-10 flex items-start justify-between">
-        <div
-          className={`rounded-2xl p-3 ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
-        >
-          {Icon ? <Icon className="h-5 w-5 stroke-[1.5px]" /> : <Activity className="h-5 w-5" />}
-        </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1 text-[var(--text-secondary)]">
-          <span className="text-xs font-bold tracking-widest uppercase">{displayState}</span>
-          {displayNumericUnit && (
-            <span className="text-[10px] font-medium tracking-wider uppercase">
-              {displayNumericUnit}
-            </span>
+      <div className="relative z-10 flex items-start justify-between shrink-0">
+        <div className="flex min-w-0 flex-col items-start">
+          {showIcon ? (
+            <div
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+            >
+              {Icon ? <Icon className="h-5 w-5 stroke-[1.5px]" /> : <Activity className="h-5 w-5" />}
+            </div>
+          ) : (
+            <div className="h-11 w-11" />
+          )}
+
+          {showName && (
+            <p className="mt-2 w-full truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+              {String(name)}
+            </p>
           )}
         </div>
+
+        {domain !== 'input_number' && showStatus && (
+          <div className="flex items-baseline gap-1.5 text-right">
+            <span className="text-3xl font-thin leading-none text-[var(--text-primary)]">
+              {chartDisplayValue ?? displayState}
+            </span>
+            {displayNumericUnit && valueMode !== 'percent' && (
+              <span className="text-sm font-medium tracking-wider text-[var(--text-secondary)] uppercase">
+                {displayNumericUnit}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="relative z-10 mt-4">
-        {showName && (
-          <p className="mb-1 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-            {String(name)}
-          </p>
-        )}
         {showToggleControls ? (
           <div className="mt-4 flex w-fit items-center gap-2 rounded-full bg-[var(--glass-bg)] p-1">
             <button
@@ -494,14 +676,47 @@ export default function SensorCard({
             </button>
           </div>
         ) : (
-          <>
-            {domain !== 'input_number' && showStatus && (
-              <h3 className="mt-2 text-3xl leading-none font-thin text-[var(--text-primary)]">
-                {displayState}
-              </h3>
+          <>{renderControls()}</>
+        )}
+
+        {showVariantPanel && (
+          <div className="mt-4 space-y-3 transition-all duration-300">
+            {variant === 'gauge' && isNumeric && normalizedNumericState !== null && (
+              <div className="-mt-1 flex items-center justify-center">
+                <Gauge
+                  value={normalizedNumericState}
+                  min={chartMin}
+                  max={safeChartMax}
+                  size={124}
+                  strokeWidth={14}
+                  color={variantColor}
+                />
+              </div>
             )}
-            {renderControls()}
-          </>
+
+            {variant === 'donut' && isNumeric && normalizedNumericState !== null && (
+              <div className="-mt-5 flex items-center justify-center">
+                <Donut
+                  value={normalizedNumericState}
+                  min={chartMin}
+                  max={safeChartMax}
+                  size={96}
+                  strokeWidth={10}
+                  color={variantColor}
+                />
+              </div>
+            )}
+
+            {variant === 'bar' && isNumeric && normalizedNumericState !== null && (
+              <Bar
+                value={normalizedNumericState}
+                min={chartMin}
+                max={safeChartMax}
+                height={20}
+                color={variantColor}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

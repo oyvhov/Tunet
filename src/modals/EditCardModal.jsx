@@ -2590,9 +2590,300 @@ export default function EditCardModal({
                   ? /^\s*-?\d+(\.\d+)?\s*$/.test(state)
                   : !isNaN(parseFloat(state));
               const canGraph = isNumeric && domain !== 'input_number';
+              const variant = editSettings.sensorVariant || 'default';
+              const needsMinMax = ['gauge', 'donut', 'bar'].includes(variant) && isNumeric;
+              const numericEntityOptions = sortByName(
+                entityEntries
+                  .filter(([id]) => id.startsWith('sensor.') || id.startsWith('input_number.'))
+                  .map(([id]) => id)
+              );
+              const colorThresholdDefaults = [
+                { limit: 20, color: 'red' },
+                { limit: 60, color: 'amber' },
+                { limit: 100, color: 'green' },
+              ];
+              const useColorThresholds = editSettings.sensorUseColorThresholds !== false;
+              const colorThresholds =
+                Array.isArray(editSettings.sensorColorThresholds) &&
+                editSettings.sensorColorThresholds.length === 3
+                  ? editSettings.sensorColorThresholds.map((entry, index) => ({
+                      limit: Number.isFinite(parseFloat(entry?.limit))
+                        ? parseFloat(entry?.limit)
+                        : colorThresholdDefaults[index].limit,
+                      color: entry?.color || colorThresholdDefaults[index].color,
+                    }))
+                  : colorThresholdDefaults;
+              const thresholdColorOptions = [
+                {
+                  key: 'red',
+                  label: t('sensor.colorRed') || 'Red',
+                  swatch: 'var(--color-red-500)',
+                },
+                {
+                  key: 'amber',
+                  label: t('sensor.colorAmber') || 'Amber',
+                  swatch: 'var(--color-amber-400)',
+                },
+                {
+                  key: 'green',
+                  label: t('sensor.colorGreen') || 'Green',
+                  swatch: 'var(--color-green-400)',
+                },
+              ];
+              const saveThresholdAt = (index, patch) => {
+                const next = colorThresholds.map((entry, itemIndex) =>
+                  itemIndex === index ? { ...entry, ...patch } : entry
+                );
+                saveCardSetting(editSettingsKey, 'sensorColorThresholds', next);
+              };
 
               return (
                 <div className="popup-surface space-y-4 rounded-2xl p-4">
+                  {canGraph && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                        {t('sensor.variant') || 'Card style'}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { key: 'default', label: t('sensor.variantDefault') || 'Default' },
+                          { key: 'number', label: t('sensor.variantNumber') || 'Number' },
+                          { key: 'gauge', label: t('sensor.variantGauge') || 'Gauge' },
+                          { key: 'bar', label: t('sensor.variantBar') || 'Bar' },
+                          { key: 'donut', label: t('sensor.variantDonut') || 'Donut' },
+                        ].map((v) => (
+                          <button
+                            key={v.key}
+                            onClick={() =>
+                              editSettingsKey && saveCardSetting(editSettingsKey, 'sensorVariant', v.key)
+                            }
+                            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                              variant === v.key
+                                ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            {v.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {needsMinMax && (
+                    <div className="space-y-4 rounded-xl bg-[var(--glass-bg)] p-3">
+                      <label className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                        {t('sensor.range') || 'Min / Max range'}
+                      </label>
+                      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                        <div className="min-w-0 space-y-1">
+                          <span className="text-[10px] text-[var(--text-muted)]">
+                            {t('sensor.minValue') || 'Min'}
+                          </span>
+                          <div className="flex min-w-0 gap-2">
+                            <input
+                              type="number"
+                              placeholder="0"
+                              value={
+                                editSettings.sensorMinType === 'entity'
+                                  ? ''
+                                  : (editSettings.sensorMin ?? '')
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                saveCardSetting(editSettingsKey, 'sensorMin', v === '' ? null : parseFloat(v));
+                                saveCardSetting(editSettingsKey, 'sensorMinType', 'value');
+                              }}
+                              disabled={editSettings.sensorMinType === 'entity'}
+                              className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none"
+                            />
+                            <select
+                              value={editSettings.sensorMinType || 'value'}
+                              onChange={(e) => {
+                                const ty = e.target.value;
+                                saveCardSetting(editSettingsKey, 'sensorMinType', ty);
+                                if (ty === 'value') saveCardSetting(editSettingsKey, 'sensorMinEntity', null);
+                              }}
+                              className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                            >
+                              <option value="value">#</option>
+                              <option value="entity">{t('sensor.entity') || 'Entity'}</option>
+                            </select>
+                          </div>
+                          {editSettings.sensorMinType === 'entity' && (
+                            <select
+                              value={editSettings.sensorMinEntity || ''}
+                              onChange={(e) =>
+                                saveCardSetting(editSettingsKey, 'sensorMinEntity', e.target.value || null)
+                              }
+                              className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                            >
+                              <option value="">{t('sensor.selectEntity') || 'Select...'}</option>
+                              {numericEntityOptions.map((id) => (
+                                <option key={id} value={id}>
+                                  {entities[id]?.attributes?.friendly_name || id}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                          <span className="text-[10px] text-[var(--text-muted)]">
+                            {t('sensor.maxValue') || 'Max'}
+                          </span>
+                          <div className="flex min-w-0 gap-2">
+                            <input
+                              type="number"
+                              placeholder="100"
+                              value={
+                                editSettings.sensorMaxType === 'entity'
+                                  ? ''
+                                  : (editSettings.sensorMax ?? '')
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                saveCardSetting(editSettingsKey, 'sensorMax', v === '' ? null : parseFloat(v));
+                                saveCardSetting(editSettingsKey, 'sensorMaxType', 'value');
+                              }}
+                              disabled={editSettings.sensorMaxType === 'entity'}
+                              className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none"
+                            />
+                            <select
+                              value={editSettings.sensorMaxType || 'value'}
+                              onChange={(e) => {
+                                const ty = e.target.value;
+                                saveCardSetting(editSettingsKey, 'sensorMaxType', ty);
+                                if (ty === 'value') saveCardSetting(editSettingsKey, 'sensorMaxEntity', null);
+                              }}
+                              className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                            >
+                              <option value="value">#</option>
+                              <option value="entity">{t('sensor.entity') || 'Entity'}</option>
+                            </select>
+                          </div>
+                          {editSettings.sensorMaxType === 'entity' && (
+                            <select
+                              value={editSettings.sensorMaxEntity || ''}
+                              onChange={(e) =>
+                                saveCardSetting(editSettingsKey, 'sensorMaxEntity', e.target.value || null)
+                              }
+                              className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                            >
+                              <option value="">{t('sensor.selectEntity') || 'Select...'}</option>
+                              {numericEntityOptions.map((id) => (
+                                <option key={id} value={id}>
+                                  {entities[id]?.attributes?.friendly_name || id}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-[var(--text-muted)]">
+                          {t('sensor.valueDisplay') || 'Value display'}
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() =>
+                              saveCardSetting(editSettingsKey, 'sensorValueMode', 'actual')
+                            }
+                            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                              (editSettings.sensorValueMode || 'actual') === 'actual'
+                                ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            {t('sensor.valueActual') || 'Actual value'}
+                          </button>
+                          <button
+                            onClick={() =>
+                              saveCardSetting(editSettingsKey, 'sensorValueMode', 'percent')
+                            }
+                            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                              editSettings.sensorValueMode === 'percent'
+                                ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            {t('sensor.valuePercent') || '% of range'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-[10px] text-[var(--text-muted)]">
+                            {t('sensor.colorThresholds') || 'Color thresholds'}
+                          </label>
+                          <button
+                            onClick={() =>
+                              saveCardSetting(editSettingsKey, 'sensorUseColorThresholds', !useColorThresholds)
+                            }
+                            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
+                              useColorThresholds
+                                ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            {useColorThresholds ? t('common.on') || 'On' : t('common.off') || 'Off'}
+                          </button>
+                        </div>
+
+                        <p className="text-[10px] text-[var(--text-muted)] opacity-80">
+                          {useColorThresholds
+                            ? t('sensor.colorThresholdsHint') || 'Set max value for each color step'
+                            : t('sensor.colorThresholdsOffHint') ||
+                              'Thresholds are disabled. Chart uses blue accent color.'}
+                        </p>
+
+                        {useColorThresholds && (
+                          <div className="space-y-2">
+                            {colorThresholds.map((threshold, index) => (
+                              <div key={`sensor-threshold-${index}`} className="space-y-2 rounded-lg bg-[var(--modal-bg)] p-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="shrink-0 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
+                                    {(t('sensor.step') || 'Step') + ` ${index + 1}`}
+                                  </span>
+                                  <input
+                                    type="number"
+                                    value={threshold.limit ?? ''}
+                                    onChange={(e) =>
+                                      saveThresholdAt(index, {
+                                        limit: e.target.value === '' ? null : parseFloat(e.target.value),
+                                      })
+                                    }
+                                    className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--glass-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                                  />
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                  {thresholdColorOptions.map((option) => (
+                                    <button
+                                      key={option.key}
+                                      onClick={() => saveThresholdAt(index, { color: option.key })}
+                                      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
+                                        threshold.color === option.key
+                                          ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                          : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                                      }`}
+                                    >
+                                      <span
+                                        className="h-2.5 w-2.5 rounded-full"
+                                        style={{ backgroundColor: option.swatch }}
+                                      />
+                                      {option.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">
                       {t('form.showName') || 'Show Name'}
@@ -2631,6 +2922,27 @@ export default function EditCardModal({
                     >
                       <div
                         className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                      {t('form.showIcon') || 'Show Icon'}
+                    </span>
+                    <button
+                      onClick={() =>
+                        editSettingsKey &&
+                        saveCardSetting(
+                          editSettingsKey,
+                          'showIcon',
+                          !(editSettings.showIcon !== false)
+                        )
+                      }
+                      className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                    >
+                      <div
+                        className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showIcon !== false ? 'left-7' : 'left-1'}`}
                       />
                     </button>
                   </div>
