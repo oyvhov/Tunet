@@ -3,6 +3,11 @@ import { Activity, AlertTriangle, Clapperboard, Lock, RefreshCw } from '../../ic
 import MdiIcon from '@mdi/react';
 import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
 import { evaluateEntityCondition } from '../../utils/conditionUtils';
+import {
+  applyPlayerNameDisplayFilter,
+  pickBestDisplayEntity,
+  hasCandidateMediaMetadata,
+} from '../../utils/statusLogic';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import {
   convertValueByKind,
@@ -49,36 +54,6 @@ export default function StatusPill({
   const resolveHeadingColorClass = (value) => {
     if (typeof value !== 'string' || !value.trim()) return 'text-[var(--text-primary)]';
     return value === 'text-[var(--text-secondary)]' ? 'text-[var(--text-primary)]' : value;
-  };
-
-  const applyPlayerNameDisplayFilter = (value) => {
-    const name = String(value || '');
-    const rawFilter =
-      typeof pill?.playerNameDisplayFilter === 'string' ? pill.playerNameDisplayFilter : '';
-    const patterns = rawFilter
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-
-    if (!name || patterns.length === 0) return name;
-
-    let cleaned = name;
-    let didApply = false;
-    patterns.forEach((pattern) => {
-      const wildcardIndex = pattern.indexOf('*');
-      const prefixCandidate = wildcardIndex >= 0 ? pattern.slice(0, wildcardIndex) : pattern;
-      const prefix = prefixCandidate.trim();
-      if (!prefix) return;
-
-      const escapedPrefix = prefix.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`^${escapedPrefix}`, 'i');
-      if (regex.test(cleaned)) {
-        cleaned = cleaned.replace(regex, '').trim();
-        didApply = true;
-      }
-    });
-
-    return didApply ? cleaned : name;
   };
 
   const getDefaultSublabelWithUnit = () => {
@@ -130,15 +105,15 @@ export default function StatusPill({
     if (state === 'disarmed') {
       return {
         mdiPath: mdiShieldOff,
-        iconColor: '#3b82f6',
-        iconBgStyle: { backgroundColor: 'rgba(59, 130, 246, 0.2)' },
+        iconColor: 'var(--color-blue-500)',
+        iconBgStyle: { backgroundColor: 'color-mix(in srgb, var(--color-blue-500), transparent 80%)' },
       };
     }
     if (state === 'armed_home' || state === 'armed_away') {
       return {
         mdiPath: state === 'armed_home' ? mdiShieldHome : mdiShieldLock,
-        iconColor: '#22c55e',
-        iconBgStyle: { backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+        iconColor: 'var(--color-green-500)',
+        iconBgStyle: { backgroundColor: 'color-mix(in srgb, var(--color-green-500), transparent 80%)' },
       };
     }
     if (state === 'triggered') {
@@ -266,46 +241,13 @@ export default function StatusPill({
 
     const displayEntities = isConditionEnabled ? activeEntities : mediaEntities;
     const count = displayEntities.length;
-    const hasCandidateMediaMetadata = (candidate) => {
-      if (!candidate) return false;
-      const attrs = candidate.attributes || {};
-      return Boolean(
-        attrs.media_title ||
-        attrs.media_channel ||
-        attrs.media_artist ||
-        attrs.media_album_name ||
-        attrs.entity_picture ||
-        attrs.media_image_url
-      );
-    };
-    const pickBestDisplayEntity = (candidates) => {
-      if (!Array.isArray(candidates) || candidates.length === 0) return null;
-      const scored = candidates
-        .filter(Boolean)
-        .map((candidate) => {
-          const attrs = candidate.attributes || {};
-          const hasTitle = Boolean(
-            attrs.media_title || attrs.media_channel || attrs.media_album_name
-          );
-          const hasImage = Boolean(attrs.entity_picture || attrs.media_image_url);
-          const hasArtist = Boolean(attrs.media_artist || attrs.media_album_name);
-          const hasMetadata = hasCandidateMediaMetadata(candidate);
-          const isPlayingState = candidate.state === 'playing';
-          const score =
-            (isPlayingState ? 100 : 0) +
-            (hasMetadata ? 25 : 0) +
-            (hasTitle ? 10 : 0) +
-            (hasImage ? 5 : 0) +
-            (hasArtist ? 2 : 0);
-          return { candidate, score };
-        })
-        .sort((a, b) => b.score - a.score);
-      return scored[0]?.candidate || null;
-    };
     const firstActive =
       pickBestDisplayEntity(displayEntities) || pickBestDisplayEntity(mediaEntities);
     const friendlyNameRaw = firstActive?.attributes?.friendly_name || null;
-    const friendlyName = applyPlayerNameDisplayFilter(friendlyNameRaw);
+    const friendlyName = applyPlayerNameDisplayFilter(
+      friendlyNameRaw,
+      pill?.playerNameDisplayFilter
+    );
 
     // Get display info from first active player
     const title = firstActive
