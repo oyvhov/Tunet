@@ -99,8 +99,9 @@ export default function PageNavigation({
 
       {editMode && (
         <button
+          type="button"
           onClick={() => setShowAddPageModal(true)}
-          className="flex items-center gap-1.5 rounded-2xl border-2 border-white/20 bg-white/5 px-3 py-1 text-[10px] font-bold tracking-[0.2em] whitespace-nowrap text-white uppercase transition-all hover:border-white/30 hover:bg-white/10 sm:rounded-full"
+          className="flex items-center gap-1.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1 text-[10px] font-bold tracking-[0.2em] whitespace-nowrap text-[var(--text-primary)] uppercase transition-all hover:bg-[var(--glass-bg-hover)] sm:rounded-full"
         >
           <Plus className="h-3 w-3" />
           <span className="hidden sm:inline">{t('nav.addPage')}</span>
