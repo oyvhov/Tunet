@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.0
+
+- Includes dashboard release `1.11.0`.
+- Adds Sensor card variants (`gauge`, `bar`, `donut`, `number`) with improved layout behavior for both large and small cards.
+- Adds Sensor Edit Card options for range sources (value/entity), icon visibility toggle, and value display mode.
+- Adds configurable three-step color thresholds for sensor chart variants, with optional disable fallback to blue accent mode.
+- Improves PR formatting checks by validating changed files only, reducing unrelated baseline failures.
+- Keeps app and add-on versions synchronized at `1.11.0`.
+
 ## 1.10.0
 
 - Includes dashboard release `1.10.0`.
