@@ -347,6 +347,7 @@
   "form.searchIcon": "Search icons...",
   "form.showControls": "Controls",
   "form.showGraph": "Graph",
+  "form.showIcon": "Show icon",
   "error.cardCrash": "Card Error",
   "error.retry": "Retry",
   "form.showLastChanged": "Show last changed",

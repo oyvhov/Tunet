@@ -2818,6 +2818,27 @@ export default function EditCardModal({
 
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                      {t('form.showIcon') || 'Show Icon'}
+                    </span>
+                    <button
+                      onClick={() =>
+                        editSettingsKey &&
+                        saveCardSetting(
+                          editSettingsKey,
+                          'showIcon',
+                          !(editSettings.showIcon !== false)
+                        )
+                      }
+                      className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                    >
+                      <div
+                        className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showIcon !== false ? 'left-7' : 'left-1'}`}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">
                       {t('form.showLastChanged') || 'Show Last Changed'}
                     </span>
                     <button

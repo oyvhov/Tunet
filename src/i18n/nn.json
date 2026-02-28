@@ -347,6 +347,7 @@
   "form.searchIcon": "Søk etter ikon...",
   "form.showControls": "Kontrollar",
   "form.showGraph": "Graf",
+  "form.showIcon": "Vis ikon",
   "error.cardCrash": "Kortfeil",
   "error.retry": "Prøv igjen",
   "form.showLastChanged": "Vis sist endra",

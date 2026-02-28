@@ -98,6 +98,7 @@ export default function SensorCard({
   const showControls = settings?.showControls !== false;
   const showName = settings?.showName !== false;
   const showStatus = settings?.showStatus !== false;
+  const showIcon = settings?.showIcon !== false;
   const isSmall = settings?.size === 'small';
   const variant = settings?.sensorVariant || 'default';
   const showGraph =
@@ -429,11 +430,13 @@ export default function SensorCard({
       >
         {controls}
         <div className="flex min-w-0 flex-1 items-center gap-4">
-          <div
-            className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
-          >
-            {Icon ? <Icon className="h-6 w-6 stroke-[1.5px]" /> : <Activity className="h-6 w-6" />}
-          </div>
+          {showIcon && (
+            <div
+              className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
+            >
+              {Icon ? <Icon className="h-6 w-6 stroke-[1.5px]" /> : <Activity className="h-6 w-6" />}
+            </div>
+          )}
           <div className="flex min-w-0 flex-col">
             {showName && (
               <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
@@ -506,40 +509,44 @@ export default function SensorCard({
         </div>
       )}
 
-      {variant === 'gauge' && isNumeric && numericState !== null && (
-        <div className="relative z-10 flex justify-center py-2">
-          <Gauge
-            value={numericState}
-            min={chartMin}
-            max={chartMax}
-            size={100}
-            strokeWidth={10}
-          />
-        </div>
-      )}
-      {variant === 'donut' && isNumeric && numericState !== null && (
-        <div className="relative z-10 flex justify-center py-2">
-          <Donut
-            value={numericState}
-            min={chartMin}
-            max={chartMax}
-            size={90}
-            strokeWidth={10}
-          />
-        </div>
-      )}
-      {variant === 'bar' && isNumeric && numericState !== null && (
-        <div className="relative z-10 mt-2 px-2">
-          <Bar value={numericState} min={chartMin} max={chartMax} height={14} />
+      {['gauge', 'donut', 'bar'].includes(variant) && isNumeric && numericState !== null && (
+        <div className="relative z-10 flex flex-1 min-h-0 items-center justify-center px-4">
+          {variant === 'gauge' && (
+            <Gauge
+              value={numericState}
+              min={chartMin}
+              max={chartMax}
+              size={140}
+              strokeWidth={12}
+            />
+          )}
+          {variant === 'donut' && (
+            <Donut
+              value={numericState}
+              min={chartMin}
+              max={chartMax}
+              size={120}
+              strokeWidth={12}
+            />
+          )}
+          {variant === 'bar' && (
+            <div className="w-full max-w-xs">
+              <Bar value={numericState} min={chartMin} max={chartMax} height={28} />
+            </div>
+          )}
         </div>
       )}
 
-      <div className="relative z-10 flex items-start justify-between">
-        <div
-          className={`rounded-2xl p-3 ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
-        >
-          {Icon ? <Icon className="h-5 w-5 stroke-[1.5px]" /> : <Activity className="h-5 w-5" />}
-        </div>
+      <div className="relative z-10 flex items-start justify-between shrink-0">
+        {showIcon ? (
+          <div
+            className={`rounded-2xl p-3 ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+          >
+            {Icon ? <Icon className="h-5 w-5 stroke-[1.5px]" /> : <Activity className="h-5 w-5" />}
+          </div>
+        ) : (
+          <div className="w-11" />
+        )}
         {domain !== 'input_number' && showStatus && (
           <div className="flex items-baseline gap-1.5 text-right">
             <span className="text-3xl font-thin leading-none text-[var(--text-primary)]">

@@ -342,6 +342,7 @@
   "form.searchIcon": "Symbole suchen...",
   "form.showControls": "Steuerung",
   "form.showGraph": "Graph",
+  "form.showIcon": "Icon anzeigen",
   "error.cardCrash": "Kartenfehler",
   "error.retry": "Wiederholen",
   "form.showLastChanged": "Zuletzt geändert anzeigen",

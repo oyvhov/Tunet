@@ -1015,6 +1015,7 @@
   "form.showControls": "Kontroll",
   "form.controlsHint": "Aktiver +/- eller Toggle",
   "form.showGraph": "Graf",
+  "form.showIcon": "Vis ikon",
   "form.graphHint": "Vis historikkgraf",
   "common.auto": "Auto",
   "common.hide": "Skjul",
