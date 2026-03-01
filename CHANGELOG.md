@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 ### Added
+
 ### Changed
 
 - Improved Room Card visual system with responsive pill sizing, wrap-aware compact fallback, and cleaner borderless pill styling.

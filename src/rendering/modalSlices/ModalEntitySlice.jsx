@@ -63,13 +63,8 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
     activeVacuumId,
     setActiveVacuumId,
   } = modals;
-  const {
-    cardSettings,
-    saveCardSetting,
-    customNames,
-    customIcons,
-    getCardSettingsKey,
-  } = cardConfig;
+  const { cardSettings, saveCardSetting, customNames, customIcons, getCardSettingsKey } =
+    cardConfig;
   const {
     callService,
     getEntityImageUrl,
@@ -321,7 +316,8 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
       {showCoverModal &&
         (() => {
           const coverSettingsKey = getCardSettingsKey(showCoverModal);
-          const coverSettings = cardSettings[coverSettingsKey] || cardSettings[showCoverModal] || {};
+          const coverSettings =
+            cardSettings[coverSettingsKey] || cardSettings[showCoverModal] || {};
           const coverEntityId = coverSettings.coverId;
           const coverEntity = coverEntityId ? entities[coverEntityId] : null;
           if (!coverEntityId || !coverEntity) return null;
@@ -395,7 +391,8 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
       {showCameraModal &&
         (() => {
           const cameraSettingsKey = getCardSettingsKey(showCameraModal);
-          const cameraSettings = cardSettings[cameraSettingsKey] || cardSettings[showCameraModal] || {};
+          const cameraSettings =
+            cardSettings[cameraSettingsKey] || cardSettings[showCameraModal] || {};
           const cameraEntityId = cameraSettings.cameraId;
           const cameraEntity = cameraEntityId ? entities[cameraEntityId] : null;
           if (!cameraEntityId || !cameraEntity) return null;
@@ -426,7 +423,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             customName={customNames[showSensorInfoModal]}
             conn={conn}
             haUrl={activeUrl}
-            haToken={config.authMethod === 'oauth' ? authRef?.current?.accessToken || '' : config.token}
+            haToken={
+              config.authMethod === 'oauth' ? authRef?.current?.accessToken || '' : config.token
+            }
             t={t}
           />
         </ModalSuspense>

@@ -32,11 +32,7 @@ describe('buildRoomCardsPayload', () => {
       timestamp: 123,
     });
 
-    expect(result.newConfig.home).toEqual([
-      'sensor_card_1',
-      'room_card_123_0',
-      'room_card_123_1',
-    ]);
+    expect(result.newConfig.home).toEqual(['sensor_card_1', 'room_card_123_0', 'room_card_123_1']);
     expect(result.firstCardId).toBe('room_card_123_0');
     expect(result.firstSettingsKey).toBe('home::room_card_123_0');
     expect(result.customNames).toEqual([

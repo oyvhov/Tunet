@@ -179,7 +179,10 @@ export default function SensorCard({
       ? valueMode === 'percent'
         ? Math.max(
             0,
-            Math.min(100, ((normalizedNumericState - chartMin) / (safeChartMax - chartMin || 1)) * 100)
+            Math.min(
+              100,
+              ((normalizedNumericState - chartMin) / (safeChartMax - chartMin || 1)) * 100
+            )
           )
         : normalizedNumericState
       : null;
@@ -217,8 +220,11 @@ export default function SensorCard({
       return 'var(--accent-color)';
     }
 
-    const matchedThreshold = colorThresholds.find((threshold) => thresholdInputValue <= threshold.limit);
-    const selectedColor = matchedThreshold?.color || colorThresholds[colorThresholds.length - 1]?.color;
+    const matchedThreshold = colorThresholds.find(
+      (threshold) => thresholdInputValue <= threshold.limit
+    );
+    const selectedColor =
+      matchedThreshold?.color || colorThresholds[colorThresholds.length - 1]?.color;
     return SENSOR_THRESHOLD_COLOR_MAP[selectedColor] || 'var(--accent-color)';
   }, [useColorThresholds, isRangeVariant, thresholdInputValue, colorThresholds]);
   const showVariantPanel =
@@ -228,7 +234,11 @@ export default function SensorCard({
     showStatus &&
     (variant === 'number' || (isNumeric && normalizedNumericState !== null));
   const showSmallVariantVisual =
-    isSmall && isRangeVariant && ['gauge', 'donut'].includes(variant) && isNumeric && normalizedNumericState !== null;
+    isSmall &&
+    isRangeVariant &&
+    ['gauge', 'donut'].includes(variant) &&
+    isNumeric &&
+    normalizedNumericState !== null;
 
   const [history, setHistory] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -539,7 +549,11 @@ export default function SensorCard({
             <div
               className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
             >
-              {Icon ? <Icon className="h-6 w-6 stroke-[1.5px]" /> : <Activity className="h-6 w-6" />}
+              {Icon ? (
+                <Icon className="h-6 w-6 stroke-[1.5px]" />
+              ) : (
+                <Activity className="h-6 w-6" />
+              )}
             </div>
           )}
           <div className={`flex min-w-0 flex-col ${showSmallVariantVisual ? 'pr-14' : ''}`}>
@@ -563,7 +577,7 @@ export default function SensorCard({
           </div>
 
           {showSmallVariantVisual && (
-            <div className="pointer-events-none absolute top-1/2 right-0 -translate-y-1/2 shrink-0">
+            <div className="pointer-events-none absolute top-1/2 right-0 shrink-0 -translate-y-1/2">
               {renderSmallVariantVisual()}
             </div>
           )}
@@ -620,13 +634,17 @@ export default function SensorCard({
         </div>
       )}
 
-      <div className="relative z-10 flex items-start justify-between shrink-0">
+      <div className="relative z-10 flex shrink-0 items-start justify-between">
         <div className="flex min-w-0 flex-col items-start">
           {showIcon ? (
             <div
               className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
             >
-              {Icon ? <Icon className="h-5 w-5 stroke-[1.5px]" /> : <Activity className="h-5 w-5" />}
+              {Icon ? (
+                <Icon className="h-5 w-5 stroke-[1.5px]" />
+              ) : (
+                <Activity className="h-5 w-5" />
+              )}
             </div>
           ) : (
             <div className="h-11 w-11" />
@@ -641,7 +659,7 @@ export default function SensorCard({
 
         {domain !== 'input_number' && showStatus && isNumeric && (
           <div className="flex items-baseline gap-1.5 text-right">
-            <span className="text-3xl font-thin leading-none text-[var(--text-primary)]">
+            <span className="text-3xl leading-none font-thin text-[var(--text-primary)]">
               {chartDisplayValue ?? displayState}
             </span>
             {displayNumericUnit && valueMode !== 'percent' && (
@@ -656,7 +674,7 @@ export default function SensorCard({
       <div className="relative z-10 mt-4">
         {domain !== 'input_number' && showStatus && !isNumeric && (
           <div className="mb-3">
-            <span className="text-3xl font-thin leading-none text-[var(--text-primary)]">
+            <span className="text-3xl leading-none font-thin text-[var(--text-primary)]">
               {displayState}
             </span>
           </div>

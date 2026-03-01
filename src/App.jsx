@@ -114,14 +114,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     saveStatusPillsConfig,
   } = usePages();
 
-  const {
-    entities,
-    entitiesLoaded,
-    connected,
-    conn,
-    activeUrl,
-    authRef,
-  } = useHomeAssistant();
+  const { entities, entitiesLoaded, connected, conn, activeUrl, authRef } = useHomeAssistant();
   const translations = useMemo(() => ({ en, nb, nn, sv, de }), []);
   const appFontFamilyMap = useMemo(
     () => ({

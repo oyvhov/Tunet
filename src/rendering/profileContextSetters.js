@@ -1,9 +1,4 @@
-export function buildProfilesContextSetters({
-  page,
-  layout,
-  appearance,
-  setLanguage,
-}) {
+export function buildProfilesContextSetters({ page, layout, appearance, setLanguage }) {
   return {
     persistConfig: page.persistConfig,
     persistCardSettings: page.persistCardSettings,

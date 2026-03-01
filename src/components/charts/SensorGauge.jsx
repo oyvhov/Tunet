@@ -2,7 +2,14 @@
  * Lightweight SVG gauge/donut/bar for sensor cards.
  * No external deps - pure SVG.
  */
-export function Gauge({ value, min, max, size = 80, strokeWidth = 8, color = 'var(--accent-color)' }) {
+export function Gauge({
+  value,
+  min,
+  max,
+  size = 80,
+  strokeWidth = 8,
+  color = 'var(--accent-color)',
+}) {
   const range = max - min || 1;
   const pct = Math.max(0, Math.min(1, (value - min) / range));
   const radius = (size - strokeWidth) / 2;
@@ -32,7 +39,14 @@ export function Gauge({ value, min, max, size = 80, strokeWidth = 8, color = 'va
   );
 }
 
-export function Donut({ value, min, max, size = 80, strokeWidth = 10, color = 'var(--accent-color)' }) {
+export function Donut({
+  value,
+  min,
+  max,
+  size = 80,
+  strokeWidth = 10,
+  color = 'var(--accent-color)',
+}) {
   const range = max - min || 1;
   const pct = Math.max(0, Math.min(1, (value - min) / range));
   const radius = (size - strokeWidth) / 2;
@@ -71,7 +85,7 @@ export function Bar({ value, min, max, height = 12, color = 'var(--accent-color)
   const pct = Math.max(0, Math.min(1, (value - min) / range));
 
   return (
-    <div className="w-full rounded-full bg-[var(--glass-bg)] overflow-hidden" style={{ height }}>
+    <div className="w-full overflow-hidden rounded-full bg-[var(--glass-bg)]" style={{ height }}>
       <div
         className="h-full rounded-full transition-all duration-400 ease-out"
         style={{ width: `${pct * 100}%`, backgroundColor: color }}

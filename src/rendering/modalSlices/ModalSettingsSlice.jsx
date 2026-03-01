@@ -8,7 +8,16 @@ const ThemeSidebar = lazy(() => import('../../components/sidebars/ThemeSidebar')
 const LayoutSidebar = lazy(() => import('../../components/sidebars/LayoutSidebar'));
 const HeaderSidebar = lazy(() => import('../../components/sidebars/HeaderSidebar'));
 
-export function ModalSettingsSlice({ core, modals, appearance, layout, onboarding, profiles, onboardingSteps, entityHelpers }) {
+export function ModalSettingsSlice({
+  core,
+  modals,
+  appearance,
+  layout,
+  onboarding,
+  profiles,
+  onboardingSteps,
+  entityHelpers,
+}) {
   const { entities, connected, activeUrl, config, setConfig, t, language, setLanguage } = core;
   const {
     showConfigModal,

@@ -13,6 +13,11 @@
   --color-blue-400: color-mix(in srgb, var(--text-secondary) 78%, var(--text-primary) 22%);
   --color-blue-500: color-mix(in srgb, var(--text-secondary) 62%, var(--text-primary) 38%);
   --color-blue-600: color-mix(in srgb, var(--text-primary) 88%, var(--text-secondary) 12%);
+
+  /* Status Colors */
+  --color-green-500: #22c55e;
+  --color-red-500: #ef4444;
+  --color-orange-500: #f97316;
 }
 
 /* When custom bg image is active, add overlay for readability */

@@ -66,6 +66,26 @@ export default function GenericClimateCard({
   const hvacAction = entity.attributes?.hvac_action || 'idle';
   const DisplayIcon = Icon || AirVent;
 
+  const themeClasses = {
+    blue: {
+      iconBg: 'bg-blue-500/10 text-blue-400',
+      badge: 'bg-blue-500/20 border-blue-500/30 text-blue-400',
+      fanActive: 'bg-blue-400',
+    },
+    orange: {
+      iconBg: 'bg-orange-500/10 text-orange-400',
+      badge: 'bg-orange-500/10 border-orange-500/20 text-orange-400',
+      fanActive: 'bg-orange-400',
+    },
+    gray: {
+      iconBg: 'bg-[var(--glass-bg)] text-[var(--text-secondary)]',
+      badge: 'bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]',
+      fanActive: 'bg-[var(--text-primary)]',
+    },
+  };
+
+  const activeTheme = themeClasses[clTheme];
+
   const stepTemp = (delta) => onSetTemperature((targetTemp || 21) + delta);
 
   if (isSmall) {
@@ -82,21 +102,7 @@ export default function GenericClimateCard({
         {controls}
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div
-            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 group-hover:scale-110"
-            style={{
-              backgroundColor:
-                clTheme === 'blue'
-                  ? 'rgba(59, 130, 246, 0.1)'
-                  : clTheme === 'orange'
-                    ? 'rgba(249, 115, 22, 0.1)'
-                    : 'var(--glass-bg)',
-              color:
-                clTheme === 'blue'
-                  ? '#60a5fa'
-                  : clTheme === 'orange'
-                    ? '#fb923c'
-                    : 'var(--text-secondary)',
-            }}
+            className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 group-hover:scale-110 ${activeTheme.iconBg}`}
           >
             <DisplayIcon className="h-6 w-6 stroke-[1.5px]" />
           </div>
@@ -114,7 +120,7 @@ export default function GenericClimateCard({
             </div>
           </div>
         </div>
-        <div className="card-controls card-controls--temp shrink-0">
+        <div className="card-controls card-controls--temp invisible shrink-0 group-hover:visible">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -153,46 +159,12 @@ export default function GenericClimateCard({
       {controls}
       <div className="mb-4 flex items-start justify-between gap-4">
         <div
-          className="flex-shrink-0 rounded-2xl p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3"
-          style={{
-            backgroundColor:
-              clTheme === 'blue'
-                ? 'rgba(59, 130, 246, 0.2)'
-                : clTheme === 'orange'
-                  ? 'rgba(249, 115, 22, 0.1)'
-                  : 'rgba(255, 255, 255, 0.05)',
-            color:
-              clTheme === 'blue'
-                ? '#3b82f6'
-                : clTheme === 'orange'
-                  ? '#fb923c'
-                  : 'var(--text-secondary)',
-          }}
+          className={`flex-shrink-0 rounded-2xl p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${activeTheme.iconBg}`}
         >
           <DisplayIcon className="h-5 w-5" style={{ strokeWidth: 1.5 }} />
         </div>
         <div
-          className="flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1"
-          style={{
-            backgroundColor:
-              clTheme === 'blue'
-                ? 'rgba(59, 130, 246, 0.2)'
-                : clTheme === 'orange'
-                  ? 'rgba(249, 115, 22, 0.1)'
-                  : 'rgba(255, 255, 255, 0.05)',
-            borderColor:
-              clTheme === 'blue'
-                ? 'rgba(59, 130, 246, 0.3)'
-                : clTheme === 'orange'
-                  ? 'rgba(249, 115, 22, 0.2)'
-                  : 'rgba(255, 255, 255, 0.1)',
-            color:
-              clTheme === 'blue'
-                ? '#3b82f6'
-                : clTheme === 'orange'
-                  ? '#fb923c'
-                  : 'var(--text-secondary)',
-          }}
+          className={`flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 ${activeTheme.badge}`}
         >
           <span className="text-xs font-bold tracking-widest uppercase">
             {translate('climate.action.' + hvacAction)}
@@ -214,10 +186,7 @@ export default function GenericClimateCard({
           </p>
         </div>
         <div className="flex items-stretch gap-3">
-          <div
-            className="flex flex-1 items-center justify-between rounded-2xl p-1"
-            style={{ backgroundColor: 'var(--glass-bg)' }}
-          >
+          <div className="flex flex-1 items-center justify-between rounded-2xl bg-[var(--glass-bg)] p-1">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -243,10 +212,7 @@ export default function GenericClimateCard({
             </button>
           </div>
           {showFan && (
-            <div
-              className="flex w-20 items-center justify-center gap-2 rounded-2xl pr-2"
-              style={{ backgroundColor: 'var(--glass-bg)' }}
-            >
+            <div className="flex w-20 items-center justify-center gap-2 rounded-2xl bg-[var(--glass-bg)] pr-2">
               <Fan className="h-4 w-4 text-[var(--text-secondary)]" />
               {fanSpeedLevel === 0 ? (
                 <span className="text-[10px] font-bold tracking-wider text-[var(--text-secondary)]">
@@ -259,11 +225,7 @@ export default function GenericClimateCard({
                       key={level}
                       className={`w-1 rounded-sm transition-all duration-300 ${
                         level <= fanSpeedLevel
-                          ? clTheme === 'blue'
-                            ? 'bg-[var(--accent-color)]'
-                            : clTheme === 'orange'
-                              ? 'bg-orange-400'
-                              : 'bg-[var(--text-primary)]'
+                          ? activeTheme.fanActive
                           : 'bg-[var(--glass-bg-hover)]'
                       }`}
                       style={{ height: `${30 + level * 14}%` }}

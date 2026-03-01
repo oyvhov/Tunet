@@ -2655,7 +2655,8 @@ export default function EditCardModal({
                           <button
                             key={v.key}
                             onClick={() =>
-                              editSettingsKey && saveCardSetting(editSettingsKey, 'sensorVariant', v.key)
+                              editSettingsKey &&
+                              saveCardSetting(editSettingsKey, 'sensorVariant', v.key)
                             }
                             className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
                               variant === v.key
@@ -2691,7 +2692,11 @@ export default function EditCardModal({
                               }
                               onChange={(e) => {
                                 const v = e.target.value;
-                                saveCardSetting(editSettingsKey, 'sensorMin', v === '' ? null : parseFloat(v));
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'sensorMin',
+                                  v === '' ? null : parseFloat(v)
+                                );
                                 saveCardSetting(editSettingsKey, 'sensorMinType', 'value');
                               }}
                               disabled={editSettings.sensorMinType === 'entity'}
@@ -2702,7 +2707,8 @@ export default function EditCardModal({
                               onChange={(e) => {
                                 const ty = e.target.value;
                                 saveCardSetting(editSettingsKey, 'sensorMinType', ty);
-                                if (ty === 'value') saveCardSetting(editSettingsKey, 'sensorMinEntity', null);
+                                if (ty === 'value')
+                                  saveCardSetting(editSettingsKey, 'sensorMinEntity', null);
                               }}
                               className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
                             >
@@ -2714,7 +2720,11 @@ export default function EditCardModal({
                             <select
                               value={editSettings.sensorMinEntity || ''}
                               onChange={(e) =>
-                                saveCardSetting(editSettingsKey, 'sensorMinEntity', e.target.value || null)
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'sensorMinEntity',
+                                  e.target.value || null
+                                )
                               }
                               className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
                             >
@@ -2742,7 +2752,11 @@ export default function EditCardModal({
                               }
                               onChange={(e) => {
                                 const v = e.target.value;
-                                saveCardSetting(editSettingsKey, 'sensorMax', v === '' ? null : parseFloat(v));
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'sensorMax',
+                                  v === '' ? null : parseFloat(v)
+                                );
                                 saveCardSetting(editSettingsKey, 'sensorMaxType', 'value');
                               }}
                               disabled={editSettings.sensorMaxType === 'entity'}
@@ -2753,7 +2767,8 @@ export default function EditCardModal({
                               onChange={(e) => {
                                 const ty = e.target.value;
                                 saveCardSetting(editSettingsKey, 'sensorMaxType', ty);
-                                if (ty === 'value') saveCardSetting(editSettingsKey, 'sensorMaxEntity', null);
+                                if (ty === 'value')
+                                  saveCardSetting(editSettingsKey, 'sensorMaxEntity', null);
                               }}
                               className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
                             >
@@ -2765,7 +2780,11 @@ export default function EditCardModal({
                             <select
                               value={editSettings.sensorMaxEntity || ''}
                               onChange={(e) =>
-                                saveCardSetting(editSettingsKey, 'sensorMaxEntity', e.target.value || null)
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'sensorMaxEntity',
+                                  e.target.value || null
+                                )
                               }
                               className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
                             >
@@ -2818,7 +2837,11 @@ export default function EditCardModal({
                           </label>
                           <button
                             onClick={() =>
-                              saveCardSetting(editSettingsKey, 'sensorUseColorThresholds', !useColorThresholds)
+                              saveCardSetting(
+                                editSettingsKey,
+                                'sensorUseColorThresholds',
+                                !useColorThresholds
+                              )
                             }
                             className={`rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
                               useColorThresholds
@@ -2840,7 +2863,10 @@ export default function EditCardModal({
                         {useColorThresholds && (
                           <div className="space-y-2">
                             {colorThresholds.map((threshold, index) => (
-                              <div key={`sensor-threshold-${index}`} className="space-y-2 rounded-lg bg-[var(--modal-bg)] p-2">
+                              <div
+                                key={`sensor-threshold-${index}`}
+                                className="space-y-2 rounded-lg bg-[var(--modal-bg)] p-2"
+                              >
                                 <div className="flex items-center gap-2">
                                   <span className="shrink-0 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
                                     {(t('sensor.step') || 'Step') + ` ${index + 1}`}
@@ -2850,7 +2876,8 @@ export default function EditCardModal({
                                     value={threshold.limit ?? ''}
                                     onChange={(e) =>
                                       saveThresholdAt(index, {
-                                        limit: e.target.value === '' ? null : parseFloat(e.target.value),
+                                        limit:
+                                          e.target.value === '' ? null : parseFloat(e.target.value),
                                       })
                                     }
                                     className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--glass-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
