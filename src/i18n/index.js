@@ -3,6 +3,7 @@ export { default as nb } from './nb.json';
 export { default as nn } from './nn.json';
 export { default as sv } from './sv.json';
 export { default as de } from './de.json';
+export { default as zh } from './zh.json';
 export {
   DEFAULT_LANGUAGE,
   SUPPORTED_LANGUAGES,

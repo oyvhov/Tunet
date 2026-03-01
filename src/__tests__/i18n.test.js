@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { en, nb, nn, sv, de } from '../i18n';
+import { en, nb, nn, sv, de, zh } from '../i18n';
 
 const getPlaceholders = (value) => {
   const matches = String(value).match(/\{[^}]+\}/g) || [];
@@ -32,17 +32,19 @@ const expectParityWithEnglish = (targetTranslations, languageCode) => {
 };
 
 describe('i18n', () => {
-  it('exports English, Bokmal, Nynorsk and Swedish translation objects', () => {
+  it('exports supported translation objects including Chinese', () => {
     expect(en).toBeDefined();
     expect(nb).toBeDefined();
     expect(nn).toBeDefined();
     expect(sv).toBeDefined();
     expect(de).toBeDefined();
+    expect(zh).toBeDefined();
     expect(typeof en).toBe('object');
     expect(typeof nb).toBe('object');
     expect(typeof nn).toBe('object');
     expect(typeof sv).toBe('object');
     expect(typeof de).toBe('object');
+    expect(typeof zh).toBe('object');
   });
 
   it('fan keys exist across all supported locales including German', () => {
