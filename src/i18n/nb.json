@@ -621,7 +621,6 @@
   "vacuum.statsTotalCleans": "Totalt rengjøringer",
   "vacuum.statsTotalTime": "Total tid",
   "vacuum.statsTotalArea": "Totalt areal",
-  "vacuum.lastCleaned": "Sist rengjort",
   "vacuum.statsMinutes": "min",
   "vacuum.statsHours": "t",
   "vacuum.statsJustNow": "Akkurat nå",
