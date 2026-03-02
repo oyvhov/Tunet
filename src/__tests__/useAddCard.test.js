@@ -65,7 +65,7 @@ beforeEach(() => {
 describe('useAddCard › initial state', () => {
   it('starts with default values', () => {
     const { result } = renderHook(() => useAddCard(makeProps()));
-    expect(result.current.addCardType).toBe('sensor');
+    expect(result.current.addCardType).toBe('light');
     expect(result.current.searchTerm).toBe('');
     expect(result.current.selectedEntities).toEqual([]);
     expect(result.current.nordpoolDecimals).toBe(2);
@@ -123,11 +123,11 @@ describe('useAddCard › type inference', () => {
     expect(result.current.addCardType).toBe('entity');
   });
 
-  it('sets type to "sensor" for normal pages', () => {
+  it('sets type to "light" for normal pages', () => {
     const { result } = renderHook(() =>
       useAddCard(makeProps({ showAddCardModal: true, activePage: 'home' }))
     );
-    expect(result.current.addCardType).toBe('sensor');
+    expect(result.current.addCardType).toBe('light');
   });
 });
 
@@ -143,9 +143,9 @@ describe('useAddCard › labels', () => {
     expect(result.current.getAddCardAvailableLabel()).toBe('Available people');
   });
 
-  it('getAddCardAvailableLabel returns sensors for default sensor type', () => {
+  it('getAddCardAvailableLabel returns lights for default light type', () => {
     const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
-    expect(result.current.getAddCardAvailableLabel()).toBe('Available sensors');
+    expect(result.current.getAddCardAvailableLabel()).toBe('Lights');
   });
 
   it('getAddCardAvailableLabel returns correct label for vacuum type', () => {

@@ -1016,11 +1016,14 @@ export default function MediaModal({
   return (
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-2 font-sans md:items-center md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      style={{
+        backdropFilter: showPlayersSidebar ? 'blur(20px)' : 'none',
+        backgroundColor: showPlayersSidebar ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.15)',
+      }}
       onClick={handleModalClose}
     >
       <div
-        className={`popup-anim relative flex w-full flex-col overflow-hidden shadow-2xl backdrop-blur-xl md:flex-row ${showPlayersSidebar ? 'max-w-5xl gap-4 rounded-3xl border p-4 md:gap-10 md:rounded-[4rem] md:p-10' : 'max-w-[95vw] rounded-3xl border-0 p-0 md:rounded-[3rem]'}`}
+        className={`popup-anim relative flex w-full flex-col overflow-hidden shadow-2xl md:flex-row ${showPlayersSidebar ? 'max-w-5xl gap-4 rounded-3xl border p-4 backdrop-blur-xl md:gap-10 md:rounded-[4rem] md:p-10' : 'max-w-[95vw] rounded-3xl border-0 p-0 md:rounded-[3rem]'}`}
         style={{
           background: showPlayersSidebar ? 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)' : 'black',
           borderColor: 'var(--glass-border)',
@@ -1051,7 +1054,7 @@ export default function MediaModal({
               )}
             </div>
             <div className="min-w-0">
-              <h3 className={`max-w-full truncate pr-10 text-lg leading-tight font-light tracking-tight uppercase italic md:pr-0 md:text-2xl md:leading-none ${showPlayersSidebar ? 'text-[var(--text-primary)]' : 'text-white drop-shadow-md'}`}>
+              <h3 className={`max-w-full pr-10 text-lg leading-tight font-light tracking-tight break-words uppercase italic md:pr-1 md:text-2xl md:leading-tight ${showPlayersSidebar ? 'text-[var(--text-primary)]' : 'text-white drop-shadow-md'}`}>
                 {activeUser
                   ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}`
                   : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
@@ -1586,10 +1589,9 @@ export default function MediaModal({
           )}
         </div>
 
-        <div
-          className={`relative min-h-0 overflow-hidden transition-all duration-300 ease-out ${showPlayersSidebar ? 'w-full border-t border-[var(--glass-border)] md:w-80 md:border-t-0 md:border-l lg:w-[22rem]' : 'w-0 border-0'}`}
-        >
-          <div className="custom-scrollbar absolute inset-0 flex min-h-0 flex-col gap-6 overflow-y-auto pt-4 pl-0 md:pt-10 md:pl-8 lg:pt-16 lg:pl-12">
+        {showPlayersSidebar && (
+          <div className="relative min-h-0 w-full overflow-hidden border-t border-[var(--glass-border)] transition-all duration-300 ease-out md:w-80 md:border-t-0 md:border-l lg:w-[22rem]">
+            <div className="custom-scrollbar absolute inset-0 flex min-h-0 flex-col gap-6 overflow-y-auto pt-4 pl-0 md:pt-10 md:pl-8 lg:pt-16 lg:pl-12">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold tracking-[0.2em] text-gray-500 uppercase">
               {isSonos || isAllSonos
@@ -1812,8 +1814,9 @@ export default function MediaModal({
               )}
             </div>
           )}
+            </div>
           </div>
-        </div>
+        )}
 
         {showChoosePanel && (
           <button

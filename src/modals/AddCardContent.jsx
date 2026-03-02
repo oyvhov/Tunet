@@ -24,7 +24,7 @@ import {
   Zap,
 } from '../icons';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
 
@@ -210,74 +210,6 @@ function AddCardContent({
   const [selectedRoomAreas, setSelectedRoomAreas] = useState([]);
   const [selectedRoomEntitiesById, setSelectedRoomEntitiesById] = useState({});
   const [localSpacerVariant, setLocalSpacerVariant] = useState(selectedSpacerVariant || 'divider');
-  const [calendarOptionsSnapshot, setCalendarOptionsSnapshot] = useState([]);
-  const [weatherOptionsSnapshot, setWeatherOptionsSnapshot] = useState([]);
-  const [tempOptionsSnapshot, setTempOptionsSnapshot] = useState([]);
-  const [androidTVMediaOptionsSnapshot, setAndroidTVMediaOptionsSnapshot] = useState([]);
-  const [androidTVRemoteOptionsSnapshot, setAndroidTVRemoteOptionsSnapshot] = useState([]);
-  const [nordpoolOptionsSnapshot, setNordpoolOptionsSnapshot] = useState([]);
-
-  useEffect(() => {
-    if (addCardType !== 'calendar') return;
-    const snapshot = Object.keys(entities)
-      .filter((id) => id.startsWith('calendar.'))
-      .map((id) => ({
-        id,
-        name: entities[id]?.attributes?.friendly_name || id,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    setCalendarOptionsSnapshot(snapshot);
-  }, [addCardType, entities]);
-
-  useEffect(() => {
-    if (addCardType !== 'weather') return;
-    const weatherSnapshot = Object.keys(entities)
-      .filter((id) => id.startsWith('weather.'))
-      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    const tempSnapshot = Object.keys(entities)
-      .filter((id) => {
-        if (!id.startsWith('sensor.')) return false;
-        const deviceClass = entities[id]?.attributes?.device_class;
-        const lowerId = id.toLowerCase();
-        return (
-          deviceClass === 'temperature' ||
-          lowerId.includes('temperature') ||
-          lowerId.includes('temp')
-        );
-      })
-      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    setWeatherOptionsSnapshot(weatherSnapshot);
-    setTempOptionsSnapshot(tempSnapshot);
-  }, [addCardType, entities]);
-
-  useEffect(() => {
-    if (addCardType !== 'androidtv') return;
-    const mediaSnapshot = Object.keys(entities)
-      .filter((id) => id.startsWith('media_player.'))
-      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    const remoteSnapshot = Object.keys(entities)
-      .filter((id) => id.startsWith('remote.'))
-      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    setAndroidTVMediaOptionsSnapshot(mediaSnapshot);
-    setAndroidTVRemoteOptionsSnapshot(remoteSnapshot);
-  }, [addCardType, entities]);
-
-  useEffect(() => {
-    if (addCardType !== 'nordpool') return;
-    const snapshot = Object.keys(entities)
-      .filter((id) => id.startsWith('sensor.') && id.toLowerCase().includes('nordpool'))
-      .map((id) => ({ id, name: entities[id]?.attributes?.friendly_name || id }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-    setNordpoolOptionsSnapshot(snapshot);
-  }, [addCardType, entities]);
 
   useEffect(() => {
     if (addCardType === 'spacer') {
@@ -300,6 +232,76 @@ function AddCardContent({
     const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
     return entityId.includes('sonos') || friendlyName.includes('sonos');
   };
+
+  const lowerSearchTerm = searchTerm.toLowerCase();
+  const entityIds = useMemo(() => Object.keys(entities), [entities]);
+  const selectedEntitiesSet = useMemo(() => new Set(selectedEntities), [selectedEntities]);
+
+  const getEntityName = useCallback((id) => entities[id]?.attributes?.friendly_name || id, [entities]);
+
+  const calendarOptionsSnapshot = useMemo(() => {
+    if (addCardType !== 'calendar') return [];
+    return entityIds
+      .filter((id) => id.startsWith('calendar.'))
+      .map((id) => ({ id, name: getEntityName(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [addCardType, entityIds, getEntityName]);
+
+  const weatherOptionsSnapshot = useMemo(() => {
+    if (addCardType !== 'weather') return [];
+    return entityIds
+      .filter((id) => id.startsWith('weather.'))
+      .map((id) => ({ id, name: getEntityName(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [addCardType, entityIds, getEntityName]);
+
+  const tempOptionsSnapshot = useMemo(() => {
+    if (addCardType !== 'weather') return [];
+    return entityIds
+      .filter((id) => {
+        if (!id.startsWith('sensor.')) return false;
+        const deviceClass = entities[id]?.attributes?.device_class;
+        const lowerId = id.toLowerCase();
+        return (
+          deviceClass === 'temperature' ||
+          lowerId.includes('temperature') ||
+          lowerId.includes('temp')
+        );
+      })
+      .map((id) => ({ id, name: getEntityName(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [addCardType, entityIds, entities, getEntityName]);
+
+  const androidTVMediaOptionsSnapshot = useMemo(() => {
+    if (addCardType !== 'androidtv') return [];
+    return entityIds
+      .filter((id) => id.startsWith('media_player.'))
+      .map((id) => ({ id, name: getEntityName(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [addCardType, entityIds, getEntityName]);
+
+  const androidTVRemoteOptionsSnapshot = useMemo(() => {
+    if (addCardType !== 'androidtv') return [];
+    return entityIds
+      .filter((id) => id.startsWith('remote.'))
+      .map((id) => ({ id, name: getEntityName(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [addCardType, entityIds, getEntityName]);
+
+  const nordpoolOptionsSnapshot = useMemo(() => {
+    if (addCardType !== 'nordpool') return [];
+    return entityIds
+      .filter((id) => id.startsWith('sensor.') && id.toLowerCase().includes('nordpool'))
+      .map((id) => ({ id, name: getEntityName(id) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [addCardType, entityIds, getEntityName]);
+
+  const excludedOnPage = useMemo(
+    () => new Set(pagesConfig[addCardTargetPage] || []),
+    [pagesConfig, addCardTargetPage]
+  );
+  const excludedHeader = useMemo(() => new Set(pagesConfig.header || []), [pagesConfig]);
+  const excludedSettings = useMemo(() => new Set(pagesConfig.settings || []), [pagesConfig]);
 
   /** Reusable entity list item button. */
   const EntityItem = ({ id, isSelected, onClick, badgeText, displayName }) => (
@@ -335,39 +337,17 @@ function AddCardContent({
     </button>
   );
 
-  /** Filter & sort entities by search term. */
-  const filterAndSort = (ids) =>
-    ids
-      .filter((id) => {
-        if (!searchTerm) return true;
-        const lowerTerm = searchTerm.toLowerCase();
-        const name = entities[id]?.attributes?.friendly_name || id;
-        return id.toLowerCase().includes(lowerTerm) || name.toLowerCase().includes(lowerTerm);
-      })
-      .sort((a, b) =>
-        (entities[a]?.attributes?.friendly_name || a).localeCompare(
-          entities[b]?.attributes?.friendly_name || b
-        )
-      );
-
-  // --- Entity filter logic for the generic entity list ---
-  const getFilteredEntityIds = () => {
-    return Object.keys(entities).filter((id) => {
-      if (addCardTargetPage === 'header')
-        return id.startsWith('person.') && !(pagesConfig.header || []).includes(id);
-      if (addCardTargetPage === 'settings') {
-        return !(pagesConfig.settings || []).includes(id);
-      }
-      if (addCardType === 'vacuum')
-        return id.startsWith('vacuum.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
-      if (addCardType === 'fan')
-        return id.startsWith('fan.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+  const filteredGenericEntityIds = useMemo(() => {
+    return entityIds.filter((id) => {
+      if (addCardTargetPage === 'header') return id.startsWith('person.') && !excludedHeader.has(id);
+      if (addCardTargetPage === 'settings') return !excludedSettings.has(id);
+      if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !excludedOnPage.has(id);
+      if (addCardType === 'fan') return id.startsWith('fan.') && !excludedOnPage.has(id);
       if (addCardType === 'camera') return id.startsWith('camera.');
       if (addCardType === 'cover') return id.startsWith('cover.');
       if (addCardType === 'climate') return id.startsWith('climate.');
       if (addCardType === 'alarm') return id.startsWith('alarm_control_panel.');
-      if (addCardType === 'androidtv')
-        return id.startsWith('media_player.') || id.startsWith('remote.');
+      if (addCardType === 'androidtv') return id.startsWith('media_player.') || id.startsWith('remote.');
       if (addCardType === 'cost') return id.startsWith('sensor.') || id.startsWith('input_number.');
       if (addCardType === 'media') return id.startsWith('media_player.');
       if (addCardType === 'sonos') return id.startsWith('media_player.') && isSonosEntity(entities[id]);
@@ -381,34 +361,80 @@ function AddCardContent({
             id.startsWith('binary_sensor.') ||
             id.startsWith('switch.') ||
             id.startsWith('automation.')) &&
-          !(pagesConfig[addCardTargetPage] || []).includes(id)
+          !excludedOnPage.has(id)
         );
       }
-      if (addCardType === 'toggle')
-        return isToggleEntity(id) && !(pagesConfig[addCardTargetPage] || []).includes(id);
-      if (addCardType === 'entity')
-        return (
-          !id.startsWith('person.') &&
-          !id.startsWith('update.') &&
-          !(pagesConfig[addCardTargetPage] || []).includes(id)
-        );
-      return id.startsWith('light.') && !(pagesConfig[addCardTargetPage] || []).includes(id);
+      if (addCardType === 'toggle') return isToggleEntity(id) && !excludedOnPage.has(id);
+      if (addCardType === 'entity') {
+        return !id.startsWith('person.') && !id.startsWith('update.') && !excludedOnPage.has(id);
+      }
+      return id.startsWith('light.') && !excludedOnPage.has(id);
     });
-  };
+  }, [
+    entityIds,
+    addCardTargetPage,
+    addCardType,
+    excludedHeader,
+    excludedOnPage,
+    excludedSettings,
+    entities,
+  ]);
+
+  const visibleGenericEntityIds = useMemo(() => {
+    const sorted = filteredGenericEntityIds
+      .filter((id) => {
+        if (!lowerSearchTerm) return true;
+        const name = getEntityName(id);
+        return id.toLowerCase().includes(lowerSearchTerm) || name.toLowerCase().includes(lowerSearchTerm);
+      })
+      .sort((a, b) => getEntityName(a).localeCompare(getEntityName(b)));
+
+    return addCardTargetPage === 'settings' ? sorted.slice(0, 100) : sorted;
+  }, [filteredGenericEntityIds, lowerSearchTerm, addCardTargetPage, getEntityName]);
+
+  const visibleWeatherOptions = useMemo(
+    () =>
+      weatherOptionsSnapshot.filter(({ id, name }) =>
+        !lowerSearchTerm || id.toLowerCase().includes(lowerSearchTerm) || name.toLowerCase().includes(lowerSearchTerm)
+      ),
+    [weatherOptionsSnapshot, lowerSearchTerm]
+  );
+
+  const visibleTempOptions = useMemo(
+    () =>
+      tempOptionsSnapshot.filter(({ id, name }) =>
+        !lowerSearchTerm || id.toLowerCase().includes(lowerSearchTerm) || name.toLowerCase().includes(lowerSearchTerm)
+      ),
+    [tempOptionsSnapshot, lowerSearchTerm]
+  );
+
+  const visibleAndroidTVMediaOptions = useMemo(
+    () =>
+      androidTVMediaOptionsSnapshot.filter(({ id, name }) =>
+        !lowerSearchTerm || id.toLowerCase().includes(lowerSearchTerm) || name.toLowerCase().includes(lowerSearchTerm)
+      ),
+    [androidTVMediaOptionsSnapshot, lowerSearchTerm]
+  );
+
+  const visibleAndroidTVRemoteOptions = useMemo(
+    () =>
+      androidTVRemoteOptionsSnapshot.filter(({ id, name }) =>
+        !lowerSearchTerm || id.toLowerCase().includes(lowerSearchTerm) || name.toLowerCase().includes(lowerSearchTerm)
+      ),
+    [androidTVRemoteOptionsSnapshot, lowerSearchTerm]
+  );
+
+  const visibleNordpoolOptions = useMemo(
+    () =>
+      nordpoolOptionsSnapshot.filter(({ id, name }) =>
+        !lowerSearchTerm || id.toLowerCase().includes(lowerSearchTerm) || name.toLowerCase().includes(lowerSearchTerm)
+      ),
+    [nordpoolOptionsSnapshot, lowerSearchTerm]
+  );
 
   // --- Render sections ---
 
   const renderWeatherSection = () => {
-    const lowerSearch = searchTerm.toLowerCase();
-    const visibleWeather = weatherOptionsSnapshot.filter(({ id, name }) => {
-      if (!searchTerm) return true;
-      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
-    });
-    const visibleTemps = tempOptionsSnapshot.filter(({ id, name }) => {
-      if (!searchTerm) return true;
-      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
-    });
-
     return (
       <div className="space-y-8">
         <div>
@@ -416,7 +442,7 @@ function AddCardContent({
             {t('addCard.weatherRequired')}
           </p>
           <div className="space-y-3">
-            {visibleWeather.map(({ id, name }) => (
+            {visibleWeatherOptions.map(({ id, name }) => (
               <EntityItem
                 key={id}
                 id={id}
@@ -461,7 +487,7 @@ function AddCardContent({
                 {!selectedTempId ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               </div>
             </button>
-            {visibleTemps.map(({ id, name }) => (
+            {visibleTempOptions.map(({ id, name }) => (
               <EntityItem
                 key={id}
                 id={id}
@@ -482,16 +508,6 @@ function AddCardContent({
   };
 
   const renderAndroidTVSection = () => {
-    const lowerSearch = searchTerm.toLowerCase();
-    const visibleMediaPlayers = androidTVMediaOptionsSnapshot.filter(({ id, name }) => {
-      if (!searchTerm) return true;
-      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
-    });
-    const visibleRemotes = androidTVRemoteOptionsSnapshot.filter(({ id, name }) => {
-      if (!searchTerm) return true;
-      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
-    });
-
     return (
       <div className="space-y-8">
         <div>
@@ -499,7 +515,7 @@ function AddCardContent({
             {t('addCard.mediaPlayerRequired')}
           </p>
           <div className="space-y-3">
-            {visibleMediaPlayers.map(({ id, name }) => (
+            {visibleAndroidTVMediaOptions.map(({ id, name }) => (
               <EntityItem
                 key={id}
                 id={id}
@@ -548,7 +564,7 @@ function AddCardContent({
                 )}
               </div>
             </button>
-            {visibleRemotes.map(({ id, name }) => (
+            {visibleAndroidTVRemoteOptions.map(({ id, name }) => (
               <EntityItem
                 key={id}
                 id={id}
@@ -579,11 +595,12 @@ function AddCardContent({
   );
 
   const renderCalendarSection = () => {
-    const lowerSearch = searchTerm.toLowerCase();
-    const visibleCalendars = calendarOptionsSnapshot.filter(({ id, name }) => {
-      if (!searchTerm) return true;
-      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
-    });
+    const visibleCalendars = calendarOptionsSnapshot.filter(
+      ({ id, name }) =>
+        !lowerSearchTerm ||
+        id.toLowerCase().includes(lowerSearchTerm) ||
+        name.toLowerCase().includes(lowerSearchTerm)
+    );
 
     return (
       <div className="space-y-3">
@@ -592,7 +609,7 @@ function AddCardContent({
         </p>
         <div className="space-y-3">
           {visibleCalendars.map(({ id, name }) => {
-            const isSelected = selectedEntities.includes(id);
+            const isSelected = selectedEntitiesSet.has(id);
             return (
               <button
                 type="button"
@@ -689,12 +706,6 @@ function AddCardContent({
   );
 
   const renderNordpoolSection = () => {
-    const lowerSearch = searchTerm.toLowerCase();
-    const visibleNordpool = nordpoolOptionsSnapshot.filter(({ id, name }) => {
-      if (!searchTerm) return true;
-      return id.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch);
-    });
-
     return (
       <div className="space-y-8">
         <div>
@@ -702,7 +713,7 @@ function AddCardContent({
             {t('addCard.nordpoolSensorRequired')}
           </p>
           <div className="space-y-3">
-            {visibleNordpool.map(({ id, name }) => (
+            {visibleNordpoolOptions.map(({ id, name }) => (
               <EntityItem
                 key={id}
                 id={id}
@@ -748,12 +759,6 @@ function AddCardContent({
   };
 
   const renderGenericEntityList = () => {
-    const filteredIds = getFilteredEntityIds();
-    const visibleIds = filterAndSort(filteredIds).slice(
-      0,
-      addCardTargetPage === 'settings' ? 100 : undefined
-    );
-
     return (
       <div>
         {addCardType === 'cost' && (
@@ -799,11 +804,11 @@ function AddCardContent({
           {getAddCardAvailableLabel()}
         </p>
         <div className="space-y-3">
-          {visibleIds.map((id) => {
+          {visibleGenericEntityIds.map((id) => {
             const isSelected =
               addCardType === 'cost'
                 ? selectedCostTodayId === id || selectedCostMonthId === id
-                : selectedEntities.includes(id);
+                : selectedEntitiesSet.has(id);
             const isSelectedToday = selectedCostTodayId === id;
             const isSelectedMonth = selectedCostMonthId === id;
             return (
@@ -819,7 +824,7 @@ function AddCardContent({
                     }
                     return;
                   }
-                  if (selectedEntities.includes(id))
+                  if (selectedEntitiesSet.has(id))
                     setSelectedEntities((prev) => prev.filter((e) => e !== id));
                   else setSelectedEntities((prev) => [...prev, id]);
                 }}
@@ -865,7 +870,7 @@ function AddCardContent({
               </button>
             );
           })}
-          {filteredIds.length === 0 && (
+          {filteredGenericEntityIds.length === 0 && (
             <p className="py-4 text-center text-sm text-gray-500 italic">
               {getAddCardNoneLeftLabel()}
             </p>

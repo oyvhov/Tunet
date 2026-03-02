@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { handleAddSelected } from '../services';
 
+const DEFAULT_ADD_CARD_TYPE = 'light';
+
 /** @typedef {import('../types/dashboard').UseAddCardDeps} UseAddCardDeps */
 /** @typedef {import('../types/dashboard').UseAddCardResult} UseAddCardResult */
 
@@ -28,7 +30,7 @@ export function useAddCard({
 }) {
   // ── Selection state ────────────────────────────────────────────────────
   const [addCardTargetPage, setAddCardTargetPage] = useState('home');
-  const [addCardType, setAddCardType] = useState('sensor');
+  const [addCardType, setAddCardType] = useState(DEFAULT_ADD_CARD_TYPE);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntities, setSelectedEntities] = useState([]);
   const [selectedWeatherId, setSelectedWeatherId] = useState(null);
@@ -84,7 +86,7 @@ export function useAddCard({
       setAddCardType('entity');
       return;
     }
-    setAddCardType('sensor');
+    setAddCardType(DEFAULT_ADD_CARD_TYPE);
   }, [showAddCardModal, addCardTargetPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Clear stale selections when card type changes ──────────────────────
