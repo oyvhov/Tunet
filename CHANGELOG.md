@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Includes dashboard release `1.11.1`.
 - Adds Simplified Chinese language support (#96).
-- Adds room action buttons to the Vacuum popup for room cleaning.
-- Expands the Vacuum popup with more sensors.
+- Adds room action buttons to the Vacuum popup for room cleaning (#85).
+- Expands the Vacuum popup with more sensors (#85).
 
 ## [1.11.0] — 2026-02-28
 
