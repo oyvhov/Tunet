@@ -724,24 +724,24 @@ function RoomSettingsSection({
     _door: t('room.doorShort') || 'Door',
   };
 
-  const allDomainKeys = [
-    'all',
-    'light',
-    'climate',
-    '_motion',
-    '_temperature',
-    'vacuum',
-    'media_player',
-    'sensor',
-    'binary_sensor',
-    'switch',
-    'fan',
-    'cover',
-    '_door',
-  ];
-
   const presentDomainFilters = React.useMemo(() => {
-    return allDomainKeys.filter((key) => {
+    const domainKeys = [
+      'all',
+      'light',
+      'climate',
+      '_motion',
+      '_temperature',
+      'vacuum',
+      'media_player',
+      'sensor',
+      'binary_sensor',
+      'switch',
+      'fan',
+      'cover',
+      '_door',
+    ];
+
+    return domainKeys.filter((key) => {
       if (key === 'all') return true;
       if (key === '_motion')
         return roomEntityIds.some((id) => {
