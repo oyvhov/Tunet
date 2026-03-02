@@ -2,7 +2,10 @@
 
 ## 1.11.1
 
-- Release metadata sync.
+- Includes dashboard release `1.11.1`.
+- Adds Chinese (Simplified) language support with updated language selection wiring and locale labels.
+- Restores Vacuum popup room action buttons by passing configured room scripts to `VacuumModal`.
+- Improves Vacuum room-script editor row styling in Edit Card.
 
 ## 1.11.0
 

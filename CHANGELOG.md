@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.11.1] — 2026-03-01
 
 ### Changed
-- Release metadata sync.
+- Added Chinese (Simplified) language support across the dashboard, including language selection in settings/onboarding and locale wiring updates.
+- Added `zh` locale parity validation in i18n tests and updated language labels in existing locales.
+- Fixed Vacuum popup room actions by passing resolved `vacuumSettings` (and `conn`) into `VacuumModal`, restoring configured room script buttons.
+- Refined Vacuum room-script editor styling in Edit Card by removing conflicting inline background override on room rows.
 
 
 ## [1.11.0] — 2026-02-28
