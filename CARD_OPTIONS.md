@@ -191,7 +191,7 @@ Practical guide to what each card is best for, what you can configure, and commo
 
 <img width="382" height="236" alt="image" src="https://github.com/user-attachments/assets/42195012-5219-4e63-b02c-b6c995b095af" />
 <img width="601" height="547" alt="image" src="https://github.com/user-attachments/assets/08e78daa-b151-4a4a-9679-cdf622950014" />
-<img width="1146" height="487" alt="image" src="https://github.com/user-attachments/assets/a9f8fc4f-311f-4ad4-9df7-5552ccf9a63f" />
+
 
 - Alarm entity selection.
 - Arm/disarm actions, with PIN flow where required.
@@ -201,7 +201,8 @@ Practical guide to what each card is best for, what you can configure, and commo
 
 **Best for:** upcoming events and agenda flows.
 
-<img width="400" height="481" alt="image" src="https://github.com/user-attachments/assets/c37bcc89-772f-4bc9-b28a-101b124890df" /><img width="392" height="478" alt="image" src="https://github.com/user-attachments/assets/d69733b7-4bfa-4130-80a1-2d49c1b2b0c4" />
+<img width="1146" height="487" alt="image" src="https://github.com/user-attachments/assets/a9f8fc4f-311f-4ad4-9df7-5552ccf9a63f" />
+<img width="400" height="481" alt="image" src="https://github.com/user-attachments/assets/c37bcc89-772f-4bc9-b28a-101b124890df" />
 
 
 - Calendar entity/list selection.
@@ -211,7 +212,8 @@ Practical guide to what each card is best for, what you can configure, and commo
 
 **Best for:** Home Assistant to-do workflows.
 
-<img width="1491" height="244" alt="image" src="https://github.com/user-attachments/assets/f2c8c686-de2e-43a9-8849-407d95f1157f" />
+<img width="392" height="478" alt="image" src="https://github.com/user-attachments/assets/d69733b7-4bfa-4130-80a1-2d49c1b2b0c4" />
+
 
 - To-do list entity selection.
 - List item management in card/popup flow.
@@ -220,6 +222,7 @@ Practical guide to what each card is best for, what you can configure, and commo
 
 **Best for:** visual spacing and section separation in dense layouts.
 
+<img width="1491" height="244" alt="image" src="https://github.com/user-attachments/assets/f2c8c686-de2e-43a9-8849-407d95f1157f" />
 ![Uploading image.png…]()
 
 - Variant: `spacer` or `divider`.
