@@ -4,13 +4,15 @@ import { renderSensorCard } from './cards/sensorRenderer';
 import { renderLightCard } from './cards/lightRenderer';
 import { renderCameraCard } from './cards/cameraRenderer';
 import { renderSpacerCard } from './cards/spacerRenderer';
+import { renderAutomationCard } from './cards/automationRenderer';
+import { renderCarCard } from './cards/carRenderer';
+import { renderVacuumCard } from './cards/vacuumRenderer';
+import { renderFanCard } from './cards/fanRenderer';
+import { renderMediaPlayerCard } from './cards/mediaPlayerRenderer';
+import { renderMediaGroupCard } from './cards/mediaGroupRenderer';
+import { renderAlarmCard } from './cards/alarmRenderer';
+import { renderRoomCard } from './cards/roomRenderer';
 import {
-  renderAutomationCard,
-  renderCarCard,
-  renderVacuumCard,
-  renderFanCard,
-  renderMediaPlayerCard,
-  renderMediaGroupCard,
   renderWeatherTempCard,
   renderGenericClimateCard,
   renderGenericCostCard,
@@ -19,8 +21,6 @@ import {
   renderTodoCard,
   renderNordpoolCard,
   renderCoverCard,
-  renderAlarmCard,
-  renderRoomCard,
 } from './cardRenderers';
 
 /**
