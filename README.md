@@ -14,6 +14,8 @@ A modern React dashboard for Home Assistant with real-time entity control, energ
   - **Light**: Brightness, color (RGB/temp), and toggle limits.
   - **Climate**: Thermostat modes, target temperature, and HVAC action feedback.
   - **Media**: Generic media players + dedicated **Android TV** remote with app launching.
+    - Playlist browsing requires a **Music Assistant** `media_player`.
+    - Sonos Favorites browsing requires a **Sonos** `media_player`.
   - **Cover**: Position sliders for blinds and toggle controls for garage doors.
   - **Vacuum**: State monitoring, start/pause/dock commands.
   - **Fan**: Speed percentage, oscillation, and direction controls.
@@ -73,6 +75,7 @@ npm run dev:all
 ## Updating
 
 See [SETUP.md](SETUP.md) for detailed setup, configuration, and troubleshooting.
+See [CARD_OPTIONS.md](CARD_OPTIONS.md) for card-by-card options and screenshots.
 
 ## Technologies
 

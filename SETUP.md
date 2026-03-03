@@ -101,6 +101,16 @@ docker rm tunet-dashboard         # Remove container
 5. Token mode: paste a long-lived access token (HA → Profile → Security).
 6. Optional: set a fallback URL for token mode if you expose HA internally/externally.
 
+### Media browsing prerequisites
+
+- To browse playlists, select a **Music Assistant** `media_player` entity.
+- To browse **Sonos Favorites**, select a **Sonos** `media_player` entity.
+- If the selected player does not support the relevant browse source, playlist/favorites browsing may be empty.
+
+### Card options reference
+
+For a detailed overview of card types, available options, and screenshots, see [CARD_OPTIONS.md](CARD_OPTIONS.md).
+
 Where data lives:
 
 - Dashboard/layout/theme/language: browser `localStorage` (`tunet_*` keys) by default; can also be saved/restored via Profiles (server-side) per HA user.
