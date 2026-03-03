@@ -97,17 +97,17 @@ const PersonStatus = ({
       </div>
 
       {(showName || showState) && (
-        <div className="hidden flex-col justify-center sm:flex">
+        <div className="hidden min-w-0 flex-col justify-center sm:flex">
           {showName && (
             <div className="flex items-center gap-2">
-              <span className="text-sm leading-none font-bold tracking-wide text-[var(--text-primary)]">
+              <span className="text-sm leading-tight font-bold tracking-wide text-[var(--text-primary)]">
                 {name}
               </span>
             </div>
           )}
           {showState && (
             <span
-              className={`text-xs leading-none font-bold tracking-widest uppercase transition-colors duration-300 ${showName ? 'mt-1' : ''}`}
+              className={`text-xs leading-tight font-bold tracking-[0.18em] uppercase transition-colors duration-300 ${showName ? 'mt-1' : ''}`}
               style={{ color: isHome ? '#4ade80' : 'rgba(156, 163, 175, 0.5)' }}
             >
               {String(statusText)}

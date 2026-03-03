@@ -5,7 +5,7 @@ import {
   buildGridLayout as _buildGridLayout,
 } from '../utils/gridLayout';
 import { createDragAndDropHandlers } from '../utils/dragAndDrop';
-import { dispatchCardRender } from '../rendering/cardRenderers';
+import { dispatchCardRender } from '../rendering/registry';
 import EditOverlay from '../components/ui/EditOverlay';
 
 export function useCardRendering({
