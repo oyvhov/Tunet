@@ -137,11 +137,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
   const odometerValue = odometerId ? getS(odometerId) : null;
   const fuelLevelValue = fuelLevelId ? getS(fuelLevelId) : null;
   const apiStatusValue = apiStatusId ? getS(apiStatusId) : null;
-  const controlIds = Array.isArray(chargeControlIds)
-    ? chargeControlIds
-    : chargeControlId
-      ? [chargeControlId]
-      : [];
+  const controlIds = [...new Set([...(Array.isArray(chargeControlIds) ? chargeControlIds : []), chargeControlId].filter(Boolean))];
 
   const handleChargeControl = (entityId) => {
     if (!entityId) return;
@@ -154,6 +150,14 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
     }
     if (domain === 'button') {
       callService('button', 'press', { entity_id: entityId });
+      return;
+    }
+    if (domain === 'input_button') {
+      callService('input_button', 'press', { entity_id: entityId });
+      return;
+    }
+    if (domain === 'script') {
+      callService('script', 'turn_on', { entity_id: entityId });
     }
   };
 
@@ -226,7 +230,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
         <div className="grid grid-cols-1 items-start gap-6 font-sans lg:grid-cols-5">
           {/* Left Column - Map (Span 3) */}
           <div className="lg:col-span-3">
-            <div className="group relative h-[clamp(14rem,32vw,26rem)] w-full overflow-hidden rounded-2xl bg-[var(--glass-bg)]/50 md:h-[clamp(18rem,26vw,32rem)]">
+            <div className="group relative h-[clamp(12rem,24vw,20rem)] w-full overflow-hidden rounded-2xl bg-[var(--glass-bg)]/50 md:h-[clamp(14rem,22vw,24rem)]">
               {lat && long ? (
                 <>
                   <iframe

@@ -236,6 +236,18 @@ export function matchCarEntities(entities = {}) {
       }
     }
 
+    if (domain === 'input_button') {
+      if (isChargeControlCandidate(text)) {
+        chargeControlScores.set(id, Math.max(chargeControlScores.get(id) || 0, 90));
+      }
+    }
+
+    if (domain === 'script') {
+      if (isChargeControlCandidate(text)) {
+        chargeControlScores.set(id, Math.max(chargeControlScores.get(id) || 0, 92));
+      }
+    }
+
     if (domain === 'number' && hasAnyToken(text, ['charge_limit', 'charge limit', 'soc limit'])) {
       addCandidate(candidates, 'chargeLimitNumberId', id, 110);
     }

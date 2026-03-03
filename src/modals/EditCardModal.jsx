@@ -339,7 +339,9 @@ function CarMappingsSection({
       if (key === 'ignitionSwitchId') return domain === 'switch';
       if (key === 'chargeLimitNumberId') return domain === 'number';
       if (key === 'chargeLimitSelectId') return ['select', 'input_select'].includes(domain);
-      if (key === 'chargeControlId') return ['switch', 'button'].includes(domain);
+      if (key === 'chargeControlId') {
+        return ['switch', 'button', 'input_button', 'script'].includes(domain);
+      }
       if (key === 'updateButtonId') return domain === 'button';
       return true;
     },
