@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.2
+
+- Includes dashboard release `1.12.2`.
+- Improves Climate card fan-speed display by normalizing fan-mode values across integrations, preventing non-auto modes from showing as AUTO (#102).
+- Improves Simplified Chinese translations for alarm/climate flows and corrects multiple machine-translated labels (#101).
+
 ## 1.12.1
 
 - Includes dashboard release `1.12.1`.

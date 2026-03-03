@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.12.2] — 2026-03-03
+
+### Changed
+- Improved Climate card fan-speed display by normalizing fan-mode values across integrations, so non-auto modes no longer fall back to "AUTO" (#102).
+- Improved Simplified Chinese translations for alarm/climate flows and corrected several machine-translated labels (#101).
+
 ## [1.12.1] — 2026-03-03
 
 ### Changed
@@ -26,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- Improved Climate card fan-speed display by normalizing fan-mode values across integrations, so non-auto modes no longer fall back to "AUTO" (#102).
+- No unreleased changes yet.
 
 ## [1.11.2] — 2026-03-01
 
