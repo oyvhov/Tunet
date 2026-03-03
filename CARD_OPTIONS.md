@@ -37,6 +37,8 @@ Detailed overview of each card type, where it fits, and what can be configured.
 - Popup controls for brightness, color temperature, and RGB (depends on entity support).
 
 ### Climate
+<img width="403" height="241" alt="image" src="https://github.com/user-attachments/assets/35b9d6fb-cf1c-4411-bd63-d46eb4e85a8d" />
+<img width="1669" height="668" alt="image" src="https://github.com/user-attachments/assets/95fd5f98-b356-464f-b0d8-c3cabbb24652" />
 
 - Climate entity selection.
 - On-card target temperature +/- controls.
@@ -50,12 +52,16 @@ Detailed overview of each card type, where it fits, and what can be configured.
 - Popup support for oscillation/direction/presets (capability-aware).
 
 ### Cover
+<img width="390" height="243" alt="image" src="https://github.com/user-attachments/assets/1916713d-7448-41a0-bf52-f03db48f0e77" />
+<img width="1219" height="702" alt="image" src="https://github.com/user-attachments/assets/ac47e5ec-d66c-4e1c-b6f7-2fbcd851be42" />
 
 - Cover entity selection.
 - Position/tilt controls for supported entities.
 - Device-class-aware labels (blind, shutter, garage, etc.).
 
 ### Vacuum
+<img width="371" height="240" alt="image" src="https://github.com/user-attachments/assets/fa55736e-18ef-49ac-8944-365d937f20b4" />
+<img width="1505" height="774" alt="image" src="https://github.com/user-attachments/assets/ddd3d31a-23cd-40d4-ae15-377c98031f7b" />
 
 - Vacuum entity selection.
 - State + quick actions (start/pause/return).
@@ -68,6 +74,9 @@ Detailed overview of each card type, where it fits, and what can be configured.
 - Stream engine selection (Auto/WebRTC/HA stream/Snapshot), with fallback behavior.
 
 ### Media
+<img width="387" height="236" alt="image" src="https://github.com/user-attachments/assets/4edb4099-7fc4-4fcc-ae02-f48f45c73c1a" />
+<img width="1481" height="968" alt="image" src="https://github.com/user-attachments/assets/c8531577-8bf2-4879-93bc-d2298d398f8c" />
+<img width="2537" height="1214" alt="image" src="https://github.com/user-attachments/assets/df581cf8-716b-4702-b545-e6775c854afc" />
 
 - Generic media-player focused flow.
 - Best for Music Assistant playlist browsing.
