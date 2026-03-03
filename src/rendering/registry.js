@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import { MissingEntityCard } from '../components';
 import { getSettings } from './helpers';
 import { renderSensorCard } from './cards/sensorRenderer';
@@ -80,28 +81,24 @@ export function dispatchCardRender(cardId, dragProps, getControls, cardStyle, se
   }
 
   if (editMode && cardId === 'media_player') {
-    return (
-      <MissingEntityCard
-        cardId={cardId}
-        dragProps={dragProps}
-        controls={getControls(cardId)}
-        cardStyle={cardStyle}
-        label="Legacy"
-        t={ctx.t}
-      />
-    );
+    return createElement(MissingEntityCard, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      label: 'Legacy',
+      t: ctx.t,
+    });
   }
 
   if (editMode && (cardId.startsWith('media_group_') || cardId.startsWith('sonos_group_'))) {
-    return (
-      <MissingEntityCard
-        cardId={cardId}
-        dragProps={dragProps}
-        controls={getControls(cardId)}
-        cardStyle={cardStyle}
-        t={ctx.t}
-      />
-    );
+    return createElement(MissingEntityCard, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      t: ctx.t,
+    });
   }
 
   if (cardId === 'car') {

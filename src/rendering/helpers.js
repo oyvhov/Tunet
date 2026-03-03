@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import { MissingEntityCard } from '../components';
 
 /**
@@ -33,5 +34,5 @@ export function withEditModeGuard(editMode, callback) {
  */
 export function renderMissingEntityWhenReady(ctx, props) {
   if (!ctx?.entitiesMissingReady) return null;
-  return <MissingEntityCard {...props} />;
+  return createElement(MissingEntityCard, props);
 }
