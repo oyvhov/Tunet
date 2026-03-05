@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Lightbulb } from '../../icons';
 import M3Slider from '../ui/M3Slider';
@@ -246,4 +246,4 @@ const LightCard = ({
   );
 };
 
-export default LightCard;
+export default memo(LightCard);

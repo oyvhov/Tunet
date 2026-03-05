@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { AlertTriangle } from '../../icons';
 
 /**
  * Placeholder card shown in edit mode when an entity is missing or broken.
  */
-export default function MissingEntityCard({
+const MissingEntityCard = memo(function MissingEntityCard({
   cardId,
   dragProps,
   controls,
@@ -32,4 +33,6 @@ export default function MissingEntityCard({
       </p>
     </div>
   );
-}
+});
+
+export default MissingEntityCard;

@@ -99,5 +99,61 @@ export function useModals() {
 
   const closeAllModals = useCallback(() => dispatch({ type: 'CLOSE_ALL' }), []);
 
-  return /** @type {UseModalsResult} */ ({ ...state, ...setters, hasOpenModal, closeAllModals });
+  // Grouped modal actions reduce prop explosion in app-level orchestration.
+  const entityModalActions = useMemo(
+    () => ({
+      setShowNordpoolModal: setters.setShowNordpoolModal,
+      setShowCostModal: setters.setShowCostModal,
+      setActiveClimateEntityModal: setters.setActiveClimateEntityModal,
+      setShowLightModal: setters.setShowLightModal,
+      setActiveCarModal: setters.setActiveCarModal,
+      setShowPersonModal: setters.setShowPersonModal,
+      setShowAndroidTVModal: setters.setShowAndroidTVModal,
+      setShowVacuumModal: setters.setShowVacuumModal,
+      setShowFanModal: setters.setShowFanModal,
+      setShowSensorInfoModal: setters.setShowSensorInfoModal,
+      setShowCalendarModal: setters.setShowCalendarModal,
+      setShowTodoModal: setters.setShowTodoModal,
+      setShowRoomModal: setters.setShowRoomModal,
+      setShowCoverModal: setters.setShowCoverModal,
+      setShowCameraModal: setters.setShowCameraModal,
+      setShowWeatherModal: setters.setShowWeatherModal,
+      setShowAlarmModal: setters.setShowAlarmModal,
+      setShowAlarmActionModal: setters.setShowAlarmActionModal,
+    }),
+    [setters]
+  );
+
+  const mediaModalActions = useMemo(
+    () => ({
+      setActiveMediaModal: setters.setActiveMediaModal,
+      setActiveMediaGroupKey: setters.setActiveMediaGroupKey,
+      setActiveMediaGroupIds: setters.setActiveMediaGroupIds,
+      setActiveMediaSessionSensorIds: setters.setActiveMediaSessionSensorIds,
+      setActiveMediaId: setters.setActiveMediaId,
+    }),
+    [setters]
+  );
+
+  const managementModalActions = useMemo(
+    () => ({
+      setShowAddCardModal: setters.setShowAddCardModal,
+      setShowConfigModal: setters.setShowConfigModal,
+      setShowAddPageModal: setters.setShowAddPageModal,
+      setShowHeaderEditModal: setters.setShowHeaderEditModal,
+      setShowEditCardModal: setters.setShowEditCardModal,
+      setShowStatusPillsConfig: setters.setShowStatusPillsConfig,
+    }),
+    [setters]
+  );
+
+  return /** @type {UseModalsResult} */ ({
+    ...state,
+    ...setters,
+    entityModalActions,
+    mediaModalActions,
+    managementModalActions,
+    hasOpenModal,
+    closeAllModals,
+  });
 }

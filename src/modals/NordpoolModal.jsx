@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Zap, ToggleLeft, ToggleRight } from '../icons';
 import InteractivePowerGraph from '../components/charts/InteractivePowerGraph';
 import { useHomeAssistantMeta } from '../contexts';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 /**
  * NordpoolModal - Modal for displaying Nordpool price information and graph
@@ -38,6 +39,7 @@ export default function NordpoolModal({
   const translate = t || ((key) => key);
   const currency = settings?.currency || haConfig?.currency || 'kr';
   const [showWithSupport, setShowWithSupport] = useState(settings?.showWithSupport ?? false);
+  const modalTitleId = 'nordpool-modal-title';
 
   // Sync with settings when they change
   useEffect(() => {
@@ -75,20 +77,21 @@ export default function NordpoolModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <div className="absolute top-6 right-6 z-20 flex gap-3 md:top-10 md:right-10">
           <button
             onClick={(e) => {
@@ -110,7 +113,7 @@ export default function NordpoolModal({
               {showWithSupport ? t('nordpool.withSupport') : t('nordpool.withoutSupport')}
             </span>
           </button>
-          <button onClick={onClose} className="modal-close">
+          <button onClick={onClose} className="modal-close" aria-label={translate('common.close')}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -124,7 +127,10 @@ export default function NordpoolModal({
             <Zap className="h-8 w-8" />
           </div>
           <div>
-            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+            >
               {name}
             </h3>
             <div
@@ -198,7 +204,8 @@ export default function NordpoolModal({
             )}
           </div>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

@@ -24,6 +24,7 @@ import {
 } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import SafeImage from '../components/ui/SafeImage';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getMediaPlayerPowerAction } from '../utils/mediaPlayerFeatures';
 
 const readJSON = (key, fallback) => {
@@ -984,7 +985,11 @@ export default function MediaModal({
       className={`rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase ${chooseTab === id ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
       style={
         chooseTab === id
-          ? { backgroundColor: 'var(--accent-color)' }
+          ? {
+              backgroundColor: 'color-mix(in srgb, var(--accent-color) 18%, transparent)',
+              color: 'var(--accent-color)',
+              border: '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)',
+            }
           : { backgroundColor: 'var(--glass-bg)' }
       }
     >
@@ -996,55 +1001,70 @@ export default function MediaModal({
 
   if (!currentMp) {
     return (
-      <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-sans md:p-6"
-        style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-        onClick={handleModalClose}
+      <AccessibleModalShell
+        open={show}
+        onClose={handleModalClose}
+        titleId="media-modal-title"
+        overlayClassName="fixed inset-0 z-[100] flex items-center justify-center p-4 font-sans md:p-6"
+        overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+        panelClassName="popup-anim relative w-full max-w-2xl rounded-3xl border p-6 shadow-2xl backdrop-blur-xl md:rounded-[4rem] md:p-12"
+        panelStyle={{
+          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+          borderColor: 'var(--glass-border)',
+        }}
       >
-        <div
-          className="popup-anim relative w-full max-w-2xl rounded-3xl border p-6 shadow-2xl backdrop-blur-xl md:rounded-[4rem] md:p-12"
-          style={{
-            background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-            borderColor: 'var(--glass-border)',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
+        {(resolvedTitleId) => (
+          <>
+          <h2 id={resolvedTitleId} className="sr-only">
+            {t('addCard.type.media')}
+          </h2>
           <button
             onClick={handleModalClose}
             className="modal-close absolute top-6 right-6 z-20 md:top-10 md:right-10"
+            aria-label={t('common.close') || 'Close'}
           >
             <X className="h-4 w-4" />
           </button>
           <div className="text-center text-[var(--text-primary)]">{t('media.noPlayerFound')}</div>
-        </div>
-      </div>
+          </>
+        )}
+      </AccessibleModalShell>
     );
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-2 font-sans md:items-center md:p-6"
-      style={{
+    <AccessibleModalShell
+      open={show}
+      onClose={handleModalClose}
+      titleId="media-modal-title"
+      overlayClassName="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-2 font-sans md:items-center md:p-6"
+      overlayStyle={{
         backdropFilter: showPlayersSidebar ? 'blur(20px)' : 'none',
         backgroundColor: showPlayersSidebar ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.15)',
       }}
-      onClick={handleModalClose}
+      panelClassName={`popup-anim relative flex w-full flex-col overflow-hidden shadow-2xl md:flex-row ${showPlayersSidebar ? 'max-w-5xl gap-4 rounded-3xl border p-4 backdrop-blur-xl md:gap-10 md:rounded-[4rem] md:p-10' : 'max-w-[95vw] rounded-3xl border-0 p-0 md:rounded-[3rem]'}`}
+      panelStyle={{
+        background: showPlayersSidebar
+          ? 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)'
+          : 'black',
+        borderColor: 'var(--glass-border)',
+        height: showPlayersSidebar ? 'min(80dvh, 800px)' : 'min(90dvh, 1200px)',
+        maxHeight: 'calc(100dvh - 2rem)',
+      }}
     >
-      <div
-        className={`popup-anim relative flex w-full flex-col overflow-hidden shadow-2xl md:flex-row ${showPlayersSidebar ? 'max-w-5xl gap-4 rounded-3xl border p-4 backdrop-blur-xl md:gap-10 md:rounded-[4rem] md:p-10' : 'max-w-[95vw] rounded-3xl border-0 p-0 md:rounded-[3rem]'}`}
-        style={{
-          background: showPlayersSidebar ? 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)' : 'black',
-          borderColor: 'var(--glass-border)',
-          height: showPlayersSidebar ? 'min(80dvh, 800px)' : 'min(90dvh, 1200px)',
-          maxHeight: 'calc(100dvh - 2rem)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {(resolvedTitleId) => (
+        <>
+        <h2 id={resolvedTitleId} className="sr-only">
+          {t('addCard.type.media')}
+        </h2>
         <button
           onClick={handleModalClose}
           className={`modal-close absolute z-50 ${showPlayersSidebar ? 'top-6 right-6 md:top-10 md:right-10' : 'top-6 right-6 md:top-10 md:right-10'}`}
+          aria-label={t('common.close') || 'Close'}
         >
-          <X className="h-6 w-6 text-white drop-shadow-md" />
+          <X
+            className={`h-6 w-6 drop-shadow-md ${showPlayersSidebar ? 'text-[var(--text-primary)]' : 'text-[var(--accent-color)]'}`}
+          />
         </button>
 
         <div className={`custom-scrollbar relative z-10 flex min-h-0 flex-col justify-start ${showPlayersSidebar ? 'flex-1 pr-1 md:pr-2 overflow-hidden' : 'h-full w-full overflow-hidden'}`}>
@@ -1118,7 +1138,7 @@ export default function MediaModal({
                 className={`ml-auto rounded-xl border transition-colors hover:scale-105 active:scale-95 ${
                   showPlayersSidebar
                     ? 'border-[var(--glass-border)] bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                    : 'rounded-full border-transparent bg-white/10 p-2 text-white hover:bg-white/20'
+                    : 'rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] hover:opacity-90'
                 }`}
                 aria-label={showPlayersSidebar ? t('common.hide') || 'Hide' : t('common.show') || 'Show'}
                 title={showPlayersSidebar ? t('common.hide') || 'Hide' : t('common.show') || 'Show'}
@@ -1734,7 +1754,7 @@ export default function MediaModal({
                           });
                         }
                       }}
-                      className={`rounded-full p-2.5 transition-all ${isMember ? 'bg-[var(--accent-color)] text-white shadow-lg ' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                      className={`rounded-full p-2.5 transition-all ${isMember ? 'border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] shadow-lg ' : 'bg-[var(--glass-bg)] text-gray-500 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                       title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
                     >
                       {isMember ? <Link className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -1972,7 +1992,8 @@ export default function MediaModal({
             </div>
           </div>
         </aside>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

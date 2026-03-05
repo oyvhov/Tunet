@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Coins } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useHomeAssistantMeta } from '../../contexts';
@@ -18,7 +19,7 @@ const formatMonthValue = (entity) => {
   return String(getEntityValue(entity));
 };
 
-export default function GenericEnergyCostCard({
+const GenericEnergyCostCard = memo(function GenericEnergyCostCard({
   cardId,
   todayEntityId,
   monthEntityId,
@@ -145,4 +146,6 @@ export default function GenericEnergyCostCard({
       </div>
     </div>
   );
-}
+});
+
+export default GenericEnergyCostCard;

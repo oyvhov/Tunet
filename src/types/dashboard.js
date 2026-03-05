@@ -361,7 +361,51 @@
  */
 
 /**
+ * @typedef {Object} EntityModalActions
+ * @property {(value: string | null) => void} setShowNordpoolModal
+ * @property {(value: string | null) => void} setShowCostModal
+ * @property {(value: string | null) => void} setActiveClimateEntityModal
+ * @property {(value: string | null) => void} setShowLightModal
+ * @property {(value: string | null) => void} setActiveCarModal
+ * @property {(value: string | null) => void} setShowPersonModal
+ * @property {(value: string | null) => void} setShowAndroidTVModal
+ * @property {(value: string | null) => void} setShowVacuumModal
+ * @property {(value: string | null) => void} setShowFanModal
+ * @property {(value: string | null) => void} setShowSensorInfoModal
+ * @property {(value: string | null) => void} setShowCalendarModal
+ * @property {(value: string | null) => void} setShowTodoModal
+ * @property {(value: string | null) => void} setShowRoomModal
+ * @property {(value: string | null) => void} setShowCoverModal
+ * @property {(value: string | null) => void} setShowCameraModal
+ * @property {(value: string | null) => void} setShowWeatherModal
+ * @property {(value: string | null) => void} setShowAlarmModal
+ * @property {(value: { cardId: string, actionKey: string } | null) => void} setShowAlarmActionModal
+ */
+
+/**
+ * @typedef {Object} MediaModalActions
+ * @property {(value: string | null) => void} setActiveMediaModal
+ * @property {(value: string | null) => void} setActiveMediaGroupKey
+ * @property {(value: string[] | null) => void} setActiveMediaGroupIds
+ * @property {(value: string[] | null) => void} setActiveMediaSessionSensorIds
+ * @property {(value: string | null) => void} setActiveMediaId
+ */
+
+/**
+ * @typedef {Object} ManagementModalActions
+ * @property {(value: boolean) => void} setShowAddCardModal
+ * @property {(value: boolean) => void} setShowConfigModal
+ * @property {(value: boolean) => void} setShowAddPageModal
+ * @property {(value: boolean) => void} setShowHeaderEditModal
+ * @property {(value: string | null) => void} setShowEditCardModal
+ * @property {(value: boolean) => void} setShowStatusPillsConfig
+ */
+
+/**
  * @typedef {ModalState & ModalSetters & {
+ *   entityModalActions: EntityModalActions,
+ *   mediaModalActions: MediaModalActions,
+ *   managementModalActions: ManagementModalActions,
  *   hasOpenModal: () => boolean,
  *   closeAllModals: () => void,
  * }} UseModalsResult

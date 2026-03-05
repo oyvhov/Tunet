@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, LogOut, Moon, Shield, Sun, Unlock, X } from '../icons';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 const ACTION_META = {
   arm_home: { labelKey: 'alarm.action.armHome', icon: Home, service: 'alarm_arm_home' },
@@ -72,6 +73,7 @@ export default function AlarmActionPinModal({
   const actionMeta = ACTION_META[actionKey] || null;
   const ActionIcon = actionMeta?.icon || Shield;
   const needsCode = useMemo(() => requiresCode(actionKey, entity), [actionKey, entity]);
+  const modalTitleId = 'alarm-action-pin-modal-title';
 
   const submit = useCallback(async () => {
     if (!actionMeta || !entityId || submitting) return;
@@ -117,21 +119,22 @@ export default function AlarmActionPinModal({
   const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✓'];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show && !!actionMeta && !!entityId && !!entity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative w-full max-w-md rounded-3xl border p-6 font-sans backdrop-blur-xl"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative w-full max-w-md rounded-3xl border p-6 font-sans backdrop-blur-xl"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button onClick={onClose} className="modal-close absolute top-4 right-4">
+      {() => (
+        <>
+        <button onClick={onClose} className="modal-close absolute top-4 right-4" aria-label={translate('common.close')}>
           <X className="h-4 w-4" />
         </button>
 
@@ -143,7 +146,7 @@ export default function AlarmActionPinModal({
             <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               {translate('alarm.modal.actions')}
             </p>
-            <p className="text-sm font-semibold tracking-wide uppercase">
+            <p id={modalTitleId} className="text-sm font-semibold tracking-wide uppercase">
               {translate(actionMeta.labelKey)}
             </p>
           </div>
@@ -208,7 +211,8 @@ export default function AlarmActionPinModal({
         </div>
 
         {error && <p className="mt-3 text-sm text-[var(--text-primary)]">{error}</p>}
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

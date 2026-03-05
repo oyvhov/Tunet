@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from 'react';
 import {
   Home,
   Thermometer,
@@ -23,7 +23,7 @@ import {
  * RoomCard – shows a summary of a Home Assistant area (room).
  * Redesigned with elegant glass styling and animated control switching.
  */
-export default function RoomCard({
+const RoomCard = memo(function RoomCard({
   cardId,
   settings,
   entities,
@@ -505,4 +505,6 @@ export default function RoomCard({
       </div>
     </div>
   );
-}
+});
+
+export default RoomCard;

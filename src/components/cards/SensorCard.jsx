@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { Minus, Plus, Activity, Play } from 'lucide-react';
 import { getHistory, getStatistics } from '../../services/haClient';
 import SparkLine from '../charts/SparkLine';
@@ -24,7 +24,7 @@ const DEFAULT_SENSOR_COLOR_THRESHOLDS = [
   { limit: 100, color: 'green' },
 ];
 
-export default function SensorCard({
+const SensorCard = memo(function SensorCard({
   entity,
   entities = {},
   conn,
@@ -747,4 +747,6 @@ export default function SensorCard({
       </div>
     </div>
   );
-}
+});
+
+export default SensorCard;

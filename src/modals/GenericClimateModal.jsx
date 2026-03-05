@@ -1,6 +1,7 @@
 import { AirVent, ArrowUpDown, Fan, Flame, Minus, Plus, Snowflake, X } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import ModernDropdown from '../components/ui/ModernDropdown';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import { formatKindValueForDisplay, getEffectiveUnitMode } from '../utils';
 
@@ -54,27 +55,30 @@ export default function GenericClimateModal({
   const showHvac = Array.isArray(hvacModes) && hvacModes.length > 0;
   const showFan = Array.isArray(fanModes) && fanModes.length > 0;
   const showSwing = Array.isArray(swingModes) && swingModes.length > 0;
+  const modalTitleId = `climate-modal-title-${entityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const tempValue = typeof targetTemp === 'number' ? targetTemp : 21;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={!!entityId && !!entity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-6 right-6 md:top-10 md:right-10"
+          aria-label={t('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -99,7 +103,10 @@ export default function GenericClimateModal({
             {isCooling ? <Snowflake className="h-8 w-8" /> : <AirVent className="h-8 w-8" />}
           </div>
           <div>
-            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+            >
               {getDisplayName(entity, t('climate.title'))}
             </h3>
             <div
@@ -270,7 +277,8 @@ export default function GenericClimateModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

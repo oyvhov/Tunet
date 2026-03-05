@@ -1,5 +1,6 @@
 import { X, Car, Clock, RefreshCw, Zap, MapPin, Thermometer } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { formatRelativeTime } from '../utils';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
@@ -36,6 +37,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
+  const modalTitleId = `leaf-modal-title-${(car?.name || 'car').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   if (!show) return null;
 
@@ -162,20 +164,21 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative max-h-[80vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative max-h-[80vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <div className="absolute top-6 right-6 z-20 flex gap-3 md:top-10 md:right-10">
           {updateButtonId && (
             <button
@@ -188,7 +191,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
               </span>
             </button>
           )}
-          <button onClick={onClose} className="modal-close">
+          <button onClick={onClose} className="modal-close" aria-label={t('common.close')}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -202,7 +205,10 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
             <Car className="h-8 w-8" />
           </div>
           <div>
-            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+            >
               {name || t('car.defaultName')}
             </h3>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -511,7 +517,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
 
           </div>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { Tv, Play, Pause } from '../../icons';
 import { getMediaLogoUrl } from '../../utils/mediaLogos';
 
-export default function GenericAndroidTVCard({
+const GenericAndroidTVCard = memo(function GenericAndroidTVCard({
   cardId,
   dragProps,
   controls,
@@ -251,4 +252,6 @@ export default function GenericAndroidTVCard({
       )}
     </div>
   );
-}
+});
+
+export default GenericAndroidTVCard;

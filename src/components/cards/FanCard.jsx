@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   AlertTriangle,
   Fan as FanIconGlyph,
@@ -27,7 +28,7 @@ const supportsFeature = (supportedFeatures, bitMask) => {
   return (supportedFeatures & bitMask) !== 0;
 };
 
-export default function FanCard({
+const FanCard = memo(function FanCard({
   fanId,
   dragProps,
   controls,
@@ -256,4 +257,6 @@ export default function FanCard({
       )}
     </div>
   );
-}
+});
+
+export default FanCard;

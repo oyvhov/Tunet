@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -13,7 +14,7 @@ import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 /* ─── Single media player card ─── */
 
-export const MediaPlayerCard = ({
+export const MediaPlayerCard = memo(({
   cardId,
   mpId,
   dragProps,
@@ -249,11 +250,11 @@ export const MediaPlayerCard = ({
       </div>
     </div>
   );
-};
+});
 
 /* ─── Media group card (multiple players) ─── */
 
-export const MediaGroupCard = ({
+export const MediaGroupCard = memo(({
   cardId,
   dragProps,
   controls,
@@ -518,4 +519,4 @@ export const MediaGroupCard = ({
       </div>
     </div>
   );
-};
+});

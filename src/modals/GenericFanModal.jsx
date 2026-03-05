@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Fan, RefreshCw, X, MoveHorizontal, RotateCw } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import ModernDropdown from '../components/ui/ModernDropdown';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 const FAN_FEATURE = {
   SET_SPEED: 1,
@@ -48,6 +49,7 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
     ? activeEntity.attributes.preset_modes
     : [];
   const fanName = activeEntity.attributes?.friendly_name || activeEntityId;
+  const modalTitleId = `fan-modal-title-${activeEntityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const [sliderValue, setSliderValue] = useState(percentage);
 
@@ -96,23 +98,25 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
   if (!show || !activeEntityId || !entity) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show && !!activeEntityId && !!entity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-6 right-6 md:top-10 md:right-10"
+          aria-label={t('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -130,7 +134,10 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
             <Fan className={`h-8 w-8 ${isOn ? 'animate-spin [animation-duration:2.4s]' : ''}`} />
           </div>
           <div>
-            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+            >
               {fanName}
             </h3>
             <div className="mt-2 inline-block rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1 text-[var(--text-secondary)] transition-all duration-500">
@@ -160,7 +167,7 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                         oscillating: !oscillating,
                       })
                     }
-                    className={`flex items-center justify-center gap-3 rounded-2xl py-5 text-sm font-bold tracking-widest uppercase transition-all ${hasPowerControl ? 'flex-1' : 'w-full'} ${oscillating ? 'bg-[var(--accent-color)] text-white shadow-lg hover:bg-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                    className={`flex items-center justify-center gap-3 rounded-2xl py-5 text-sm font-bold tracking-widest uppercase transition-all ${hasPowerControl ? 'flex-1' : 'w-full'} ${oscillating ? 'border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] shadow-lg hover:opacity-90' : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   >
                     <MoveHorizontal className="h-5 w-5" />
                     {t('fan.oscillate')}
@@ -227,7 +234,8 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
             )}
           </div>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

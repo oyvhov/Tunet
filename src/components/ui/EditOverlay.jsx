@@ -104,6 +104,7 @@ function EditOverlay({
           }}
           className={hoverButtonClass}
           title={t('tooltip.moveLeft')}
+          aria-label={t('tooltip.moveLeft')}
         >
           <ChevronLeft className={iconClass} />
         </button>
@@ -114,6 +115,7 @@ function EditOverlay({
           }}
           className={hoverButtonClass}
           title={t('tooltip.moveRight')}
+          aria-label={t('tooltip.moveRight')}
         >
           <ChevronRight className={iconClass} />
         </button>
@@ -128,6 +130,7 @@ function EditOverlay({
           }}
           className={buttonClass}
           title={t('tooltip.editCard')}
+          aria-label={t('tooltip.editCard')}
         >
           <Edit2 className={iconClass} />
         </button>
@@ -139,6 +142,7 @@ function EditOverlay({
           className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full border border-white/20 text-white shadow-lg transition-colors hover:bg-white/20`}
           style={{ backgroundColor: isHidden ? 'rgba(239, 68, 68, 0.8)' : 'rgba(0, 0, 0, 0.6)' }}
           title={isHidden ? t('tooltip.showCard') : t('tooltip.hideCard')}
+          aria-label={isHidden ? t('tooltip.showCard') : t('tooltip.hideCard')}
         >
           {isHidden ? <EyeOff className={iconClass} /> : <Eye className={iconClass} />}
         </button>
@@ -153,6 +157,7 @@ function EditOverlay({
             title={
               isTriple ? 'Bytt storleik' : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')
             }
+            aria-label={isTriple ? 'Bytt storleik' : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')}
           >
             {isSmall ? <Maximize2 className={iconClass} /> : <Minimize2 className={iconClass} />}
           </button>
@@ -165,6 +170,7 @@ function EditOverlay({
             }}
             className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full border border-white/20 bg-black/60 text-white shadow-lg transition-colors hover:bg-red-500/80`}
             title={t('tooltip.removeCard')}
+            aria-label={t('tooltip.removeCard')}
           >
             <Trash2 className={iconClass} />
           </button>
@@ -173,14 +179,17 @@ function EditOverlay({
 
       {/* Central drag handle */}
       <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-        <div
+        <button
+          type="button"
           data-drag-handle
           {...dragHandleProps}
           style={{ touchAction: 'none' }}
           className={dragHandleClass}
+          aria-label={t('tooltip.reorderCard') || 'Reorder card'}
+          title={t('tooltip.reorderCard') || 'Reorder card'}
         >
           <GripVertical className={dragIconClass} />
-        </div>
+        </button>
       </div>
     </>
   );

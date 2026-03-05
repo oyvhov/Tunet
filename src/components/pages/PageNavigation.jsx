@@ -30,6 +30,7 @@ export default function PageNavigation({
   const { setShowAddPageModal } = useModalState();
   const [dragOverId, setDragOverId] = useState(null);
   const pageOrder = pagesConfig?.pages || [];
+  const isSinglePage = pages.length === 1;
 
   const movePage = (sourceId, targetId) => {
     if (!persistConfig) return;
@@ -49,10 +50,12 @@ export default function PageNavigation({
         const settings = pageSettings[page.id] || {};
         const label = settings.label || page.label;
         const isHidden = settings.hidden;
+        const hideSinglePagePill = settings.hideSinglePagePill === true;
         const Icon = settings.icon ? getIconComponent(settings.icon) || page.icon : page.icon;
         const isDragOver = dragOverId === page.id;
 
         if (!editMode && isHidden) return null;
+        if (!editMode && isSinglePage && hideSinglePagePill) return null;
 
         return (
           <button

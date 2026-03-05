@@ -38,8 +38,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Added comprehensive Playwright E2E coverage for critical flows with 33 tests across OAuth, drag-and-drop, and modal interactions.
+- Added E2E tooling and docs (`playwright.config.js`, `e2e/`, `E2E_TESTS_SETUP.md`) plus run scripts (`test:e2e`, `test:e2e:ui`, `test:e2e:headed`).
+
 ### Changed
-- No unreleased changes yet.
+- Wrapped all 21 dashboard card components with `React.memo()` to reduce unnecessary re-renders.
+- Improved modal accessibility behavior by tightening focus handling in `AccessibleModalShell` (focus restore and open-state handling).
+- Enhanced Person card UI with optional zone badge icon support and new editor toggle/translations.
+- Added single-page UX option to hide the page pill outside edit mode while keeping it visible during edit mode.
 
 ## [1.11.2] — 2026-03-01
 

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Minus, Plus, AirVent, Fan } from 'lucide-react';
 import { getIconComponent } from '../../icons';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
@@ -40,7 +41,7 @@ const getFanSpeedLevel = (fanMode, fanModes) => {
   return Math.max(1, Math.min(5, scaledLevel));
 };
 
-export default function GenericClimateCard({
+const GenericClimateCard = memo(function GenericClimateCard({
   cardId,
   entityId,
   entity,
@@ -266,4 +267,6 @@ export default function GenericClimateCard({
       </div>
     </div>
   );
-}
+});
+
+export default GenericClimateCard;

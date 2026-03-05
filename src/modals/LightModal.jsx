@@ -11,6 +11,7 @@ import {
   Sun,
 } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getIconComponent } from '../icons';
 
 export default function LightModal({
@@ -44,6 +45,7 @@ export default function LightModal({
   const showPills = isDimmable && (supportsColorTemp || supportsColor);
   const groupedEntityIds = activeLightId ? getA(activeLightId, 'entity_id', []) : [];
   const showRightPanel = isDimmable || groupedEntityIds.length > 0;
+  const modalTitleId = `light-modal-title-${activeLightId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   // --- Icon ---
   let DefaultIcon = Lightbulb;
@@ -127,23 +129,24 @@ export default function LightModal({
   if (!show || !activeLightId) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show && !!activeLightId}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName={`w-full border ${showRightPanel ? 'max-w-5xl' : 'max-w-xl'} flex flex-col overflow-hidden rounded-3xl md:rounded-[3rem] ${showRightPanel ? 'lg:grid lg:grid-cols-5' : ''} popup-anim relative max-h-[90vh] shadow-2xl backdrop-blur-xl md:min-h-[550px]`}
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className={`w-full border ${showRightPanel ? 'max-w-5xl' : 'max-w-xl'} flex flex-col overflow-hidden rounded-3xl md:rounded-[3rem] ${showRightPanel ? 'lg:grid lg:grid-cols-5' : ''} popup-anim relative max-h-[90vh] shadow-2xl backdrop-blur-xl md:min-h-[550px]`}
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         {/* Close Button Row (Mobile & Desktop) */}
         <div className="absolute top-6 right-6 z-50 md:top-10 md:right-10">
-          <button onClick={onClose} className="modal-close">
+          <button onClick={onClose} className="modal-close" aria-label={t('common.close')}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -167,7 +170,10 @@ export default function LightModal({
               <LightIcon className="h-8 w-8" />
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+              <h2
+                id={modalTitleId}
+                className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+              >
                 {getA(activeLightId, 'friendly_name', t('common.light'))}
               </h2>
               <div
@@ -204,6 +210,7 @@ export default function LightModal({
               onClick={() =>
                 !isUnavailable && callService('light', 'toggle', { entity_id: activeLightId })
               }
+              aria-label={t('light.toggle') || t('common.toggle')}
               disabled={isUnavailable}
               className={`relative flex h-24 w-24 items-center justify-center rounded-full transition-all duration-700 md:h-36 md:w-36 ${
                 isUnavailable
@@ -309,6 +316,7 @@ export default function LightModal({
                               brightness: val,
                             });
                           }}
+                          ariaLabel={t('light.brightness')}
                           colorClass="bg-amber-500"
                           variant="fat" // Keep fat for touch, but in smaller container
                         />
@@ -334,6 +342,8 @@ export default function LightModal({
                           max={maxKelvin}
                           step={50}
                           value={localKelvin}
+                          aria-label={t('light.colorTemperature')}
+                          aria-valuetext={`${localKelvin}K`}
                           disabled={isUnavailable}
                           onPointerDown={() => (isDraggingRef.current = true)}
                           onPointerUp={() => (isDraggingRef.current = false)}
@@ -380,6 +390,8 @@ export default function LightModal({
                           max={360}
                           step={1}
                           value={localHue}
+                          aria-label={t('light.hue')}
+                          aria-valuetext={`${localHue} degrees`}
                           disabled={isUnavailable}
                           onPointerDown={() => (isDraggingRef.current = true)}
                           onPointerUp={() => (isDraggingRef.current = false)}
@@ -444,6 +456,7 @@ export default function LightModal({
                                 max="255"
                                 step="1"
                                 value={subBrightness}
+                                aria-label={`${subName} ${t('light.brightness')}`}
                                 disabled={subUnavail}
                                 onChange={(e) => {
                                   const val = parseInt(e.target.value);
@@ -461,6 +474,7 @@ export default function LightModal({
                           {/* Toggle Button - Aligned to bottom (items-end on parent) */}
                           <button
                             onClick={() => callService('light', 'toggle', { entity_id: cid })}
+                            aria-label={`${subName} ${t('common.toggle')}`}
                             className={`flex h-8 w-12 items-center justify-center rounded-xl border transition-all ${subIsOn ? 'border-amber-500/30 bg-amber-500/20 text-amber-400' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
                           >
                             <div
@@ -478,7 +492,8 @@ export default function LightModal({
             {/* Quick Actions Footer (Right Column) - Removed redundant toggle */}
           </div>
         )}
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

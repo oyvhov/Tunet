@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { X, MapPin, Battery } from '../icons';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import {
   getEffectiveUnitMode,
   inferUnitKind,
@@ -29,6 +30,7 @@ export default function PersonModal({
   const name = customName || entity?.attributes?.friendly_name || personId;
   const picture = getEntityImageUrl ? getEntityImageUrl(entity?.attributes?.entity_picture) : null;
   const [pictureFailed, setPictureFailed] = useState(false);
+  const modalTitleId = `person-modal-title-${(personId || 'person').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   useEffect(() => {
     setPictureFailed(false);
@@ -285,32 +287,32 @@ export default function PersonModal({
   if (!show) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim custom-scrollbar relative max-h-[85vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans shadow-2xl backdrop-blur-xl md:rounded-[3rem] md:p-12"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-        .dynamic-map { height: min(52vh, 460px); min-height: 260px; }
-        @media (min-width: 640px) { .dynamic-map { min-height: 320px; } }
-        @media (min-width: 1024px) { .dynamic-map { height: min(58vh, 520px); min-height: 420px; } }
-        .leaflet-container { font-family: inherit; }
-      `}</style>
-      {/* Compact Container */}
-      <div
-        className="popup-anim custom-scrollbar relative max-h-[85vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans shadow-2xl backdrop-blur-xl md:rounded-[3rem] md:p-12"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
+          <style>{`
+            .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+            .dynamic-map { height: min(52vh, 460px); min-height: 260px; }
+            @media (min-width: 640px) { .dynamic-map { min-height: 320px; } }
+            @media (min-width: 1024px) { .dynamic-map { height: min(58vh, 520px); min-height: 420px; } }
+            .leaflet-container { font-family: inherit; }
+          `}</style>
         <div className="absolute top-6 right-6 z-20 flex gap-3 md:top-10 md:right-10">
-          <button onClick={onClose} className="modal-close">
+          <button onClick={onClose} className="modal-close" aria-label={t('common.close')}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -332,7 +334,10 @@ export default function PersonModal({
             )}
           </div>
           <div>
-            <h3 className="text-3xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="text-3xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+            >
               {name}
             </h3>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -461,7 +466,8 @@ export default function PersonModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

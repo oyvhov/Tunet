@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { Camera, AlertCircle } from '../../icons';
 import { getIconComponent } from '../../icons';
 
@@ -31,7 +31,7 @@ function normalizeStreamEngine(value) {
   return 'auto';
 }
 
-export default function CameraCard({
+const CameraCard = memo(function CameraCard({
   cardId,
   entityId,
   entity,
@@ -264,4 +264,6 @@ export default function CameraCard({
       </div>
     </div>
   );
-}
+});
+
+export default CameraCard;

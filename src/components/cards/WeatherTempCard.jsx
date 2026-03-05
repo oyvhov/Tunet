@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import WeatherGraph from '../charts/WeatherGraph';
 import WeatherEffects from '../effects/WeatherEffects';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
@@ -35,7 +36,7 @@ const getWeatherInfo = (condition, t) => {
   return map[condition] || { label: condition || 'Unknown', icon: 'not-available' };
 };
 
-export default function WeatherTempCard({
+const WeatherTempCard = memo(function WeatherTempCard({
   cardId,
   dragProps,
   getControls,
@@ -232,4 +233,6 @@ export default function WeatherTempCard({
       </div>
     </div>
   );
-}
+});
+
+export default WeatherTempCard;

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Edit2, Trash2, User } from '../../icons';
 
@@ -28,10 +29,32 @@ const PersonStatus = ({
   const personDisplay = headerSettings.personDisplay || 'photo';
   const showName = headerSettings.showName !== false;
   const showState = headerSettings.showState !== false;
+  const showZoneBadgeIcon = headerSettings.showZoneBadgeIcon !== false;
   const avatarOnly = !showName && !showState;
   const useIcon = personDisplay === 'icon';
   const personIconName = customIcons[id] || entity?.attributes?.icon;
   const PersonIcon = personIconName ? getIconComponent(personIconName) || User : User;
+
+  const normalizeZoneValue = (value) =>
+    String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, '_');
+
+  const stateValue = normalizeZoneValue(entity?.state);
+  const zoneEntries = Object.entries(entities || {}).filter(([entityId]) => entityId.startsWith('zone.'));
+  const matchedZoneEntity = (() => {
+    if (!stateValue) return null;
+    if (stateValue === 'home' && entities?.['zone.home']) return entities['zone.home'];
+    const matchedEntry = zoneEntries.find(([zoneId, zone]) => {
+      const objectId = normalizeZoneValue(zoneId.split('.')[1]);
+      const friendlyName = normalizeZoneValue(zone?.attributes?.friendly_name);
+      return objectId === stateValue || friendlyName === stateValue;
+    });
+    return matchedEntry?.[1] || null;
+  })();
+  const zoneIconName = matchedZoneEntity?.attributes?.icon;
+  const ZoneIcon = zoneIconName ? getIconComponent(zoneIconName) : null;
 
   return (
     <div
@@ -90,6 +113,16 @@ const PersonStatus = ({
           )}
         </div>
 
+        {showZoneBadgeIcon && ZoneIcon && (
+          <div
+            className="absolute -top-2 -right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[var(--card-bg)] text-[var(--text-primary)] shadow-[0_6px_14px_rgba(0,0,0,0.35)]"
+            style={{ background: 'color-mix(in srgb, var(--card-bg) 88%, var(--glass-bg) 12%)' }}
+            title={String(statusText)}
+          >
+            <ZoneIcon className="h-3.5 w-3.5" />
+          </div>
+        )}
+
         <div
           className="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-[var(--card-bg)] transition-colors duration-500"
           style={{ backgroundColor: isHome ? '#22c55e' : '#52525b' }}
@@ -119,4 +152,4 @@ const PersonStatus = ({
   );
 };
 
-export default PersonStatus;
+export default memo(PersonStatus);

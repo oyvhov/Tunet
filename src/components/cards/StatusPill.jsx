@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Activity, AlertTriangle, Clapperboard, Lock, RefreshCw } from '../../icons';
 import MdiIcon from '@mdi/react';
@@ -28,7 +29,7 @@ import {
  * @param {Function} props.getEntityImageUrl - Get entity image URL
  * @param {Function} props.isMediaActive - Check if media is active
  */
-export default function StatusPill({
+const StatusPill = memo(function StatusPill({
   pill,
   entity,
   onClick,
@@ -489,4 +490,6 @@ export default function StatusPill({
       </div>
     </Wrapper>
   );
-}
+});
+
+export default StatusPill;

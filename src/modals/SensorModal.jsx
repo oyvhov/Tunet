@@ -7,6 +7,7 @@ import BinaryTimeline from '../components/charts/BinaryTimeline';
 import { formatRelativeTime } from '../utils';
 import { getIconComponent } from '../icons';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import {
   convertValueByKind,
   formatUnitValue,
@@ -408,25 +409,27 @@ export default function SensorModal({
 
   // Icon Logic
   const Icon = getIconComponent(attrs.icon) || Activity;
+  const modalTitleId = `sensor-modal-title-${entityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   return (
-    <div
-      className="fixed inset-0 z-[150] flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={isOpen && !!entityId && !!entity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-[150] flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border shadow-2xl backdrop-blur-xl md:h-auto md:min-h-[550px] md:rounded-[3rem] lg:grid lg:grid-cols-5"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border shadow-2xl backdrop-blur-xl md:h-auto md:min-h-[550px] md:rounded-[3rem] lg:grid lg:grid-cols-5"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         {/* Close Button */}
         <div className="absolute top-6 right-6 z-50 md:top-10 md:right-10">
-          <button onClick={onClose} className="modal-close">
+          <button onClick={onClose} className="modal-close" aria-label={t('common.close')}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -451,7 +454,10 @@ export default function SensorModal({
               <Icon className="h-8 w-8" />
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+              <h2
+                id={modalTitleId}
+                className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+              >
                 {name}
               </h2>
               <div
@@ -651,7 +657,8 @@ export default function SensorModal({
             <p className="text-center font-mono text-[10px] select-all">{entityId}</p>
           </div>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

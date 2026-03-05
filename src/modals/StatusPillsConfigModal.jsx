@@ -19,6 +19,7 @@ import {
   preloadMdiIcons,
 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 /**
  * Modal for configuring status pills in the header
@@ -202,18 +203,6 @@ export default function StatusPillsConfigModal({
     return t('statusPills.typeSonos');
   };
 
-  const handleBackdropClick = (event) => {
-    if (event.target === event.currentTarget) {
-      onClose();
-    }
-  };
-
-  const handleBackdropKeyDown = (event) => {
-    if (event.key === 'Escape') {
-      onClose();
-    }
-  };
-
   const movePill = (id, direction) => {
     const idx = pills.findIndex((p) => p.id === id);
     if (idx === -1) return;
@@ -362,30 +351,32 @@ export default function StatusPillsConfigModal({
   ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={handleBackdropClick}
-      onKeyDown={handleBackdropKeyDown}
-      role="button"
-      tabIndex={0}
-      aria-label="Close dialog"
+    <AccessibleModalShell
+      open={show}
+      onClose={onClose}
+      titleId="status-pills-config-title"
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative flex h-full max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl backdrop-blur-xl md:h-[800px] md:max-h-[90vh] md:rounded-3xl"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+      }}
     >
-      <div
-        className="popup-anim relative flex h-full max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl backdrop-blur-xl md:h-[800px] md:max-h-[90vh] md:rounded-3xl"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-        }}
-      >
+      {() => (
+        <>
         {/* Header */}
         <div className="relative border-b border-[var(--glass-border)] p-5 md:p-6">
-          <h2 className="text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic">
+          <h2
+            id="status-pills-config-title"
+            className="text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+          >
             {t('statusPills.title')}
           </h2>
           <button
             onClick={onClose}
             className="modal-close absolute top-1/2 right-5 -translate-y-1/2"
+            aria-label={t('common.close') || 'Close'}
           >
             <X className="h-4 w-4" />
           </button>
@@ -1679,8 +1670,9 @@ export default function StatusPillsConfigModal({
             {t('statusPills.save')}
           </button>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }
 

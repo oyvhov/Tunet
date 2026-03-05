@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 /**
  * SpacerCard – a layout utility card for visual separation.
  *
@@ -74,4 +76,4 @@ const SpacerCard = ({
   );
 };
 
-export default SpacerCard;
+export default memo(SpacerCard);

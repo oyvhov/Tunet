@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { Circle, CheckCircle2, Plus, AlertCircle, ListChecks, Trash2 } from 'lucide-react';
 import { getIconComponent } from '../../icons';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../../services/haClient';
@@ -33,7 +33,7 @@ class TodoErrorBoundary extends React.Component {
   }
 }
 
-function TodoCard({
+const TodoCard = memo(function TodoCard({
   cardId,
   settings,
   conn,
@@ -378,7 +378,7 @@ function TodoCard({
       </div>
     </div>
   );
-}
+});
 
 function formatDueDate(due, t) {
   if (!due) return '';

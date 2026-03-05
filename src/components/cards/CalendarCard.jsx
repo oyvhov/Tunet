@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Calendar as CalendarIcon, Clock, MapPin, AlertCircle } from 'lucide-react';
 import { getIconComponent } from '../../icons';
 import { getCalendarEvents } from '../../services/haClient';
@@ -33,7 +33,7 @@ class CalendarErrorBoundary extends React.Component {
   }
 }
 
-function CalendarCard({
+const CalendarCard = memo(function CalendarCard({
   cardId,
   settings,
   conn,
@@ -687,7 +687,7 @@ function CalendarCard({
       </div>
     </div>
   );
-}
+});
 
 export default function CalendarCardWithBoundary(props) {
   return (

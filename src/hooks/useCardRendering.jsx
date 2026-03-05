@@ -39,34 +39,80 @@ export function useCardRendering({
   setOptimisticLightBrightness,
   tempHistoryById,
   forecastsById,
-  setShowLightModal,
-  setShowSensorInfoModal,
-  setActiveClimateEntityModal,
-  setShowCostModal,
+  entityModalActions,
+  mediaModalActions,
+  setShowLightModal: legacySetShowLightModal,
+  setShowSensorInfoModal: legacySetShowSensorInfoModal,
+  setActiveClimateEntityModal: legacySetActiveClimateEntityModal,
+  setShowCostModal: legacySetShowCostModal,
   setActiveVacuumId,
-  setShowVacuumModal,
-  setShowFanModal,
-  setShowAndroidTVModal,
-  setActiveCarModal,
-  setShowWeatherModal,
-  setShowNordpoolModal,
-  setShowCalendarModal,
-  setShowTodoModal,
-  setShowRoomModal,
-  setShowCoverModal,
-  setShowAlarmModal,
+  setShowVacuumModal: legacySetShowVacuumModal,
+  setShowFanModal: legacySetShowFanModal,
+  setShowAndroidTVModal: legacySetShowAndroidTVModal,
+  setActiveCarModal: legacySetActiveCarModal,
+  setShowWeatherModal: legacySetShowWeatherModal,
+  setShowNordpoolModal: legacySetShowNordpoolModal,
+  setShowCalendarModal: legacySetShowCalendarModal,
+  setShowTodoModal: legacySetShowTodoModal,
+  setShowRoomModal: legacySetShowRoomModal,
+  setShowCoverModal: legacySetShowCoverModal,
+  setShowAlarmModal: legacySetShowAlarmModal,
   setShowAlarmActionModal,
   setShowEditCardModal,
   setEditCardSettingsKey,
-  setShowCameraModal,
-  setActiveMediaId,
-  setActiveMediaGroupKey,
-  setActiveMediaGroupIds,
-  setActiveMediaModal,
+  setShowCameraModal: legacySetShowCameraModal,
+  setActiveMediaId: legacySetActiveMediaId,
+  setActiveMediaGroupKey: legacySetActiveMediaGroupKey,
+  setActiveMediaGroupIds: legacySetActiveMediaGroupIds,
+  setActiveMediaModal: legacySetActiveMediaModal,
   toggleCardVisibility,
   removeCard,
   isCardRemovable,
 }) {
+  const resolvedEntityModalActions = entityModalActions || {
+    setShowLightModal: legacySetShowLightModal,
+    setShowSensorInfoModal: legacySetShowSensorInfoModal,
+    setActiveClimateEntityModal: legacySetActiveClimateEntityModal,
+    setShowCostModal: legacySetShowCostModal,
+    setShowVacuumModal: legacySetShowVacuumModal,
+    setShowFanModal: legacySetShowFanModal,
+    setShowAndroidTVModal: legacySetShowAndroidTVModal,
+    setActiveCarModal: legacySetActiveCarModal,
+    setShowWeatherModal: legacySetShowWeatherModal,
+    setShowNordpoolModal: legacySetShowNordpoolModal,
+    setShowCalendarModal: legacySetShowCalendarModal,
+    setShowTodoModal: legacySetShowTodoModal,
+    setShowRoomModal: legacySetShowRoomModal,
+    setShowCoverModal: legacySetShowCoverModal,
+    setShowAlarmModal: legacySetShowAlarmModal,
+    setShowCameraModal: legacySetShowCameraModal,
+  };
+  const resolvedMediaModalActions = mediaModalActions || {
+    setActiveMediaId: legacySetActiveMediaId,
+    setActiveMediaGroupKey: legacySetActiveMediaGroupKey,
+    setActiveMediaGroupIds: legacySetActiveMediaGroupIds,
+    setActiveMediaModal: legacySetActiveMediaModal,
+  };
+  const {
+    setShowLightModal,
+    setShowSensorInfoModal,
+    setActiveClimateEntityModal,
+    setShowCostModal,
+    setShowVacuumModal,
+    setShowFanModal,
+    setShowAndroidTVModal,
+    setActiveCarModal,
+    setShowWeatherModal,
+    setShowNordpoolModal,
+    setShowCalendarModal,
+    setShowTodoModal,
+    setShowRoomModal,
+    setShowCoverModal,
+    setShowAlarmModal,
+    setShowCameraModal,
+  } = resolvedEntityModalActions;
+  const { setActiveMediaId, setActiveMediaGroupKey, setActiveMediaGroupIds, setActiveMediaModal } =
+    resolvedMediaModalActions;
   const dragSourceRef = useRef(null);
   const touchTargetRef = useRef(null);
   const [touchTargetId, setTouchTargetId] = useState(null);
@@ -212,6 +258,19 @@ export function useCardRendering({
             onRemove={() => removeCard(cardId)}
             dragHandleProps={{
               onContextMenu: (e) => e.preventDefault(),
+              onKeyDown: (e) => {
+                if (!editMode) return;
+                if (e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveCardInArray(cardId, 'left');
+                }
+                if (e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  moveCardInArray(cardId, 'right');
+                }
+              },
               onPointerDown: (e) => {
                 if (!editMode || e.pointerType !== 'touch') return;
                 e.preventDefault();

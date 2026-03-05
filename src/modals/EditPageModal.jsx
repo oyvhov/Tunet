@@ -1,6 +1,8 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { usePages } from '../contexts';
 
 const EditPageModal = ({
   isOpen,
@@ -12,33 +14,41 @@ const EditPageModal = ({
   pageDefaults,
   onDelete,
 }) => {
+  const modalTitleId = 'edit-page-modal-title';
+  const { pagesConfig } = usePages();
+  const isSinglePage = (pagesConfig?.pages || []).length === 1;
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-4"
-      style={{
+    <AccessibleModalShell
+      open={isOpen}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-4"
+      overlayStyle={{
         backdropFilter: 'blur(20px)',
         backgroundColor: 'rgba(0,0,0,0.3)',
       }}
-      onClick={onClose}
+      panelClassName="popup-anim relative mt-3 w-full max-w-lg rounded-2xl border p-4 font-sans shadow-2xl backdrop-blur-xl sm:mt-0 sm:rounded-3xl sm:p-6 md:rounded-[3rem] md:p-8"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative mt-3 w-full max-w-lg rounded-2xl border p-4 font-sans shadow-2xl backdrop-blur-xl sm:mt-0 sm:rounded-3xl sm:p-6 md:rounded-[3rem] md:p-8"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-4 right-4 md:top-6 md:right-6"
+          aria-label={t('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
-        <h3 className="mb-4 text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic">
+        <h3
+          id={modalTitleId}
+          className="mb-4 text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+        >
           {t('modal.editPage.title')}
         </h3>
 
@@ -92,6 +102,28 @@ const EditPageModal = ({
             </button>
           </div>
 
+          {isSinglePage && (
+            <div className="popup-surface flex items-center justify-between rounded-2xl px-4 py-3">
+              <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                {t('form.hideSinglePagePill')}
+              </span>
+              <button
+                onClick={() => {
+                  savePageSetting(
+                    editingPage,
+                    'hideSinglePagePill',
+                    !pageSettings[editingPage]?.hideSinglePagePill
+                  );
+                }}
+                className={`relative h-6 w-12 rounded-full transition-colors ${pageSettings[editingPage]?.hideSinglePagePill ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
+              >
+                <div
+                  className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${pageSettings[editingPage]?.hideSinglePagePill ? 'left-7' : 'left-1'}`}
+                />
+              </button>
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="ml-1 text-xs font-bold text-gray-500 uppercase">
               {t('form.gridColumnsPage')}
@@ -107,7 +139,7 @@ const EditPageModal = ({
                     type="button"
                     onClick={() => savePageSetting(editingPage, 'gridColumns', cols)}
                     className={`h-10 flex-1 rounded-xl text-sm font-bold transition-all ${
-                      isActive ? 'text-white shadow-md' : 'hover:bg-white/5'
+                      isActive ? 'text-[var(--accent-color)] shadow-md' : 'hover:bg-[var(--glass-bg-hover)]'
                     }`}
                     style={
                       isActive
@@ -148,8 +180,9 @@ const EditPageModal = ({
             {t('common.ok')}
           </button>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 };
 export default EditPageModal;

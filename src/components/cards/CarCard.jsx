@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Car, Flame, MapPin, Thermometer, Zap } from '../../icons';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
@@ -278,4 +279,4 @@ const CarCard = ({
   );
 };
 
-export default CarCard;
+export default memo(CarCard);

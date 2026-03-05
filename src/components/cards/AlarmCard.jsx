@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   AlertTriangle,
   Home,
@@ -144,7 +145,7 @@ function getStateVisual(state) {
   };
 }
 
-export default function AlarmCard({
+const AlarmCard = memo(function AlarmCard({
   cardId,
   entityId,
   entity,
@@ -352,4 +353,6 @@ export default function AlarmCard({
       </div>
     </div>
   );
-}
+});
+
+export default AlarmCard;

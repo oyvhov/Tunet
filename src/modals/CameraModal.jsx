@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, RefreshCw, Video, Camera } from '../icons';
 import { getIconComponent } from '../icons';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 function appendTs(url, ts) {
   if (!url) return '';
@@ -45,6 +46,7 @@ export default function CameraModal({
   const [viewMode, setViewMode] = useState('stream');
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [streamSource, setStreamSource] = useState('ha');
+  const modalTitleId = `camera-modal-title-${(entityId || 'camera').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const activeEntity = entity || { attributes: {} };
   const activeEntityId = entityId || '';
@@ -105,23 +107,25 @@ export default function CameraModal({
   if (!show || !entityId || !entity) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-5"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.45)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show && !!entityId && !!entity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-5"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.45)' }}
+      panelClassName="popup-anim relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl border p-4 font-sans shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl border p-4 font-sans shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-4 right-4 z-10 sm:top-6 sm:right-6"
+          aria-label={t?.('common.close') || 'Close'}
         >
           <X className="h-4 w-4" />
         </button>
@@ -135,7 +139,10 @@ export default function CameraModal({
               <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
                 {entityId}
               </p>
-              <h3 className="truncate text-lg font-bold text-[var(--text-primary)] sm:text-2xl">
+              <h3
+                id={modalTitleId}
+                className="truncate text-lg font-bold text-[var(--text-primary)] sm:text-2xl"
+              >
                 {name}
               </h3>
             </div>
@@ -203,7 +210,8 @@ export default function CameraModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

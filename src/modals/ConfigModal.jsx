@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import M3Slider from '../components/ui/M3Slider';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
 import { hasOAuthTokens } from '../services/oauthStorage';
 import {
@@ -188,12 +189,6 @@ export default function ConfigModal({
     if (!isOnboardingActive) onClose?.();
   };
 
-  const handleBackdropClick = (event) => {
-    if (event.target === event.currentTarget) {
-      handleClose();
-    }
-  };
-
   const TABS = [
     { key: 'connection', icon: Wifi, label: t('system.tabConnection') },
     // Appearance and Layout have been moved to Sidebars
@@ -246,7 +241,7 @@ export default function ConfigModal({
             setConfig({ ...config, authMethod: 'oauth' });
             setConnectionTestResult(null);
           }}
-          className={`relative flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold tracking-wider uppercase transition-all ${isOAuth ? 'bg-[var(--accent-color)] text-white shadow-lg ' : 'border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+          className={`relative flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold tracking-wider uppercase transition-all ${isOAuth ? 'border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] shadow-lg ' : 'border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
         >
           <LogIn className="h-3.5 w-3.5" />
           OAuth2
@@ -1382,7 +1377,7 @@ export default function ConfigModal({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(true)}
-                  className={`rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   style={dynamicGridColumns ? { backgroundColor: 'var(--accent-color)' } : {}}
                 >
                   {t('common.auto')}
@@ -1411,7 +1406,7 @@ export default function ConfigModal({
                   const isSelected = effectiveGridColumns === cols;
                   const isDisabled = cols > selectableMaxGridColumns;
                   const className = isSelected
-                    ? 'bg-[var(--accent-color)] text-white shadow-lg shadow-[var(--accent-color)]/20'
+                    ? 'border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] shadow-lg shadow-[var(--accent-color)]/20'
                     : isDisabled
                       ? 'text-[var(--text-muted)] opacity-40 cursor-not-allowed'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5';
@@ -1812,16 +1807,30 @@ export default function ConfigModal({
   if (!open) return null;
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex ${
+    <AccessibleModalShell
+      open={open}
+      onClose={handleClose}
+      titleId="config-modal-title"
+      overlayClassName={`fixed inset-0 z-50 flex ${
         isLayoutPreview ? 'items-stretch justify-end' : 'items-center justify-center p-4 md:p-8'
       }`}
-      style={{
+      overlayStyle={{
         backdropFilter: isLayoutPreview ? 'none' : 'blur(20px)',
         backgroundColor: isLayoutPreview ? 'transparent' : 'rgba(0,0,0,0.3)',
       }}
-      onMouseDown={handleBackdropClick}
+      panelClassName={`popup-anim relative flex w-full flex-col overflow-hidden border font-sans text-[var(--text-primary)] ${
+        isLayoutPreview
+          ? 'animate-in slide-in-from-right-8 fade-in zoom-in-95 h-full max-w-[18rem] origin-right scale-[0.94] rounded-none shadow-2xl duration-300 sm:max-w-[21rem] sm:scale-[0.97] md:max-w-[23rem] md:scale-100 md:rounded-l-[2.5rem]'
+          : 'h-[75vh] max-h-[700px] max-w-5xl rounded-3xl shadow-2xl md:rounded-[3rem]'
+      }`}
+      panelStyle={{
+        background: 'linear-gradient(160deg, var(--card-bg) 0%, var(--modal-bg) 70%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
+      {(resolvedTitleId) => (
+        <>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
@@ -1838,18 +1847,10 @@ export default function ConfigModal({
           background: rgba(255, 255, 255, 0.2);
         }
       `}</style>
-      <div
-        className={`popup-anim relative flex w-full flex-col overflow-hidden border font-sans text-[var(--text-primary)] ${
-          isLayoutPreview
-            ? 'animate-in slide-in-from-right-8 fade-in zoom-in-95 h-full max-w-[18rem] origin-right scale-[0.94] rounded-none shadow-2xl duration-300 sm:max-w-[21rem] sm:scale-[0.97] md:max-w-[23rem] md:scale-100 md:rounded-l-[2.5rem]'
-            : 'h-[75vh] max-h-[700px] max-w-5xl rounded-3xl shadow-2xl md:rounded-[3rem]'
-        }`}
-        style={{
-          background: 'linear-gradient(160deg, var(--card-bg) 0%, var(--modal-bg) 70%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-      >
+      <div>
+        <h2 id={resolvedTitleId} className="sr-only">
+          {isOnboardingActive ? t('onboarding.title') : t('system.title')}
+        </h2>
         {isOnboardingActive ? (
           <div className="flex h-full flex-col md:flex-row">
             {/* Onboarding Sidebar */}
@@ -2234,7 +2235,9 @@ export default function ConfigModal({
           </div>
         )}
       </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }
 

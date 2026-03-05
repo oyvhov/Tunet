@@ -16,6 +16,7 @@ import {
   Power,
   Volume2,
 } from '../icons';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 export default function GenericAndroidTVModal({
   show,
@@ -31,6 +32,7 @@ export default function GenericAndroidTVModal({
   t,
 }) {
   const [pictureFailed, setPictureFailed] = useState(false);
+  const modalTitleId = `android-tv-modal-title-${(mediaPlayerId || 'media').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const entity = entities[mediaPlayerId];
 
@@ -110,10 +112,6 @@ export default function GenericAndroidTVModal({
         ? 'rgba(167, 139, 250, 0.1)'
         : 'var(--glass-bg)';
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
   const sendCommand = (command) => {
     if (remoteId) {
       callService('remote', 'send_command', { entity_id: remoteId, command });
@@ -129,24 +127,25 @@ export default function GenericAndroidTVModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={handleBackdropClick}
+    <AccessibleModalShell
+      open={show && !!entity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative max-h-[80vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 shadow-2xl backdrop-blur-xl md:rounded-[3rem] md:p-12"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative max-h-[80vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 shadow-2xl backdrop-blur-xl md:rounded-[3rem] md:p-12"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-6 right-6 z-20 md:top-10 md:right-10"
-          aria-label="Close"
+          aria-label={t('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -160,7 +159,10 @@ export default function GenericAndroidTVModal({
             {isOn ? <Gamepad2 className="h-8 w-8" /> : <Tv className="h-8 w-8" />}
           </div>
           <div>
-            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+            >
               {deviceName}
             </h3>
             {!linkedActive && (
@@ -350,7 +352,8 @@ export default function GenericAndroidTVModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

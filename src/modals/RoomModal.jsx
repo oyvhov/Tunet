@@ -22,6 +22,7 @@ import {
   inferUnitKind,
 } from '../utils';
 import M3Slider from '../components/ui/M3Slider';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 const GROUPED_OTHER_DOMAINS = new Set([
   'binary_sensor',
@@ -64,6 +65,7 @@ export default function RoomModal({
   const isImageAvailable = (src) => Boolean(src) && !failedImageMap[src];
 
   const areaName = settings?.areaName || t('room.defaultName');
+  const modalTitleId = `room-modal-title-${String(settings?.areaId || settings?.areaName || 'room').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
   const collapseStorageKey = useMemo(() => {
     const roomKey = String(settings?.areaName || settings?.areaId || 'default')
       .toLowerCase()
@@ -535,28 +537,33 @@ export default function RoomModal({
     ) : null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative flex max-h-[88vh] w-full max-w-6xl flex-col rounded-3xl border px-7 pt-7 pb-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[3rem] md:px-12 md:pt-10 md:pb-8"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative flex max-h-[88vh] w-full max-w-6xl flex-col rounded-3xl border px-7 pt-7 pb-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[3rem] md:px-12 md:pt-10 md:pb-8"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-4 right-4 md:top-6 md:right-6"
+          aria-label={t('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
 
-        <h3 className="mb-2 text-center text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic">
+        <h3
+          id={modalTitleId}
+          className="mb-2 text-center text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+        >
           {areaName}
         </h3>
 
@@ -1041,7 +1048,8 @@ export default function RoomModal({
             OK
           </button>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import SparkLine from '../charts/SparkLine';
 import { Zap } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useHomeAssistantMeta } from '../../contexts';
 
-export default function GenericNordpoolCard({
+const GenericNordpoolCard = memo(function GenericNordpoolCard({
   cardId,
   dragProps,
   controls,
@@ -208,4 +209,6 @@ export default function GenericNordpoolCard({
       </div>
     </div>
   );
-}
+});
+
+export default GenericNordpoolCard;

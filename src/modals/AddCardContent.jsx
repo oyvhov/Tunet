@@ -27,6 +27,7 @@ import {
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 const SELECTED_CONTAINER = 'bg-[var(--accent-bg)] border-[var(--accent-color)]';
 const SELECTED_TEXT = 'text-[var(--accent-color)]';
@@ -897,27 +898,32 @@ function AddCardContent({
   const usesMultiSelectWithCalendar = usesEntityMultiSelect || addCardType === 'calendar';
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open
+      onClose={onClose}
+      titleId="add-card-modal-title"
+      overlayClassName="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-3xl border p-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[2.5rem] md:p-8 lg:max-w-4xl"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-3xl border p-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[2.5rem] md:p-8 lg:max-w-4xl"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {(resolvedTitleId) => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-4 right-4 md:top-6 md:right-6"
+          aria-label={t('common.close') || 'Close'}
         >
           <X className="h-4 w-4" />
         </button>
-        <h3 className="mb-5 text-center text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic">
+        <h3
+          id={resolvedTitleId}
+          className="mb-5 text-center text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+        >
           {t('modal.addCard.title')}
         </h3>
 
@@ -927,6 +933,7 @@ function AddCardContent({
               <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-gray-500" />
               <input
                 type="text"
+                data-autofocus
                 placeholder={t('addCard.search')}
                 className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-2.5 pr-4 pl-11 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
                 value={searchTerm}
@@ -1172,8 +1179,9 @@ function AddCardContent({
             OK
           </button>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }
 

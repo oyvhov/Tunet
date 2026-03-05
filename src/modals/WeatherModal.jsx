@@ -16,6 +16,7 @@ import { getForecast, getHistory, getStatistics } from '../services/haClient';
 import { getIconComponent } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import {
   convertValueByKind,
   formatUnitValue,
@@ -123,6 +124,8 @@ export default function WeatherModal({
   const condition = activeWeatherEntity.state;
   const info = getWeatherInfo(condition, t);
   const MainIcon = info.Icon;
+  const modalTitleId =
+    `weather-modal-title-${activeWeatherEntity?.entity_id?.replace(/[^a-zA-Z0-9_-]/g, '-') || 'weather'}`;
 
   const currentTempRaw = tempEntity?.state ?? activeWeatherEntity.attributes?.temperature;
   const currentTemp = Number.isFinite(parseFloat(currentTempRaw))
@@ -379,23 +382,25 @@ export default function WeatherModal({
   if (!show || !weatherEntity) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show && !!weatherEntity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative max-h-[80vh] w-full max-w-4xl overflow-y-auto rounded-3xl border p-5 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-8"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative max-h-[80vh] w-full max-w-4xl overflow-y-auto rounded-3xl border p-5 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-8"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-6 right-6 md:top-10 md:right-10"
+          aria-label={translate('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -409,7 +414,10 @@ export default function WeatherModal({
             {/* <img src={iconUrl} alt={info.label} className="w-8 h-8 object-contain" /> */}
           </div>
           <div>
-            <h3 className="theme-text-primary text-2xl leading-none font-light tracking-tight uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="theme-text-primary text-2xl leading-none font-light tracking-tight uppercase italic"
+            >
               {attrs.friendly_name || translate('weather.name')}
             </h3>
             <div
@@ -579,7 +587,8 @@ export default function WeatherModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

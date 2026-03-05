@@ -14,6 +14,7 @@ import {
 } from '../icons';
 import MdiIcon from '@mdi/react';
 import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 const FEATURE_ARM_HOME = 1;
 const FEATURE_ARM_AWAY = 2;
@@ -188,6 +189,7 @@ export default function AlarmModal({
   );
 
   const name = customName || safeEntity.attributes?.friendly_name || entityId;
+  const modalTitleId = `alarm-modal-title-${entityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
   const stateVisual = getStateVisual(state);
   const StateIcon = stateVisual.Icon || Lock;
 
@@ -247,23 +249,25 @@ export default function AlarmModal({
   const selectedActionMeta = actionButtons.find((action) => action.key === selectedAction) || null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show && !!entityId && !!entity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-6 right-6 md:top-8 md:right-8"
+          aria-label={translate('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -290,7 +294,7 @@ export default function AlarmModal({
             )}
           </div>
           <div>
-            <h3 className="text-2xl leading-none font-light tracking-tight uppercase italic">
+            <h3 id={modalTitleId} className="text-2xl leading-none font-light tracking-tight uppercase italic">
               {name}
             </h3>
             <p className="mt-2 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
@@ -441,7 +445,8 @@ export default function AlarmModal({
           )}
           {error && <p className="text-[var(--text-primary)]">{error}</p>}
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

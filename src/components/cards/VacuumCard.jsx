@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { AlertTriangle, Battery, Bot, Home, MapPin, Pause, Play } from '../../icons';
 
@@ -280,4 +280,4 @@ const VacuumCard = ({
   );
 };
 
-export default VacuumCard;
+export default memo(VacuumCard);

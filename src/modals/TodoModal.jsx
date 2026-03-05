@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Plus, Circle, CheckCircle2, Trash2, ListChecks, AlertCircle } from 'lucide-react';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../services/haClient';
 import { logger } from '../utils/logger';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 /**
  * TodoModal - Full-screen modal for managing a todo list from Home Assistant.
@@ -17,6 +18,7 @@ import { logger } from '../utils/logger';
 export default function TodoModal({ show, onClose, conn, entities, settings, t }) {
   const translate = t || ((key) => key);
   const todoEntityId = settings?.todoEntityId;
+  const modalTitleId = `todo-modal-title-${(todoEntityId || 'todo').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -120,24 +122,26 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
   if (!show) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-3xl border p-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[2.5rem] md:p-8"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-3xl border p-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[2.5rem] md:p-8"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         {/* Close button */}
         <button
           onClick={onClose}
           className="modal-close absolute top-4 right-4 md:top-6 md:right-6"
+          aria-label={translate('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -154,7 +158,10 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
             <ListChecks className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="truncate text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+            >
               {entityName || translate('todo.title') || 'To-do'}
             </h3>
           </div>
@@ -317,8 +324,9 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
             {translate('common.ok') || 'OK'}
           </button>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }
 

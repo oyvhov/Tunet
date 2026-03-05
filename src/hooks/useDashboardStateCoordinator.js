@@ -24,7 +24,42 @@ export function useDashboardStateCoordinator(deps) {
     setEditMode,
     setActiveVacuumId,
     setEditCardSettingsKey,
-    setShowStatusPillsConfig,
+    entityModalActions,
+    mediaModalActions,
+    managementModalActions,
+    t,
+  } = deps;
+
+  const entityActions = entityModalActions || {
+    setShowCalendarModal: deps.setShowCalendarModal,
+    setShowTodoModal: deps.setShowTodoModal,
+    setShowWeatherModal: deps.setShowWeatherModal,
+    setShowLightModal: deps.setShowLightModal,
+    setShowSensorInfoModal: deps.setShowSensorInfoModal,
+    setActiveClimateEntityModal: deps.setActiveClimateEntityModal,
+    setShowCostModal: deps.setShowCostModal,
+    setShowVacuumModal: deps.setShowVacuumModal,
+    setShowFanModal: deps.setShowFanModal,
+    setShowAndroidTVModal: deps.setShowAndroidTVModal,
+    setActiveCarModal: deps.setActiveCarModal,
+    setShowNordpoolModal: deps.setShowNordpoolModal,
+    setShowRoomModal: deps.setShowRoomModal,
+    setShowCoverModal: deps.setShowCoverModal,
+    setShowAlarmModal: deps.setShowAlarmModal,
+    setShowCameraModal: deps.setShowCameraModal,
+  };
+  const mediaActions = mediaModalActions || {
+    setActiveMediaModal: deps.setActiveMediaModal,
+    setActiveMediaId: deps.setActiveMediaId,
+    setActiveMediaGroupKey: deps.setActiveMediaGroupKey,
+    setActiveMediaGroupIds: deps.setActiveMediaGroupIds,
+    setActiveMediaSessionSensorIds: deps.setActiveMediaSessionSensorIds,
+  };
+  const settingsActions = managementModalActions || {
+    setShowStatusPillsConfig: deps.setShowStatusPillsConfig,
+  };
+
+  const {
     setShowCalendarModal,
     setShowTodoModal,
     setShowWeatherModal,
@@ -41,13 +76,16 @@ export function useDashboardStateCoordinator(deps) {
     setShowCoverModal,
     setShowAlarmModal,
     setShowCameraModal,
+  } = entityActions;
+
+  const {
     setActiveMediaModal,
     setActiveMediaId,
     setActiveMediaGroupKey,
     setActiveMediaGroupIds,
     setActiveMediaSessionSensorIds,
-    t,
-  } = deps;
+  } = mediaActions;
+  const { setShowStatusPillsConfig } = settingsActions;
 
   const popupModalActions = useMemo(
     () => ({

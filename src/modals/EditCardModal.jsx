@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Check, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getRelatedEntityIds } from '../services/haClient';
 import { CarMappingsSection, SearchableSelect } from './editCard/CarMappingsSection';
 import { buildCarAnchorOptions } from './editCard/carAnchorOptions';
@@ -543,7 +544,7 @@ function VisibilityConditionSection({
             className={`relative h-6 w-12 rounded-full transition-colors ${visibilityEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
           >
             <span
-              className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${visibilityEnabled ? 'translate-x-6' : 'translate-x-0'}`}
+              className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${visibilityEnabled ? 'translate-x-6' : 'translate-x-0'}`}
             />
           </button>
         </div>
@@ -1014,14 +1015,24 @@ export default function EditCardModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
-      style={{
+    <AccessibleModalShell
+      open={isOpen}
+      onClose={onClose}
+      titleId="edit-card-modal-title"
+      overlayClassName="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
+      overlayStyle={{
         backdropFilter: 'blur(20px)',
         backgroundColor: 'rgba(0,0,0,0.3)',
       }}
-      onClick={onClose}
+      panelClassName={`w-full border ${isEditRoom ? 'max-w-2xl' : 'max-w-lg'} popup-anim relative mt-3 flex max-h-[92vh] flex-col rounded-2xl p-4 font-sans shadow-2xl backdrop-blur-xl sm:mt-0 sm:max-h-[85vh] sm:rounded-3xl sm:p-6 md:rounded-[2.5rem] md:p-8`}
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
+      {(resolvedTitleId) => (
+        <>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
@@ -1037,22 +1048,18 @@ export default function EditCardModal({
           background: rgba(255, 255, 255, 0.25);
         }
       `}</style>
-      <div
-        className={`w-full border ${isEditRoom ? 'max-w-2xl' : 'max-w-lg'} popup-anim relative mt-3 flex max-h-[92vh] flex-col rounded-2xl p-4 font-sans shadow-2xl backdrop-blur-xl sm:mt-0 sm:max-h-[85vh] sm:rounded-3xl sm:p-6 md:rounded-[2.5rem] md:p-8`}
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <>
         <button
           onClick={onClose}
           className="modal-close absolute top-5 right-5 z-10 md:top-7 md:right-7"
+          aria-label={t('common.close') || 'Close'}
         >
           <X className="h-4 w-4" />
         </button>
-        <h3 className="mb-4 shrink-0 text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic">
+        <h3
+          id={resolvedTitleId}
+          className="mb-4 shrink-0 text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+        >
           {t('modal.editCard.title')}
         </h3>
 
@@ -1234,7 +1241,7 @@ export default function EditCardModal({
                     className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showEffects !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
                   >
                     <span
-                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`}
+                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`}
                     />
                   </button>
                 </div>
@@ -1297,7 +1304,7 @@ export default function EditCardModal({
                     className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.largeCalendar ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
                   >
                     <span
-                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`}
+                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`}
                     />
                   </button>
                 </div>
@@ -1868,7 +1875,7 @@ export default function EditCardModal({
                     className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                   >
                     <div
-                      className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
+                      className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
                     />
                   </button>
                 </div>
@@ -1889,7 +1896,28 @@ export default function EditCardModal({
                     className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showState !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                   >
                     <div
-                      className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showState !== false ? 'left-7' : 'left-1'}`}
+                      className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showState !== false ? 'left-7' : 'left-1'}`}
+                    />
+                  </button>
+                </div>
+
+                <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
+                  <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                    {t('person.showZoneBadgeIcon') || 'Show Zone Icon in Badge'}
+                  </span>
+                  <button
+                    onClick={() =>
+                      editSettingsKey &&
+                      saveCardSetting(
+                        editSettingsKey,
+                        'showZoneBadgeIcon',
+                        !(editSettings.showZoneBadgeIcon !== false)
+                      )
+                    }
+                    className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showZoneBadgeIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                  >
+                    <div
+                      className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showZoneBadgeIcon !== false ? 'left-7' : 'left-1'}`}
                     />
                   </button>
                 </div>
@@ -2150,7 +2178,7 @@ export default function EditCardModal({
                   className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showStatus !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                 >
                   <div
-                    className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
                   />
                 </button>
               </div>
@@ -2171,7 +2199,7 @@ export default function EditCardModal({
                   className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showLastChanged !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                 >
                   <div
-                    className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`}
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`}
                   />
                 </button>
               </div>
@@ -2535,7 +2563,7 @@ export default function EditCardModal({
                       className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div
-                        className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
+                        className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
                       />
                     </button>
                   </div>
@@ -2556,7 +2584,7 @@ export default function EditCardModal({
                       className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showStatus !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div
-                        className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
+                        className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
                       />
                     </button>
                   </div>
@@ -2577,7 +2605,7 @@ export default function EditCardModal({
                       className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div
-                        className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showIcon !== false ? 'left-7' : 'left-1'}`}
+                        className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showIcon !== false ? 'left-7' : 'left-1'}`}
                       />
                     </button>
                   </div>
@@ -2598,7 +2626,7 @@ export default function EditCardModal({
                       className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showLastChanged !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div
-                        className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`}
+                        className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`}
                       />
                     </button>
                   </div>
@@ -2623,7 +2651,7 @@ export default function EditCardModal({
                         className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showControls ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                       >
                         <div
-                          className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`}
+                          className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`}
                         />
                       </button>
                     </div>
@@ -2649,7 +2677,7 @@ export default function EditCardModal({
                         className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showGraph !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                       >
                         <div
-                          className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${editSettings.showGraph !== false ? 'left-7' : 'left-1'}`}
+                          className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showGraph !== false ? 'left-7' : 'left-1'}`}
                         />
                       </button>
                     </div>
@@ -2682,7 +2710,7 @@ export default function EditCardModal({
                   className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.disable_animation ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
                 >
                   <span
-                    className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${editSettings.disable_animation ? 'translate-x-6' : 'translate-x-0'}`}
+                    className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.disable_animation ? 'translate-x-6' : 'translate-x-0'}`}
                   />
                 </button>
               </div>
@@ -2989,7 +3017,7 @@ export default function EditCardModal({
                     className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showWithSupport ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
                   >
                     <span
-                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${editSettings.showWithSupport ? 'translate-x-6' : 'translate-x-0'}`}
+                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showWithSupport ? 'translate-x-6' : 'translate-x-0'}`}
                     />
                   </button>
                 </div>
@@ -3102,7 +3130,7 @@ export default function EditCardModal({
                             <div
                               className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
                             >
-                              {isSelected && <Check className="h-3.5 w-3.5 text-white" />}
+                              {isSelected && <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />}
                             </div>
                             <div className="flex flex-col">
                               <span className="text-sm font-medium text-[var(--text-primary)]">
@@ -3155,7 +3183,7 @@ export default function EditCardModal({
                             <div
                               className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
                             >
-                              {isSelected && <Check className="h-3.5 w-3.5 text-white" />}
+                              {isSelected && <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />}
                             </div>
                             <div className="flex flex-col">
                               <span className="text-sm font-medium text-[var(--text-primary)]">
@@ -3205,7 +3233,9 @@ export default function EditCardModal({
             OK
           </button>
         </div>
-      </div>
-    </div>
+      </>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Check } from '../icons';
 import { getCalendarEvents } from '../services';
 import { getLocaleForLanguage } from '../i18n';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 /**
  * CalendarModal - Modal for displaying calendar with selectable calendars
@@ -16,6 +17,7 @@ import { getLocaleForLanguage } from '../i18n';
 export default function CalendarModal({ show, onClose, conn, entities, language, t }) {
   const translate = t || ((key) => key);
   const locale = getLocaleForLanguage(language);
+  const modalTitleId = 'calendar-modal-title';
 
   // Get all calendar entities
   const allCalendars = Object.keys(entities || {})
@@ -125,23 +127,25 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
   if (!show) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative flex max-h-[70vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative flex max-h-[70vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-12"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-6 right-6 z-20 md:top-10 md:right-10"
+          aria-label={translate('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -152,7 +156,10 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
             <Calendar className="h-8 w-8" />
           </div>
           <div>
-            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+            >
               {translate('calendar.title')}
             </h3>
             <div
@@ -313,18 +320,18 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
             </div>
           </div>
         </div>
-      </div>
-
-      <style>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
-    </div>
+          <style>{`
+            .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+            }
+            .scrollbar-hide {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+          `}</style>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }
 

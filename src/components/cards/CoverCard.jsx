@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 
@@ -538,4 +538,4 @@ const CoverCard = ({
   );
 };
 
-export default CoverCard;
+export default memo(CoverCard);

@@ -4,6 +4,7 @@ import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import { getHistory, getStatistics } from '../services/haClient';
 import { getIconComponent } from '../icons';
 import { useHomeAssistantMeta } from '../contexts';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
 const parseNumeric = (value) => {
   const num = parseFloat(value);
@@ -249,27 +250,31 @@ export default function CostModal({
   const displayName = name || translate('energyCost.title');
   const CustomIcon = iconName ? getIconComponent(iconName) : null;
   const HeaderIcon = CustomIcon || Coins;
+  const modalTitleId =
+    `cost-modal-title-${activeEntity?.entity_id?.replace(/[^a-zA-Z0-9_-]/g, '-') || 'cost'}`;
 
   if (!show) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         <button
           onClick={onClose}
           className="modal-close absolute top-6 right-6 md:top-10 md:right-10"
+          aria-label={translate('common.close')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -282,7 +287,10 @@ export default function CostModal({
             <HeaderIcon className="h-8 w-8" />
           </div>
           <div>
-            <h3 className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+            <h3
+              id={modalTitleId}
+              className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+            >
               {displayName}
             </h3>
             <div
@@ -424,7 +432,8 @@ export default function CostModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }

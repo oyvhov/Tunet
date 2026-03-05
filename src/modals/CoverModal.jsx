@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowUpDown, ChevronUp, ChevronDown, X } from '../icons';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getIconComponent } from '../icons';
 
 /* -- Interactive Visual Blind ---------------------------------------- */
@@ -41,15 +42,48 @@ const InteractiveBlind = ({ position, onPositionChange, accent, disabled, slatCo
     isDragging.current = false;
   }, []);
 
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (disabled || !onPositionChange) return;
+      const current = Number.isFinite(position) ? position : 0;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        onPositionChange(Math.min(100, current + 5));
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        onPositionChange(Math.max(0, current - 5));
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        onPositionChange(0);
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        onPositionChange(100);
+      }
+    },
+    [disabled, onPositionChange, position]
+  );
+
   return (
     <div
       ref={containerRef}
       className={`relative h-full w-full touch-none overflow-hidden rounded-2xl border-2 select-none ${disabled ? 'opacity-50' : 'cursor-ns-resize'}`}
       style={{ borderColor: accent.border, backgroundColor: 'rgba(135,206,235,0.04)' }}
+      role="slider"
+      aria-label="Cover position"
+      aria-orientation="vertical"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={position ?? 0}
+      aria-valuetext={`${position ?? 0}%`}
+      tabIndex={disabled ? -1 : 0}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onKeyDown={handleKeyDown}
     >
       {/* Window cross-pane lines */}
       <div className="pointer-events-none absolute inset-0 flex">
@@ -150,15 +184,47 @@ const TiltVisual = ({ tilt, onTiltChange, accent, disabled }) => {
     isDragging.current = false;
   }, []);
 
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (disabled || !onTiltChange) return;
+      const current = Number.isFinite(tilt) ? tilt : 0;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        onTiltChange(Math.min(100, current + 5));
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        onTiltChange(Math.max(0, current - 5));
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        onTiltChange(0);
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        onTiltChange(100);
+      }
+    },
+    [disabled, onTiltChange, tilt]
+  );
+
   return (
     <div
       ref={containerRef}
       className={`relative flex h-24 w-full touch-none flex-col justify-center gap-1 overflow-hidden rounded-xl border px-3 py-2 select-none ${disabled ? 'opacity-50' : 'cursor-ew-resize'}`}
       style={{ borderColor: accent.border, backgroundColor: 'rgba(135,206,235,0.04)' }}
+      role="slider"
+      aria-label="Cover tilt"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={tilt ?? 0}
+      aria-valuetext={`${tilt ?? 0}%`}
+      tabIndex={disabled ? -1 : 0}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onKeyDown={handleKeyDown}
     >
       {Array.from({ length: 5 }).map((_, i) => (
         <div
@@ -212,6 +278,7 @@ export default function CoverModal({
 
   const coverIconName = customIcons?.[activeEntityId] || activeEntity.attributes?.icon;
   const Icon = coverIconName ? getIconComponent(coverIconName) || ArrowUpDown : ArrowUpDown;
+  const modalTitleId = `cover-modal-title-${activeEntityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const [localPosition, setLocalPosition] = useState(position ?? 0);
   const [localTilt, setLocalTilt] = useState(tiltPosition ?? 0);
@@ -318,23 +385,24 @@ export default function CoverModal({
   if (!show || !activeEntityId || !entity) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      onClick={onClose}
+    <AccessibleModalShell
+      open={show && !!activeEntityId && !!entity}
+      onClose={onClose}
+      titleId={modalTitleId}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
+      panelClassName="popup-anim relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border shadow-2xl backdrop-blur-xl md:h-auto md:min-h-[550px] md:rounded-[3rem] lg:grid lg:grid-cols-5"
+      panelStyle={{
+        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        borderColor: 'var(--glass-border)',
+        color: 'var(--text-primary)',
+      }}
     >
-      <div
-        className="popup-anim relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border shadow-2xl backdrop-blur-xl md:h-auto md:min-h-[550px] md:rounded-[3rem] lg:grid lg:grid-cols-5"
-        style={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-          color: 'var(--text-primary)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {() => (
+        <>
         {/* Close Button */}
         <div className="absolute top-6 right-6 z-50 md:top-10 md:right-10">
-          <button onClick={onClose} className="modal-close">
+          <button onClick={onClose} className="modal-close" aria-label={translate('common.close')}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -359,7 +427,10 @@ export default function CoverModal({
               <Icon className="h-8 w-8" />
             </div>
             <div className="min-w-0">
-              <h2 className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic">
+              <h2
+                id={modalTitleId}
+                className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+              >
                 {name}
               </h2>
               <div
@@ -588,7 +659,8 @@ export default function CoverModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </AccessibleModalShell>
   );
 }
