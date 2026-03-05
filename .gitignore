@@ -23,5 +23,7 @@ coverage/
 test-results/
 playwright-report/
 .playwright/
+# Generated review docs
+CODE_REVIEW_*.md
 # Local SQLite database
 data/

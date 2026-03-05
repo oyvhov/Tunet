@@ -2,18 +2,28 @@ import { test, expect } from './fixtures';
 
 test.describe('Drag and Drop Interactions', () => {
   test.beforeEach(async ({ page, mockHAConnection }) => {
-    // Setup authenticated session
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Setup authenticated session after origin is available
     await page.evaluate(() => {
-      localStorage.setItem('ha_url', 'http://localhost:8123');
-      localStorage.setItem('ha_auth_method', 'oauth');
+      localStorage.setItem(
+        'tunet_config',
+        JSON.stringify({
+          url: 'http://localhost:8123',
+          authMethod: 'token',
+          token: 'test_token',
+        })
+      );
       localStorage.setItem('tunet_auth_cache_v1', JSON.stringify({
         access_token: 'test_token',
+        refresh_token: 'test_refresh_token',
         expires_in: 1800,
+        token_type: 'Bearer',
       }));
     });
 
-    await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(500); // Wait for entities to load
   });
 
@@ -194,7 +204,9 @@ test.describe('Drag and Drop Interactions', () => {
     expect(count).toBe(0);
   });
 
-  test('should handle touch drag on mobile', async ({ page, context, browser }) => {
+  test('should handle touch drag on mobile', async ({ page, context, browser }, testInfo) => {
+    test.skip(testInfo.project.name === 'firefox', 'Firefox does not support isMobile context option');
+
     // Set mobile viewport
     const mobile = await browser.newContext({
       viewport: { width: 375, height: 667 },
@@ -204,17 +216,28 @@ test.describe('Drag and Drop Interactions', () => {
 
     const mobilePage = await mobile.newPage();
     
-    // Setup auth
+    await mobilePage.goto('/');
+    await mobilePage.waitForLoadState('domcontentloaded');
+
+    // Setup auth after page origin is available
     await mobilePage.evaluate(() => {
-      localStorage.setItem('ha_url', 'http://localhost:8123');
-      localStorage.setItem('ha_auth_method', 'oauth');
+      localStorage.setItem(
+        'tunet_config',
+        JSON.stringify({
+          url: 'http://localhost:8123',
+          authMethod: 'token',
+          token: 'test_token',
+        })
+      );
       localStorage.setItem('tunet_auth_cache_v1', JSON.stringify({
         access_token: 'test_token',
+        refresh_token: 'test_refresh_token',
+        expires_in: 1800,
+        token_type: 'Bearer',
       }));
     });
 
-    await mobilePage.goto('/');
-    await mobilePage.waitForLoadState('domcontentloaded');
+    await mobilePage.reload({ waitUntil: 'domcontentloaded' });
     await mobilePage.waitForTimeout(500);
 
     // Try long-press to enable edit mode on mobile

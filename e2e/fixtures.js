@@ -9,33 +9,9 @@ import { test as baseTest } from '@playwright/test';
  */
 export const test = baseTest.extend({
   /**
-   * Setup local storage with mock HA credentials before each test
+   * Keep default browser context untouched; each test manages its own auth setup.
    */
   context: async ({ context }, use) => {
-    // Pre-populate localStorage before any page loads
-    const storageState = {};
-    
-    // Mock Home Assistant URL and auth method
-    storageState.tunet_config = JSON.stringify({
-      url: 'http://localhost:8123',
-      authMethod: 'oauth',
-    });
-    
-    // Mock OAuth tokens
-    storageState.tunet_auth_cache_v1 = JSON.stringify({
-      access_token: 'mock_access_token_12345',
-      refresh_token: 'mock_refresh_token_67890',
-      expires_in: 1800,
-      token_type: 'Bearer',
-    });
-    
-    // Initialize context with pre-set storage
-    await context.addInitScript((storage) => {
-      Object.entries(storage).forEach(([key, value]) => {
-        localStorage.setItem(key, value);
-      });
-    }, storageState);
-
     await use(context);
   },
 
@@ -163,17 +139,24 @@ export const test = baseTest.extend({
     
     // Ensure authentication is recognized
     await page.evaluate(() => {
-      localStorage.setItem('ha_url', 'http://localhost:8123');
-      localStorage.setItem('ha_auth_method', 'oauth');
+      localStorage.setItem(
+        'tunet_config',
+        JSON.stringify({
+          url: 'http://localhost:8123',
+          authMethod: 'token',
+          token: 'test_token',
+        })
+      );
       localStorage.setItem('tunet_auth_cache_v1', JSON.stringify({
-        access_token: 'mock_token',
+        access_token: 'test_token',
+        refresh_token: 'test_refresh_token',
         expires_in: 1800,
         token_type: 'Bearer',
       }));
     });
 
-    // Reload to apply auth
-    await page.reload();
+    // Navigate again after setting auth values
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     
     await use(page);
   },
