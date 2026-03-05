@@ -2,6 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { usePages } from '../contexts';
 
 const EditPageModal = ({
   isOpen,
@@ -14,6 +15,8 @@ const EditPageModal = ({
   onDelete,
 }) => {
   const modalTitleId = 'edit-page-modal-title';
+  const { pagesConfig } = usePages();
+  const isSinglePage = (pagesConfig?.pages || []).length === 1;
   if (!isOpen) return null;
 
   return (
@@ -98,6 +101,28 @@ const EditPageModal = ({
               />
             </button>
           </div>
+
+          {isSinglePage && (
+            <div className="popup-surface flex items-center justify-between rounded-2xl px-4 py-3">
+              <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">
+                {t('form.hideSinglePagePill')}
+              </span>
+              <button
+                onClick={() => {
+                  savePageSetting(
+                    editingPage,
+                    'hideSinglePagePill',
+                    !pageSettings[editingPage]?.hideSinglePagePill
+                  );
+                }}
+                className={`relative h-6 w-12 rounded-full transition-colors ${pageSettings[editingPage]?.hideSinglePagePill ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
+              >
+                <div
+                  className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${pageSettings[editingPage]?.hideSinglePagePill ? 'left-7' : 'left-1'}`}
+                />
+              </button>
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="ml-1 text-xs font-bold text-gray-500 uppercase">
