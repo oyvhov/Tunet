@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.14.1] — 2026-03-09
+
+### Changed
+- Restored persistent OAuth browser sessions so Home Assistant login survives closing and reopening the browser.
+
+### Fixed
+- Preserved same-browser OAuth reuse across tabs while keeping the active session cache in sync after new-tab hydration.
+
+
 ## [1.14.0] — 2026-03-09
 
 ### Changed

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.14.1
+
+### Changed
+- Includes dashboard release `1.14.1`.
+- Restores persistent OAuth browser sessions so login survives closing and reopening the browser.
+
+### Fixed
+- Preserves same-browser OAuth reuse across tabs while keeping refreshed session tokens synchronized.
+
 ## 1.14.0
 
 ### Changed
