@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.14.4
+
+### Fixed
+- Prevent spurious logouts when the backend fails to connect to the Home Assistant URL (#106).
+
 ## 1.14.3
 
 ### Changed
