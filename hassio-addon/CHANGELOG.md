@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.14.5
+
+### Fixed
+- Report clear error and prevent redirect loops when using an HTTP Home Assistant URL from an HTTPS dashboard (#108).
+
 ## 1.14.4
 
 ### Fixed

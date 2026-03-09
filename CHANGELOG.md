@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.14.5] — 2026-03-10
+
+### Fixed
+- Report clear error and prevent redirect loops when using an HTTP Home Assistant URL from an HTTPS dashboard (#108).
+
+
 ## [1.14.4] — 2026-03-09
 
 ### Fixed
