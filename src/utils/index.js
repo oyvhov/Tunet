@@ -28,3 +28,4 @@ export {
 export { getEffectiveRoomEntityIds, filterEntitiesByDomain } from './roomEntities';
 export { matchCarEntities } from './carEntityMatcher';
 export { CHART_STATUS_COLORS, WEATHER_BAND_COLORS, getThresholdColor } from './chartColors';
+export { downsampleTimeSeries } from './sensorHistory';
