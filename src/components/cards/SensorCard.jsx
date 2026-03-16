@@ -10,6 +10,7 @@ import {
   getDisplayUnitForKind,
   getEffectiveUnitMode,
   inferUnitKind,
+  downsampleTimeSeries,
 } from '../../utils';
 
 const SENSOR_THRESHOLD_COLOR_MAP = {
@@ -295,8 +296,25 @@ const SensorCard = memo(function SensorCard({
         });
 
         const processed = (data && Array.isArray(data) ? data : [])
-          .filter((d) => !isNaN(parseFloat(d.state)))
-          .map((d) => ({ value: parseFloat(d.state), time: new Date(d.last_changed) }));
+          .map((d) => {
+            // Handle both standard format (state/last_changed ISO string) and
+            // HA compressed format (s/lc as Unix timestamp in seconds).
+            const rawState = d.state !== undefined ? d.state : d.s;
+            const val = parseFloat(rawState);
+            if (isNaN(val)) return null;
+            let time;
+            if (d.last_changed) {
+              const t = new Date(d.last_changed);
+              if (isNaN(t.getTime())) return null;
+              time = t;
+            } else if (typeof d.lc === 'number') {
+              time = new Date(d.lc * 1000);
+            } else {
+              return null;
+            }
+            return { value: val, time };
+          })
+          .filter(Boolean);
 
         if (processed.length === 1) {
           const onlyPoint = processed[0];
@@ -309,7 +327,7 @@ const SensorCard = memo(function SensorCard({
         }
 
         if (processed.length > 1) {
-          setHistory(processed);
+          setHistory(downsampleTimeSeries(processed));
           return;
         }
 
