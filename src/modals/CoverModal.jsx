@@ -4,7 +4,7 @@ import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getIconComponent } from '../icons';
 
 /* -- Interactive Visual Blind ---------------------------------------- */
-const InteractiveBlind = ({ position, onPositionChange, accent, disabled, slatCount = 12 }) => {
+const InteractiveBlind = ({ position, onPositionChange, accent, disabled, slatCount = 12, translate }) => {
   const containerRef = useRef(null);
   const isDragging = useRef(false);
   const closedAmount = 100 - (position ?? 0);
@@ -72,7 +72,7 @@ const InteractiveBlind = ({ position, onPositionChange, accent, disabled, slatCo
       className={`relative h-full w-full touch-none overflow-hidden rounded-2xl border-2 select-none ${disabled ? 'opacity-50' : 'cursor-ns-resize'}`}
       style={{ borderColor: accent.border, backgroundColor: 'rgba(135,206,235,0.04)' }}
       role="slider"
-      aria-label="Cover position"
+      aria-label={translate?.('cover.aria.position') || 'Cover position'}
       aria-orientation="vertical"
       aria-valuemin={0}
       aria-valuemax={100}
@@ -148,7 +148,7 @@ const InteractiveBlind = ({ position, onPositionChange, accent, disabled, slatCo
 };
 
 /* -- Tilt Visual ----------------------------------------------------- */
-const TiltVisual = ({ tilt, onTiltChange, accent, disabled }) => {
+const TiltVisual = ({ tilt, onTiltChange, accent, disabled, translate }) => {
   const containerRef = useRef(null);
   const isDragging = useRef(false);
   const slatAngle = ((tilt ?? 0) / 100) * 80 - 40;
@@ -214,7 +214,7 @@ const TiltVisual = ({ tilt, onTiltChange, accent, disabled }) => {
       className={`relative flex h-24 w-full touch-none flex-col justify-center gap-1 overflow-hidden rounded-xl border px-3 py-2 select-none ${disabled ? 'opacity-50' : 'cursor-ew-resize'}`}
       style={{ borderColor: accent.border, backgroundColor: 'rgba(135,206,235,0.04)' }}
       role="slider"
-      aria-label="Cover tilt"
+      aria-label={translate?.('cover.aria.tilt') || 'Cover tilt'}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={tilt ?? 0}
@@ -479,6 +479,7 @@ export default function CoverModal({
                   onPositionChange={supportsPosition ? handleSetPosition : undefined}
                   accent={{ ...accent, text: accent.color }}
                   disabled={isUnavailable || !supportsPosition}
+                  translate={translate}
                 />
               </div>
               <div className="mt-3 flex items-center gap-3">
@@ -588,6 +589,7 @@ export default function CoverModal({
                     onTiltChange={handleSetTilt}
                     accent={{ ...accent, text: accent.color }}
                     disabled={isUnavailable}
+                    translate={translate}
                   />
                   <div className="mt-2 grid grid-cols-3 gap-2">
                     {[

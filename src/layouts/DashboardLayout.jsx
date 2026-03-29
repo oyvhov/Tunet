@@ -117,9 +117,16 @@ export default function DashboardLayout(props) {
         fontFamily: resolvedAppFontFamily,
       }}
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-lg focus:bg-[var(--accent-color)] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg"
+      >
+        {t('a11y.skipToContent') || 'Skip to content'}
+      </a>
       <BackgroundLayer />
       {editMode && draggingId && touchPath && <DragOverlaySVG touchPath={touchPath} />}
       <div
+        id="main-content"
         role="main"
         aria-label="Dashboard"
         className={`relative z-10 mx-auto w-full max-w-[1600px] py-6 md:py-10 ${

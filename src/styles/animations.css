@@ -116,4 +116,16 @@
   opacity: 0.45;
 }
 
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob-1,
+  .aurora-blob-2,
+  .aurora-blob-3,
+  .media-bg-subtle-drift,
+  .media-bg-subtle-pulse,
+  .page-transition {
+    animation: none !important;
+  }
+}
+
 /* Update older fade-in-anim if needed, but keeping it for compatibility */

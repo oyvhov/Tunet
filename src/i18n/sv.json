@@ -1,4 +1,5 @@
 {
+  "a11y.skipToContent": "Hoppa till innehåll",
   "addCard.add": "Lägg till",
   "addCard.available.allEntities": "Alla enheter",
   "addCard.available.alarms": "Tillgängliga larm",
@@ -294,6 +295,8 @@
   "cover.tiltClosed": "Stängd",
   "cover.tiltOpen": "Öppen",
   "cover.title": "Gardin",
+  "cover.aria.position": "Gardinposition",
+  "cover.aria.tilt": "Gardinvinkel",
   "common.auto": "Auto",
   "common.cancel": "Avbryt",
   "common.delete": "Ta bort",
@@ -1043,6 +1046,7 @@
   "todo.pending": "väntar",
   "todo.selectList": "Välj att göra-lista",
   "todo.title": "Att göra",
+  "toast.serviceFailed": "Åtgärden misslyckades",
   "tooltip.addToGroup": "Lägg till i grupp",
   "tooltip.editCard": "Redigera kort",
   "tooltip.hideCard": "Dölj kort",

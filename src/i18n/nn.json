@@ -1,4 +1,5 @@
 {
+  "a11y.skipToContent": "Hopp til innhald",
   "addCard.add": "Legg til",
   "addCard.available.allEntities": "Alle einingar",
   "addCard.available.alarms": "Tilgjengelege alarmar",
@@ -294,6 +295,8 @@
   "cover.tiltClosed": "Lukka",
   "cover.tiltOpen": "Open",
   "cover.title": "Gardin",
+  "cover.aria.position": "Gardinposisjon",
+  "cover.aria.tilt": "Gardinvinkel",
   "common.auto": "Auto",
   "common.cancel": "Avbryt",
   "common.delete": "Slett",
@@ -1043,6 +1046,7 @@
   "todo.pending": "ventar",
   "todo.selectList": "Vel gjøremålsliste",
   "todo.title": "Gjøremål",
+  "toast.serviceFailed": "Handling mislukkast",
   "tooltip.addToGroup": "Legg til i gruppe",
   "tooltip.editCard": "Rediger kort",
   "tooltip.hideCard": "Gøym kort",

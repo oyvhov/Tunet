@@ -298,6 +298,25 @@
     opacity: 1;
   }
 }
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .popup-anim,
+  .fade-in-anim,
+  .card-animate,
+  .edit-controls-anim {
+    animation: none !important;
+  }
+  .edit-mode-card {
+    transition: none !important;
+  }
+  .card-unavailable::before {
+    animation: none !important;
+  }
+  .group:hover .icon-pulse {
+    animation: none !important;
+  }
+}
 ::selection {
   background: var(--selection-bg, rgba(59, 130, 246, 0.3));
   color: var(--selection-text, #fff);

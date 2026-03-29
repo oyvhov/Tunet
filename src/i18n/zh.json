@@ -1,4 +1,5 @@
 {
+  "a11y.skipToContent": "跳转到内容",
   "addCard.add": "添加",
   "addCard.available.allEntities": "所有实体",
   "addCard.available.alarms": "可用警报",
@@ -294,6 +295,8 @@
   "cover.tiltClosed": "关闭",
   "cover.tiltOpen": "打开",
   "cover.title": "窗帘",
+  "cover.aria.position": "窗帘位置",
+  "cover.aria.tilt": "窗帘倾斜",
   "common.auto": "自动",
   "common.cancel": "取消",
   "common.delete": "删除",
@@ -1043,6 +1046,7 @@
   "todo.pending": "待处理",
   "todo.selectList": "选择待办事项列表",
   "todo.title": "待办事项",
+  "toast.serviceFailed": "操作失败",
   "tooltip.addToGroup": "添加到群组",
   "tooltip.editCard": "编辑卡",
   "tooltip.hideCard": "隐藏卡片",

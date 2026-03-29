@@ -8,8 +8,10 @@ export default function ModernDropdown({
   current,
   onChange,
   map,
-  placeholder = 'Not selected',
+  placeholder,
+  t,
 }) {
+  const resolvedPlaceholder = placeholder || t?.('dropdown.noneSelected') || 'Not selected';
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function ModernDropdown({
             className="text-xs font-bold tracking-widest uppercase italic"
             style={{ color: 'var(--text-secondary)' }}
           >
-            {String(getLabel(current) || placeholder)}
+            {String(getLabel(current) || resolvedPlaceholder)}
           </span>
         </div>
         <ChevronDown
