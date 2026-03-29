@@ -193,4 +193,39 @@ describe('getHomeAssistantRequestHeaders', () => {
       Authorization: 'Bearer existing-valid-token',
     });
   });
+
+  it('deduplicates concurrent forced OAuth refresh requests', async () => {
+    vi.resetModules();
+    localStorage.setItem('ha_auth_method', 'oauth');
+    localStorage.setItem('ha_url', 'https://ha.example');
+    loadTokensMock.mockReturnValue({ access_token: 'stored-token' });
+
+    const refreshAccessToken = vi.fn(async function refresh() {
+      await Promise.resolve();
+      this.accessToken = 'shared-refreshed-token';
+    });
+
+    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } = await import(
+      '../services/apiAuth'
+    );
+
+    setOAuthAuthProvider({ current: { accessToken: 'stale-live-token', refreshAccessToken } });
+
+    const [first, second] = await Promise.all([
+      getValidatedHomeAssistantRequestHeadersAsync({ forceRefreshOAuth: true }),
+      getValidatedHomeAssistantRequestHeadersAsync({ forceRefreshOAuth: true }),
+    ]);
+
+    expect(first).toEqual({
+      'x-ha-url': 'https://ha.example',
+      Authorization: 'Bearer shared-refreshed-token',
+    });
+    expect(second).toEqual({
+      'x-ha-url': 'https://ha.example',
+      Authorization: 'Bearer shared-refreshed-token',
+    });
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1);
+
+    setOAuthAuthProvider(null);
+  });
 });

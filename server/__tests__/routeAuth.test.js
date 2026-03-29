@@ -159,6 +159,127 @@ describe('settings route auth', () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: 'Forbidden: user mismatch' });
   });
+
+  it('publishes source settings to all other devices', async () => {
+    const harness = await startRouterHarness('../routes/settings.js', '/api/settings');
+    const sourceSnapshot = JSON.stringify({ version: 2, layout: {}, appearance: {} });
+
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run('user-1', 'device-1', sourceSnapshot, null, 1, '2026-03-08T12:00:00.000Z');
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run('user-1', 'device-2', JSON.stringify({ version: 0 }), null, 1, '2026-03-08T12:00:00.000Z');
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run('user-1', 'device-3', JSON.stringify({ version: 0 }), null, 1, '2026-03-08T12:00:00.000Z');
+
+    const response = await harness.request('/publish', {
+      method: 'POST',
+      headers: { 'x-test-user-id': 'user-1' },
+      body: JSON.stringify({
+        ha_user_id: 'user-1',
+        source_device_id: 'device-1',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ success: true, affected: 2 });
+
+    const targets = harness.database
+      .prepare(
+        `SELECT device_id, data, revision
+         FROM current_settings
+         WHERE ha_user_id = ? AND device_id IN (?, ?)
+         ORDER BY device_id ASC`
+      )
+      .all('user-1', 'device-2', 'device-3');
+
+    expect(targets).toEqual([
+      { device_id: 'device-2', data: sourceSnapshot, revision: 2 },
+      { device_id: 'device-3', data: sourceSnapshot, revision: 2 },
+    ]);
+  });
+
+  it('rolls back publish changes when one target write fails', async () => {
+    const harness = await startRouterHarness('../routes/settings.js', '/api/settings');
+    const sourceSnapshot = JSON.stringify({ version: 2, layout: {}, appearance: {} });
+
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run('user-1', 'device-1', sourceSnapshot, null, 1, '2026-03-08T12:00:00.000Z');
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run('user-1', 'device-2', JSON.stringify({ version: 0 }), null, 1, '2026-03-08T12:00:00.000Z');
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run('user-1', 'device-3', JSON.stringify({ version: -1 }), null, 1, '2026-03-08T12:00:00.000Z');
+
+    harness.database.exec(`
+      CREATE TRIGGER abort_publish_history
+      BEFORE INSERT ON current_settings_history
+      WHEN NEW.device_id = 'device-3'
+      BEGIN
+        SELECT RAISE(ABORT, 'forced publish failure');
+      END;
+    `);
+
+    const response = await harness.request('/publish', {
+      method: 'POST',
+      headers: { 'x-test-user-id': 'user-1' },
+      body: JSON.stringify({
+        ha_user_id: 'user-1',
+        source_device_id: 'device-1',
+      }),
+    });
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: 'Failed to publish settings to target devices',
+    });
+
+    const targets = harness.database
+      .prepare(
+        `SELECT device_id, data, revision
+         FROM current_settings
+         WHERE ha_user_id = ? AND device_id IN (?, ?)
+         ORDER BY device_id ASC`
+      )
+      .all('user-1', 'device-2', 'device-3');
+
+    expect(targets).toEqual([
+      { device_id: 'device-2', data: JSON.stringify({ version: 0 }), revision: 1 },
+      { device_id: 'device-3', data: JSON.stringify({ version: -1 }), revision: 1 },
+    ]);
+
+    const historyRows = harness.database
+      .prepare(
+        `SELECT device_id, revision
+         FROM current_settings_history
+         WHERE ha_user_id = ? AND device_id IN (?, ?)`
+      )
+      .all('user-1', 'device-2', 'device-3');
+
+    expect(historyRows).toEqual([]);
+  });
 });
 
 describe('profiles route auth', () => {
@@ -188,5 +309,86 @@ describe('profiles route auth', () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: 'Forbidden: user mismatch' });
+  });
+
+  it('preserves stored profile data during metadata-only updates', async () => {
+    const harness = await startRouterHarness('../routes/profiles.js', '/api/profiles');
+    const snapshot = { version: 1, layout: {}, appearance: {} };
+
+    harness.database
+      .prepare(
+        `INSERT INTO profiles (id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        'profile-1',
+        'user-1',
+        'Original',
+        'Tablet',
+        JSON.stringify(snapshot),
+        null,
+        '2026-03-08T12:00:00.000Z',
+        '2026-03-08T12:00:00.000Z'
+      );
+
+    const response = await harness.request('/profile-1', {
+      method: 'PUT',
+      headers: { 'x-test-user-id': 'user-1' },
+      body: JSON.stringify({
+        ha_user_id: 'user-1',
+        name: 'Renamed',
+        device_label: 'Wall Tablet',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      id: 'profile-1',
+      ha_user_id: 'user-1',
+      name: 'Renamed',
+      device_label: 'Wall Tablet',
+      data: snapshot,
+    });
+
+    const stored = harness.database
+      .prepare('SELECT data FROM profiles WHERE id = ? AND ha_user_id = ?')
+      .get('profile-1', 'user-1');
+
+    expect(JSON.parse(stored.data)).toEqual(snapshot);
+  });
+
+  it('rejects null data payloads during profile updates', async () => {
+    const harness = await startRouterHarness('../routes/profiles.js', '/api/profiles');
+
+    harness.database
+      .prepare(
+        `INSERT INTO profiles (id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        'profile-1',
+        'user-1',
+        'Original',
+        'Tablet',
+        JSON.stringify({ version: 1, layout: {}, appearance: {} }),
+        null,
+        '2026-03-08T12:00:00.000Z',
+        '2026-03-08T12:00:00.000Z'
+      );
+
+    const response = await harness.request('/profile-1', {
+      method: 'PUT',
+      headers: { 'x-test-user-id': 'user-1' },
+      body: JSON.stringify({
+        ha_user_id: 'user-1',
+        name: 'Renamed',
+        data: null,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: 'data must be an object when provided',
+    });
   });
 });

@@ -119,4 +119,24 @@ describe('useProfiles', () => {
       data: { version: 1, layout: {}, appearance: {} },
     });
   });
+
+  it('editProfile updates metadata without sending snapshot data', async () => {
+    updateProfile.mockResolvedValue({ id: 'p1', name: 'Renamed', device_label: 'Wall Tablet' });
+
+    const { result } = renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
+    );
+
+    await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));
+
+    await act(async () => {
+      await result.current.editProfile('p1', 'Renamed', 'Wall Tablet');
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith('p1', {
+      ha_user_id: 'user-1',
+      name: 'Renamed',
+      device_label: 'Wall Tablet',
+    });
+  });
 });

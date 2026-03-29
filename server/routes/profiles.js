@@ -159,6 +159,9 @@ router.put('/:id', (req, res) => {
   if (ha_user_id && ha_user_id !== requestUserId) {
     return res.status(403).json({ error: 'Forbidden: user mismatch' });
   }
+  if (data !== undefined && (!data || typeof data !== 'object' || Array.isArray(data))) {
+    return res.status(400).json({ error: 'data must be an object when provided' });
+  }
 
   const existing = db
     .prepare('SELECT id FROM profiles WHERE id = ? AND ha_user_id = ?')

@@ -174,23 +174,21 @@ export async function refreshOAuthAccessToken() {
     return pendingOAuthRefreshPromise;
   }
 
-  const auth = (await ensureOAuthAuthSession()) ?? getOAuthAuth();
-  if (typeof auth?.refreshAccessToken === 'function') {
-    pendingOAuthRefreshPromise = auth
-      .refreshAccessToken()
-      .then(() => {
-        if (typeof auth?.accessToken === 'string' && auth.accessToken) {
-          return auth.accessToken;
-        }
-        return getCurrentOAuthAccessToken();
-      })
-      .finally(() => {
-        pendingOAuthRefreshPromise = null;
-      });
-    return pendingOAuthRefreshPromise;
-  }
+  pendingOAuthRefreshPromise = (async () => {
+    const auth = (await ensureOAuthAuthSession()) ?? getOAuthAuth();
+    if (typeof auth?.refreshAccessToken === 'function') {
+      await auth.refreshAccessToken();
+      if (typeof auth?.accessToken === 'string' && auth.accessToken) {
+        return auth.accessToken;
+      }
+    }
 
-  return getCurrentOAuthAccessToken();
+    return getCurrentOAuthAccessToken();
+  })().finally(() => {
+    pendingOAuthRefreshPromise = null;
+  });
+
+  return pendingOAuthRefreshPromise;
 }
 
 const getStoredUrl = () => {

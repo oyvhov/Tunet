@@ -20,6 +20,7 @@ export const test = baseTest.extend({
    */
   mockHAConnection: async ({ page }, use) => {
     await page.addInitScript(() => {
+      const testTimestamp = 1774816140;
       const emitMessage = (target, payload) => {
         target.dispatchEvent(
           new MessageEvent('message', {
@@ -27,6 +28,13 @@ export const test = baseTest.extend({
           })
         );
       };
+      const entityUpdate = (state, attributes) => ({
+        s: state,
+        a: attributes,
+        c: 'ctx-e2e',
+        lc: testTimestamp,
+        lu: testTimestamp,
+      });
 
       class MockWebSocket extends EventTarget {
         static CONNECTING = 0;
@@ -37,6 +45,10 @@ export const test = baseTest.extend({
         constructor(url) {
           super();
           this.url = url;
+          this.CONNECTING = MockWebSocket.CONNECTING;
+          this.OPEN = MockWebSocket.OPEN;
+          this.CLOSING = MockWebSocket.CLOSING;
+          this.CLOSED = MockWebSocket.CLOSED;
           this.readyState = MockWebSocket.CONNECTING;
 
           setTimeout(() => {
@@ -58,6 +70,18 @@ export const test = baseTest.extend({
                 emitMessage(this, {
                   type: 'auth_ok',
                   ha_version: '2026.3.0',
+                });
+              }, 10);
+              return;
+            }
+
+            if (msg.type === 'supported_features') {
+              setTimeout(() => {
+                emitMessage(this, {
+                  id: msg.id,
+                  type: 'result',
+                  success: true,
+                  result: null,
                 });
               }, 10);
               return;
@@ -116,37 +140,23 @@ export const test = baseTest.extend({
                     id: msg.id,
                     type: 'event',
                     event: {
-                      light: {
-                        'light.bedroom': {
-                          entity_id: 'light.bedroom',
-                          state: 'on',
-                          attributes: {
-                            friendly_name: 'Bedroom Light',
-                            brightness: 200,
-                            supported_features: 1,
-                          },
-                        },
-                        'light.kitchen': {
-                          entity_id: 'light.kitchen',
-                          state: 'off',
-                          attributes: {
-                            friendly_name: 'Kitchen Light',
-                            brightness: 0,
-                            supported_features: 1,
-                          },
-                        },
-                      },
-                      climate: {
-                        'climate.living_room': {
-                          entity_id: 'climate.living_room',
-                          state: 'heat',
-                          attributes: {
-                            friendly_name: 'Living Room Climate',
-                            current_temperature: 20,
-                            target_temperature: 22,
-                            supported_features: 391,
-                          },
-                        },
+                      a: {
+                        'light.bedroom': entityUpdate('on', {
+                          friendly_name: 'Bedroom Light',
+                          brightness: 200,
+                          supported_features: 1,
+                        }),
+                        'light.kitchen': entityUpdate('off', {
+                          friendly_name: 'Kitchen Light',
+                          brightness: 0,
+                          supported_features: 1,
+                        }),
+                        'climate.living_room': entityUpdate('heat', {
+                          friendly_name: 'Living Room Climate',
+                          current_temperature: 20,
+                          target_temperature: 22,
+                          supported_features: 391,
+                        }),
                       },
                     },
                   });
