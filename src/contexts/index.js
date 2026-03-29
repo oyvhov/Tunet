@@ -8,3 +8,4 @@ export {
 } from './HomeAssistantContext';
 export { ModalProvider, useModalState } from './ModalContext';
 export { AppUiProvider, useAppUiStateContext } from './AppUiContext';
+export { ToastProvider, useToast } from './ToastContext';

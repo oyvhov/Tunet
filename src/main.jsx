@@ -6,6 +6,8 @@ import './styles/index.css';
 import App from './App.jsx';
 import { ConfigProvider } from './contexts/ConfigContext';
 import { PageProvider } from './contexts/PageContext';
+import { ToastProvider } from './contexts/ToastContext';
+import ToastContainer from './components/ui/ToastContainer';
 
 function isChunkLoadError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -103,16 +105,26 @@ ErrorBoundary.propTypes = {
   children: PropTypes.node,
 };
 
+// Register service worker for PWA installability
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
-      <ConfigProvider>
-        <PageProvider>
-          <HashRouter>
-            <App />
-          </HashRouter>
-        </PageProvider>
-      </ConfigProvider>
+      <ToastProvider>
+        <ConfigProvider>
+          <PageProvider>
+            <HashRouter>
+              <App />
+            </HashRouter>
+          </PageProvider>
+        </ConfigProvider>
+        <ToastContainer />
+      </ToastProvider>
     </ErrorBoundary>
   </StrictMode>
 );
