@@ -1,5 +1,5 @@
 # Stage 1: Build frontend
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -8,7 +8,7 @@ COPY . .
 RUN SKIP_POSTBUILD=1 npm run build
 
 # Stage 2: Production server (Express + static files)
-FROM node:20-alpine
+FROM node:25-alpine
 
 # Install build tools for native modules (better-sqlite3)
 RUN apk add --no-cache python3 make g++
