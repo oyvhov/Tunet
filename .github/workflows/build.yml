@@ -36,3 +36,6 @@ jobs:
 
       - name: Build
         run: npx vite build
+
+      - name: Check bundle sizes
+        run: node scripts/check-bundle-size.mjs

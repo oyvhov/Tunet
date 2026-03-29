@@ -1,12 +1,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync } from 'fs';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+const analyze = process.env.ANALYZE === 'true';
 
 export default defineConfig({
   base: './',
-  plugins: [react()],
+  plugins: [
+    react(),
+    analyze &&
+      visualizer({
+        filename: 'dist/bundle-report.html',
+        gzipSize: true,
+        brotliSize: true,
+      }),
+  ].filter(Boolean),
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
