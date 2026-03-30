@@ -12,10 +12,11 @@ import {
   AlertTriangle,
 } from '../icons';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
-import { getForecast, getHistory, getStatistics } from '../services/haClient';
+import { getForecast } from '../services/haClient';
 import { getIconComponent } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
+import useModalHistory from '../hooks/useModalHistory';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import {
   convertValueByKind,
@@ -216,81 +217,22 @@ export default function WeatherModal({
   const [forecast, setForecast] = useState([]);
   const [loading, setLoading] = useState(false);
   const [historyPeriodHours, setHistoryPeriodHours] = useState(12);
-  const [historySeries, setHistorySeries] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const hasTempSensor = !!tempEntity?.entity_id;
 
-  useEffect(() => {
-    if (!show || !conn || !tempEntity?.entity_id) {
-      setHistorySeries([]);
-      return;
-    }
+  const computedStatsPeriod =
+    historyPeriodHours <= 12 ? '5minute' : historyPeriodHours <= 24 ? '15minute' : 'hour';
 
-    let cancelled = false;
-    const fetchHistory = async () => {
-      setHistoryLoading(true);
-      try {
-        const end = new Date();
-        const start = new Date();
-        start.setHours(start.getHours() - historyPeriodHours);
-
-        const statsPeriod =
-          historyPeriodHours <= 12 ? '5minute' : historyPeriodHours <= 24 ? '15minute' : 'hour';
-        const stats = await getStatistics(conn, {
-          start,
-          end,
-          statisticId: tempEntity.entity_id,
-          period: statsPeriod,
-        });
-
-        if (!cancelled && Array.isArray(stats) && stats.length > 0) {
-          const mappedStats = stats
-            .map((point) => {
-              const value = Number.isFinite(point.mean) ? point.mean : parseFloat(point.state);
-              const time = new Date(point.start || point.end);
-              if (!Number.isFinite(value) || Number.isNaN(time.getTime())) return null;
-              return { value, time };
-            })
-            .filter(Boolean);
-
-          if (mappedStats.length > 0) {
-            setHistorySeries(mappedStats);
-            return;
-          }
-        }
-
-        const rawHistory = await getHistory(conn, {
-          start,
-          end,
-          entityId: tempEntity.entity_id,
-          minimal_response: false,
-          no_attributes: true,
-        });
-
-        if (!cancelled) {
-          const mappedHistory = (Array.isArray(rawHistory) ? rawHistory : [])
-            .map((entry) => {
-              const value = parseFloat(entry.state);
-              const time = new Date(entry.last_updated || entry.last_changed);
-              if (!Number.isFinite(value) || Number.isNaN(time.getTime())) return null;
-              return { value, time };
-            })
-            .filter(Boolean)
-            .sort((a, b) => a.time - b.time);
-          setHistorySeries(mappedHistory);
-        }
-      } catch {
-        if (!cancelled) setHistorySeries([]);
-      } finally {
-        if (!cancelled) setHistoryLoading(false);
-      }
-    };
-
-    fetchHistory();
-    return () => {
-      cancelled = true;
-    };
-  }, [show, conn, tempEntity?.entity_id, historyPeriodHours]);
+  const {
+    points: historySeries,
+    loading: historyLoading,
+  } = useModalHistory({
+    enabled: show && !!conn && !!tempEntity?.entity_id,
+    entityId: tempEntity?.entity_id,
+    conn,
+    hours: historyPeriodHours,
+    strategy: 'stats',
+    statsPeriod: computedStatsPeriod,
+  });
 
   useEffect(() => {
     if (!show || !conn || !activeWeatherEntity?.entity_id) return;

@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Coins, X, TrendingUp, BarChart3 } from '../icons';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
-import { getHistory, getStatistics } from '../services/haClient';
 import { getIconComponent } from '../icons';
 import { useHomeAssistantMeta } from '../contexts';
+import useModalHistory from '../hooks/useModalHistory';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
-
-const parseNumeric = (value) => {
-  const num = parseFloat(value);
-  return Number.isFinite(num) ? num : null;
-};
 
 const buildBuckets = (points, rangeHours) => {
   if (!points.length) return [];
@@ -136,8 +131,6 @@ export default function CostModal({
   const [rangeHours, setRangeHours] = useState(24);
   const [chartType, setChartType] = useState('line');
   const [metric, setMetric] = useState('value');
-  const [loading, setLoading] = useState(false);
-  const [series, setSeries] = useState([]);
 
   const todayEntity = todayEntityId ? entities?.[todayEntityId] : null;
   const monthEntity = monthEntityId ? entities?.[monthEntityId] : null;
@@ -148,89 +141,31 @@ export default function CostModal({
     if (source === 'today' && !todayEntityId && monthEntityId) setSource('month');
   }, [source, todayEntityId, monthEntityId]);
 
-  useEffect(() => {
-    if (!show) return;
-    if (!conn || !activeEntity?.entity_id) {
-      setSeries([]);
-      return;
-    }
+  const {
+    points,
+    loading,
+    timeWindow,
+  } = useModalHistory({
+    enabled: show && !!conn && !!activeEntity?.entity_id,
+    entityId: activeEntity?.entity_id,
+    conn,
+    hours: rangeHours,
+    strategy: 'ws',
+    statsPeriod: rangeHours > 48 ? 'day' : 'hour',
+    currentState: activeEntity?.state,
+  });
 
-    const fetchHistory = async () => {
-      setLoading(true);
-      try {
-        const end = new Date();
-        const start = new Date(end.getTime() - rangeHours * 60 * 60 * 1000);
-        const raw = await getHistory(conn, {
-          entityId: activeEntity.entity_id,
-          start,
-          end,
-          minimal_response: true,
-          no_attributes: true,
-        });
+  const series = useMemo(() => {
+    if (!points.length) return [];
+    const rawSeries = [...points].sort((a, b) => a.time - b.time);
+    const lineSeries = ensureRangeCoverage(rawSeries, timeWindow.start, timeWindow.end);
+    const bucketed = buildBuckets(rawSeries, rangeHours);
+    const deltaSeries = buildDeltaSeries(bucketed);
 
-        let points = (raw || [])
-          .map((d) => ({
-            value: parseNumeric(d.state),
-            time: new Date(
-              d.last_changed || d.last_updated || d.last_reported || d.timestamp || d.lu || d.lc
-            ),
-          }))
-          .filter(
-            (d) => d.value !== null && d.time instanceof Date && !Number.isNaN(d.time.getTime())
-          );
-
-        if (points.length < 2) {
-          const stats = await getStatistics(conn, {
-            statisticId: activeEntity.entity_id,
-            start,
-            end,
-            period: rangeHours > 48 ? 'day' : 'hour',
-          });
-          points = (stats || [])
-            .map((d) => ({
-              value: parseNumeric(
-                typeof d.mean === 'number' ? d.mean : typeof d.state === 'number' ? d.state : d.sum
-              ),
-              time: new Date(d.start),
-            }))
-            .filter(
-              (d) => d.value !== null && d.time instanceof Date && !Number.isNaN(d.time.getTime())
-            );
-        }
-
-        if (points.length < 2) {
-          const val = parseNumeric(activeEntity.state);
-          if (val !== null) {
-            const now = new Date();
-            points = [
-              { value: val, time: new Date(now.getTime() - rangeHours * 60 * 60 * 1000) },
-              { value: val, time: now },
-            ];
-          }
-        }
-
-        const rawSeries = points
-          .map((p) => ({ value: p.value, time: p.time }))
-          .sort((a, b) => a.time - b.time);
-        const lineSeries = ensureRangeCoverage(rawSeries, start, end);
-        const bucketed = buildBuckets(rawSeries, rangeHours);
-        const deltaSeries = buildDeltaSeries(bucketed);
-
-        let nextSeries = lineSeries;
-        if (metric === 'delta') nextSeries = deltaSeries;
-        else if (chartType === 'bars') nextSeries = bucketed;
-
-        setSeries(nextSeries);
-      } catch (error) {
-        console.error('Cost history fetch failed', error);
-        setSeries([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHistory();
-  }, [show, conn, activeEntity?.entity_id, activeEntity?.state, rangeHours, metric, chartType]);
+    if (metric === 'delta') return deltaSeries;
+    if (chartType === 'bars') return bucketed;
+    return lineSeries;
+  }, [points, timeWindow, rangeHours, chartType, metric]);
 
   const stats = useMemo(() => {
     if (!series.length) return { min: '--', max: '--', avg: '--', last: '--' };

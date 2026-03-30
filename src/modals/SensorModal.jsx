@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { X, Activity } from 'lucide-react';
-import { logger } from '../utils/logger';
-import { getHistory, getHistoryRest, getStatistics } from '../services/haClient';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import BinaryTimeline from '../components/charts/BinaryTimeline';
 import { formatRelativeTime } from '../utils';
 import { getIconComponent } from '../icons';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
+import useModalHistory from '../hooks/useModalHistory';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import {
   convertValueByKind,
@@ -29,39 +28,7 @@ export default function SensorModal({
 }) {
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
-  const [history, setHistory] = useState([]);
-  const [historyEvents, setHistoryEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [_historyError, setHistoryError] = useState(null);
-  const [_historyMeta, setHistoryMeta] = useState({ source: null, rawCount: 0 });
   const [historyHours, setHistoryHours] = useState(24);
-
-  // Keep track of window for the timeline
-  const [timeWindow, setTimeWindow] = useState({
-    start: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    end: new Date(),
-  });
-
-  const toDateSafe = (value) => {
-    if (!value) return null;
-    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-    if (typeof value === 'number') {
-      const ms = value < 1e12 ? value * 1000 : value;
-      const d = new Date(ms);
-      return Number.isNaN(d.getTime()) ? null : d;
-    }
-    if (typeof value === 'string') {
-      const direct = new Date(value);
-      if (!Number.isNaN(direct.getTime())) return direct;
-      const num = Number(value);
-      if (Number.isFinite(num)) {
-        const ms = num < 1e12 ? num * 1000 : num;
-        const d = new Date(ms);
-        return Number.isNaN(d.getTime()) ? null : d;
-      }
-    }
-    return null;
-  };
 
   const attrs = entity?.attributes || {};
   const state = entity?.state;
@@ -96,203 +63,40 @@ export default function SensorModal({
     return true;
   }, [domain, state, isNumeric]);
 
-  useEffect(() => {
-    if (isOpen && entity && conn) {
-      const fetchHistory = async () => {
-        setLoading(true);
-        setHistoryError(null);
-        setHistoryMeta({ source: null, rawCount: 0 });
-        try {
-          const end = new Date();
-          const start = new Date(end.getTime() - historyHours * 60 * 60 * 1000);
-          setTimeWindow({ start, end });
+  const needsActivity = getShouldShowActivity();
+  const {
+    points: history,
+    events: rawEvents,
+    loading,
+    timeWindow,
+  } = useModalHistory({
+    enabled: isOpen && !!entity && !!conn,
+    entityId: entity?.entity_id,
+    conn,
+    haUrl,
+    haToken,
+    hours: historyHours,
+    strategy: 'rest',
+    includeEvents: true,
+    skipHistoryFetch: !(needsActivity || isNumeric),
+    statsPeriod: 'hour',
+    currentState: entity?.state,
+  });
 
-          let points = [];
-          let events = [];
-
-          // Determine if we need history data for activity/events display
-          const needsActivityData = getShouldShowActivity();
-
-          // Try fetching history via REST first (recommended for full data)
-          try {
-            // Always fetch history for numeric or activity-requiring entities
-            const shouldFetch = needsActivityData || isNumeric;
-
-            if (shouldFetch) {
-              const data = await getHistoryRest(haUrl, haToken, {
-                entityId: entity.entity_id,
-                start,
-                end,
-                minimal_response: false,
-                no_attributes: false,
-                significant_changes_only: false,
-              });
-
-              if (data && Array.isArray(data)) {
-                const raw = Array.isArray(data[0]) ? data[0] : data;
-                setHistoryMeta({ source: 'rest', rawCount: raw.length });
-                points = raw
-                  .filter((d) => !isNaN(parseFloat(d?.state)))
-                  .map((d) => ({
-                    value: parseFloat(d.state),
-                    time: toDateSafe(
-                      d.last_changed ||
-                        d.last_updated ||
-                        d.last_reported ||
-                        d.timestamp ||
-                        d.lu ||
-                        d.lc
-                    ),
-                  }))
-                  .filter((d) => d.time);
-                events = raw
-                  .map((d) => {
-                    if (!d) return null;
-                    const stateValue = d.state ?? d.s;
-                    const changed =
-                      d.last_changed ||
-                      d.last_updated ||
-                      d.last_reported ||
-                      d.timestamp ||
-                      d.l ||
-                      d.lc ||
-                      d.lu;
-                    const time = toDateSafe(changed);
-                    if (stateValue === undefined || !time) return null;
-                    return {
-                      state: stateValue,
-                      time,
-                      lastChanged: changed,
-                    };
-                  })
-                  .filter(Boolean);
-              }
-            }
-          } catch (err) {
-            const restMessage = err?.message || 'History REST failed';
-            // Continue to WS fallback
-            try {
-              const shouldFetch = needsActivityData || isNumeric;
-              if (shouldFetch) {
-                const wsData = await getHistory(conn, {
-                  entityId: entity.entity_id,
-                  start,
-                  end,
-                  minimal_response: false,
-                  no_attributes: false,
-                });
-                if (wsData && Array.isArray(wsData)) {
-                  const raw = Array.isArray(wsData[0]) ? wsData[0] : wsData;
-                  setHistoryMeta({ source: 'ws', rawCount: raw.length });
-                  points = raw
-                    .filter((d) => !isNaN(parseFloat(d?.state)))
-                    .map((d) => ({
-                      value: parseFloat(d.state),
-                      time: toDateSafe(
-                        d.last_changed ||
-                          d.last_updated ||
-                          d.last_reported ||
-                          d.timestamp ||
-                          d.lu ||
-                          d.lc
-                      ),
-                    }))
-                    .filter((d) => d.time);
-                  events = raw
-                    .map((d) => {
-                      if (!d) return null;
-                      const stateValue = d.state ?? d.s;
-                      const changed =
-                        d.last_changed ||
-                        d.last_updated ||
-                        d.last_reported ||
-                        d.timestamp ||
-                        d.l ||
-                        d.lc ||
-                        d.lu;
-                      const time = toDateSafe(changed);
-                      if (stateValue === undefined || !time) return null;
-                      return {
-                        state: stateValue,
-                        time,
-                        lastChanged: changed,
-                      };
-                    })
-                    .filter(Boolean);
-                  setHistoryError(null);
-                } else {
-                  setHistoryError(restMessage);
-                }
-              }
-            } catch (_wsErr) {
-              setHistoryError(restMessage);
-            }
-          }
-
-          // Fallback to statistics if history is sparse or empty
-          if (points.length < 2) {
-            try {
-              const stats = await getStatistics(conn, {
-                statisticId: entity.entity_id,
-                start,
-                end,
-                period: 'hour',
-              });
-
-              if (stats && Array.isArray(stats)) {
-                points = stats
-                  .map((d) => ({
-                    value:
-                      typeof d.mean === 'number'
-                        ? d.mean
-                        : typeof d.state === 'number'
-                          ? d.state
-                          : d.sum,
-                    time: new Date(d.start),
-                  }))
-                  .filter((d) => !isNaN(parseFloat(d.value)));
-              }
-            } catch (statErr) {
-              logger.warn('Stats fetch failed', statErr);
-            }
-          }
-
-          // Final fallback for current state as line
-          if (points.length < 2 && !isNaN(parseFloat(entity.state))) {
-            const now = new Date();
-            const val = parseFloat(entity.state);
-            points = [
-              { value: val, time: new Date(now.getTime() - historyHours * 60 * 60 * 1000) },
-              { value: val, time: now },
-            ];
-          }
-
-          // Fallback for events (Binary Timeline) if no history found
-          // Even if unavailable, we want to show that state
-          if (events.length === 0 && entity.state) {
-            events = [
-              {
-                state: entity.state,
-                time: start,
-                lastChanged: start.toISOString(),
-              },
-            ];
-          }
-          setHistory(points);
-          setHistoryEvents(events);
-        } catch (_e) {
-          console.error('Failed to load history', _e);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchHistory();
-    } else {
-      setHistory([]);
-      setHistoryEvents([]);
+  // Event fallback — ensure BinaryTimeline always has at least one entry
+  const historyEvents = useMemo(() => {
+    if (rawEvents.length > 0) return rawEvents;
+    if (entity?.state) {
+      return [
+        {
+          state: entity.state,
+          time: timeWindow.start,
+          lastChanged: timeWindow.start?.toISOString(),
+        },
+      ];
     }
-  }, [isOpen, entity, conn, haUrl, haToken, historyHours, getShouldShowActivity, isNumeric]);
+    return [];
+  }, [rawEvents, entity?.state, timeWindow.start]);
 
   if (!isOpen || !entity) return null;
 
