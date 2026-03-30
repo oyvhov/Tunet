@@ -10,7 +10,7 @@ import {
   Sun,
   Unlock,
 } from '../../icons';
-import MdiIcon from '@mdi/react';
+import { Icon as MdiIcon } from '@mdi/react';
 import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
 
 const FEATURE_ARM_HOME = 1;

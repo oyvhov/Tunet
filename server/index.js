@@ -38,8 +38,8 @@ app.use((_req, res, next) => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     // Fonts: own + Google Fonts CDN
     "font-src 'self' https://fonts.gstatic.com",
-    // Images: own, HA instance, weather icons, media logos, map tiles, data/blob URIs
-    "img-src 'self' data: blob: https://cdn.jsdelivr.net https://cdn.simpleicons.org https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org",
+    // Images: own, HA instance (any origin – URL is user-configured), weather icons, media logos, map tiles, data/blob URIs
+    "img-src 'self' data: blob: http: https: https://cdn.jsdelivr.net https://cdn.simpleicons.org https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org",
     // WebSocket connections to the user's HA instance (any origin, since URL is user-configured)
     "connect-src 'self' ws: wss: http: https:",
     // Leaflet map iframe
@@ -140,7 +140,7 @@ if (isProduction) {
       })
     );
 
-    app.get('/assets/*', assetFallbackRateLimiter, (req, res, next) => {
+    app.get('/assets/{*path}', assetFallbackRateLimiter, (req, res, next) => {
       const requested = basename(req.path || '');
       if (!requested) return next();
 
@@ -181,7 +181,7 @@ if (isProduction) {
     });
 
     // SPA fallback — serve index.html for all non-API routes
-    app.get('*', (req, res) => {
+    app.get('{*path}', (req, res) => {
       if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'Not found' });
       }
