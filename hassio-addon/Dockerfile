@@ -1,7 +1,7 @@
 ARG BUILD_FROM
 ARG BUILD_VERSION
 # ── Stage 1: Build from source ────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 ARG BUILD_VERSION
 RUN apk add --no-cache curl tar \
  && set -eux \
