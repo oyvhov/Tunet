@@ -43,13 +43,34 @@ export default function SparkLine({
 
   if (pointsData.length === 0) return null;
 
-  const values = pointsData.map((d) => d.value);
+  // Smooth values with a moving average to reduce jitter
+  const rawValues = pointsData.map((d) => d.value);
+  const windowSize = Math.max(1, Math.round(rawValues.length / 30));
+  const values = rawValues.map((_, i) => {
+    const start = Math.max(0, i - Math.floor(windowSize / 2));
+    const end = Math.min(rawValues.length, i + Math.ceil(windowSize / 2));
+    let sum = 0;
+    for (let j = start; j < end; j++) sum += rawValues[j];
+    return sum / (end - start);
+  });
   let min = Math.min(...values);
   let max = Math.max(...values);
   if (min === max) {
     min -= 1;
     max += 1;
   }
+  // Ensure a minimum visual range so small fluctuations don't look extreme
+  const rawRange = max - min;
+  const minRange = Math.max(2, Math.abs(max + min) / 2 * 0.1);
+  if (rawRange < minRange) {
+    const mid = (max + min) / 2;
+    min = mid - minRange / 2;
+    max = mid + minRange / 2;
+  }
+  // Snap to nice round numbers for a calmer visual
+  const snapStep = rawRange <= 2 ? 0.5 : rawRange <= 5 ? 1 : rawRange <= 20 ? 2 : 5;
+  min = Math.floor(min / snapStep) * snapStep;
+  max = Math.ceil(max / snapStep) * snapStep;
   const range = max - min || 1;
   const width = 300;
   const chartTop = verticalPadding;

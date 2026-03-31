@@ -113,28 +113,18 @@ const LightCard = ({
 
         <div className="flex h-full min-w-0 flex-1 flex-col justify-center gap-3 pt-1">
           <div className="flex items-baseline justify-between pr-1">
-            <p className="truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+            <p className="truncate text-xs leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60">
               {String(name || t('common.light'))}
             </p>
-            <span
-              className={`text-lg leading-none font-medium tracking-wide transition-colors ${
-                isUnavailable
-                  ? 'text-[var(--status-error-fg)]'
-                  : isOn
-                    ? 'text-amber-400'
-                    : 'text-[var(--text-secondary)] opacity-50'
-              }`}
-              aria-label={isUnavailable ? t('status.unavailable') : undefined}
-              title={isUnavailable ? t('status.unavailable') : undefined}
-            >
-              {isUnavailable
-                ? '⚠'
-                : isOn
-                  ? isDimmable
-                    ? `${Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100)}%`
-                    : t('common.on')
-                  : t('common.off')}
-            </span>
+            {isUnavailable && (
+              <span
+                className="text-lg leading-none font-medium text-[var(--status-error-fg)]"
+                aria-label={t('status.unavailable')}
+                title={t('status.unavailable')}
+              >
+                ⚠
+              </span>
+            )}
           </div>
           <div className={`flex w-full items-center ${isDimmable ? 'h-6' : 'h-6'}`}>
             {isDimmable && (

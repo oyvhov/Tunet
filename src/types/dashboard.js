@@ -250,6 +250,8 @@
  * @property {() => void} createPage
  * @property {() => void} createMediaPage
  * @property {() => void} createSonosPage
+ * @property {() => void} createLightsPage
+ * @property {() => void} createBatteryPage
  * @property {(pageId: string) => void} deletePage
  * @property {(cardId: string, listName?: string) => void} removeCard
  */

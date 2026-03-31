@@ -25,7 +25,7 @@ import {
 } from '../icons';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { isToggleEntity } from '../utils';
+import { isSonosMediaEntity, isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 
@@ -224,16 +224,6 @@ function AddCardContent({
   };
   const betaSuffix = ` (${getLabel('addCard.betaLabel', 'beta')})`;
 
-  const isSonosEntity = (entity) => {
-    if (!entity) return false;
-    const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
-    const platform = (entity.attributes?.platform || '').toLowerCase();
-    if (manufacturer.includes('sonos') || platform.includes('sonos')) return true;
-    const entityId = (entity.entity_id || '').toLowerCase();
-    const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
-    return entityId.includes('sonos') || friendlyName.includes('sonos');
-  };
-
   const lowerSearchTerm = searchTerm.toLowerCase();
   const entityIds = useMemo(() => Object.keys(entities), [entities]);
   const selectedEntitiesSet = useMemo(() => new Set(selectedEntities), [selectedEntities]);
@@ -354,7 +344,7 @@ function AddCardContent({
       if (addCardType === 'androidtv') return id.startsWith('media_player.') || id.startsWith('remote.');
       if (addCardType === 'cost') return id.startsWith('sensor.') || id.startsWith('input_number.');
       if (addCardType === 'media') return id.startsWith('media_player.');
-      if (addCardType === 'sonos') return id.startsWith('media_player.') && isSonosEntity(entities[id]);
+      if (addCardType === 'sonos') return id.startsWith('media_player.') && isSonosMediaEntity(entities[id]);
       if (addCardType === 'sensor') {
         return (
           (id.startsWith('sensor.') ||

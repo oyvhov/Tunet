@@ -50,7 +50,16 @@ export default function SensorHistoryGraph({
   const graphHeight = height - padding.top - padding.bottom;
 
   // Calculate min/max values
-  const values = safeData.map((d) => d.value);
+  // Smooth values with a moving average to reduce jitter
+  const rawValues = safeData.map((d) => d.value);
+  const windowSize = Math.max(1, Math.round(rawValues.length / 30));
+  const values = rawValues.map((_, i) => {
+    const start = Math.max(0, i - Math.floor(windowSize / 2));
+    const end = Math.min(rawValues.length, i + Math.ceil(windowSize / 2));
+    let sum = 0;
+    for (let j = start; j < end; j++) sum += rawValues[j];
+    return sum / (end - start);
+  });
   let min = Math.min(...values);
   let max = Math.max(...values);
 
@@ -59,11 +68,33 @@ export default function SensorHistoryGraph({
     max += 1;
   }
 
+  // Ensure a minimum visual range so small fluctuations don't look extreme
+  const rawRange = max - min;
+  const minRange = Math.max(2, Math.abs(max + min) / 2 * 0.1);
+  if (rawRange < minRange) {
+    const mid = (max + min) / 2;
+    min = mid - minRange / 2;
+    max = mid + minRange / 2;
+  }
+
+  // Snap min/max to nice round numbers for clean axis labels
+  const snapStep = (() => {
+    const r = max - min;
+    if (r <= 2) return 0.5;
+    if (r <= 5) return 1;
+    if (r <= 20) return 2;
+    if (r <= 50) return 5;
+    if (r <= 200) return 10;
+    return 50;
+  })();
+  min = Math.floor(min / snapStep) * snapStep;
+  max = Math.ceil(max / snapStep) * snapStep;
+
   // Add some padding to top of Y-axis range only
   const range = max - min;
-  const renderMin = min; // No bottom padding
-  const renderMax = max + range * 0.05;
-  const renderRange = renderMax - renderMin;
+  const renderMin = min;
+  const renderMax = max;
+  const renderRange = renderMax - renderMin || 1;
 
   // Create points for Bezier curve
   const pointsArray = safeData.map((d, i) => [
@@ -77,11 +108,11 @@ export default function SensorHistoryGraph({
     [pathData, padding.left, graphWidth, height]
   );
 
-  // Generate Y-axis labels (Max, Mid, Min)
+  // Generate Y-axis labels (Max, Mid, Min) — match renderMin/renderMax so labels align with curve
   const yLabels = [
-    { value: max, y: padding.top },
-    { value: (max + min) / 2, y: padding.top + graphHeight / 2 },
-    { value: min, y: height - padding.bottom },
+    { value: renderMax, y: padding.top },
+    { value: (renderMax + renderMin) / 2, y: padding.top + graphHeight / 2 },
+    { value: renderMin, y: height - padding.bottom },
   ];
 
   // Generate X-axis labels (Start, End + Intermediates)

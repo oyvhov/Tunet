@@ -160,7 +160,7 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
           <div className="min-w-0 flex-1">
             <h3
               id={modalTitleId}
-              className="truncate text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+              className="truncate pr-1 text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
             >
               {entityName || translate('todo.title') || 'To-do'}
             </h3>

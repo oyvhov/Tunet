@@ -53,6 +53,8 @@ export function ModalManagementSlice({
     createPage,
     createMediaPage,
     createSonosPage,
+    createLightsPage,
+    createBatteryPage,
     deletePage,
     pageSettings,
     savePageSetting,
@@ -203,6 +205,8 @@ export function ModalManagementSlice({
             onCreate={createPage}
             onCreateMedia={createMediaPage}
             onCreateSonos={createSonosPage}
+            onCreateLights={createLightsPage}
+            onCreateBattery={createBatteryPage}
           />
         </ModalSuspense>
       )}

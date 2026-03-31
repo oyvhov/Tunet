@@ -25,6 +25,7 @@ import {
 import M3Slider from '../components/ui/M3Slider';
 import SafeImage from '../components/ui/SafeImage';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { isSonosMediaEntity } from '../utils';
 import { getMediaPlayerPowerAction } from '../utils/mediaPlayerFeatures';
 
 const readJSON = (key, fallback) => {
@@ -248,52 +249,6 @@ function applyPlayerNameFilter(value, playerNameDisplayFilter) {
   return didApply ? cleaned : name;
 }
 
-function isMusicAssistantMediaEntity(entity) {
-  if (!entity) return false;
-  if (entity.attributes?.mass_player_type) return true;
-  const entityId = (entity.entity_id || '').toLowerCase();
-  const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
-  const platform = (entity.attributes?.platform || '').toLowerCase();
-  const integration = (entity.attributes?.integration || '').toLowerCase();
-  const attribution = (entity.attributes?.attribution || '').toLowerCase();
-  const appName = (entity.attributes?.app_name || '').toLowerCase();
-  const mediaContentId = (entity.attributes?.media_content_id || '').toLowerCase();
-  const model = (entity.attributes?.model || '').toLowerCase();
-  return (
-    platform.includes('music_assistant') ||
-    platform === 'mass' ||
-    integration.includes('music_assistant') ||
-    integration === 'mass' ||
-    entityId.includes('music_assistant') ||
-    entityId.includes('mass_') ||
-    friendlyName.includes('music assistant') ||
-    attribution.includes('music assistant') ||
-    appName.includes('music assistant') ||
-    mediaContentId.includes('music_assistant') ||
-    model.includes('music assistant')
-  );
-}
-
-function isStrictSonosMediaEntity(entity) {
-  if (!entity) return false;
-  if (isMusicAssistantMediaEntity(entity)) return false;
-  const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
-  const platform = (entity.attributes?.platform || '').toLowerCase();
-  if (manufacturer.includes('sonos') || platform.includes('sonos')) return true;
-
-  const entityId = (entity.entity_id || '').toLowerCase();
-  const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
-  return entityId.includes('sonos') || friendlyName.includes('sonos');
-}
-
-function isSonosUiMediaEntity(entity) {
-  if (!entity) return false;
-  if (isStrictSonosMediaEntity(entity)) return true;
-  const entityId = (entity.entity_id || '').toLowerCase();
-  const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
-  return entityId.includes('sonos') || friendlyName.includes('sonos');
-}
-
 function resolveArtworkUrl(entity, getEntityImageUrl) {
   const raw =
     entity?.attributes?.entity_picture ||
@@ -488,8 +443,8 @@ export default function MediaModal({
     [playerNameDisplayFilter]
   );
 
-  const isStrictSonosEntity = isStrictSonosMediaEntity;
-  const isSonosUiEntity = isSonosUiMediaEntity;
+  const isStrictSonosEntity = isSonosMediaEntity;
+  const isSonosUiEntity = isSonosMediaEntity;
 
   const sonosIds = Object.keys(entities)
     .filter((id) => id.startsWith('media_player.'))

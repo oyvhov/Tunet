@@ -35,3 +35,5 @@ export { EmbyLogo, JellyfinLogo, NRKLogo, getServerInfo } from './ui/CustomIcons
 export { default as PageNavigation } from './pages/PageNavigation';
 export { default as MediaPage } from './pages/MediaPage';
 export { default as SonosPage } from './pages/SonosPage';
+export { default as LightsPage } from './pages/LightsPage';
+export { default as BatteryPage } from './pages/BatteryPage';

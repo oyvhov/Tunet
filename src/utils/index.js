@@ -29,3 +29,5 @@ export { getEffectiveRoomEntityIds, filterEntitiesByDomain } from './roomEntitie
 export { matchCarEntities } from './carEntityMatcher';
 export { CHART_STATUS_COLORS, WEATHER_BAND_COLORS, getThresholdColor } from './chartColors';
 export { downsampleTimeSeries } from './sensorHistory';
+export { isMusicAssistantMediaEntity, isSonosMediaEntity } from './mediaEntityClassification';
+export { buildRegistryLookupMap, enrichEntitiesWithRegistryMetadata } from './entityRegistryMetadata';

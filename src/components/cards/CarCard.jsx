@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
-import { Car, MapPin, Zap } from '../../icons';
+import { Car, Flame, MapPin, Plug, Zap } from '../../icons';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import {
   convertValueByKind,
@@ -154,7 +154,7 @@ const CarCard = ({
         {controls}
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div
-            className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all group-hover:scale-110 ${isHtg ? 'animate-pulse bg-orange-500/20 text-orange-400' : isCharging ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+            className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all group-hover:scale-110 ${isCharging ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
           >
             <Icon className="h-6 w-6 stroke-[1.5px]" />
           </div>
@@ -190,7 +190,7 @@ const CarCard = ({
         e.stopPropagation();
         if (!editMode) onOpen();
       }}
-      className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
+      className={`glass-texture touch-feedback group relative flex h-full flex-col overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'gap-4 p-5' : 'gap-5 p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
       style={{
         ...cardStyle,
         backgroundColor: isHtg ? 'rgba(249, 115, 22, 0.08)' : 'var(--card-bg)',
@@ -202,13 +202,21 @@ const CarCard = ({
       }}
     >
       {controls}
-      <div className={`flex items-start justify-between font-sans ${isDenseMobile ? 'gap-3' : ''}`}>
-        <div
-          className={`transition-all group-hover:scale-110 ${isHtg ? 'animate-pulse bg-orange-500/20 text-orange-400' : isCharging ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
-        >
-          <Icon className={`${isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px]`} />
+      <div className={`flex items-start justify-between font-sans ${isDenseMobile ? 'gap-3' : 'gap-4'}`}>
+        <div className={`flex min-w-0 flex-col items-start ${isDenseMobile ? 'gap-2' : 'gap-2.5'}`}>
+          <div
+            className={`flex-shrink-0 transition-all group-hover:scale-110 ${isCharging ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
+          >
+            <Icon className={`${isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px]`} />
+          </div>
+          <p
+            className={`${isDenseMobile ? 'max-w-[10rem] text-[10px]' : 'max-w-[12rem] text-xs'} min-w-0 truncate font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
+            title={String(name)}
+          >
+            {name}
+          </p>
         </div>
-        <div className={`flex max-w-[65%] flex-col items-end ${isDenseMobile ? 'gap-1.5' : 'gap-2'}`}>
+        <div className={`flex max-w-[62%] flex-col items-end ${isDenseMobile ? 'gap-1.5' : 'gap-2'}`}>
           {locationLabel && (
             <div
               className={`flex max-w-full items-start border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] ${isDenseMobile ? 'gap-1 rounded-xl px-2.5 py-1' : 'gap-1.5 rounded-2xl px-3 py-1.5'}`}
@@ -221,15 +229,32 @@ const CarCard = ({
               </span>
             </div>
           )}
+          {(isHtg || isPlugged) && (
+            <div className={`flex shrink-0 items-center ${isDenseMobile ? 'gap-1.5' : 'gap-2'}`}>
+              {isHtg && (
+                <div
+                  className={`flex items-center justify-center border border-orange-500/30 bg-orange-500/12 text-orange-400 ${isDenseMobile ? 'rounded-xl p-2' : 'rounded-2xl p-2.5'}`}
+                  aria-label={t('car.heating')}
+                  title={t('car.heating')}
+                >
+                  <Flame className={`${isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} stroke-[1.75px]`} />
+                </div>
+              )}
+              {isPlugged && (
+                <div
+                  className={`flex items-center justify-center border border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] ${isDenseMobile ? 'rounded-xl p-2' : 'rounded-2xl p-2.5'}`}
+                  aria-label={t('car.pluggedIn')}
+                  title={t('car.pluggedIn')}
+                >
+                  <Plug className={`${isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} stroke-[1.75px]`} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
-      <div className={`flex items-end justify-between ${useCompactMetrics ? 'gap-3' : 'gap-4'}`}>
+      <div className={`flex items-start justify-between ${useCompactMetrics ? 'gap-3' : 'gap-4'}`}>
         <div className="min-w-0 flex-1">
-          <p
-            className={`${isDenseMobile ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
-          >
-            {name}
-          </p>
           <div className={`flex min-w-0 items-baseline font-sans leading-none ${useCompactMetrics ? 'gap-1.5' : 'gap-2'}`}>
             <span
               className={`${useCompactMetrics ? 'text-[2rem]' : 'text-4xl'} leading-none font-thin ${isCharging ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'}`}
@@ -242,18 +267,12 @@ const CarCard = ({
                 fill="currentColor"
               />
             )}
-            {displayRangeValue !== null && (
-              <span
-                className={`${useCompactMetrics ? 'text-base' : 'ml-1 text-xl'} min-w-0 truncate font-light text-[var(--text-secondary)]`}
-              >
-                {formatUnitValue(displayRangeValue, { fallback: '--' })}
-                {rangeUnit}
-              </span>
-            )}
           </div>
-          {pluggedId && (
-            <p className="mt-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase opacity-60">
-              {isPlugged ? t('car.pluggedIn') : t('car.unplugged')}
+          {displayRangeValue !== null && (
+            <p
+              className={`${useCompactMetrics ? 'mt-1 text-xs' : 'mt-1.5 text-sm'} font-medium text-[var(--text-secondary)]`}
+            >
+              {formatUnitValue(displayRangeValue, { fallback: '--' })} {rangeUnit}
             </p>
           )}
         </div>
@@ -261,7 +280,7 @@ const CarCard = ({
           <img
             src={resolvedImageUrl}
             alt=""
-            className={`pointer-events-none h-20 w-auto object-contain opacity-80 drop-shadow-lg select-none ${useCompactMetrics ? 'max-w-[38%]' : 'max-w-[45%]'}`}
+            className={`pointer-events-none w-auto object-contain opacity-80 drop-shadow-lg select-none ${useCompactMetrics ? 'mt-1 h-[4.5rem] max-w-[38%]' : 'mt-1 h-20 max-w-[45%]'}`}
             onError={(e) => {
               /** @type {HTMLElement} */ (e.target).style.display = 'none';
             }}

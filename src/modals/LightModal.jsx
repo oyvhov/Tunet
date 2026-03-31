@@ -172,7 +172,7 @@ export default function LightModal({
             <div className="min-w-0">
               <h2
                 id={modalTitleId}
-                className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+                className="truncate pr-1 text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
               >
                 {getA(activeLightId, 'friendly_name', t('common.light'))}
               </h2>

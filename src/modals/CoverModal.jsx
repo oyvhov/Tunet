@@ -429,7 +429,7 @@ export default function CoverModal({
             <div className="min-w-0">
               <h2
                 id={modalTitleId}
-                className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+                className="truncate pr-1 text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
               >
                 {name}
               </h2>

@@ -11,6 +11,27 @@ const parseNumeric = (value) => {
   return Number.isFinite(num) ? num : null;
 };
 
+const toDateSafe = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === 'number') {
+    const ms = value < 1e12 ? value * 1000 : value;
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value === 'string') {
+    const direct = new Date(value);
+    if (!Number.isNaN(direct.getTime())) return direct;
+    const num = Number(value);
+    if (Number.isFinite(num)) {
+      const ms = num < 1e12 ? num * 1000 : num;
+      const d = new Date(ms);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+  }
+  return null;
+};
+
 const buildBuckets = (points, rangeHours) => {
   if (!points.length) return [];
   const rangeMs = rangeHours * 60 * 60 * 1000;
@@ -24,9 +45,12 @@ const buildBuckets = (points, rangeHours) => {
     if (!Number.isFinite(time)) return;
     if (time < startMs) return;
     const bucketStart = Math.floor((time - startMs) / bucketMs) * bucketMs + startMs;
-    const entry = buckets.get(bucketStart) || { total: 0, count: 0, time: new Date(bucketStart) };
-    entry.total += p.value;
-    entry.count += 1;
+    const entry = buckets.get(bucketStart) || { last: p.value, lastTime: time, time: new Date(bucketStart) };
+    // Keep the latest value in each bucket (energy cost accumulates)
+    if (time >= entry.lastTime) {
+      entry.last = p.value;
+      entry.lastTime = time;
+    }
     buckets.set(bucketStart, entry);
   });
 
@@ -34,15 +58,15 @@ const buildBuckets = (points, rangeHours) => {
     .sort((a, b) => a.time - b.time)
     .map((b) => ({
       time: b.time,
-      value: b.count ? b.total / b.count : 0,
+      value: b.last,
     }));
 };
 
 const buildDeltaSeries = (series) => {
   if (series.length < 2) return series;
-  return series.map((point, idx) => {
-    if (idx === 0) return { ...point, value: 0 };
-    const prev = series[idx - 1];
+  // Skip first point — no previous value to diff against
+  return series.slice(1).map((point, idx) => {
+    const prev = series[idx]; // idx is offset by 1 due to slice
     return { ...point, value: point.value - prev.value };
   });
 };
@@ -64,53 +88,130 @@ const ensureRangeCoverage = (data, start, end) => {
   return normalized;
 };
 
-const BarChart = ({ data, height = 200, color = '#34d399' }) => {
+const BarChart = ({ data, height = 200, color = '#34d399', rangeHours = 24 }) => {
   if (!data.length) return null;
   const width = 600;
-  const padding = { top: 16, right: 16, bottom: 28, left: 32 };
+  const padding = { top: 16, right: 16, bottom: 32, left: 48 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
   const max = Math.max(...data.map((d) => d.value), 0);
   const min = Math.min(...data.map((d) => d.value), 0);
   const range = max - min || 1;
 
+  // Zero line position (where bars originate from)
+  const zeroY = padding.top + ((max - 0) / range) * chartHeight;
+
+  // Y-axis labels
+  const yLabels = [
+    { value: max, y: padding.top },
+    { value: (max + min) / 2, y: padding.top + chartHeight / 2 },
+    { value: min, y: padding.top + chartHeight },
+  ];
+
+  // X-axis labels — pick ~5 evenly spaced, format based on range
+  const formatTime = (date) => {
+    const d = date instanceof Date ? date : new Date(date);
+    if (rangeHours >= 168) {
+      return d.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+    }
+    if (rangeHours >= 48) {
+      return d.toLocaleDateString([], { weekday: 'short', hour: '2-digit' });
+    }
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const xLabelCount = Math.min(data.length, 5);
+  const xLabels = [];
+  for (let i = 0; i < xLabelCount; i++) {
+    const idx = Math.round((i / (xLabelCount - 1)) * (data.length - 1));
+    const point = data[idx];
+    if (point) {
+      const x = padding.left + (idx / Math.max(data.length - 1, 1)) * chartWidth;
+      const t = point.time instanceof Date ? point.time : new Date(point.time);
+      const label = formatTime(t);
+      xLabels.push({ x, label });
+    }
+  }
+
+  const formatVal = (v) => {
+    if (Math.abs(v) >= 1000) return v.toFixed(0);
+    if (Math.abs(v) >= 10) return v.toFixed(1);
+    return v.toFixed(2);
+  };
+
   return (
     <div className="relative w-full">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="none">
-        <line
-          x1={padding.left}
-          y1={padding.top}
-          x2={width - padding.right}
-          y2={padding.top}
-          stroke="currentColor"
-          strokeOpacity="0.05"
-        />
-        <line
-          x1={padding.left}
-          y1={height - padding.bottom}
-          x2={width - padding.right}
-          y2={height - padding.bottom}
-          stroke="currentColor"
-          strokeOpacity="0.08"
-        />
+        {/* Y-axis grid lines and labels */}
+        {yLabels.map((label, i) => (
+          <g key={`y-${i}`}>
+            <line
+              x1={padding.left}
+              y1={label.y}
+              x2={width - padding.right}
+              y2={label.y}
+              stroke="currentColor"
+              strokeOpacity="0.06"
+            />
+            <text
+              x={padding.left - 6}
+              y={label.y + 4}
+              textAnchor="end"
+              fill="currentColor"
+              opacity="0.4"
+              fontSize="11"
+            >
+              {formatVal(label.value)}
+            </text>
+          </g>
+        ))}
+        {/* Zero line when there are negative values */}
+        {min < 0 && max > 0 && (
+          <line
+            x1={padding.left}
+            y1={zeroY}
+            x2={width - padding.right}
+            y2={zeroY}
+            stroke="currentColor"
+            strokeOpacity="0.2"
+            strokeDasharray="4 4"
+          />
+        )}
+        {/* Bars */}
         {data.map((point, idx) => {
-          const x = padding.left + (idx / Math.max(data.length - 1, 1)) * chartWidth;
-          const barWidth = (chartWidth / Math.max(data.length, 1)) * 0.6;
-          const normalized = (point.value - min) / range;
-          const barHeight = normalized * chartHeight;
+          const slotWidth = chartWidth / data.length;
+          const x = padding.left + idx * slotWidth + slotWidth / 2;
+          const barWidth = slotWidth * 0.7;
+          const valueY = padding.top + ((max - point.value) / range) * chartHeight;
+          const barTop = Math.min(valueY, zeroY);
+          const barHeight = Math.abs(valueY - zeroY);
           return (
             <rect
               key={`${point.time}-${idx}`}
               x={x - barWidth / 2}
-              y={padding.top + (chartHeight - barHeight)}
+              y={barTop}
               width={barWidth}
-              height={barHeight}
-              rx={4}
-              fill={color}
+              height={Math.max(barHeight, 1)}
+              rx={3}
+              fill={point.value < 0 ? 'var(--status-error-fg, #ef4444)' : color}
               opacity={0.85}
             />
           );
         })}
+        {/* X-axis labels */}
+        {xLabels.map((label, i) => (
+          <text
+            key={`x-${i}`}
+            x={label.x}
+            y={height - 6}
+            textAnchor="middle"
+            fill="currentColor"
+            opacity="0.4"
+            fontSize="11"
+          >
+            {label.label}
+          </text>
+        ))}
       </svg>
     </div>
   );
@@ -170,13 +271,13 @@ export default function CostModal({
 
         let points = (raw || [])
           .map((d) => ({
-            value: parseNumeric(d.state),
-            time: new Date(
-              d.last_changed || d.last_updated || d.last_reported || d.timestamp || d.lu || d.lc
+            value: parseNumeric(d.state ?? d.s),
+            time: toDateSafe(
+              d.last_changed || d.last_updated || d.last_reported || d.timestamp || d.lc || d.lu
             ),
           }))
           .filter(
-            (d) => d.value !== null && d.time instanceof Date && !Number.isNaN(d.time.getTime())
+            (d) => d.value !== null && d.time instanceof Date
           );
 
         if (points.length < 2) {
@@ -216,9 +317,17 @@ export default function CostModal({
         const bucketed = buildBuckets(rawSeries, rangeHours);
         const deltaSeries = buildDeltaSeries(bucketed);
 
-        let nextSeries = lineSeries;
-        if (metric === 'delta') nextSeries = deltaSeries;
-        else if (chartType === 'bars') nextSeries = bucketed;
+        let nextSeries;
+        if (metric === 'delta') {
+          // Delta: cost change per period — works for both line and bar views
+          nextSeries = deltaSeries;
+        } else if (chartType === 'bars') {
+          // Value + bars: accumulated cost at end of each period
+          nextSeries = bucketed;
+        } else {
+          // Value + line: raw cumulative curve
+          nextSeries = lineSeries;
+        }
 
         setSeries(nextSeries);
       } catch (error) {
@@ -262,7 +371,7 @@ export default function CostModal({
       titleId={modalTitleId}
       overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
       overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
+      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
       panelStyle={{
         background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
         borderColor: 'var(--glass-border)',
@@ -371,21 +480,26 @@ export default function CostModal({
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
           <div className="popup-surface rounded-2xl p-4 lg:col-span-3">
             {loading ? (
-              <div className="flex h-[220px] items-center justify-center text-sm text-[var(--text-secondary)]">
+              <div className="flex h-[320px] items-center justify-center text-sm text-[var(--text-secondary)]">
                 {translate('common.loading')}
               </div>
             ) : series.length === 0 ? (
-              <div className="flex h-[220px] items-center justify-center text-sm text-[var(--text-secondary)]">
+              <div className="flex h-[320px] items-center justify-center text-sm text-[var(--text-secondary)]">
                 {translate('cost.noData')}
               </div>
-            ) : chartType === 'bars' ? (
-              <BarChart data={series} height={220} color="var(--status-success-fg)" />
+            ) : chartType === 'bars' || metric === 'delta' ? (
+              <BarChart data={series} height={220} color="var(--status-success-fg)" rangeHours={rangeHours} />
             ) : (
               <SensorHistoryGraph
                 data={series}
-                height={220}
+                height={320}
                 color="var(--status-success-fg)"
                 noDataLabel={translate('cost.noData')}
+                formatXLabel={(d) => {
+                  if (rangeHours >= 168) return d.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+                  if (rangeHours >= 48) return d.toLocaleDateString([], { weekday: 'short', hour: '2-digit' });
+                  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }}
               />
             )}
           </div>

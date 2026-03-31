@@ -423,7 +423,7 @@ export default function StatusPillsConfigModal({
 
           {/* Pills List */}
           <div
-            className={`h-[300px] min-h-0 w-full shrink-0 overflow-y-auto border-r-0 border-b border-[var(--glass-border)] p-4 md:h-full md:w-[360px] md:border-r md:border-b-0 ${isMobile && mobilePane !== 'list' ? 'hidden' : ''}`}
+            className={`min-h-0 w-full shrink-0 overflow-y-auto border-r-0 border-b border-[var(--glass-border)] p-4 md:h-full md:w-[360px] md:border-r md:border-b-0 ${isMobile && mobilePane !== 'list' ? 'hidden' : 'flex-1'}`}
           >
             <div className="relative mb-3 flex items-center justify-between" ref={addMenuRef}>
               <div className="flex min-w-0 items-center gap-2">

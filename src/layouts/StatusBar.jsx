@@ -1,6 +1,7 @@
 import { Edit2 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
 import { useHomeAssistant, useModalState, usePages } from '../contexts';
+import { isSonosMediaEntity } from '../utils';
 
 /**
  * StatusBar component showing various status indicators
@@ -34,21 +35,11 @@ export default function StatusBar({
     setShowStatusPillsConfig,
   } = useModalState();
 
-  const isSonosEntity = (entity) => {
-    if (!entity) return false;
-    const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
-    const platform = (entity.attributes?.platform || '').toLowerCase();
-    if (manufacturer.includes('sonos') || platform.includes('sonos')) return true;
-    const entityId = (entity.entity_id || '').toLowerCase();
-    const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
-    return entityId.includes('sonos') || friendlyName.includes('sonos');
-  };
-
   const getSonosEntities = () =>
     Object.keys(entities)
       .filter((id) => id.startsWith('media_player.'))
       .map((id) => entities[id])
-      .filter(isSonosEntity);
+      .filter(isSonosMediaEntity);
 
   const hasSonosMediaMetadata = (entity) => {
     if (!entity) return false;
@@ -106,7 +97,7 @@ export default function StatusBar({
 
   return (
     <div className="mt-0 flex w-full items-center justify-between font-sans">
-      <div className={`flex min-w-0 flex-wrap items-center ${isMobile ? 'gap-1.5' : 'gap-2.5'}`}>
+      <div className={`flex min-w-0 items-center ${isMobile ? 'gap-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide' : 'flex-wrap gap-2.5'}`}>
         {/* Edit button (only in edit mode) - at first position */}
         {editMode && (
           <button

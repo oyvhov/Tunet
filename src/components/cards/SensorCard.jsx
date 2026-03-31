@@ -584,6 +584,12 @@ const SensorCard = memo(/** @param {any} props */ function SensorCard({
   };
 
   if (isSmall) {
+    const smallToggleIconClass = showToggleControls
+      ? isActiveState
+        ? 'ring-1 ring-[var(--accent-color)]/40 bg-[var(--accent-bg)] text-[var(--accent-color)]'
+        : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50'
+      : iconToneClass;
+
     return (
       <div
         ref={cardRef}
@@ -592,21 +598,28 @@ const SensorCard = memo(/** @param {any} props */ function SensorCard({
         onClick={(e) => {
           if (!editMode) onOpen?.(e);
         }}
-        className={`touch-feedback group relative flex h-full overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${useStackedSmallControls ? 'items-center justify-between gap-3 p-3' : useDenseMobileSmallLayout ? 'items-center gap-3 p-3 pl-4' : 'items-center gap-4 p-4 pl-5'} ${!editMode ? 'cursor-pointer' : 'cursor-move'}`}
+        className={`touch-feedback group relative flex h-full overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${useDenseMobileSmallLayout ? 'items-center gap-3 p-3 pl-4' : 'items-center gap-3 p-4 pl-5'} ${!editMode ? 'cursor-pointer' : 'cursor-move'}`}
         style={{ ...cardStyle, containerType: 'inline-size' }}
       >
         {controls}
         <div
-          className={`relative flex min-w-0 flex-1 items-center ${useDenseMobileSmallLayout ? 'gap-3' : 'gap-4'}`}
+          className={`relative flex min-w-0 flex-1 items-center ${useDenseMobileSmallLayout ? 'gap-2.5' : 'gap-3'}`}
         >
           {showIcon && (
             <div
-              className={`flex flex-shrink-0 items-center justify-center ${useDenseMobileSmallLayout ? 'h-10 w-10 rounded-xl' : 'h-12 w-12 rounded-2xl'} ${iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
+              className={`flex flex-shrink-0 items-center justify-center ${useDenseMobileSmallLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl'} ${smallToggleIconClass} transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
+              onClick={showToggleControls && !editMode ? (e) => {
+                e.stopPropagation();
+                onControl('toggle');
+              } : undefined}
+              role={showToggleControls ? 'button' : undefined}
+              tabIndex={showToggleControls ? 0 : undefined}
+              style={showToggleControls ? { cursor: 'pointer' } : undefined}
             >
               {Icon ? (
-                <Icon className={`${useDenseMobileSmallLayout ? 'h-5 w-5' : 'h-6 w-6'} stroke-[1.5px]`} />
+                <Icon className={`${useDenseMobileSmallLayout ? 'h-4.5 w-4.5' : 'h-5 w-5'} stroke-[1.5px]`} />
               ) : (
-                <Activity className={useDenseMobileSmallLayout ? 'h-5 w-5' : 'h-6 w-6'} />
+                <Activity className={useDenseMobileSmallLayout ? 'h-4.5 w-4.5' : 'h-5 w-5'} />
               )}
             </div>
           )}
@@ -615,31 +628,38 @@ const SensorCard = memo(/** @param {any} props */ function SensorCard({
           >
             {showName && (
               <p
-                className={`${useDenseMobileSmallLayout ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} block max-w-full truncate leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+                className={`${useDenseMobileSmallLayout ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} block max-w-full truncate leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
                 title={String(name)}
               >
                 {String(name)}
               </p>
             )}
-            <div className={`flex min-w-0 items-baseline ${useDenseMobileSmallLayout ? 'gap-0.5' : 'gap-1'}`}>
-              {showStatus &&
-                (showCompactMobileToggleState
-                  ? renderCompactToggleState('small')
-                  : (
-                    <span
-                      className={`${useDenseMobileSmallLayout ? 'truncate text-[13px]' : 'text-sm'} min-w-0 leading-none font-bold text-[var(--text-primary)]`}
-                    >
-                      {chartDisplayValue ?? displayState}
-                    </span>
-                  ))}
-              {showStatus && !showCompactMobileToggleState && displayNumericUnit && valueMode !== 'percent' && (
-                <span
-                  className={`${useDenseMobileSmallLayout ? 'text-[9px]' : 'text-[10px]'} shrink-0 leading-none font-medium tracking-wider text-[var(--text-secondary)] uppercase`}
-                >
-                  {displayNumericUnit}
-                </span>
-              )}
-            </div>
+            {showStatus && (
+              <div className={`flex min-w-0 items-baseline ${useDenseMobileSmallLayout ? 'gap-0.5' : 'gap-1'}`}>
+                {showToggleControls ? (
+                  <span
+                    className={`text-[10px] font-bold tracking-widest uppercase ${isActiveState ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}`}
+                  >
+                    {displayState}
+                  </span>
+                ) : showCompactMobileToggleState ? (
+                  renderCompactToggleState('small')
+                ) : (
+                  <span
+                    className={`${useDenseMobileSmallLayout ? 'truncate text-[13px]' : 'text-sm'} min-w-0 leading-none font-bold text-[var(--text-primary)]`}
+                  >
+                    {chartDisplayValue ?? displayState}
+                  </span>
+                )}
+                {!showToggleControls && !showCompactMobileToggleState && displayNumericUnit && valueMode !== 'percent' && (
+                  <span
+                    className={`${useDenseMobileSmallLayout ? 'text-[9px]' : 'text-[10px]'} shrink-0 leading-none font-medium tracking-wider text-[var(--text-secondary)] uppercase`}
+                  >
+                    {displayNumericUnit}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {showSmallVariantVisual && (
@@ -651,34 +671,7 @@ const SensorCard = memo(/** @param {any} props */ function SensorCard({
           )}
         </div>
 
-        {showToggleControls ? (
-          <div
-            className={
-              useStackedSmallControls
-                ? 'shrink-0 flex flex-col gap-1 rounded-2xl bg-[var(--glass-bg)] p-1'
-                : 'sensor-card-controls shrink-0'
-            }
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (state !== 'on') onControl('toggle');
-              }}
-              className={`${useStackedSmallControls ? 'min-h-8 min-w-8 rounded-xl px-2.5 py-1 text-[9px]' : 'control-on rounded-full px-3 py-1.5 text-[10px]'} font-bold tracking-widest uppercase transition-all ${state === 'on' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-            >
-              {translate('common.on')}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (state === 'on') onControl('toggle');
-              }}
-              className={`${useStackedSmallControls ? 'min-h-8 min-w-8 rounded-xl px-2.5 py-1 text-[9px]' : 'control-off rounded-full px-3 py-1.5 text-[10px]'} font-bold tracking-widest uppercase transition-all ${state !== 'on' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-            >
-              {translate('common.off')}
-            </button>
-          </div>
-        ) : (
+        {!showToggleControls && (
           <div className="shrink-0">{renderControls()}</div>
         )}
       </div>

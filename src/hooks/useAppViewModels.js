@@ -9,6 +9,8 @@ export function useAppViewModels(params) {
     editMode,
     isMediaPage,
     isSonosPage,
+    isLightsPage,
+    isBatteryPage,
     entities,
     conn,
     isSonosActive,
@@ -118,6 +120,8 @@ export function useAppViewModels(params) {
     createPage,
     createMediaPage,
     createSonosPage,
+    createLightsPage,
+    createBatteryPage,
     deletePage,
     removeCard,
     persistPageSettings,
@@ -180,8 +184,10 @@ export function useAppViewModels(params) {
       editMode,
       isMediaPage,
       isSonosPage,
+      isLightsPage,
+      isBatteryPage,
     }),
-    [activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage]
+    [activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage, isLightsPage, isBatteryPage]
   );
 
   const dashboardGridMedia = useMemo(
@@ -438,6 +444,8 @@ export function useAppViewModels(params) {
       createPage,
       createMediaPage,
       createSonosPage,
+      createLightsPage,
+      createBatteryPage,
       deletePage,
       removeCard,
       pageSettings,
@@ -458,6 +466,8 @@ export function useAppViewModels(params) {
       createPage,
       createMediaPage,
       createSonosPage,
+      createLightsPage,
+      createBatteryPage,
       deletePage,
       removeCard,
       pageSettings,

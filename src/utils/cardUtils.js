@@ -149,3 +149,21 @@ export function isSonosPage(pageId, pageSettings) {
   const settings = pageSettings[pageId];
   return settings?.type === 'sonos' || pageId.startsWith('sonos');
 }
+
+/**
+ * Check if a page is a Lights page.
+ */
+export function isLightsPage(pageId, pageSettings) {
+  if (!pageId) return false;
+  const settings = pageSettings[pageId];
+  return settings?.type === 'lights' || pageId.startsWith('lights');
+}
+
+/**
+ * Check if a page is a Battery page.
+ */
+export function isBatteryPage(pageId, pageSettings) {
+  if (!pageId) return false;
+  const settings = pageSettings[pageId];
+  return settings?.type === 'battery' || pageId.startsWith('battery');
+}

@@ -23,6 +23,7 @@ import {
   Plus,
   Heart,
 } from '../../icons';
+import { isSonosMediaEntity } from '../../utils';
 import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 const BLOCKED_MEDIA_TYPES = new Set([
@@ -59,16 +60,6 @@ const BLOCKED_TITLE_WORDS = [
   'security cam',
   'cctv',
 ];
-
-function isSonosMediaEntity(entity) {
-  if (!entity) return false;
-  const manufacturer = (entity.attributes?.manufacturer || '').toLowerCase();
-  const platform = (entity.attributes?.platform || '').toLowerCase();
-  if (manufacturer.includes('sonos') || platform.includes('sonos')) return true;
-  const entityId = (entity.entity_id || '').toLowerCase();
-  const friendlyName = (entity.attributes?.friendly_name || '').toLowerCase();
-  return entityId.includes('sonos') || friendlyName.includes('sonos');
-}
 
 export default function MediaPage({
   pageId,

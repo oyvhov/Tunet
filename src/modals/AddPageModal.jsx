@@ -14,6 +14,8 @@ export default function AddPageModal({
   onCreate,
   onCreateMedia,
   onCreateSonos,
+  onCreateLights,
+  onCreateBattery,
 }) {
   const [activeTab, setActiveTab] = useState('standard');
   const modalTitleId = 'add-page-modal-title';
@@ -75,6 +77,20 @@ export default function AddPageModal({
           >
             {t('addCard.type.sonos')}
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('lights')}
+            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'lights' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+          >
+            {t('addCard.type.light')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('battery')}
+            className={`flex-1 rounded-full border py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all ${activeTab === 'battery' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+          >
+            {t('addCard.type.battery')}
+          </button>
         </div>
 
         <div className="space-y-6">
@@ -129,7 +145,7 @@ export default function AddPageModal({
                 <Plus className="h-5 w-5" /> {t('page.create')}
               </button>
             </>
-          ) : (
+          ) : activeTab === 'sonos' ? (
             <>
               <div className="popup-surface rounded-2xl p-4 text-sm text-[var(--text-secondary)]">
                 <p className="mb-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
@@ -144,7 +160,37 @@ export default function AddPageModal({
                 <Plus className="h-5 w-5" /> {t('sonos.createPage')}
               </button>
             </>
-          )}
+          ) : activeTab === 'lights' ? (
+            <>
+              <div className="popup-surface rounded-2xl p-4 text-sm text-[var(--text-secondary)]">
+                <p className="mb-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                  {t('addCard.type.light')}
+                </p>
+                <p className="leading-relaxed">{t('lights.createDescription') || 'Control all your lights from one place with brightness and color controls.'}</p>
+              </div>
+              <button
+                onClick={onCreateLights}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] py-4 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
+              >
+                <Plus className="h-5 w-5" /> {t('page.create')}
+              </button>
+            </>
+          ) : activeTab === 'battery' ? (
+            <>
+              <div className="popup-surface rounded-2xl p-4 text-sm text-[var(--text-secondary)]">
+                <p className="mb-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                  {t('addCard.type.battery')}
+                </p>
+                <p className="leading-relaxed">{t('battery.createDescription') || 'Monitor all battery-powered device levels, get low battery warnings and track offline devices.'}</p>
+              </div>
+              <button
+                onClick={onCreateBattery}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] py-4 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
+              >
+                <Plus className="h-5 w-5" /> {t('page.create')}
+              </button>
+            </>
+          ) : null}
         </div>
         </>
       )}

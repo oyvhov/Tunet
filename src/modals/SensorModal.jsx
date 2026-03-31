@@ -459,7 +459,7 @@ export default function SensorModal({
             <div className="min-w-0">
               <h2
                 id={modalTitleId}
-                className="truncate text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
+                className="truncate pr-1 text-lg leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic md:text-2xl"
               >
                 {name}
               </h2>
