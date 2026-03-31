@@ -39,7 +39,7 @@
     "@mdi/react": "^1.6.1",
     "better-sqlite3": "^12.8.0",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.3.1",
+    "express-rate-limit": "^8.3.2",
     "home-assistant-js-websocket": "^9.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.7.0",
