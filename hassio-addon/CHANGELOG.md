@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.15.2
+
+### Changed
+- Edit button moved into the settings dropdown on mobile.
+- Sensor card mobile layout improved: name no longer truncates on large cards.
+- Haptic feedback suppressed during scroll gestures.
+
+### Added
+- Toggle to show/hide page pill labels on mobile (Header settings).
+
 ## 1.15.1
 
 ### Fixed

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.15.2] — 2026-04-05
+
+### Added
+- New toggle in Header settings to show page pill labels on mobile (#112).
+
+### Changed
+- Edit button moved into the settings dropdown on mobile for a cleaner toolbar (#112).
+- Sensor card large variant on mobile: name now renders on its own full-width row below the value, eliminating truncation (#112).
+- Small sensor card gauge repositioned for better visual balance (#112).
+- Haptic feedback now fires on pointer-up and is suppressed when the finger has scrolled, preventing unwanted vibration during scroll.
+
+
 ## [1.15.1] — 2026-04-05
 
 ### Fixed
