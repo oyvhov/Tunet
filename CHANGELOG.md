@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.15.0] — 2026-04-05
+
+### Added
+- Battery page for monitoring all battery-powered device levels, low battery warnings, and offline tracking.
+- Lights page with brightness and color controls for all light entities.
+- Room Explorer page with enhanced controls and collapsible sections.
+- Lava Lamp and Silk animated backgrounds.
+- Toast notification system.
+- PWA manifest and service worker shell.
+
+### Changed
+- Restyled page navigation pills and Add Page dropdown to match the Settings dropdown design.
+- Restyled Add Page modal type tabs with icons matching the Add Card type pill design.
+- Prefetch likely modals and cache build assets for faster interactions.
+- Battery bar header, card material, density, and card scale options.
+- Bumped dependency versions (picomatch, path-to-regexp, express-rate-limit, actions/checkout, action-gh-release).
+
+### Fixed
+- Alarm card crash in production and CSP image policy.
+
+### Security
+- Hashed access tokens in auth validation cache.
+- Added CSP headers and reconnection UX with entity caching.
+- Sanitized inputs, removed dead code, and hardened server routes.
+
+
 ## [1.14.9] — 2026-03-18
 
 ### Fixed

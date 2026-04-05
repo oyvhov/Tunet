@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.15.0
+
+### Added
+- Battery page, Lights page, and Room Explorer page for dedicated device management.
+- Lava Lamp and Silk animated backgrounds.
+- Toast notifications and PWA support.
+
+### Changed
+- Includes dashboard release `1.15.0`.
+- Restyled page navigation, Add Page dropdown, and modal type tabs.
+
+### Security
+- Hashed auth tokens, added CSP headers, and hardened server routes.
+
 ## 1.14.9
 
 ### Changed
