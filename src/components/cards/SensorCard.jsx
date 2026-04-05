@@ -664,7 +664,7 @@ const SensorCard = memo(/** @param {any} props */ function SensorCard({
 
           {showSmallVariantVisual && (
             <div
-              className={`pointer-events-none absolute top-1/2 shrink-0 -translate-y-1/2 ${useDenseMobileSmallLayout ? 'right-0.5' : 'right-0'}`}
+              className={`pointer-events-none absolute top-1/2 shrink-0 -translate-y-1/2 ${useDenseMobileSmallLayout ? '-right-5' : '-right-6'}`}
             >
               {renderSmallVariantVisual()}
             </div>
@@ -719,9 +719,9 @@ const SensorCard = memo(/** @param {any} props */ function SensorCard({
             <div className={useDenseMobileLargeLayout ? (useCompactMobileToggleLayout ? 'h-9 w-9' : 'h-10 w-10') : 'h-11 w-11'} />
           )}
 
-          {showName && (
+          {!useDenseMobileLargeLayout && showName && (
             <p
-              className={`${useDenseMobileLargeLayout ? (useCompactMobileToggleLayout ? 'mt-1 text-[9px]' : 'mt-1.5 text-[10px]') : 'mt-2 text-xs'} w-full truncate font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+              className="mt-2 w-full text-xs font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60 line-clamp-2"
               title={String(name)}
             >
               {String(name)}
@@ -737,10 +737,10 @@ const SensorCard = memo(/** @param {any} props */ function SensorCard({
 
         {domain !== 'input_number' && showStatus && isNumeric && (
           <div
-            className={`flex min-w-0 items-baseline justify-end text-right ${useCompactMobileRangeLayout ? 'max-w-[58%] gap-0.5' : useDenseMobileLargeLayout ? 'gap-1' : 'gap-1.5'}`}
+            className={`flex shrink-0 items-baseline justify-end text-right ${useCompactMobileRangeLayout ? 'gap-1' : useDenseMobileLargeLayout ? 'gap-1.5' : 'gap-1.5'}`}
           >
             <span
-              className={`${useCompactMobileRangeLayout ? 'truncate text-[1.3rem]' : useDenseMobileLargeLayout ? 'text-[1.65rem]' : 'text-3xl'} min-w-0 leading-none font-thin text-[var(--text-primary)]`}
+              className={`${useCompactMobileRangeLayout ? 'text-[1.3rem]' : useDenseMobileLargeLayout ? 'text-[1.65rem]' : 'text-3xl'} whitespace-nowrap tabular-nums leading-none font-thin text-[var(--text-primary)]`}
             >
               {chartDisplayValue ?? displayState}
             </span>
@@ -755,7 +755,16 @@ const SensorCard = memo(/** @param {any} props */ function SensorCard({
         )}
       </div>
 
-      <div className={`relative z-10 ${useDenseMobileLargeLayout ? (useCompactMobileToggleLayout ? 'mt-2' : useCompactMobileRangeLayout ? 'mt-2' : 'mt-3') : 'mt-4'} ${useCompactMobileToggleLayout ? 'mt-auto pt-2' : ''}`}>
+      {useDenseMobileLargeLayout && showName && (
+        <p
+          className={`relative z-10 ${useCompactMobileToggleLayout ? 'mt-1 text-[9px]' : 'mt-1.5 text-[10px]'} w-full font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60 line-clamp-2`}
+          title={String(name)}
+        >
+          {String(name)}
+        </p>
+      )}
+
+      <div className={`relative z-10 ${useDenseMobileLargeLayout ? (useCompactMobileToggleLayout ? 'mt-1' : useCompactMobileRangeLayout ? 'mt-1' : 'mt-2') : 'mt-4'} ${useCompactMobileToggleLayout ? 'mt-auto pt-2' : ''}`}>
         {domain !== 'input_number' && showStatus && !isNumeric && !showCompactMobileToggleState && (
           <div className={useDenseMobileLargeLayout ? 'mb-2' : 'mb-3'}>
             <span

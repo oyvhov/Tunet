@@ -56,25 +56,57 @@ export function useDashboardEffects({
 
   // ── Haptic feedback on touch ───────────────────────────────────────────
   useEffect(() => {
-    const handler = (e) => {
+    let pendingTarget = null;
+    let startX = 0;
+    let startY = 0;
+    const MOVE_THRESHOLD = 10; // px — if finger moves more, it's a scroll
+
+    const onDown = (e) => {
       if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
       if (!e.target?.closest?.('[data-haptic]')) return;
-      // Check for user activation (Chrome requires user interaction before vibrating)
+      pendingTarget = e.target;
+      startX = e.clientX;
+      startY = e.clientY;
+    };
+
+    const onMove = (e) => {
+      if (!pendingTarget) return;
+      const dx = Math.abs(e.clientX - startX);
+      const dy = Math.abs(e.clientY - startY);
+      if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+        pendingTarget = null; // finger moved — cancel haptic
+      }
+    };
+
+    const onUp = () => {
+      if (!pendingTarget) return;
       if (
         typeof navigator.userActivation !== 'undefined' &&
         !navigator.userActivation.hasBeenActive
       ) {
+        pendingTarget = null;
         return;
       }
-
       try {
         if (navigator.vibrate) navigator.vibrate(8);
       } catch (_err) {
         // Ignore vibration errors
       }
+      pendingTarget = null;
     };
-    document.addEventListener('pointerdown', handler);
-    return () => document.removeEventListener('pointerdown', handler);
+
+    const onCancel = () => { pendingTarget = null; };
+
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onCancel);
+    };
   }, []);
 
   // ── Document title, favicon & viewport meta ────────────────────────────
