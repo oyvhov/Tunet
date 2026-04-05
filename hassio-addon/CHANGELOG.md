@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.15.1
+
+### Fixed
+- Fixed add-on installation and update failures caused by a build dependency conflict (#128).
+
 ## 1.15.0
 
 ### Added

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.15.1] — 2026-04-05
+
+### Fixed
+- Downgraded eslint to v9 to fix add-on build failures caused by a peer dependency conflict (#128).
+
+
 ## [1.15.0] — 2026-04-05
 
 ### Added
