@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.15.4] — 2026-04-14
+
+### Added
+- Sensor card support for Home Assistant `select.*` and `input_select.*` entities, including option changes directly from the card or popup (#135).
+
+### Changed
+- Styled the sensor select dropdown to match the dashboard's glass dropdown controls across card and modal views.
+
+### Fixed
+- Kept long select-card names and dropdown controls inside the card bounds on compact layouts.
+- Prevented repeated history CORS noise and unnecessary profile/settings retry requests when interacting with sensor select popups.
+
+
 ## [1.15.3] — 2026-04-11
 
 ### Added

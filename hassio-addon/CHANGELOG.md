@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.15.4
+
+### Changed
+- Includes dashboard release `1.15.4`.
+- Adds sensor-card support for Home Assistant `select.*` and `input_select.*` entities (#135).
+
+### Fixed
+- Keeps styled sensor select dropdowns and related popup activity inside clean card bounds without noisy retry spam.
+
 ## 1.15.3
 
 ### Changed
