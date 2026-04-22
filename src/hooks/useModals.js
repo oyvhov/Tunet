@@ -8,6 +8,7 @@ import { useReducer, useCallback, useMemo } from 'react';
 const MODAL_DEFAULTS = {
   showNordpoolModal: null,
   showCostModal: null,
+  showEnergyModal: null,
   activeClimateEntityModal: null,
   showLightModal: null,
   activeCarModal: null,
@@ -42,6 +43,7 @@ const MODAL_DEFAULTS = {
 const OPEN_CHECK_KEYS = [
   'showNordpoolModal',
   'showCostModal',
+  'showEnergyModal',
   'activeClimateEntityModal',
   'showLightModal',
   'activeCarModal',
@@ -106,6 +108,7 @@ export function useModals() {
     () => ({
       setShowNordpoolModal: setters.setShowNordpoolModal,
       setShowCostModal: setters.setShowCostModal,
+      setShowEnergyModal: setters.setShowEnergyModal,
       setActiveClimateEntityModal: setters.setActiveClimateEntityModal,
       setShowLightModal: setters.setShowLightModal,
       setActiveCarModal: setters.setActiveCarModal,

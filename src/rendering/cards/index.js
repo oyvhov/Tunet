@@ -2,6 +2,7 @@ export { renderSensorCard } from './sensorRenderer';
 export { renderLightCard } from './lightRenderer';
 export { renderAutomationCard } from './automationRenderer';
 export { renderCarCard } from './carRenderer';
+export { renderEnergyCard } from './energyRenderer';
 export { renderVacuumCard } from './vacuumRenderer';
 export { renderMowerCard } from './mowerRenderer';
 export { renderFanCard } from './fanRenderer';

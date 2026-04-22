@@ -1017,6 +1017,13 @@ function AddCardContent({
                   onSelect={setAddCardType}
                 />
                 <TypeButton
+                  type="energy"
+                  icon={Zap}
+                  label={getLabel('addCard.type.energy', 'Energy')}
+                  isActive={addCardType === 'energy'}
+                  onSelect={setAddCardType}
+                />
+                <TypeButton
                   type="androidtv"
                   icon={Gamepad2}
                   label={t('addCard.type.androidtv')}
@@ -1115,6 +1122,13 @@ function AddCardContent({
               renderSpacerSection()
             ) : addCardType === 'car' ? (
               renderSimpleAddSection(Car, t('addCard.carDescription'), t('addCard.carCard'))
+            ) : addCardType === 'energy' ? (
+              renderSimpleAddSection(
+                Zap,
+                t('addCard.energyDescription') ||
+                  'Add an energy card. You can select the entity after adding the card.',
+                t('addCard.energyCard') || 'Add energy card'
+              )
             ) : addCardType === 'nordpool' ? (
               renderNordpoolSection()
             ) : addCardType === 'room' ? (
@@ -1212,4 +1226,3 @@ function areAddCardPropsEqual(prev, next) {
 }
 
 export default React.memo(AddCardContent, areAddCardPropsEqual);
-

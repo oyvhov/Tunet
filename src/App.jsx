@@ -175,6 +175,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   const entityModalActions = groupedEntityModalActions || {
     setShowNordpoolModal: modals.setShowNordpoolModal,
     setShowCostModal: modals.setShowCostModal,
+    setShowEnergyModal: modals.setShowEnergyModal,
     setActiveClimateEntityModal: modals.setActiveClimateEntityModal,
     setShowLightModal: modals.setShowLightModal,
     setActiveCarModal: modals.setActiveCarModal,

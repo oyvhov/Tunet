@@ -321,6 +321,7 @@
  * @typedef {Object} ModalState
  * @property {string | null} showNordpoolModal
  * @property {string | null} showCostModal
+ * @property {string | null} showEnergyModal
  * @property {string | null} activeClimateEntityModal
  * @property {string | null} showLightModal
  * @property {string | null} activeCarModal
@@ -355,6 +356,7 @@
  * @typedef {Object} ModalSetters
  * @property {(value: string | null) => void} setShowNordpoolModal
  * @property {(value: string | null) => void} setShowCostModal
+ * @property {(value: string | null) => void} setShowEnergyModal
  * @property {(value: string | null) => void} setActiveClimateEntityModal
  * @property {(value: string | null) => void} setShowLightModal
  * @property {(value: string | null) => void} setActiveCarModal
@@ -389,6 +391,7 @@
  * @typedef {Object} EntityModalActions
  * @property {(value: string | null) => void} setShowNordpoolModal
  * @property {(value: string | null) => void} setShowCostModal
+ * @property {(value: string | null) => void} setShowEnergyModal
  * @property {(value: string | null) => void} setActiveClimateEntityModal
  * @property {(value: string | null) => void} setShowLightModal
  * @property {(value: string | null) => void} setActiveCarModal

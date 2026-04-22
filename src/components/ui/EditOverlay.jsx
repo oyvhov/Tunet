@@ -32,6 +32,7 @@ const RESIZABLE_PREFIXES = [
   'todo_card_',
   'nordpool_card_',
   'car_card_',
+  'energy_card_',
   'cover_card_',
   'camera_card_',
   'fan.',

@@ -27,6 +27,7 @@ export {
 } from './connectionHealth';
 export { getEffectiveRoomEntityIds, filterEntitiesByDomain } from './roomEntities';
 export { matchCarEntities } from './carEntityMatcher';
+export { matchEnergyEntities } from './energyEntityMatcher';
 export { CHART_STATUS_COLORS, WEATHER_BAND_COLORS, getThresholdColor } from './chartColors';
 export { downsampleTimeSeries } from './sensorHistory';
 export { isMusicAssistantMediaEntity, isSonosMediaEntity } from './mediaEntityClassification';

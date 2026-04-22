@@ -5,6 +5,7 @@ const rendererMocks = vi.hoisted(() => ({
   renderLightCard: vi.fn(() => ({ renderer: 'light' })),
   renderAutomationCard: vi.fn(() => ({ renderer: 'automation' })),
   renderCarCard: vi.fn(() => ({ renderer: 'car' })),
+  renderEnergyCard: vi.fn(() => ({ renderer: 'energy' })),
   renderVacuumCard: vi.fn(() => ({ renderer: 'vacuum' })),
   renderMowerCard: vi.fn(() => ({ renderer: 'mower' })),
   renderFanCard: vi.fn(() => ({ renderer: 'fan' })),
@@ -54,6 +55,7 @@ describe('rendering registry dispatch', () => {
   it('includes known split-card prefixes', () => {
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'cover_card_')).toBe(true);
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'camera_card_')).toBe(true);
+    expect(CARD_REGISTRY.some((entry) => entry.prefix === 'energy_card_')).toBe(true);
   });
 
   it('routes automation card to sensor renderer for sensor-like types', () => {

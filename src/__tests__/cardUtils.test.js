@@ -49,6 +49,7 @@ describe('isCardRemovable', () => {
       'weather_temp_',
       'calendar_card_',
       'climate_card_',
+      'energy_card_',
       'cover_card_',
       'camera_card_',
     ];

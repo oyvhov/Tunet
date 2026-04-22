@@ -38,6 +38,7 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
     setShowSensorInfoModal,
     setActiveClimateEntityModal,
     setShowCostModal,
+    setShowEnergyModal,
     setActiveVacuumId,
     setShowVacuumModal,
     setActiveMowerId,
@@ -111,6 +112,11 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
 
   if (cardId.startsWith('cost_card_')) {
     closeAndOpen(() => setShowCostModal(cardId));
+    return true;
+  }
+
+  if (cardId.startsWith('energy_card_')) {
+    closeAndOpen(() => setShowEnergyModal(cardId));
     return true;
   }
 

@@ -27,6 +27,7 @@ const CARD_SPAN_RULES = [
   { prefix: 'light_', category: 'dualSize' },
   { prefix: 'light.', category: 'dualSize' },
   { prefix: 'car_card_', category: 'dualSize' },
+  { prefix: 'energy_card_', category: 'dualSize' },
   { prefix: 'room_card_', category: 'dualSize' },
   { prefix: 'camera_card_', category: 'dualSize' },
   { prefix: 'spacer_card_', category: 'dualSize' },

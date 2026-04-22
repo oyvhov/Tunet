@@ -5,7 +5,9 @@ import ConditionBuilder from '../components/ui/ConditionBuilder';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getRelatedEntityIds } from '../services/haClient';
 import { CarMappingsSection, SearchableSelect } from './editCard/CarMappingsSection';
+import EnergyMappingsSection from './editCard/EnergyMappingsSection';
 import { buildCarAnchorOptions } from './editCard/carAnchorOptions';
+import { buildEnergyAnchorOptions } from './editCard/energyAnchorOptions';
 import { RoomSettingsSection } from './editCard/RoomSettingsSection';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
@@ -14,6 +16,7 @@ import {
   getEffectiveUnitMode,
   isConditionConfigured,
   matchCarEntities,
+  matchEnergyEntities,
   normalizeVisibilityConditionConfig,
 } from '../utils';
 
@@ -493,6 +496,115 @@ function useCarAutoMapping({
   return { autoPickCarAnchor, autoMapCarFromAnchor };
 }
 
+function useEnergyAutoMapping({
+  editSettingsKey,
+  editSettings,
+  entities,
+  saveCardSetting,
+  energyMatch,
+  energyAnchorOptions,
+  energyAnchorEntityId,
+  conn,
+}) {
+  const autoPickEnergyAnchor = React.useCallback(() => {
+    if (!editSettingsKey) return null;
+
+    const preferredExistingKeys = [
+      'solarProductionInstantId',
+      'gridConsumptionInstantId',
+      'gridInjectionInstantId',
+      'batteryConsumptionInstantId',
+      'batteryInjectionInstantId',
+      'batteryLevelId',
+      'homeConsumptionInstantId',
+    ];
+
+    for (const key of preferredExistingKeys) {
+      const candidate = editSettings?.[key];
+      if (candidate && entities[candidate]) {
+        saveCardSetting(editSettingsKey, 'energyAnchorEntityId', candidate);
+        return candidate;
+      }
+    }
+
+    const suggestedPriority = [
+      energyMatch?.suggested?.solarProductionInstantId,
+      energyMatch?.suggested?.homeConsumptionInstantId,
+      energyMatch?.suggested?.gridConsumptionInstantId,
+      energyMatch?.suggested?.batteryConsumptionInstantId,
+    ].filter(Boolean);
+
+    const pickedSuggested = suggestedPriority.find((id) => entities[id]);
+    const fallback = energyAnchorOptions[0] || null;
+    const chosen = pickedSuggested || fallback;
+    saveCardSetting(editSettingsKey, 'energyAnchorEntityId', chosen || null);
+    return chosen;
+  }, [editSettingsKey, editSettings, entities, saveCardSetting, energyMatch, energyAnchorOptions]);
+
+  const autoMapEnergyFromAnchor = React.useCallback(
+    async (requestedAnchorId) => {
+      if (!editSettingsKey) return;
+
+      const anchorId = requestedAnchorId || energyAnchorEntityId || autoPickEnergyAnchor();
+
+      let scopedMatch = energyMatch;
+      let relatedEntityIds = [];
+      if (anchorId && conn && entities[anchorId]) {
+        try {
+          relatedEntityIds = await getRelatedEntityIds(conn, anchorId);
+          const scopedEntities = {};
+          for (const relatedId of relatedEntityIds || []) {
+            if (entities[relatedId]) scopedEntities[relatedId] = entities[relatedId];
+          }
+          if (entities[anchorId]) scopedEntities[anchorId] = entities[anchorId];
+          if (Object.keys(scopedEntities).length > 0) {
+            scopedMatch = matchEnergyEntities(scopedEntities);
+          }
+        } catch {
+          scopedMatch = energyMatch;
+        }
+      }
+
+      const suggestions = scopedMatch?.suggested || {};
+      const fieldKeys = [
+        'solarProductionInstantId',
+        'gridInjectionInstantId',
+        'gridConsumptionInstantId',
+        'batteryInjectionInstantId',
+        'batteryConsumptionInstantId',
+        'batteryLevelId',
+        'homeConsumptionInstantId',
+        'solarProductionLifetimeId',
+        'gridInjectionLifetimeId',
+        'gridConsumptionLifetimeId',
+        'batteryInjectionLifetimeId',
+        'batteryConsumptionLifetimeId',
+        'homeConsumptionLifetimeId',
+      ];
+
+      fieldKeys.forEach((key) => {
+        if (editSettings?.[key]) return;
+        const suggested = suggestions[key];
+        if (suggested && entities[suggested]) {
+          saveCardSetting(editSettingsKey, key, suggested);
+        }
+      });
+    },
+    [
+      editSettingsKey,
+      energyAnchorEntityId,
+      autoPickEnergyAnchor,
+      energyMatch,
+      conn,
+      entities,
+      editSettings,
+      saveCardSetting,
+    ]
+  );
+
+  return { autoPickEnergyAnchor, autoMapEnergyFromAnchor };
+}
+
 function VisibilityConditionSection({
   t,
   visibilityEnabled,
@@ -730,6 +842,7 @@ export default function EditCardModal({
   isEditCost,
   isEditNordpool,
   isEditCar,
+  isEditEnergy,
   isEditSpacer,
   isEditCamera,
   isEditRoom,
@@ -754,6 +867,7 @@ export default function EditCardModal({
   const [showPopupLogic, setShowPopupLogic] = React.useState(false);
   const [registryVacuumSensorIds, setRegistryVacuumSensorIds] = React.useState([]);
   const [carAnchorRelatedEntityIds, setCarAnchorRelatedEntityIds] = React.useState([]);
+  const [energyAnchorRelatedEntityIds, setEnergyAnchorRelatedEntityIds] = React.useState([]);
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
 
@@ -805,6 +919,28 @@ export default function EditCardModal({
     };
   }, [isOpen, isEditCar, editSettings?.carAnchorEntityId, conn]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    const loadEnergyAnchorRelated = async () => {
+      const anchorId = editSettings?.energyAnchorEntityId;
+      if (!isOpen || !isEditEnergy || !anchorId || !conn) {
+        if (!cancelled) setEnergyAnchorRelatedEntityIds([]);
+        return;
+      }
+      try {
+        const ids = await getRelatedEntityIds(conn, anchorId);
+        if (!cancelled) setEnergyAnchorRelatedEntityIds(Array.isArray(ids) ? ids : []);
+      } catch {
+        if (!cancelled) setEnergyAnchorRelatedEntityIds([]);
+      }
+    };
+
+    void loadEnergyAnchorRelated();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isEditEnergy, editSettings?.energyAnchorEntityId, conn]);
+
   const roomPageOptions = React.useMemo(() => {
     const pageIds = Array.isArray(pagesConfig?.pages) ? pagesConfig.pages : [];
     return pageIds.map((pageId) => {
@@ -831,6 +967,7 @@ export default function EditCardModal({
       )
     );
   const carMatch = matchCarEntities(entities || {});
+  const energyMatch = matchEnergyEntities(entities || {});
   const batteryOptions = carMatch.options?.batteryId || [];
   const rangeOptions = carMatch.options?.rangeId || [];
   const odometerOptions = carMatch.options?.odometerId || [];
@@ -912,6 +1049,43 @@ export default function EditCardModal({
   });
 
   const carAnchorEntityId = editSettings?.carAnchorEntityId || null;
+  const mappedEnergyAnchorCandidates = [
+    editSettings?.solarProductionInstantId,
+    editSettings?.gridInjectionInstantId,
+    editSettings?.gridConsumptionInstantId,
+    editSettings?.batteryInjectionInstantId,
+    editSettings?.batteryConsumptionInstantId,
+    editSettings?.batteryLevelId,
+    editSettings?.homeConsumptionInstantId,
+    editSettings?.solarProductionLifetimeId,
+    editSettings?.gridInjectionLifetimeId,
+    editSettings?.gridConsumptionLifetimeId,
+    editSettings?.batteryInjectionLifetimeId,
+    editSettings?.batteryConsumptionLifetimeId,
+    editSettings?.homeConsumptionLifetimeId,
+  ].filter(Boolean);
+  const matcherEnergyAnchorCandidates = [
+    ...(energyMatch.options?.solarProductionInstantId || []),
+    ...(energyMatch.options?.gridInjectionInstantId || []),
+    ...(energyMatch.options?.gridConsumptionInstantId || []),
+    ...(energyMatch.options?.batteryInjectionInstantId || []),
+    ...(energyMatch.options?.batteryConsumptionInstantId || []),
+    ...(energyMatch.options?.batteryLevelId || []),
+    ...(energyMatch.options?.homeConsumptionInstantId || []),
+    ...(energyMatch.options?.solarProductionLifetimeId || []),
+    ...(energyMatch.options?.gridInjectionLifetimeId || []),
+    ...(energyMatch.options?.gridConsumptionLifetimeId || []),
+    ...(energyMatch.options?.batteryInjectionLifetimeId || []),
+    ...(energyMatch.options?.batteryConsumptionLifetimeId || []),
+    ...(energyMatch.options?.homeConsumptionLifetimeId || []),
+  ];
+  const energyAnchorOptions = buildEnergyAnchorOptions({
+    entityEntries,
+    mappedCandidates: mappedEnergyAnchorCandidates,
+    matcherCandidates: matcherEnergyAnchorCandidates,
+    sortByName,
+  });
+  const energyAnchorEntityId = editSettings?.energyAnchorEntityId || null;
 
   const { autoMapCarFromAnchor } = useCarAutoMapping({
     editSettingsKey,
@@ -921,6 +1095,16 @@ export default function EditCardModal({
     carMatch,
     carAnchorOptions,
     carAnchorEntityId,
+    conn,
+  });
+  const { autoMapEnergyFromAnchor } = useEnergyAutoMapping({
+    editSettingsKey,
+    editSettings,
+    entities,
+    saveCardSetting,
+    energyMatch,
+    energyAnchorOptions,
+    energyAnchorEntityId,
     conn,
   });
   const visibilityCondition = editSettings?.visibilityCondition || null;
@@ -2160,6 +2344,20 @@ export default function EditCardModal({
             />
           )}
 
+          {isEditEnergy && editSettingsKey && (
+            <EnergyMappingsSection
+              t={t}
+              editSettings={editSettings}
+              editSettingsKey={editSettingsKey}
+              saveCardSetting={saveCardSetting}
+              entities={entities}
+              anchorEntityId={energyAnchorEntityId}
+              anchorOptions={energyAnchorOptions}
+              anchorRelatedEntityIds={energyAnchorRelatedEntityIds}
+              onAutoMapFromAnchor={autoMapEnergyFromAnchor}
+            />
+          )}
+
           {canEditStatus && !isEditSensor && (
             <div className="popup-surface space-y-4 rounded-2xl p-4">
               <div className="flex items-center justify-between">
@@ -3280,4 +3478,3 @@ export default function EditCardModal({
     </AccessibleModalShell>
   );
 }
-

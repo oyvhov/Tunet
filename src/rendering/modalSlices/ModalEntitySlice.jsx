@@ -4,6 +4,7 @@ import { prepareNordpoolData } from '../../services';
 
 const CalendarModal = lazy(() => import('../../modals/CalendarModal'));
 const CostModal = lazy(() => import('../../modals/CostModal'));
+const EnergyModal = lazy(() => import('../../modals/EnergyModal'));
 const GenericAndroidTVModal = lazy(() => import('../../modals/GenericAndroidTVModal'));
 const GenericClimateModal = lazy(() => import('../../modals/GenericClimateModal'));
 const GenericFanModal = lazy(() => import('../../modals/GenericFanModal'));
@@ -29,6 +30,8 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
     setShowNordpoolModal,
     showCostModal,
     setShowCostModal,
+    showEnergyModal,
+    setShowEnergyModal,
     activeClimateEntityModal,
     setActiveClimateEntityModal,
     showLightModal,
@@ -131,6 +134,28 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 name={name}
                 iconName={iconName}
                 currency={settings.currency}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
+
+      {showEnergyModal &&
+        (() => {
+          const settingsKey = getCardSettingsKey(showEnergyModal);
+          const settings = cardSettings[settingsKey] || cardSettings[showEnergyModal] || {};
+          const name = customNames?.[showEnergyModal] || t('addCard.type.energy') || 'Energy';
+          const iconName = customIcons?.[showEnergyModal] || null;
+          return (
+            <ModalSuspense>
+              <EnergyModal
+                show={true}
+                onClose={() => setShowEnergyModal(null)}
+                conn={conn}
+                entities={entities}
+                settings={settings}
+                name={name}
+                iconName={iconName}
                 t={t}
               />
             </ModalSuspense>

@@ -245,6 +245,12 @@ export const handleAddSelected = (ctx) => {
       return;
     }
 
+    case 'energy': {
+      const cardId = `energy_card_${Date.now()}`;
+      commitSingleCard(cardId, { type: 'energy', size: 'large' }, { openEdit: true });
+      return;
+    }
+
     case 'spacer': {
       const cardId = `spacer_card_${Date.now()}`;
       const variant = selectedSpacerVariant || 'spacer';

@@ -831,6 +831,7 @@
   "common.light": "Lys",
   "common.loading": "Laster...",
   "common.updated": "Oppdatert",
+  "common.enabled": "Aktivert",
   "common.unknown": "Ukjent",
   "sensorInfo.lastChanged": "Sist endret",
   "sensorInfo.lastUpdated": "Sist oppdatert",
@@ -1344,5 +1345,7 @@
   "visibility.quick.playing": "Hurtig: Spiller",
   "visibility.quick.playingDesc": "Synlig når status er playing.",
   "visibility.manual.title": "Manuell synlighet",
-  "visibility.manual.description": "Skjul eller vis kortet midlertidig."
+  "visibility.manual.description": "Skjul eller vis kortet midlertidig.",
+  "energy.hasBattery": "Batteri tilstede",
+  "energy.hasSolar": "Sol tilstede"
 }
