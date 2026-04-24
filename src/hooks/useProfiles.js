@@ -106,7 +106,11 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
   const [backendAvailable, setBackendAvailable] = useState(true);
   const contextSettersRef = useRef(contextSetters);
   contextSettersRef.current = contextSetters;
-  const autoSync = useSettingsSync({ haUserId: haUser?.id, contextSettersRef });
+  const autoSync = useSettingsSync({
+    haUserId: haUser?.id,
+    contextSettersRef,
+    autoBootstrap: prefetchProfiles,
+  });
 
   // ── Load profiles when haUser changes ──
   const refreshProfiles = useCallback(async () => {

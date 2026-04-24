@@ -1,7 +1,12 @@
 import {
   createConnection,
   createLongLivedTokenAuth,
+  ERR_CANNOT_CONNECT,
+  ERR_CONNECTION_LOST,
+  ERR_HASS_HOST_REQUIRED,
   ERR_INVALID_AUTH,
+  ERR_INVALID_AUTH_CALLBACK,
+  ERR_INVALID_HTTPS_TO_HTTP,
 } from 'home-assistant-js-websocket';
 import { WebSocket as NodeWebSocket } from 'ws';
 import { createHash } from 'node:crypto';
@@ -16,7 +21,6 @@ const DEFAULT_INVALID_AUTH_CACHE_TTL_MS = Math.min(
 );
 const MAX_CACHE_ENTRIES = 200;
 const TRUSTED_INGRESS_IPS = new Set(['172.30.32.2', '127.0.0.1', '::1']);
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const DOCKER_LOOPBACK_CANDIDATE_HOSTS = ['host.docker.internal', 'host.containers.internal'];
 const NETWORK_ERROR_PATTERNS = [
   'econnrefused',
@@ -112,7 +116,12 @@ const buildDockerReachableUrlCandidates = (rawUrl) => {
 
   try {
     const parsed = new URL(normalized);
-    if (!LOOPBACK_HOSTS.has(parsed.hostname)) {
+    // Always offer Docker host-gateway fallbacks (host.docker.internal /
+    // host.containers.internal). When the dashboard runs in a container and
+    // Home Assistant runs on the host, the LAN IP the browser uses is often
+    // unreachable from inside the container — these aliases route to the host.
+    // Skip if the URL already targets one of those aliases.
+    if (DOCKER_LOOPBACK_CANDIDATE_HOSTS.includes(parsed.hostname)) {
       return [];
     }
 
@@ -182,8 +191,30 @@ const pruneCache = (cache, now) => {
   }
 };
 
+const HA_WS_ERROR_LABELS = {
+  [ERR_CANNOT_CONNECT]: 'ERR_CANNOT_CONNECT',
+  [ERR_INVALID_AUTH]: 'ERR_INVALID_AUTH',
+  [ERR_CONNECTION_LOST]: 'ERR_CONNECTION_LOST',
+  [ERR_HASS_HOST_REQUIRED]: 'ERR_HASS_HOST_REQUIRED',
+  [ERR_INVALID_HTTPS_TO_HTTP]: 'ERR_INVALID_HTTPS_TO_HTTP',
+  [ERR_INVALID_AUTH_CALLBACK]: 'ERR_INVALID_AUTH_CALLBACK',
+};
+
+const describeError = (error) => {
+  if (typeof error === 'number' && HA_WS_ERROR_LABELS[error]) {
+    return `${HA_WS_ERROR_LABELS[error]} (code ${error})`;
+  }
+  if (error?.message) return String(error.message);
+  if (error === null || error === undefined) return 'unknown error';
+  try {
+    return String(error);
+  } catch {
+    return 'unknown error';
+  }
+};
+
 const isInvalidAuthError = (error) => {
-  if (error === ERR_INVALID_AUTH) return true;
+  if (error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK) return true;
 
   const message = String(error?.message || error || '').toLowerCase();
   return (
@@ -195,6 +226,15 @@ const isInvalidAuthError = (error) => {
 };
 
 const isHomeAssistantReachabilityError = (error) => {
+  if (
+    error === ERR_CANNOT_CONNECT ||
+    error === ERR_CONNECTION_LOST ||
+    error === ERR_HASS_HOST_REQUIRED ||
+    error === ERR_INVALID_HTTPS_TO_HTTP
+  ) {
+    return true;
+  }
+
   const message = String(error?.message || error || '').toLowerCase();
   return [...NETWORK_ERROR_PATTERNS, ...TLS_ERROR_PATTERNS].some((pattern) =>
     message.includes(pattern)
@@ -209,15 +249,23 @@ const sendJsonError = (res, statusCode, error, code) => {
   res.status(statusCode).json(body);
 };
 
-const sendValidationFailure = (res, error) => {
-  const message = String(error?.message || 'Home Assistant validation failed');
+const sendValidationFailure = (res, error, { haUrls = [] } = {}) => {
+  const description = describeError(error);
+  const urlSummary = haUrls.length ? ` (tried: ${haUrls.join(', ')})` : '';
 
   if (isInvalidAuthError(error)) {
-    sendJsonError(res, 401, `Home Assistant authentication failed: ${message}`, 'HA_AUTH_INVALID');
+    console.warn(`[haAuth] HA rejected token${urlSummary}: ${description}`);
+    sendJsonError(
+      res,
+      401,
+      `Home Assistant authentication failed: ${description}`,
+      'HA_AUTH_INVALID'
+    );
     return;
   }
 
   if (isHomeAssistantReachabilityError(error)) {
+    console.warn(`[haAuth] Cannot reach HA${urlSummary}: ${description}`);
     sendJsonError(
       res,
       503,
@@ -227,6 +275,7 @@ const sendValidationFailure = (res, error) => {
     return;
   }
 
+  console.warn(`[haAuth] HA validation failed${urlSummary}: ${description}`);
   sendJsonError(
     res,
     503,
@@ -365,6 +414,6 @@ export const createHomeAssistantAuthMiddleware = ({
       }
     }
 
-    sendValidationFailure(res, authError || lastError);
+    sendValidationFailure(res, authError || lastError, { haUrls });
   };
 };

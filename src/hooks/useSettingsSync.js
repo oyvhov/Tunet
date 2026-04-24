@@ -59,7 +59,7 @@ const getStoredDeviceLabel = () => {
 const READ_CURRENT_FAILED = Symbol('READ_CURRENT_FAILED');
 const isServiceUnavailableError = (error) => Number(error?.status) === 503;
 
-export function useSettingsSync({ haUserId, contextSettersRef }) {
+export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = true }) {
   const deviceIdRef = useRef(getOrCreateDeviceId());
   const deviceLabelRef = useRef(getStoredDeviceLabel());
   const [enabled, setEnabled] = useState(() => {
@@ -369,7 +369,7 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
   );
 
   useEffect(() => {
-    if (!haUserId || backgroundSyncSuspended) return;
+    if (!autoBootstrap || !haUserId || backgroundSyncSuspended) return;
     let disposed = false;
 
     const bootstrap = async () => {
@@ -402,6 +402,7 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
       disposed = true;
     };
   }, [
+    autoBootstrap,
     haUserId,
     backgroundSyncSuspended,
     readCurrentFromServer,
@@ -410,12 +411,12 @@ export function useSettingsSync({ haUserId, contextSettersRef }) {
   ]);
 
   useEffect(() => {
-    if (!haUserId || backgroundSyncSuspended) return;
+    if (!autoBootstrap || !haUserId || backgroundSyncSuspended) return;
     const id = setInterval(() => {
       reconcileFromServer();
     }, 4000);
     return () => clearInterval(id);
-  }, [haUserId, reconcileFromServer, backgroundSyncSuspended]);
+  }, [autoBootstrap, haUserId, reconcileFromServer, backgroundSyncSuspended]);
 
   useEffect(() => {
     if (!haUserId || typeof globalThis.window === 'undefined') return undefined;
