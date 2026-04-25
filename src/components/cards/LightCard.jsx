@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, memo } from 'react';
 import { getIconComponent } from '../../icons';
-import { Lightbulb } from '../../icons';
+import { Lightbulb, Thermometer, Droplets } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 
 const SLIDER_DEBOUNCE_MS = 200;
@@ -44,9 +44,19 @@ const LightCard = ({
     ? !supportedColorModes.includes('onoff') || supportedColorModes.length > 1
     : (entity?.attributes?.supported_features & 1) === 1;
 
-  const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
+  const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const sizeSetting = settings.size;
   const isSmall = sizeSetting === 'small';
   const isDenseMobile = isMobile && !isSmall;
+
+  const tempEntityId = settings.tempEntityId;
+  const humidityEntityId = settings.humidityEntityId;
+  const tempEntity = tempEntityId ? entities[tempEntityId] : null;
+  const humidityEntity = humidityEntityId ? entities[humidityEntityId] : null;
+  const tempValue = tempEntity && tempEntity.state !== 'unavailable' ? tempEntity.state : null;
+  const tempUnit = tempEntity?.attributes?.unit_of_measurement || '°C';
+  const humidityValue = humidityEntity && humidityEntity.state !== 'unavailable' ? humidityEntity.state : null;
+  const humidityUnit = humidityEntity?.attributes?.unit_of_measurement || '%';
 
   // Debounced brightness service call
   const debounceRef = useRef(null);
@@ -196,6 +206,26 @@ const LightCard = ({
           </span>
         </div>
       </div>
+      {(tempValue !== null || humidityValue !== null) && (
+        <div className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-end gap-1.5 ${isDenseMobile ? 'right-5' : 'right-7'}`}>
+          {tempValue !== null && (
+            <div className="flex items-center gap-1 rounded-full bg-[var(--glass-bg)] px-2.5 py-1 text-[var(--text-secondary)]">
+              <Thermometer className={`${isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} stroke-[1.75px]`} />
+              <span className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tabular-nums`}>
+                {parseFloat(tempValue).toFixed(1)}{tempUnit}
+              </span>
+            </div>
+          )}
+          {humidityValue !== null && (
+            <div className="flex items-center gap-1 rounded-full bg-[var(--glass-bg)] px-2.5 py-1 text-[var(--text-secondary)]">
+              <Droplets className={`${isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} stroke-[1.75px]`} />
+              <span className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tabular-nums`}>
+                {parseFloat(humidityValue).toFixed(0)}{humidityUnit}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
       <div className={`${isDenseMobile ? 'mt-1' : 'mt-2'} font-sans`}>
         {!isDenseMobile && (
           <p className="mb-0.5 text-[10px] leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60">

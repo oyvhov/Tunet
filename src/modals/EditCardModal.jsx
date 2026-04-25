@@ -835,6 +835,7 @@ export default function EditCardModal({
   canEditName,
   canEditIcon,
   canEditStatus,
+  isEditLight,
   isEditSensor,
   isEditMedia,
   isEditCalendar,
@@ -981,6 +982,20 @@ export default function EditCardModal({
   const timeToFullOptions = carMatch.options?.timeToFullId || [];
   const chargeEndTimeOptions = carMatch.options?.chargeEndTimeId || [];
   const fuelLevelOptions = carMatch.options?.fuelLevelId || [];
+
+  const tempSensorOptions = sortByName(
+    byDomain('sensor').filter((id) => {
+      const e = entities[id];
+      const dc = e?.attributes?.device_class;
+      return dc === 'temperature' || id.includes('temp');
+    })
+  );
+  const humiditySensorOptions = sortByName(
+    byDomain('sensor').filter((id) => {
+      const e = entities[id];
+      return e?.attributes?.device_class === 'humidity';
+    })
+  );
 
   const climateOptions = sortByName(byDomain('climate'));
   const calendarOptions = sortByName(byDomain('calendar'));
@@ -2885,6 +2900,29 @@ export default function EditCardModal({
                 </div>
               );
             })()}
+
+          {isEditLight && editSettingsKey && (
+            <div className="space-y-3">
+              <SearchableSelect
+                label={t('room.tempSensor') || 'Temperature sensor'}
+                value={editSettings.tempEntityId || null}
+                options={tempSensorOptions}
+                onChange={(id) => saveCardSetting(editSettingsKey, 'tempEntityId', id)}
+                placeholder={t('dropdown.noneSelected')}
+                entities={entities}
+                t={t}
+              />
+              <SearchableSelect
+                label={t('room.humiditySensor') || 'Humidity sensor'}
+                value={editSettings.humidityEntityId || null}
+                options={humiditySensorOptions}
+                onChange={(id) => saveCardSetting(editSettingsKey, 'humidityEntityId', id)}
+                placeholder={t('dropdown.noneSelected')}
+                entities={entities}
+                t={t}
+              />
+            </div>
+          )}
 
           {isEditFan && editSettingsKey && (
             <div className="popup-surface rounded-2xl p-4">
