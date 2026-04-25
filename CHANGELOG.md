@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.16.2] — 2026-04-24
+
+### Added
+- Small release preview for the refreshed Status Pills feature.
+- Adds new animation presets for Status Pills.
+
+<p>
+  <img src="public/release-assets/image.png" alt="Status Pills release preview" width="430" />
+</p>
+
+### Changed
+- Refined Status Pills with animation presets, expanded color choices, clearer icon-only naming, and more predictable manual heading behavior.
+- Reduced unnecessary profile/settings bootstrap work when profile prefetch is intentionally disabled.
+
+### Fixed
+- Kept Status Pills heading and subtitle visibility settings stable across reopen and reload, and committed pending condition values when saving.
+- Prevented newly added visible sensor and alarm pills from disappearing after save by requiring an entity selection before the pill can be saved.
+- Improved Home Assistant backend auth logging and Docker fallback URL handling for easier connection troubleshooting.
+
 ## [1.16.1] — 2026-04-20
 
 ### Added

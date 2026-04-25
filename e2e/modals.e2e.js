@@ -31,6 +31,17 @@ test.describe('Modal Interactions', () => {
     return sidebar;
   };
 
+  const openStatusPillsModal = async (page) => {
+    await enableEditMode(page);
+    const trigger = page.getByTitle('Edit status pills');
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+
+    const modal = page.locator('[role="dialog"]').first();
+    await expect(modal.getByRole('heading', { name: 'Status Pills' })).toBeVisible();
+    return modal;
+  };
+
   test.beforeEach(async ({ page, mockHAConnection }) => {
     await page.addInitScript(() => {
       localStorage.setItem('ha_url', 'http://localhost:8123');
@@ -159,6 +170,60 @@ test.describe('Modal Interactions', () => {
 
     const modal = page.locator('[role="dialog"]').first();
     await expect(modal).toBeVisible();
+  });
+
+  test('should save status pill presentation settings', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'tunet_status_pills_config',
+        JSON.stringify([
+          {
+            id: 'pill-1',
+            type: 'conditional',
+            entityId: 'light.bedroom',
+            label: 'Bedroom',
+            sublabel: 'Ready',
+            icon: 'Activity',
+            iconBgColor: 'rgba(59, 130, 246, 0.1)',
+            iconColor: 'text-[var(--accent-color)]',
+            visible: true,
+            conditionEnabled: false,
+          },
+        ])
+      );
+    });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(500);
+
+    const modal = await openStatusPillsModal(page);
+
+    await modal.getByRole('button', { name: /Bedroom/ }).first().click();
+    await modal.getByLabel('Animation').selectOption('rotate-medium-slow');
+    await modal.getByRole('button', { name: /Heading/ }).click();
+    await modal.getByRole('button', { name: /Subtitle/ }).click();
+    await modal.getByLabel('Color: Cyan').click();
+    await modal.getByRole('button', { name: 'Save' }).click();
+
+    await expect(modal).toBeHidden();
+
+    const savedConfig = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('tunet_status_pills_config') || '[]')
+    );
+
+    expect(savedConfig).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'pill-1',
+          animationPreset: 'rotate-medium-slow',
+          animated: true,
+          showLabel: false,
+          showSublabel: false,
+          iconBgColor: 'rgba(34, 211, 238, 0.18)',
+          iconColor: 'text-cyan-400',
+        }),
+      ])
+    );
   });
 
   test('should handle modal transition animation', async ({ page }) => {

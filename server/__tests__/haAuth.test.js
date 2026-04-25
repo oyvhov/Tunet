@@ -239,6 +239,8 @@ describe('createHomeAssistantAuthMiddleware', () => {
     const validateHomeAssistantUser = vi
       .fn()
       .mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND homeassistant.local'))
+      .mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND host.docker.internal'))
+      .mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND host.containers.internal'))
       .mockResolvedValueOnce({ id: 'user-456' });
     const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
     const req = createRequest({
@@ -255,7 +257,7 @@ describe('createHomeAssistantAuthMiddleware', () => {
       haUrl: 'http://homeassistant.local:8123',
       accessToken: 'token-1',
     });
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(2, {
+    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(4, {
       haUrl: 'http://192.168.1.20:8123',
       accessToken: 'token-1',
     });
@@ -322,6 +324,33 @@ describe('createHomeAssistantAuthMiddleware', () => {
     });
     expect(req.authenticatedHaUser).toEqual({ id: 'user-999' });
     expect(req.authenticatedHaUrl).toBe('http://host.containers.internal:8123');
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to host.docker.internal when a LAN HA URL is unreachable from the container', async () => {
+    const validateHomeAssistantUser = vi
+      .fn()
+      .mockRejectedValueOnce(1) // ERR_CANNOT_CONNECT
+      .mockResolvedValueOnce({ id: 'user-lan' });
+    const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
+    const req = createRequest({
+      authorization: 'Bearer token-1',
+      'x-ha-url': 'http://192.168.10.103:8123',
+    });
+    const res = createResponse();
+    const next = vi.fn();
+
+    await middleware(req, res, next);
+
+    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(1, {
+      haUrl: 'http://192.168.10.103:8123',
+      accessToken: 'token-1',
+    });
+    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(2, {
+      haUrl: 'http://host.docker.internal:8123',
+      accessToken: 'token-1',
+    });
+    expect(req.authenticatedHaUrl).toBe('http://host.docker.internal:8123');
     expect(next).toHaveBeenCalledTimes(1);
   });
 

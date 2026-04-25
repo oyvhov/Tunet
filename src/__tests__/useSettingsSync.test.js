@@ -78,6 +78,29 @@ describe('useSettingsSync', () => {
     });
   });
 
+  it('skips bootstrap and polling when autoBootstrap is disabled', async () => {
+    vi.useFakeTimers();
+
+    renderHook(() =>
+      useSettingsSync({
+        haUserId: 'user-1',
+        contextSettersRef: { current: {} },
+        autoBootstrap: false,
+      })
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(12000);
+    });
+
+    expect(fetchCurrentSettings).not.toHaveBeenCalled();
+    expect(fetchSettingsHistory).not.toHaveBeenCalled();
+    expect(fetchCurrentDevices).not.toHaveBeenCalled();
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+  });
+
   it('loads a specific revision from server when provided', async () => {
     fetchCurrentSettings.mockResolvedValueOnce(null).mockResolvedValueOnce({
       revision: 2,

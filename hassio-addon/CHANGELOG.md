@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.16.2
+
+### Added
+- Includes dashboard release `1.16.2`.
+
+### Changed
+- Improves Status Pills with animation presets, broader color styling, and clearer text display controls.
+
+### Fixed
+- Stabilizes Status Pills persistence for edited text, conditions, and required-entity validation.
+- Improves Home Assistant reachability fallback handling for Docker-hosted setups.
+
 ## 1.16.1
 
 ### Added

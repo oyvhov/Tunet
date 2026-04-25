@@ -58,6 +58,36 @@ const normalizeGridColumns = (value) => {
   return Math.max(MIN_GRID_COLUMNS, Math.min(Math.round(parsed), MAX_GRID_COLUMNS));
 };
 
+const coercePillBoolean = (value, fallback) => {
+  if (value === true || value === false) return value;
+  if (value === 'true' || value === '1' || value === 1) return true;
+  if (value === 'false' || value === '0' || value === 0) return false;
+  return fallback;
+};
+
+const coerceConditionEnabled = (value) => {
+  if (value === true || value === false) return value;
+  if (value === 'true' || value === '1' || value === 1) return true;
+  if (value === 'false' || value === '0' || value === 0) return false;
+  return undefined;
+};
+
+function normalizeStatusPillConfig(pill) {
+  if (!pill || typeof pill !== 'object') return pill;
+
+  return {
+    ...pill,
+    visible: coercePillBoolean(pill.visible, true),
+    clickable: coercePillBoolean(pill.clickable, false),
+    animated: coercePillBoolean(pill.animated, true),
+    showLabel: coercePillBoolean(pill.showLabel, true),
+    showSublabel: coercePillBoolean(pill.showSublabel, true),
+    showCover: coercePillBoolean(pill.showCover, true),
+    showCount: coercePillBoolean(pill.showCount, false),
+    conditionEnabled: coerceConditionEnabled(pill.conditionEnabled),
+  };
+}
+
 const ROOM_CARD_DEFAULTS = {
   showLightChip: true,
   showMediaChip: true,
@@ -158,28 +188,35 @@ function loadStatusPillsConfig() {
 
   let modified = false;
   const next = parsed.map((pill) => {
-    if (!pill || typeof pill !== 'object' || pill.type !== 'sonos') return pill;
+    const normalizedPill = normalizeStatusPillConfig(pill);
+    if (normalizedPill !== pill) {
+      modified = true;
+    }
+
+    if (!normalizedPill || typeof normalizedPill !== 'object' || normalizedPill.type !== 'sonos') {
+      return normalizedPill;
+    }
 
     const updates = {};
-    if (typeof pill.clickable !== 'boolean') {
+    if (typeof normalizedPill.clickable !== 'boolean') {
       updates.clickable = true;
       modified = true;
     }
-    if (typeof pill.showCount !== 'boolean') {
+    if (typeof normalizedPill.showCount !== 'boolean') {
       updates.showCount = true;
       modified = true;
     }
-    if (typeof pill.sonosHeadingSource !== 'string') {
+    if (typeof normalizedPill.sonosHeadingSource !== 'string') {
       updates.sonosHeadingSource = 'song';
       modified = true;
     }
-    if (typeof pill.sonosSubheadingSource !== 'string') {
+    if (typeof normalizedPill.sonosSubheadingSource !== 'string') {
       updates.sonosSubheadingSource = 'artist_player';
       modified = true;
     }
 
-    if (Object.keys(updates).length === 0) return pill;
-    return { ...pill, ...updates };
+    if (Object.keys(updates).length === 0) return normalizedPill;
+    return { ...normalizedPill, ...updates };
   });
 
   if (modified) writeJSON('tunet_status_pills_config', next);
@@ -400,8 +437,11 @@ export const PageProvider = ({ children }) => {
   const [statusPillsConfig, setStatusPillsConfig] = useState(loadStatusPillsConfig);
 
   const saveStatusPillsConfig = (newConfig) => {
-    setStatusPillsConfig(newConfig);
-    writeJSON('tunet_status_pills_config', newConfig);
+    const normalized = Array.isArray(newConfig)
+      ? newConfig.map((pill) => normalizeStatusPillConfig(pill))
+      : [];
+    setStatusPillsConfig(normalized);
+    writeJSON('tunet_status_pills_config', normalized);
   };
 
   const persistConfig = (newConfig) => {

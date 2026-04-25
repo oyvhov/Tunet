@@ -890,17 +890,29 @@ export function getAllIconKeys() {
   return cachedAllIconKeys;
 }
 
+// Cache for dynamically-created MDI icon wrapper components, keyed by icon
+// name. Without this cache `getIconComponent` would return a brand-new
+// component function on every call, causing React to remount the icon (and
+// reset any CSS animations such as `animate-spin`) on every parent re-render.
+const mdiComponentCache = new Map();
+
 export function getIconComponent(iconName, fallbackIcon = FALLBACK_ICON) {
   if (!iconName) return null;
   if (ICON_MAP[iconName]) return ICON_MAP[iconName];
   if (iconName.startsWith('mdi:')) {
+    const cached = mdiComponentCache.get(iconName);
+    if (cached) return cached;
+
     const initialPath = mdiPathByName.get(iconName);
     if (initialPath) {
-      return (props) =>
+      const ResolvedMdiIcon = (props) =>
         React.createElement(MdiIcon, { path: initialPath, size: '1.4em', ...props });
+      ResolvedMdiIcon.displayName = `MdiIcon(${iconName})`;
+      mdiComponentCache.set(iconName, ResolvedMdiIcon);
+      return ResolvedMdiIcon;
     }
 
-    return function LazyMdiIcon(props) {
+    function LazyMdiIcon(props) {
       const [path, setPath] = React.useState(() => mdiPathByName.get(iconName) || null);
 
       React.useEffect(() => {
@@ -923,7 +935,10 @@ export function getIconComponent(iconName, fallbackIcon = FALLBACK_ICON) {
 
       if (!path) return React.createElement(fallbackIcon, props);
       return React.createElement(MdiIcon, { path, size: '1.4em', ...props });
-    };
+    }
+    LazyMdiIcon.displayName = `LazyMdiIcon(${iconName})`;
+    mdiComponentCache.set(iconName, LazyMdiIcon);
+    return LazyMdiIcon;
   }
   return fallbackIcon;
 }
