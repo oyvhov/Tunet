@@ -1,16 +1,31 @@
-const LIKELY_MODAL_IMPORTERS = [
-  () => import('../modals/ConfigModal'),
-  () => import('../modals/EditCardModal'),
-  () => import('../modals/AddCardContent'),
-  () => import('../modals/LightModal'),
-  () => import('../modals/GenericClimateModal'),
-  () => import('../modals/MediaModal'),
-  () => import('../modals/SensorModal'),
+const MODAL_IMPORTERS = {
+  addCard: () => import('../modals/AddCardContent'),
+  config: () => import('../modals/ConfigModal'),
+  editCard: () => import('../modals/EditCardModal'),
+  genericClimate: () => import('../modals/GenericClimateModal'),
+  headerSidebar: () => import('../components/sidebars/HeaderSidebar'),
+  layoutSidebar: () => import('../components/sidebars/LayoutSidebar'),
+  light: () => import('../modals/LightModal'),
+  media: () => import('../modals/MediaModal'),
+  room: () => import('../modals/RoomModal'),
+  sensor: () => import('../modals/SensorModal'),
+  statusPills: () => import('../modals/StatusPillsConfigModal'),
+  themeSidebar: () => import('../components/sidebars/ThemeSidebar'),
+  weather: () => import('../modals/WeatherModal'),
+};
+
+const LIKELY_MODAL_PREFETCH_ORDER = [
+  'light',
+  'genericClimate',
+  'sensor',
+  'media',
+  'config',
+  'room',
+  'weather',
 ];
 
-let prefetchScheduled = false;
-let prefetchCompleted = false;
-let idleHandle = null;
+const prefetchedKeys = new Set();
+const scheduledKeys = new Set();
 
 function requestIdleTask(callback) {
   if (typeof window === 'undefined') return null;
@@ -19,10 +34,7 @@ function requestIdleTask(callback) {
     return window.requestIdleCallback(callback, { timeout: 1500 });
   }
 
-  return window.setTimeout(
-    () => callback({ didTimeout: true, timeRemaining: () => 0 }),
-    900
-  );
+  return window.setTimeout(() => callback({ didTimeout: true, timeRemaining: () => 0 }), 900);
 }
 
 function cancelIdleTask(handle) {
@@ -36,37 +48,69 @@ function cancelIdleTask(handle) {
   window.clearTimeout(handle);
 }
 
-function prefetchLikelyModalChunks() {
-  return Promise.allSettled(LIKELY_MODAL_IMPORTERS.map((loadChunk) => loadChunk())).finally(() => {
-    prefetchCompleted = true;
-    prefetchScheduled = false;
+export function scheduleModalPrefetch(keys) {
+  if (typeof window === 'undefined') return () => {};
+
+  const queue = keys.filter((key) => {
+    if (!MODAL_IMPORTERS[key] || prefetchedKeys.has(key) || scheduledKeys.has(key)) return false;
+    scheduledKeys.add(key);
+    return true;
   });
-}
 
-export function scheduleLikelyModalPrefetch() {
-  if (typeof window === 'undefined' || prefetchCompleted || prefetchScheduled) {
-    return () => {};
-  }
+  if (queue.length === 0) return () => {};
 
-  prefetchScheduled = true;
   let cancelled = false;
+  let idleHandle = null;
+  let activeKey = null;
 
-  idleHandle = requestIdleTask(() => {
-    idleHandle = null;
-    if (cancelled) {
-      prefetchScheduled = false;
-      return;
-    }
+  const runNext = () => {
+    if (cancelled) return;
+    const key = queue.shift();
+    if (!key) return;
+    activeKey = key;
 
-    void prefetchLikelyModalChunks();
-  });
+    idleHandle = requestIdleTask((deadline) => {
+      idleHandle = null;
+      if (cancelled) {
+        scheduledKeys.delete(key);
+        activeKey = null;
+        return;
+      }
+
+      if (
+        !deadline?.didTimeout &&
+        typeof deadline?.timeRemaining === 'function' &&
+        deadline.timeRemaining() < 8
+      ) {
+        queue.unshift(key);
+        activeKey = null;
+        runNext();
+        return;
+      }
+
+      MODAL_IMPORTERS[key]()
+        .then(() => {
+          prefetchedKeys.add(key);
+        })
+        .catch(() => {})
+        .finally(() => {
+          scheduledKeys.delete(key);
+          activeKey = null;
+          runNext();
+        });
+    });
+  };
+
+  runNext();
 
   return () => {
     cancelled = true;
     cancelIdleTask(idleHandle);
-    idleHandle = null;
-    if (!prefetchCompleted) {
-      prefetchScheduled = false;
-    }
+    if (activeKey) scheduledKeys.delete(activeKey);
+    queue.forEach((key) => scheduledKeys.delete(key));
   };
+}
+
+export function scheduleLikelyModalPrefetch() {
+  return scheduleModalPrefetch(LIKELY_MODAL_PREFETCH_ORDER);
 }

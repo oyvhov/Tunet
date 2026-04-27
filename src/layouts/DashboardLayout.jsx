@@ -8,12 +8,10 @@ import DragOverlaySVG from './DragOverlaySVG';
 import EditToolbar from './EditToolbar';
 import { PageNavigation } from '../components';
 import DashboardGrid from '../rendering/DashboardGrid';
-import ModalManager from '../rendering/ModalManager';
 import PinLockModal from '../components/ui/PinLockModal';
 
 const MemoStatusBar = memo(StatusBar);
 const MemoDashboardGrid = memo(DashboardGrid);
-const MemoModalManager = memo(ModalManager);
 
 /** @param {any} props */
 export default function DashboardLayout(props) {
@@ -60,16 +58,6 @@ export default function DashboardLayout(props) {
     dashboardGridGrid,
     dashboardGridCards,
     dashboardGridActions,
-    modalManagerCore,
-    modalManagerState,
-    modalManagerAppearance,
-    modalManagerLayout,
-    modalManagerOnboarding,
-    modalManagerPageManagement,
-    modalManagerEntityHelpers,
-    modalManagerAddCard,
-    modalManagerCardConfig,
-    mediaTick,
     showPinLockModal,
     closePinLockModal,
     handlePinSubmit,
@@ -110,16 +98,18 @@ export default function DashboardLayout(props) {
   return (
     <div
       className="min-h-screen overflow-x-hidden font-sans transition-colors duration-500 selection:bg-[var(--accent-bg)]"
-      style={/** @type {any} */ ({
-        backgroundColor: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-        '--font-sans': resolvedAppFontFamily,
-        fontFamily: resolvedAppFontFamily,
-      })}
+      style={
+        /** @type {any} */ ({
+          backgroundColor: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+          '--font-sans': resolvedAppFontFamily,
+          fontFamily: resolvedAppFontFamily,
+        })
+      }
     >
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-lg focus:bg-[var(--accent-color)] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:rounded-lg focus:bg-[var(--accent-color)] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg"
       >
         {t('a11y.skipToContent') || 'Skip to content'}
       </a>
@@ -199,7 +189,7 @@ export default function DashboardLayout(props) {
           </div>
         </Header>
 
-        <ConnectionBanner t={t} />
+        <ConnectionBanner t={t} setConfigTab={setConfigTab} />
 
         <div
           className="flex flex-nowrap items-center justify-between gap-4"
@@ -240,22 +230,6 @@ export default function DashboardLayout(props) {
             cards={dashboardGridCards}
             actions={dashboardGridActions}
             t={t}
-          />
-        )}
-
-        {withProfiler(
-          'ModalManager',
-          <MemoModalManager
-            core={modalManagerCore}
-            modalState={modalManagerState}
-            appearance={modalManagerAppearance}
-            layout={modalManagerLayout}
-            onboarding={modalManagerOnboarding}
-            pageManagement={modalManagerPageManagement}
-            entityHelpers={modalManagerEntityHelpers}
-            addCard={modalManagerAddCard}
-            cardConfig={modalManagerCardConfig}
-            mediaTick={mediaTick}
           />
         )}
 

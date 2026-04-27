@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 
 /** @typedef {import('../types/dashboard').ModalState} ModalState */
 /** @typedef {import('../types/dashboard').UseModalsResult} UseModalsResult */
@@ -66,97 +66,99 @@ const OPEN_CHECK_KEYS = [
   'showAlarmActionModal',
 ];
 
-/** @param {ModalState} state @param {{ type: 'SET', key: keyof ModalState, value: ModalState[keyof ModalState] } | { type: 'CLOSE_ALL' }} action */
-function modalReducer(state, action) {
-  switch (action.type) {
-    case 'SET':
-      return { ...state, [action.key]: action.value };
-    case 'CLOSE_ALL':
-      return { ...MODAL_DEFAULTS };
-    default:
-      return state;
+function buildModalActions(setModalValue, closeAllModals, hasOpenModal) {
+  const setters = {};
+  for (const key of Object.keys(MODAL_DEFAULTS)) {
+    const modalKey = /** @type {keyof ModalState} */ (key);
+    const setterName = 'set' + key[0].toUpperCase() + key.slice(1);
+    setters[setterName] = (value) => setModalValue(modalKey, value);
   }
-}
 
-/**
- * Centralised modal state via useReducer.
- * Adding a new modal = one entry in MODAL_DEFAULTS (+ OPEN_CHECK_KEYS if needed).
- */
-export function useModals() {
-  /** @type {[ModalState, import('react').Dispatch<{ type: 'SET', key: keyof ModalState, value: ModalState[keyof ModalState] } | { type: 'CLOSE_ALL' }>]} */
-  const [state, dispatch] = useReducer(modalReducer, MODAL_DEFAULTS);
+  const entityModalActions = {
+    setShowNordpoolModal: setters.setShowNordpoolModal,
+    setShowCostModal: setters.setShowCostModal,
+    setActiveClimateEntityModal: setters.setActiveClimateEntityModal,
+    setShowLightModal: setters.setShowLightModal,
+    setActiveCarModal: setters.setActiveCarModal,
+    setShowPersonModal: setters.setShowPersonModal,
+    setShowAndroidTVModal: setters.setShowAndroidTVModal,
+    setShowVacuumModal: setters.setShowVacuumModal,
+    setShowMowerModal: setters.setShowMowerModal,
+    setShowFanModal: setters.setShowFanModal,
+    setShowSensorInfoModal: setters.setShowSensorInfoModal,
+    setShowCalendarModal: setters.setShowCalendarModal,
+    setShowTodoModal: setters.setShowTodoModal,
+    setShowRoomModal: setters.setShowRoomModal,
+    setShowCoverModal: setters.setShowCoverModal,
+    setShowCameraModal: setters.setShowCameraModal,
+    setShowWeatherModal: setters.setShowWeatherModal,
+    setShowAlarmModal: setters.setShowAlarmModal,
+    setShowAlarmActionModal: setters.setShowAlarmActionModal,
+  };
 
-  // Build a stable setter for each key (dispatch identity never changes)
-  const setters = useMemo(() => {
-    const result = {};
-    for (const key of Object.keys(MODAL_DEFAULTS)) {
-      const modalKey = /** @type {keyof ModalState} */ (key);
-      const setterName = 'set' + key[0].toUpperCase() + key.slice(1);
-      result[setterName] = (value) => dispatch({ type: 'SET', key: modalKey, value });
-    }
-    return result;
-  }, []);
+  const mediaModalActions = {
+    setActiveMediaModal: setters.setActiveMediaModal,
+    setActiveMediaGroupKey: setters.setActiveMediaGroupKey,
+    setActiveMediaGroupIds: setters.setActiveMediaGroupIds,
+    setActiveMediaSessionSensorIds: setters.setActiveMediaSessionSensorIds,
+    setActiveMediaId: setters.setActiveMediaId,
+  };
 
-  const hasOpenModal = useCallback(() => OPEN_CHECK_KEYS.some((key) => !!state[key]), [state]);
+  const managementModalActions = {
+    setShowAddCardModal: setters.setShowAddCardModal,
+    setShowConfigModal: setters.setShowConfigModal,
+    setShowAddPageModal: setters.setShowAddPageModal,
+    setShowHeaderEditModal: setters.setShowHeaderEditModal,
+    setShowEditCardModal: setters.setShowEditCardModal,
+    setShowStatusPillsConfig: setters.setShowStatusPillsConfig,
+  };
 
-  const closeAllModals = useCallback(() => dispatch({ type: 'CLOSE_ALL' }), []);
-
-  // Grouped modal actions reduce prop explosion in app-level orchestration.
-  const entityModalActions = useMemo(
-    () => ({
-      setShowNordpoolModal: setters.setShowNordpoolModal,
-      setShowCostModal: setters.setShowCostModal,
-      setActiveClimateEntityModal: setters.setActiveClimateEntityModal,
-      setShowLightModal: setters.setShowLightModal,
-      setActiveCarModal: setters.setActiveCarModal,
-      setShowPersonModal: setters.setShowPersonModal,
-      setShowAndroidTVModal: setters.setShowAndroidTVModal,
-      setShowVacuumModal: setters.setShowVacuumModal,
-      setShowMowerModal: setters.setShowMowerModal,
-      setShowFanModal: setters.setShowFanModal,
-      setShowSensorInfoModal: setters.setShowSensorInfoModal,
-      setShowCalendarModal: setters.setShowCalendarModal,
-      setShowTodoModal: setters.setShowTodoModal,
-      setShowRoomModal: setters.setShowRoomModal,
-      setShowCoverModal: setters.setShowCoverModal,
-      setShowCameraModal: setters.setShowCameraModal,
-      setShowWeatherModal: setters.setShowWeatherModal,
-      setShowAlarmModal: setters.setShowAlarmModal,
-      setShowAlarmActionModal: setters.setShowAlarmActionModal,
-    }),
-    [setters]
-  );
-
-  const mediaModalActions = useMemo(
-    () => ({
-      setActiveMediaModal: setters.setActiveMediaModal,
-      setActiveMediaGroupKey: setters.setActiveMediaGroupKey,
-      setActiveMediaGroupIds: setters.setActiveMediaGroupIds,
-      setActiveMediaSessionSensorIds: setters.setActiveMediaSessionSensorIds,
-      setActiveMediaId: setters.setActiveMediaId,
-    }),
-    [setters]
-  );
-
-  const managementModalActions = useMemo(
-    () => ({
-      setShowAddCardModal: setters.setShowAddCardModal,
-      setShowConfigModal: setters.setShowConfigModal,
-      setShowAddPageModal: setters.setShowAddPageModal,
-      setShowHeaderEditModal: setters.setShowHeaderEditModal,
-      setShowEditCardModal: setters.setShowEditCardModal,
-      setShowStatusPillsConfig: setters.setShowStatusPillsConfig,
-    }),
-    [setters]
-  );
-
-  return /** @type {UseModalsResult} */ ({
-    ...state,
+  return {
     ...setters,
     entityModalActions,
     mediaModalActions,
     managementModalActions,
     hasOpenModal,
     closeAllModals,
-  });
+  };
+}
+
+function createModalStore() {
+  let state = /** @type {ModalState} */ ({ ...MODAL_DEFAULTS });
+  const listeners = new Set();
+
+  const emit = () => {
+    listeners.forEach((listener) => listener());
+  };
+
+  const getSnapshot = () => state;
+  const subscribe = (listener) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+  const hasOpenModal = () => OPEN_CHECK_KEYS.some((key) => !!state[key]);
+  const setModalValue = (key, value) => {
+    if (Object.is(state[key], value)) return;
+    state = { ...state, [key]: value };
+    emit();
+  };
+  const closeAllModals = () => {
+    state = { ...MODAL_DEFAULTS };
+    emit();
+  };
+  const actions = buildModalActions(setModalValue, closeAllModals, hasOpenModal);
+
+  return {
+    getSnapshot,
+    subscribe,
+    actions,
+  };
+}
+
+/**
+ * Centralised modal state via a stable external store.
+ * Adding a new modal = one entry in MODAL_DEFAULTS (+ OPEN_CHECK_KEYS if needed).
+ */
+export function useModals() {
+  return useMemo(() => createModalStore(), []);
 }

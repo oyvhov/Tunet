@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import PageNavigation from '../components/pages/PageNavigation';
 
 const mockUsePages = vi.fn();
-const mockUseModalState = vi.fn();
+const mockUseModalActions = vi.fn();
 
 vi.mock('../contexts', () => ({
   usePages: () => mockUsePages(),
-  useModalState: () => mockUseModalState(),
+  useModalActions: () => mockUseModalActions(),
 }));
 
 const MockIcon = (props) => <svg data-testid="mock-icon" {...props} />;
@@ -21,7 +21,7 @@ describe('PageNavigation', () => {
         home: { hideSinglePagePill: true },
       },
     });
-    mockUseModalState.mockReturnValue({ setShowAddPageModal: vi.fn() });
+    mockUseModalActions.mockReturnValue({ setShowAddPageModal: vi.fn() });
 
     render(
       <PageNavigation
@@ -45,7 +45,7 @@ describe('PageNavigation', () => {
         home: { hideSinglePagePill: true },
       },
     });
-    mockUseModalState.mockReturnValue({ setShowAddPageModal: vi.fn() });
+    mockUseModalActions.mockReturnValue({ setShowAddPageModal: vi.fn() });
 
     render(
       <PageNavigation

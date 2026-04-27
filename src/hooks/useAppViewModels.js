@@ -44,18 +44,6 @@ export function useAppViewModels(params) {
     t,
     language,
     setLanguage,
-    modals,
-    activeVacuumId,
-    setActiveVacuumId,
-    activeMowerId,
-    setActiveMowerId,
-    showThemeSidebar,
-    setShowThemeSidebar,
-    showLayoutSidebar,
-    setShowLayoutSidebar,
-    editCardSettingsKey,
-    setEditCardSettingsKey,
-    configTab,
     currentTheme,
     setCurrentTheme,
     bgMode,
@@ -192,7 +180,17 @@ export function useAppViewModels(params) {
       isBatteryPage,
       isRoomExplorerPage,
     }),
-    [activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage, isLightsPage, isBatteryPage, isRoomExplorerPage]
+    [
+      activePage,
+      pagesConfig,
+      pageSettings,
+      editMode,
+      isMediaPage,
+      isSonosPage,
+      isLightsPage,
+      isBatteryPage,
+      isRoomExplorerPage,
+    ]
   );
 
   const dashboardGridMedia = useMemo(
@@ -267,39 +265,6 @@ export function useAppViewModels(params) {
       setLanguage,
     }),
     [entities, conn, activeUrl, connected, authRef, config, setConfig, t, language, setLanguage]
-  );
-
-  const modalManagerState = useMemo(
-    () => ({
-      ...modals,
-      activeVacuumId,
-      setActiveVacuumId,
-      activeMowerId,
-      setActiveMowerId,
-      showThemeSidebar,
-      setShowThemeSidebar,
-      showLayoutSidebar,
-      setShowLayoutSidebar,
-      editCardSettingsKey,
-      setEditCardSettingsKey,
-      configTab,
-      setConfigTab,
-    }),
-    [
-      modals,
-      activeVacuumId,
-      setActiveVacuumId,
-      activeMowerId,
-      setActiveMowerId,
-      showThemeSidebar,
-      setShowThemeSidebar,
-      showLayoutSidebar,
-      setShowLayoutSidebar,
-      editCardSettingsKey,
-      setEditCardSettingsKey,
-      configTab,
-      setConfigTab,
-    ]
   );
 
   const modalManagerAppearance = useMemo(
@@ -630,7 +595,6 @@ export function useAppViewModels(params) {
     dashboardGridCards,
     dashboardGridActions,
     modalManagerCore,
-    modalManagerState,
     modalManagerAppearance,
     modalManagerLayout,
     modalManagerOnboarding,

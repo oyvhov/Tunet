@@ -1,6 +1,6 @@
 import { Edit2 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
-import { useHomeAssistant, useModalState, usePages } from '../contexts';
+import { useHomeAssistant, useModalActions, usePages } from '../contexts';
 import { isSonosMediaEntity } from '../utils';
 
 /**
@@ -33,7 +33,7 @@ export default function StatusBar({
     setActiveMediaModal,
     setShowAlarmModal,
     setShowStatusPillsConfig,
-  } = useModalState();
+  } = useModalActions();
 
   const getSonosEntities = () =>
     Object.keys(entities)
@@ -97,7 +97,9 @@ export default function StatusBar({
 
   return (
     <div className="mt-0 flex w-full items-center justify-between font-sans">
-      <div className={`flex min-w-0 items-center ${isMobile ? 'gap-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide' : 'flex-wrap gap-2.5'}`}>
+      <div
+        className={`flex min-w-0 items-center ${isMobile ? 'scrollbar-hide gap-1.5 overflow-x-auto overflow-y-hidden' : 'flex-wrap gap-2.5'}`}
+      >
         {/* Edit button (only in edit mode) - at first position */}
         {editMode && (
           <button

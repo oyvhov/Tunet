@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { WifiOff, RefreshCw } from '../icons';
-import { useHomeAssistant, useModalState } from '../contexts';
+import { useHomeAssistant, useModalActions } from '../contexts';
 
 /** Format elapsed seconds into a human-readable string. */
 function formatElapsed(sec) {
@@ -17,9 +17,9 @@ function formatElapsed(sec) {
  * Includes a live elapsed timer so users know how long the connection has been down,
  * and a manual retry button that reloads the page.
  */
-export default function ConnectionBanner({ t }) {
+export default function ConnectionBanner({ t, setConfigTab }) {
   const { haUnavailableVisible, oauthExpired, disconnectedSince } = useHomeAssistant();
-  const { setShowConfigModal, setConfigTab } = useModalState();
+  const { setShowConfigModal } = useModalActions();
   const [elapsed, setElapsed] = useState(0);
 
   // Tick every second while the banner is visible
@@ -39,8 +39,8 @@ export default function ConnectionBanner({ t }) {
   if (!haUnavailableVisible) return null;
 
   const handleReconnect = () => {
+    setConfigTab?.('connection');
     setShowConfigModal(true);
-    setConfigTab('connection');
   };
 
   const handleRetry = () => {

@@ -2183,7 +2183,12 @@ export default function ConfigModal({
                     {availableTabs.find((tb) => tb.key === configTab)?.label}
                   </h3>
                 </div>
-                <button onClick={onClose} className="modal-close relative">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="modal-close relative"
+                  aria-label={t('common.close') || 'Close'}
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -2199,8 +2204,10 @@ export default function ConfigModal({
                       {availableTabs.find((tab) => tab.key === configTab)?.label}
                     </h2>
                     <button
+                      type="button"
                       onClick={handleClose}
-                      className="rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
+                      className="modal-close rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
+                      aria-label={t('common.close') || 'Close'}
                     >
                       <X className="h-5 w-5" />
                     </button>

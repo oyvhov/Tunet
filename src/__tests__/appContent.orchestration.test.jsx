@@ -28,6 +28,10 @@ vi.mock('../layouts', () => ({
   ),
 }));
 
+vi.mock('../rendering/ModalManager', () => ({
+  default: () => null,
+}));
+
 vi.mock('../components', () => ({
   PersonStatus: () => null,
 }));
@@ -116,6 +120,54 @@ vi.mock('../contexts', () => ({
     activeUrl: 'http://localhost:8123',
     authRef: { current: null },
   }),
+  useModalActions: () => ({
+    entityModalActions: {
+      setShowNordpoolModal: vi.fn(),
+      setShowCostModal: vi.fn(),
+      setActiveClimateEntityModal: vi.fn(),
+      setShowLightModal: vi.fn(),
+      setActiveCarModal: vi.fn(),
+      setShowPersonModal: vi.fn(),
+      setShowAndroidTVModal: vi.fn(),
+      setShowVacuumModal: vi.fn(),
+      setShowMowerModal: vi.fn(),
+      setShowFanModal: vi.fn(),
+      setShowSensorInfoModal: vi.fn(),
+      setShowCalendarModal: vi.fn(),
+      setShowTodoModal: vi.fn(),
+      setShowRoomModal: vi.fn(),
+      setShowCoverModal: vi.fn(),
+      setShowCameraModal: vi.fn(),
+      setShowWeatherModal: vi.fn(),
+      setShowAlarmModal: vi.fn(),
+      setShowAlarmActionModal: vi.fn(),
+    },
+    mediaModalActions: {
+      setActiveMediaModal: vi.fn(),
+      setActiveMediaGroupKey: vi.fn(),
+      setActiveMediaGroupIds: vi.fn(),
+      setActiveMediaSessionSensorIds: vi.fn(),
+      setActiveMediaId: vi.fn(),
+    },
+    managementModalActions: {
+      setShowAddCardModal: mockFns.setShowAddCardModal,
+      setShowConfigModal: vi.fn(),
+      setShowAddPageModal: vi.fn(),
+      setShowHeaderEditModal: vi.fn(),
+      setShowEditCardModal: vi.fn(),
+      setShowStatusPillsConfig: vi.fn(),
+    },
+    hasOpenModal: vi.fn(() => false),
+    closeAllModals: vi.fn(),
+  }),
+  useModalSelector: (selector) =>
+    selector({
+      activeMediaModal: null,
+      activeMediaId: null,
+      showAddCardModal: false,
+      showConfigModal: false,
+      showAddPageModal: false,
+    }),
   useModalState: () => ({
     setShowNordpoolModal: vi.fn(),
     setShowCostModal: vi.fn(),

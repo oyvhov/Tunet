@@ -180,7 +180,7 @@ describe('useAppViewModels', () => {
     expect(result.current.dashboardGridPage.activePage).toBe('home');
     expect(result.current.dashboardGridGrid.gridColCount).toBe(4);
     expect(result.current.modalManagerCore.language).toBe('en');
-    expect(result.current.modalManagerState.showConfigModal).toBe(false);
+    expect(result.current).not.toHaveProperty('modalManagerState');
     expect(result.current.modalManagerCardConfig.statusPillsConfig).toEqual({});
   });
 

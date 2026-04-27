@@ -144,102 +144,108 @@ export function ModalSettingsSlice({
         </ModalSuspense>
       )}
 
-      <ModalSuspense>
-        <ThemeSidebar
-          open={showThemeSidebar}
-          onClose={() => setShowThemeSidebar(false)}
-          onSwitchToLayout={() => {
-            setShowThemeSidebar(false);
-            setShowLayoutSidebar(true);
-          }}
-          onSwitchToHeader={() => {
-            setShowThemeSidebar(false);
-            setShowHeaderEditModal(true);
-          }}
-          t={t}
-          themes={themes}
-          currentTheme={currentTheme}
-          setCurrentTheme={setCurrentTheme}
-          language={language}
-          setLanguage={setLanguage}
-          bgMode={bgMode}
-          setBgMode={setBgMode}
-          bgColor={bgColor}
-          setBgColor={setBgColor}
-          bgGradient={bgGradient}
-          setBgGradient={setBgGradient}
-          bgImage={bgImage}
-          setBgImage={setBgImage}
-          inactivityTimeout={inactivityTimeout}
-          setInactivityTimeout={setInactivityTimeout}
-        />
-      </ModalSuspense>
+      {showThemeSidebar && (
+        <ModalSuspense>
+          <ThemeSidebar
+            open={true}
+            onClose={() => setShowThemeSidebar(false)}
+            onSwitchToLayout={() => {
+              setShowThemeSidebar(false);
+              setShowLayoutSidebar(true);
+            }}
+            onSwitchToHeader={() => {
+              setShowThemeSidebar(false);
+              setShowHeaderEditModal(true);
+            }}
+            t={t}
+            themes={themes}
+            currentTheme={currentTheme}
+            setCurrentTheme={setCurrentTheme}
+            language={language}
+            setLanguage={setLanguage}
+            bgMode={bgMode}
+            setBgMode={setBgMode}
+            bgColor={bgColor}
+            setBgColor={setBgColor}
+            bgGradient={bgGradient}
+            setBgGradient={setBgGradient}
+            bgImage={bgImage}
+            setBgImage={setBgImage}
+            inactivityTimeout={inactivityTimeout}
+            setInactivityTimeout={setInactivityTimeout}
+          />
+        </ModalSuspense>
+      )}
 
-      <ModalSuspense>
-        <LayoutSidebar
-          open={showLayoutSidebar}
-          onClose={() => setShowLayoutSidebar(false)}
-          onSwitchToTheme={() => {
-            setShowLayoutSidebar(false);
-            setShowThemeSidebar(true);
-          }}
-          onSwitchToHeader={() => {
-            setShowLayoutSidebar(false);
-            setShowHeaderEditModal(true);
-          }}
-          t={t}
-          gridGapH={gridGapH}
-          setGridGapH={setGridGapH}
-          gridGapV={gridGapV}
-          setGridGapV={setGridGapV}
-          gridColumns={gridColumns}
-          setGridColumns={setGridColumns}
-          dynamicGridColumns={dynamicGridColumns}
-          setDynamicGridColumns={setDynamicGridColumns}
-          effectiveGridColumns={effectiveGridColumns}
-          cardBorderRadius={cardBorderRadius}
-          setCardBorderRadius={setCardBorderRadius}
-          cardTransparency={cardTransparency}
-          setCardTransparency={setCardTransparency}
-          cardBorderOpacity={cardBorderOpacity}
-          setCardBorderOpacity={setCardBorderOpacity}
-          cardBgColor={cardBgColor}
-          setCardBgColor={setCardBgColor}
-          cardMaterial={cardMaterial}
-          setCardMaterial={setCardMaterial}
-          density={density}
-          setDensity={setDensity}
-          cardScale={cardScale}
-          setCardScale={setCardScale}
-          sectionSpacing={sectionSpacing}
-          updateSectionSpacing={updateSectionSpacing}
-          activePage={core.activePage}
-          pageSettings={core.pageSettings}
-          savePageSetting={core.savePageSetting}
-        />
-      </ModalSuspense>
+      {showLayoutSidebar && (
+        <ModalSuspense>
+          <LayoutSidebar
+            open={true}
+            onClose={() => setShowLayoutSidebar(false)}
+            onSwitchToTheme={() => {
+              setShowLayoutSidebar(false);
+              setShowThemeSidebar(true);
+            }}
+            onSwitchToHeader={() => {
+              setShowLayoutSidebar(false);
+              setShowHeaderEditModal(true);
+            }}
+            t={t}
+            gridGapH={gridGapH}
+            setGridGapH={setGridGapH}
+            gridGapV={gridGapV}
+            setGridGapV={setGridGapV}
+            gridColumns={gridColumns}
+            setGridColumns={setGridColumns}
+            dynamicGridColumns={dynamicGridColumns}
+            setDynamicGridColumns={setDynamicGridColumns}
+            effectiveGridColumns={effectiveGridColumns}
+            cardBorderRadius={cardBorderRadius}
+            setCardBorderRadius={setCardBorderRadius}
+            cardTransparency={cardTransparency}
+            setCardTransparency={setCardTransparency}
+            cardBorderOpacity={cardBorderOpacity}
+            setCardBorderOpacity={setCardBorderOpacity}
+            cardBgColor={cardBgColor}
+            setCardBgColor={setCardBgColor}
+            cardMaterial={cardMaterial}
+            setCardMaterial={setCardMaterial}
+            density={density}
+            setDensity={setDensity}
+            cardScale={cardScale}
+            setCardScale={setCardScale}
+            sectionSpacing={sectionSpacing}
+            updateSectionSpacing={updateSectionSpacing}
+            activePage={core.activePage}
+            pageSettings={core.pageSettings}
+            savePageSetting={core.savePageSetting}
+          />
+        </ModalSuspense>
+      )}
 
-      <ModalSuspense>
-        <HeaderSidebar
-          open={showHeaderEditModal}
-          onClose={() => setShowHeaderEditModal(false)}
-          headerTitle={headerTitle}
-          headerScale={headerScale}
-          headerSettings={headerSettings}
-          updateHeaderTitle={updateHeaderTitle}
-          updateHeaderScale={updateHeaderScale}
-          updateHeaderSettings={updateHeaderSettings}
-          onSwitchToTheme={() => {
-            setShowHeaderEditModal(false);
-            setShowThemeSidebar(true);
-          }}
-          onSwitchToLayout={() => {
-            setShowHeaderEditModal(false);
-            setShowLayoutSidebar(true);
-          }}
-          t={t}
-        />
-      </ModalSuspense>
+      {showHeaderEditModal && (
+        <ModalSuspense>
+          <HeaderSidebar
+            open={true}
+            onClose={() => setShowHeaderEditModal(false)}
+            headerTitle={headerTitle}
+            headerScale={headerScale}
+            headerSettings={headerSettings}
+            updateHeaderTitle={updateHeaderTitle}
+            updateHeaderScale={updateHeaderScale}
+            updateHeaderSettings={updateHeaderSettings}
+            onSwitchToTheme={() => {
+              setShowHeaderEditModal(false);
+              setShowThemeSidebar(true);
+            }}
+            onSwitchToLayout={() => {
+              setShowHeaderEditModal(false);
+              setShowLayoutSidebar(true);
+            }}
+            t={t}
+          />
+        </ModalSuspense>
+      )}
     </>
   );
 }

@@ -1,8 +1,8 @@
 // Minimal service worker for PWA installability
 // Serves cached shell offline and caches immutable build assets at runtime.
 
-const SHELL_CACHE_NAME = 'tunet-shell-v2';
-const ASSET_CACHE_NAME = 'tunet-assets-v1';
+const SHELL_CACHE_NAME = 'tunet-shell-v3';
+const ASSET_CACHE_NAME = 'tunet-assets-v2';
 const SHELL_ASSETS = ['./', './index.html'];
 
 function isBuildAssetRequest(request) {

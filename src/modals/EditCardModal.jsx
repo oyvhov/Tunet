@@ -21,6 +21,7 @@ const MIN_POPUP_TRIGGER_COOLDOWN_SECONDS = 10;
 const MAX_POPUP_TRIGGER_COOLDOWN_SECONDS = 3600;
 const MIN_POPUP_TRIGGER_AUTO_CLOSE_SECONDS = 0;
 const MAX_POPUP_TRIGGER_AUTO_CLOSE_SECONDS = 3600;
+const EMPTY_ENTITY_IDS = [];
 
 function normalizePopupTriggerCooldownSeconds(value) {
   const parsed = Number(value);
@@ -186,12 +187,21 @@ function GraphLimitsSlider({ values, onChange, min = -15, max = 35 }) {
   );
 }
 
-function getVacuumSensorOptions({ entityId, entities, byDomain, sortByName, registryVacuumSensorIds, editSettings }) {
+function getVacuumSensorOptions({
+  entityId,
+  entities,
+  byDomain,
+  sortByName,
+  registryVacuumSensorIds,
+  editSettings,
+}) {
   const isVacuumCard = typeof entityId === 'string' && entityId.startsWith('vacuum.');
   const allSensors = sortByName(byDomain('sensor'));
   if (!isVacuumCard) return allSensors;
 
-  const registryFiltered = registryVacuumSensorIds.filter((sensorId) => allSensors.includes(sensorId));
+  const registryFiltered = registryVacuumSensorIds.filter((sensorId) =>
+    allSensors.includes(sensorId)
+  );
 
   const mappedSensorIds = [
     editSettings?.batterySensorId,
@@ -310,7 +320,8 @@ function useCarAutoMapping({
       if (anchorId && entities[anchorId]) relatedIdsSet.add(anchorId);
 
       const pickFirstRelated = (predicate) => {
-        const ids = relatedIdsSet.size > 0 ? Array.from(relatedIdsSet) : Object.keys(entities || {});
+        const ids =
+          relatedIdsSet.size > 0 ? Array.from(relatedIdsSet) : Object.keys(entities || {});
         return (
           ids.find((id) => {
             const entity = entities[id];
@@ -383,7 +394,9 @@ function useCarAutoMapping({
         chargingPowerId: pickFirstRelated((id, entity) => {
           if (!(id.startsWith('sensor.') || id.startsWith('input_number.'))) return false;
           const unit = String(entity?.attributes?.unit_of_measurement || '').toLowerCase();
-          return ['kw', 'w'].includes(unit) && hasKeyword(id, entity, ['charge', 'charging', 'power']);
+          return (
+            ['kw', 'w'].includes(unit) && hasKeyword(id, entity, ['charge', 'charging', 'power'])
+          );
         }),
         chargeRateId: pickFirstRelated((id, entity) => {
           if (!(id.startsWith('sensor.') || id.startsWith('input_number.'))) return false;
@@ -408,7 +421,8 @@ function useCarAutoMapping({
         ),
         engineStatusId: pickFirstRelated(
           (id, entity) =>
-            id.startsWith('binary_sensor.') && hasKeyword(id, entity, ['engine', 'ignition', 'motor'])
+            id.startsWith('binary_sensor.') &&
+            hasKeyword(id, entity, ['engine', 'ignition', 'motor'])
         ),
         lastUpdatedId: pickFirstRelated(
           (id, entity) =>
@@ -430,7 +444,8 @@ function useCarAutoMapping({
             hasKeyword(id, entity, ['charge_limit', 'soc limit'])
         ),
         updateButtonId: pickFirstRelated(
-          (id, entity) => id.startsWith('button.') && hasKeyword(id, entity, ['update', 'refresh', 'poll'])
+          (id, entity) =>
+            id.startsWith('button.') && hasKeyword(id, entity, ['update', 'refresh', 'poll'])
         ),
       };
 
@@ -821,95 +836,166 @@ export default function EditCardModal({
   const isPerson = entityId?.startsWith('person.');
   const personDisplay = editSettings?.personDisplay || 'photo';
 
-  const entityEntries = Object.entries(entities || {});
-  const byDomain = (domain) =>
-    entityEntries.filter(([id]) => id.startsWith(`${domain}.`)).map(([id]) => id);
-  const sortByName = (ids) =>
-    ids.sort((a, b) =>
-      (entities[a]?.attributes?.friendly_name || a).localeCompare(
-        entities[b]?.attributes?.friendly_name || b
-      )
-    );
-  const carMatch = matchCarEntities(entities || {});
-  const batteryOptions = carMatch.options?.batteryId || [];
-  const rangeOptions = carMatch.options?.rangeId || [];
-  const odometerOptions = carMatch.options?.odometerId || [];
-  const locationOptions = carMatch.options?.locationId || [];
-  const latitudeOptions = carMatch.options?.latitudeId || [];
-  const longitudeOptions = carMatch.options?.longitudeId || [];
-  const chargingOptions = carMatch.options?.chargingStateId || [];
-  const pluggedOptions = carMatch.options?.pluggedId || [];
-  const chargingPowerOptions = carMatch.options?.chargingPowerId || [];
-  const chargeRateOptions = carMatch.options?.chargeRateId || [];
-  const timeToFullOptions = carMatch.options?.timeToFullId || [];
-  const chargeEndTimeOptions = carMatch.options?.chargeEndTimeId || [];
-  const fuelLevelOptions = carMatch.options?.fuelLevelId || [];
+  const entityEntries = React.useMemo(() => Object.entries(entities || {}), [entities]);
+  const sortByName = React.useCallback(
+    (entityIds) =>
+      [...entityIds].sort((leftId, rightId) =>
+        (entities[leftId]?.attributes?.friendly_name || leftId).localeCompare(
+          entities[rightId]?.attributes?.friendly_name || rightId
+        )
+      ),
+    [entities]
+  );
+  const entityIdsByDomain = React.useMemo(() => {
+    const grouped = {};
+    entityEntries.forEach(([id]) => {
+      const separatorIndex = id.indexOf('.');
+      if (separatorIndex <= 0) return;
+      const domain = id.slice(0, separatorIndex);
+      grouped[domain] = grouped[domain] || [];
+      grouped[domain].push(id);
+    });
 
-  const climateOptions = sortByName(byDomain('climate'));
-  const calendarOptions = sortByName(byDomain('calendar'));
-  const todoOptions = sortByName(byDomain('todo'));
-  const scriptOptions = sortByName(byDomain('script'));
-  const vacuumSensorOptions = getVacuumSensorOptions({
-    entityId,
-    entities,
-    byDomain,
-    sortByName,
-    registryVacuumSensorIds,
-    editSettings,
-  });
-  const mediaPlayerOptions = sortByName(byDomain('media_player'));
+    Object.keys(grouped).forEach((domain) => {
+      grouped[domain] = sortByName(grouped[domain]);
+    });
 
-  const lastUpdatedOptions = carMatch.options?.lastUpdatedId || [];
-  const apiStatusOptions = carMatch.options?.apiStatusId || [];
-  const updateButtonOptions = carMatch.options?.updateButtonId || [];
-  const lockOptions = carMatch.options?.lockId || [];
-  const ignitionSwitchOptions = carMatch.options?.ignitionSwitchId || [];
-  const engineStatusOptions = carMatch.options?.engineStatusId || [];
-  const chargeLimitNumberOptions = carMatch.options?.chargeLimitNumberId || [];
-  const chargeLimitSelectOptions = carMatch.options?.chargeLimitSelectId || [];
-  const chargeControlOptions = sortByName(carMatch.chargeControlIds || []);
-  const mappedCarAnchorCandidates = [
-    editSettings?.batteryId,
-    editSettings?.rangeId,
-    editSettings?.locationId,
-    editSettings?.chargingId,
-    editSettings?.climateId,
-    editSettings?.lockId,
-    editSettings?.updateButtonId,
-  ].filter(Boolean);
+    return grouped;
+  }, [entityEntries, sortByName]);
+  const byDomain = React.useCallback(
+    (domain) => entityIdsByDomain[domain] || [],
+    [entityIdsByDomain]
+  );
+  const carMatch = React.useMemo(() => matchCarEntities(entities || {}), [entities]);
+  const batteryOptions = carMatch.options?.batteryId || EMPTY_ENTITY_IDS;
+  const rangeOptions = carMatch.options?.rangeId || EMPTY_ENTITY_IDS;
+  const odometerOptions = carMatch.options?.odometerId || EMPTY_ENTITY_IDS;
+  const locationOptions = carMatch.options?.locationId || EMPTY_ENTITY_IDS;
+  const latitudeOptions = carMatch.options?.latitudeId || EMPTY_ENTITY_IDS;
+  const longitudeOptions = carMatch.options?.longitudeId || EMPTY_ENTITY_IDS;
+  const chargingOptions = carMatch.options?.chargingStateId || EMPTY_ENTITY_IDS;
+  const pluggedOptions = carMatch.options?.pluggedId || EMPTY_ENTITY_IDS;
+  const chargingPowerOptions = carMatch.options?.chargingPowerId || EMPTY_ENTITY_IDS;
+  const chargeRateOptions = carMatch.options?.chargeRateId || EMPTY_ENTITY_IDS;
+  const timeToFullOptions = carMatch.options?.timeToFullId || EMPTY_ENTITY_IDS;
+  const chargeEndTimeOptions = carMatch.options?.chargeEndTimeId || EMPTY_ENTITY_IDS;
+  const fuelLevelOptions = carMatch.options?.fuelLevelId || EMPTY_ENTITY_IDS;
 
-  const matcherCarAnchorCandidates = [
-    ...batteryOptions,
-    ...rangeOptions,
-    ...odometerOptions,
-    ...locationOptions,
-    ...latitudeOptions,
-    ...longitudeOptions,
-    ...chargingOptions,
-    ...pluggedOptions,
-    ...chargingPowerOptions,
-    ...chargeRateOptions,
-    ...timeToFullOptions,
-    ...chargeEndTimeOptions,
-    ...fuelLevelOptions,
-    ...climateOptions,
-    ...lockOptions,
-    ...ignitionSwitchOptions,
-    ...engineStatusOptions,
-    ...lastUpdatedOptions,
-    ...apiStatusOptions,
-    ...chargeLimitNumberOptions,
-    ...chargeLimitSelectOptions,
-    ...chargeControlOptions,
-    ...updateButtonOptions,
-  ];
+  const climateOptions = byDomain('climate');
+  const calendarOptions = byDomain('calendar');
+  const todoOptions = byDomain('todo');
+  const scriptOptions = byDomain('script');
+  const vacuumSensorOptions = React.useMemo(
+    () =>
+      getVacuumSensorOptions({
+        entityId,
+        entities,
+        byDomain,
+        sortByName,
+        registryVacuumSensorIds,
+        editSettings,
+      }),
+    [entityId, entities, byDomain, sortByName, registryVacuumSensorIds, editSettings]
+  );
+  const mediaPlayerOptions = byDomain('media_player');
 
-  const carAnchorOptions = buildCarAnchorOptions({
-    entityEntries,
-    mappedCandidates: mappedCarAnchorCandidates,
-    matcherCandidates: matcherCarAnchorCandidates,
-    sortByName,
-  });
+  const lastUpdatedOptions = carMatch.options?.lastUpdatedId || EMPTY_ENTITY_IDS;
+  const apiStatusOptions = carMatch.options?.apiStatusId || EMPTY_ENTITY_IDS;
+  const updateButtonOptions = carMatch.options?.updateButtonId || EMPTY_ENTITY_IDS;
+  const lockOptions = carMatch.options?.lockId || EMPTY_ENTITY_IDS;
+  const ignitionSwitchOptions = carMatch.options?.ignitionSwitchId || EMPTY_ENTITY_IDS;
+  const engineStatusOptions = carMatch.options?.engineStatusId || EMPTY_ENTITY_IDS;
+  const chargeLimitNumberOptions = carMatch.options?.chargeLimitNumberId || EMPTY_ENTITY_IDS;
+  const chargeLimitSelectOptions = carMatch.options?.chargeLimitSelectId || EMPTY_ENTITY_IDS;
+  const chargeControlOptions = React.useMemo(
+    () => sortByName(carMatch.chargeControlIds || []),
+    [carMatch.chargeControlIds, sortByName]
+  );
+  const mappedCarAnchorCandidates = React.useMemo(
+    () =>
+      [
+        editSettings?.batteryId,
+        editSettings?.rangeId,
+        editSettings?.locationId,
+        editSettings?.chargingId,
+        editSettings?.climateId,
+        editSettings?.lockId,
+        editSettings?.updateButtonId,
+      ].filter(Boolean),
+    [
+      editSettings?.batteryId,
+      editSettings?.rangeId,
+      editSettings?.locationId,
+      editSettings?.chargingId,
+      editSettings?.climateId,
+      editSettings?.lockId,
+      editSettings?.updateButtonId,
+    ]
+  );
+
+  const matcherCarAnchorCandidates = React.useMemo(
+    () => [
+      ...batteryOptions,
+      ...rangeOptions,
+      ...odometerOptions,
+      ...locationOptions,
+      ...latitudeOptions,
+      ...longitudeOptions,
+      ...chargingOptions,
+      ...pluggedOptions,
+      ...chargingPowerOptions,
+      ...chargeRateOptions,
+      ...timeToFullOptions,
+      ...chargeEndTimeOptions,
+      ...fuelLevelOptions,
+      ...climateOptions,
+      ...lockOptions,
+      ...ignitionSwitchOptions,
+      ...engineStatusOptions,
+      ...lastUpdatedOptions,
+      ...apiStatusOptions,
+      ...chargeLimitNumberOptions,
+      ...chargeLimitSelectOptions,
+      ...chargeControlOptions,
+      ...updateButtonOptions,
+    ],
+    [
+      batteryOptions,
+      rangeOptions,
+      odometerOptions,
+      locationOptions,
+      latitudeOptions,
+      longitudeOptions,
+      chargingOptions,
+      pluggedOptions,
+      chargingPowerOptions,
+      chargeRateOptions,
+      timeToFullOptions,
+      chargeEndTimeOptions,
+      fuelLevelOptions,
+      climateOptions,
+      lockOptions,
+      ignitionSwitchOptions,
+      engineStatusOptions,
+      lastUpdatedOptions,
+      apiStatusOptions,
+      chargeLimitNumberOptions,
+      chargeLimitSelectOptions,
+      chargeControlOptions,
+      updateButtonOptions,
+    ]
+  );
+
+  const carAnchorOptions = React.useMemo(
+    () =>
+      buildCarAnchorOptions({
+        entityEntries,
+        mappedCandidates: mappedCarAnchorCandidates,
+        matcherCandidates: matcherCarAnchorCandidates,
+        sortByName,
+      }),
+    [entityEntries, mappedCarAnchorCandidates, matcherCarAnchorCandidates, sortByName]
+  );
 
   const carAnchorEntityId = editSettings?.carAnchorEntityId || null;
 
@@ -986,31 +1072,60 @@ export default function EditCardModal({
   };
   const personBatteryOptions = batteryOptions; // Show all batteries always
 
-  const allPersonCandidateSensors = sortByName(
-    entityEntries
-      .filter(
-        ([id]) =>
-          id.startsWith('sensor.') ||
-          id.startsWith('binary_sensor.') ||
-          id.startsWith('input_boolean.')
-      )
-      .map(([id]) => id)
+  const allPersonCandidateSensors = React.useMemo(
+    () =>
+      sortByName(
+        entityEntries
+          .filter(
+            ([id]) =>
+              id.startsWith('sensor.') ||
+              id.startsWith('binary_sensor.') ||
+              id.startsWith('input_boolean.')
+          )
+          .map(([id]) => id)
+      ),
+    [entityEntries, sortByName]
   );
 
   // Show all sensors always, filtering happens inside searchable select by user typing
   const personExtraSensorOptions = allPersonCandidateSensors;
 
-  const personExtraSensors = Array.isArray(editSettings?.personExtraSensors)
-    ? editSettings.personExtraSensors.filter((id) => typeof id === 'string')
-    : [];
-  const availablePersonExtraSensorOptions = personExtraSensorOptions.filter(
-    (id) => !personExtraSensors.includes(id)
+  const personExtraSensors = React.useMemo(
+    () =>
+      Array.isArray(editSettings?.personExtraSensors)
+        ? editSettings.personExtraSensors.filter((id) => typeof id === 'string')
+        : [],
+    [editSettings?.personExtraSensors]
   );
-  const personTrackerOptions = (() => {
-    const trackers = sortByName(byDomain('device_tracker'));
-    // Always show all trackers too, to be safe
-    return trackers;
-  })();
+  const availablePersonExtraSensorOptions = React.useMemo(() => {
+    const selectedSensorIds = new Set(personExtraSensors);
+    return personExtraSensorOptions.filter((id) => !selectedSensorIds.has(id));
+  }, [personExtraSensorOptions, personExtraSensors]);
+  const personTrackerOptions = byDomain('device_tracker');
+  const numericEntityOptions = React.useMemo(
+    () =>
+      sortByName(
+        entityEntries
+          .filter(([id]) => id.startsWith('sensor.') || id.startsWith('input_number.'))
+          .map(([id]) => id)
+      ),
+    [entityEntries, sortByName]
+  );
+  const cameraMotionSensorOptions = React.useMemo(
+    () =>
+      sortByName(
+        entityEntries
+          .filter(
+            ([id, entity]) =>
+              id.startsWith('binary_sensor.') &&
+              (entity?.attributes?.device_class === 'motion' ||
+                entity?.attributes?.device_class === 'occupancy' ||
+                id.toLowerCase().includes('motion'))
+          )
+          .map(([id]) => id)
+      ),
+    [entityEntries, sortByName]
+  );
 
   if (!isOpen) return null;
 
@@ -1033,7 +1148,7 @@ export default function EditCardModal({
     >
       {(resolvedTitleId) => (
         <>
-      <style>{`
+          <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }
@@ -1048,718 +1163,417 @@ export default function EditCardModal({
           background: rgba(255, 255, 255, 0.25);
         }
       `}</style>
-      <>
-        <button
-          onClick={onClose}
-          className="modal-close absolute top-5 right-5 z-10 md:top-7 md:right-7"
-          aria-label={t('common.close') || 'Close'}
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <h3
-          id={resolvedTitleId}
-          className="mb-4 shrink-0 text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
-        >
-          {t('modal.editCard.title')}
-        </h3>
+          <>
+            <button
+              onClick={onClose}
+              className="modal-close absolute top-5 right-5 z-10 md:top-7 md:right-7"
+              aria-label={t('common.close') || 'Close'}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <h3
+              id={resolvedTitleId}
+              className="mb-4 shrink-0 text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+            >
+              {t('modal.editCard.title')}
+            </h3>
 
-        <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto pr-2">
-          {(canEditName || editSettingsKey) && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {canEditName && (
+            <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto pr-2">
+              {(canEditName || editSettingsKey) && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {canEditName && (
+                    <div className="space-y-2">
+                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                        {t('form.name')}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={
+                          customNames[entityId] ||
+                          entities[entityId]?.attributes?.friendly_name ||
+                          ''
+                        }
+                        onBlur={(e) => saveCustomName(entityId, e.target.value)}
+                        placeholder={t('form.defaultName')}
+                      />
+                    </div>
+                  )}
+
+                  {editSettingsKey && (
+                    <div className="space-y-2">
+                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                        {t('form.heading')}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={editSettings.heading || ''}
+                        onBlur={(e) =>
+                          saveCardSetting(editSettingsKey, 'heading', e.target.value.trim() || null)
+                        }
+                        placeholder={t('form.headingPlaceholder')}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {canEditIcon && (
                 <div className="space-y-2">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                    {t('form.name')}
+                  <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('form.chooseIcon')}
                   </label>
-                  <input
-                    type="text"
-                    className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                    defaultValue={
-                      customNames[entityId] || entities[entityId]?.attributes?.friendly_name || ''
-                    }
-                    onBlur={(e) => saveCustomName(entityId, e.target.value)}
-                    placeholder={t('form.defaultName')}
+                  <IconPicker
+                    value={customIcons[entityId] || null}
+                    onSelect={(iconName) => saveCustomIcon(entityId, iconName)}
+                    onClear={() => saveCustomIcon(entityId, null)}
+                    t={t}
+                    maxHeightClass="max-h-48"
                   />
                 </div>
               )}
 
               {editSettingsKey && (
-                <div className="space-y-2">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                    {t('form.heading')}
-                  </label>
-                  <input
-                    type="text"
-                    className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                    defaultValue={editSettings.heading || ''}
-                    onBlur={(e) =>
-                      saveCardSetting(editSettingsKey, 'heading', e.target.value.trim() || null)
-                    }
-                    placeholder={t('form.headingPlaceholder')}
-                  />
-                </div>
+                <VisibilityConditionSection
+                  t={t}
+                  visibilityEnabled={visibilityEnabled}
+                  showVisibilityLogic={showVisibilityLogic}
+                  setShowVisibilityLogic={setShowVisibilityLogic}
+                  toggleVisibilityCondition={toggleVisibilityCondition}
+                  entityId={entityId}
+                  editSettings={editSettings}
+                  visibilityCondition={visibilityCondition}
+                  entities={entities}
+                  editSettingsKey={editSettingsKey}
+                  saveCardSetting={saveCardSetting}
+                />
               )}
-            </div>
-          )}
 
-          {canEditIcon && (
-            <div className="space-y-2">
-              <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-                {t('form.chooseIcon')}
-              </label>
-              <IconPicker
-                value={customIcons[entityId] || null}
-                onSelect={(iconName) => saveCustomIcon(entityId, iconName)}
-                onClear={() => saveCustomIcon(entityId, null)}
-                t={t}
-                maxHeightClass="max-h-48"
-              />
-            </div>
-          )}
-
-          {editSettingsKey && (
-            <VisibilityConditionSection
-              t={t}
-              visibilityEnabled={visibilityEnabled}
-              showVisibilityLogic={showVisibilityLogic}
-              setShowVisibilityLogic={setShowVisibilityLogic}
-              toggleVisibilityCondition={toggleVisibilityCondition}
-              entityId={entityId}
-              editSettings={editSettings}
-              visibilityCondition={visibilityCondition}
-              entities={entities}
-              editSettingsKey={editSettingsKey}
-              saveCardSetting={saveCardSetting}
-            />
-          )}
-
-          {editSettingsKey && (
-            <PopupTriggerSection
-              t={t}
-              popupTriggerEnabled={popupTriggerEnabled}
-              showPopupLogic={showPopupLogic}
-              setShowPopupLogic={setShowPopupLogic}
-              savePopupTrigger={savePopupTrigger}
-              popupTriggerCondition={popupTriggerCondition}
-              popupTriggerCooldownSeconds={popupTriggerCooldownSeconds}
-              popupTriggerAutoCloseSeconds={popupTriggerAutoCloseSeconds}
-              entityId={entityId}
-              editSettings={editSettings}
-              entities={entities}
-            />
-          )}
-
-          {isEditWeatherTemp && editSettingsKey && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('weatherTemp.subtitle') || 'Subtitle'}
-                </label>
-                <input
-                  type="text"
-                  className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                  defaultValue={editSettings.subtitle || ''}
-                  onBlur={(e) =>
-                    saveCardSetting(editSettingsKey, 'subtitle', e.target.value.trim() || null)
-                  }
-                  placeholder={t('weatherTemp.subtitlePlaceholder') || 'e.g. Oslo, Home'}
+              {editSettingsKey && (
+                <PopupTriggerSection
+                  t={t}
+                  popupTriggerEnabled={popupTriggerEnabled}
+                  showPopupLogic={showPopupLogic}
+                  setShowPopupLogic={setShowPopupLogic}
+                  savePopupTrigger={savePopupTrigger}
+                  popupTriggerCondition={popupTriggerCondition}
+                  popupTriggerCooldownSeconds={popupTriggerCooldownSeconds}
+                  popupTriggerAutoCloseSeconds={popupTriggerAutoCloseSeconds}
+                  entityId={entityId}
+                  editSettings={editSettings}
+                  entities={entities}
                 />
-              </div>
+              )}
 
-              <div className="space-y-2">
-                <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('weatherTemp.graphHistory') || 'Graph history'}
-                </label>
-                <div className="popup-surface flex flex-wrap items-center gap-2 rounded-2xl p-3">
-                  {[6, 12, 24, 48].map((hours) => {
-                    const active = (editSettings.graphHistoryHours || 12) === hours;
-                    return (
-                      <button
-                        key={hours}
-                        type="button"
-                        onClick={() => saveCardSetting(editSettingsKey, 'graphHistoryHours', hours)}
-                        className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                      >
-                        {hours}h
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('weatherTemp.graphLimits') || 'Graph color limits'} ({tempDisplayUnit})
-                </label>
-                <GraphLimitsSlider
-                  values={[
-                    Number.isFinite(editSettings.graphLimit1) ? editSettings.graphLimit1 : 0,
-                    Number.isFinite(editSettings.graphLimit2) ? editSettings.graphLimit2 : 10,
-                    Number.isFinite(editSettings.graphLimit3) ? editSettings.graphLimit3 : 20,
-                    Number.isFinite(editSettings.graphLimit4) ? editSettings.graphLimit4 : 28,
-                  ].map((limit) =>
-                    convertValueByKind(limit, {
-                      kind: 'temperature',
-                      fromUnit: '°C',
-                      unitMode: effectiveUnitMode,
-                    })
-                  )}
-                  min={graphLimitRange.min}
-                  max={graphLimitRange.max}
-                  onChange={(next) => {
-                    const canonicalLimits = next.map((limit) =>
-                      convertValueByKind(limit, {
-                        kind: 'temperature',
-                        fromUnit: tempDisplayUnit,
-                        unitMode: 'metric',
-                      })
-                    );
-                    saveCardSetting(editSettingsKey, 'graphLimit1', canonicalLimits[0]);
-                    saveCardSetting(editSettingsKey, 'graphLimit2', canonicalLimits[1]);
-                    saveCardSetting(editSettingsKey, 'graphLimit3', canonicalLimits[2]);
-                    saveCardSetting(editSettingsKey, 'graphLimit4', canonicalLimits[3]);
-                  }}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('weatherTemp.effects')}
-                </label>
-                <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
-                  <span className="text-sm font-medium text-[var(--text-primary)]">
-                    {t('weatherTemp.showEffects')}
-                  </span>
-                  <button
-                    onClick={() =>
-                      saveCardSetting(
-                        editSettingsKey,
-                        'showEffects',
-                        editSettings.showEffects === false ? true : false
-                      )
-                    }
-                    className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showEffects !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
-                  >
-                    <span
-                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isEditCalendar && editSettingsKey && (
-            <div className="space-y-3">
-              <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                {t('calendar.selectCalendars') || 'Select Calendars'}
-              </label>
-              <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
-                {calendarOptions.length === 0 && (
-                  <p className="py-4 text-center text-xs text-[var(--text-muted)]">
-                    {t('calendar.noCalendarsFound') || 'No calendars found'}
-                  </p>
-                )}
-                {calendarOptions.map((id) => {
-                  const selected =
-                    Array.isArray(editSettings.calendars) && editSettings.calendars.includes(id);
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => {
-                        const current = Array.isArray(editSettings.calendars)
-                          ? editSettings.calendars
-                          : [];
-                        const next = selected ? current.filter((x) => x !== id) : [...current, id];
-                        saveCardSetting(editSettingsKey, 'calendars', next);
-                      }}
-                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div className="truncate text-sm font-bold">
-                        {entities[id]?.attributes?.friendly_name || id}
-                      </div>
-                      <div className="truncate text-[10px] text-[var(--text-muted)]">{id}</div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Week View toggle */}
-              <div className="popup-surface rounded-2xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-bold text-[var(--text-primary)]">
-                      {t('calendar.largeCalendar') || 'Week View'}
+              {isEditWeatherTemp && editSettingsKey && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('weatherTemp.subtitle') || 'Subtitle'}
                     </label>
-                    <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-                      {t('calendar.largeCalendarHint') || 'Show Outlook-style week time-grid view'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      saveCardSetting(editSettingsKey, 'largeCalendar', !editSettings.largeCalendar)
-                    }
-                    className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.largeCalendar ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
-                  >
-                    <span
-                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`}
+                    <input
+                      type="text"
+                      className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                      defaultValue={editSettings.subtitle || ''}
+                      onBlur={(e) =>
+                        saveCardSetting(editSettingsKey, 'subtitle', e.target.value.trim() || null)
+                      }
+                      placeholder={t('weatherTemp.subtitlePlaceholder') || 'e.g. Oslo, Home'}
                     />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('editCard.columnWidth') || 'Column Width'}
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      saveCardSetting(
-                        editSettingsKey,
-                        'colSpan',
-                        Math.max(1, (editSettings.colSpan || 1) - 1)
-                      )
-                    }
-                    className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                  >
-                    −
-                  </button>
-                  <div className="flex-1 text-center">
-                    <span className="text-lg font-bold text-[var(--text-primary)]">
-                      {editSettings.colSpan || 1}
-                    </span>
-                    <span className="ml-1 text-xs text-[var(--text-muted)]">
-                      {(editSettings.colSpan || 1) === 1
-                        ? t('editCard.column') || 'column'
-                        : t('editCard.columns') || 'columns'}
-                    </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      saveCardSetting(
-                        editSettingsKey,
-                        'colSpan',
-                        Math.min(maxColSpan, (editSettings.colSpan || 1) + 1)
-                      )
-                    }
-                    className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {isEditSpacer && editSettingsKey && (
-            <div className="space-y-4">
-              {(() => {
-                const currentColSpan =
-                  typeof editSettings.colSpan === 'number' ? editSettings.colSpan : 1;
-                const isFullWidth = editSettings.colSpan === 'full';
-                const currentHeadingAlign = ['left', 'center', 'right'].includes(
-                  editSettings.headingAlign
-                )
-                  ? editSettings.headingAlign
-                  : 'center';
-
-                return (
-                  <>
-                    <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {t('spacer.variant') || 'Variant'}
-                      </label>
-                      <div className="flex gap-2">
-                        {[
-                          { key: 'spacer', label: t('spacer.spacer') || 'Spacer' },
-                          { key: 'divider', label: t('spacer.divider') || 'Divider' },
-                        ].map((v) => (
+                  <div className="space-y-2">
+                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('weatherTemp.graphHistory') || 'Graph history'}
+                    </label>
+                    <div className="popup-surface flex flex-wrap items-center gap-2 rounded-2xl p-3">
+                      {[6, 12, 24, 48].map((hours) => {
+                        const active = (editSettings.graphHistoryHours || 12) === hours;
+                        return (
                           <button
-                            key={v.key}
-                            onClick={() => {
-                              saveCardSetting(editSettingsKey, 'variant', v.key);
-                              if (v.key === 'divider') {
-                                saveCardSetting(editSettingsKey, 'colSpan', 'full');
-                                saveCardSetting(editSettingsKey, 'heightPx', 40);
-                              }
-                            }}
-                            className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${(editSettings.variant || 'spacer') === v.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                            style={
-                              (editSettings.variant || 'spacer') === v.key
-                                ? {
-                                    backgroundColor: 'var(--glass-bg-hover)',
-                                    borderColor: 'var(--glass-border)',
-                                  }
-                                : undefined
-                            }
-                          >
-                            {v.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {'Heading alignment'}
-                      </label>
-                      <div className="flex gap-2">
-                        {[
-                          { key: 'left', label: 'Venstre' },
-                          { key: 'center', label: 'Midt' },
-                          { key: 'right', label: 'Høgre' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.key}
+                            key={hours}
                             type="button"
                             onClick={() =>
-                              saveCardSetting(editSettingsKey, 'headingAlign', opt.key)
+                              saveCardSetting(editSettingsKey, 'graphHistoryHours', hours)
                             }
-                            className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${currentHeadingAlign === opt.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                            style={
-                              currentHeadingAlign === opt.key
-                                ? {
-                                    backgroundColor: 'var(--glass-bg-hover)',
-                                    borderColor: 'var(--glass-border)',
-                                  }
-                                : undefined
-                            }
+                            className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                           >
-                            {opt.label}
+                            {hours}h
                           </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {'Column Width'}
-                      </label>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => saveCardSetting(editSettingsKey, 'colSpan', 'full')}
-                          className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${isFullWidth ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                          style={
-                            isFullWidth
-                              ? {
-                                  backgroundColor: 'var(--glass-bg-hover)',
-                                  borderColor: 'var(--glass-border)',
-                                }
-                              : undefined
-                          }
-                        >
-                          {'Full Width'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(editSettingsKey, 'colSpan', currentColSpan)
-                          }
-                          className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${!isFullWidth ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                          style={
-                            !isFullWidth
-                              ? {
-                                  backgroundColor: 'var(--glass-bg-hover)',
-                                  borderColor: 'var(--glass-border)',
-                                }
-                              : undefined
-                          }
-                        >
-                          {'Custom'}
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(
-                              editSettingsKey,
-                              'colSpan',
-                              Math.max(1, currentColSpan - 1)
-                            )
-                          }
-                          disabled={isFullWidth}
-                          className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                        >
-                          &minus;
-                        </button>
-                        <div className="flex-1 text-center">
-                          <span className="text-lg font-bold text-[var(--text-primary)]">
-                            {isFullWidth ? '∞' : currentColSpan}
-                          </span>
-                          <span className="ml-1 text-xs text-[var(--text-muted)]">
-                            {isFullWidth
-                              ? 'full width'
-                              : currentColSpan === 1
-                                ? 'column'
-                                : 'columns'}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(
-                              editSettingsKey,
-                              'colSpan',
-                              Math.min(4, currentColSpan + 1)
-                            )
-                          }
-                          disabled={isFullWidth}
-                          className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {'Height'}
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(
-                              editSettingsKey,
-                              'heightPx',
-                              Math.max(24, (editSettings.heightPx || 100) - 20)
-                            )
-                          }
-                          className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                        >
-                          &minus;
-                        </button>
-                        <div className="flex-1 text-center">
-                          <span className="text-lg font-bold text-[var(--text-primary)]">
-                            {editSettings.heightPx || 100}
-                          </span>
-                          <span className="ml-1 text-xs text-[var(--text-muted)]">px</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(
-                              editSettingsKey,
-                              'heightPx',
-                              Math.min(420, (editSettings.heightPx || 100) + 20)
-                            )
-                          }
-                          className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
-
-          {isEditCamera &&
-            editSettingsKey &&
-            (() => {
-              const streamEngine = String(editSettings.cameraStreamEngine || 'auto').toLowerCase();
-              const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
-              const recommendedWebrtc = '/api/webrtc?src={entity_object_id}';
-              const refreshMode = editSettings.cameraRefreshMode || 'interval';
-              const refreshInterval = editSettings.cameraRefreshInterval || 10;
-              const motionSensorId = editSettings.cameraMotionSensor || '';
-              const binarySensorOptions = sortByName(
-                entityEntries
-                  .filter(
-                    ([id, e]) =>
-                      id.startsWith('binary_sensor.') &&
-                      (e?.attributes?.device_class === 'motion' ||
-                        e?.attributes?.device_class === 'occupancy' ||
-                        id.toLowerCase().includes('motion'))
-                  )
-                  .map(([id]) => id)
-              );
-
-              return (
-                <div className="space-y-4">
-                  {/* Stream engine */}
-                  <div className="space-y-2">
-                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                      {t('camera.streamEngine') || 'Stream Engine'}
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { key: 'auto', label: t('camera.streamEngineAuto') || 'Auto' },
-                        { key: 'webrtc', label: t('camera.streamEngineWebrtc') || 'WebRTC' },
-                        { key: 'ha', label: t('camera.streamEngineHa') || 'HA Stream' },
-                        { key: 'snapshot', label: t('camera.streamEngineSnapshot') || 'Snapshot' },
-                      ].map((opt) => (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(editSettingsKey, 'cameraStreamEngine', opt.key)
-                          }
-                          className={`rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${streamEngine === opt.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                          style={
-                            streamEngine === opt.key
-                              ? {
-                                  backgroundColor: 'var(--glass-bg-hover)',
-                                  borderColor: 'var(--glass-border)',
-                                }
-                              : undefined
-                          }
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Optional WebRTC URL */}
-                  {(streamEngine === 'webrtc' || streamEngine === 'auto') && (
-                    <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {t('camera.webrtcUrlOptional') || 'WebRTC URL (optional)'}
-                      </label>
-                      <input
-                        type="text"
-                        value={webrtcTemplate}
-                        onChange={(e) =>
-                          saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', e.target.value)
+                  <div className="space-y-2">
+                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('weatherTemp.graphLimits') || 'Graph color limits'} ({tempDisplayUnit})
+                    </label>
+                    <GraphLimitsSlider
+                      values={[
+                        Number.isFinite(editSettings.graphLimit1) ? editSettings.graphLimit1 : 0,
+                        Number.isFinite(editSettings.graphLimit2) ? editSettings.graphLimit2 : 10,
+                        Number.isFinite(editSettings.graphLimit3) ? editSettings.graphLimit3 : 20,
+                        Number.isFinite(editSettings.graphLimit4) ? editSettings.graphLimit4 : 28,
+                      ].map((limit) =>
+                        convertValueByKind(limit, {
+                          kind: 'temperature',
+                          fromUnit: '°C',
+                          unitMode: effectiveUnitMode,
+                        })
+                      )}
+                      min={graphLimitRange.min}
+                      max={graphLimitRange.max}
+                      onChange={(next) => {
+                        const canonicalLimits = next.map((limit) =>
+                          convertValueByKind(limit, {
+                            kind: 'temperature',
+                            fromUnit: tempDisplayUnit,
+                            unitMode: 'metric',
+                          })
+                        );
+                        saveCardSetting(editSettingsKey, 'graphLimit1', canonicalLimits[0]);
+                        saveCardSetting(editSettingsKey, 'graphLimit2', canonicalLimits[1]);
+                        saveCardSetting(editSettingsKey, 'graphLimit3', canonicalLimits[2]);
+                        saveCardSetting(editSettingsKey, 'graphLimit4', canonicalLimits[3]);
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('weatherTemp.effects')}
+                    </label>
+                    <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
+                        {t('weatherTemp.showEffects')}
+                      </span>
+                      <button
+                        onClick={() =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'showEffects',
+                            editSettings.showEffects === false ? true : false
+                          )
                         }
-                        placeholder={recommendedWebrtc}
-                        className="w-full rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none"
-                        style={{
-                          backgroundColor: 'var(--glass-bg)',
-                          borderColor: 'var(--glass-border)',
-                          color: 'var(--text-primary)',
-                        }}
-                      />
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', recommendedWebrtc)
-                          }
-                          className="popup-surface popup-surface-hover rounded-xl border border-[var(--glass-border)] px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"
-                        >
-                          {t('camera.useRecommended') || 'Use Recommended'}
-                        </button>
-                      </div>
-                      <p className="px-1 text-[11px] text-[var(--text-muted)]">
-                        {t('camera.webrtcHint') ||
-                          'Use {entity_object_id} or {entity_id}. Leave empty to skip WebRTC.'}
-                      </p>
+                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showEffects !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                      >
+                        <span
+                          className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`}
+                        />
+                      </button>
                     </div>
-                  )}
+                  </div>
+                </div>
+              )}
 
-                  {/* Refresh mode */}
-                  <div className="space-y-2">
-                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                      {t('camera.refreshMode') || 'Refresh Mode'}
-                    </label>
-                    <div className="flex gap-2">
-                      {[
-                        { key: 'interval', label: t('camera.refreshInterval') || 'Timer' },
-                        { key: 'motion', label: t('camera.refreshMotion') || 'Motion' },
-                      ].map((v) => (
+              {isEditCalendar && editSettingsKey && (
+                <div className="space-y-3">
+                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('calendar.selectCalendars') || 'Select Calendars'}
+                  </label>
+                  <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
+                    {calendarOptions.length === 0 && (
+                      <p className="py-4 text-center text-xs text-[var(--text-muted)]">
+                        {t('calendar.noCalendarsFound') || 'No calendars found'}
+                      </p>
+                    )}
+                    {calendarOptions.map((id) => {
+                      const selected =
+                        Array.isArray(editSettings.calendars) &&
+                        editSettings.calendars.includes(id);
+                      return (
                         <button
-                          key={v.key}
-                          onClick={() =>
-                            saveCardSetting(editSettingsKey, 'cameraRefreshMode', v.key)
-                          }
-                          className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${refreshMode === v.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                          style={
-                            refreshMode === v.key
-                              ? {
-                                  backgroundColor: 'var(--glass-bg-hover)',
-                                  borderColor: 'var(--glass-border)',
-                                }
-                              : undefined
-                          }
+                          key={id}
+                          type="button"
+                          onClick={() => {
+                            const current = Array.isArray(editSettings.calendars)
+                              ? editSettings.calendars
+                              : [];
+                            const next = selected
+                              ? current.filter((x) => x !== id)
+                              : [...current, id];
+                            saveCardSetting(editSettingsKey, 'calendars', next);
+                          }}
+                          className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                         >
-                          {v.label}
+                          <div className="truncate text-sm font-bold">
+                            {entities[id]?.attributes?.friendly_name || id}
+                          </div>
+                          <div className="truncate text-[10px] text-[var(--text-muted)]">{id}</div>
                         </button>
-                      ))}
+                      );
+                    })}
+                  </div>
+
+                  {/* Week View toggle */}
+                  <div className="popup-surface rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-bold text-[var(--text-primary)]">
+                          {t('calendar.largeCalendar') || 'Week View'}
+                        </label>
+                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                          {t('calendar.largeCalendarHint') ||
+                            'Show Outlook-style week time-grid view'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'largeCalendar',
+                            !editSettings.largeCalendar
+                          )
+                        }
+                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.largeCalendar ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                      >
+                        <span
+                          className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`}
+                        />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Interval seconds */}
-                  {refreshMode === 'interval' && (
-                    <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {t('camera.intervalSeconds') || 'Refresh every (seconds)'}
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(
-                              editSettingsKey,
-                              'cameraRefreshInterval',
-                              Math.max(2, refreshInterval - 1)
-                            )
-                          }
-                          className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                        >
-                          −
-                        </button>
-                        <div className="flex-1 text-center">
-                          <span className="text-lg font-bold text-[var(--text-primary)]">
-                            {refreshInterval}
-                          </span>
-                          <span className="ml-1 text-xs text-[var(--text-muted)]">s</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            saveCardSetting(
-                              editSettingsKey,
-                              'cameraRefreshInterval',
-                              Math.min(60, refreshInterval + 1)
-                            )
-                          }
-                          className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                        >
-                          +
-                        </button>
+                  <div className="space-y-2 pt-2">
+                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('editCard.columnWidth') || 'Column Width'}
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'colSpan',
+                            Math.max(1, (editSettings.colSpan || 1) - 1)
+                          )
+                        }
+                        className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                      >
+                        −
+                      </button>
+                      <div className="flex-1 text-center">
+                        <span className="text-lg font-bold text-[var(--text-primary)]">
+                          {editSettings.colSpan || 1}
+                        </span>
+                        <span className="ml-1 text-xs text-[var(--text-muted)]">
+                          {(editSettings.colSpan || 1) === 1
+                            ? t('editCard.column') || 'column'
+                            : t('editCard.columns') || 'columns'}
+                        </span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'colSpan',
+                            Math.min(maxColSpan, (editSettings.colSpan || 1) + 1)
+                          )
+                        }
+                        className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                      >
+                        +
+                      </button>
                     </div>
-                  )}
+                  </div>
+                </div>
+              )}
 
-                  {/* Motion sensor entity */}
-                  {refreshMode === 'motion' && (
-                    <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {t('camera.motionSensor') || 'Motion Sensor'}
-                      </label>
-                      <div className="popup-surface custom-scrollbar max-h-44 space-y-2 overflow-y-auto rounded-2xl p-4">
-                        {binarySensorOptions.length === 0 && (
-                          <p className="py-4 text-center text-xs text-[var(--text-muted)]">
-                            {t('camera.noMotionSensors') || 'No motion sensors found'}
-                          </p>
-                        )}
-                        {binarySensorOptions.map((id) => {
-                          const selected = motionSensorId === id;
-                          return (
+              {isEditSpacer && editSettingsKey && (
+                <div className="space-y-4">
+                  {(() => {
+                    const currentColSpan =
+                      typeof editSettings.colSpan === 'number' ? editSettings.colSpan : 1;
+                    const isFullWidth = editSettings.colSpan === 'full';
+                    const currentHeadingAlign = ['left', 'center', 'right'].includes(
+                      editSettings.headingAlign
+                    )
+                      ? editSettings.headingAlign
+                      : 'center';
+
+                    return (
+                      <>
+                        <div className="space-y-2">
+                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                            {t('spacer.variant') || 'Variant'}
+                          </label>
+                          <div className="flex gap-2">
+                            {[
+                              { key: 'spacer', label: t('spacer.spacer') || 'Spacer' },
+                              { key: 'divider', label: t('spacer.divider') || 'Divider' },
+                            ].map((v) => (
+                              <button
+                                key={v.key}
+                                onClick={() => {
+                                  saveCardSetting(editSettingsKey, 'variant', v.key);
+                                  if (v.key === 'divider') {
+                                    saveCardSetting(editSettingsKey, 'colSpan', 'full');
+                                    saveCardSetting(editSettingsKey, 'heightPx', 40);
+                                  }
+                                }}
+                                className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${(editSettings.variant || 'spacer') === v.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                                style={
+                                  (editSettings.variant || 'spacer') === v.key
+                                    ? {
+                                        backgroundColor: 'var(--glass-bg-hover)',
+                                        borderColor: 'var(--glass-border)',
+                                      }
+                                    : undefined
+                                }
+                              >
+                                {v.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                            {'Heading alignment'}
+                          </label>
+                          <div className="flex gap-2">
+                            {[
+                              { key: 'left', label: 'Venstre' },
+                              { key: 'center', label: 'Midt' },
+                              { key: 'right', label: 'Høgre' },
+                            ].map((opt) => (
+                              <button
+                                key={opt.key}
+                                type="button"
+                                onClick={() =>
+                                  saveCardSetting(editSettingsKey, 'headingAlign', opt.key)
+                                }
+                                className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${currentHeadingAlign === opt.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                                style={
+                                  currentHeadingAlign === opt.key
+                                    ? {
+                                        backgroundColor: 'var(--glass-bg-hover)',
+                                        borderColor: 'var(--glass-border)',
+                                      }
+                                    : undefined
+                                }
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                            {'Column Width'}
+                          </label>
+                          <div className="flex gap-2">
                             <button
-                              key={id}
                               type="button"
-                              onClick={() =>
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'cameraMotionSensor',
-                                  selected ? null : id
-                                )
-                              }
-                              className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                              onClick={() => saveCardSetting(editSettingsKey, 'colSpan', 'full')}
+                              className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${isFullWidth ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
                               style={
-                                selected
+                                isFullWidth
                                   ? {
                                       backgroundColor: 'var(--glass-bg-hover)',
                                       borderColor: 'var(--glass-border)',
@@ -1767,812 +1581,720 @@ export default function EditCardModal({
                                   : undefined
                               }
                             >
-                              <div className="truncate text-sm font-bold">
-                                {entities[id]?.attributes?.friendly_name || id}
-                              </div>
-                              <div className="truncate text-[10px] text-[var(--text-muted)]">
-                                {id}
-                              </div>
+                              {'Full Width'}
                             </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-          {isEditTodo && editSettingsKey && (
-            <div className="space-y-3">
-              <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                {t('todo.selectList') || 'Select Todo List'}
-              </label>
-              <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
-                {todoOptions.length === 0 && (
-                  <p className="py-4 text-center text-xs text-[var(--text-muted)]">
-                    {t('todo.noListsFound') || 'No todo lists found'}
-                  </p>
-                )}
-                {todoOptions.map((id) => {
-                  const selected = editSettings.todoEntityId === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => {
-                        saveCardSetting(editSettingsKey, 'todoEntityId', selected ? null : id);
-                      }}
-                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div className="truncate text-sm font-bold">
-                        {entities[id]?.attributes?.friendly_name || id}
-                      </div>
-                      <div className="truncate text-[10px] text-[var(--text-muted)]">{id}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {isPerson && (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('person.display')}
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'photo')
-                    }
-                    className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${personDisplay === 'photo' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                    style={
-                      personDisplay === 'photo'
-                        ? {
-                            backgroundColor: 'var(--glass-bg-hover)',
-                            borderColor: 'var(--glass-border)',
-                          }
-                        : undefined
-                    }
-                  >
-                    {t('person.display.photo')}
-                  </button>
-                  <button
-                    onClick={() =>
-                      editSettingsKey && saveCardSetting(editSettingsKey, 'personDisplay', 'icon')
-                    }
-                    className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${personDisplay === 'icon' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-                    style={
-                      personDisplay === 'icon'
-                        ? {
-                            backgroundColor: 'var(--glass-bg-hover)',
-                            borderColor: 'var(--glass-border)',
-                          }
-                        : undefined
-                    }
-                  >
-                    {t('person.display.icon')}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
-                  <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                    {t('form.showName') || 'Show Name'}
-                  </span>
-                  <button
-                    onClick={() =>
-                      editSettingsKey &&
-                      saveCardSetting(
-                        editSettingsKey,
-                        'showName',
-                        !(editSettings.showName !== false)
-                      )
-                    }
-                    className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                  >
-                    <div
-                      className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
-                    />
-                  </button>
-                </div>
-
-                <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
-                  <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                    {t('person.showState') || 'Show State'}
-                  </span>
-                  <button
-                    onClick={() =>
-                      editSettingsKey &&
-                      saveCardSetting(
-                        editSettingsKey,
-                        'showState',
-                        !(editSettings.showState !== false)
-                      )
-                    }
-                    className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showState !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                  >
-                    <div
-                      className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showState !== false ? 'left-7' : 'left-1'}`}
-                    />
-                  </button>
-                </div>
-
-                <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
-                  <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                    {t('person.showZoneBadgeIcon') || 'Show Zone Icon in Badge'}
-                  </span>
-                  <button
-                    onClick={() =>
-                      editSettingsKey &&
-                      saveCardSetting(
-                        editSettingsKey,
-                        'showZoneBadgeIcon',
-                        !(editSettings.showZoneBadgeIcon !== false)
-                      )
-                    }
-                    className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showZoneBadgeIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                  >
-                    <div
-                      className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showZoneBadgeIcon !== false ? 'left-7' : 'left-1'}`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <SearchableSelect
-                  label={t('person.phoneBattery')}
-                  value={editSettings.phoneBatteryEntity || editSettings.batteryEntity || null}
-                  options={personBatteryOptions}
-                  onChange={(id) => {
-                    saveCardSetting(editSettingsKey, 'phoneBatteryEntity', id);
-                    saveCardSetting(editSettingsKey, 'batteryEntity', id);
-                  }}
-                  placeholder={t('dropdown.noneSelected')}
-                  entities={entities}
-                  t={t}
-                />
-
-                <SearchableSelect
-                  label={t('person.watchBattery')}
-                  value={editSettings.watchBatteryEntity || null}
-                  options={personBatteryOptions}
-                  onChange={(id) => saveCardSetting(editSettingsKey, 'watchBatteryEntity', id)}
-                  placeholder={t('dropdown.noneSelected')}
-                  entities={entities}
-                  t={t}
-                />
-
-                <SearchableSelect
-                  label={t('person.deviceTracker')}
-                  value={editSettings.deviceTracker || null}
-                  options={personTrackerOptions}
-                  onChange={(id) => saveCardSetting(editSettingsKey, 'deviceTracker', id)}
-                  placeholder={t('dropdown.noneSelected')}
-                  entities={entities}
-                  t={t}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <SearchableSelect
-                  label={t('person.addRelatedSensor')}
-                  value={null}
-                  options={availablePersonExtraSensorOptions}
-                  onChange={(id) => {
-                    if (!id) return;
-                    saveCardSetting(editSettingsKey, 'personExtraSensors', [
-                      ...personExtraSensors,
-                      id,
-                    ]);
-                  }}
-                  placeholder={t('form.search') || 'Search'}
-                  entities={entities}
-                  t={t}
-                />
-                {personExtraSensors.length > 0 && (
-                  <div className="popup-surface flex flex-wrap gap-2 rounded-2xl p-3">
-                    {personExtraSensors.map((sensorId) => (
-                      <div
-                        key={sensorId}
-                        className="flex items-center gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] py-1 pr-1 pl-3 text-[var(--text-primary)]"
-                      >
-                        <span className="max-w-[180px] truncate text-[11px] font-bold">
-                          {entities[sensorId]?.attributes?.friendly_name || sensorId}
-                        </span>
-                        <button
-                          onClick={() =>
-                            saveCardSetting(
-                              editSettingsKey,
-                              'personExtraSensors',
-                              personExtraSensors.filter((id) => id !== sensorId)
-                            )
-                          }
-                          className="rounded-full p-1 transition-colors hover:bg-[var(--glass-bg-hover)]"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {isEditAndroidTV && editSettingsKey && (
-            <div className="space-y-3">
-              <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                {t('androidtv.linkedSpeakers') || 'Linked Speakers'}
-              </label>
-
-              {/* Selected Players */}
-              {Array.isArray(editSettings.linkedMediaPlayers) &&
-                editSettings.linkedMediaPlayers.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    {editSettings.linkedMediaPlayers.map((id) => (
-                      <div
-                        key={id}
-                        className="popup-surface flex items-center gap-1 rounded-full border border-[var(--glass-border)] py-1 pr-1 pl-3 text-[var(--text-primary)]"
-                      >
-                        <span className="text-xs font-bold">
-                          {entities[id]?.attributes?.friendly_name || id}
-                        </span>
-                        <button
-                          onClick={() => {
-                            const current = editSettings.linkedMediaPlayers;
-                            saveCardSetting(
-                              editSettingsKey,
-                              'linkedMediaPlayers',
-                              current.filter((x) => x !== id)
-                            );
-                          }}
-                          className="rounded-full p-1 transition-colors hover:bg-white/10"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-              <input
-                type="text"
-                placeholder={t('androidtv.searchPlayers')}
-                value={mediaSearch}
-                onChange={(e) => setMediaSearch(e.target.value)}
-                className="popup-surface mb-2 w-full rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--glass-border)]"
-              />
-
-              <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
-                {mediaPlayerOptions.filter((id) => {
-                  if (!mediaSearch) return true;
-                  const name = entities[id]?.attributes?.friendly_name || id;
-                  return (
-                    name.toLowerCase().includes(mediaSearch.toLowerCase()) ||
-                    id.toLowerCase().includes(mediaSearch.toLowerCase())
-                  );
-                }).length === 0 && (
-                  <p className="py-4 text-center text-xs text-[var(--text-muted)]">
-                    {t('media.noPlayersFound') || 'No players found'}
-                  </p>
-                )}
-                {mediaPlayerOptions
-                  .filter((id) => {
-                    if (!mediaSearch) return true;
-                    const name = entities[id]?.attributes?.friendly_name || id;
-                    return (
-                      name.toLowerCase().includes(mediaSearch.toLowerCase()) ||
-                      id.toLowerCase().includes(mediaSearch.toLowerCase())
-                    );
-                  })
-                  .map((id) => {
-                    const selected =
-                      Array.isArray(editSettings.linkedMediaPlayers) &&
-                      editSettings.linkedMediaPlayers.includes(id);
-                    if (id === editSettings.mediaPlayerId) return null;
-
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => {
-                          const current = Array.isArray(editSettings.linkedMediaPlayers)
-                            ? editSettings.linkedMediaPlayers
-                            : [];
-                          const next = selected
-                            ? current.filter((x) => x !== id)
-                            : [...current, id];
-                          saveCardSetting(editSettingsKey, 'linkedMediaPlayers', next);
-                        }}
-                        className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                      >
-                        <div className="truncate text-sm font-bold">
-                          {entities[id]?.attributes?.friendly_name || id}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(editSettingsKey, 'colSpan', currentColSpan)
+                              }
+                              className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${!isFullWidth ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                              style={
+                                !isFullWidth
+                                  ? {
+                                      backgroundColor: 'var(--glass-bg-hover)',
+                                      borderColor: 'var(--glass-border)',
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {'Custom'}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'colSpan',
+                                  Math.max(1, currentColSpan - 1)
+                                )
+                              }
+                              disabled={isFullWidth}
+                              className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                            >
+                              &minus;
+                            </button>
+                            <div className="flex-1 text-center">
+                              <span className="text-lg font-bold text-[var(--text-primary)]">
+                                {isFullWidth ? '∞' : currentColSpan}
+                              </span>
+                              <span className="ml-1 text-xs text-[var(--text-muted)]">
+                                {isFullWidth
+                                  ? 'full width'
+                                  : currentColSpan === 1
+                                    ? 'column'
+                                    : 'columns'}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'colSpan',
+                                  Math.min(4, currentColSpan + 1)
+                                )
+                              }
+                              disabled={isFullWidth}
+                              className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
-                        <div className="truncate text-[10px] text-[var(--text-muted)]">{id}</div>
-                      </button>
+
+                        <div className="space-y-2">
+                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                            {'Height'}
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'heightPx',
+                                  Math.max(24, (editSettings.heightPx || 100) - 20)
+                                )
+                              }
+                              className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                            >
+                              &minus;
+                            </button>
+                            <div className="flex-1 text-center">
+                              <span className="text-lg font-bold text-[var(--text-primary)]">
+                                {editSettings.heightPx || 100}
+                              </span>
+                              <span className="ml-1 text-xs text-[var(--text-muted)]">px</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'heightPx',
+                                  Math.min(420, (editSettings.heightPx || 100) + 20)
+                                )
+                              }
+                              className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </>
                     );
-                  })}
-              </div>
-            </div>
-          )}
+                  })()}
+                </div>
+              )}
 
-          {isEditCar && editSettingsKey && (
-            <div className="space-y-2">
-              <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                {t('car.imageUrl') || 'Car Image URL'}
-              </label>
-              <input
-                type="text"
-                className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                defaultValue={editSettings.imageUrl || ''}
-                onBlur={(e) =>
-                  saveCardSetting(editSettingsKey, 'imageUrl', e.target.value.trim() || null)
-                }
-                placeholder="/local/car.png"
-              />
-              <p className="ml-1 text-[10px] text-[var(--text-muted)]">
-                {t('car.imageHint') ||
-                  'Place images in HA config/www/ folder, use /local/filename.png'}
-              </p>
-            </div>
-          )}
+              {isEditCamera &&
+                editSettingsKey &&
+                (() => {
+                  const streamEngine = String(
+                    editSettings.cameraStreamEngine || 'auto'
+                  ).toLowerCase();
+                  const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
+                  const recommendedWebrtc = '/api/webrtc?src={entity_object_id}';
+                  const refreshMode = editSettings.cameraRefreshMode || 'interval';
+                  const refreshInterval = editSettings.cameraRefreshInterval || 10;
+                  const motionSensorId = editSettings.cameraMotionSensor || '';
+                  const binarySensorOptions = cameraMotionSensorOptions;
 
-          {isEditCar && editSettingsKey && (
-            <CarMappingsSection
-              t={t}
-              editSettings={editSettings}
-              editSettingsKey={editSettingsKey}
-              saveCardSetting={saveCardSetting}
-              entities={entities}
-              anchorEntityId={carAnchorEntityId}
-              anchorOptions={carAnchorOptions}
-              anchorRelatedEntityIds={carAnchorRelatedEntityIds}
-              onAutoMapFromAnchor={autoMapCarFromAnchor}
-              batteryOptions={batteryOptions}
-              rangeOptions={rangeOptions}
-              odometerOptions={odometerOptions}
-              locationOptions={locationOptions}
-              latitudeOptions={latitudeOptions}
-              longitudeOptions={longitudeOptions}
-              chargingOptions={chargingOptions}
-              pluggedOptions={pluggedOptions}
-              chargingPowerOptions={chargingPowerOptions}
-              chargeRateOptions={chargeRateOptions}
-              timeToFullOptions={timeToFullOptions}
-              chargeEndTimeOptions={chargeEndTimeOptions}
-              fuelLevelOptions={fuelLevelOptions}
-              climateOptions={climateOptions}
-              lockOptions={lockOptions}
-              ignitionSwitchOptions={ignitionSwitchOptions}
-              engineStatusOptions={engineStatusOptions}
-              lastUpdatedOptions={lastUpdatedOptions}
-              apiStatusOptions={apiStatusOptions}
-              chargeControlOptions={chargeControlOptions}
-              chargeLimitNumberOptions={chargeLimitNumberOptions}
-              chargeLimitSelectOptions={chargeLimitSelectOptions}
-              updateButtonOptions={updateButtonOptions}
-            />
-          )}
+                  return (
+                    <div className="space-y-4">
+                      {/* Stream engine */}
+                      <div className="space-y-2">
+                        <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                          {t('camera.streamEngine') || 'Stream Engine'}
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { key: 'auto', label: t('camera.streamEngineAuto') || 'Auto' },
+                            { key: 'webrtc', label: t('camera.streamEngineWebrtc') || 'WebRTC' },
+                            { key: 'ha', label: t('camera.streamEngineHa') || 'HA Stream' },
+                            {
+                              key: 'snapshot',
+                              label: t('camera.streamEngineSnapshot') || 'Snapshot',
+                            },
+                          ].map((opt) => (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(editSettingsKey, 'cameraStreamEngine', opt.key)
+                              }
+                              className={`rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${streamEngine === opt.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                              style={
+                                streamEngine === opt.key
+                                  ? {
+                                      backgroundColor: 'var(--glass-bg-hover)',
+                                      borderColor: 'var(--glass-border)',
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-          {canEditStatus && !isEditSensor && (
-            <div className="popup-surface space-y-4 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                  {t('form.showStatus')}
-                </span>
-                <button
-                  onClick={() =>
-                    editSettingsKey &&
-                    saveCardSetting(
-                      editSettingsKey,
-                      'showStatus',
-                      !(editSettings.showStatus !== false)
-                    )
-                  }
-                  className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showStatus !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                >
-                  <div
-                    className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                  {t('form.showLastChanged')}
-                </span>
-                <button
-                  onClick={() =>
-                    editSettingsKey &&
-                    saveCardSetting(
-                      editSettingsKey,
-                      'showLastChanged',
-                      !(editSettings.showLastChanged !== false)
-                    )
-                  }
-                  className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showLastChanged !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                >
-                  <div
-                    className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`}
-                  />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {isEditSensor &&
-            (() => {
-              const entity = entities[entityId];
-              const domain = entityId.split('.')[0];
-              const canControl = [
-                'input_boolean',
-                'switch',
-                'light',
-                'input_number',
-                'automation',
-                'script',
-                'scene',
-                'select',
-                'input_select',
-              ].includes(domain);
-
-              const state = entity?.state;
-              const isNumeric =
-                typeof state === 'string'
-                  ? /^\s*-?\d+(\.\d+)?\s*$/.test(state)
-                  : !isNaN(parseFloat(state));
-              const canGraph = isNumeric && domain !== 'input_number';
-              const variant = editSettings.sensorVariant || 'default';
-              const needsMinMax = ['gauge', 'donut', 'bar'].includes(variant) && isNumeric;
-              const numericEntityOptions = sortByName(
-                entityEntries
-                  .filter(([id]) => id.startsWith('sensor.') || id.startsWith('input_number.'))
-                  .map(([id]) => id)
-              );
-              const colorThresholdDefaults = [
-                { limit: 20, color: 'red' },
-                { limit: 60, color: 'amber' },
-                { limit: 100, color: 'green' },
-              ];
-              const useColorThresholds = editSettings.sensorUseColorThresholds !== false;
-              const colorThresholds =
-                Array.isArray(editSettings.sensorColorThresholds) &&
-                editSettings.sensorColorThresholds.length === 3
-                  ? editSettings.sensorColorThresholds.map((entry, index) => ({
-                      limit: Number.isFinite(parseFloat(entry?.limit))
-                        ? parseFloat(entry?.limit)
-                        : colorThresholdDefaults[index].limit,
-                      color: entry?.color || colorThresholdDefaults[index].color,
-                    }))
-                  : colorThresholdDefaults;
-              const thresholdColorOptions = [
-                {
-                  key: 'red',
-                  label: t('sensor.colorRed') || 'Red',
-                  swatch: 'var(--color-red-500)',
-                },
-                {
-                  key: 'amber',
-                  label: t('sensor.colorAmber') || 'Amber',
-                  swatch: 'var(--color-amber-400)',
-                },
-                {
-                  key: 'green',
-                  label: t('sensor.colorGreen') || 'Green',
-                  swatch: 'var(--color-green-400)',
-                },
-              ];
-              const saveThresholdAt = (index, patch) => {
-                const next = colorThresholds.map((entry, itemIndex) =>
-                  itemIndex === index ? { ...entry, ...patch } : entry
-                );
-                saveCardSetting(editSettingsKey, 'sensorColorThresholds', next);
-              };
-
-              return (
-                <div className="popup-surface space-y-4 rounded-2xl p-4">
-                  {canGraph && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        {t('sensor.variant') || 'Card style'}
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { key: 'default', label: t('sensor.variantDefault') || 'Default' },
-                          { key: 'number', label: t('sensor.variantNumber') || 'Number' },
-                          { key: 'gauge', label: t('sensor.variantGauge') || 'Gauge' },
-                          { key: 'bar', label: t('sensor.variantBar') || 'Bar' },
-                          { key: 'donut', label: t('sensor.variantDonut') || 'Donut' },
-                        ].map((v) => (
-                          <button
-                            key={v.key}
-                            onClick={() =>
-                              editSettingsKey &&
-                              saveCardSetting(editSettingsKey, 'sensorVariant', v.key)
+                      {/* Optional WebRTC URL */}
+                      {(streamEngine === 'webrtc' || streamEngine === 'auto') && (
+                        <div className="space-y-2">
+                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                            {t('camera.webrtcUrlOptional') || 'WebRTC URL (optional)'}
+                          </label>
+                          <input
+                            type="text"
+                            value={webrtcTemplate}
+                            onChange={(e) =>
+                              saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', e.target.value)
                             }
-                            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                              variant === v.key
-                                ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                            }`}
+                            placeholder={recommendedWebrtc}
+                            className="w-full rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none"
+                            style={{
+                              backgroundColor: 'var(--glass-bg)',
+                              borderColor: 'var(--glass-border)',
+                              color: 'var(--text-primary)',
+                            }}
+                          />
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'cameraWebrtcUrl',
+                                  recommendedWebrtc
+                                )
+                              }
+                              className="popup-surface popup-surface-hover rounded-xl border border-[var(--glass-border)] px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"
+                            >
+                              {t('camera.useRecommended') || 'Use Recommended'}
+                            </button>
+                          </div>
+                          <p className="px-1 text-[11px] text-[var(--text-muted)]">
+                            {t('camera.webrtcHint') ||
+                              'Use {entity_object_id} or {entity_id}. Leave empty to skip WebRTC.'}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Refresh mode */}
+                      <div className="space-y-2">
+                        <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                          {t('camera.refreshMode') || 'Refresh Mode'}
+                        </label>
+                        <div className="flex gap-2">
+                          {[
+                            { key: 'interval', label: t('camera.refreshInterval') || 'Timer' },
+                            { key: 'motion', label: t('camera.refreshMotion') || 'Motion' },
+                          ].map((v) => (
+                            <button
+                              key={v.key}
+                              onClick={() =>
+                                saveCardSetting(editSettingsKey, 'cameraRefreshMode', v.key)
+                              }
+                              className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${refreshMode === v.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                              style={
+                                refreshMode === v.key
+                                  ? {
+                                      backgroundColor: 'var(--glass-bg-hover)',
+                                      borderColor: 'var(--glass-border)',
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {v.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Interval seconds */}
+                      {refreshMode === 'interval' && (
+                        <div className="space-y-2">
+                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                            {t('camera.intervalSeconds') || 'Refresh every (seconds)'}
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'cameraRefreshInterval',
+                                  Math.max(2, refreshInterval - 1)
+                                )
+                              }
+                              className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                            >
+                              −
+                            </button>
+                            <div className="flex-1 text-center">
+                              <span className="text-lg font-bold text-[var(--text-primary)]">
+                                {refreshInterval}
+                              </span>
+                              <span className="ml-1 text-xs text-[var(--text-muted)]">s</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'cameraRefreshInterval',
+                                  Math.min(60, refreshInterval + 1)
+                                )
+                              }
+                              className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Motion sensor entity */}
+                      {refreshMode === 'motion' && (
+                        <div className="space-y-2">
+                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                            {t('camera.motionSensor') || 'Motion Sensor'}
+                          </label>
+                          <div className="popup-surface custom-scrollbar max-h-44 space-y-2 overflow-y-auto rounded-2xl p-4">
+                            {binarySensorOptions.length === 0 && (
+                              <p className="py-4 text-center text-xs text-[var(--text-muted)]">
+                                {t('camera.noMotionSensors') || 'No motion sensors found'}
+                              </p>
+                            )}
+                            {binarySensorOptions.map((id) => {
+                              const selected = motionSensorId === id;
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() =>
+                                    saveCardSetting(
+                                      editSettingsKey,
+                                      'cameraMotionSensor',
+                                      selected ? null : id
+                                    )
+                                  }
+                                  className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                                  style={
+                                    selected
+                                      ? {
+                                          backgroundColor: 'var(--glass-bg-hover)',
+                                          borderColor: 'var(--glass-border)',
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  <div className="truncate text-sm font-bold">
+                                    {entities[id]?.attributes?.friendly_name || id}
+                                  </div>
+                                  <div className="truncate text-[10px] text-[var(--text-muted)]">
+                                    {id}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+              {isEditTodo && editSettingsKey && (
+                <div className="space-y-3">
+                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('todo.selectList') || 'Select Todo List'}
+                  </label>
+                  <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
+                    {todoOptions.length === 0 && (
+                      <p className="py-4 text-center text-xs text-[var(--text-muted)]">
+                        {t('todo.noListsFound') || 'No todo lists found'}
+                      </p>
+                    )}
+                    {todoOptions.map((id) => {
+                      const selected = editSettings.todoEntityId === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => {
+                            saveCardSetting(editSettingsKey, 'todoEntityId', selected ? null : id);
+                          }}
+                          className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          <div className="truncate text-sm font-bold">
+                            {entities[id]?.attributes?.friendly_name || id}
+                          </div>
+                          <div className="truncate text-[10px] text-[var(--text-muted)]">{id}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {isPerson && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('person.display')}
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          editSettingsKey &&
+                          saveCardSetting(editSettingsKey, 'personDisplay', 'photo')
+                        }
+                        className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${personDisplay === 'photo' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                        style={
+                          personDisplay === 'photo'
+                            ? {
+                                backgroundColor: 'var(--glass-bg-hover)',
+                                borderColor: 'var(--glass-border)',
+                              }
+                            : undefined
+                        }
+                      >
+                        {t('person.display.photo')}
+                      </button>
+                      <button
+                        onClick={() =>
+                          editSettingsKey &&
+                          saveCardSetting(editSettingsKey, 'personDisplay', 'icon')
+                        }
+                        className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${personDisplay === 'icon' ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                        style={
+                          personDisplay === 'icon'
+                            ? {
+                                backgroundColor: 'var(--glass-bg-hover)',
+                                borderColor: 'var(--glass-border)',
+                              }
+                            : undefined
+                        }
+                      >
+                        {t('person.display.icon')}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
+                      <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                        {t('form.showName') || 'Show Name'}
+                      </span>
+                      <button
+                        onClick={() =>
+                          editSettingsKey &&
+                          saveCardSetting(
+                            editSettingsKey,
+                            'showName',
+                            !(editSettings.showName !== false)
+                          )
+                        }
+                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                      >
+                        <div
+                          className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
+                      <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                        {t('person.showState') || 'Show State'}
+                      </span>
+                      <button
+                        onClick={() =>
+                          editSettingsKey &&
+                          saveCardSetting(
+                            editSettingsKey,
+                            'showState',
+                            !(editSettings.showState !== false)
+                          )
+                        }
+                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showState !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                      >
+                        <div
+                          className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showState !== false ? 'left-7' : 'left-1'}`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
+                      <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                        {t('person.showZoneBadgeIcon') || 'Show Zone Icon in Badge'}
+                      </span>
+                      <button
+                        onClick={() =>
+                          editSettingsKey &&
+                          saveCardSetting(
+                            editSettingsKey,
+                            'showZoneBadgeIcon',
+                            !(editSettings.showZoneBadgeIcon !== false)
+                          )
+                        }
+                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showZoneBadgeIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                      >
+                        <div
+                          className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showZoneBadgeIcon !== false ? 'left-7' : 'left-1'}`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <SearchableSelect
+                      label={t('person.phoneBattery')}
+                      value={editSettings.phoneBatteryEntity || editSettings.batteryEntity || null}
+                      options={personBatteryOptions}
+                      onChange={(id) => {
+                        saveCardSetting(editSettingsKey, 'phoneBatteryEntity', id);
+                        saveCardSetting(editSettingsKey, 'batteryEntity', id);
+                      }}
+                      placeholder={t('dropdown.noneSelected')}
+                      entities={entities}
+                      t={t}
+                    />
+
+                    <SearchableSelect
+                      label={t('person.watchBattery')}
+                      value={editSettings.watchBatteryEntity || null}
+                      options={personBatteryOptions}
+                      onChange={(id) => saveCardSetting(editSettingsKey, 'watchBatteryEntity', id)}
+                      placeholder={t('dropdown.noneSelected')}
+                      entities={entities}
+                      t={t}
+                    />
+
+                    <SearchableSelect
+                      label={t('person.deviceTracker')}
+                      value={editSettings.deviceTracker || null}
+                      options={personTrackerOptions}
+                      onChange={(id) => saveCardSetting(editSettingsKey, 'deviceTracker', id)}
+                      placeholder={t('dropdown.noneSelected')}
+                      entities={entities}
+                      t={t}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <SearchableSelect
+                      label={t('person.addRelatedSensor')}
+                      value={null}
+                      options={availablePersonExtraSensorOptions}
+                      onChange={(id) => {
+                        if (!id) return;
+                        saveCardSetting(editSettingsKey, 'personExtraSensors', [
+                          ...personExtraSensors,
+                          id,
+                        ]);
+                      }}
+                      placeholder={t('form.search') || 'Search'}
+                      entities={entities}
+                      t={t}
+                    />
+                    {personExtraSensors.length > 0 && (
+                      <div className="popup-surface flex flex-wrap gap-2 rounded-2xl p-3">
+                        {personExtraSensors.map((sensorId) => (
+                          <div
+                            key={sensorId}
+                            className="flex items-center gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] py-1 pr-1 pl-3 text-[var(--text-primary)]"
                           >
-                            {v.label}
-                          </button>
+                            <span className="max-w-[180px] truncate text-[11px] font-bold">
+                              {entities[sensorId]?.attributes?.friendly_name || sensorId}
+                            </span>
+                            <button
+                              onClick={() =>
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'personExtraSensors',
+                                  personExtraSensors.filter((id) => id !== sensorId)
+                                )
+                              }
+                              className="rounded-full p-1 transition-colors hover:bg-[var(--glass-bg-hover)]"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {needsMinMax && (
-                    <div className="space-y-4 rounded-xl bg-[var(--glass-bg)] p-3">
-                      <label className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        {t('sensor.range') || 'Min / Max range'}
-                      </label>
-                      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                        <div className="min-w-0 space-y-1">
-                          <span className="text-[10px] text-[var(--text-muted)]">
-                            {t('sensor.minValue') || 'Min'}
-                          </span>
-                          <div className="flex min-w-0 gap-2">
-                            <input
-                              type="number"
-                              placeholder="0"
-                              value={
-                                editSettings.sensorMinType === 'entity'
-                                  ? ''
-                                  : (editSettings.sensorMin ?? '')
-                              }
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'sensorMin',
-                                  v === '' ? null : parseFloat(v)
-                                );
-                                saveCardSetting(editSettingsKey, 'sensorMinType', 'value');
-                              }}
-                              disabled={editSettings.sensorMinType === 'entity'}
-                              className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none"
-                            />
-                            <select
-                              value={editSettings.sensorMinType || 'value'}
-                              onChange={(e) => {
-                                const ty = e.target.value;
-                                saveCardSetting(editSettingsKey, 'sensorMinType', ty);
-                                if (ty === 'value')
-                                  saveCardSetting(editSettingsKey, 'sensorMinEntity', null);
-                              }}
-                              className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                            >
-                              <option value="value">#</option>
-                              <option value="entity">{t('sensor.entity') || 'Entity'}</option>
-                            </select>
-                          </div>
-                          {editSettings.sensorMinType === 'entity' && (
-                            <select
-                              value={editSettings.sensorMinEntity || ''}
-                              onChange={(e) =>
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'sensorMinEntity',
-                                  e.target.value || null
-                                )
-                              }
-                              className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                            >
-                              <option value="">{t('sensor.selectEntity') || 'Select...'}</option>
-                              {numericEntityOptions.map((id) => (
-                                <option key={id} value={id}>
-                                  {entities[id]?.attributes?.friendly_name || id}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                        <div className="min-w-0 space-y-1">
-                          <span className="text-[10px] text-[var(--text-muted)]">
-                            {t('sensor.maxValue') || 'Max'}
-                          </span>
-                          <div className="flex min-w-0 gap-2">
-                            <input
-                              type="number"
-                              placeholder="100"
-                              value={
-                                editSettings.sensorMaxType === 'entity'
-                                  ? ''
-                                  : (editSettings.sensorMax ?? '')
-                              }
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'sensorMax',
-                                  v === '' ? null : parseFloat(v)
-                                );
-                                saveCardSetting(editSettingsKey, 'sensorMaxType', 'value');
-                              }}
-                              disabled={editSettings.sensorMaxType === 'entity'}
-                              className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none"
-                            />
-                            <select
-                              value={editSettings.sensorMaxType || 'value'}
-                              onChange={(e) => {
-                                const ty = e.target.value;
-                                saveCardSetting(editSettingsKey, 'sensorMaxType', ty);
-                                if (ty === 'value')
-                                  saveCardSetting(editSettingsKey, 'sensorMaxEntity', null);
-                              }}
-                              className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                            >
-                              <option value="value">#</option>
-                              <option value="entity">{t('sensor.entity') || 'Entity'}</option>
-                            </select>
-                          </div>
-                          {editSettings.sensorMaxType === 'entity' && (
-                            <select
-                              value={editSettings.sensorMaxEntity || ''}
-                              onChange={(e) =>
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'sensorMaxEntity',
-                                  e.target.value || null
-                                )
-                              }
-                              className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                            >
-                              <option value="">{t('sensor.selectEntity') || 'Select...'}</option>
-                              {numericEntityOptions.map((id) => (
-                                <option key={id} value={id}>
-                                  {entities[id]?.attributes?.friendly_name || id}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-[var(--text-muted)]">
-                          {t('sensor.valueDisplay') || 'Value display'}
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() =>
-                              saveCardSetting(editSettingsKey, 'sensorValueMode', 'actual')
-                            }
-                            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                              (editSettings.sensorValueMode || 'actual') === 'actual'
-                                ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                            }`}
-                          >
-                            {t('sensor.valueActual') || 'Actual value'}
-                          </button>
-                          <button
-                            onClick={() =>
-                              saveCardSetting(editSettingsKey, 'sensorValueMode', 'percent')
-                            }
-                            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                              editSettings.sensorValueMode === 'percent'
-                                ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                            }`}
-                          >
-                            {t('sensor.valuePercent') || '% of range'}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="text-[10px] text-[var(--text-muted)]">
-                            {t('sensor.colorThresholds') || 'Color thresholds'}
-                          </label>
-                          <button
-                            onClick={() =>
-                              saveCardSetting(
-                                editSettingsKey,
-                                'sensorUseColorThresholds',
-                                !useColorThresholds
-                              )
-                            }
-                            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
-                              useColorThresholds
-                                ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                            }`}
-                          >
-                            {useColorThresholds ? t('common.on') || 'On' : t('common.off') || 'Off'}
-                          </button>
-                        </div>
-
-                        <p className="text-[10px] text-[var(--text-muted)] opacity-80">
-                          {useColorThresholds
-                            ? t('sensor.colorThresholdsHint') || 'Set max value for each color step'
-                            : t('sensor.colorThresholdsOffHint') ||
-                              'Thresholds are disabled. Chart uses blue accent color.'}
-                        </p>
-
-                        {useColorThresholds && (
-                          <div className="space-y-2">
-                            {colorThresholds.map((threshold, index) => (
-                              <div
-                                key={`sensor-threshold-${index}`}
-                                className="space-y-2 rounded-lg bg-[var(--modal-bg)] p-2"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="shrink-0 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                                    {(t('sensor.step') || 'Step') + ` ${index + 1}`}
-                                  </span>
-                                  <input
-                                    type="number"
-                                    value={threshold.limit ?? ''}
-                                    onChange={(e) =>
-                                      saveThresholdAt(index, {
-                                        limit:
-                                          e.target.value === '' ? null : parseFloat(e.target.value),
-                                      })
-                                    }
-                                    className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--glass-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                                  />
-                                </div>
-
-                                <div className="flex flex-wrap gap-2">
-                                  {thresholdColorOptions.map((option) => (
-                                    <button
-                                      key={option.key}
-                                      onClick={() => saveThresholdAt(index, { color: option.key })}
-                                      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
-                                        threshold.color === option.key
-                                          ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                          : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                                      }`}
-                                    >
-                                      <span
-                                        className="h-2.5 w-2.5 rounded-full"
-                                        style={{ backgroundColor: option.swatch }}
-                                      />
-                                      {option.label}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                      {t('form.showName') || 'Show Name'}
-                    </span>
-                    <button
-                      onClick={() =>
-                        editSettingsKey &&
-                        saveCardSetting(
-                          editSettingsKey,
-                          'showName',
-                          !(editSettings.showName !== false)
-                        )
-                      }
-                      className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div
-                        className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
-                      />
-                    </button>
+                    )}
                   </div>
+                </div>
+              )}
 
+              {isEditAndroidTV && editSettingsKey && (
+                <div className="space-y-3">
+                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('androidtv.linkedSpeakers') || 'Linked Speakers'}
+                  </label>
+
+                  {/* Selected Players */}
+                  {Array.isArray(editSettings.linkedMediaPlayers) &&
+                    editSettings.linkedMediaPlayers.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        {editSettings.linkedMediaPlayers.map((id) => (
+                          <div
+                            key={id}
+                            className="popup-surface flex items-center gap-1 rounded-full border border-[var(--glass-border)] py-1 pr-1 pl-3 text-[var(--text-primary)]"
+                          >
+                            <span className="text-xs font-bold">
+                              {entities[id]?.attributes?.friendly_name || id}
+                            </span>
+                            <button
+                              onClick={() => {
+                                const current = editSettings.linkedMediaPlayers;
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'linkedMediaPlayers',
+                                  current.filter((x) => x !== id)
+                                );
+                              }}
+                              className="rounded-full p-1 transition-colors hover:bg-white/10"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                  <input
+                    type="text"
+                    placeholder={t('androidtv.searchPlayers')}
+                    value={mediaSearch}
+                    onChange={(e) => setMediaSearch(e.target.value)}
+                    className="popup-surface mb-2 w-full rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--glass-border)]"
+                  />
+
+                  <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
+                    {mediaPlayerOptions.filter((id) => {
+                      if (!mediaSearch) return true;
+                      const name = entities[id]?.attributes?.friendly_name || id;
+                      return (
+                        name.toLowerCase().includes(mediaSearch.toLowerCase()) ||
+                        id.toLowerCase().includes(mediaSearch.toLowerCase())
+                      );
+                    }).length === 0 && (
+                      <p className="py-4 text-center text-xs text-[var(--text-muted)]">
+                        {t('media.noPlayersFound') || 'No players found'}
+                      </p>
+                    )}
+                    {mediaPlayerOptions
+                      .filter((id) => {
+                        if (!mediaSearch) return true;
+                        const name = entities[id]?.attributes?.friendly_name || id;
+                        return (
+                          name.toLowerCase().includes(mediaSearch.toLowerCase()) ||
+                          id.toLowerCase().includes(mediaSearch.toLowerCase())
+                        );
+                      })
+                      .map((id) => {
+                        const selected =
+                          Array.isArray(editSettings.linkedMediaPlayers) &&
+                          editSettings.linkedMediaPlayers.includes(id);
+                        if (id === editSettings.mediaPlayerId) return null;
+
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => {
+                              const current = Array.isArray(editSettings.linkedMediaPlayers)
+                                ? editSettings.linkedMediaPlayers
+                                : [];
+                              const next = selected
+                                ? current.filter((x) => x !== id)
+                                : [...current, id];
+                              saveCardSetting(editSettingsKey, 'linkedMediaPlayers', next);
+                            }}
+                            className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                          >
+                            <div className="truncate text-sm font-bold">
+                              {entities[id]?.attributes?.friendly_name || id}
+                            </div>
+                            <div className="truncate text-[10px] text-[var(--text-muted)]">
+                              {id}
+                            </div>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {isEditCar && editSettingsKey && (
+                <div className="space-y-2">
+                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('car.imageUrl') || 'Car Image URL'}
+                  </label>
+                  <input
+                    type="text"
+                    className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                    defaultValue={editSettings.imageUrl || ''}
+                    onBlur={(e) =>
+                      saveCardSetting(editSettingsKey, 'imageUrl', e.target.value.trim() || null)
+                    }
+                    placeholder="/local/car.png"
+                  />
+                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    {t('car.imageHint') ||
+                      'Place images in HA config/www/ folder, use /local/filename.png'}
+                  </p>
+                </div>
+              )}
+
+              {isEditCar && editSettingsKey && (
+                <CarMappingsSection
+                  t={t}
+                  editSettings={editSettings}
+                  editSettingsKey={editSettingsKey}
+                  saveCardSetting={saveCardSetting}
+                  entities={entities}
+                  anchorEntityId={carAnchorEntityId}
+                  anchorOptions={carAnchorOptions}
+                  anchorRelatedEntityIds={carAnchorRelatedEntityIds}
+                  onAutoMapFromAnchor={autoMapCarFromAnchor}
+                  batteryOptions={batteryOptions}
+                  rangeOptions={rangeOptions}
+                  odometerOptions={odometerOptions}
+                  locationOptions={locationOptions}
+                  latitudeOptions={latitudeOptions}
+                  longitudeOptions={longitudeOptions}
+                  chargingOptions={chargingOptions}
+                  pluggedOptions={pluggedOptions}
+                  chargingPowerOptions={chargingPowerOptions}
+                  chargeRateOptions={chargeRateOptions}
+                  timeToFullOptions={timeToFullOptions}
+                  chargeEndTimeOptions={chargeEndTimeOptions}
+                  fuelLevelOptions={fuelLevelOptions}
+                  climateOptions={climateOptions}
+                  lockOptions={lockOptions}
+                  ignitionSwitchOptions={ignitionSwitchOptions}
+                  engineStatusOptions={engineStatusOptions}
+                  lastUpdatedOptions={lastUpdatedOptions}
+                  apiStatusOptions={apiStatusOptions}
+                  chargeControlOptions={chargeControlOptions}
+                  chargeLimitNumberOptions={chargeLimitNumberOptions}
+                  chargeLimitSelectOptions={chargeLimitSelectOptions}
+                  updateButtonOptions={updateButtonOptions}
+                />
+              )}
+
+              {canEditStatus && !isEditSensor && (
+                <div className="popup-surface space-y-4 rounded-2xl p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                      {t('form.showStatus') || 'Show Status'}
+                      {t('form.showStatus')}
                     </span>
                     <button
                       onClick={() =>
@@ -2593,28 +2315,7 @@ export default function EditCardModal({
 
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                      {t('form.showIcon') || 'Show Icon'}
-                    </span>
-                    <button
-                      onClick={() =>
-                        editSettingsKey &&
-                        saveCardSetting(
-                          editSettingsKey,
-                          'showIcon',
-                          !(editSettings.showIcon !== false)
-                        )
-                      }
-                      className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                    >
-                      <div
-                        className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showIcon !== false ? 'left-7' : 'left-1'}`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                      {t('form.showLastChanged') || 'Show Last Changed'}
+                      {t('form.showLastChanged')}
                     </span>
                     <button
                       onClick={() =>
@@ -2632,237 +2333,590 @@ export default function EditCardModal({
                       />
                     </button>
                   </div>
-
-                  {canControl && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                          {t('form.showControls')}
-                        </span>
-                        <span className="text-[10px] text-[var(--text-muted)]">{t('form.controlsHint')}</span>
-                      </div>
-                      <button
-                        onClick={() =>
-                          editSettingsKey &&
-                          saveCardSetting(
-                            editSettingsKey,
-                            'showControls',
-                            !editSettings.showControls
-                          )
-                        }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showControls ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                      >
-                        <div
-                          className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`}
-                        />
-                      </button>
-                    </div>
-                  )}
-
-                  {canGraph && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                          {t('form.showGraph')}
-                        </span>
-                        <span className="text-[10px] text-[var(--text-muted)]">{t('form.graphHint')}</span>
-                      </div>
-                      <button
-                        onClick={() =>
-                          editSettingsKey &&
-                          saveCardSetting(
-                            editSettingsKey,
-                            'showGraph',
-                            !(editSettings.showGraph !== false)
-                          )
-                        }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showGraph !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                      >
-                        <div
-                          className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showGraph !== false ? 'left-7' : 'left-1'}`}
-                        />
-                      </button>
-                    </div>
-                  )}
                 </div>
-              );
-            })()}
+              )}
 
-          {isEditFan && editSettingsKey && (
-            <div className="popup-surface rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-bold text-[var(--text-primary)]">
-                    {t('fan.disableAnimation') || 'Disable Animation'}
-                  </label>
-                  <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-                    {t('fan.disableAnimationHint') ||
-                      'Stop the icon from spinning when the fan is on'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    saveCardSetting(
-                      editSettingsKey,
-                      'disable_animation',
-                      !editSettings.disable_animation
-                    )
-                  }
-                  className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.disable_animation ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
-                >
-                  <span
-                    className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.disable_animation ? 'translate-x-6' : 'translate-x-0'}`}
-                  />
-                </button>
-              </div>
-            </div>
-          )}
+              {isEditSensor &&
+                (() => {
+                  const entity = entities[entityId];
+                  const domain = entityId.split('.')[0];
+                  const canControl = [
+                    'input_boolean',
+                    'switch',
+                    'light',
+                    'input_number',
+                    'automation',
+                    'script',
+                    'scene',
+                    'select',
+                    'input_select',
+                  ].includes(domain);
 
-          {isEditVacuum && editSettingsKey && (
-            <div className="space-y-3">
-              <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                {t('vacuum.sensorMapping') || 'Sensor mapping'}
-              </label>
-              <p className="ml-1 text-[10px] text-[var(--text-muted)]">
-                {t('vacuum.sensorMappingHint') ||
-                  'Optional: manually map sensor entities if auto-detection does not find your vacuum stats.'}
-              </p>
+                  const state = entity?.state;
+                  const isNumeric =
+                    typeof state === 'string'
+                      ? /^\s*-?\d+(\.\d+)?\s*$/.test(state)
+                      : !isNaN(parseFloat(state));
+                  const canGraph = isNumeric && domain !== 'input_number';
+                  const variant = editSettings.sensorVariant || 'default';
+                  const needsMinMax = ['gauge', 'donut', 'bar'].includes(variant) && isNumeric;
+                  const colorThresholdDefaults = [
+                    { limit: 20, color: 'red' },
+                    { limit: 60, color: 'amber' },
+                    { limit: 100, color: 'green' },
+                  ];
+                  const useColorThresholds = editSettings.sensorUseColorThresholds !== false;
+                  const colorThresholds =
+                    Array.isArray(editSettings.sensorColorThresholds) &&
+                    editSettings.sensorColorThresholds.length === 3
+                      ? editSettings.sensorColorThresholds.map((entry, index) => ({
+                          limit: Number.isFinite(parseFloat(entry?.limit))
+                            ? parseFloat(entry?.limit)
+                            : colorThresholdDefaults[index].limit,
+                          color: entry?.color || colorThresholdDefaults[index].color,
+                        }))
+                      : colorThresholdDefaults;
+                  const thresholdColorOptions = [
+                    {
+                      key: 'red',
+                      label: t('sensor.colorRed') || 'Red',
+                      swatch: 'var(--color-red-500)',
+                    },
+                    {
+                      key: 'amber',
+                      label: t('sensor.colorAmber') || 'Amber',
+                      swatch: 'var(--color-amber-400)',
+                    },
+                    {
+                      key: 'green',
+                      label: t('sensor.colorGreen') || 'Green',
+                      swatch: 'var(--color-green-400)',
+                    },
+                  ];
+                  const saveThresholdAt = (index, patch) => {
+                    const next = colorThresholds.map((entry, itemIndex) =>
+                      itemIndex === index ? { ...entry, ...patch } : entry
+                    );
+                    saveCardSetting(editSettingsKey, 'sensorColorThresholds', next);
+                  };
 
-              <div className="space-y-2">
-                {[
-                  {
-                    key: 'batterySensorId',
-                    label: t('vacuum.battery') || 'Battery',
-                  },
-                  {
-                    key: 'currentRoomSensorId',
-                    label: t('vacuum.room') || 'Room',
-                  },
-                  {
-                    key: 'cleaningTimeSensorId',
-                    label: t('vacuum.statsTime') || 'Current session time',
-                  },
-                  {
-                    key: 'cleanedAreaSensorId',
-                    label: t('vacuum.statsArea') || 'Current session area',
-                  },
-                  {
-                    key: 'totalCleanTimeSensorId',
-                    label: t('vacuum.statsTotalTime') || 'Total clean time',
-                  },
-                  {
-                    key: 'totalCleanAreaSensorId',
-                    label: t('vacuum.statsTotalArea') || 'Total clean area',
-                  },
-                  {
-                    key: 'totalCleanCountSensorId',
-                    label: t('vacuum.statsTotalCleans') || 'Total cleans',
-                  },
-                  {
-                    key: 'lastCleanStartSensorId',
-                    label: t('vacuum.lastCleanStart') || 'Last clean start',
-                  },
-                  {
-                    key: 'lastCleanEndSensorId',
-                    label: t('vacuum.lastCleaned') || 'Last clean end',
-                  },
-                ].map((field) => (
-                  <div key={field.key} className="popup-surface rounded-2xl p-3">
-                    <label className="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                      {field.label}
-                    </label>
-                    <select
-                      value={editSettings?.[field.key] || ''}
-                      onChange={(e) =>
-                        saveCardSetting(editSettingsKey, field.key, e.target.value || null)
-                      }
-                      className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-                      style={{
-                        backgroundColor: 'var(--card-bg)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--glass-border)',
-                      }}
-                    >
-                      <option value="">{t('common.auto') || 'Auto'}</option>
-                      {vacuumSensorOptions.map((sensorId) => (
-                        <option key={sensorId} value={sensorId}>
-                          {entities[sensorId]?.attributes?.friendly_name || sensorId}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
+                  return (
+                    <div className="popup-surface space-y-4 rounded-2xl p-4">
+                      {canGraph && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                            {t('sensor.variant') || 'Card style'}
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              { key: 'default', label: t('sensor.variantDefault') || 'Default' },
+                              { key: 'number', label: t('sensor.variantNumber') || 'Number' },
+                              { key: 'gauge', label: t('sensor.variantGauge') || 'Gauge' },
+                              { key: 'bar', label: t('sensor.variantBar') || 'Bar' },
+                              { key: 'donut', label: t('sensor.variantDonut') || 'Donut' },
+                            ].map((v) => (
+                              <button
+                                key={v.key}
+                                onClick={() =>
+                                  editSettingsKey &&
+                                  saveCardSetting(editSettingsKey, 'sensorVariant', v.key)
+                                }
+                                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                                  variant === v.key
+                                    ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                    : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                                }`}
+                              >
+                                {v.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-              <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                {t('vacuum.roomScripts') || 'Room Scripts'}
-              </label>
-              <p className="ml-1 text-[10px] text-[var(--text-muted)]">
-                {t('vacuum.roomScriptsHint') ||
-                  'Add HA scripts to clean specific rooms. These buttons appear in the vacuum popup.'}
-              </p>
+                      {needsMinMax && (
+                        <div className="space-y-4 rounded-xl bg-[var(--glass-bg)] p-3">
+                          <label className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                            {t('sensor.range') || 'Min / Max range'}
+                          </label>
+                          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                            <div className="min-w-0 space-y-1">
+                              <span className="text-[10px] text-[var(--text-muted)]">
+                                {t('sensor.minValue') || 'Min'}
+                              </span>
+                              <div className="flex min-w-0 gap-2">
+                                <input
+                                  type="number"
+                                  placeholder="0"
+                                  value={
+                                    editSettings.sensorMinType === 'entity'
+                                      ? ''
+                                      : (editSettings.sensorMin ?? '')
+                                  }
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    saveCardSetting(
+                                      editSettingsKey,
+                                      'sensorMin',
+                                      v === '' ? null : parseFloat(v)
+                                    );
+                                    saveCardSetting(editSettingsKey, 'sensorMinType', 'value');
+                                  }}
+                                  disabled={editSettings.sensorMinType === 'entity'}
+                                  className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none"
+                                />
+                                <select
+                                  value={editSettings.sensorMinType || 'value'}
+                                  onChange={(e) => {
+                                    const ty = e.target.value;
+                                    saveCardSetting(editSettingsKey, 'sensorMinType', ty);
+                                    if (ty === 'value')
+                                      saveCardSetting(editSettingsKey, 'sensorMinEntity', null);
+                                  }}
+                                  className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                                >
+                                  <option value="value">#</option>
+                                  <option value="entity">{t('sensor.entity') || 'Entity'}</option>
+                                </select>
+                              </div>
+                              {editSettings.sensorMinType === 'entity' && (
+                                <select
+                                  value={editSettings.sensorMinEntity || ''}
+                                  onChange={(e) =>
+                                    saveCardSetting(
+                                      editSettingsKey,
+                                      'sensorMinEntity',
+                                      e.target.value || null
+                                    )
+                                  }
+                                  className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                                >
+                                  <option value="">
+                                    {t('sensor.selectEntity') || 'Select...'}
+                                  </option>
+                                  {numericEntityOptions.map((id) => (
+                                    <option key={id} value={id}>
+                                      {entities[id]?.attributes?.friendly_name || id}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                            <div className="min-w-0 space-y-1">
+                              <span className="text-[10px] text-[var(--text-muted)]">
+                                {t('sensor.maxValue') || 'Max'}
+                              </span>
+                              <div className="flex min-w-0 gap-2">
+                                <input
+                                  type="number"
+                                  placeholder="100"
+                                  value={
+                                    editSettings.sensorMaxType === 'entity'
+                                      ? ''
+                                      : (editSettings.sensorMax ?? '')
+                                  }
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    saveCardSetting(
+                                      editSettingsKey,
+                                      'sensorMax',
+                                      v === '' ? null : parseFloat(v)
+                                    );
+                                    saveCardSetting(editSettingsKey, 'sensorMaxType', 'value');
+                                  }}
+                                  disabled={editSettings.sensorMaxType === 'entity'}
+                                  className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none"
+                                />
+                                <select
+                                  value={editSettings.sensorMaxType || 'value'}
+                                  onChange={(e) => {
+                                    const ty = e.target.value;
+                                    saveCardSetting(editSettingsKey, 'sensorMaxType', ty);
+                                    if (ty === 'value')
+                                      saveCardSetting(editSettingsKey, 'sensorMaxEntity', null);
+                                  }}
+                                  className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                                >
+                                  <option value="value">#</option>
+                                  <option value="entity">{t('sensor.entity') || 'Entity'}</option>
+                                </select>
+                              </div>
+                              {editSettings.sensorMaxType === 'entity' && (
+                                <select
+                                  value={editSettings.sensorMaxEntity || ''}
+                                  onChange={(e) =>
+                                    saveCardSetting(
+                                      editSettingsKey,
+                                      'sensorMaxEntity',
+                                      e.target.value || null
+                                    )
+                                  }
+                                  className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                                >
+                                  <option value="">
+                                    {t('sensor.selectEntity') || 'Select...'}
+                                  </option>
+                                  {numericEntityOptions.map((id) => (
+                                    <option key={id} value={id}>
+                                      {entities[id]?.attributes?.friendly_name || id}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-[var(--text-muted)]">
+                              {t('sensor.valueDisplay') || 'Value display'}
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() =>
+                                  saveCardSetting(editSettingsKey, 'sensorValueMode', 'actual')
+                                }
+                                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                                  (editSettings.sensorValueMode || 'actual') === 'actual'
+                                    ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                    : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                                }`}
+                              >
+                                {t('sensor.valueActual') || 'Actual value'}
+                              </button>
+                              <button
+                                onClick={() =>
+                                  saveCardSetting(editSettingsKey, 'sensorValueMode', 'percent')
+                                }
+                                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                                  editSettings.sensorValueMode === 'percent'
+                                    ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                    : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                                }`}
+                              >
+                                {t('sensor.valuePercent') || '% of range'}
+                              </button>
+                            </div>
+                          </div>
 
-              <div className="space-y-2">
-                {(Array.isArray(editSettings.roomScripts) ? editSettings.roomScripts : []).map(
-                  (entry, index) => (
-                    <div key={`room-script-${index}`} className="popup-surface rounded-2xl p-3">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                          {t('vacuum.addRoom') || 'Add room'} #{index + 1}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="text-[10px] text-[var(--text-muted)]">
+                                {t('sensor.colorThresholds') || 'Color thresholds'}
+                              </label>
+                              <button
+                                onClick={() =>
+                                  saveCardSetting(
+                                    editSettingsKey,
+                                    'sensorUseColorThresholds',
+                                    !useColorThresholds
+                                  )
+                                }
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
+                                  useColorThresholds
+                                    ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                    : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                                }`}
+                              >
+                                {useColorThresholds
+                                  ? t('common.on') || 'On'
+                                  : t('common.off') || 'Off'}
+                              </button>
+                            </div>
+
+                            <p className="text-[10px] text-[var(--text-muted)] opacity-80">
+                              {useColorThresholds
+                                ? t('sensor.colorThresholdsHint') ||
+                                  'Set max value for each color step'
+                                : t('sensor.colorThresholdsOffHint') ||
+                                  'Thresholds are disabled. Chart uses blue accent color.'}
+                            </p>
+
+                            {useColorThresholds && (
+                              <div className="space-y-2">
+                                {colorThresholds.map((threshold, index) => (
+                                  <div
+                                    key={`sensor-threshold-${index}`}
+                                    className="space-y-2 rounded-lg bg-[var(--modal-bg)] p-2"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="shrink-0 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
+                                        {(t('sensor.step') || 'Step') + ` ${index + 1}`}
+                                      </span>
+                                      <input
+                                        type="number"
+                                        value={threshold.limit ?? ''}
+                                        onChange={(e) =>
+                                          saveThresholdAt(index, {
+                                            limit:
+                                              e.target.value === ''
+                                                ? null
+                                                : parseFloat(e.target.value),
+                                          })
+                                        }
+                                        className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--glass-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
+                                      />
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                      {thresholdColorOptions.map((option) => (
+                                        <button
+                                          key={option.key}
+                                          onClick={() =>
+                                            saveThresholdAt(index, { color: option.key })
+                                          }
+                                          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
+                                            threshold.color === option.key
+                                              ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                              : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                                          }`}
+                                        >
+                                          <span
+                                            className="h-2.5 w-2.5 rounded-full"
+                                            style={{ backgroundColor: option.swatch }}
+                                          />
+                                          {option.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                          {t('form.showName') || 'Show Name'}
                         </span>
                         <button
-                          type="button"
-                          onClick={() => {
-                            const current = Array.isArray(editSettings.roomScripts)
-                              ? editSettings.roomScripts
-                              : [];
-                            const next = current.filter((_, i) => i !== index);
-                            saveCardSetting(editSettingsKey, 'roomScripts', next);
-                          }}
-                          className="rounded-lg px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
+                          onClick={() =>
+                            editSettingsKey &&
+                            saveCardSetting(
+                              editSettingsKey,
+                              'showName',
+                              !(editSettings.showName !== false)
+                            )
+                          }
+                          className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                         >
-                          {t('common.delete') || 'Delete'}
+                          <div
+                            className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
+                          />
                         </button>
                       </div>
 
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={entry?.label || ''}
-                          onChange={(e) => {
-                            const current = Array.isArray(editSettings.roomScripts)
-                              ? editSettings.roomScripts
-                              : [];
-                            const next = [...current];
-                            next[index] = {
-                              ...next[index],
-                              label: e.target.value,
-                            };
-                            saveCardSetting(editSettingsKey, 'roomScripts', next);
-                          }}
-                          placeholder={t('vacuum.roomLabel') || 'Label (e.g. Kitchen)'}
-                          className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-                          style={{
-                            backgroundColor: 'var(--card-bg)',
-                            color: 'var(--text-primary)',
-                            border: '1px solid var(--glass-border)',
-                          }}
-                        />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                          {t('form.showStatus') || 'Show Status'}
+                        </span>
+                        <button
+                          onClick={() =>
+                            editSettingsKey &&
+                            saveCardSetting(
+                              editSettingsKey,
+                              'showStatus',
+                              !(editSettings.showStatus !== false)
+                            )
+                          }
+                          className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showStatus !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          <div
+                            className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
+                          />
+                        </button>
+                      </div>
 
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                          {t('form.showIcon') || 'Show Icon'}
+                        </span>
+                        <button
+                          onClick={() =>
+                            editSettingsKey &&
+                            saveCardSetting(
+                              editSettingsKey,
+                              'showIcon',
+                              !(editSettings.showIcon !== false)
+                            )
+                          }
+                          className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          <div
+                            className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showIcon !== false ? 'left-7' : 'left-1'}`}
+                          />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                          {t('form.showLastChanged') || 'Show Last Changed'}
+                        </span>
+                        <button
+                          onClick={() =>
+                            editSettingsKey &&
+                            saveCardSetting(
+                              editSettingsKey,
+                              'showLastChanged',
+                              !(editSettings.showLastChanged !== false)
+                            )
+                          }
+                          className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showLastChanged !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          <div
+                            className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`}
+                          />
+                        </button>
+                      </div>
+
+                      {canControl && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                              {t('form.showControls')}
+                            </span>
+                            <span className="text-[10px] text-[var(--text-muted)]">
+                              {t('form.controlsHint')}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() =>
+                              editSettingsKey &&
+                              saveCardSetting(
+                                editSettingsKey,
+                                'showControls',
+                                !editSettings.showControls
+                              )
+                            }
+                            className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showControls ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                          >
+                            <div
+                              className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`}
+                            />
+                          </button>
+                        </div>
+                      )}
+
+                      {canGraph && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                              {t('form.showGraph')}
+                            </span>
+                            <span className="text-[10px] text-[var(--text-muted)]">
+                              {t('form.graphHint')}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() =>
+                              editSettingsKey &&
+                              saveCardSetting(
+                                editSettingsKey,
+                                'showGraph',
+                                !(editSettings.showGraph !== false)
+                              )
+                            }
+                            className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showGraph !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                          >
+                            <div
+                              className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showGraph !== false ? 'left-7' : 'left-1'}`}
+                            />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+              {isEditFan && editSettingsKey && (
+                <div className="popup-surface rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-bold text-[var(--text-primary)]">
+                        {t('fan.disableAnimation') || 'Disable Animation'}
+                      </label>
+                      <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                        {t('fan.disableAnimationHint') ||
+                          'Stop the icon from spinning when the fan is on'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        saveCardSetting(
+                          editSettingsKey,
+                          'disable_animation',
+                          !editSettings.disable_animation
+                        )
+                      }
+                      className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.disable_animation ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                    >
+                      <span
+                        className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.disable_animation ? 'translate-x-6' : 'translate-x-0'}`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isEditVacuum && editSettingsKey && (
+                <div className="space-y-3">
+                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('vacuum.sensorMapping') || 'Sensor mapping'}
+                  </label>
+                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    {t('vacuum.sensorMappingHint') ||
+                      'Optional: manually map sensor entities if auto-detection does not find your vacuum stats.'}
+                  </p>
+
+                  <div className="space-y-2">
+                    {[
+                      {
+                        key: 'batterySensorId',
+                        label: t('vacuum.battery') || 'Battery',
+                      },
+                      {
+                        key: 'currentRoomSensorId',
+                        label: t('vacuum.room') || 'Room',
+                      },
+                      {
+                        key: 'cleaningTimeSensorId',
+                        label: t('vacuum.statsTime') || 'Current session time',
+                      },
+                      {
+                        key: 'cleanedAreaSensorId',
+                        label: t('vacuum.statsArea') || 'Current session area',
+                      },
+                      {
+                        key: 'totalCleanTimeSensorId',
+                        label: t('vacuum.statsTotalTime') || 'Total clean time',
+                      },
+                      {
+                        key: 'totalCleanAreaSensorId',
+                        label: t('vacuum.statsTotalArea') || 'Total clean area',
+                      },
+                      {
+                        key: 'totalCleanCountSensorId',
+                        label: t('vacuum.statsTotalCleans') || 'Total cleans',
+                      },
+                      {
+                        key: 'lastCleanStartSensorId',
+                        label: t('vacuum.lastCleanStart') || 'Last clean start',
+                      },
+                      {
+                        key: 'lastCleanEndSensorId',
+                        label: t('vacuum.lastCleaned') || 'Last clean end',
+                      },
+                    ].map((field) => (
+                      <div key={field.key} className="popup-surface rounded-2xl p-3">
+                        <label className="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                          {field.label}
+                        </label>
                         <select
-                          value={entry?.entityId || ''}
-                          onChange={(e) => {
-                            const current = Array.isArray(editSettings.roomScripts)
-                              ? editSettings.roomScripts
-                              : [];
-                            const next = [...current];
-                            next[index] = {
-                              ...next[index],
-                              entityId: e.target.value,
-                            };
-                            saveCardSetting(editSettingsKey, 'roomScripts', next);
-                          }}
+                          value={editSettings?.[field.key] || ''}
+                          onChange={(e) =>
+                            saveCardSetting(editSettingsKey, field.key, e.target.value || null)
+                          }
                           className="w-full rounded-xl px-3 py-2 text-sm outline-none"
                           style={{
                             backgroundColor: 'var(--card-bg)',
@@ -2870,414 +2924,506 @@ export default function EditCardModal({
                             border: '1px solid var(--glass-border)',
                           }}
                         >
-                          <option value="">
-                            {t('vacuum.selectScript') || 'Select a script...'}
-                          </option>
-                          {scriptOptions.map((scriptId) => (
-                            <option key={scriptId} value={scriptId}>
-                              {entities[scriptId]?.attributes?.friendly_name || scriptId}
+                          <option value="">{t('common.auto') || 'Auto'}</option>
+                          {vacuumSensorOptions.map((sensorId) => (
+                            <option key={sensorId} value={sensorId}>
+                              {entities[sensorId]?.attributes?.friendly_name || sensorId}
                             </option>
                           ))}
                         </select>
                       </div>
-                    </div>
-                  )
-                )}
-              </div>
+                    ))}
+                  </div>
 
+                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('vacuum.roomScripts') || 'Room Scripts'}
+                  </label>
+                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    {t('vacuum.roomScriptsHint') ||
+                      'Add HA scripts to clean specific rooms. These buttons appear in the vacuum popup.'}
+                  </p>
+
+                  <div className="space-y-2">
+                    {(Array.isArray(editSettings.roomScripts) ? editSettings.roomScripts : []).map(
+                      (entry, index) => (
+                        <div key={`room-script-${index}`} className="popup-surface rounded-2xl p-3">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                              {t('vacuum.addRoom') || 'Add room'} #{index + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = Array.isArray(editSettings.roomScripts)
+                                  ? editSettings.roomScripts
+                                  : [];
+                                const next = current.filter((_, i) => i !== index);
+                                saveCardSetting(editSettingsKey, 'roomScripts', next);
+                              }}
+                              className="rounded-lg px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
+                            >
+                              {t('common.delete') || 'Delete'}
+                            </button>
+                          </div>
+
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={entry?.label || ''}
+                              onChange={(e) => {
+                                const current = Array.isArray(editSettings.roomScripts)
+                                  ? editSettings.roomScripts
+                                  : [];
+                                const next = [...current];
+                                next[index] = {
+                                  ...next[index],
+                                  label: e.target.value,
+                                };
+                                saveCardSetting(editSettingsKey, 'roomScripts', next);
+                              }}
+                              placeholder={t('vacuum.roomLabel') || 'Label (e.g. Kitchen)'}
+                              className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                              style={{
+                                backgroundColor: 'var(--card-bg)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--glass-border)',
+                              }}
+                            />
+
+                            <select
+                              value={entry?.entityId || ''}
+                              onChange={(e) => {
+                                const current = Array.isArray(editSettings.roomScripts)
+                                  ? editSettings.roomScripts
+                                  : [];
+                                const next = [...current];
+                                next[index] = {
+                                  ...next[index],
+                                  entityId: e.target.value,
+                                };
+                                saveCardSetting(editSettingsKey, 'roomScripts', next);
+                              }}
+                              className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                              style={{
+                                backgroundColor: 'var(--card-bg)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--glass-border)',
+                              }}
+                            >
+                              <option value="">
+                                {t('vacuum.selectScript') || 'Select a script...'}
+                              </option>
+                              {scriptOptions.map((scriptId) => (
+                                <option key={scriptId} value={scriptId}>
+                                  {entities[scriptId]?.attributes?.friendly_name || scriptId}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = Array.isArray(editSettings.roomScripts)
+                        ? editSettings.roomScripts
+                        : [];
+                      saveCardSetting(editSettingsKey, 'roomScripts', [
+                        ...current,
+                        { label: '', entityId: '' },
+                      ]);
+                    }}
+                    className="popup-surface popup-surface-hover flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] px-4 py-3 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t('vacuum.addRoom') || 'Add room'}
+                  </button>
+                </div>
+              )}
+
+              {isEditMedia && editSettingsKey && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('media.artworkMode') || 'Artwork Mode'}
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => saveCardSetting(editSettingsKey, 'artworkMode', 'default')}
+                        className={`flex-1 rounded-xl border px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors ${!editSettings.artworkMode || editSettings.artworkMode === 'default' ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                        style={
+                          !editSettings.artworkMode || editSettings.artworkMode === 'default'
+                            ? { backgroundColor: 'var(--glass-bg-hover)' }
+                            : undefined
+                        }
+                      >
+                        {t('media.artwork.default') || 'Default'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => saveCardSetting(editSettingsKey, 'artworkMode', 'cover')}
+                        className={`flex-1 rounded-xl border px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors ${editSettings.artworkMode === 'cover' ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                        style={
+                          editSettings.artworkMode === 'cover'
+                            ? { backgroundColor: 'var(--glass-bg-hover)' }
+                            : undefined
+                        }
+                      >
+                        {t('media.artwork.cover') || 'Cover'}
+                      </button>
+                    </div>
+                    <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                      {editSettings.artworkMode === 'cover'
+                        ? t('media.artwork.coverHint') || 'Full card artwork cover'
+                        : t('media.artwork.defaultHint') || 'Standard icon & background'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('media.playingBgMotion') || 'Playing Background Motion'}
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          saveCardSetting(editSettingsKey, 'playingBackgroundMotion', 'off')
+                        }
+                        className={`flex-1 rounded-xl border px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors ${!editSettings.playingBackgroundMotion || editSettings.playingBackgroundMotion === 'off' ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                        style={
+                          !editSettings.playingBackgroundMotion ||
+                          editSettings.playingBackgroundMotion === 'off'
+                            ? { backgroundColor: 'var(--glass-bg-hover)' }
+                            : undefined
+                        }
+                      >
+                        {t('common.off') || 'Off'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          saveCardSetting(editSettingsKey, 'playingBackgroundMotion', 'subtle')
+                        }
+                        className={`flex-1 rounded-xl border px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors ${editSettings.playingBackgroundMotion === 'subtle' ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                        style={
+                          editSettings.playingBackgroundMotion === 'subtle'
+                            ? { backgroundColor: 'var(--glass-bg-hover)' }
+                            : undefined
+                        }
+                      >
+                        {t('media.motion.subtle') || 'Subtle'}
+                      </button>
+                    </div>
+                    <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                      {editSettings.playingBackgroundMotion === 'subtle'
+                        ? t('media.motion.subtleHint') || 'Gently drifts artwork while playing'
+                        : t('media.motion.offHint') || 'No extra background motion'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {isEditRoom && editSettingsKey && (
+                <RoomSettingsSection
+                  conn={conn}
+                  editSettings={editSettings}
+                  editSettingsKey={editSettingsKey}
+                  saveCardSetting={saveCardSetting}
+                  entities={entities}
+                  pageOptions={roomPageOptions}
+                  t={t}
+                />
+              )}
+
+              {isEditNordpool && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                        {t('cost.currency') || 'Currency'}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={editSettings.currency || ''}
+                        onBlur={(e) =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'currency',
+                            e.target.value.trim() || null
+                          )
+                        }
+                        placeholder={t('cost.currencyPlaceholder') || 'Auto (from HA)'}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('nordpool.graphStyle') || 'Graph style'}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { key: 'line', label: t('nordpool.graphLine') || 'Line' },
+                        { key: 'bar', label: t('sensor.variantBar') || 'Bar' },
+                      ].map((variant) => (
+                        <button
+                          key={variant.key}
+                          onClick={() =>
+                            saveCardSetting(editSettingsKey, 'graphStyle', variant.key)
+                          }
+                          className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                            (editSettings.graphStyle || 'line') === variant.key
+                              ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                              : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {variant.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('nordpool.withSupport') || 'Electricity Support'}
+                    </label>
+                    <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
+                        {t('nordpool.withSupport') || 'Show electricity support'}
+                      </span>
+                      <button
+                        onClick={() =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'showWithSupport',
+                            !editSettings.showWithSupport
+                          )
+                        }
+                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showWithSupport ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                      >
+                        <span
+                          className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showWithSupport ? 'translate-x-6' : 'translate-x-0'}`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('addCard.nordpoolDecimals') || 'Decimals'}
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min={0}
+                        max={4}
+                        step={1}
+                        value={editSettings.decimals ?? 2}
+                        onChange={(e) =>
+                          saveCardSetting(editSettingsKey, 'decimals', parseInt(e.target.value, 10))
+                        }
+                        className="flex-1"
+                      />
+                      <div className="popup-surface min-w-[48px] rounded-xl px-3 py-2 text-center text-sm font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                        {editSettings.decimals ?? 2}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isEditCost && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                        {t('energyCost.todayLabel') || 'Today label'}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={editSettings.todayLabel || ''}
+                        onBlur={(e) =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'todayLabel',
+                            e.target.value.trim() || null
+                          )
+                        }
+                        placeholder={t('energyCost.today')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                        {t('energyCost.monthLabel') || 'Month label'}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={editSettings.monthLabel || ''}
+                        onBlur={(e) =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'monthLabel',
+                            e.target.value.trim() || null
+                          )
+                        }
+                        placeholder={t('energyCost.thisMonth')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                        {t('cost.currency') || 'Currency'}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={editSettings.currency || ''}
+                        onBlur={(e) =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'currency',
+                            e.target.value.trim() || null
+                          )
+                        }
+                        placeholder={t('cost.currencyPlaceholder') || 'Auto (from HA)'}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="ml-4 block pb-2 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('energyCost.today') || 'Today'}
+                    </label>
+                    <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
+                      {numericEntityOptions.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-[var(--text-muted)]">
+                          {t('addCard.noSensors') || 'No sensors found'}
+                        </p>
+                      ) : (
+                        numericEntityOptions.map((sensorId) => {
+                          const isSelected = editSettings.todayId === sensorId;
+                          return (
+                            <div
+                              key={sensorId}
+                              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
+                              onClick={() => {
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'todayId',
+                                  isSelected ? null : sensorId
+                                );
+                              }}
+                            >
+                              <div
+                                className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
+                              >
+                                {isSelected && (
+                                  <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />
+                                )}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-[var(--text-primary)]">
+                                  {entities[sensorId].attributes?.friendly_name || sensorId}
+                                </span>
+                                <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                                  {sensorId}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="ml-4 block pb-2 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('energyCost.thisMonth') || 'This Month'}
+                    </label>
+                    <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
+                      {numericEntityOptions.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-[var(--text-muted)]">
+                          {t('addCard.noSensors') || 'No sensors found'}
+                        </p>
+                      ) : (
+                        numericEntityOptions.map((sensorId) => {
+                          const isSelected = editSettings.monthId === sensorId;
+                          return (
+                            <div
+                              key={sensorId}
+                              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
+                              onClick={() => {
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'monthId',
+                                  isSelected ? null : sensorId
+                                );
+                              }}
+                            >
+                              <div
+                                className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
+                              >
+                                {isSelected && (
+                                  <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />
+                                )}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-[var(--text-primary)]">
+                                  {entities[sensorId].attributes?.friendly_name || sensorId}
+                                </span>
+                                <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                                  {sensorId}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('cost.decimals') || 'Decimals (Today)'}
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min={0}
+                        max={3}
+                        step={1}
+                        value={editSettings.decimals ?? 0}
+                        onChange={(e) =>
+                          saveCardSetting(editSettingsKey, 'decimals', parseInt(e.target.value, 10))
+                        }
+                        className="flex-1"
+                      />
+                      <div className="popup-surface min-w-[48px] rounded-xl px-3 py-2 text-center text-sm font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                        {editSettings.decimals ?? 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 flex justify-end border-t border-[var(--glass-border)] pt-5">
               <button
-                type="button"
-                onClick={() => {
-                  const current = Array.isArray(editSettings.roomScripts)
-                    ? editSettings.roomScripts
-                    : [];
-                  saveCardSetting(editSettingsKey, 'roomScripts', [
-                    ...current,
-                    { label: '', entityId: '' },
-                  ]);
-                }}
-                className="popup-surface popup-surface-hover flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] px-4 py-3 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase"
+                onClick={onClose}
+                className="popup-surface popup-surface-hover rounded-2xl px-6 py-2.5 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors"
               >
-                <Plus className="h-4 w-4" />
-                {t('vacuum.addRoom') || 'Add room'}
+                OK
               </button>
             </div>
-          )}
-
-          {isEditMedia && editSettingsKey && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('media.artworkMode') || 'Artwork Mode'}
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => saveCardSetting(editSettingsKey, 'artworkMode', 'default')}
-                    className={`flex-1 rounded-xl border px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors ${!editSettings.artworkMode || editSettings.artworkMode === 'default' ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
-                    style={
-                      !editSettings.artworkMode || editSettings.artworkMode === 'default'
-                        ? { backgroundColor: 'var(--glass-bg-hover)' }
-                        : undefined
-                    }
-                  >
-                    {t('media.artwork.default') || 'Default'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => saveCardSetting(editSettingsKey, 'artworkMode', 'cover')}
-                    className={`flex-1 rounded-xl border px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors ${editSettings.artworkMode === 'cover' ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
-                    style={
-                      editSettings.artworkMode === 'cover'
-                        ? { backgroundColor: 'var(--glass-bg-hover)' }
-                        : undefined
-                    }
-                  >
-                    {t('media.artwork.cover') || 'Cover'}
-                  </button>
-                </div>
-                <p className="ml-1 text-[10px] text-[var(--text-muted)]">
-                  {editSettings.artworkMode === 'cover'
-                    ? t('media.artwork.coverHint') || 'Full card artwork cover'
-                    : t('media.artwork.defaultHint') || 'Standard icon & background'}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('media.playingBgMotion') || 'Playing Background Motion'}
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => saveCardSetting(editSettingsKey, 'playingBackgroundMotion', 'off')}
-                    className={`flex-1 rounded-xl border px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors ${!editSettings.playingBackgroundMotion || editSettings.playingBackgroundMotion === 'off' ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
-                    style={
-                      !editSettings.playingBackgroundMotion || editSettings.playingBackgroundMotion === 'off'
-                        ? { backgroundColor: 'var(--glass-bg-hover)' }
-                        : undefined
-                    }
-                  >
-                    {t('common.off') || 'Off'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      saveCardSetting(editSettingsKey, 'playingBackgroundMotion', 'subtle')
-                    }
-                    className={`flex-1 rounded-xl border px-4 py-3 text-xs font-bold tracking-widest uppercase transition-colors ${editSettings.playingBackgroundMotion === 'subtle' ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
-                    style={
-                      editSettings.playingBackgroundMotion === 'subtle'
-                        ? { backgroundColor: 'var(--glass-bg-hover)' }
-                        : undefined
-                    }
-                  >
-                    {t('media.motion.subtle') || 'Subtle'}
-                  </button>
-                </div>
-                <p className="ml-1 text-[10px] text-[var(--text-muted)]">
-                  {editSettings.playingBackgroundMotion === 'subtle'
-                    ? t('media.motion.subtleHint') || 'Gently drifts artwork while playing'
-                    : t('media.motion.offHint') || 'No extra background motion'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {isEditRoom && editSettingsKey && (
-            <RoomSettingsSection
-              conn={conn}
-              editSettings={editSettings}
-              editSettingsKey={editSettingsKey}
-              saveCardSetting={saveCardSetting}
-              entities={entities}
-              pageOptions={roomPageOptions}
-              t={t}
-            />
-          )}
-
-          {isEditNordpool && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                    {t('cost.currency') || 'Currency'}
-                  </label>
-                  <input
-                    type="text"
-                    className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                    defaultValue={editSettings.currency || ''}
-                    onBlur={(e) =>
-                      saveCardSetting(editSettingsKey, 'currency', e.target.value.trim() || null)
-                    }
-                    placeholder={t('cost.currencyPlaceholder') || 'Auto (from HA)'}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('nordpool.graphStyle') || 'Graph style'}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { key: 'line', label: t('nordpool.graphLine') || 'Line' },
-                    { key: 'bar', label: t('sensor.variantBar') || 'Bar' },
-                  ].map((variant) => (
-                    <button
-                      key={variant.key}
-                      onClick={() => saveCardSetting(editSettingsKey, 'graphStyle', variant.key)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                        (editSettings.graphStyle || 'line') === variant.key
-                          ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                          : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      {variant.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('nordpool.withSupport') || 'Electricity Support'}
-                </label>
-                <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
-                  <span className="text-sm font-medium text-[var(--text-primary)]">
-                    {t('nordpool.withSupport') || 'Show electricity support'}
-                  </span>
-                  <button
-                    onClick={() =>
-                      saveCardSetting(
-                        editSettingsKey,
-                        'showWithSupport',
-                        !editSettings.showWithSupport
-                      )
-                    }
-                    className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showWithSupport ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
-                  >
-                    <span
-                      className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showWithSupport ? 'translate-x-6' : 'translate-x-0'}`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('addCard.nordpoolDecimals') || 'Decimals'}
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min={0}
-                    max={4}
-                    step={1}
-                    value={editSettings.decimals ?? 2}
-                    onChange={(e) =>
-                      saveCardSetting(editSettingsKey, 'decimals', parseInt(e.target.value, 10))
-                    }
-                    className="flex-1"
-                  />
-                  <div className="popup-surface min-w-[48px] rounded-xl px-3 py-2 text-center text-sm font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                    {editSettings.decimals ?? 2}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isEditCost && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                    {t('energyCost.todayLabel') || 'Today label'}
-                  </label>
-                  <input
-                    type="text"
-                    className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                    defaultValue={editSettings.todayLabel || ''}
-                    onBlur={(e) =>
-                      saveCardSetting(editSettingsKey, 'todayLabel', e.target.value.trim() || null)
-                    }
-                    placeholder={t('energyCost.today')}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                    {t('energyCost.monthLabel') || 'Month label'}
-                  </label>
-                  <input
-                    type="text"
-                    className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                    defaultValue={editSettings.monthLabel || ''}
-                    onBlur={(e) =>
-                      saveCardSetting(editSettingsKey, 'monthLabel', e.target.value.trim() || null)
-                    }
-                    placeholder={t('energyCost.thisMonth')}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                    {t('cost.currency') || 'Currency'}
-                  </label>
-                  <input
-                    type="text"
-                    className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                    defaultValue={editSettings.currency || ''}
-                    onBlur={(e) =>
-                      saveCardSetting(editSettingsKey, 'currency', e.target.value.trim() || null)
-                    }
-                    placeholder={t('cost.currencyPlaceholder') || 'Auto (from HA)'}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="ml-4 block pb-2 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('energyCost.today') || 'Today'}
-                </label>
-                <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
-                  {Object.keys(entities).filter(
-                    (id) => id.startsWith('sensor.') || id.startsWith('input_number.')
-                  ).length === 0 ? (
-                    <p className="py-4 text-center text-sm text-[var(--text-muted)]">
-                      {t('addCard.noSensors') || 'No sensors found'}
-                    </p>
-                  ) : (
-                    Object.keys(entities)
-                      .filter((id) => id.startsWith('sensor.') || id.startsWith('input_number.'))
-                      .sort((a, b) =>
-                        (entities[a].attributes?.friendly_name || a).localeCompare(
-                          entities[b].attributes?.friendly_name || b
-                        )
-                      )
-                      .map((sensorId) => {
-                        const isSelected = editSettings.todayId === sensorId;
-                        return (
-                          <div
-                            key={sensorId}
-                            className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
-                            onClick={() => {
-                              saveCardSetting(
-                                editSettingsKey,
-                                'todayId',
-                                isSelected ? null : sensorId
-                              );
-                            }}
-                          >
-                            <div
-                              className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
-                            >
-                              {isSelected && <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-[var(--text-primary)]">
-                                {entities[sensorId].attributes?.friendly_name || sensorId}
-                              </span>
-                              <span className="font-mono text-[10px] text-[var(--text-muted)]">
-                                {sensorId}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="ml-4 block pb-2 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('energyCost.thisMonth') || 'This Month'}
-                </label>
-                <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
-                  {Object.keys(entities).filter(
-                    (id) => id.startsWith('sensor.') || id.startsWith('input_number.')
-                  ).length === 0 ? (
-                    <p className="py-4 text-center text-sm text-[var(--text-muted)]">
-                      {t('addCard.noSensors') || 'No sensors found'}
-                    </p>
-                  ) : (
-                    Object.keys(entities)
-                      .filter((id) => id.startsWith('sensor.') || id.startsWith('input_number.'))
-                      .sort((a, b) =>
-                        (entities[a].attributes?.friendly_name || a).localeCompare(
-                          entities[b].attributes?.friendly_name || b
-                        )
-                      )
-                      .map((sensorId) => {
-                        const isSelected = editSettings.monthId === sensorId;
-                        return (
-                          <div
-                            key={sensorId}
-                            className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
-                            onClick={() => {
-                              saveCardSetting(
-                                editSettingsKey,
-                                'monthId',
-                                isSelected ? null : sensorId
-                              );
-                            }}
-                          >
-                            <div
-                              className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
-                            >
-                              {isSelected && <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-[var(--text-primary)]">
-                                {entities[sensorId].attributes?.friendly_name || sensorId}
-                              </span>
-                              <span className="font-mono text-[10px] text-[var(--text-muted)]">
-                                {sensorId}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('cost.decimals') || 'Decimals (Today)'}
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min={0}
-                    max={3}
-                    step={1}
-                    value={editSettings.decimals ?? 0}
-                    onChange={(e) =>
-                      saveCardSetting(editSettingsKey, 'decimals', parseInt(e.target.value, 10))
-                    }
-                    className="flex-1"
-                  />
-                  <div className="popup-surface min-w-[48px] rounded-xl px-3 py-2 text-center text-sm font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                    {editSettings.decimals ?? 0}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-5 flex justify-end border-t border-[var(--glass-border)] pt-5">
-          <button
-            onClick={onClose}
-            className="popup-surface popup-surface-hover rounded-2xl px-6 py-2.5 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors"
-          >
-            OK
-          </button>
-        </div>
-      </>
+          </>
         </>
       )}
     </AccessibleModalShell>
   );
 }
-
