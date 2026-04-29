@@ -111,7 +111,7 @@ const FanCard = memo(/** @param {any} props */ function FanCard({
   const mobileBadgeText = (() => {
     if (isUnavailable) return t('common.unknown');
     if (!isOn) return t('status.off');
-    if (oscillating) return t('fan.oscillating') || 'Osc';
+    if (oscillating) return t('fan.oscillating');
     if (hasPresetControl && presetMode) return String(presetMode);
     return t('status.on');
   })();

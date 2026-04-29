@@ -1,5 +1,4 @@
 import { useToast } from '../../contexts/ToastContext';
-import { X } from '../../icons';
 
 const TYPE_STYLES = {
   error: {

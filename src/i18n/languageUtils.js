@@ -8,7 +8,13 @@ export function normalizeLanguage(language) {
 
 export function getLocaleForLanguage(language) {
   if (language === 'nb') return 'nb-NO';
-  if (language === 'nn') return 'nn-NO';
+  if (language === 'nn') {
+    const supportsNynorsk =
+      typeof Intl !== 'undefined' &&
+      typeof Intl.DateTimeFormat?.supportedLocalesOf === 'function' &&
+      Intl.DateTimeFormat.supportedLocalesOf('nn-NO').length > 0;
+    return supportsNynorsk ? 'nn-NO' : 'nb-NO';
+  }
   if (language === 'sv') return 'sv-SE';
   if (language === 'de') return 'de-DE';
   if (language === 'zh') return 'zh-CN';

@@ -324,8 +324,6 @@ const StatusPill = memo(/** @param {any} props */ function StatusPill({
               ? title
               : artist;
 
-    const noMediaLabel = t('media.noMedia') || 'No media';
-    const sonosHeadingSource = pill.sonosHeadingSource || 'song';
     const sonosSubheadingSource = pill.sonosSubheadingSource || 'artist_player';
 
     const composeDual = (first, second) => [first, second].filter(Boolean).join(' - ');
@@ -352,15 +350,7 @@ const StatusPill = memo(/** @param {any} props */ function StatusPill({
       }
     };
 
-    const resolvedSonosHeading = resolveSonosText(sonosHeadingSource);
     const resolvedSonosSubheading = resolveSonosText(sonosSubheadingSource);
-    const sonosAutoLabel =
-      sonosHeadingSource === 'none'
-        ? null
-        : resolvedSonosHeading ||
-          title ||
-          friendlyName ||
-          (!hasMediaMetadata ? noMediaLabel : 'Media');
 
     const customLabel = getCustomLabel();
     const label = customLabel || autoLabel;

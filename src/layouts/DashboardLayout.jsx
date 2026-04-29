@@ -143,11 +143,17 @@ export default function DashboardLayout(props) {
           sectionSpacing={sectionSpacing}
         >
           <div
-            className={`mt-0 w-full font-sans ${isMobile ? 'flex flex-col items-start gap-3' : 'flex items-center justify-between'}`}
-            style={{ marginTop: `${sectionSpacing?.headerToStatus ?? 0}px` }}
+            className={`mt-0 w-full font-sans ${isMobile ? 'flex flex-col items-start gap-2' : 'flex items-center justify-between'}`}
+            style={{
+              marginTop: `${
+                isMobile
+                  ? Math.min(sectionSpacing?.headerToStatus ?? 0, 12)
+                  : (sectionSpacing?.headerToStatus ?? 0)
+              }px`,
+            }}
           >
             <div
-              className={`flex min-w-0 flex-wrap items-center gap-2.5 ${isMobile ? 'w-full origin-left scale-90' : ''}`}
+              className={`flex min-w-0 flex-wrap items-center gap-2.5 ${isMobile ? 'w-full origin-left scale-90 empty:hidden' : ''}`}
             >
               {(pagesConfig.header || []).map((id) => personStatus(id))}
               {editMode && (
@@ -168,7 +174,7 @@ export default function DashboardLayout(props) {
                   <Plus className="h-3 w-3" /> {t('addCard.type.entity')}
                 </button>
               )}
-              {(pagesConfig.header || []).length > 0 && (
+              {(pagesConfig.header || []).length > 0 && !isMobile && (
                 <div className="mx-2 h-8 w-px bg-[var(--glass-border)]"></div>
               )}
             </div>
@@ -192,7 +198,9 @@ export default function DashboardLayout(props) {
         <ConnectionBanner t={t} setConfigTab={setConfigTab} />
 
         <div
-          className="flex flex-nowrap items-center justify-between gap-4"
+          className={`flex flex-nowrap items-center justify-between ${
+            isMobile ? 'gap-2' : 'gap-4'
+          }`}
           style={{ marginBottom: `${sectionSpacing?.navToGrid ?? 24}px` }}
         >
           <PageNavigation

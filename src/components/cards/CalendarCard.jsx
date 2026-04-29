@@ -202,8 +202,8 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    if (date.getTime() === today.getTime()) return t('calendar.today') || 'Today';
-    if (date.getTime() === tomorrow.getTime()) return t('calendar.tomorrow') || 'Tomorrow';
+    if (date.getTime() === today.getTime()) return t('calendar.today');
+    if (date.getTime() === tomorrow.getTime()) return t('calendar.tomorrow');
 
     // Format: "Monday 26. Jan"
     return date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' });
@@ -231,7 +231,7 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
   };
 
   const IconComp = iconName ? getIconComponent(iconName) || CalendarIcon : CalendarIcon;
-  const displayName = customName || settings?.name || t('calendar.title') || 'Calendar';
+  const displayName = customName || settings?.name || t('calendar.title');
   const isSmall = size === 'small';
   const isLarge = !!settings?.largeCalendar;
 
@@ -302,11 +302,11 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
         <div className="flex min-w-0 flex-col justify-center">
           {!selectedCalendars.length ? (
             <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-              {t('calendar.selectCalendars') || 'Select Calendars'}
+              {t('calendar.selectCalendars')}
             </p>
           ) : loading && events.length === 0 ? (
             <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-              {t('common.loading') || 'Loading...'}
+              {t('common.loading')}
             </p>
           ) : !nextEvent ? (
             <>
@@ -314,7 +314,7 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
                 {displayName}
               </p>
               <p className="truncate text-sm leading-none font-bold text-[var(--text-primary)] opacity-80">
-                {t('calendar.noEvents') || 'No events'}
+                {t('calendar.noEvents')}
               </p>
             </>
           ) : (
@@ -324,7 +324,7 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
                 {!nextIsAllDay && nextEventStart && (
                   <span>
                     {formatDateHeader(nextEventStart.toLocaleDateString('sv-SE')) !==
-                      (t('calendar.today') || 'Today') &&
+                      t('calendar.today') &&
                       `• ${formatDateHeader(nextEventStart.toLocaleDateString('sv-SE'))}`}
                   </span>
                 )}
@@ -418,7 +418,7 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
           <div className="flex flex-1 flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
             <IconComp className="mb-2 h-8 w-8" />
             <p className="text-xs font-bold tracking-widest uppercase">
-              {t('calendar.selectCalendars') || 'Select Calendars'}
+              {t('calendar.selectCalendars')}
             </p>
           </div>
         ) : error ? (
@@ -430,7 +430,7 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
           <div className="flex flex-1 flex-col items-center justify-center text-[var(--text-secondary)]">
             <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--accent-color)]" />
             <p className="text-xs font-bold tracking-widest uppercase">
-              {t('common.loading') || 'Loading...'}
+              {t('common.loading')}
             </p>
           </div>
         ) : (
@@ -462,7 +462,7 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
               <div className="flex shrink-0 border-b border-[var(--glass-border)]/30 px-2 pb-1">
                 <div className={GUTTER_W + ' flex shrink-0 items-center justify-end pr-1.5'}>
                   <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40">
-                    {t('calendar.allDay') || 'All day'}
+                    {t('calendar.allDay')}
                   </span>
                 </div>
                 {weekData.map(({ dateKey, allDay }) => (
@@ -592,7 +592,7 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
           <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
             <IconComp className="mb-2 h-8 w-8" />
             <p className="text-xs font-bold tracking-widest uppercase">
-              {t('calendar.selectCalendars') || 'Select Calendars'}
+              {t('calendar.selectCalendars')}
             </p>
           </div>
         ) : error ? (
@@ -604,14 +604,14 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
           <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)]">
             <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--accent-color)]"></div>
             <p className="text-xs font-bold tracking-widest uppercase">
-              {t('common.loading') || 'Loading...'}
+              {t('common.loading')}
             </p>
           </div>
         ) : events.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
             <Clock className="mb-2 h-8 w-8" />
             <p className="px-3 text-center text-xs leading-relaxed font-bold tracking-widest uppercase">
-              {t('calendar.noEvents') || 'No upcoming events'}
+              {t('calendar.noEvents')}
             </p>
           </div>
         ) : (

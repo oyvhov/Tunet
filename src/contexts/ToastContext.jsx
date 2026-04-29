@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, useRef } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, useRef } from 'react';
 
 /** @typedef {{ id: number, message: string, type?: 'error' | 'success' | 'info' }} Toast */
 /** @typedef {{ addToast: (message: string, type?: 'error' | 'success' | 'info') => void, toasts: Toast[] }} ToastContextValue */
@@ -26,5 +26,7 @@ export function ToastProvider({ children }) {
     }, TOAST_DURATION);
   }, []);
 
-  return <ToastContext.Provider value={{ addToast, toasts }}>{children}</ToastContext.Provider>;
+  const value = useMemo(() => ({ addToast, toasts }), [addToast, toasts]);
+
+  return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
 }

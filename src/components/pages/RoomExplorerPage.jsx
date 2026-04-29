@@ -4,7 +4,7 @@ import {
   Lightbulb, Thermometer, Power, WifiOff, Zap,
   Play, Pause, SkipForward, SkipBack,
   Lock, Unlock, DoorOpen, Fan, Camera, Bot, Speaker,
-  Home, Eye, Shield, Activity,
+  Home, Eye, Activity,
 } from '../../icons';
 import { getIconComponent } from '../../icons';
 import M3Slider from '../ui/M3Slider';
@@ -131,10 +131,10 @@ const EntityRow = memo(function EntityRow({ entityId, entity, callService, conn,
   const [optimisticBrightness, setOptimisticBrightness] = useState(null);
   const debounceRef = useRef(null);
 
-  if (!entity) return null;
+  const attrs = useMemo(() => entity?.attributes || {}, [entity]);
   const domain = entityId.split('.')[0];
-  const name = entity.attributes?.friendly_name || entityId.split('.')[1]?.replace(/_/g, ' ');
-  const state = entity.state;
+  const name = attrs.friendly_name || entityId.split('.')[1]?.replace(/_/g, ' ');
+  const state = entity?.state;
   const isOn = state === 'on';
   const isUnavailable = state === 'unavailable' || state === 'unknown';
 
@@ -158,9 +158,9 @@ const EntityRow = memo(function EntityRow({ entityId, entity, callService, conn,
     }, SLIDER_DEBOUNCE_MS);
   }, [conn, callService, entityId]);
 
-  const brightness = entity.attributes?.brightness || 0;
+  const brightness = attrs.brightness || 0;
   const brightnessPercent = Math.round(((optimisticBrightness != null ? (optimisticBrightness / 100) * 255 : brightness) / 255) * 100);
-  const supportedColorModes = entity.attributes?.supported_color_modes;
+  const supportedColorModes = attrs.supported_color_modes;
   const isDimmable = domain === 'light' && supportedColorModes
     ? !supportedColorModes.includes('onoff') || supportedColorModes.length > 1
     : false;
@@ -168,38 +168,39 @@ const EntityRow = memo(function EntityRow({ entityId, entity, callService, conn,
   // Light color extraction
   const lightColor = useMemo(() => {
     if (domain !== 'light' || !isOn) return null;
-    const a = entity.attributes || {};
-    if (a.rgb_color) return `${a.rgb_color[0]}, ${a.rgb_color[1]}, ${a.rgb_color[2]}`;
-    if (a.color_temp_kelvin) {
-      const k = a.color_temp_kelvin;
+    if (attrs.rgb_color) return `${attrs.rgb_color[0]}, ${attrs.rgb_color[1]}, ${attrs.rgb_color[2]}`;
+    if (attrs.color_temp_kelvin) {
+      const k = attrs.color_temp_kelvin;
       if (k <= 2700) return '255, 166, 60';
       if (k <= 3500) return '255, 195, 110';
       if (k <= 4500) return '255, 220, 170';
       return '210, 225, 255';
     }
     return '255, 183, 77';
-  }, [domain, isOn, entity.attributes]);
+  }, [domain, isOn, attrs]);
 
   // Climate info
-  const currentTemp = entity.attributes?.current_temperature;
-  const targetTemp = entity.attributes?.temperature;
-  const hvacAction = entity.attributes?.hvac_action || state;
+  const currentTemp = attrs.current_temperature;
+  const targetTemp = attrs.temperature;
+  const hvacAction = attrs.hvac_action || state;
   const isHeating = hvacAction === 'heating';
   const isCooling = hvacAction === 'cooling';
 
   // Media info
-  const mediaTitle = entity.attributes?.media_title;
-  const mediaArtist = entity.attributes?.media_artist;
+  const mediaTitle = attrs.media_title;
+  const mediaArtist = attrs.media_artist;
 
   // Entity-specific icon
   const IconComp = useMemo(() => {
-    const iconName = entity.attributes?.icon;
+    const iconName = attrs.icon;
     if (iconName) {
       const Comp = getIconComponent(iconName);
       if (Comp) return Comp;
     }
     return getDomainIcon(domain);
-  }, [entity.attributes?.icon, domain]);
+  }, [attrs.icon, domain]);
+
+  if (!entity) return null;
 
   return (
     <div
@@ -243,11 +244,16 @@ const EntityRow = memo(function EntityRow({ entityId, entity, callService, conn,
         <p className="truncate text-sm font-medium text-[var(--text-primary)]">{name}</p>
         <p className="truncate text-[11px] text-[var(--text-muted)]">
           {domain === 'sensor' || domain === 'binary_sensor'
-            ? `${state}${entity.attributes?.unit_of_measurement ? ` ${entity.attributes.unit_of_measurement}` : ''}`
+            ? `${state}${attrs.unit_of_measurement ? ` ${attrs.unit_of_measurement}` : ''}`
             : domain === 'climate'
-              ? `${currentTemp != null ? `${currentTemp}°` : ''}${targetTemp != null ? ` → ${targetTemp}°` : ''} ${hvacAction}`
+              ? (() => {
+                  const tempUnit = attrs.temperature_unit || '\u00b0';
+                  const cur = currentTemp != null ? `${currentTemp}${tempUnit}` : '';
+                  const tgt = targetTemp != null ? ` \u2192 ${targetTemp}${tempUnit}` : '';
+                  return `${cur}${tgt} ${hvacAction}`;
+                })()
               : domain === 'media_player' && (mediaTitle || mediaArtist)
-                ? `${mediaArtist ? `${mediaArtist} – ` : ''}${mediaTitle || ''}`
+                ? `${mediaArtist ? `${mediaArtist} \u2013 ` : ''}${mediaTitle || ''}`
                 : domain === 'light' && isOn && isDimmable
                   ? `${brightnessPercent}%`
                   : t(`roomExplorer.state.${state}`) || state
@@ -377,13 +383,13 @@ const EntityRow = memo(function EntityRow({ entityId, entity, callService, conn,
                 : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
             }`}
           >
-            {state === 'cleaning' ? 'Pause' : 'Start'}
+            {state === 'cleaning' ? t('roomExplorer.vacuum.pause') : t('roomExplorer.vacuum.start')}
           </button>
           <button
             onClick={() => callService('vacuum', 'return_to_base', { entity_id: entityId })}
             className="flex h-8 items-center justify-center rounded-lg bg-[var(--glass-bg)] px-3 text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90"
           >
-            Dock
+            {t('roomExplorer.vacuum.dock')}
           </button>
         </div>
       )}
@@ -704,7 +710,10 @@ function RoomExplorerPage({ entities, callService, conn, pageSettings, pageId, s
 
   // Selected area data
   const selectedArea = areas.find(a => a.area_id === selectedAreaId);
-  const selectedEntityIds = areaEntityIds[selectedAreaId] || [];
+  const selectedEntityIds = useMemo(
+    () => areaEntityIds[selectedAreaId] || [],
+    [areaEntityIds, selectedAreaId],
+  );
 
   // Group entities by domain for selected area
   const domainGroups = useMemo(() => {

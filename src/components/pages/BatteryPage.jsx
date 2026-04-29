@@ -196,7 +196,7 @@ const SortDropdown = memo(function SortDropdown({ sortMode, onSortChange, option
 
 // ── Main Battery Page ────────────────────────────────────────────────────
 
-function BatteryPage({ entities, callService, conn, pageSettings, pageId, savePageSetting, t }) {
+function BatteryPage({ entities, conn, pageSettings, pageId, savePageSetting, t }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortMode, setSortMode] = useState(
     () => pageSettings?.[pageId]?.batterySort || 'level'

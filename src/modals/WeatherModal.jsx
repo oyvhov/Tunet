@@ -127,6 +127,7 @@ export default function WeatherModal({
   const locale = getLocaleForLanguage(language);
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
+  const use12HourTime = locale === 'en-US';
   const activeWeatherEntity = weatherEntity || {
     state: 'unknown',
     attributes: {},
@@ -376,7 +377,11 @@ export default function WeatherModal({
         : null;
       const label =
         forecastType === 'hourly'
-          ? time.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+          ? time.toLocaleTimeString(locale, {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: use12HourTime,
+            })
           : time.toLocaleDateString(locale, { weekday: 'short', day: 'numeric' });
       const itemCondition = f.condition || condition;
       const itemInfo = getWeatherInfo(itemCondition, t);
@@ -389,7 +394,16 @@ export default function WeatherModal({
         precip,
       };
     });
-  }, [forecast, forecastType, condition, t, locale, sourceTemperatureUnit, effectiveUnitMode]);
+  }, [
+    forecast,
+    forecastType,
+    condition,
+    t,
+    locale,
+    use12HourTime,
+    sourceTemperatureUnit,
+    effectiveUnitMode,
+  ]);
 
   if (!show || !weatherEntity) return null;
 
@@ -523,6 +537,7 @@ export default function WeatherModal({
                       return date.toLocaleTimeString(locale, {
                         hour: '2-digit',
                         minute: '2-digit',
+                        hour12: use12HourTime,
                       });
                     }}
                   />

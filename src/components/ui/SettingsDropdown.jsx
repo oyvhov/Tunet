@@ -36,7 +36,7 @@ export default function SettingsDropdown({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`group relative z-50 rounded-full p-2 transition-all duration-300 ${isOpen ? 'bg-[var(--accent-color)] text-white shadow-lg ' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
-        aria-label="Settings"
+        aria-label={t('menu.settings')}
         data-testid="settings-dropdown-trigger"
       >
         <Settings
@@ -81,7 +81,7 @@ export default function SettingsDropdown({
           <button
             onClick={() => handleSelect(onOpenTheme)}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/10"
-            aria-label="Open Appearance"
+            aria-label={t('settings.openAppearance')}
             data-testid="settings-menu-theme"
           >
             <div className="rounded-lg bg-pink-500/10 p-2 text-pink-400 transition-colors group-hover:bg-pink-500 group-hover:text-white">
@@ -97,7 +97,7 @@ export default function SettingsDropdown({
           <button
             onClick={() => handleSelect(onOpenLayout)}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/10"
-            aria-label="Open Layout"
+            aria-label={t('settings.openLayout')}
             data-testid="settings-menu-layout"
           >
             <div className="rounded-lg bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
@@ -113,7 +113,7 @@ export default function SettingsDropdown({
           <button
             onClick={() => handleSelect(onOpenHeader)}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/10"
-            aria-label="Open Header"
+            aria-label={t('settings.openHeader')}
             data-testid="settings-menu-header"
           >
             <div className="rounded-lg bg-indigo-500/10 p-2 text-indigo-400 transition-colors group-hover:bg-indigo-500 group-hover:text-white">
@@ -131,7 +131,7 @@ export default function SettingsDropdown({
           <button
             onClick={() => handleSelect(onOpenSettings)}
             className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/10"
-            aria-label="Open System"
+            aria-label={t('settings.openSystem')}
             data-testid="settings-menu-system"
           >
             <div className="rounded-lg bg-[var(--status-success-bg)] p-2 text-[var(--status-success-fg)] transition-colors group-hover:opacity-90">

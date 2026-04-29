@@ -91,7 +91,6 @@ export default function SensorHistoryGraph({
   max = Math.ceil(max / snapStep) * snapStep;
 
   // Add some padding to top of Y-axis range only
-  const range = max - min;
   const renderMin = min;
   const renderMax = max;
   const renderRange = renderMax - renderMin || 1;

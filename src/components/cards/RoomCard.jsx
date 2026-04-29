@@ -255,24 +255,24 @@ const RoomCard = memo(/** @param {any} props */ function RoomCard({
   const isOccupied = motionEntity?.state === 'on';
   const occupancyPillLabel = useMemo(() => {
     const deviceClass = motionEntity?.attributes?.device_class;
-    if (deviceClass === 'motion') return t('room.motionShort') || 'Motion';
-    return t('binary.occupancy.occupied') || 'Occupancy';
+    if (deviceClass === 'motion') return t('room.motionShort');
+    return t('binary.occupancy.occupied');
   }, [motionEntity, t]);
   const hasMainLightToggle = !!mainLightId;
   const vacuumStatusLabel = useMemo(() => {
     if (!activeVacuum) return null;
     switch (activeVacuum.state) {
       case 'cleaning':
-        return t('room.vacuumStatus.cleaning') || 'Cleaning';
+        return t('room.vacuumStatus.cleaning');
       case 'returning':
       case 'returning_home':
-        return t('room.vacuumStatus.goingHome') || 'Going home';
+        return t('room.vacuumStatus.goingHome');
       case 'error':
-        return t('room.vacuumStatus.error') || 'Error';
+        return t('room.vacuumStatus.error');
       case 'paused':
       case 'idle':
       case 'stopped':
-        return t('room.vacuumStatus.stopped') || 'Stopped';
+        return t('room.vacuumStatus.stopped');
       default:
         return activeVacuum.state;
     }

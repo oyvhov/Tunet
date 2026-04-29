@@ -82,8 +82,12 @@ export default function Header({
     : { hour: '2-digit', minute: '2-digit', hour12: false };
 
   const timeStr = now.toLocaleTimeString(locale, timeOptions);
-  const headingFontSize = `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale})`;
-  const clockFontSize = `calc(clamp(3rem, 5vw, 3.75rem) * ${headerScale} * ${clockScale})`;
+  const headingFontSize = `calc(${
+    isMobile ? 'clamp(2.75rem, 14vw, 3.75rem)' : 'clamp(3rem, 5vw, 3.75rem)'
+  } * ${headerScale})`;
+  const clockFontSize = `calc(${
+    isMobile ? 'clamp(2.4rem, 12vw, 3.25rem)' : 'clamp(3rem, 5vw, 3.75rem)'
+  } * ${headerScale} * ${clockScale})`;
 
   const isBattery = headerSettings?.headerStyle === 'battery';
   const batteryVariant = headerSettings?.batteryVariant || 'glass';
@@ -201,7 +205,7 @@ export default function Header({
       )}
 
       <div
-        className={`flex items-start justify-between gap-10 leading-none ${isMobile ? 'flex-col items-center text-center' : ''}`}
+        className={`flex items-start justify-between leading-none ${isMobile ? 'flex-col items-center gap-4 text-center' : 'gap-10'}`}
       >
         <div className={`flex items-center gap-4 ${isMobile ? 'w-full justify-center' : ''}`}>
           {headerSettings.showTitle && (
@@ -242,7 +246,13 @@ export default function Header({
         </p>
       )}
 
-      <div className="flex w-full flex-col gap-6 pt-6 md:gap-3 md:pt-3">{children}</div>
+      <div
+        className={`flex w-full flex-col ${
+          isMobile ? 'gap-4 pt-4' : 'gap-6 pt-6 md:gap-3 md:pt-3'
+        }`}
+      >
+        {children}
+      </div>
     </header>
   );
 }

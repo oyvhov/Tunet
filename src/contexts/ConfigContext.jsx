@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { themes } from '../config/themes';
 import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 import { hashPin, verifyPin } from '../utils';
@@ -546,41 +546,41 @@ export const ConfigProvider = ({ children }) => {
     } catch {}
   }, [settingsLockSessionUnlocked]);
 
-  const enableSettingsLock = (pin) => {
+  const enableSettingsLock = useCallback((pin) => {
     const pinHash = hashPin(pin);
     setSettingsLockPinHash(pinHash);
     setSettingsLockEnabled(true);
     setSettingsLockSessionUnlocked(false);
-  };
+  }, []);
 
-  const disableSettingsLock = () => {
+  const disableSettingsLock = useCallback(() => {
     setSettingsLockEnabled(false);
     setSettingsLockPinHash('');
     setSettingsLockSessionUnlocked(false);
-  };
+  }, []);
 
-  const unlockSettingsLock = (pin) => {
+  const unlockSettingsLock = useCallback((pin) => {
     if (!settingsLockEnabled) return true;
     const unlocked = verifyPin(pin, settingsLockPinHash);
     if (unlocked) setSettingsLockSessionUnlocked(true);
     return unlocked;
-  };
+  }, [settingsLockEnabled, settingsLockPinHash]);
 
-  const lockSettingsSession = () => {
+  const lockSettingsSession = useCallback(() => {
     if (settingsLockEnabled) {
       setSettingsLockSessionUnlocked(false);
     }
-  };
+  }, [settingsLockEnabled]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     const themeKeys = Object.keys(themes);
     const currentIndex = themeKeys.indexOf(currentTheme);
     const nextIndex = (currentIndex + 1) % themeKeys.length;
     setCurrentTheme(themeKeys[nextIndex]);
-  };
+  }, [currentTheme]);
 
   /** @type {ConfigContextValue} */
-  const value = {
+  const value = useMemo(() => ({
     currentTheme,
     setCurrentTheme,
     toggleTheme,
@@ -620,7 +620,31 @@ export const ConfigProvider = ({ children }) => {
     setAppFont,
     config,
     setConfig,
-  };
+  }), [
+    currentTheme,
+    toggleTheme,
+    language,
+    unitsMode,
+    settingsLockEnabled,
+    settingsLockSessionUnlocked,
+    enableSettingsLock,
+    disableSettingsLock,
+    unlockSettingsLock,
+    lockSettingsSession,
+    inactivityTimeout,
+    bgMode,
+    bgColor,
+    bgGradient,
+    bgImage,
+    cardTransparency,
+    cardBorderOpacity,
+    cardBgColor,
+    cardMaterial,
+    density,
+    cardScale,
+    appFont,
+    config,
+  ]);
 
   return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>;
 };

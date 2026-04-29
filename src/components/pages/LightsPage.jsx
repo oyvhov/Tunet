@@ -280,7 +280,7 @@ const SortDropdown = memo(function SortDropdown({ sortMode, onSortChange, t }) {
           className="absolute right-0 z-50 mt-2 min-w-[10rem] overflow-hidden rounded-2xl border shadow-2xl"
           style={{ backgroundColor: 'var(--modal-bg)', borderColor: 'var(--glass-border)' }}
         >
-          {SORT_OPTIONS.map(({ key, icon }) => {
+          {SORT_OPTIONS.map(({ key }) => {
             const active = key === sortMode;
             return (
               <button
