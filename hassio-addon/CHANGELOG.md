@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.18.0
+
+### Added
+- Includes dashboard release `1.18.0`.
+- Adds a Home Assistant Lock card with lock, unlock, and open/unlatch controls for `lock.*` entities (#148).
+
+### Changed
+- Registers Lock cards across dashboard add/edit/render flows.
+
+### Fixed
+- Handles Home Assistant `open`/`opening` lock states and code-protected lock actions.
+- Retries settings-sync revision conflicts when the local device has unsynced changes.
+
+**Full Changelog**: https://github.com/oyvhov/Tunet/compare/v1.17.0...v1.18.0
+
 ## 1.17.0
 
 ### Added

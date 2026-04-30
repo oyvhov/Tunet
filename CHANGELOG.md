@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.18.0] — 2026-04-30
+
+### Added
+- Added a Home Assistant Lock card with lock, unlock, and open/unlatch controls for `lock.*` entities (#148).
+
+### Changed
+- Registered Lock cards across add-card, edit, rendering, resize, visibility, and popup flows.
+
+### Fixed
+- Matched Home Assistant lock states including `open` and `opening`, and pass lock codes when a lock advertises `code_format`.
+- Retried settings-sync revision conflicts when the local device has unsynced changes, instead of replacing them with stale server data.
+
+
 ## [1.17.0] — 2026-04-30
 
 ### Added
