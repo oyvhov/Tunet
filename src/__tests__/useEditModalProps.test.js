@@ -40,4 +40,24 @@ describe('useEditModalProps', () => {
     expect(result.current.isEditLight).toBe(true);
     expect(result.current.isEditSensor).toBe(true);
   });
+
+  it('derives edit capabilities for composite lock cards', () => {
+    const { result } = renderHook(() =>
+      useEditModalProps(
+        makeBase({
+          showEditCardModal: 'lock_card_1',
+          cardSettings: {
+            'settings::lock_card_1': { lockId: 'lock.front_door' },
+          },
+          entities: {
+            'lock.front_door': { entity_id: 'lock.front_door', state: 'locked' },
+          },
+        })
+      )
+    );
+
+    expect(result.current.editSettingsKey).toBe('settings::lock_card_1');
+    expect(result.current.canEditIcon).toBe(true);
+    expect(result.current.isEditLock).toBe(true);
+  });
 });

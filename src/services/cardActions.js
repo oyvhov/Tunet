@@ -22,6 +22,8 @@ export const handleAddSelected = (ctx) => {
     selectedSpacerVariant,
     cardSettings,
     persistCardSettings,
+    hiddenCards = [],
+    persistHiddenCards,
     getCardSettingsKey,
     setSelectedEntities,
     setShowAddCardModal,
@@ -44,6 +46,8 @@ export const handleAddSelected = (ctx) => {
     switch (addCardType) {
       case 'light':
         return selectedEntities.filter((id) => id.startsWith('light.'));
+      case 'lock':
+        return selectedEntities.filter((id) => id.startsWith('lock.'));
       case 'vacuum':
         return selectedEntities.filter((id) => id.startsWith('vacuum.'));
       case 'fan':
@@ -71,6 +75,13 @@ export const handleAddSelected = (ctx) => {
   const commitCards = (cardIds) => {
     newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...cardIds];
     persistConfig(newConfig);
+    if (typeof persistHiddenCards === 'function' && Array.isArray(hiddenCards)) {
+      const addedCardIds = new Set(cardIds);
+      const nextHiddenCards = hiddenCards.filter((id) => !addedCardIds.has(id));
+      if (nextHiddenCards.length !== hiddenCards.length) {
+        persistHiddenCards(nextHiddenCards);
+      }
+    }
     setShowAddCardModal(false);
   };
 
@@ -152,6 +163,22 @@ export const handleAddSelected = (ctx) => {
         const cardId = `climate_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
         newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), climateId: entityId };
+        return cardId;
+      });
+      persistCardSettings(newSettings);
+      commitCards(newCardIds);
+      setSelectedEntities([]);
+      return;
+    }
+
+    case 'lock': {
+      const lockEntities = selectedEntitiesForType();
+      if (lockEntities.length === 0) return;
+      const newSettings = { ...cardSettings };
+      const newCardIds = lockEntities.map((entityId) => {
+        const cardId = `lock_card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+        newSettings[settingsKey] = { ...(newSettings[settingsKey] || {}), lockId: entityId };
         return cardId;
       });
       persistCardSettings(newSettings);

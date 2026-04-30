@@ -477,6 +477,8 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     persistConfig,
     cardSettings,
     persistCardSettings,
+    hiddenCards,
+    persistHiddenCards,
     getCardSettingsKey,
     saveCardSetting,
     setShowAddCardModal,

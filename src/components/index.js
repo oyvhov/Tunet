@@ -10,6 +10,7 @@ export { default as GenericEnergyCostCard } from './cards/GenericEnergyCostCard'
 export { default as GenericNordpoolCard } from './cards/GenericNordpoolCard';
 export { default as FanCard } from './cards/FanCard';
 export { default as LightCard } from './cards/LightCard';
+export { default as LockCard } from './cards/LockCard';
 export { default as MissingEntityCard } from './cards/MissingEntityCard';
 export { MediaPlayerCard, MediaGroupCard } from './cards/MediaCards';
 export { default as PersonStatus } from './cards/PersonStatus';

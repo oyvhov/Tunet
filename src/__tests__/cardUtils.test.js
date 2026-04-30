@@ -43,6 +43,8 @@ describe('isCardRemovable', () => {
   it('allows removable-prefix cards on any page', () => {
     const prefixes = [
       'light_',
+      'lock_card_',
+      'lock.',
       'vacuum.',
       'fan.',
       'media_player.',
@@ -209,6 +211,28 @@ describe('isCardHiddenByLogic', () => {
   it('does not hide camera cards even if no direct entity matches card id', () => {
     expect(
       isCardHiddenByLogic('camera_card_1', {
+        activePage: 'home',
+        getCardSettingsKey: identity,
+        cardSettings: {},
+        entities: {},
+      })
+    ).toBe(false);
+  });
+
+  it('does not hide lock cards even if no direct entity matches card id', () => {
+    expect(
+      isCardHiddenByLogic('lock_card_1', {
+        activePage: 'home',
+        getCardSettingsKey: identity,
+        cardSettings: { lock_card_1: { lockId: 'lock.front_door' } },
+        entities: {},
+      })
+    ).toBe(false);
+  });
+
+  it('does not hide direct lock entities before the renderer can show entity state', () => {
+    expect(
+      isCardHiddenByLogic('lock.front_door', {
         activePage: 'home',
         getCardSettingsKey: identity,
         cardSettings: {},

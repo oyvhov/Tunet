@@ -26,6 +26,8 @@ const CARD_SPAN_RULES = [
   { prefix: 'todo_card_', category: 'triSize' },
   { prefix: 'light_', category: 'dualSize' },
   { prefix: 'light.', category: 'dualSize' },
+  { prefix: 'lock_card_', category: 'dualSize' },
+  { prefix: 'lock.', category: 'dualSize' },
   { prefix: 'car_card_', category: 'dualSize' },
   { prefix: 'room_card_', category: 'dualSize' },
   { prefix: 'camera_card_', category: 'dualSize' },

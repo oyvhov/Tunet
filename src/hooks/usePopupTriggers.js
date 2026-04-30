@@ -102,6 +102,13 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
     return true;
   }
 
+  if (cardId.startsWith('lock_card_')) {
+    const lockId = typeof settings?.lockId === 'string' ? settings.lockId : null;
+    if (!lockId) return false;
+    closeAndOpen(() => setShowSensorInfoModal(lockId));
+    return true;
+  }
+
   if (cardId.startsWith('climate_card_')) {
     const climateId = typeof settings?.climateId === 'string' ? settings.climateId : null;
     if (!climateId) return false;

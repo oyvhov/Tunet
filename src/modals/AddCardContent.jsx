@@ -12,6 +12,7 @@ import {
   Home,
   Lightbulb,
   ListChecks,
+  Lock,
   Minus,
   Music,
   Speaker,
@@ -336,6 +337,7 @@ function AddCardContent({
     return entityIds.filter((id) => {
       if (addCardTargetPage === 'header') return id.startsWith('person.') && !excludedHeader.has(id);
       if (addCardTargetPage === 'settings') return !excludedSettings.has(id);
+      if (addCardType === 'lock') return id.startsWith('lock.') && !excludedOnPage.has(id);
       if (addCardType === 'vacuum') return id.startsWith('vacuum.') && !excludedOnPage.has(id);
       if (addCardType === 'mower') return id.startsWith('lawn_mower.') && !excludedOnPage.has(id);
       if (addCardType === 'fan') return id.startsWith('fan.') && !excludedOnPage.has(id);
@@ -881,6 +883,7 @@ function AddCardContent({
   const usesEntityMultiSelect = [
     'sensor',
     'light',
+    'lock',
     'vacuum',
     'mower',
     'fan',
@@ -958,6 +961,13 @@ function AddCardContent({
                   icon={Lightbulb}
                   label={t('addCard.type.light')}
                   isActive={addCardType === 'light'}
+                  onSelect={setAddCardType}
+                />
+                <TypeButton
+                  type="lock"
+                  icon={Lock}
+                  label={getLabel('addCard.type.lock', 'Lock')}
+                  isActive={addCardType === 'lock'}
                   onSelect={setAddCardType}
                 />
                 <TypeButton

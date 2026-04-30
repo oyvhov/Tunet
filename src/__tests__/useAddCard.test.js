@@ -15,6 +15,7 @@ const t = (key) => {
     'addCard.available.people': 'Available people',
     'addCard.available.allEntities': 'All entities',
     'addCard.available.vacuums': 'Vacuums',
+    'addCard.available.locks': 'Locks',
     'addCard.available.climates': 'Climate devices',
     'addCard.available.costs': 'Cost sensors',
     'addCard.available.players': 'Media players',
@@ -27,6 +28,7 @@ const t = (key) => {
     'addCard.item.people': 'people',
     'addCard.item.entities': 'entities',
     'addCard.item.vacuums': 'vacuums',
+    'addCard.item.locks': 'locks',
     'addCard.item.climates': 'climates',
     'addCard.item.costs': 'costs',
     'addCard.item.players': 'players',
@@ -152,6 +154,13 @@ describe('useAddCard › labels', () => {
     const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
     act(() => result.current.setAddCardType('vacuum'));
     expect(result.current.getAddCardAvailableLabel()).toBe('Vacuums');
+  });
+
+  it('getAddCardAvailableLabel returns correct label for lock type', () => {
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
+    act(() => result.current.setAddCardType('lock'));
+    expect(result.current.getAddCardAvailableLabel()).toBe('Locks');
+    expect(result.current.getAddCardNoneLeftLabel()).toBe('No more locks to add');
   });
 
   it('getAddCardNoneLeftLabel includes the item type', () => {

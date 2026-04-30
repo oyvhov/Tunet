@@ -269,6 +269,8 @@
  * @property {(newConfig: PagesConfig) => void} persistConfig
  * @property {CardSettingsMap} cardSettings
  * @property {(newSettings: CardSettingsMap) => void} persistCardSettings
+ * @property {string[]} hiddenCards
+ * @property {(newHidden: string[]) => void} persistHiddenCards
  * @property {(cardId: string) => string} getCardSettingsKey
  * @property {(id: string, setting: string, value: unknown) => void} saveCardSetting
  * @property {(show: boolean) => void} setShowAddCardModal
