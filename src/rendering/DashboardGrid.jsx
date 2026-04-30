@@ -1,7 +1,14 @@
+import { lazy, Suspense } from 'react';
 import { LayoutGrid, Plus, UserCircle2 } from '../icons';
-import { MediaPage, SonosPage, LightsPage, BatteryPage, RoomExplorerPage } from '../components';
 import CardErrorBoundary from '../components/ui/CardErrorBoundary';
 import { formatDuration } from '../utils';
+
+const MediaPage = lazy(() => import('../components/pages/MediaPage'));
+const LightsPage = lazy(() => import('../components/pages/LightsPage'));
+const BatteryPage = lazy(() => import('../components/pages/BatteryPage'));
+const RoomExplorerPage = lazy(() => import('../components/pages/RoomExplorerPage'));
+
+const pageFallback = <div className="page-transition min-h-[40vh]" aria-hidden="true" />;
 
 export default function DashboardGrid({ page, media, grid, cards, actions, t }) {
   const { activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage, isLightsPage, isBatteryPage, isRoomExplorerPage } = page;
@@ -23,23 +30,25 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
   if (isMediaPage(activePage)) {
     return (
       <div key={activePage} className="page-transition">
-        <MediaPage
-          pageId={activePage}
-          entities={entities}
-          conn={conn}
-          pageSettings={pageSettings}
-          editMode={editMode}
-          isSonosActive={isSonosActive}
-          activeMediaId={activeMediaId}
-          setActiveMediaId={setActiveMediaId}
-          getA={getA}
-          getEntityImageUrl={getEntityImageUrl}
-          callService={callService}
-          savePageSetting={savePageSetting}
-          formatDuration={formatDuration}
-          t={t}
-          mode="media"
-        />
+        <Suspense fallback={pageFallback}>
+          <MediaPage
+            pageId={activePage}
+            entities={entities}
+            conn={conn}
+            pageSettings={pageSettings}
+            editMode={editMode}
+            isSonosActive={isSonosActive}
+            activeMediaId={activeMediaId}
+            setActiveMediaId={setActiveMediaId}
+            getA={getA}
+            getEntityImageUrl={getEntityImageUrl}
+            callService={callService}
+            savePageSetting={savePageSetting}
+            formatDuration={formatDuration}
+            t={t}
+            mode="media"
+          />
+        </Suspense>
       </div>
     );
   }
@@ -47,22 +56,25 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
   if (isSonosPage(activePage)) {
     return (
       <div key={activePage} className="page-transition">
-        <SonosPage
-          pageId={activePage}
-          entities={entities}
-          conn={conn}
-          pageSettings={pageSettings}
-          editMode={editMode}
-          isSonosActive={isSonosActive}
-          activeMediaId={activeMediaId}
-          setActiveMediaId={setActiveMediaId}
-          getA={getA}
-          getEntityImageUrl={getEntityImageUrl}
-          callService={callService}
-          savePageSetting={savePageSetting}
-          formatDuration={formatDuration}
-          t={t}
-        />
+        <Suspense fallback={pageFallback}>
+          <MediaPage
+            pageId={activePage}
+            entities={entities}
+            conn={conn}
+            pageSettings={pageSettings}
+            editMode={editMode}
+            isSonosActive={isSonosActive}
+            activeMediaId={activeMediaId}
+            setActiveMediaId={setActiveMediaId}
+            getA={getA}
+            getEntityImageUrl={getEntityImageUrl}
+            callService={callService}
+            savePageSetting={savePageSetting}
+            formatDuration={formatDuration}
+            t={t}
+            mode="sonos"
+          />
+        </Suspense>
       </div>
     );
   }
@@ -70,15 +82,17 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
   if (isLightsPage(activePage)) {
     return (
       <div key={activePage} className="page-transition">
-        <LightsPage
-          entities={entities}
-          callService={callService}
-          conn={conn}
-          pageSettings={pageSettings}
-          pageId={activePage}
-          savePageSetting={savePageSetting}
-          t={t}
-        />
+        <Suspense fallback={pageFallback}>
+          <LightsPage
+            entities={entities}
+            callService={callService}
+            conn={conn}
+            pageSettings={pageSettings}
+            pageId={activePage}
+            savePageSetting={savePageSetting}
+            t={t}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -86,15 +100,17 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
   if (isBatteryPage(activePage)) {
     return (
       <div key={activePage} className="page-transition">
-        <BatteryPage
-          entities={entities}
-          callService={callService}
-          conn={conn}
-          pageSettings={pageSettings}
-          pageId={activePage}
-          savePageSetting={savePageSetting}
-          t={t}
-        />
+        <Suspense fallback={pageFallback}>
+          <BatteryPage
+            entities={entities}
+            callService={callService}
+            conn={conn}
+            pageSettings={pageSettings}
+            pageId={activePage}
+            savePageSetting={savePageSetting}
+            t={t}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -102,15 +118,17 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
   if (isRoomExplorerPage(activePage)) {
     return (
       <div key={activePage} className="page-transition">
-        <RoomExplorerPage
-          entities={entities}
-          callService={callService}
-          conn={conn}
-          pageSettings={pageSettings}
-          pageId={activePage}
-          savePageSetting={savePageSetting}
-          t={t}
-        />
+        <Suspense fallback={pageFallback}>
+          <RoomExplorerPage
+            entities={entities}
+            callService={callService}
+            conn={conn}
+            pageSettings={pageSettings}
+            pageId={activePage}
+            savePageSetting={savePageSetting}
+            t={t}
+          />
+        </Suspense>
       </div>
     );
   }
