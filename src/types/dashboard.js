@@ -211,6 +211,8 @@
  * @property {(newSettings: HeaderSettings) => void} updateHeaderSettings
  * @property {SectionSpacing} sectionSpacing
  * @property {(partial: Partial<SectionSpacing>) => void} updateSectionSpacing
+ * @property {boolean} cardsOnlyMode
+ * @property {(nextValue: boolean) => void} updateCardsOnlyMode
  * @property {(newSettings: CardSettingsMap) => void} persistCardSettings
  * @property {number} gridGapH
  * @property {(val: number) => void} setGridGapH

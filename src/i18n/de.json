@@ -418,6 +418,7 @@
   "header.showClockOnMobile": "Uhr auf Mobilgeräten anzeigen",
   "header.showDate": "Datum anzeigen",
   "header.showPagePillLabelsOnMobile": "Seitenbezeichnungen auf Mobilgeräten anzeigen",
+  "header.cardsOnlyMode": "Nur Karten anzeigen",
   "header.headerLayout": "Layout",
   "header.headerStyle": "Stil",
   "header.styleClassic": "Klassisch",

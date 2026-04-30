@@ -422,6 +422,7 @@
   "header.showClockOnMobile": "Show clock on mobile",
   "header.showDate": "Show date",
   "header.showPagePillLabelsOnMobile": "Show page labels on mobile",
+  "header.cardsOnlyMode": "Show only cards",
   "header.headerLayout": "Layout",
   "header.headerStyle": "Style",
   "header.styleClassic": "Classic",

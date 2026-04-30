@@ -48,6 +48,7 @@ export default function ModalOrchestrator({
     updateHeaderTitle,
     updateHeaderSettings,
     updateSectionSpacing,
+    updateCardsOnlyMode,
   } = layout;
   const {
     setCurrentTheme,
@@ -130,6 +131,7 @@ export default function ModalOrchestrator({
       updateHeaderTitle,
       updateHeaderSettings,
       updateSectionSpacing,
+      updateCardsOnlyMode,
     },
     appearance: {
       setCurrentTheme,

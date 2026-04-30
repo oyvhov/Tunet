@@ -420,6 +420,7 @@
   "header.showClockOnMobile": "在手机上显示时钟",
   "header.showDate": "显示日期",
   "header.showPagePillLabelsOnMobile": "在手机上显示页面标签",
+  "header.cardsOnlyMode": "仅显示卡片",
   "header.headerLayout": "布局",
   "header.headerStyle": "样式",
   "header.styleClassic": "经典",

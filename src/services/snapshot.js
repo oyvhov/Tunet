@@ -57,6 +57,7 @@ export function collectSnapshot() {
       gridGapH: readNumber('tunet_grid_gap_h', 20),
       gridGapV: readNumber('tunet_grid_gap_v', 20),
       cardBorderRadius: readNumber('tunet_card_border_radius', 16),
+      cardsOnlyMode: readBoolean('tunet_cards_only_mode', false),
       headerSettings: readJSON('tunet_header_settings', {
         showTitle: true,
         showClock: true,
@@ -134,6 +135,8 @@ export function applySnapshot(snapshot, contextSetters = {}) {
     localStorage.setItem('tunet_grid_gap_v', String(layout.gridGapV));
   if (layout.cardBorderRadius !== undefined)
     localStorage.setItem('tunet_card_border_radius', String(layout.cardBorderRadius));
+  if (layout.cardsOnlyMode !== undefined)
+    localStorage.setItem('tunet_cards_only_mode', layout.cardsOnlyMode ? '1' : '0');
   if (layout.headerScale !== undefined)
     localStorage.setItem('tunet_header_scale', String(layout.headerScale));
   if (layout.headerTitle !== undefined)
@@ -180,6 +183,8 @@ export function applySnapshot(snapshot, contextSetters = {}) {
   if (s.setGridGapV && layout.gridGapV !== undefined) s.setGridGapV(layout.gridGapV);
   if (s.setCardBorderRadius && layout.cardBorderRadius !== undefined)
     s.setCardBorderRadius(layout.cardBorderRadius);
+  if (s.updateCardsOnlyMode && layout.cardsOnlyMode !== undefined)
+    s.updateCardsOnlyMode(layout.cardsOnlyMode);
   if (s.updateHeaderScale && layout.headerScale !== undefined)
     s.updateHeaderScale(layout.headerScale);
   if (s.updateHeaderTitle && layout.headerTitle !== undefined)

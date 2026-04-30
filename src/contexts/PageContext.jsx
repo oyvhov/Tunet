@@ -52,6 +52,8 @@ const DEFAULT_SECTION_SPACING = {
   navToGrid: 24,
 };
 
+const CARDS_ONLY_MODE_KEY = 'tunet_cards_only_mode';
+
 const normalizeGridColumns = (value) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 4;
@@ -250,6 +252,7 @@ export const PageProvider = ({ children }) => {
   const [cardBorderRadius, setCardBorderRadius] = useState(16);
   const [headerScale, setHeaderScale] = useState(1);
   const [sectionSpacing, setSectionSpacing] = useState(DEFAULT_SECTION_SPACING);
+  const [cardsOnlyMode, setCardsOnlyMode] = useState(() => readBoolean(CARDS_ONLY_MODE_KEY, false));
   const [headerTitle, setHeaderTitle] = useState(
     () => localStorage.getItem('tunet_header_title') || ''
   );
@@ -429,6 +432,16 @@ export const PageProvider = ({ children }) => {
     });
   }, []);
 
+  const updateCardsOnlyMode = useCallback((nextValue) => {
+    const enabled = Boolean(nextValue);
+    setCardsOnlyMode(enabled);
+    try {
+      localStorage.setItem(CARDS_ONLY_MODE_KEY, enabled ? '1' : '0');
+    } catch (error) {
+      console.error('Failed to save cards-only mode:', error);
+    }
+  }, []);
+
   const [headerSettings, setHeaderSettings] = useState(() => {
     const saved = readJSON('tunet_header_settings');
     return saved || {
@@ -542,6 +555,8 @@ export const PageProvider = ({ children }) => {
     updateHeaderSettings,
     sectionSpacing,
     updateSectionSpacing,
+    cardsOnlyMode,
+    updateCardsOnlyMode,
     persistCardSettings,
     gridGapH,
     setGridGapH: setGridGapHPersisted,
@@ -580,6 +595,8 @@ export const PageProvider = ({ children }) => {
     updateHeaderSettings,
     sectionSpacing,
     updateSectionSpacing,
+    cardsOnlyMode,
+    updateCardsOnlyMode,
     persistCardSettings,
     gridGapH,
     setGridGapHPersisted,

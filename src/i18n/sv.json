@@ -423,6 +423,7 @@
   "header.showClockOnMobile": "Visa klocka på mobil",
   "header.showDate": "Visa datum",
   "header.showPagePillLabelsOnMobile": "Visa sidetiketter på mobil",
+  "header.cardsOnlyMode": "Visa bara kort",
   "header.headerLayout": "Layout",
   "header.headerStyle": "Stil",
   "header.styleClassic": "Klassisk",

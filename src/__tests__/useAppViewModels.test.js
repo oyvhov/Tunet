@@ -83,6 +83,8 @@ const makeParams = (overrides = {}) => ({
   setCardBorderRadius: vi.fn(),
   sectionSpacing: 16,
   updateSectionSpacing: vi.fn(),
+  cardsOnlyMode: false,
+  updateCardsOnlyMode: vi.fn(),
   headerTitle: 'Tunet',
   headerScale: 1,
   headerSettings: {},
@@ -180,6 +182,7 @@ describe('useAppViewModels', () => {
     expect(result.current.dashboardGridPage.activePage).toBe('home');
     expect(result.current.dashboardGridGrid.gridColCount).toBe(4);
     expect(result.current.modalManagerCore.language).toBe('en');
+    expect(result.current.modalManagerLayout.cardsOnlyMode).toBe(false);
     expect(result.current).not.toHaveProperty('modalManagerState');
     expect(result.current.modalManagerCardConfig.statusPillsConfig).toEqual({});
   });

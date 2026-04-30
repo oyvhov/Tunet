@@ -49,6 +49,34 @@ describe('PageContext persistence', () => {
     });
   });
 
+  it('persists cards-only mode across a provider reload', async () => {
+    const first = renderHook(() => usePages(), { wrapper });
+
+    expect(first.result.current.cardsOnlyMode).toBe(false);
+
+    act(() => {
+      first.result.current.updateCardsOnlyMode(true);
+    });
+
+    await waitFor(() => {
+      expect(localStorage.getItem('tunet_cards_only_mode')).toBe('1');
+    });
+
+    first.unmount();
+
+    const second = renderHook(() => usePages(), { wrapper });
+
+    expect(second.result.current.cardsOnlyMode).toBe(true);
+
+    act(() => {
+      second.result.current.updateCardsOnlyMode(false);
+    });
+
+    await waitFor(() => {
+      expect(localStorage.getItem('tunet_cards_only_mode')).toBe('0');
+    });
+  });
+
   it('persists status pill text visibility flags across a provider reload', async () => {
     const first = renderHook(() => usePages(), { wrapper });
 

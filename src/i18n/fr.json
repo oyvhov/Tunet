@@ -422,6 +422,7 @@
   "header.showClockOnMobile": "Afficher l'horloge sur mobile",
   "header.showDate": "Afficher la date",
   "header.showPagePillLabelsOnMobile": "Afficher les libellés de page sur mobile",
+  "header.cardsOnlyMode": "Afficher uniquement les cartes",
   "header.headerLayout": "Mise en page",
   "header.headerStyle": "Style",
   "header.styleClassic": "Classique",

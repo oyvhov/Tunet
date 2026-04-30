@@ -123,6 +123,8 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     updateHeaderSettings,
     sectionSpacing,
     updateSectionSpacing,
+    cardsOnlyMode,
+    updateCardsOnlyMode,
     persistCardSettings,
     statusPillsConfig,
     saveStatusPillsConfig,
@@ -201,6 +203,14 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   } = useAppUiStateContext();
 
   useEffect(() => {
+    if (!cardsOnlyMode || !editMode) return;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new window.CustomEvent('tunet:edit-done'));
+    }
+    setEditMode(false);
+  }, [cardsOnlyMode, editMode, setEditMode]);
+
+  useEffect(() => {
     if (!editMode) return undefined;
     return scheduleModalPrefetch([
       'editCard',
@@ -211,6 +221,8 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
       'headerSidebar',
     ]);
   }, [editMode]);
+
+  const visibleEditMode = cardsOnlyMode ? false : editMode;
 
   const { activePage, setActivePage } = usePageRouting();
 
@@ -368,7 +380,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
         key={id}
         id={id}
         entities={entities}
-        editMode={editMode}
+        editMode={visibleEditMode}
         customNames={customNames}
         customIcons={customIcons}
         cardSettings={cardSettings}
@@ -392,7 +404,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     ),
     [
       entities,
-      editMode,
+      visibleEditMode,
       customNames,
       customIcons,
       cardSettings,
@@ -415,7 +427,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     activePage,
     cardSettings,
     getCardSettingsKey,
-    editMode,
+    editMode: visibleEditMode,
     modalActions: popupModalActions,
     enabled: hasEnabledPopupTriggers,
   });
@@ -498,7 +510,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   });
 
   const { renderCard, gridLayout, draggingId, touchPath } = useCardRendering({
-    editMode,
+    editMode: visibleEditMode,
     pagesConfig,
     setPagesConfig,
     persistConfig,
@@ -558,7 +570,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     activePage,
     pagesConfig,
     pageSettings,
-    editMode,
+    editMode: visibleEditMode,
     isMediaPage,
     isSonosPage,
     isLightsPage,
@@ -642,6 +654,8 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     setCardBorderRadius,
     sectionSpacing,
     updateSectionSpacing,
+    cardsOnlyMode,
+    updateCardsOnlyMode,
     headerTitle,
     headerScale,
     headerSettings,
@@ -766,7 +780,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     <>
       <DashboardLayout
         resolvedAppFontFamily={resolvedAppFontFamily}
-        editMode={editMode}
+        editMode={visibleEditMode}
         draggingId={draggingId}
         touchPath={touchPath}
         isMobile={isMobile}
@@ -780,6 +794,8 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
         setShowHeaderEditModal={setShowHeaderEditModal}
         t={t}
         sectionSpacing={sectionSpacing}
+        cardsOnlyMode={cardsOnlyMode}
+        updateCardsOnlyMode={updateCardsOnlyMode}
         pagesConfig={pagesConfig}
         personStatus={personStatus}
         requestSettingsAccess={requestSettingsAccess}

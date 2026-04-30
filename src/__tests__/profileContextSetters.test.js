@@ -19,6 +19,7 @@ describe('buildProfilesContextSetters', () => {
       updateHeaderTitle: vi.fn(),
       updateHeaderSettings: vi.fn(),
       updateSectionSpacing: vi.fn(),
+      updateCardsOnlyMode: vi.fn(),
       setCurrentTheme: vi.fn(),
       setLanguage: vi.fn(),
       setBgMode: vi.fn(),
@@ -50,6 +51,7 @@ describe('buildProfilesContextSetters', () => {
         updateHeaderTitle: refs.updateHeaderTitle,
         updateHeaderSettings: refs.updateHeaderSettings,
         updateSectionSpacing: refs.updateSectionSpacing,
+        updateCardsOnlyMode: refs.updateCardsOnlyMode,
       },
       appearance: {
         setCurrentTheme: refs.setCurrentTheme,
@@ -70,5 +72,6 @@ describe('buildProfilesContextSetters', () => {
     expect(result.setCurrentTheme).toBe(refs.setCurrentTheme);
     expect(result.setLanguage).toBe(refs.setLanguage);
     expect(result.setInactivityTimeout).toBe(refs.setInactivityTimeout);
+    expect(result.updateCardsOnlyMode).toBe(refs.updateCardsOnlyMode);
   });
 });

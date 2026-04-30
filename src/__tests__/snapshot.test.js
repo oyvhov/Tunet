@@ -30,6 +30,30 @@ describe('snapshot service', () => {
     expect(setCardBorderRadius).toHaveBeenCalledWith(34);
   });
 
+  it('collectSnapshot includes cards-only mode from storage', () => {
+    localStorage.setItem('tunet_cards_only_mode', '1');
+
+    const snapshot = collectSnapshot();
+
+    expect(snapshot.layout.cardsOnlyMode).toBe(true);
+  });
+
+  it('applySnapshot persists and applies cards-only mode', () => {
+    const updateCardsOnlyMode = vi.fn();
+
+    applySnapshot(
+      {
+        version: 1,
+        layout: { cardsOnlyMode: true },
+        appearance: {},
+      },
+      { updateCardsOnlyMode }
+    );
+
+    expect(localStorage.getItem('tunet_cards_only_mode')).toBe('1');
+    expect(updateCardsOnlyMode).toHaveBeenCalledWith(true);
+  });
+
   it('collectSnapshot includes card background color from storage', () => {
     localStorage.setItem('tunet_card_bg_color', '#223344');
 

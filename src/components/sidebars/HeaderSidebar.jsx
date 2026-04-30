@@ -157,6 +157,8 @@ export default function HeaderSidebar({
   updateHeaderTitle,
   updateHeaderScale,
   updateHeaderSettings,
+  cardsOnlyMode,
+  updateCardsOnlyMode,
   onSwitchToTheme,
   onSwitchToLayout,
   t,
@@ -543,6 +545,11 @@ export default function HeaderSidebar({
               label={t('header.showPagePillLabelsOnMobile')}
               value={setting('showPagePillLabelsOnMobile', false)}
               onChange={(v) => update('showPagePillLabelsOnMobile', v)}
+            />
+            <Toggle
+              label={t('header.cardsOnlyMode')}
+              value={Boolean(cardsOnlyMode)}
+              onChange={updateCardsOnlyMode}
             />
           </div>
 
