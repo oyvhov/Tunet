@@ -73,7 +73,7 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
-  const [currentRevision, setCurrentRevision] = useState(null);
+  const [currentRevision, setCurrentRevisionState] = useState(null);
   const [knownDevices, setKnownDevices] = useState([]);
   const [history, setHistory] = useState([]);
   const [backgroundSyncSuspended, setBackgroundSyncSuspendedState] = useState(false);
@@ -96,6 +96,14 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
   const lastUploadedHashRef = useRef('');
   const pushCurrentToServerRef = useRef(null);
   const backgroundSyncSuspendedRef = useRef(false);
+  const currentRevisionRef = useRef(null);
+
+  const setCurrentRevision = useCallback((nextRevision) => {
+    const normalized = Number.isFinite(Number(nextRevision)) ? Number(nextRevision) : null;
+    currentRevisionRef.current = normalized;
+    setCurrentRevisionState(normalized);
+    return normalized;
+  }, []);
 
   const setBackgroundSyncSuspended = useCallback((next) => {
     backgroundSyncSuspendedRef.current = next;
@@ -193,7 +201,7 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
       setError(fetchError?.message || 'Failed to fetch current settings');
       return READ_CURRENT_FAILED;
     }
-  }, [haUserId, updateBackgroundSyncAvailability]);
+  }, [haUserId, setCurrentRevision, updateBackgroundSyncAvailability]);
 
   const applyServerRow = useCallback(
     async (row, options = {}) => {
@@ -203,7 +211,9 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
         ? Number(options.forceServerRevision)
         : null;
       const serverRevision = Number(row.revision);
-      const localRevision = Number.isFinite(Number(currentRevision)) ? Number(currentRevision) : 0;
+      const localRevision = Number.isFinite(Number(currentRevisionRef.current))
+        ? Number(currentRevisionRef.current)
+        : 0;
       if (forcedServerRevision !== null && serverRevision < forcedServerRevision) return false;
       if (forcedServerRevision === null && serverRevision <= localRevision) return false;
 
@@ -238,7 +248,7 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
       await refreshHistory();
       return true;
     },
-    [currentRevision, contextSettersRef, refreshHistory]
+    [contextSettersRef, refreshHistory, setCurrentRevision]
   );
 
   const reconcileFromServer = useCallback(
@@ -282,40 +292,72 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
       setStatus('syncing');
       setError('');
 
-      try {
-        const response = await apiSaveCurrentSettings(
+      const saveSnapshot = (baseRevision) =>
+        apiSaveCurrentSettings(
           {
             ha_user_id: haUserId,
             device_id: deviceIdRef.current,
             data: snapshot,
-            base_revision: currentRevision,
+            base_revision: baseRevision,
             history_keep_limit: clampHistoryKeepLimit(historyKeepLimit),
             device_label: deviceLabelRef.current || undefined,
           },
           options.fetchOptions || {}
         );
 
-        updateBackgroundSyncAvailability(true);
-        setCurrentRevision(
-          Number.isFinite(Number(response?.revision)) ? Number(response.revision) : currentRevision
-        );
+      const markSaveSynced = async (response) => {
+        const resolvedRevision = Number.isFinite(Number(response?.revision))
+          ? Number(response.revision)
+          : currentRevisionRef.current;
+        setCurrentRevision(resolvedRevision);
         setLastSyncedAt(response?.updated_at || new Date().toISOString());
         setStatus('synced');
+        setError('');
         lastUploadedHashRef.current = serialized;
         lastObservedHashRef.current = serialized;
         await refreshKnownDevices();
         await refreshHistory();
         return response;
+      };
+
+      try {
+        const response = await saveSnapshot(currentRevisionRef.current);
+
+        updateBackgroundSyncAvailability(true);
+        return markSaveSynced(response);
       } catch (saveError) {
         if (saveError?.status === 409 && Number.isFinite(Number(saveError?.body?.revision))) {
           const conflictRevision = Number(saveError.body.revision);
           setCurrentRevision(conflictRevision);
           setStatus('conflict');
           setError('Revision conflict');
-          await reconcileFromServer({
-            forceServerRevision: conflictRevision,
-            localSerializedOverride: serialized,
-          });
+          const hasLocalChanges =
+            !lastUploadedHashRef.current || serialized !== lastUploadedHashRef.current;
+
+          if (!hasLocalChanges) {
+            const appliedServer = await reconcileFromServer({
+              forceServerRevision: conflictRevision,
+              localSerializedOverride: serialized,
+            });
+            if (appliedServer) return null;
+          }
+
+          try {
+            const response = await saveSnapshot(conflictRevision);
+            updateBackgroundSyncAvailability(true);
+            return markSaveSynced(response);
+          } catch (retryError) {
+            if (retryError?.status === 409 && Number.isFinite(Number(retryError?.body?.revision))) {
+              setCurrentRevision(Number(retryError.body.revision));
+              setStatus('conflict');
+              setError('Revision conflict');
+            } else {
+              setStatus('error');
+              setError(retryError?.message || 'Failed to sync settings');
+            }
+            updateBackgroundSyncAvailability(false, retryError);
+            throw retryError;
+          }
         } else {
           setStatus('error');
           setError(saveError?.message || 'Failed to sync settings');
@@ -326,11 +368,11 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
     },
     [
       haUserId,
-      currentRevision,
       historyKeepLimit,
       reconcileFromServer,
       refreshKnownDevices,
       refreshHistory,
+      setCurrentRevision,
       updateBackgroundSyncAvailability,
     ]
   );
@@ -448,7 +490,7 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
 
       applySnapshot(row.data, contextSettersRef?.current || {});
     },
-    [haUserId, readCurrentFromServer, contextSettersRef]
+    [haUserId, readCurrentFromServer, contextSettersRef, setCurrentRevision]
   );
 
   const publishCurrentToDevices = useCallback(
