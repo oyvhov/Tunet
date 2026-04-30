@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.17.0] — 2026-04-30
+
+### Added
+- Added Cards-only dashboard mode for tablet/kiosk setups, hiding the header, status pills, page navigation, Settings, Add, and Edit controls while keeping dashboard cards visible (#149).
+- To enable it, open Settings, go to Header, expand Visibility, and turn on **Show only cards**. To leave cards-only mode, press `Esc` on a keyboard or long-press an empty area of the dashboard.
+
+### Changed
+- Split specialized dashboard pages into lazy-loaded chunks so the main app bundle stays under the CI size gate.
+
+### Fixed
+- Kept critical recovery UI available in cards-only mode, including connection/auth warning surfaces, so users are not locked out of setup or troubleshooting.
+
+
 ## [1.16.2] — 2026-04-24
 
 ### Added

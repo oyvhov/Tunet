@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.17.0
+
+### Added
+- Includes dashboard release `1.17.0`.
+- Adds Cards-only dashboard mode for tablet/kiosk setups, hiding the header, status pills, page navigation, Settings, Add, and Edit controls while keeping dashboard cards visible (#149).
+- To enable it, open Settings, go to Header, expand Visibility, and turn on **Show only cards**. To leave cards-only mode, press `Esc` on a keyboard or long-press an empty area of the dashboard.
+
+### Changed
+- Splits specialized dashboard pages into lazy-loaded chunks so the main app bundle stays under the CI size gate.
+
+### Fixed
+- Keeps critical recovery UI available in cards-only mode, including connection/auth warning surfaces, so users are not locked out of setup or troubleshooting.
+
+**Full Changelog**: https://github.com/oyvhov/Tunet/compare/v1.16.2...v1.17.0
+
 ## 1.16.2
 
 ### Added
