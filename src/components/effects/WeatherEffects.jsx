@@ -1,7 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
+
+const FRAME_INTERVAL_MS = 1000 / 30;
 
 const WeatherEffects = ({ condition }) => {
   const canvasRef = useRef(null);
+  const motionAllowed = useLowPowerMotion();
+  const [isVisible, setIsVisible] = useState(true);
 
   // Normalize condition
   const getEffectType = (cond) => {
@@ -15,6 +20,22 @@ const WeatherEffects = ({ condition }) => {
   const effectType = getEffectType(condition);
 
   useEffect(() => {
+    if (!effectType || !motionAllowed) return undefined;
+
+    const canvas = canvasRef.current;
+    const target = canvas?.parentElement;
+    if (!target || typeof IntersectionObserver === 'undefined') return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), {
+      rootMargin: '80px',
+    });
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [effectType, motionAllowed]);
+
+  useEffect(() => {
+    if (!motionAllowed || !isVisible) return undefined;
     if (!effectType) return;
 
     const canvas = canvasRef.current;
@@ -38,7 +59,7 @@ const WeatherEffects = ({ condition }) => {
     // Particle config
     const config = {
       rain: {
-        count: 60,
+        count: 36,
         speed: { min: 2.5, max: 5.5 }, // Slower rain
         angle: { min: 0, max: 0.1 },
         color: 'rgba(174, 194, 224, 0.4)',
@@ -46,7 +67,7 @@ const WeatherEffects = ({ condition }) => {
         length: { min: 8, max: 14 },
       },
       snow: {
-        count: 40,
+        count: 24,
         speed: { min: 0.5, max: 1.5 },
         angle: { min: -0.5, max: 0.5 },
         color: 'rgba(255, 255, 255, 0.5)',
@@ -73,7 +94,14 @@ const WeatherEffects = ({ condition }) => {
       }
     };
 
-    const draw = () => {
+    let lastFrameAt = 0;
+    const draw = (time) => {
+      if (time - lastFrameAt < FRAME_INTERVAL_MS) {
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+      lastFrameAt = time;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const cfg = config[effectType];
 
@@ -117,9 +145,9 @@ const WeatherEffects = ({ condition }) => {
       window.removeEventListener('resize', resizeCanvas);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [effectType]);
+  }, [effectType, isVisible, motionAllowed]);
 
-  if (!effectType) return null;
+  if (!effectType || !motionAllowed) return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-3xl">

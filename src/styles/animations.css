@@ -150,13 +150,20 @@
   .status-pill-icon-pulse,
   .status-pill-icon-spin {
     animation: none !important;
+    will-change: auto !important;
   }
 }
 
 @media (update: slow) {
+  .aurora-blob-1,
+  .aurora-blob-2,
+  .aurora-blob-3,
+  .media-bg-subtle-drift,
+  .media-bg-subtle-pulse,
   .status-pill-icon-pulse,
   .status-pill-icon-spin {
     animation: none !important;
+    will-change: auto !important;
   }
 }
 

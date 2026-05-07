@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useDashboardEffects } from '../hooks/useDashboardEffects';
-import { ENTITY_UPDATE_INTERVAL, MEDIA_TICK_INTERVAL } from '../config/constants';
+import {
+  ENTITY_UPDATE_INTERVAL,
+  INITIAL_FETCH_DELAY,
+  MEDIA_TICK_INTERVAL,
+} from '../config/constants';
 
 // ── Fake timers ──────────────────────────────────────────────────────────
 beforeEach(() => {
@@ -91,14 +95,26 @@ describe('useDashboardEffects › optimistic light brightness', () => {
     expect(result.current.optimisticLightBrightness).toEqual({ 'light.room': 128 });
   });
 
-  it('clears optimistic brightness after INITIAL_FETCH_DELAY when entities change', () => {
+  it('clears optimistic brightness after INITIAL_FETCH_DELAY', () => {
     const props = makeProps({ entities: { 'light.a': { state: 'on' } } });
     const { result } = renderHook(() => useDashboardEffects(props));
     act(() => result.current.setOptimisticLightBrightness({ 'light.a': 200 }));
     expect(result.current.optimisticLightBrightness).toEqual({ 'light.a': 200 });
 
-    act(() => vi.advanceTimersByTime(600)); // > INITIAL_FETCH_DELAY (500ms)
+    act(() => vi.advanceTimersByTime(INITIAL_FETCH_DELAY + 100));
     expect(result.current.optimisticLightBrightness).toEqual({});
+  });
+
+  it('keeps the same empty brightness object across unrelated rerenders', () => {
+    const { result, rerender } = renderHook((props) => useDashboardEffects(props), {
+      initialProps: makeProps({ resolvedHeaderTitle: 'A' }),
+    });
+    const initialBrightness = result.current.optimisticLightBrightness;
+
+    rerender(makeProps({ resolvedHeaderTitle: 'B' }));
+    act(() => vi.advanceTimersByTime(INITIAL_FETCH_DELAY + 100));
+
+    expect(result.current.optimisticLightBrightness).toBe(initialBrightness);
   });
 });
 

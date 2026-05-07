@@ -19,6 +19,7 @@ export const GRADIENT_PRESETS = {
 const ConfigContext = createContext(null);
 const CONFIG_STORAGE_VERSION_KEY = 'tunet_config_storage_version';
 const CONFIG_STORAGE_VERSION = '1';
+const BACKGROUND_MODES = ['theme', 'solid', 'gradient', 'custom', 'animated', 'lavaLamp', 'silk'];
 
 /** @returns {ConfigContextValue} */
 export const useConfig = () => {
@@ -114,9 +115,7 @@ export const ConfigProvider = ({ children }) => {
   const [bgMode, setBgMode] = useState(() => {
     try {
       const saved = localStorage.getItem('tunet_bg_mode');
-      return saved && ['theme', 'solid', 'gradient', 'custom', 'animated'].includes(saved)
-        ? saved
-        : 'theme';
+      return saved && BACKGROUND_MODES.includes(saved) ? saved : 'theme';
     } catch {
       return 'theme';
     }

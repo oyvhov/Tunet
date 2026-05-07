@@ -447,7 +447,6 @@
  * @property {number} inactivityTimeout
  * @property {() => void} resetToHome
  * @property {string | null} activeMediaModal
- * @property {EntityMap} entities
  */
 
 /**

@@ -1,4 +1,8 @@
 import React, { useEffect, useRef } from 'react';
+import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
+
+const MAX_DPR = 1.5;
+const FRAME_INTERVAL_MS = 1000 / 30;
 
 /**
  * LavaLampBackground — Slow-moving organic blobs that merge and split,
@@ -6,8 +10,11 @@ import React, { useEffect, useRef } from 'react';
  */
 const LavaLampBackground = () => {
   const canvasRef = useRef(null);
+  const motionAllowed = useLowPowerMotion();
 
   useEffect(() => {
+    if (!motionAllowed) return undefined;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -16,20 +23,20 @@ const LavaLampBackground = () => {
     let width, height;
 
     const blobs = [
-      { x: 0.25, y: 0.3, r: 0.38, color: [220, 60, 60], phase: 0, speed: 0.00003 },   // Warm red
-      { x: 0.7,  y: 0.2, r: 0.42, color: [200, 100, 30], phase: 1.5, speed: 0.00004 }, // Orange
-      { x: 0.5,  y: 0.7, r: 0.35, color: [180, 40, 120], phase: 3, speed: 0.00005 },   // Magenta
-      { x: 0.15, y: 0.8, r: 0.30, color: [140, 50, 180], phase: 4.5, speed: 0.00003 }, // Purple
-      { x: 0.85, y: 0.6, r: 0.32, color: [230, 80, 50], phase: 2, speed: 0.00004 },    // Deep orange
+      { x: 0.25, y: 0.3, r: 0.38, color: [220, 60, 60], phase: 0, speed: 0.00003 }, // Warm red
+      { x: 0.7, y: 0.2, r: 0.42, color: [200, 100, 30], phase: 1.5, speed: 0.00004 }, // Orange
+      { x: 0.5, y: 0.7, r: 0.35, color: [180, 40, 120], phase: 3, speed: 0.00005 }, // Magenta
+      { x: 0.15, y: 0.8, r: 0.3, color: [140, 50, 180], phase: 4.5, speed: 0.00003 }, // Purple
+      { x: 0.85, y: 0.6, r: 0.32, color: [230, 80, 50], phase: 2, speed: 0.00004 }, // Deep orange
     ];
 
     const resize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      ctx.scale(dpr, dpr);
+      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+      canvas.width = Math.ceil(width * dpr);
+      canvas.height = Math.ceil(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
     };
@@ -37,18 +44,27 @@ const LavaLampBackground = () => {
     window.addEventListener('resize', resize);
     resize();
 
+    let lastFrameAt = 0;
     const draw = (t) => {
+      if (t - lastFrameAt < FRAME_INTERVAL_MS) {
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+      lastFrameAt = t;
+
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = '#1a0a1e';
       ctx.fillRect(0, 0, width, height);
 
       blobs.forEach((blob, i) => {
         // Slow lava-like rising/falling motion
-        const yDrift = Math.sin(t * blob.speed * 2 + blob.phase) * 0.25 +
-                       Math.sin(t * blob.speed * 5 + blob.phase * 0.7) * 0.08;
+        const yDrift =
+          Math.sin(t * blob.speed * 2 + blob.phase) * 0.25 +
+          Math.sin(t * blob.speed * 5 + blob.phase * 0.7) * 0.08;
 
-        const xDrift = Math.sin(t * blob.speed * 1.5 + blob.phase + 1) * 0.12 +
-                       Math.cos(t * blob.speed * 3 + blob.phase) * 0.06;
+        const xDrift =
+          Math.sin(t * blob.speed * 1.5 + blob.phase + 1) * 0.12 +
+          Math.cos(t * blob.speed * 3 + blob.phase) * 0.06;
 
         // Slow pulsing blob size
         const breathe = Math.sin(t * 0.0003 + i * 1.2) * 0.08;
@@ -81,15 +97,17 @@ const LavaLampBackground = () => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [motionAllowed]);
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden bg-[#1a0a1e]">
-      <canvas
-        ref={canvasRef}
-        style={{ filter: 'blur(90px)', opacity: 0.85 }}
-        className="absolute inset-0 h-full w-full"
-      />
+      {motionAllowed && (
+        <canvas
+          ref={canvasRef}
+          style={{ filter: 'blur(60px)', opacity: 0.85 }}
+          className="absolute inset-0 h-full w-full"
+        />
+      )}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.025]"
         style={{

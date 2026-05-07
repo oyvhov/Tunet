@@ -1,9 +1,16 @@
 import React, { useEffect, useRef } from 'react';
+import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
+
+const MAX_DPR = 1.5;
+const FRAME_INTERVAL_MS = 1000 / 30;
 
 const AuroraBackground = () => {
   const canvasRef = useRef(null);
+  const motionAllowed = useLowPowerMotion();
 
   useEffect(() => {
+    if (!motionAllowed) return undefined;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -24,10 +31,10 @@ const AuroraBackground = () => {
       height = window.innerHeight;
 
       // Handle high DPI displays
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      ctx.scale(dpr, dpr);
+      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+      canvas.width = Math.ceil(width * dpr);
+      canvas.height = Math.ceil(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
     };
@@ -35,7 +42,14 @@ const AuroraBackground = () => {
     window.addEventListener('resize', resize);
     resize();
 
+    let lastFrameAt = 0;
     const draw = (t) => {
+      if (t - lastFrameAt < FRAME_INTERVAL_MS) {
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+      lastFrameAt = t;
+
       // Reset composite operation to ensure background clears correctly
       // Otherwise screen blend mode accumulates, turning the screen white
       ctx.globalCompositeOperation = 'source-over';
@@ -92,15 +106,17 @@ const AuroraBackground = () => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [motionAllowed]);
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden bg-[#0f172a]">
-      <canvas
-        ref={canvasRef}
-        style={{ filter: 'blur(80px)', opacity: 0.8 }}
-        className="absolute inset-0 h-full w-full"
-      />
+      {motionAllowed && (
+        <canvas
+          ref={canvasRef}
+          style={{ filter: 'blur(56px)', opacity: 0.8 }}
+          className="absolute inset-0 h-full w-full"
+        />
+      )}
       {/* Noise texture overlay for texture */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.03]"

@@ -355,7 +355,6 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
       inactivityTimeout,
       resetToHome,
       activeMediaModal,
-      entities,
     });
 
   // Smart Theme Logic — only active when bgMode is 'theme'

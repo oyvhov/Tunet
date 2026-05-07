@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Custom hook for smart contextual theming based on weather and time of day.
@@ -11,11 +11,21 @@ import { useEffect } from 'react';
  * @param {Date} params.now - Current timestamp
  */
 export function useSmartTheme({ currentTheme, bgMode, entities, now }) {
-  useEffect(() => {
-    if (currentTheme !== 'contextual') return;
-    if (bgMode !== 'theme') return;
+  const weatherEntityIdRef = useRef(null);
+  const lastAppliedRef = useRef('');
 
-    const weatherEntity = Object.values(entities).find((e) => e.entity_id.startsWith('weather.'));
+  useEffect(() => {
+    if (currentTheme !== 'contextual' || bgMode !== 'theme') {
+      lastAppliedRef.current = '';
+      return;
+    }
+
+    let weatherEntity = weatherEntityIdRef.current ? entities[weatherEntityIdRef.current] : null;
+    if (!weatherEntity?.entity_id?.startsWith('weather.')) {
+      weatherEntity = Object.values(entities).find((e) => e.entity_id.startsWith('weather.'));
+      weatherEntityIdRef.current = weatherEntity?.entity_id || null;
+    }
+
     const weatherState = weatherEntity?.state;
     const sunEntity = entities['sun.sun'];
     const hour = now.getHours();
@@ -83,6 +93,10 @@ export function useSmartTheme({ currentTheme, bgMode, entities, now }) {
       bgGradientFrom = '#475569';
       bgGradientTo = '#64748b';
     }
+
+    const nextApplied = `${bgGradientFrom}|${bgGradientTo}|${bgPrimary}`;
+    if (lastAppliedRef.current === nextApplied) return;
+    lastAppliedRef.current = nextApplied;
 
     const root = document.documentElement;
     root.style.setProperty('--bg-gradient-from', bgGradientFrom);

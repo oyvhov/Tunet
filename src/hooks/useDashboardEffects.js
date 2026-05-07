@@ -22,7 +22,6 @@ export function useDashboardEffects({
   inactivityTimeout,
   resetToHome,
   activeMediaModal,
-  entities,
 }) {
   const [now, setNow] = useState(new Date());
   const [mediaTick, setMediaTick] = useState(0);
@@ -48,11 +47,16 @@ export function useDashboardEffects({
     return () => clearInterval(id);
   }, [activeMediaModal]);
 
-  // ── Clear optimistic brightness when real entity state arrives ─────────
+  // ── Clear optimistic brightness after the UI has had time to reconcile ─
   useEffect(() => {
-    const id = setTimeout(() => setOptimisticLightBrightness({}), INITIAL_FETCH_DELAY);
+    if (Object.keys(optimisticLightBrightness).length === 0) return undefined;
+
+    const id = setTimeout(
+      () => setOptimisticLightBrightness((prev) => (Object.keys(prev).length === 0 ? prev : {})),
+      INITIAL_FETCH_DELAY
+    );
     return () => clearTimeout(id);
-  }, [entities]);
+  }, [optimisticLightBrightness]);
 
   // ── Haptic feedback on touch ───────────────────────────────────────────
   useEffect(() => {
@@ -95,7 +99,9 @@ export function useDashboardEffects({
       pendingTarget = null;
     };
 
-    const onCancel = () => { pendingTarget = null; };
+    const onCancel = () => {
+      pendingTarget = null;
+    };
 
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('pointermove', onMove);
