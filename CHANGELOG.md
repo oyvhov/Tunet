@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.18.1] — 2026-05-07
+
+### Added
+- Added a small project roadmap and closed the missing-roadmap follow-up (#151).
+
+### Changed
+- Reduced idle dashboard background work so the default theme no longer runs continuous heavy motion.
+- Throttled animated visual effects and paused them more aggressively on hidden or low-power displays.
+
+### Fixed
+- Fixed the Docker healthcheck probe inside the container by using `127.0.0.1`.
+- Avoided extra theme and brightness cleanup work on unrelated Home Assistant entity updates.
+
+### Security
+- Cleared the `ip-address` Dependabot advisory through the `express-rate-limit` update.
+
+
 ## [1.18.0] — 2026-04-30
 
 ### Added

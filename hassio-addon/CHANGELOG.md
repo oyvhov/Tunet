@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.18.1
+
+### Added
+- Includes dashboard release `1.18.1`.
+
+### Changed
+- Reduces idle dashboard background work for wall tablets and low-power displays.
+
+### Fixed
+- Fixes the add-on container healthcheck probe to use `127.0.0.1`.
+
+### Security
+- Clears the `ip-address` advisory through the `express-rate-limit` dependency update.
+
+**Full Changelog**: https://github.com/oyvhov/Tunet/compare/v1.18.0...v1.18.1
+
 ## 1.18.0
 
 ### Added
