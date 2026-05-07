@@ -14,6 +14,30 @@ const t = (key) => {
     'statusPills.editor': 'Edit Pill',
     'statusPills.addNewPill': 'Add new pill',
     'statusPills.typeSensor': 'Sensor',
+    'statusPills.typeMedia': 'Media',
+    'statusPills.typeEmby': 'Emby',
+    'statusPills.typeSonos': 'Sonos',
+    'statusPills.typeGroup': 'Smart group',
+    'statusPills.groupPreset': 'Preset',
+    'statusPills.groupPresetLightsOn': 'Lights on',
+    'statusPills.groupPresetLightsOnEmpty': 'No lights on',
+    'statusPills.groupPresetOpeningsOpen': 'Open doors/windows',
+    'statusPills.groupPresetOpeningsOpenEmpty': 'All doors/windows closed',
+    'statusPills.groupPresetCoversOpen': 'Open covers',
+    'statusPills.groupPresetCoversOpenEmpty': 'All covers closed',
+    'statusPills.groupMatchedEntities': 'Matching entities',
+    'statusPills.groupScope': 'Included entities',
+    'statusPills.groupScopeAll': 'All',
+    'statusPills.groupScopeInclude': 'Selected only',
+    'statusPills.groupScopeExclude': 'All except selected',
+    'statusPills.groupScopeAllHint':
+      'All matching entities for this preset can appear in the pill.',
+    'statusPills.groupSearchEntities': 'Search entities...',
+    'statusPills.groupSelected': 'selected',
+    'statusPills.groupIncluded': 'Included',
+    'statusPills.groupExcluded': 'Excluded',
+    'statusPills.groupNoCandidates': 'No matching entities found.',
+    'statusPills.hideWhenEmpty': 'Hide when empty',
     'statusPills.show': 'Show',
     'statusPills.hide': 'Hide',
     'statusPills.newPill': 'New Pill',
@@ -83,6 +107,111 @@ describe('StatusPillsConfigModal', () => {
     });
 
     expect(screen.getByPlaceholderText('Pill name')).toHaveValue('Draft pill');
+  });
+
+  it('adds and saves a smart group pill without an entity selection', async () => {
+    const onSave = vi.fn();
+
+    await act(async () => {
+      render(
+        <StatusPillsConfigModal
+          show
+          onClose={() => {}}
+          onSave={onSave}
+          entities={{
+            'light.kitchen': {
+              state: 'on',
+              attributes: { friendly_name: 'Kitchen' },
+            },
+          }}
+          statusPillsConfig={[]}
+          t={t}
+        />
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle('Add new pill'));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Smart group'));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+    });
+
+    expect(onSave).toHaveBeenCalledWith([
+      expect.objectContaining({
+        type: 'group_status',
+        groupPreset: 'lights_on',
+        groupSelectionMode: 'all',
+        groupEntityIds: [],
+        hideWhenEmpty: true,
+        clickable: true,
+        showCount: true,
+      }),
+    ]);
+  });
+
+  it('saves selected smart group entities when using selected-only mode', async () => {
+    const onSave = vi.fn();
+
+    await act(async () => {
+      render(
+        <StatusPillsConfigModal
+          show
+          onClose={() => {}}
+          onSave={onSave}
+          entities={{
+            'light.kitchen': {
+              state: 'on',
+              attributes: { friendly_name: 'Kitchen' },
+            },
+            'light.hallway': {
+              state: 'off',
+              attributes: { friendly_name: 'Hallway' },
+            },
+          }}
+          statusPillsConfig={[]}
+          t={t}
+        />
+      );
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle('Add new pill'));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Smart group'));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Selected only'));
+    });
+
+    const kitchenOption = screen.getAllByText('Kitchen').find((node) => node.closest('button'));
+    expect(kitchenOption).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(kitchenOption.closest('button'));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Save/i }));
+    });
+
+    expect(onSave).toHaveBeenCalledWith([
+      expect.objectContaining({
+        type: 'group_status',
+        groupSelectionMode: 'include',
+        groupEntityIds: ['light.kitchen'],
+      }),
+    ]);
   });
 
   it('keeps the editor open when the selected pill is clicked again', async () => {

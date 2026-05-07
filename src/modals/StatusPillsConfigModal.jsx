@@ -7,6 +7,8 @@ import {
   Eye,
   EyeOff,
   Check,
+  Search,
+  Sparkles,
   ChevronDown,
   ChevronUp,
   Activity,
@@ -26,6 +28,19 @@ import {
   PILL_ANIMATION_PRESET_OPTIONS,
   PILL_COLOR_PRESETS,
 } from '../utils/statusPillPresentation';
+import {
+  DEFAULT_STATUS_GROUP_PRESET,
+  STATUS_GROUP_PILL_TYPE,
+  STATUS_GROUP_SELECTION_ALL,
+  STATUS_GROUP_SELECTION_EXCLUDE,
+  STATUS_GROUP_SELECTION_INCLUDE,
+  STATUS_GROUP_PRESETS,
+  buildStatusGroupPillVisuals,
+  getStatusGroupSelectionMode,
+  getStatusGroupPresetText,
+  resolveStatusGroupCandidates,
+  resolveStatusGroupPill,
+} from '../utils/statusGroupPills';
 
 const normalizePattern = (pattern) => pattern.trim();
 
@@ -100,6 +115,7 @@ export default function StatusPillsConfigModal({
   const [entitySearch, setEntitySearch] = useState('');
   const [showEntityPicker, setShowEntityPicker] = useState(false);
   const [dataSourcePreviewSearch, setDataSourcePreviewSearch] = useState('');
+  const [groupEntitySearch, setGroupEntitySearch] = useState('');
   const [showMediaSourcePreviewList, setShowMediaSourcePreviewList] = useState(false);
   const [stateInputValue, setStateInputValue] = useState('');
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -113,13 +129,34 @@ export default function StatusPillsConfigModal({
   const entityPickerRef = useRef(null);
   const statusPillsConfigRef = useRef(statusPillsConfig);
 
-  const normalizeEditablePill = (pill, index) => ({
-    ...pill,
-    id: pill.id || `pill_${index}`,
-    animationPreset: normalizePillAnimationPreset(pill),
-    showLabel: pill.showLabel !== false,
-    showSublabel: pill.showSublabel !== false,
-  });
+  const normalizeEditablePill = (pill, index) => {
+    const groupPreset = pill.groupPreset || DEFAULT_STATUS_GROUP_PRESET;
+    const groupVisuals =
+      pill.type === STATUS_GROUP_PILL_TYPE ? buildStatusGroupPillVisuals(groupPreset) : {};
+    return {
+      ...pill,
+      id: pill.id || `pill_${index}`,
+      groupPreset: pill.type === STATUS_GROUP_PILL_TYPE ? groupPreset : pill.groupPreset,
+      groupSelectionMode:
+        pill.type === STATUS_GROUP_PILL_TYPE
+          ? getStatusGroupSelectionMode(pill)
+          : pill.groupSelectionMode,
+      groupEntityIds:
+        pill.type === STATUS_GROUP_PILL_TYPE
+          ? Array.isArray(pill.groupEntityIds)
+            ? pill.groupEntityIds
+            : []
+          : pill.groupEntityIds,
+      hideWhenEmpty:
+        pill.type === STATUS_GROUP_PILL_TYPE ? pill.hideWhenEmpty !== false : pill.hideWhenEmpty,
+      icon: pill.icon || groupVisuals.icon,
+      iconBgColor: pill.iconBgColor || groupVisuals.iconBgColor,
+      iconColor: pill.iconColor || groupVisuals.iconColor,
+      animationPreset: normalizePillAnimationPreset(pill),
+      showLabel: pill.showLabel !== false,
+      showSublabel: pill.showSublabel !== false,
+    };
+  };
 
   useEffect(() => {
     const onResize = () => setIsMobile(globalThis.window.innerWidth < 768);
@@ -158,6 +195,7 @@ export default function StatusPillsConfigModal({
     setPillSearch('');
     setEntitySearch('');
     setDataSourcePreviewSearch('');
+    setGroupEntitySearch('');
     setShowMediaSourcePreviewList(false);
     setShowEntityPicker(false);
     setShowIconPicker(false);
@@ -217,6 +255,20 @@ export default function StatusPillsConfigModal({
       animated: normalizePillAnimationPreset(pill) !== 'none',
       showLabel: pill.showLabel !== false,
       showSublabel: pill.showSublabel !== false,
+      groupPreset:
+        pill.type === STATUS_GROUP_PILL_TYPE && typeof pill.groupPreset === 'string'
+          ? pill.groupPreset
+          : undefined,
+      groupSelectionMode:
+        pill.type === STATUS_GROUP_PILL_TYPE ? getStatusGroupSelectionMode(pill) : undefined,
+      groupEntityIds:
+        pill.type === STATUS_GROUP_PILL_TYPE && Array.isArray(pill.groupEntityIds)
+          ? pill.groupEntityIds
+          : pill.type === STATUS_GROUP_PILL_TYPE
+            ? []
+            : undefined,
+      hideWhenEmpty:
+        pill.type === STATUS_GROUP_PILL_TYPE ? pill.hideWhenEmpty !== false : undefined,
       unitSource: pill.unitSource === 'custom' ? 'custom' : 'ha',
       customUnit: typeof pill.customUnit === 'string' ? pill.customUnit : '',
       mediaFilter: typeof pill.mediaFilter === 'string' ? pill.mediaFilter : '',
@@ -257,6 +309,10 @@ export default function StatusPillsConfigModal({
       pillType === 'media_player' || pillType === 'sonos' || pillType === 'emby'
         ? { type: 'state', states: ['playing'] }
         : { type: 'state', states: ['on'] };
+    const isGroupPill = pillType === STATUS_GROUP_PILL_TYPE;
+    const groupVisuals = isGroupPill
+      ? buildStatusGroupPillVisuals(DEFAULT_STATUS_GROUP_PRESET)
+      : {};
 
     const newPill = {
       id: `pill_${Date.now()}`,
@@ -264,24 +320,34 @@ export default function StatusPillsConfigModal({
       entityId: '',
       label: '',
       sublabel: '',
-      icon: pillType === 'emby' ? 'Clapperboard' : pillType === 'alarm' ? 'Shield' : 'Activity',
+      icon: isGroupPill
+        ? groupVisuals.icon
+        : pillType === 'emby'
+          ? 'Clapperboard'
+          : pillType === 'alarm'
+            ? 'Shield'
+            : 'Activity',
       bgColor: 'rgba(255, 255, 255, 0.03)',
-      iconBgColor: 'rgba(59, 130, 246, 0.1)',
-      iconColor: 'text-[var(--accent-color)]',
+      iconBgColor: groupVisuals.iconBgColor || 'rgba(59, 130, 246, 0.1)',
+      iconColor: groupVisuals.iconColor || 'text-[var(--accent-color)]',
       labelColor: 'text-[var(--text-primary)]',
       sublabelColor: 'text-[var(--text-muted)]',
       condition: defaultCondition,
       conditionEnabled: false,
       unitSource: 'ha',
       customUnit: '',
-      clickable: pillType === 'sonos' || pillType === 'alarm',
+      clickable: isGroupPill || pillType === 'sonos' || pillType === 'alarm',
       animated: true,
       animationPreset: DEFAULT_PILL_ANIMATION_PRESET,
       showLabel: true,
       showSublabel: true,
       visible: true,
       showCover: true,
-      showCount: pillType === 'sonos',
+      showCount: isGroupPill || pillType === 'sonos',
+      groupPreset: isGroupPill ? DEFAULT_STATUS_GROUP_PRESET : undefined,
+      groupSelectionMode: isGroupPill ? STATUS_GROUP_SELECTION_ALL : undefined,
+      groupEntityIds: isGroupPill ? [] : undefined,
+      hideWhenEmpty: true,
       mediaFilter: '',
       mediaFilterMode: 'startsWith',
       playerNameDisplayFilter: '',
@@ -307,6 +373,19 @@ export default function StatusPillsConfigModal({
   const updatePill = (id, updates) => {
     setPills((currentPills) =>
       currentPills.map((pill) => (pill.id === id ? { ...pill, ...updates } : pill))
+    );
+  };
+
+  const toggleGroupEntitySelection = (id, entityId) => {
+    setPills((currentPills) =>
+      currentPills.map((pill) => {
+        if (pill.id !== id) return pill;
+        const currentIds = Array.isArray(pill.groupEntityIds) ? pill.groupEntityIds : [];
+        const nextIds = currentIds.includes(entityId)
+          ? currentIds.filter((currentId) => currentId !== entityId)
+          : [...currentIds, entityId];
+        return { ...pill, groupEntityIds: nextIds };
+      })
     );
   };
 
@@ -340,6 +419,10 @@ export default function StatusPillsConfigModal({
       if (pillType === 'conditional') return t('statusPills.typeSensor');
       if (pillType === 'media_player') return t('statusPills.typeMedia');
       if (pillType === 'emby') return t('statusPills.typeEmby');
+      if (pillType === STATUS_GROUP_PILL_TYPE) {
+        const translated = t('statusPills.typeGroup');
+        return translated === 'statusPills.typeGroup' ? 'Smart group' : translated;
+      }
       if (pillType === 'alarm') {
         const translated = t('statusPills.typeAlarm');
         return translated === 'statusPills.typeAlarm' ? 'Alarm' : translated;
@@ -497,6 +580,10 @@ export default function StatusPillsConfigModal({
     if (customHeading) return customHeading;
     if (customName) return customName;
 
+    if (pill.type === STATUS_GROUP_PILL_TYPE) {
+      return getStatusGroupPresetText(pill.groupPreset, t);
+    }
+
     if (pill.showLabel === false && pill.showSublabel === false) {
       return getTranslation('statusPills.iconOnlyPill', 'Icon only');
     }
@@ -528,6 +615,47 @@ export default function StatusPillsConfigModal({
     ...preset,
     label: getTranslation(preset.labelKey, preset.fallbackLabel),
   }));
+  const pillTypeOptions = [
+    {
+      type: 'conditional',
+      label: t('statusPills.typeSensor'),
+      Icon: Activity,
+      iconClass: 'bg-[var(--accent-bg)] text-[var(--accent-color)]',
+    },
+    {
+      type: STATUS_GROUP_PILL_TYPE,
+      label: getTranslation('statusPills.typeGroup', 'Smart group'),
+      Icon: Sparkles,
+      iconClass: 'bg-[var(--glass-bg)] text-sky-300',
+    },
+    {
+      type: 'media_player',
+      label: t('statusPills.typeMedia'),
+      Icon: Music,
+      iconClass: 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]',
+    },
+    {
+      type: 'emby',
+      label: t('statusPills.typeEmby'),
+      Icon: Clapperboard,
+      iconClass: 'bg-[var(--glass-bg)] text-purple-400',
+    },
+    {
+      type: 'sonos',
+      label: t('statusPills.typeSonos'),
+      Icon: Speaker,
+      iconClass: 'bg-[var(--glass-bg)] text-orange-400',
+    },
+    {
+      type: 'alarm',
+      label:
+        t('statusPills.typeAlarm') === 'statusPills.typeAlarm'
+          ? 'Alarm'
+          : t('statusPills.typeAlarm'),
+      Icon: Shield,
+      iconClass: 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]',
+    },
+  ];
 
   return (
     <AccessibleModalShell
@@ -536,7 +664,7 @@ export default function StatusPillsConfigModal({
       titleId="status-pills-config-title"
       overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4"
       overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative flex h-full max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl backdrop-blur-xl md:h-[800px] md:max-h-[90vh] md:rounded-3xl"
+      panelClassName="popup-anim relative flex h-full max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl backdrop-blur-xl md:h-[820px] md:max-h-[92vh] md:rounded-[2rem]"
       panelStyle={{
         background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
         borderColor: 'var(--glass-border)',
@@ -545,16 +673,31 @@ export default function StatusPillsConfigModal({
       {() => (
         <>
           {/* Header */}
-          <div className="relative border-b border-[var(--glass-border)] p-5 md:p-6">
-            <h2
-              id="status-pills-config-title"
-              className="text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
-            >
-              {t('statusPills.title')}
-            </h2>
+          <div className="relative flex items-center justify-between gap-4 border-b border-[var(--glass-border)] px-4 py-4 md:px-6 md:py-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="hidden h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent-bg)] text-[var(--accent-color)] md:flex">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <h2
+                  id="status-pills-config-title"
+                  className="truncate text-xl font-bold tracking-wide text-[var(--text-primary)] md:text-2xl"
+                >
+                  {t('statusPills.title')}
+                </h2>
+                <div className="mt-1 flex items-center gap-2">
+                  <p className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                    {t('statusPills.yourPills')}
+                  </p>
+                  <span className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-secondary)]">
+                    {pills.length}
+                  </span>
+                </div>
+              </div>
+            </div>
             <button
               onClick={onClose}
-              className="modal-close absolute top-1/2 right-5 -translate-y-1/2"
+              className="modal-close shrink-0"
               aria-label={t('common.close') || 'Close'}
             >
               <X className="h-4 w-4" />
@@ -564,10 +707,10 @@ export default function StatusPillsConfigModal({
           {/* Content */}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
             {isMobile && (
-              <div className="flex items-center gap-2 border-b border-[var(--glass-border)] px-4 pt-3 pb-2">
+              <div className="flex items-center gap-2 border-b border-[var(--glass-border)] bg-[var(--glass-bg)]/40 px-3 py-2">
                 <button
                   onClick={() => setMobilePane('list')}
-                  className={`flex-1 rounded-xl py-2 text-xs font-bold tracking-wider uppercase transition-all ${mobilePane === 'list' ? '' : 'border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+                  className={`flex-1 rounded-xl py-2 text-xs font-bold tracking-wider uppercase transition-all ${mobilePane === 'list' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   style={
                     mobilePane === 'list'
                       ? {
@@ -584,7 +727,7 @@ export default function StatusPillsConfigModal({
                 </button>
                 <button
                   onClick={() => setMobilePane('editor')}
-                  className={`flex-1 rounded-xl py-2 text-xs font-bold tracking-wider uppercase transition-all ${mobilePane === 'editor' ? '' : 'border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+                  className={`flex-1 rounded-xl py-2 text-xs font-bold tracking-wider uppercase transition-all ${mobilePane === 'editor' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                   style={
                     mobilePane === 'editor'
                       ? {
@@ -604,187 +747,177 @@ export default function StatusPillsConfigModal({
 
             {/* Pills List */}
             <div
-              className={`min-h-0 w-full shrink-0 overflow-y-auto border-r-0 border-b border-[var(--glass-border)] p-4 md:h-full md:w-[360px] md:border-r md:border-b-0 ${isMobile && mobilePane !== 'list' ? 'hidden' : 'flex-1'}`}
+              className={`flex min-h-0 w-full shrink-0 flex-col overflow-hidden border-r-0 border-b border-[var(--glass-border)] bg-[var(--glass-bg)]/25 md:h-full md:w-[300px] md:border-r md:border-b-0 lg:w-[320px] ${isMobile && mobilePane !== 'list' ? 'hidden' : 'flex-1'}`}
             >
-              <div className="relative mb-3 flex items-center justify-between" ref={addMenuRef}>
-                <div className="flex min-w-0 items-center gap-2">
-                  <h3 className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                    {t('statusPills.yourPills')}
-                  </h3>
-                  <span className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-secondary)]">
-                    {pills.length}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setShowAddMenu(!showAddMenu)}
-                  className="rounded-lg p-2 transition-colors"
-                  style={{
-                    backgroundColor: 'color-mix(in srgb, var(--accent-color) 85%, black 15%)',
-                    color: '#fff',
-                    boxShadow: 'none',
-                  }}
-                  title={t('statusPills.addNewPill')}
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-
-                {showAddMenu && (
-                  <div className="absolute top-full right-0 z-50 mt-2 flex w-48 flex-col overflow-hidden rounded-xl border border-gray-700 bg-[#1e293b] p-1 shadow-xl">
-                    <button
-                      onClick={() => {
-                        addPill('conditional');
-                        setShowAddMenu(false);
-                      }}
-                      className="flex items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-white/5"
-                    >
-                      <Activity className="h-4 w-4 text-[var(--accent-color)]" />{' '}
-                      {t('statusPills.typeSensor')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        addPill('media_player');
-                        setShowAddMenu(false);
-                      }}
-                      className="flex items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-white/5"
-                    >
-                      <Music className="h-4 w-4 text-[var(--status-success-fg)]" />{' '}
-                      {t('statusPills.typeMedia')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        addPill('emby');
-                        setShowAddMenu(false);
-                      }}
-                      className="flex items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-white/5"
-                    >
-                      <Clapperboard className="h-4 w-4 text-purple-400" />{' '}
-                      {t('statusPills.typeEmby')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        addPill('sonos');
-                        setShowAddMenu(false);
-                      }}
-                      className="flex items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-white/5"
-                    >
-                      <Speaker className="h-4 w-4 text-orange-400" /> {t('statusPills.typeSonos')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        addPill('alarm');
-                        setShowAddMenu(false);
-                      }}
-                      className="flex items-center gap-2 rounded-lg px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-white/5"
-                    >
-                      <Shield className="h-4 w-4 text-[var(--status-error-fg)]" />{' '}
-                      {t('statusPills.typeAlarm') === 'statusPills.typeAlarm'
-                        ? 'Alarm'
-                        : t('statusPills.typeAlarm')}
-                    </button>
+              <div className="z-20 shrink-0 space-y-3 border-b border-[var(--glass-border)] bg-[var(--modal-bg)]/90 p-3 backdrop-blur-xl">
+                <div className="relative flex items-center justify-between gap-2" ref={addMenuRef}>
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                      {t('statusPills.yourPills')}
+                    </h3>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">
+                      {filteredPills.length} / {pills.length}
+                    </p>
                   </div>
-                )}
+                  <button
+                    onClick={() => setShowAddMenu(!showAddMenu)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-color)] text-white shadow-lg shadow-black/20 transition-all hover:scale-105 active:scale-95"
+                    title={t('statusPills.addNewPill')}
+                    aria-label={t('statusPills.addNewPill')}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+
+                  {showAddMenu && (
+                    <div
+                      className="popup-surface absolute top-full right-0 z-50 mt-2 flex max-h-[70vh] w-56 flex-col gap-1 overflow-y-auto rounded-2xl border border-[var(--glass-border)] p-1.5 shadow-2xl"
+                      style={{ background: 'var(--modal-bg)', backdropFilter: 'none' }}
+                    >
+                      <div className="space-y-1">
+                        {pillTypeOptions.map(({ type, label, Icon: TypeIcon, iconClass }) => (
+                          <button
+                            key={type}
+                            onClick={() => {
+                              addPill(type);
+                              setShowAddMenu(false);
+                            }}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--glass-bg-hover)]"
+                          >
+                            <span
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
+                            >
+                              <TypeIcon className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0 truncate text-sm font-bold text-[var(--text-primary)]">
+                              {label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="popup-surface flex items-center gap-2 rounded-2xl px-3 py-2">
+                  <Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+                  <input
+                    type="text"
+                    value={pillSearch}
+                    onChange={(e) => setPillSearch(e.target.value)}
+                    placeholder={t('form.search') || 'Search'}
+                    className="w-full bg-transparent text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+                  />
+                </div>
               </div>
 
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={pillSearch}
-                  onChange={(e) => setPillSearch(e.target.value)}
-                  placeholder={t('form.search') || 'Search'}
-                  className="popup-surface w-full rounded-xl border border-transparent px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
-                />
-              </div>
-
-              <div className="space-y-2.5">
+              <div className="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto p-3 pb-20">
                 {filteredPills.map((pill) => {
                   const Icon = getIconComponent(pill.icon) || getIconComponent('Activity');
                   const isEditing = editingPill === pill.id;
                   const itemIndex = pills.findIndex((p) => p.id === pill.id);
                   const typeLabel = getPillTypeLabel(pill.type);
                   const displayName = getEditorPillDisplayName(pill);
+                  const entityLabel = entities[pill.entityId]?.attributes?.friendly_name || '';
+                  const summaryParts = [
+                    typeLabel,
+                    pill.visible === false ? t('statusPills.hide') : t('statusPills.show'),
+                  ];
+                  if (pill.conditionEnabled !== false)
+                    summaryParts.push(t('statusPills.conditional'));
+                  if (pillHasMissingEntity(pill)) {
+                    summaryParts.push(
+                      getTranslation(
+                        'statusPills.entityRequired',
+                        'Select an entity to show this pill.'
+                      )
+                    );
+                  }
+                  const summaryText = summaryParts.filter(Boolean).join(' / ');
 
                   return (
                     <div
                       key={pill.id}
-                      className={`rounded-2xl border transition-all ${isEditing ? 'popup-surface border-[var(--accent-color)] shadow-lg ' : 'popup-surface border-transparent hover:border-[var(--glass-border)]'}`}
+                      className={`group relative overflow-hidden rounded-2xl border transition-all ${isEditing ? 'popup-surface border-[var(--accent-color)] shadow-lg shadow-black/20' : 'popup-surface border-transparent hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
                     >
-                      <button
-                        onClick={() => {
-                          setEditingPill(pill.id);
-                          setMobilePane('editor');
-                        }}
-                        className="flex w-full items-start gap-3 p-3 text-left"
-                      >
-                        <div
-                          className={`rounded-xl p-2 ${pill.iconColor} shrink-0`}
-                          style={{ backgroundColor: pill.iconBgColor }}
+                      <div
+                        className={`absolute top-0 left-0 h-full w-1 transition-opacity ${isEditing ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'}`}
+                        style={{ backgroundColor: 'var(--accent-color)' }}
+                      />
+                      <div className="flex items-center gap-1.5 p-1.5 pl-2.5">
+                        <button
+                          onClick={() => {
+                            setEditingPill(pill.id);
+                            setMobilePane('editor');
+                          }}
+                          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-1.5 py-2 text-left transition-colors hover:bg-[var(--glass-bg)]"
                         >
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <p className="truncate text-sm font-bold text-[var(--text-primary)]">
-                            {displayName}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-[var(--text-secondary)] uppercase">
-                              {typeLabel}
-                            </span>
-                            <span
-                              className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${pill.visible === false ? 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-muted)]' : 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'}`}
-                            >
-                              {pill.visible === false
-                                ? t('statusPills.hide')
-                                : t('statusPills.show')}
-                            </span>
-                            {pill.conditionEnabled !== false && (
-                              <span className="rounded-md border border-[var(--accent-color)] bg-[var(--accent-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--accent-color)]">
-                                {t('statusPills.conditional')}
-                              </span>
-                            )}
+                          <div
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${pill.iconColor}`}
+                            style={{ backgroundColor: pill.iconBgColor }}
+                          >
+                            <Icon className="h-4 w-4" />
                           </div>
-                          {pill.entityId && (
-                            <p className="truncate text-[10px] text-[var(--text-muted)]">
-                              {pill.entityId}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <p className="truncate text-sm font-bold text-[var(--text-primary)]">
+                                {displayName}
+                              </p>
+                              <span
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${pill.visible === false ? 'bg-[var(--text-muted)]' : 'bg-[var(--status-success-fg)]'}`}
+                              />
+                            </div>
+                            <p
+                              className={`truncate text-[10px] font-semibold ${pillHasMissingEntity(pill) ? 'text-[var(--status-error-fg)]' : 'text-[var(--text-muted)]'}`}
+                              title={pill.entityId || entityLabel || summaryText}
+                            >
+                              {summaryText}
+                              {pill.entityId ? ` - ${pill.entityId}` : ''}
                             </p>
-                          )}
-                        </div>
-                      </button>
+                          </div>
+                        </button>
 
-                      <div className="flex items-center gap-2 px-3 pb-3">
-                        <button
-                          onClick={() => movePill(pill.id, 'up')}
-                          disabled={itemIndex === 0}
-                          className="flex flex-1 items-center justify-center rounded-xl bg-[var(--glass-bg)] p-2.5 text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] disabled:cursor-not-allowed disabled:opacity-20"
-                          title={t('statusPills.moveUp')}
-                        >
-                          <ChevronUp className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => movePill(pill.id, 'down')}
-                          disabled={itemIndex === pills.length - 1}
-                          className="flex flex-1 items-center justify-center rounded-xl bg-[var(--glass-bg)] p-2.5 text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] disabled:cursor-not-allowed disabled:opacity-20"
-                          title={t('statusPills.moveDown')}
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => toggleVisibility(pill.id)}
-                          className="flex items-center justify-center rounded-xl bg-[var(--glass-bg)] p-2.5 transition-all hover:bg-[var(--glass-bg-hover)]"
-                          title={pill.visible ? t('statusPills.hide') : t('statusPills.show')}
-                        >
-                          {pill.visible ? (
-                            <Eye className="h-4 w-4 text-[var(--status-success-fg)]" />
-                          ) : (
-                            <EyeOff className="h-4 w-4 text-[var(--text-muted)]" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => deletePill(pill.id)}
-                          className="flex items-center justify-center rounded-xl bg-[var(--glass-bg)] p-2.5 text-[var(--status-error-fg)] transition-all hover:bg-[var(--status-error-bg)]"
-                          title={t('statusPills.delete')}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex shrink-0 items-center gap-1 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+                          <button
+                            onClick={() => movePill(pill.id, 'up')}
+                            disabled={itemIndex === 0}
+                            className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] disabled:cursor-not-allowed disabled:opacity-20"
+                            title={t('statusPills.moveUp')}
+                            aria-label={t('statusPills.moveUp')}
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => movePill(pill.id, 'down')}
+                            disabled={itemIndex === pills.length - 1}
+                            className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] disabled:cursor-not-allowed disabled:opacity-20"
+                            title={t('statusPills.moveDown')}
+                            aria-label={t('statusPills.moveDown')}
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => toggleVisibility(pill.id)}
+                            className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] transition-all hover:bg-[var(--glass-bg-hover)]"
+                            title={pill.visible ? t('statusPills.hide') : t('statusPills.show')}
+                            aria-label={
+                              pill.visible ? t('statusPills.hide') : t('statusPills.show')
+                            }
+                          >
+                            {pill.visible ? (
+                              <Eye className="h-4 w-4 text-[var(--status-success-fg)]" />
+                            ) : (
+                              <EyeOff className="h-4 w-4 text-[var(--text-muted)]" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => deletePill(pill.id)}
+                            className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--status-error-fg)] transition-all hover:bg-[var(--status-error-bg)]"
+                            title={t('statusPills.delete')}
+                            aria-label={t('statusPills.delete')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -806,7 +939,7 @@ export default function StatusPillsConfigModal({
 
             {/* Editor */}
             <div
-              className={`min-h-0 w-full flex-1 overflow-x-visible overflow-y-auto p-4 md:p-6 ${isMobile && mobilePane !== 'editor' ? 'hidden' : ''}`}
+              className={`custom-scrollbar min-h-0 w-full flex-1 overflow-x-visible overflow-y-auto p-4 md:p-6 ${isMobile && mobilePane !== 'editor' ? 'hidden' : ''}`}
             >
               {editingPill ? (
                 (() => {
@@ -823,7 +956,34 @@ export default function StatusPillsConfigModal({
                   } = mediaPreviewData;
                   const Icon = getIconComponent(pill.icon) || getIconComponent('Activity');
                   const sectionShellClass =
-                    'popup-surface rounded-2xl p-4 border border-[var(--glass-border)]/60';
+                    'popup-surface rounded-2xl border border-[var(--glass-border)]/35 bg-[var(--glass-bg)]/25 p-4 shadow-none backdrop-blur-none md:p-5';
+                  const groupPreviewData =
+                    pill.type === STATUS_GROUP_PILL_TYPE
+                      ? resolveStatusGroupPill(pill, entities, t)
+                      : null;
+                  const groupCandidateRows =
+                    pill.type === STATUS_GROUP_PILL_TYPE
+                      ? resolveStatusGroupCandidates(pill.groupPreset, entities)
+                      : [];
+                  const groupSelectionMode = getStatusGroupSelectionMode(pill);
+                  const groupSelectedIds = Array.isArray(pill.groupEntityIds)
+                    ? pill.groupEntityIds
+                    : [];
+                  const groupSelectedIdSet = new Set(groupSelectedIds);
+                  const groupCandidateSearch = groupEntitySearch.trim().toLowerCase();
+                  const filteredGroupCandidateRows = groupCandidateRows.filter(({ id, entity }) => {
+                    if (!groupCandidateSearch) return true;
+                    const name = String(entity?.attributes?.friendly_name || '').toLowerCase();
+                    return (
+                      id.toLowerCase().includes(groupCandidateSearch) ||
+                      name.includes(groupCandidateSearch)
+                    );
+                  });
+                  const groupPresetOptions = STATUS_GROUP_PRESETS.map((preset) => ({
+                    ...preset,
+                    label: getStatusGroupPresetText(preset.id, t),
+                    emptyLabel: getStatusGroupPresetText(preset.id, t, 'empty'),
+                  }));
                   const previewPill = { ...pill, conditionEnabled: false, visible: true };
                   const previewEntity = pill.entityId ? entities[pill.entityId] : null;
                   const getPreviewAttribute = (entityId, attributeName) =>
@@ -835,9 +995,11 @@ export default function StatusPillsConfigModal({
                     return rawUrl;
                   };
                   const previewStatusEntity =
-                    pill.type === 'conditional' || pill.type === 'alarm'
-                      ? previewEntity
-                      : previewMediaEntities;
+                    pill.type === STATUS_GROUP_PILL_TYPE
+                      ? groupPreviewData?.syntheticEntity
+                      : pill.type === 'conditional' || pill.type === 'alarm'
+                        ? previewEntity
+                        : previewMediaEntities;
                   const previewIsMediaActive = (mediaEntity) => {
                     if (!mediaEntity?.state) return false;
                     if (mediaEntity.state === 'playing' || mediaEntity.state === 'paused')
@@ -855,14 +1017,14 @@ export default function StatusPillsConfigModal({
                   };
 
                   return (
-                    <div className="space-y-4 md:space-y-5">
+                    <div className="mx-auto max-w-3xl space-y-4 md:space-y-5">
                       {/* Header Section */}
                       <div
-                        className={`${sectionShellClass} flex items-start justify-between gap-4`}
+                        className={`${sectionShellClass} flex flex-col gap-4 md:flex-row md:items-center md:justify-between`}
                       >
-                        <div className="flex-1">
+                        <div className="min-w-0 flex-1">
                           <div className="mb-2.5 flex items-center gap-2">
-                            <span className="text-xs font-bold tracking-widest text-[var(--accent-color)] uppercase">
+                            <span className="rounded-full bg-[var(--accent-bg)] px-2.5 py-1 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
                               {getPillTypeLabel(pill.type)}
                             </span>
                             {(pill.type === 'conditional' || pill.type === 'alarm') && (
@@ -879,16 +1041,17 @@ export default function StatusPillsConfigModal({
                             value={pill.name || ''}
                             onChange={(e) => updatePillNameText(pill.id, e.target.value)}
                             placeholder={t('statusPills.pillNamePlaceholder')}
-                            className="w-full bg-transparent text-xl font-bold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+                            className="w-full bg-transparent text-2xl font-bold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
                           />
                         </div>
                         {/* Live preview */}
                         {(pill.type === 'conditional' ||
+                          pill.type === STATUS_GROUP_PILL_TYPE ||
                           pill.type === 'media_player' ||
                           pill.type === 'emby' ||
                           pill.type === 'sonos' ||
                           pill.type === 'alarm') && (
-                          <div className="shrink-0">
+                          <div className="flex min-h-14 shrink-0 items-center rounded-2xl border border-[var(--glass-border)]/30 bg-transparent px-3 py-2">
                             <StatusPill
                               pill={previewPill}
                               entity={previewStatusEntity}
@@ -903,8 +1066,8 @@ export default function StatusPillsConfigModal({
 
                       {/* Main Configuration Grid */}
                       <div className="grid grid-cols-1 gap-4 md:gap-5">
-                        {/* Visuals Group (Only for Conditional) */}
-                        {pill.type === 'conditional' && (
+                        {/* Visuals Group */}
+                        {(pill.type === 'conditional' || pill.type === STATUS_GROUP_PILL_TYPE) && (
                           <section className={`${sectionShellClass} space-y-3`}>
                             <h4 className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
                               {t('statusPills.appearance')}
@@ -935,44 +1098,46 @@ export default function StatusPillsConfigModal({
                                   className="w-full rounded-xl border-0 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
                                 />
                               </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
-                                  {t('statusPills.unitSource')}
-                                </label>
-                                <select
-                                  value={pill.unitSource === 'custom' ? 'custom' : 'ha'}
-                                  onChange={(e) =>
-                                    updatePill(pill.id, { unitSource: e.target.value })
-                                  }
-                                  className="w-full rounded-xl border-0 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
-                                  style={{
-                                    backgroundColor: 'var(--glass-bg)',
-                                    color: 'var(--text-primary)',
-                                  }}
-                                >
-                                  <option
-                                    value="ha"
+                              {pill.type === 'conditional' && (
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                    {t('statusPills.unitSource')}
+                                  </label>
+                                  <select
+                                    value={pill.unitSource === 'custom' ? 'custom' : 'ha'}
+                                    onChange={(e) =>
+                                      updatePill(pill.id, { unitSource: e.target.value })
+                                    }
+                                    className="w-full rounded-xl border-0 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
                                     style={{
-                                      backgroundColor: 'var(--modal-bg)',
+                                      backgroundColor: 'var(--glass-bg)',
                                       color: 'var(--text-primary)',
                                     }}
                                   >
-                                    {t('statusPills.unitHomeAssistant')}
-                                  </option>
-                                  <option
-                                    value="custom"
-                                    style={{
-                                      backgroundColor: 'var(--modal-bg)',
-                                      color: 'var(--text-primary)',
-                                    }}
-                                  >
-                                    {t('statusPills.unitCustom')}
-                                  </option>
-                                </select>
-                              </div>
+                                    <option
+                                      value="ha"
+                                      style={{
+                                        backgroundColor: 'var(--modal-bg)',
+                                        color: 'var(--text-primary)',
+                                      }}
+                                    >
+                                      {t('statusPills.unitHomeAssistant')}
+                                    </option>
+                                    <option
+                                      value="custom"
+                                      style={{
+                                        backgroundColor: 'var(--modal-bg)',
+                                        color: 'var(--text-primary)',
+                                      }}
+                                    >
+                                      {t('statusPills.unitCustom')}
+                                    </option>
+                                  </select>
+                                </div>
+                              )}
                             </div>
 
-                            {pill.unitSource === 'custom' && (
+                            {pill.type === 'conditional' && pill.unitSource === 'custom' && (
                               <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
                                   {t('statusPills.unitOverrideLabel')}
@@ -1085,10 +1250,223 @@ export default function StatusPillsConfigModal({
                         {/* Source Logic */}
                         <section className={`${sectionShellClass} space-y-3`}>
                           <h4 className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                            {pill.type === 'conditional' || pill.type === 'alarm'
-                              ? t('statusPills.dataSource')
-                              : t('statusPills.mediaPlayerSource')}
+                            {pill.type === STATUS_GROUP_PILL_TYPE
+                              ? getTranslation('statusPills.groupPreset', 'Preset')
+                              : pill.type === 'conditional' || pill.type === 'alarm'
+                                ? t('statusPills.dataSource')
+                                : t('statusPills.mediaPlayerSource')}
                           </h4>
+
+                          {pill.type === STATUS_GROUP_PILL_TYPE && groupPreviewData && (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                {groupPresetOptions.map((preset) => {
+                                  const PresetIcon =
+                                    getIconComponent(preset.icon) || getIconComponent('Activity');
+                                  const isSelected = pill.groupPreset === preset.id;
+                                  return (
+                                    <button
+                                      key={preset.id}
+                                      type="button"
+                                      onClick={() =>
+                                        updatePill(pill.id, {
+                                          groupPreset: preset.id,
+                                          groupSelectionMode: STATUS_GROUP_SELECTION_ALL,
+                                          groupEntityIds: [],
+                                          ...buildStatusGroupPillVisuals(preset.id),
+                                        })
+                                      }
+                                      className={`flex min-h-24 flex-col items-start justify-between rounded-2xl border p-3 text-left transition-all ${
+                                        isSelected
+                                          ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                          : 'border-[var(--glass-border)]/35 bg-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
+                                      }`}
+                                    >
+                                      <span
+                                        className={`flex h-9 w-9 items-center justify-center rounded-xl ${preset.iconColor}`}
+                                        style={{ backgroundColor: preset.iconBgColor }}
+                                      >
+                                        <PresetIcon className="h-4 w-4" />
+                                      </span>
+                                      <span className="text-sm font-bold text-[var(--text-primary)]">
+                                        {preset.label}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              <div className="rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
+                                <div className="mb-2 flex items-center justify-between gap-3">
+                                  <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                                    {getTranslation(
+                                      'statusPills.groupMatchedEntities',
+                                      'Matching entities'
+                                    )}
+                                  </span>
+                                  <span className="rounded-full bg-[var(--accent-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent-color)]">
+                                    {groupPreviewData.count}
+                                  </span>
+                                </div>
+                                {groupPreviewData.matchedEntities.length > 0 ? (
+                                  <div className="custom-scrollbar max-h-40 space-y-1 overflow-y-auto">
+                                    {groupPreviewData.matchedEntities
+                                      .slice(0, 12)
+                                      .map(({ id, entity }) => (
+                                        <div
+                                          key={id}
+                                          className="flex items-center justify-between gap-2 rounded-lg bg-[var(--glass-bg)] px-2.5 py-2 text-xs"
+                                        >
+                                          <div className="min-w-0">
+                                            <p className="truncate font-bold text-[var(--text-primary)]">
+                                              {entity.attributes?.friendly_name || id}
+                                            </p>
+                                            <p className="truncate text-[10px] text-[var(--text-muted)]">
+                                              {id}
+                                            </p>
+                                          </div>
+                                          <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-secondary)] uppercase">
+                                            {entity.state}
+                                          </span>
+                                        </div>
+                                      ))}
+                                  </div>
+                                ) : (
+                                  <p className="rounded-lg bg-[var(--glass-bg)] px-3 py-2 text-xs text-[var(--text-muted)]">
+                                    {groupPreviewData.syntheticEntity.attributes.statusPillSublabel}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="space-y-3 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                                    {getTranslation('statusPills.groupScope', 'Included entities')}
+                                  </span>
+                                  {groupSelectionMode !== STATUS_GROUP_SELECTION_ALL && (
+                                    <span className="rounded-full bg-[var(--glass-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-secondary)]">
+                                      {groupSelectedIds.length}{' '}
+                                      {getTranslation('statusPills.groupSelected', 'selected')}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                  {[
+                                    {
+                                      id: STATUS_GROUP_SELECTION_ALL,
+                                      label: getTranslation('statusPills.groupScopeAll', 'All'),
+                                    },
+                                    {
+                                      id: STATUS_GROUP_SELECTION_INCLUDE,
+                                      label: getTranslation(
+                                        'statusPills.groupScopeInclude',
+                                        'Selected only'
+                                      ),
+                                    },
+                                    {
+                                      id: STATUS_GROUP_SELECTION_EXCLUDE,
+                                      label: getTranslation(
+                                        'statusPills.groupScopeExclude',
+                                        'All except selected'
+                                      ),
+                                    },
+                                  ].map((mode) => (
+                                    <button
+                                      key={mode.id}
+                                      type="button"
+                                      onClick={() =>
+                                        updatePill(pill.id, {
+                                          groupSelectionMode: mode.id,
+                                          ...(mode.id === STATUS_GROUP_SELECTION_ALL
+                                            ? { groupEntityIds: [] }
+                                            : {}),
+                                        })
+                                      }
+                                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                                        groupSelectionMode === mode.id
+                                          ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                          : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
+                                      }`}
+                                    >
+                                      {mode.label}
+                                    </button>
+                                  ))}
+                                </div>
+
+                                {groupSelectionMode === STATUS_GROUP_SELECTION_ALL ? (
+                                  <p className="rounded-lg bg-[var(--glass-bg)] px-3 py-2 text-xs text-[var(--text-muted)]">
+                                    {getTranslation(
+                                      'statusPills.groupScopeAllHint',
+                                      'All matching entities for this preset can appear in the pill.'
+                                    )}{' '}
+                                    ({groupCandidateRows.length})
+                                  </p>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <input
+                                      type="text"
+                                      value={groupEntitySearch}
+                                      onChange={(e) => setGroupEntitySearch(e.target.value)}
+                                      placeholder={getTranslation(
+                                        'statusPills.groupSearchEntities',
+                                        'Search entities...'
+                                      )}
+                                      className="w-full rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
+                                    />
+                                    <div className="custom-scrollbar max-h-48 space-y-1 overflow-y-auto rounded-lg bg-[var(--glass-bg)] p-1">
+                                      {filteredGroupCandidateRows.map(({ id, entity }) => {
+                                        const selected = groupSelectedIdSet.has(id);
+                                        return (
+                                          <button
+                                            key={id}
+                                            type="button"
+                                            onClick={() => toggleGroupEntitySelection(pill.id, id)}
+                                            className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors ${
+                                              selected
+                                                ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                                : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
+                                            }`}
+                                          >
+                                            <span className="min-w-0">
+                                              <span className="block truncate font-bold text-[var(--text-primary)]">
+                                                {entity.attributes?.friendly_name || id}
+                                              </span>
+                                              <span className="block truncate text-[10px] opacity-75">
+                                                {id}
+                                              </span>
+                                            </span>
+                                            <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-2 py-0.5 text-[10px] font-bold">
+                                              {selected
+                                                ? groupSelectionMode ===
+                                                  STATUS_GROUP_SELECTION_EXCLUDE
+                                                  ? getTranslation(
+                                                      'statusPills.groupExcluded',
+                                                      'Excluded'
+                                                    )
+                                                  : getTranslation(
+                                                      'statusPills.groupIncluded',
+                                                      'Included'
+                                                    )
+                                                : '+'}
+                                            </span>
+                                          </button>
+                                        );
+                                      })}
+                                      {filteredGroupCandidateRows.length === 0 && (
+                                        <p className="px-2 py-2 text-xs text-[var(--text-muted)] italic">
+                                          {getTranslation(
+                                            'statusPills.groupNoCandidates',
+                                            'No matching entities found.'
+                                          )}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Emby/Sonos Source Type Logic */}
                           {(pill.type === 'emby' || pill.type === 'sonos') && (
@@ -1136,7 +1514,7 @@ export default function StatusPillsConfigModal({
                             pill.type === 'media_player' ||
                             (pill.type === 'sonos' &&
                               (pill.mediaSelectionMode || 'filter') === 'filter')) && (
-                            <div className="space-y-2 rounded-xl bg-[var(--glass-bg)] p-3">
+                            <div className="space-y-2 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
                               <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                                 <input
                                   type="text"
@@ -1172,7 +1550,7 @@ export default function StatusPillsConfigModal({
                               </p>
 
                               {(pill.type === 'sonos' || pill.type === 'media_player') && (
-                                <div className="mt-2 space-y-2 rounded-xl border border-[var(--glass-border)]/60 bg-[var(--modal-bg)] p-2.5">
+                                <div className="mt-2 space-y-2 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-2.5">
                                   <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
                                     <span className="rounded-full bg-[var(--status-success-bg)] px-2 py-0.5 font-bold text-[var(--status-success-fg)]">
                                       Included {sonosMatchedIds.length}
@@ -1304,7 +1682,7 @@ export default function StatusPillsConfigModal({
                                   placeholder={t('statusPills.searchPlayer')}
                                   className="w-full rounded-xl border-0 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
                                 />
-                                <div className="custom-scrollbar max-h-40 space-y-1 overflow-y-auto rounded-xl bg-[var(--glass-bg)] p-2">
+                                <div className="custom-scrollbar max-h-40 space-y-1 overflow-y-auto rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-2">
                                   {mediaPlayerIds
                                     .filter((id) => {
                                       if (!entitySearch) return true;
@@ -1414,7 +1792,7 @@ export default function StatusPillsConfigModal({
 
                           {/* Sessions Sensors (Emby only) */}
                           {pill.type === 'emby' && (
-                            <div className="rounded-xl bg-[var(--glass-bg)] p-3">
+                            <div className="rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
                               <div className="mb-2 flex items-center justify-between">
                                 <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
                                   {t('statusPills.sessionSensors')}
@@ -1454,186 +1832,197 @@ export default function StatusPillsConfigModal({
                         </section>
 
                         {/* Condition Group */}
-                        <section className={`${sectionShellClass} space-y-3`}>
-                          <h4 className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                            {t('statusPills.visibility')}{' '}
-                            {pill.type !== 'conditional' && t('statusPills.visibilityOptional')}
-                          </h4>
+                        {pill.type !== STATUS_GROUP_PILL_TYPE && (
+                          <section className={`${sectionShellClass} space-y-3`}>
+                            <h4 className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                              {t('statusPills.visibility')}{' '}
+                              {pill.type !== 'conditional' && t('statusPills.visibilityOptional')}
+                            </h4>
 
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              onClick={() =>
-                                updatePill(pill.id, {
-                                  conditionEnabled: pill.conditionEnabled === false,
-                                })
-                              }
-                              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                                pill.conditionEnabled === false
-                                  ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
-                                  : 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                              }`}
-                            >
-                              {pill.conditionEnabled === false
-                                ? t('statusPills.conditional')
-                                : `✓ ${t('statusPills.conditional')}`}
-                            </button>
-                          </div>
-
-                          {pill.conditionEnabled !== false && (
-                            <div className="flex flex-col gap-3 rounded-xl border border-[var(--glass-border)]/50 bg-[var(--glass-bg)] p-3">
-                              {/* Sentence Builder */}
-                              <div className="flex flex-wrap items-center gap-2 text-sm">
-                                <span className="text-[var(--text-secondary)]">
-                                  {t('statusPills.showWhen')}
-                                </span>
-                                <span className="rounded bg-[var(--accent-bg)] px-2 py-0.5 font-bold text-[var(--accent-color)]">
-                                  {t('statusPills.thisEntity')}
-                                </span>
-                                <select
-                                  value={pill.condition?.type || 'state'}
-                                  onChange={(e) =>
-                                    updatePill(pill.id, {
-                                      condition: { ...pill.condition, type: e.target.value },
-                                    })
-                                  }
-                                  className="rounded border border-[var(--glass-border)] bg-[var(--modal-bg)] px-2 py-1 text-xs font-bold text-[var(--text-primary)] outline-none"
-                                >
-                                  <option value="state">{t('statusPills.condIs')}</option>
-                                  <option value="not_state">{t('statusPills.condIsNot')}</option>
-                                  <option value="numeric">{t('statusPills.condHasValue')}</option>
-                                  <option value="attribute">{t('statusPills.condHasAttr')}</option>
-                                </select>
-                              </div>
-
-                              {/* Values */}
-                              <div className="border-l-2 border-[var(--accent-color)] pl-2">
-                                {(pill.condition?.type === 'state' ||
-                                  pill.condition?.type === 'not_state') && (
-                                  <div className="space-y-2">
-                                    <div className="flex min-h-[26px] flex-wrap gap-1.5">
-                                      {(pill.condition?.states || []).map((state, idx) => (
-                                        <span
-                                          key={`${state}-${idx}`}
-                                          className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-bg)] px-2 py-0.5 text-xs font-bold text-[var(--accent-color)]"
-                                        >
-                                          {state}
-                                          <button
-                                            onClick={() => {
-                                              const newStates = [...(pill.condition?.states || [])];
-                                              newStates.splice(idx, 1);
-                                              updatePill(pill.id, {
-                                                condition: { ...pill.condition, states: newStates },
-                                              });
-                                            }}
-                                            className="hover:text-white"
-                                          >
-                                            <X className="h-3 w-3" />
-                                          </button>
-                                        </span>
-                                      ))}
-                                      {(pill.condition?.states || []).length === 0 && (
-                                        <span className="text-xs text-[var(--text-muted)] italic">
-                                          {t('statusPills.noValuesSelected')}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <input
-                                      type="text"
-                                      value={stateInputValue}
-                                      onChange={(e) => setStateInputValue(e.target.value)}
-                                      placeholder={t('statusPills.addValuePlaceholder')}
-                                      onBlur={() => commitPendingStateInput()}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && stateInputValue.trim()) {
-                                          e.preventDefault();
-                                          const newState = stateInputValue.trim();
-                                          const currentStates = pill.condition?.states || [];
-                                          if (!currentStates.includes(newState)) {
-                                            updatePill(pill.id, {
-                                              condition: {
-                                                ...pill.condition,
-                                                states: [...currentStates, newState],
-                                              },
-                                            });
-                                          }
-                                          setStateInputValue('');
-                                        }
-                                      }}
-                                      className="w-full rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
-                                    />
-                                  </div>
-                                )}
-
-                                {pill.condition?.type === 'numeric' && (
-                                  <div className="flex items-center gap-2">
-                                    <select
-                                      value={pill.condition?.operator || '>'}
-                                      onChange={(e) =>
-                                        updatePill(pill.id, {
-                                          condition: {
-                                            ...pill.condition,
-                                            operator: e.target.value,
-                                          },
-                                        })
-                                      }
-                                      className="rounded bg-[var(--modal-bg)] px-2 py-1.5 text-xs font-bold text-[var(--text-primary)] outline-none"
-                                    >
-                                      <option value=">">{t('statusPills.greaterThan')}</option>
-                                      <option value=">=">{t('statusPills.greaterOrEqual')}</option>
-                                      <option value="<">{t('statusPills.lessThan')}</option>
-                                      <option value="<=">{t('statusPills.lessOrEqual')}</option>
-                                      <option value="==">{t('statusPills.equal')}</option>
-                                    </select>
-                                    <input
-                                      type="number"
-                                      placeholder={t('statusPills.valuePlaceholder')}
-                                      value={pill.condition?.value || ''}
-                                      onChange={(e) =>
-                                        updatePill(pill.id, {
-                                          condition: {
-                                            ...pill.condition,
-                                            value: Number.parseFloat(e.target.value),
-                                          },
-                                        })
-                                      }
-                                      className="w-24 rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
-                                    />
-                                  </div>
-                                )}
-
-                                {pill.condition?.type === 'attribute' && (
-                                  <div className="flex flex-col gap-2">
-                                    <input
-                                      type="text"
-                                      placeholder={t('statusPills.attrPlaceholder')}
-                                      value={pill.condition?.attribute || ''}
-                                      onChange={(e) =>
-                                        updatePill(pill.id, {
-                                          condition: {
-                                            ...pill.condition,
-                                            attribute: e.target.value,
-                                          },
-                                        })
-                                      }
-                                      className="w-full rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder={t('statusPills.attrValuePlaceholder')}
-                                      value={pill.condition?.value || ''}
-                                      onChange={(e) =>
-                                        updatePill(pill.id, {
-                                          condition: { ...pill.condition, value: e.target.value },
-                                        })
-                                      }
-                                      className="w-full rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
-                                    />
-                                  </div>
-                                )}
-                              </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() =>
+                                  updatePill(pill.id, {
+                                    conditionEnabled: pill.conditionEnabled === false,
+                                  })
+                                }
+                                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                                  pill.conditionEnabled === false
+                                    ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                                    : 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                }`}
+                              >
+                                {pill.conditionEnabled === false
+                                  ? t('statusPills.conditional')
+                                  : `✓ ${t('statusPills.conditional')}`}
+                              </button>
                             </div>
-                          )}
-                        </section>
+
+                            {pill.conditionEnabled !== false && (
+                              <div className="flex flex-col gap-3 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
+                                {/* Sentence Builder */}
+                                <div className="flex flex-wrap items-center gap-2 text-sm">
+                                  <span className="text-[var(--text-secondary)]">
+                                    {t('statusPills.showWhen')}
+                                  </span>
+                                  <span className="rounded bg-[var(--accent-bg)] px-2 py-0.5 font-bold text-[var(--accent-color)]">
+                                    {t('statusPills.thisEntity')}
+                                  </span>
+                                  <select
+                                    value={pill.condition?.type || 'state'}
+                                    onChange={(e) =>
+                                      updatePill(pill.id, {
+                                        condition: { ...pill.condition, type: e.target.value },
+                                      })
+                                    }
+                                    className="rounded border border-[var(--glass-border)] bg-[var(--modal-bg)] px-2 py-1 text-xs font-bold text-[var(--text-primary)] outline-none"
+                                  >
+                                    <option value="state">{t('statusPills.condIs')}</option>
+                                    <option value="not_state">{t('statusPills.condIsNot')}</option>
+                                    <option value="numeric">{t('statusPills.condHasValue')}</option>
+                                    <option value="attribute">
+                                      {t('statusPills.condHasAttr')}
+                                    </option>
+                                  </select>
+                                </div>
+
+                                {/* Values */}
+                                <div className="border-l-2 border-[var(--accent-color)] pl-2">
+                                  {(pill.condition?.type === 'state' ||
+                                    pill.condition?.type === 'not_state') && (
+                                    <div className="space-y-2">
+                                      <div className="flex min-h-[26px] flex-wrap gap-1.5">
+                                        {(pill.condition?.states || []).map((state, idx) => (
+                                          <span
+                                            key={`${state}-${idx}`}
+                                            className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-bg)] px-2 py-0.5 text-xs font-bold text-[var(--accent-color)]"
+                                          >
+                                            {state}
+                                            <button
+                                              onClick={() => {
+                                                const newStates = [
+                                                  ...(pill.condition?.states || []),
+                                                ];
+                                                newStates.splice(idx, 1);
+                                                updatePill(pill.id, {
+                                                  condition: {
+                                                    ...pill.condition,
+                                                    states: newStates,
+                                                  },
+                                                });
+                                              }}
+                                              className="hover:text-white"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </button>
+                                          </span>
+                                        ))}
+                                        {(pill.condition?.states || []).length === 0 && (
+                                          <span className="text-xs text-[var(--text-muted)] italic">
+                                            {t('statusPills.noValuesSelected')}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <input
+                                        type="text"
+                                        value={stateInputValue}
+                                        onChange={(e) => setStateInputValue(e.target.value)}
+                                        placeholder={t('statusPills.addValuePlaceholder')}
+                                        onBlur={() => commitPendingStateInput()}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && stateInputValue.trim()) {
+                                            e.preventDefault();
+                                            const newState = stateInputValue.trim();
+                                            const currentStates = pill.condition?.states || [];
+                                            if (!currentStates.includes(newState)) {
+                                              updatePill(pill.id, {
+                                                condition: {
+                                                  ...pill.condition,
+                                                  states: [...currentStates, newState],
+                                                },
+                                              });
+                                            }
+                                            setStateInputValue('');
+                                          }
+                                        }}
+                                        className="w-full rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {pill.condition?.type === 'numeric' && (
+                                    <div className="flex items-center gap-2">
+                                      <select
+                                        value={pill.condition?.operator || '>'}
+                                        onChange={(e) =>
+                                          updatePill(pill.id, {
+                                            condition: {
+                                              ...pill.condition,
+                                              operator: e.target.value,
+                                            },
+                                          })
+                                        }
+                                        className="rounded bg-[var(--modal-bg)] px-2 py-1.5 text-xs font-bold text-[var(--text-primary)] outline-none"
+                                      >
+                                        <option value=">">{t('statusPills.greaterThan')}</option>
+                                        <option value=">=">
+                                          {t('statusPills.greaterOrEqual')}
+                                        </option>
+                                        <option value="<">{t('statusPills.lessThan')}</option>
+                                        <option value="<=">{t('statusPills.lessOrEqual')}</option>
+                                        <option value="==">{t('statusPills.equal')}</option>
+                                      </select>
+                                      <input
+                                        type="number"
+                                        placeholder={t('statusPills.valuePlaceholder')}
+                                        value={pill.condition?.value || ''}
+                                        onChange={(e) =>
+                                          updatePill(pill.id, {
+                                            condition: {
+                                              ...pill.condition,
+                                              value: Number.parseFloat(e.target.value),
+                                            },
+                                          })
+                                        }
+                                        className="w-24 rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {pill.condition?.type === 'attribute' && (
+                                    <div className="flex flex-col gap-2">
+                                      <input
+                                        type="text"
+                                        placeholder={t('statusPills.attrPlaceholder')}
+                                        value={pill.condition?.attribute || ''}
+                                        onChange={(e) =>
+                                          updatePill(pill.id, {
+                                            condition: {
+                                              ...pill.condition,
+                                              attribute: e.target.value,
+                                            },
+                                          })
+                                        }
+                                        className="w-full rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
+                                      />
+                                      <input
+                                        type="text"
+                                        placeholder={t('statusPills.attrValuePlaceholder')}
+                                        value={pill.condition?.value || ''}
+                                        onChange={(e) =>
+                                          updatePill(pill.id, {
+                                            condition: { ...pill.condition, value: e.target.value },
+                                          })
+                                        }
+                                        className="w-full rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </section>
+                        )}
 
                         {/* Visual Options Group */}
                         <section className={`${sectionShellClass} space-y-3`}>
@@ -1643,7 +2032,7 @@ export default function StatusPillsConfigModal({
                           {(pill.type === 'media_player' ||
                             pill.type === 'emby' ||
                             pill.type === 'sonos') && (
-                            <div className="space-y-1 rounded-xl bg-[var(--glass-bg)] p-3">
+                            <div className="space-y-1 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
                               <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
                                 {t('statusPills.playerNameDisplayFilter')}
                               </label>
@@ -1659,7 +2048,7 @@ export default function StatusPillsConfigModal({
                             </div>
                           )}
                           {pill.type === 'sonos' && (
-                            <div className="grid grid-cols-1 gap-2 rounded-xl bg-[var(--glass-bg)] p-3 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-2 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3 md:grid-cols-2">
                               <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
                                   {t('statusPills.headingSource') || 'Heading content'}
@@ -1736,7 +2125,7 @@ export default function StatusPillsConfigModal({
                               </div>
                             </div>
                           )}
-                          <div className="grid grid-cols-1 gap-3 rounded-xl bg-[var(--glass-bg)] p-3 md:grid-cols-2">
+                          <div className="grid grid-cols-1 gap-3 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3 md:grid-cols-2">
                             <div className="space-y-1">
                               <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
                                 {getTranslation('statusPills.animationLabel', 'Animation')}
@@ -1812,21 +2201,24 @@ export default function StatusPillsConfigModal({
                             </button>
                             {(pill.type === 'media_player' ||
                               pill.type === 'emby' ||
-                              pill.type === 'sonos') && (
+                              pill.type === 'sonos' ||
+                              pill.type === STATUS_GROUP_PILL_TYPE) && (
                               <>
-                                <button
-                                  onClick={() =>
-                                    updatePill(pill.id, { showCover: pill.showCover === false })
-                                  }
-                                  className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                                    pill.showCover === false
-                                      ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
-                                      : 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                  }`}
-                                >
-                                  {pill.showCover === false ? '' : '✓ '}
-                                  {t('statusPills.showCover')}
-                                </button>
+                                {pill.type !== STATUS_GROUP_PILL_TYPE && (
+                                  <button
+                                    onClick={() =>
+                                      updatePill(pill.id, { showCover: pill.showCover === false })
+                                    }
+                                    className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                                      pill.showCover === false
+                                        ? 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                                        : 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                    }`}
+                                  >
+                                    {pill.showCover === false ? '' : '✓ '}
+                                    {t('statusPills.showCover')}
+                                  </button>
+                                )}
                                 <button
                                   onClick={() =>
                                     updatePill(pill.id, { showCount: !pill.showCount })
@@ -1840,6 +2232,23 @@ export default function StatusPillsConfigModal({
                                   {pill.showCount ? '✓ ' : ''}
                                   {t('statusPills.showCount')}
                                 </button>
+                                {pill.type === STATUS_GROUP_PILL_TYPE && (
+                                  <button
+                                    onClick={() =>
+                                      updatePill(pill.id, {
+                                        hideWhenEmpty: pill.hideWhenEmpty === false,
+                                      })
+                                    }
+                                    className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                                      pill.hideWhenEmpty !== false
+                                        ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                                        : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                                    }`}
+                                  >
+                                    {pill.hideWhenEmpty !== false ? '✓ ' : ''}
+                                    {getTranslation('statusPills.hideWhenEmpty', 'Hide when empty')}
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>
@@ -1869,17 +2278,17 @@ export default function StatusPillsConfigModal({
           </div>
 
           {/* Footer */}
-          <div className="flex gap-3 border-t border-[var(--glass-border)] p-4">
+          <div className="flex gap-3 border-t border-[var(--glass-border)] bg-[var(--glass-bg)]/30 p-3 md:p-4">
             <button
               onClick={onClose}
-              className="flex-1 rounded-xl border border-[var(--glass-border)] py-3 font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)]"
+              className="flex-1 rounded-2xl border border-[var(--glass-border)] py-3 font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)]"
             >
               {t('statusPills.cancel')}
             </button>
             <button
               onClick={handleSave}
               disabled={hasInvalidPills}
-              className={`flex-1 rounded-xl border py-3 font-bold tracking-widest uppercase shadow-lg transition-colors ${
+              className={`flex-1 rounded-2xl border py-3 font-bold tracking-widest uppercase shadow-lg transition-colors ${
                 hasInvalidPills
                   ? 'cursor-not-allowed border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-muted)] opacity-60'
                   : 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'

@@ -8,6 +8,7 @@ const AddCardContent = lazy(() => import('../../modals/AddCardContent'));
 const EditCardModal = lazy(() => import('../../modals/EditCardModal'));
 const EditPageModal = lazy(() => import('../../modals/EditPageModal'));
 const MediaModal = lazy(() => import('../../modals/MediaModal'));
+const StatusGroupPillModal = lazy(() => import('../../modals/StatusGroupPillModal'));
 const StatusPillsConfigModal = lazy(() => import('../../modals/StatusPillsConfigModal'));
 
 export function ModalManagementSlice({
@@ -32,6 +33,8 @@ export function ModalManagementSlice({
     setActiveMediaSessionSensorIds,
     activeMediaId,
     setActiveMediaId,
+    showStatusGroupModal,
+    setShowStatusGroupModal,
     showAddCardModal,
     setShowAddCardModal,
     showAddPageModal,
@@ -269,6 +272,19 @@ export function ModalManagementSlice({
             t={t}
             formatDuration={formatDuration}
             getServerInfo={getServerInfo}
+          />
+        </ModalSuspense>
+      )}
+
+      {showStatusGroupModal && (
+        <ModalSuspense>
+          <StatusGroupPillModal
+            show={!!showStatusGroupModal}
+            onClose={() => setShowStatusGroupModal(null)}
+            modalState={showStatusGroupModal}
+            entities={entities}
+            callService={callService}
+            t={t}
           />
         </ModalSuspense>
       )}

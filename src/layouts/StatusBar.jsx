@@ -1,7 +1,7 @@
 import { Edit2 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
 import { useHomeAssistant, useModalActions, usePages } from '../contexts';
-import { isSonosMediaEntity } from '../utils';
+import { isSonosMediaEntity, resolveStatusGroupPill, STATUS_GROUP_PILL_TYPE } from '../utils';
 
 /**
  * StatusBar component showing various status indicators
@@ -32,6 +32,7 @@ export default function StatusBar({
     setActiveMediaSessionSensorIds,
     setActiveMediaModal,
     setShowAlarmModal,
+    setShowStatusGroupModal,
     setShowStatusPillsConfig,
   } = useModalActions();
 
@@ -277,6 +278,37 @@ export default function StatusBar({
                           setActiveMediaSessionSensorIds(null);
                           setActiveMediaModal('sonos');
                         }
+                      : undefined
+                  }
+                />
+              );
+            }
+
+            if (pill.type === STATUS_GROUP_PILL_TYPE) {
+              const groupData = resolveStatusGroupPill(pill, entities, t);
+              if (!groupData.shouldRender) return null;
+
+              return (
+                <StatusPill
+                  key={pill.id}
+                  entity={groupData.syntheticEntity}
+                  pill={{
+                    ...pill,
+                    icon: pill.icon || groupData.preset.icon,
+                    iconBgColor: pill.iconBgColor || groupData.preset.iconBgColor,
+                    iconColor: pill.iconColor || groupData.preset.iconColor,
+                  }}
+                  getA={getA}
+                  t={t}
+                  isMobile={isMobile}
+                  badge={pill.showCount && groupData.count > 0 ? groupData.count : undefined}
+                  onClick={
+                    pill.clickable !== false
+                      ? () =>
+                          setShowStatusGroupModal({
+                            pill,
+                            presetId: groupData.preset.id,
+                          })
                       : undefined
                   }
                 />

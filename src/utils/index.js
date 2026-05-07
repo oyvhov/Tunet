@@ -30,4 +30,21 @@ export { matchCarEntities } from './carEntityMatcher';
 export { CHART_STATUS_COLORS, WEATHER_BAND_COLORS, getThresholdColor } from './chartColors';
 export { downsampleTimeSeries } from './sensorHistory';
 export { isMusicAssistantMediaEntity, isSonosMediaEntity } from './mediaEntityClassification';
-export { buildRegistryLookupMap, enrichEntitiesWithRegistryMetadata } from './entityRegistryMetadata';
+export {
+  buildRegistryLookupMap,
+  enrichEntitiesWithRegistryMetadata,
+} from './entityRegistryMetadata';
+export {
+  STATUS_GROUP_PILL_TYPE,
+  STATUS_GROUP_SELECTION_ALL,
+  STATUS_GROUP_SELECTION_INCLUDE,
+  STATUS_GROUP_SELECTION_EXCLUDE,
+  STATUS_GROUP_PRESETS,
+  DEFAULT_STATUS_GROUP_PRESET,
+  getStatusGroupPreset,
+  getStatusGroupPresetText,
+  getStatusGroupSelectionMode,
+  buildStatusGroupPillVisuals,
+  resolveStatusGroupCandidates,
+  resolveStatusGroupPill,
+} from './statusGroupPills';

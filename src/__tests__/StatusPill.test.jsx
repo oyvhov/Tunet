@@ -108,4 +108,26 @@ describe('StatusPill', () => {
     expect(icon?.getAttribute('class') || '').toContain('animate-spin');
     expect(icon?.style.animationDuration).toBe('12s');
   });
+
+  it('renders smart group pills with their synthetic count entity', () => {
+    render(
+      <StatusPill
+        pill={{ ...basePill, type: 'group_status', icon: 'Lightbulb', showCount: true }}
+        entity={{
+          entity_id: 'status_group.lights_on',
+          state: '2',
+          attributes: {
+            friendly_name: 'Lights on',
+            statusPillSublabel: '2',
+            statusPillCount: 2,
+          },
+        }}
+        badge={2}
+        t={(key) => key}
+      />
+    );
+
+    expect(screen.getByText('Lights on')).toBeInTheDocument();
+    expect(screen.getAllByText('2')).toHaveLength(2);
+  });
 });

@@ -1,6 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_PAGES_CONFIG } from '../config/defaults';
 import { MAX_GRID_COLUMNS, MIN_GRID_COLUMNS } from '../hooks/useResponsiveGrid';
+import {
+  DEFAULT_STATUS_GROUP_PRESET,
+  STATUS_GROUP_PILL_TYPE,
+  STATUS_GROUP_SELECTION_ALL,
+} from '../utils/statusGroupPills';
 
 /** @typedef {import('../types/dashboard').PageContextValue} PageContextValue */
 /** @typedef {import('../types/dashboard').PageProviderProps} PageProviderProps */
@@ -86,6 +91,22 @@ function normalizeStatusPillConfig(pill) {
     showSublabel: coercePillBoolean(pill.showSublabel, true),
     showCover: coercePillBoolean(pill.showCover, true),
     showCount: coercePillBoolean(pill.showCount, false),
+    hideWhenEmpty:
+      pill.type === STATUS_GROUP_PILL_TYPE
+        ? coercePillBoolean(pill.hideWhenEmpty, true)
+        : pill.hideWhenEmpty,
+    groupPreset:
+      pill.type === STATUS_GROUP_PILL_TYPE && typeof pill.groupPreset !== 'string'
+        ? DEFAULT_STATUS_GROUP_PRESET
+        : pill.groupPreset,
+    groupSelectionMode:
+      pill.type === STATUS_GROUP_PILL_TYPE && typeof pill.groupSelectionMode !== 'string'
+        ? STATUS_GROUP_SELECTION_ALL
+        : pill.groupSelectionMode,
+    groupEntityIds:
+      pill.type === STATUS_GROUP_PILL_TYPE && !Array.isArray(pill.groupEntityIds)
+        ? []
+        : pill.groupEntityIds,
     conditionEnabled: coerceConditionEnabled(pill.conditionEnabled),
   };
 }
@@ -444,10 +465,17 @@ export const PageProvider = ({ children }) => {
 
   const [headerSettings, setHeaderSettings] = useState(() => {
     const saved = readJSON('tunet_header_settings');
-    return saved || {
-      showTitle: true, showClock: true, showClockOnMobile: true, showDate: true,
-      headerStyle: 'classic', batteryVariant: 'glass', showBatteryNub: true,
-    };
+    return (
+      saved || {
+        showTitle: true,
+        showClock: true,
+        showClockOnMobile: true,
+        showDate: true,
+        headerStyle: 'classic',
+        batteryVariant: 'glass',
+        showBatteryNub: true,
+      }
+    );
   });
 
   const updateHeaderSettings = useCallback((newSettings) => {
@@ -523,90 +551,93 @@ export const PageProvider = ({ children }) => {
   }, []);
 
   /** @type {PageContextValue} */
-  const value = useMemo(() => ({
-    pagesConfig,
-    setPagesConfig,
-    persistConfig,
-    cardSettings,
-    setCardSettings,
-    saveCardSetting,
-    customNames,
-    saveCustomName,
-    customIcons,
-    saveCustomIcon,
-    hiddenCards,
-    toggleCardVisibility,
-    pageSettings,
-    setPageSettings,
-    persistPageSettings,
-    persistCustomNames,
-    persistCustomIcons,
-    persistHiddenCards,
-    savePageSetting,
-    gridColumns,
-    setGridColumns: setGridColumnsPersisted,
-    dynamicGridColumns,
-    setDynamicGridColumns: setDynamicGridColumnsPersisted,
-    headerScale,
-    updateHeaderScale,
-    headerTitle,
-    updateHeaderTitle,
-    headerSettings,
-    updateHeaderSettings,
-    sectionSpacing,
-    updateSectionSpacing,
-    cardsOnlyMode,
-    updateCardsOnlyMode,
-    persistCardSettings,
-    gridGapH,
-    setGridGapH: setGridGapHPersisted,
-    gridGapV,
-    setGridGapV: setGridGapVPersisted,
-    statusPillsConfig,
-    saveStatusPillsConfig,
-    cardBorderRadius,
-    setCardBorderRadius: setCardBorderRadiusPersisted,
-  }), [
-    pagesConfig,
-    persistConfig,
-    cardSettings,
-    saveCardSetting,
-    customNames,
-    saveCustomName,
-    customIcons,
-    saveCustomIcon,
-    hiddenCards,
-    toggleCardVisibility,
-    pageSettings,
-    persistPageSettings,
-    persistCustomNames,
-    persistCustomIcons,
-    persistHiddenCards,
-    savePageSetting,
-    gridColumns,
-    setGridColumnsPersisted,
-    dynamicGridColumns,
-    setDynamicGridColumnsPersisted,
-    headerScale,
-    updateHeaderScale,
-    headerTitle,
-    updateHeaderTitle,
-    headerSettings,
-    updateHeaderSettings,
-    sectionSpacing,
-    updateSectionSpacing,
-    cardsOnlyMode,
-    updateCardsOnlyMode,
-    persistCardSettings,
-    gridGapH,
-    setGridGapHPersisted,
-    gridGapV,
-    setGridGapVPersisted,
-    statusPillsConfig,
-    saveStatusPillsConfig,
-    cardBorderRadius,
-    setCardBorderRadiusPersisted,
-  ]);
+  const value = useMemo(
+    () => ({
+      pagesConfig,
+      setPagesConfig,
+      persistConfig,
+      cardSettings,
+      setCardSettings,
+      saveCardSetting,
+      customNames,
+      saveCustomName,
+      customIcons,
+      saveCustomIcon,
+      hiddenCards,
+      toggleCardVisibility,
+      pageSettings,
+      setPageSettings,
+      persistPageSettings,
+      persistCustomNames,
+      persistCustomIcons,
+      persistHiddenCards,
+      savePageSetting,
+      gridColumns,
+      setGridColumns: setGridColumnsPersisted,
+      dynamicGridColumns,
+      setDynamicGridColumns: setDynamicGridColumnsPersisted,
+      headerScale,
+      updateHeaderScale,
+      headerTitle,
+      updateHeaderTitle,
+      headerSettings,
+      updateHeaderSettings,
+      sectionSpacing,
+      updateSectionSpacing,
+      cardsOnlyMode,
+      updateCardsOnlyMode,
+      persistCardSettings,
+      gridGapH,
+      setGridGapH: setGridGapHPersisted,
+      gridGapV,
+      setGridGapV: setGridGapVPersisted,
+      statusPillsConfig,
+      saveStatusPillsConfig,
+      cardBorderRadius,
+      setCardBorderRadius: setCardBorderRadiusPersisted,
+    }),
+    [
+      pagesConfig,
+      persistConfig,
+      cardSettings,
+      saveCardSetting,
+      customNames,
+      saveCustomName,
+      customIcons,
+      saveCustomIcon,
+      hiddenCards,
+      toggleCardVisibility,
+      pageSettings,
+      persistPageSettings,
+      persistCustomNames,
+      persistCustomIcons,
+      persistHiddenCards,
+      savePageSetting,
+      gridColumns,
+      setGridColumnsPersisted,
+      dynamicGridColumns,
+      setDynamicGridColumnsPersisted,
+      headerScale,
+      updateHeaderScale,
+      headerTitle,
+      updateHeaderTitle,
+      headerSettings,
+      updateHeaderSettings,
+      sectionSpacing,
+      updateSectionSpacing,
+      cardsOnlyMode,
+      updateCardsOnlyMode,
+      persistCardSettings,
+      gridGapH,
+      setGridGapHPersisted,
+      gridGapV,
+      setGridGapVPersisted,
+      statusPillsConfig,
+      saveStatusPillsConfig,
+      cardBorderRadius,
+      setCardBorderRadiusPersisted,
+    ]
+  );
 
   return <PageContext.Provider value={value}>{children}</PageContext.Provider>;
 };

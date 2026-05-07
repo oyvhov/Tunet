@@ -30,6 +30,7 @@ const MODAL_DEFAULTS = {
   activeMediaGroupIds: null,
   activeMediaSessionSensorIds: null,
   activeMediaId: null,
+  showStatusGroupModal: null,
   showAddCardModal: false,
   showConfigModal: false,
   showAddPageModal: false,
@@ -64,6 +65,7 @@ const OPEN_CHECK_KEYS = [
   'showCameraModal',
   'showAlarmModal',
   'showAlarmActionModal',
+  'showStatusGroupModal',
 ];
 
 function buildModalActions(setModalValue, closeAllModals, hasOpenModal) {

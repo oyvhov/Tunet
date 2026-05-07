@@ -5,52 +5,76 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Added smart Status Pills for lights that are on, open doors/windows, and open covers, including matching popups with quick actions.
+- Added per-pill entity scoping so smart pills can use all matches, selected entities, or all except selected.
+
+### Changed
+
+- Redesigned the Status Pills config modal with a cleaner split layout, flatter editor, clearer add menu, and preview-friendly controls.
+- Refined the smart pill popup to better match the rest of the dashboard modals.
+
+<p>
+  <img src="public/release-assets/Pills.png" alt="Redesigned Status Pills and smart pill preview" width="430" />
+</p>
+
 ## [1.18.1] — 2026-05-07
 
 ### Added
+
 - Added a small project roadmap and closed the missing-roadmap follow-up (#151).
 
 ### Changed
+
 - Reduced idle dashboard background work so the default theme no longer runs continuous heavy motion.
 - Throttled animated visual effects and paused them more aggressively on hidden or low-power displays.
 
 ### Fixed
+
 - Fixed the Docker healthcheck probe inside the container by using `127.0.0.1`.
 - Avoided extra theme and brightness cleanup work on unrelated Home Assistant entity updates.
 
 ### Security
-- Cleared the `ip-address` Dependabot advisory through the `express-rate-limit` update.
 
+- Cleared the `ip-address` Dependabot advisory through the `express-rate-limit` update.
 
 ## [1.18.0] — 2026-04-30
 
 ### Added
+
 - Added a Home Assistant Lock card with lock, unlock, and open/unlatch controls for `lock.*` entities (#148).
 
 ### Changed
+
 - Registered Lock cards across add-card, edit, rendering, resize, visibility, and popup flows.
 
 ### Fixed
+
 - Matched Home Assistant lock states including `open` and `opening`, and pass lock codes when a lock advertises `code_format`.
 - Retried settings-sync revision conflicts when the local device has unsynced changes, instead of replacing them with stale server data.
-
 
 ## [1.17.0] — 2026-04-30
 
 ### Added
+
 - Added Cards-only dashboard mode for tablet/kiosk setups, hiding the header, status pills, page navigation, Settings, Add, and Edit controls while keeping dashboard cards visible (#149).
 - To enable it, open Settings, go to Header, expand Visibility, and turn on **Show only cards**. To leave cards-only mode, press `Esc` on a keyboard or long-press an empty area of the dashboard.
 
 ### Changed
+
 - Split specialized dashboard pages into lazy-loaded chunks so the main app bundle stays under the CI size gate.
 
 ### Fixed
-- Kept critical recovery UI available in cards-only mode, including connection/auth warning surfaces, so users are not locked out of setup or troubleshooting.
 
+- Kept critical recovery UI available in cards-only mode, including connection/auth warning surfaces, so users are not locked out of setup or troubleshooting.
 
 ## [1.16.2] — 2026-04-24
 
 ### Added
+
 - Small release preview for the refreshed Status Pills feature.
 - Adds new animation presets for Status Pills.
 
@@ -59,10 +83,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 </p>
 
 ### Changed
+
 - Refined Status Pills with animation presets, expanded color choices, clearer icon-only naming, and more predictable manual heading behavior.
 - Reduced unnecessary profile/settings bootstrap work when profile prefetch is intentionally disabled.
 
 ### Fixed
+
 - Kept Status Pills heading and subtitle visibility settings stable across reopen and reload, and committed pending condition values when saving.
 - Prevented newly added visible sensor and alarm pills from disappearing after save by requiring an entity selection before the pill can be saved.
 - Improved Home Assistant backend auth logging and Docker fallback URL handling for easier connection troubleshooting.
@@ -70,79 +96,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.16.1] — 2026-04-20
 
 ### Added
+
 - No user-facing additions in this patch release.
 
 ### Changed
+
 - Added PR reference for French locale support in release notes (#142).
 - Expanded i18n parity coverage to include French keys and placeholders.
 
 ### Fixed
+
 - Fixed a runtime locale mapping gap where selecting `fr` still fell back to English.
 - Added missing French language options in Settings and Theme language dropdowns.
-
 
 ## [1.16.0] — 2026-04-20
 
 ### Added
+
 - Added a new `lawn_mower` card type with small and large layouts, plus start/pause/dock controls.
 - Added a dedicated mower popup with status, battery, zone, and quick actions.
 - Added French language support (`fr`) to the dashboard locale bundle (#142).
 
 ### Changed
+
 - Expanded card/add-flow and rendering registry support for mower entities across card creation, popups, and orchestration wiring.
 - Improved Media/Sonos page UX with clearer empty states, better styling, and stronger action/accessibility labels.
 
 ### Fixed
+
 - Restored profile/settings availability in more Docker environments by adding `host.containers.internal` as a backend Home Assistant fallback when localhost mapping is used.
 - Enabled small/large resize controls for mower cards in edit mode.
-
 
 ## [1.15.4] — 2026-04-14
 
 ### Added
+
 - Sensor card support for Home Assistant `select.*` and `input_select.*` entities, including option changes directly from the card or popup (#135).
 
 ### Changed
+
 - Styled the sensor select dropdown to match the dashboard's glass dropdown controls across card and modal views.
 
 ### Fixed
+
 - Kept long select-card names and dropdown controls inside the card bounds on compact layouts.
 - Prevented repeated history CORS noise and unnecessary profile/settings retry requests when interacting with sensor select popups.
-
 
 ## [1.15.3] — 2026-04-11
 
 ### Added
+
 - No user-facing additions in this patch release.
 
 ### Changed
+
 - Updated Weather card icon CDN source to the maintained Meteocons repository path.
 
 ### Fixed
-- Restored missing Weather card condition icons caused by a broken upstream `@master` CDN reference (#134).
 
+- Restored missing Weather card condition icons caused by a broken upstream `@master` CDN reference (#134).
 
 ## [1.15.2] — 2026-04-05
 
 ### Added
+
 - New toggle in Header settings to show page pill labels on mobile (#112).
 
 ### Changed
+
 - Edit button moved into the settings dropdown on mobile for a cleaner toolbar (#112).
 - Sensor card large variant on mobile: name now renders on its own full-width row below the value, eliminating truncation (#112).
 - Small sensor card gauge repositioned for better visual balance (#112).
 - Haptic feedback now fires on pointer-up and is suppressed when the finger has scrolled, preventing unwanted vibration during scroll.
 
-
 ## [1.15.1] — 2026-04-05
 
 ### Fixed
-- Downgraded eslint to v9 to fix add-on build failures caused by a peer dependency conflict (#128).
 
+- Downgraded eslint to v9 to fix add-on build failures caused by a peer dependency conflict (#128).
 
 ## [1.15.0] — 2026-04-05
 
 ### Added
+
 - Battery page for monitoring all battery-powered device levels, low battery warnings, and offline tracking.
 - Lights page with brightness and color controls for all light entities.
 - Room Explorer page with enhanced controls and collapsible sections.
@@ -151,6 +187,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - PWA manifest and service worker shell.
 
 ### Changed
+
 - Restyled page navigation pills and Add Page dropdown to match the Settings dropdown design.
 - Restyled Add Page modal type tabs with icons matching the Add Card type pill design.
 - Prefetch likely modals and cache build assets for faster interactions.
@@ -158,152 +195,165 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Bumped dependency versions (picomatch, path-to-regexp, express-rate-limit, actions/checkout, action-gh-release).
 
 ### Fixed
+
 - Alarm card crash in production and CSP image policy.
 
 ### Security
+
 - Hashed access tokens in auth validation cache.
 - Added CSP headers and reconnection UX with entity caching.
 - Sanitized inputs, removed dead code, and hardened server routes.
 
-
 ## [1.14.9] — 2026-03-18
 
 ### Fixed
-- Kept the Status Pills editor open while creating a new pill, so the right-side form no longer disappears during parent rerenders.
 
+- Kept the Status Pills editor open while creating a new pill, so the right-side form no longer disappears during parent rerenders.
 
 ## [1.14.8] — 2026-03-16
 
 ### Changed
+
 - Refined mobile sensor card layouts with denser spacing for toggle states, numeric headers, and compact control rows.
 
 ### Fixed
-- Kept mobile sensor card titles, toggle controls, and gauge/donut/bar visuals inside the card bounds instead of overlapping or spilling out on narrow screens.
 
+- Kept mobile sensor card titles, toggle controls, and gauge/donut/bar visuals inside the card bounds instead of overlapping or spilling out on narrow screens.
 
 ## [1.14.7] — 2026-03-10
 
 ### Added
+
 ### Fixed
+
 - Preserved working OAuth API calls when proactive token refresh or auth-session bootstrap fails temporarily, so profile and settings requests fall back to the current token instead of surfacing a false backend outage.
 - Prioritized genuine Home Assistant invalid-auth failures over later reachability errors when multiple backend validation URLs are tried, so expired tokens still return `401` and temporary network issues continue to return `503`.
-
 
 ## [1.14.6] — 2026-03-10
 
 ### Changed
+
 - Improved the Updates panel layout so long update names wrap cleanly without pushing actions outside the card.
 
 ### Fixed
+
 - Restored a clean typecheck pass by typing the API unauthorized error shape used by backend-authenticated requests.
 
 ### Security
-- Restricted Supervisor ingress header trust to explicit add-on mode so standalone and generic proxy deployments no longer accept those headers by default.
 
+- Restricted Supervisor ingress header trust to explicit add-on mode so standalone and generic proxy deployments no longer accept those headers by default.
 
 ## [1.14.5] — 2026-03-10
 
 ### Fixed
-- Report clear error and prevent redirect loops when using an HTTP Home Assistant URL from an HTTPS dashboard (#108).
 
+- Report clear error and prevent redirect loops when using an HTTP Home Assistant URL from an HTTPS dashboard (#108).
 
 ## [1.14.4] — 2026-03-09
 
 ### Fixed
-- Prevent spurious logouts when the backend fails to connect to the Home Assistant URL (#106).
 
+- Prevent spurious logouts when the backend fails to connect to the Home Assistant URL (#106).
 
 ## [1.14.2] — 2026-03-09
 
 ### Changed
+
 - Refreshed Home Assistant OAuth access tokens proactively for protected API calls and restored API auth from stored browser sessions during app bootstrap.
 
 ### Fixed
+
 - Reduced repeated Home Assistant invalid-auth websocket attempts by caching rejected backend auth validations for stale tokens.
 - Prevented long-running dashboards from hitting expired-session failures when settings and profile requests outlive the initial OAuth token.
-
 
 ## [1.14.1] — 2026-03-09
 
 ### Changed
+
 - Restored persistent OAuth browser sessions so Home Assistant login survives closing and reopening the browser.
 
 ### Fixed
-- Preserved same-browser OAuth reuse across tabs while keeping the active session cache in sync after new-tab hydration.
 
+- Preserved same-browser OAuth reuse across tabs while keeping the active session cache in sync after new-tab hydration.
 
 ## [1.14.0] — 2026-03-09
 
 ### Changed
+
 - Added internal and fallback Home Assistant URL handling for backend auth validation so protected API calls keep working in Docker and add-on deployments.
 - Switched settings sync writes to revision-checked compare-and-swap updates and added immediate reconciliation after conflicts to prevent stale overwrites across tabs and devices.
 - Stabilized Playwright auth/bootstrap setup and reduced flaky skips across OAuth, drag-and-drop, and modal coverage.
 
 ### Fixed
+
 - Removed rate limiting from production asset delivery so lazy-loaded chunks no longer fail with `429` responses.
 - Fixed Status Pills editor selection so clicking an already selected pill keeps the editor open.
 
 ### Security
+
 - Hardened server-side Profiles and Settings authorization by validating Home Assistant identity on the backend instead of trusting a client-supplied user id.
 - Limited OAuth token persistence to session storage and migrated old local cache entries into session scope to reduce long-lived credential exposure.
 
 ## [1.13.0] — 2026-03-05
 
 ### Added
+
 - Added comprehensive Playwright E2E coverage for critical flows (initially 33 tests across OAuth, drag-and-drop, and modal interactions).
 - Added E2E tooling and docs (`playwright.config.js`, `e2e/`, `E2E_TESTS_SETUP.md`) plus run scripts (`test:e2e`, `test:e2e:ui`, `test:e2e:headed`).
 
 ### Changed
+
 - Wrapped all 21 dashboard card components with `React.memo()` to reduce unnecessary re-renders.
 - Improved modal accessibility behavior by tightening focus handling in `AccessibleModalShell` (focus restore and open-state handling).
 - Enhanced Person card UI with optional zone badge icon support and new editor toggle/translations.
 - Added single-page UX option to hide the page pill outside edit mode while keeping it visible during edit mode.
 
-
 ## [1.12.3] — 2026-03-03
 
 ### Changed
+
 - Improved Car/auto card popup layout by reducing map height to make room for dense sensor setups (#84).
 - Fixed missing car charge-control actions in the popup when configured from Edit Card, including broader action-domain support (#84).
-
 
 ## [1.12.2] — 2026-03-03
 
 ### Changed
+
 - Improved Climate card fan-speed display by normalizing fan-mode values across integrations, so non-auto modes no longer fall back to "AUTO" (#102).
 - Improved Simplified Chinese translations for alarm/climate flows and corrected several machine-translated labels (#101).
 
 ## [1.12.1] — 2026-03-03
 
 ### Changed
+
 - Improved Vacuum popup compatibility for mixed integrations with broader state-label handling and capability-aware controls.
 - Added optional vacuum sensor-mapping labels/translations across supported locales.
 - Removed the temporary Vacuum image-view toggle and kept the popup focused on controls and stats.
 
-
 ## [1.12.0] — 2026-03-02
 
 ### Changed
+
 - **Breaking:** Split Media and SONOS into separate page types and separate card types.
 - Added dedicated SONOS page creation flow and SONOS group card creation flow.
 - Updated dashboard routing and card rendering so Media and SONOS are no longer treated as a single combined mode.
 - Added Large Screen Media Modal improvements for a better desktop playback layout.
 - Refined Room Modal visual hierarchy with unified column surfaces, improved media player row styling, and de-boxed Temp Overview rows.
 
-
 ## [Unreleased]
 
 ### Changed
+
 - Mobile friendly cards - First batch: Alarm, Android TV, Car, Climate, Cover, Cost, Fan, Light, Media, Nordpool, Room, and Vacuum cards.
 
 ## [1.11.2] — 2026-03-01
 
 ### Changed
+
 - Added Room Card door/window status support, including editor domain filter, main-entity selection, and per-card visibility toggle.
 - Improved Room Card pill overflow behavior with progressive label collapse (status first, then all icon pills) to avoid third-line wrapping.
 - Refined icon-only Cover/Door pill sizing so height and compact-mode transitions match the rest of the pill row.
 - Fixed duplicate `vacuum.lastCleaned` translation keys in multiple locales (`en`, `nb`, `nn`, `sv`, `de`).
-
 
 ## [1.11.1] — 2026-03-01
 
