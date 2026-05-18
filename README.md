@@ -3,7 +3,6 @@
   <p>A modern, responsive, and highly customizable React dashboard for Home Assistant.</p>
   
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-  [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Foyvhov%2Ftunet)
 </div>
 
 <br />
@@ -53,10 +52,10 @@ Open `http://localhost:3002` and connect your Home Assistant instance.
 
 ## 📖 Documentation
 
-- [Setup & Troubleshooting](SETUP.md)
-- [Card Options & Previews](CARD_OPTIONS.md)
+- [Setup & Troubleshooting](docs/SETUP.md)
+- [Card Options & Previews](docs/CARD_OPTIONS.md)
 - [Theme Variables](src/docs/CSS_VARIABLES.md)
-- [Roadmap](ROADMAP.md)
+- [Roadmap](docs/ROADMAP.md)
 
 ## 🛠️ Development
 
