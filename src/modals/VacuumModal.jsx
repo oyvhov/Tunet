@@ -1766,10 +1766,10 @@ export default function VacuumModal({
                 style={{ cursor: mapScale > 1.05 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
               >
                 {/* Pulsing Live Badge */}
-                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-bold tracking-widest text-emerald-400 uppercase italic shadow-md backdrop-blur-md">
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase italic shadow-md backdrop-blur-md">
                   <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--status-success-fg)] opacity-75"></span>
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--status-success-fg)]"></span>
                   </span>
                   {t('vacuum.liveMap') || 'Live Map'}
                 </div>
@@ -1910,7 +1910,7 @@ export default function VacuumModal({
         label: t('vacuum.statsTotalArea') || 'Total area',
         value: formatRawValueWithUnit(totalCleanArea, totalCleanAreaUnit),
         icon: Maximize2,
-        colorClass: 'text-emerald-400',
+        colorClass: 'text-[var(--status-success-fg)]',
       },
       {
         key: 'lastCleaned',
@@ -2031,7 +2031,7 @@ export default function VacuumModal({
                         }}
                         className={`rounded-lg border-0 px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-all duration-200 active:scale-95 ${
                           isConfirming
-                            ? 'animate-pulse border border-red-500/20 bg-red-500/20 font-extrabold text-red-400 hover:bg-red-500/30'
+                            ? 'animate-pulse border border-[var(--status-error-border)] bg-[var(--status-error-bg)] font-extrabold text-[var(--status-error-fg)] hover:opacity-90'
                             : 'bg-white/5 text-[var(--text-secondary)] hover:bg-white/10 hover:text-[var(--text-primary)]'
                         } ${!buttonId ? 'cursor-not-allowed opacity-20' : ''}`}
                       >
