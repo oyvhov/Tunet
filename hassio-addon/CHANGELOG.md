@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.20.2
+
+### Changed
+- Add release notes.
+
 ## 1.20.1
 
 ### Changed
