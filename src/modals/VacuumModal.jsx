@@ -291,14 +291,24 @@ export default function VacuumModal({
   const [zoomPanStart, setZoomPanStart] = useState({ x: 0, y: 0 });
   const [zoomPanOffset, setZoomPanOffset] = useState({ x: 0, y: 0 });
 
-  // Reset zoom & pan when modal closes
+  // Reset pan state (isPanning) when modal closes
   useEffect(() => {
     if (!show) {
-      setMapScale(1.1);
-      setMapPan({ x: 0, y: 0 });
       setIsPanning(false);
     }
   }, [show]);
+
+  // Persist zoom & pan changes to localStorage with a debounce to avoid excessive writes
+  useEffect(() => {
+    if (!show || !vacuumId) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(`tunet_vacuum_map_scale_${vacuumId}`, String(mapScale));
+        localStorage.setItem(`tunet_vacuum_map_pan_${vacuumId}`, JSON.stringify(mapPan));
+      } catch {}
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [mapScale, mapPan, vacuumId, show]);
 
   // Reset fullscreen zoom & pan when fullscreen overlay closes
   useEffect(() => {
@@ -496,7 +506,7 @@ export default function VacuumModal({
       if (!show || !vacuumId || !conn) {
         if (!cancelled) {
           setMappedAreas([]);
-          setIsAreasLoading(false);
+          setIsAreasLoading(true);
         }
         return;
       }
@@ -963,43 +973,60 @@ export default function VacuumModal({
       if (domain !== 'image' && domain !== 'camera') return false;
       const lowerEid = eid.toLowerCase();
       const friendly = (entities[eid]?.attributes?.friendly_name || '').toLowerCase();
-      const isMap = lowerEid.includes('map') || friendly.includes('map');
 
       const isRelated =
         vacuumName &&
-        (vacuumNameTokens.some((token) => lowerEid.includes(token)) ||
-          lowerEid.includes(vacuumName.toLowerCase()));
-      return isMap && isRelated;
+        (vacuumNameTokens.some((token) => lowerEid.includes(token) || friendly.includes(token)) ||
+          lowerEid.includes(vacuumName.toLowerCase()) ||
+          friendly.includes(vacuumName.toLowerCase()) ||
+          (vacuumFriendlyName &&
+            vacuumFriendlyName
+              .split(/[_\-\s]+/)
+              .some((token) => token.length > 2 && (lowerEid.includes(token) || friendly.includes(token)))));
+
+      // If it is related to the vacuum, we consider it a map entity since cameras/images on a vacuum are always maps
+      return isRelated;
     });
 
     if (related.length > 0) return related;
 
-    // Fallback: any map entity in HA
+    // Fallback: any map/kart entity in HA
     return Object.keys(entities).filter((eid) => {
       const domain = eid.split('.')[0];
       if (domain !== 'image' && domain !== 'camera') return false;
       const lowerEid = eid.toLowerCase();
       const friendly = (entities[eid]?.attributes?.friendly_name || '').toLowerCase();
-      return lowerEid.includes('map') || friendly.includes('map');
+      return (
+        lowerEid.includes('map') ||
+        friendly.includes('map') ||
+        lowerEid.includes('kart') ||
+        friendly.includes('kart')
+      );
     });
-  }, [entities, vacuumName, vacuumNameTokens]);
+  }, [entities, vacuumName, vacuumFriendlyName, vacuumNameTokens]);
 
   // --- Live Map auto-detection ---
   const mapImageEntityId = useMemo(() => {
     if (settings?.mapImageEntityId) return settings.mapImageEntityId;
     if (!entities || !vacuumName) return null;
     return Object.keys(entities).find((eid) => {
-      if (!eid.startsWith('image.')) return false;
+      if (!eid.startsWith('image.') && !eid.startsWith('camera.')) return false;
       const lowerEid = eid.toLowerCase();
+      const friendly = (entities[eid]?.attributes?.friendly_name || '').toLowerCase();
+      
       const isRelated =
         vacuumNameTokens.length === 0 ||
-        vacuumNameTokens.some((token) => lowerEid.includes(token)) ||
-        lowerEid.includes(vacuumName.toLowerCase());
-      if (!isRelated) return false;
-      const friendly = (entities[eid]?.attributes?.friendly_name || '').toLowerCase();
-      return lowerEid.includes('map') || friendly.includes('map');
+        vacuumNameTokens.some((token) => lowerEid.includes(token) || friendly.includes(token)) ||
+        lowerEid.includes(vacuumName.toLowerCase()) ||
+        friendly.includes(vacuumName.toLowerCase()) ||
+        (vacuumFriendlyName &&
+          vacuumFriendlyName
+            .split(/[_\-\s]+/)
+            .some((token) => token.length > 2 && (lowerEid.includes(token) || friendly.includes(token))));
+
+      return isRelated;
     });
-  }, [settings?.mapImageEntityId, entities, vacuumName, vacuumNameTokens]);
+  }, [settings?.mapImageEntityId, entities, vacuumName, vacuumFriendlyName, vacuumNameTokens]);
 
   // Selected Map Entity Id with persistence
   const [selectedMapEntityId, setSelectedMapEntityId] = useState(() => {
@@ -1010,12 +1037,70 @@ export default function VacuumModal({
     return null;
   });
 
+  // Sync selected map entity ID and zoom/pan when vacuum changes or modal opens
+  useEffect(() => {
+    if (show && vacuumId) {
+      try {
+        const savedMap = localStorage.getItem(`tunet_vacuum_selected_map_${vacuumId}`);
+        setSelectedMapEntityId(savedMap || null);
+      } catch {
+        setSelectedMapEntityId(null);
+      }
+
+      try {
+        const savedScale = localStorage.getItem(`tunet_vacuum_map_scale_${vacuumId}`);
+        setMapScale(savedScale ? parseFloat(savedScale) : 1.1);
+
+        const savedPan = localStorage.getItem(`tunet_vacuum_map_pan_${vacuumId}`);
+        setMapPan(savedPan ? JSON.parse(savedPan) : { x: 0, y: 0 });
+      } catch {
+        setMapScale(1.1);
+        setMapPan({ x: 0, y: 0 });
+      }
+    }
+  }, [show, vacuumId]);
+
   const activeMapEntityId = useMemo(() => {
     if (selectedMapEntityId && entities?.[selectedMapEntityId]) {
       return selectedMapEntityId;
     }
     return mapImageEntityId || availableMapEntities[0] || null;
   }, [selectedMapEntityId, mapImageEntityId, availableMapEntities, entities]);
+
+  const mapEntitiesNamesMap = useMemo(() => {
+    const res = {};
+    const nameRegex = vacuumName ? new RegExp(vacuumName, 'gi') : null;
+    const friendlyNameRegex = vacuumFriendlyName ? new RegExp(vacuumFriendlyName, 'gi') : null;
+
+    for (const eid of availableMapEntities) {
+      const friendlyName = entities?.[eid]?.attributes?.friendly_name;
+      const fallbackName = eid.split('.')[1] || eid;
+      let cleanName = friendlyName || fallbackName;
+
+      if (nameRegex) cleanName = cleanName.replace(nameRegex, '');
+      if (friendlyNameRegex) cleanName = cleanName.replace(friendlyNameRegex, '');
+      
+      if (Array.isArray(vacuumNameTokens)) {
+        for (const token of vacuumNameTokens) {
+          if (token && token.length > 2) {
+            cleanName = cleanName.replace(new RegExp(token, 'gi'), '');
+          }
+        }
+      }
+
+      cleanName = cleanName
+        .replace(/map/i, '')
+        .replace(/kart/i, '')
+        .replace(/[_\-\s]+/g, ' ')
+        .trim();
+
+      if (cleanName) {
+        cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+      }
+      res[eid] = cleanName || 'Map';
+    }
+    return res;
+  }, [availableMapEntities, entities, vacuumName, vacuumFriendlyName, vacuumNameTokens]);
 
   const mapUrl = useMemo(() => {
     if (
@@ -1037,7 +1122,7 @@ export default function VacuumModal({
   // Determine Tab layout eligibility
   const hasMap = !!activeMapEntityId && showMapToggle;
   const hasAreas = mappedAreas.length > 0 || roomSelectOptions.length > 0;
-  const showTabbedLayout = hasMap || hasAreas;
+  const showTabbedLayout = hasMap || hasAreas || isAreasLoading;
 
   // Reset tab to controls if layout is closed/opened
   useEffect(() => {
@@ -1045,6 +1130,7 @@ export default function VacuumModal({
       setActiveTab('controls');
       setSelectedAreaIds([]);
       setResetConfirmKey(null);
+      setIsAreasLoading(true);
     } else {
       setSelectedAreaIds([]);
     }
@@ -1551,13 +1637,13 @@ export default function VacuumModal({
     const showRightColumn = showRightImage || !showTabbedLayout;
     return (
       <div
-        className={`grid grid-cols-1 items-start gap-12 font-sans ${showRightColumn ? 'lg:grid-cols-5' : 'lg:grid-cols-1'}`}
+        className={`grid grid-cols-1 items-stretch gap-12 font-sans ${showRightColumn ? 'lg:grid-cols-5' : 'lg:grid-cols-1'}`}
       >
         {/* Left Column - Main Controls & Status (Span 3) */}
         <div
-          className={`space-y-6 ${showRightColumn ? 'lg:col-span-3' : 'mx-auto w-full max-w-3xl'}`}
+          className={`flex flex-col space-y-6 ${showRightColumn ? 'lg:col-span-3 h-full' : 'mx-auto w-full max-w-3xl'}`}
         >
-          <div className="popup-surface flex flex-col items-center justify-stretch gap-6 rounded-3xl p-6 sm:p-8">
+          <div className="popup-surface flex flex-1 flex-col items-center justify-stretch gap-6 rounded-3xl p-6 sm:p-8 h-full">
             {/* Primary Actions */}
             <div className="flex w-full gap-4">
               <button
@@ -1751,134 +1837,120 @@ export default function VacuumModal({
 
         {/* Right Column - Map & History if simple layout (Span 2) */}
         {showRightColumn && (
-          <div className="flex flex-col justify-start space-y-6 py-2 font-sans lg:col-span-2">
+          <div className="flex flex-col justify-start space-y-4 py-2 font-sans lg:col-span-2 h-full">
             {/* Live Map Display in controls column */}
             {showRightImage && finalMapUrl && (
-              <div
-                className="popup-surface relative aspect-square w-full overflow-hidden rounded-3xl p-2 shadow-2xl select-none"
-                onMouseDown={handleMapMouseDown}
-                onMouseMove={handleMapMouseMove}
-                onMouseUp={handleMapMouseUpOrLeave}
-                onMouseLeave={handleMapMouseUpOrLeave}
-                onTouchStart={handleMapTouchStart}
-                onTouchMove={handleMapTouchMove}
-                onTouchEnd={handleMapTouchEnd}
-                style={{ cursor: mapScale > 1.05 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
-              >
-                {/* Pulsing Live Badge */}
-                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase italic shadow-md backdrop-blur-md">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--status-success-fg)] opacity-75"></span>
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--status-success-fg)]"></span>
-                  </span>
-                  {t('vacuum.liveMap') || 'Live Map'}
+              <>
+                {/* Standalone Map Selector */}
+                {availableMapEntities.length >= 1 && (
+                  <ModernDropdown
+                    labelHidden={true}
+                    icon={MapPin}
+                    options={availableMapEntities}
+                    current={activeMapEntityId}
+                    onChange={(val) => {
+                      setSelectedMapEntityId(val);
+                      try {
+                        localStorage.setItem(`tunet_vacuum_selected_map_${vacuumId}`, val);
+                      } catch {}
+                    }}
+                    map={mapEntitiesNamesMap}
+                    placeholder={t('vacuum.selectMap') || 'Velg kart'}
+                    menuPortal={true}
+                    menuClassName="!z-[100000]"
+                  />
+                )}
+
+                <div
+                  className="popup-surface relative flex-1 min-h-[280px] w-full overflow-hidden rounded-3xl p-2 shadow-2xl select-none"
+                  onMouseDown={handleMapMouseDown}
+                  onMouseMove={handleMapMouseMove}
+                  onMouseUp={handleMapMouseUpOrLeave}
+                  onMouseLeave={handleMapMouseUpOrLeave}
+                  onTouchStart={handleMapTouchStart}
+                  onTouchMove={handleMapTouchMove}
+                  onTouchEnd={handleMapTouchEnd}
+                  style={{ cursor: mapScale > 1.05 ? (isPanning ? 'grabbing' : 'grab') : 'default' }}
+                >
+                  {/* Pulsing Live Badge */}
+                  <div className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase italic shadow-md backdrop-blur-md">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--status-success-fg)] opacity-75"></span>
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--status-success-fg)]"></span>
+                    </span>
+                    {t('vacuum.liveMap') || 'Live Map'}
+                  </div>
+
+                  {/* Map Button Toolbar */}
+                  <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRefreshKey((prev) => prev + 1);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition-all hover:scale-105 hover:bg-black/80"
+                      title={t('vacuum.reloadMap') || 'Reload map'}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMapZoomed(true);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition-all hover:scale-105 hover:bg-black/80"
+                      title="Maximize Map"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <img
+                    src={finalMapUrl}
+                    alt="Live Map"
+                    onDragStart={(e) => e.preventDefault()}
+                    className="pointer-events-none h-full w-full rounded-2xl object-contain transition-transform duration-200 select-none"
+                    style={{
+                      transform: `translate(${mapPan.x}px, ${mapPan.y}px) scale(${mapScale})`,
+                      filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.5))',
+                    }}
+                  />
+
+                  {/* Floating Map Zoom Toolbar */}
+                  <div className="absolute right-4 bottom-4 z-10 flex items-center gap-1 rounded-full border border-white/10 bg-black/60 p-1 shadow-md backdrop-blur-md">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        zoomInMap();
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-all hover:scale-105 hover:bg-white/10 active:scale-95"
+                      title={t('vacuum.zoomIn') || 'Zoom inn'}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        zoomOutMap();
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-all hover:scale-105 hover:bg-white/10 active:scale-95"
+                      title={t('vacuum.zoomOut') || 'Zoom ut'}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        resetMapZoom();
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-all hover:scale-105 hover:bg-white/10 active:scale-95"
+                      title={t('vacuum.resetZoom') || 'Resett zoom'}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-
-                {/* Map Button Toolbar */}
-                <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-                  {availableMapEntities.length > 1 && (
-                    <div className="relative">
-                      <select
-                        value={activeMapEntityId || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSelectedMapEntityId(val);
-                          try {
-                            localStorage.setItem(`tunet_vacuum_selected_map_${vacuumId}`, val);
-                          } catch {}
-                        }}
-                        className="h-8 cursor-pointer appearance-none rounded-full border border-white/10 bg-black/60 px-3 pr-8 text-[10px] font-bold tracking-widest text-white uppercase transition-all outline-none hover:scale-105 hover:bg-black/80"
-                        style={{
-                          backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-                          backgroundRepeat: 'no-repeat',
-                          backgroundPosition: 'right 8px center',
-                          backgroundSize: '10px',
-                        }}
-                      >
-                        {availableMapEntities.map((eid) => {
-                          const name =
-                            entities[eid]?.attributes?.friendly_name || eid.split('.')[1] || eid;
-                          return (
-                            <option
-                              key={eid}
-                              value={eid}
-                              className="bg-zinc-950 font-sans text-xs text-white"
-                            >
-                              {name.replace(/map/i, '').trim() || 'Map'}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRefreshKey((prev) => prev + 1);
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition-all hover:scale-105 hover:bg-black/80"
-                    title={t('vacuum.reloadMap') || 'Reload map'}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMapZoomed(true);
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition-all hover:scale-105 hover:bg-black/80"
-                    title="Maximize Map"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <img
-                  src={finalMapUrl}
-                  alt="Live Map"
-                  onDragStart={(e) => e.preventDefault()}
-                  className="pointer-events-none h-full w-full rounded-2xl object-contain transition-transform duration-200 select-none"
-                  style={{
-                    transform: `translate(${mapPan.x}px, ${mapPan.y}px) scale(${mapScale})`,
-                    filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.5))',
-                  }}
-                />
-
-                {/* Floating Map Zoom Toolbar */}
-                <div className="absolute right-4 bottom-4 z-10 flex items-center gap-1 rounded-full border border-white/10 bg-black/60 p-1 shadow-md backdrop-blur-md">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      zoomInMap();
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-all hover:scale-105 hover:bg-white/10 active:scale-95"
-                    title={t('vacuum.zoomIn') || 'Zoom inn'}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      zoomOutMap();
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-all hover:scale-105 hover:bg-white/10 active:scale-95"
-                    title={t('vacuum.zoomOut') || 'Zoom ut'}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      resetMapZoom();
-                    }}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-all hover:scale-105 hover:bg-white/10 active:scale-95"
-                    title={t('vacuum.resetZoom') || 'Resett zoom'}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
+              </>
             )}
 
             {/* If simple layout, show history stats directly on right pane */}
@@ -1934,6 +2006,201 @@ export default function VacuumModal({
         colorClass: 'text-teal-400',
       },
     ];
+
+    if (showTabbedLayout) {
+      const hasConsumables = consumables.length > 0;
+      return (
+        <div className={`animate-in fade-in font-sans not-italic duration-300 ${hasConsumables ? 'grid grid-cols-1 lg:grid-cols-5 gap-8' : ''}`}>
+          {/* Left Column: Stats & Diagnostics */}
+          <div className={`space-y-6 ${hasConsumables ? 'lg:col-span-3' : 'w-full'}`}>
+            {/* Statistics Grid */}
+            <div>
+              <p
+                className="mb-4 ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {t('vacuum.statsHistory') || 'Historikk'}
+              </p>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4 p-1 sm:grid-cols-3">
+                {stats.map(({ key, label, value }) => (
+                  <div
+                    key={key}
+                    className="flex min-w-0 flex-col transition-all duration-300 hover:translate-y-[-2px]"
+                  >
+                    <p className="mb-1 text-[10px] leading-tight font-bold tracking-[0.15em] text-[var(--text-muted)] uppercase">
+                      {label}
+                    </p>
+                    <p className="text-xl leading-none font-extralight tracking-tight text-[var(--text-primary)] sm:text-2xl">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Diagnostics & Advanced Telemetry */}
+            {(diagnostics.length > 0 || advancedSensors.length > 0) && (
+              <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
+                {diagnostics.length > 0 && (
+                  <div className="space-y-3">
+                    <p
+                      className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {t('vacuum.statsDiagnostics') || 'Diagnostikk'}
+                    </p>
+                    <div className="space-y-4 rounded-2xl border border-white/[0.03] bg-[var(--glass-bg)] p-5 shadow-sm">
+                      <div className="flex items-center gap-2.5 border-b border-white/5 pb-2">
+                        <Activity className="h-4 w-4 text-[var(--accent-color)]" />
+                        <span className="text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase">
+                          {t('vacuum.systemHealth') || 'Systemstatus'}
+                        </span>
+                      </div>
+                      <div className="divide-y divide-white/5">
+                        {diagnostics.map(({ key, label, state, type }) => {
+                          const color = getDiagnosticColor(state, type);
+                          const formattedState = formatDiagnosticState(state, type, t);
+
+                          const DiagIcon = (() => {
+                            if (key.includes('Water') || key.toLowerCase().includes('water'))
+                              return Droplets;
+                            if (key.includes('mop') || key.includes('Mop')) return Sparkles;
+                            if (key.includes('dust') || key.includes('Dust')) return Warehouse;
+                            if (key.includes('drying') || key.includes('Drying')) return Fan;
+                            if (key.includes('dnd') || key.includes('Dnd')) return Clock;
+                            return Bot;
+                          })();
+
+                          return (
+                            <div
+                              key={key}
+                              className="flex items-center justify-between py-2 text-xs first:pt-0 last:pb-0"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                <DiagIcon className="h-4 w-4 flex-shrink-0 text-[var(--text-muted)]" />
+                                <span className="truncate font-semibold text-[var(--text-secondary)]">
+                                  {label}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }}
+                                />
+                                <span className="font-bold" style={{ color }}>
+                                  {formattedState}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {advancedSensors.length > 0 && (
+                  <div className="space-y-3">
+                    <p
+                      className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {t('vacuum.advancedTelemetry') || 'Avansert Telemetri'}
+                    </p>
+                    {renderAdvancedTelemetryAccordion()}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Consumables & Maintenance */}
+          {hasConsumables && (
+            <div className="space-y-3 lg:col-span-2">
+              <p
+                className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {t('vacuum.maintenance') || 'Vedlikehald'}
+              </p>
+              <div className="space-y-4 rounded-2xl border border-white/[0.03] bg-[var(--glass-bg)] p-4 shadow-sm sm:p-5">
+                {consumables.map(({ key, label, pct, buttonId, icon: Icon }) => {
+                  const color = getConsumableColor(pct);
+                  const isConfirming = resetConfirmKey === key;
+
+                  return (
+                    <div
+                      key={key}
+                      className="flex flex-col justify-between gap-3 border-b border-white/[0.02] py-1 first:pt-0 last:border-0 last:pb-0 sm:flex-row sm:items-center"
+                    >
+                      {/* Left: Icon and Label */}
+                      <div className="flex min-w-0 items-center gap-2.5 sm:w-5/12">
+                        <div
+                          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+                          style={{
+                            backgroundColor: `${color}12`,
+                            color: color,
+                          }}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <span className="block truncate text-xs font-semibold text-[var(--text-primary)]">
+                          {label}
+                        </span>
+                      </div>
+
+                      {/* Center: Thin Progress Bar */}
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor: color,
+                              boxShadow: `0 0 4px ${color}30`,
+                            }}
+                          />
+                        </div>
+                        <span
+                          className="min-w-[28px] text-right text-[11px] font-bold"
+                          style={{ color }}
+                        >
+                          {pct}%
+                        </span>
+                      </div>
+
+                      {/* Right: Reset Button */}
+                      <div className="flex justify-end sm:w-3/12">
+                        <button
+                          disabled={!buttonId}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (resetConfirmKey === key) {
+                              void handleReset(buttonId, key);
+                            } else {
+                              setResetConfirmKey(key);
+                            }
+                          }}
+                          className={`rounded-lg border-0 px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-all duration-200 active:scale-95 ${
+                            isConfirming
+                              ? 'animate-pulse border border-[var(--status-error-border)] bg-[var(--status-error-bg)] font-extrabold text-[var(--status-error-fg)] hover:opacity-90'
+                              : 'bg-white/5 text-[var(--text-secondary)] hover:bg-white/10 hover:text-[var(--text-primary)]'
+                          } ${!buttonId ? 'cursor-not-allowed opacity-20' : ''}`}
+                        >
+                          {isConfirming
+                            ? t('vacuum.confirmResetShort') || 'Sikker?'
+                            : t('vacuum.reset') || 'Nullstill'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div className="animate-in fade-in space-y-8 font-sans not-italic duration-300">
@@ -2207,7 +2474,7 @@ export default function VacuumModal({
                 {t('vacuum.controls') || 'Controls'}
               </button>
 
-              {hasAreas && (
+              {(hasAreas || isAreasLoading) && (
                 <button
                   onClick={() => setActiveTab('areas')}
                   className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold tracking-widest uppercase transition-all duration-300 active:scale-[0.98] ${
@@ -2236,7 +2503,7 @@ export default function VacuumModal({
           )}
 
           {/* Render Tab Contents */}
-          <div className="scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent max-h-[60vh] overflow-y-auto pr-1 md:max-h-[480px] md:pr-2">
+          <div className="scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent h-[60vh] overflow-y-auto pr-1 md:h-[480px] md:pr-2">
             {(!showTabbedLayout || activeTab === 'controls') && renderControlsPane(hasMap)}
 
             {showTabbedLayout && activeTab === 'areas' && (
@@ -2381,6 +2648,30 @@ export default function VacuumModal({
                     cursor: zoomScale > 1.05 ? (isZoomPanning ? 'grabbing' : 'grab') : 'default',
                   }}
                 >
+                  {availableMapEntities.length >= 1 && (
+                    <div className="absolute top-4 left-4 z-[10000] w-64 max-w-[calc(100vw-120px)]">
+                      <ModernDropdown
+                        labelHidden={true}
+                        icon={MapPin}
+                        options={availableMapEntities}
+                        current={activeMapEntityId}
+                        onChange={(val) => {
+                          setSelectedMapEntityId(val);
+                          try {
+                            localStorage.setItem(`tunet_vacuum_selected_map_${vacuumId}`, val);
+                          } catch {}
+                        }}
+                        map={mapEntitiesNamesMap}
+                        placeholder={t('vacuum.selectMap') || 'Velg kart'}
+                        menuPortal={true}
+                        stopPropagation={true}
+                        buttonClassName="!bg-black/65 !border-white/10 !px-5 !py-3.5 !rounded-2xl hover:!scale-[1.02] hover:!bg-black/85 shadow-2xl backdrop-blur-md"
+                        valueClassName="!text-xs !text-white !font-semibold"
+                        menuClassName="!z-[100000]"
+                      />
+                    </div>
+                  )}
+
                   <button
                     onClick={() => setIsMapZoomed(false)}
                     className="absolute top-4 right-4 z-[10000] flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white transition-all hover:scale-105 hover:bg-black/80"
