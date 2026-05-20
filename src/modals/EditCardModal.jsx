@@ -885,6 +885,10 @@ export default function EditCardModal({
   const calendarOptions = byDomain('calendar');
   const todoOptions = byDomain('todo');
   const scriptOptions = byDomain('script');
+  const imageOptions = byDomain('image');
+  const selectOptions = React.useMemo(() => {
+    return sortByName([...byDomain('select'), ...byDomain('input_select')]);
+  }, [byDomain, sortByName]);
   const vacuumSensorOptions = React.useMemo(
     () =>
       getVacuumSensorOptions({
@@ -2933,6 +2937,72 @@ export default function EditCardModal({
                         </select>
                       </div>
                     ))}
+                  </div>
+
+                  <label className="ml-1 mt-4 block text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('vacuum.liveMap') || 'Live Map'}
+                  </label>
+                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    {t('vacuum.mapImageOverrideHint') ||
+                      'Optional: select a specific map image entity (image.*) to override auto-detection.'}
+                  </p>
+
+                  <div className="popup-surface rounded-2xl p-3">
+                    <label className="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                      {t('vacuum.mapImage') || 'Map Image Entity'}
+                    </label>
+                    <select
+                      value={editSettings?.mapImageEntityId || ''}
+                      onChange={(e) =>
+                        saveCardSetting(editSettingsKey, 'mapImageEntityId', e.target.value || null)
+                      }
+                      className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                      style={{
+                        backgroundColor: 'var(--card-bg)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--glass-border)',
+                      }}
+                    >
+                      <option value="">{t('common.auto') || 'Auto'}</option>
+                      {imageOptions.map((id) => (
+                        <option key={id} value={id}>
+                          {entities[id]?.attributes?.friendly_name || id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <label className="ml-1 mt-4 block text-xs font-bold text-[var(--text-muted)] uppercase">
+                    {t('vacuum.roomCleaning') || 'Room Cleaning'}
+                  </label>
+                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    {t('vacuum.roomSelectOverrideHint') ||
+                      'Optional: select the select/input_select entity containing the vacuum rooms.'}
+                  </p>
+
+                  <div className="popup-surface rounded-2xl p-3">
+                    <label className="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                      {t('vacuum.roomSelect') || 'Room Select Entity'}
+                    </label>
+                    <select
+                      value={editSettings?.roomSelectEntityId || ''}
+                      onChange={(e) =>
+                        saveCardSetting(editSettingsKey, 'roomSelectEntityId', e.target.value || null)
+                      }
+                      className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                      style={{
+                        backgroundColor: 'var(--card-bg)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--glass-border)',
+                      }}
+                    >
+                      <option value="">{t('common.auto') || 'Auto'}</option>
+                      {selectOptions.map((id) => (
+                        <option key={id} value={id}>
+                          {entities[id]?.attributes?.friendly_name || id}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">

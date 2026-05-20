@@ -6,13 +6,27 @@ export function callService(conn, domain, service, service_data) {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     return Promise.reject(new Error('Invalid or disconnected HA connection'));
   }
+
+  const { target, ...restData } = service_data || {};
+  const message = {
+    type: 'call_service',
+    domain,
+    service,
+  };
+
+  if (target) {
+    message.target = target;
+    message.service_data = restData;
+  } else if (service_data && service_data.entity_id && service === 'clean_area') {
+    message.target = { entity_id: service_data.entity_id };
+    const { entity_id, ...rest } = service_data;
+    message.service_data = rest;
+  } else {
+    message.service_data = service_data;
+  }
+
   return conn
-    .sendMessagePromise({
-      type: 'call_service',
-      domain,
-      service,
-      service_data,
-    })
+    .sendMessagePromise(message)
     .catch((error) => {
       console.error(`Service call failed (${domain}.${service}):`, error);
       throw error;
