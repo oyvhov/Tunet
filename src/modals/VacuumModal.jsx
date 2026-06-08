@@ -85,6 +85,25 @@ const toFiniteNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const normalizeEntitySearchText = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const entityMatchesKeywords = (entityId, entity, keywords) => {
+  const rawHaystack = `${String(entityId || '').toLowerCase()} ${String(
+    entity?.attributes?.friendly_name || ''
+  ).toLowerCase()}`;
+  const normalizedHaystack = normalizeEntitySearchText(rawHaystack);
+
+  return keywords.every((keyword) => {
+    const rawKeyword = String(keyword || '').toLowerCase();
+    const normalizedKeyword = normalizeEntitySearchText(rawKeyword);
+    return rawHaystack.includes(rawKeyword) || normalizedHaystack.includes(normalizedKeyword);
+  });
+};
+
 /**
  * Format a timestamp string to a readable relative or absolute string.
  */
@@ -716,13 +735,9 @@ export default function VacuumModal({
   // --- Dynamic consumables auto-detection ---
   const findConsumableSensor = useCallback(
     (keywords) => {
-      const loweredKeywords = keywords.map((kw) => kw.toLowerCase());
       if (registryRelatedSensorIds.length > 0) {
         const found = registryRelatedSensorIds.find((eid) => {
-          const lowerEid = eid.toLowerCase();
-          const friendly = (entities?.[eid]?.attributes?.friendly_name || '').toLowerCase();
-          const haystack = `${lowerEid} ${friendly}`;
-          return loweredKeywords.every((kw) => haystack.includes(kw));
+          return entityMatchesKeywords(eid, entities?.[eid], keywords);
         });
         if (found) return found;
       }
@@ -734,9 +749,7 @@ export default function VacuumModal({
           vacuumNameTokens.some((token) => lowerEid.includes(token)) ||
           lowerEid.includes(vacuumName.toLowerCase());
         if (!isRelated) return false;
-        const friendly = (entities[eid]?.attributes?.friendly_name || '').toLowerCase();
-        const haystack = `${lowerEid} ${friendly}`;
-        return loweredKeywords.every((kw) => haystack.includes(kw));
+        return entityMatchesKeywords(eid, entities[eid], keywords);
       });
     },
     [entities, registryRelatedSensorIds, vacuumName, vacuumNameTokens]
@@ -744,13 +757,9 @@ export default function VacuumModal({
 
   const findConsumableButton = useCallback(
     (keywords) => {
-      const loweredKeywords = keywords.map((kw) => kw.toLowerCase());
       if (registryRelatedButtonIds.length > 0) {
         const found = registryRelatedButtonIds.find((eid) => {
-          const lowerEid = eid.toLowerCase();
-          const friendly = (entities?.[eid]?.attributes?.friendly_name || '').toLowerCase();
-          const haystack = `${lowerEid} ${friendly}`;
-          return loweredKeywords.every((kw) => haystack.includes(kw));
+          return entityMatchesKeywords(eid, entities?.[eid], keywords);
         });
         if (found) return found;
       }
@@ -762,9 +771,7 @@ export default function VacuumModal({
           vacuumNameTokens.some((token) => lowerEid.includes(token)) ||
           lowerEid.includes(vacuumName.toLowerCase());
         if (!isRelated) return false;
-        const friendly = (entities[eid]?.attributes?.friendly_name || '').toLowerCase();
-        const haystack = `${lowerEid} ${friendly}`;
-        return loweredKeywords.every((kw) => haystack.includes(kw));
+        return entityMatchesKeywords(eid, entities[eid], keywords);
       });
     },
     [entities, registryRelatedButtonIds, vacuumName, vacuumNameTokens]
@@ -804,6 +811,7 @@ export default function VacuumModal({
           findConsumableSensor(['sensor', 'wear']) ||
           findConsumableSensor(['sensors', 'dirty']),
         buttonId:
+          findConsumableButton(['reset', 'sensor', 'consumable']) ||
           findConsumableButton(['sensor', 'reset']) ||
           findConsumableButton(['sensors', 'reset']) ||
           findConsumableButton(['sensor_dirty', 'reset']),
@@ -1549,17 +1557,21 @@ export default function VacuumModal({
   const stateLabel = getVacuumStateLabel(state, battery, t);
 
   // Consumable reset trigger
-  const handleReset = async (buttonId, key) => {
-    if (!buttonId || !conn) return;
+  const handleReset = async (buttonId) => {
+    if (!buttonId || (!conn && !callService)) return;
     try {
-      await conn.sendMessagePromise({
-        type: 'call_service',
-        domain: 'button',
-        service: 'press',
-        service_data: {
-          entity_id: buttonId,
-        },
-      });
+      if (conn) {
+        await conn.sendMessagePromise({
+          type: 'call_service',
+          domain: 'button',
+          service: 'press',
+          service_data: {
+            entity_id: buttonId,
+          },
+        });
+      } else {
+        await callService('button', 'press', { entity_id: buttonId });
+      }
       setResetConfirmKey(null);
     } catch (err) {
       console.error('Error resetting consumable:', err);
@@ -2176,7 +2188,7 @@ export default function VacuumModal({
                           onClick={(e) => {
                             e.stopPropagation();
                             if (resetConfirmKey === key) {
-                              void handleReset(buttonId, key);
+                              void handleReset(buttonId);
                             } else {
                               setResetConfirmKey(key);
                             }
@@ -2291,7 +2303,7 @@ export default function VacuumModal({
                         onClick={(e) => {
                           e.stopPropagation();
                           if (resetConfirmKey === key) {
-                            void handleReset(buttonId, key);
+                            void handleReset(buttonId);
                           } else {
                             setResetConfirmKey(key);
                           }
