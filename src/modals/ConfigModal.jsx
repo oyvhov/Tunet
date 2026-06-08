@@ -43,7 +43,7 @@ import {
   Edit2,
 } from '../icons';
 
-const SETTINGS_STATIC_VERSION = '1.10.0';
+const SETTINGS_STATIC_VERSION = '1.20.3';
 
 /** @param {any} props */
 export default function ConfigModal({
