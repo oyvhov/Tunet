@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.20.3] — 2026-06-08
+
+### Changed
+- Improved vacuum maintenance reset button matching so Home Assistant button entities with consumable-style names are detected more reliably.
+
+### Fixed
+- Fixed the Vacuum modal sensor reset action so maintenance resets call the Home Assistant `button.press` service again.
+
+
 ## [1.20.2] — 2026-05-20
 
 ### Added

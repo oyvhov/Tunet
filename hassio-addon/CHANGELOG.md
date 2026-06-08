@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.20.3
+
+### Changed
+- Includes dashboard release `1.20.3`.
+- Improves vacuum maintenance reset button detection for consumable-style Home Assistant button names.
+
+### Fixed
+- Restores the Vacuum modal maintenance sensor reset action.
+
 ## 1.20.2
 
 ### Changed
