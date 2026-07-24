@@ -12,14 +12,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -29,7 +29,7 @@ jobs:
         id: changed
         uses: tj-actions/changed-files@v47
         with:
-          separator: "\n"
+          json: 'true'
           files: |
             **/*.js
             **/*.jsx
@@ -46,10 +46,10 @@ jobs:
 
       - name: Check formatting (changed files only)
         if: steps.changed.outputs.any_changed == 'true'
+        env:
+          CHANGED_FILES_JSON: ${{ steps.changed.outputs.all_changed_files }}
         run: |
-          mapfile -t files <<'EOF'
-          ${{ steps.changed.outputs.all_changed_files }}
-          EOF
+          mapfile -t files < <(jq -r '.[]' <<< "$CHANGED_FILES_JSON")
 
           filtered_files=()
           for file in "${files[@]}"; do

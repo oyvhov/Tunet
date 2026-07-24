@@ -1,8 +1,9 @@
 # Stage 1: Build frontend
 FROM node:26-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache python3 make g++
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
 # Skip postbuild (docker compose build) inside Docker
 RUN SKIP_POSTBUILD=1 npm run build
@@ -16,7 +17,7 @@ RUN apk add --no-cache python3 make g++
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Clean up build tools to reduce image size
 RUN apk del python3 make g++

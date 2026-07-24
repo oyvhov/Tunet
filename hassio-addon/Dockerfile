@@ -1,9 +1,9 @@
 ARG BUILD_FROM
 ARG BUILD_VERSION
 # ── Stage 1: Build from source ────────────────────────────────────────
-FROM node:25-alpine AS builder
+FROM node:26-alpine AS builder
 ARG BUILD_VERSION
-RUN apk add --no-cache curl tar \
+RUN apk add --no-cache curl tar python3 make g++ \
  && set -eux \
  && REF="${BUILD_VERSION:-}" \
  && URL="" \
@@ -26,7 +26,7 @@ RUN apk add --no-cache curl tar \
 ARG BUILD_FROM
 FROM ${BUILD_FROM:-ghcr.io/hassio-addons/base:16.3.2}
 
-RUN apk add --no-cache nodejs npm
+RUN apk add --no-cache nodejs npm python3 make g++
 
 WORKDIR /app
 
@@ -37,7 +37,8 @@ COPY --from=builder /src/package.json .
 COPY --from=builder /src/package-lock.json .
 
 # Install production dependencies only
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+ && apk del python3 make g++
 
 # Copy run script from build context (hassio-addon/)
 COPY run.sh /run.sh
