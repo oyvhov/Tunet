@@ -40,18 +40,18 @@
   "dependencies": {
     "@mdi/js": "^7.4.47",
     "@mdi/react": "^1.6.1",
-    "better-sqlite3": "^13.0.1",
+    "better-sqlite3": "^13.0.3",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.6.0",
+    "express-rate-limit": "^8.6.2",
     "home-assistant-js-websocket": "^9.6.0",
     "leaflet": "^1.9.4",
-    "lucide-react": "^1.26.0",
+    "lucide-react": "^1.30.0",
     "prop-types": "^15.8.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
-    "react-router-dom": "^7.18.1",
-    "ws": "^8.21.1"
+    "react-router-dom": "^7.18.2",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
