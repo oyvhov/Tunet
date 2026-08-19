@@ -35,6 +35,9 @@ describe('SettingsMenuControl', () => {
     render(<SettingsMenuControl {...props} />);
 
     expect(screen.getByText('3')).toBeInTheDocument();
+    const badge = document.querySelector('[data-settings-update-badge]');
+    expect(badge).toHaveClass('-top-2', '-right-2');
+    expect(badge).not.toHaveClass('border-2');
     fireEvent.click(screen.getByTestId('settings-dropdown-trigger'));
     fireEvent.click(screen.getByTestId('settings-menu-system'));
 

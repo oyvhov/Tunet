@@ -99,7 +99,7 @@ export default function StatusBar({
   return (
     <div className="mt-0 flex w-full items-center justify-between font-sans">
       <div
-        className={`flex min-w-0 items-center ${isMobile ? 'scrollbar-hide gap-1.5 overflow-x-auto overflow-y-hidden' : 'flex-wrap gap-2.5'}`}
+        className={`flex min-w-0 items-center ${isMobile ? 'scrollbar-hide gap-2.5 overflow-x-auto overflow-y-hidden px-2 pt-2' : 'flex-wrap gap-2.5'}`}
       >
         {/* Edit button (only in edit mode) - at first position */}
         {editMode && (

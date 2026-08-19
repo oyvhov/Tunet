@@ -182,7 +182,7 @@ describe('StatusPill', () => {
     expect(screen.getAllByText('2')).toHaveLength(2);
   });
 
-  it('keeps the media count badge inside the pill on mobile', () => {
+  it('keeps the media count badge above and outside the pill on mobile', () => {
     const { container } = render(
       <StatusPill
         pill={{
@@ -211,8 +211,9 @@ describe('StatusPill', () => {
     );
 
     const badge = container.querySelector('[data-status-pill-badge]');
-    expect(badge).toHaveClass('top-1', 'right-1');
-    expect(badge).not.toHaveClass('-top-2', '-right-2');
-    expect(container.firstElementChild).toHaveClass('pr-6');
+    expect(badge).toHaveClass('-top-2', '-right-2');
+    expect(badge).not.toHaveClass('top-1', 'right-1');
+    expect(badge).not.toHaveClass('border-2');
+    expect(container.firstElementChild).not.toHaveClass('pr-6');
   });
 });

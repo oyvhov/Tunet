@@ -29,7 +29,7 @@ describe('WeatherTempCard', () => {
         cardSettings={{ weather_home: { weatherId: 'weather.home', subtitle: 'Rivenes' } }}
         entities={{
           'weather.home': {
-            state: 'sunny',
+            state: 'partlycloudy',
             attributes: { temperature: 12, temperature_unit: '°C' },
           },
         }}
@@ -41,12 +41,20 @@ describe('WeatherTempCard', () => {
         editMode={false}
         isMobile
         onOpen={vi.fn()}
-        t={(key) => (key === 'weather.condition.sunny' ? 'Sol' : key)}
+        t={(key) =>
+          key === 'weather.condition.partlyCloudy' ? 'Partly cloudy' : key
+        }
       />
     );
 
-    expect(screen.getByAltText('Sol').parentElement).toHaveClass('-mt-1', '-ml-1', 'h-12', 'w-12');
+    expect(screen.getByAltText('Partly cloudy').parentElement).toHaveClass(
+      '-mt-1',
+      '-ml-1',
+      'h-12',
+      'w-12'
+    );
     expect(screen.getByText('Rivenes')).toHaveClass('line-clamp-2', 'text-left');
     expect(screen.getByText('Rivenes')).not.toHaveClass('truncate');
+    expect(screen.getByText('Partly cloudy')).toHaveClass('text-[10px]', 'leading-none');
   });
 });

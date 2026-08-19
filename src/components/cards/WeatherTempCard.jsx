@@ -171,7 +171,9 @@ const WeatherTempCard = memo(/** @param {any} props */ function WeatherTempCard(
             <img src={iconUrl} alt={info.label} className="h-full w-full object-contain" />
           </div>
           <div className="flex min-w-0 flex-col">
-            <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
+            <p
+              className={`mb-1.5 font-bold break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60 ${isMobile ? 'text-[10px] leading-tight tracking-[0.08em]' : 'text-xs leading-none tracking-widest'}`}
+            >
               {info.label}
             </p>
             <span className="text-2xl leading-none font-light text-[var(--text-primary)]">
@@ -218,8 +220,14 @@ const WeatherTempCard = memo(/** @param {any} props */ function WeatherTempCard(
             )}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
-            <div className="flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1 text-[var(--text-secondary)]">
-              <span className="text-xs font-bold tracking-widest uppercase">{info.label}</span>
+            <div
+              className={`flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] py-1 text-[var(--text-secondary)] ${isMobile ? 'px-2.5' : 'px-3'}`}
+            >
+              <span
+                className={`leading-none font-bold uppercase ${isMobile ? 'text-[10px] tracking-[0.08em]' : 'text-xs tracking-widest'}`}
+              >
+                {info.label}
+              </span>
             </div>
             <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">
               {formatUnitValue(displayTempValue, { fallback: '--' })}

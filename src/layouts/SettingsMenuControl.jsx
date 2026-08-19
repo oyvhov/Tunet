@@ -45,7 +45,10 @@ export default function SettingsMenuControl({
         t={t}
       />
       {updateCount > 0 && (
-        <div className="pointer-events-none absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--card-bg)] bg-gray-600 shadow-sm">
+        <div
+          data-settings-update-badge
+          className="pointer-events-none absolute -top-2 -right-2 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-600 px-1 shadow-sm"
+        >
           <span className="pt-[1px] text-[11px] leading-none font-bold text-white">
             {updateCount}
           </span>
