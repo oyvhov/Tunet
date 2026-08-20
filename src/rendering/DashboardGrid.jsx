@@ -103,7 +103,6 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
         <Suspense fallback={pageFallback}>
           <BatteryPage
             entities={entities}
-            callService={callService}
             conn={conn}
             pageSettings={pageSettings}
             pageId={activePage}

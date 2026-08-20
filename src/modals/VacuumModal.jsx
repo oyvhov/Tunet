@@ -21,7 +21,6 @@ import {
   Minimize2,
   Plus,
   Minus,
-  getIconComponent,
   Sofa,
   Utensils,
   Bed,
@@ -1350,9 +1349,6 @@ export default function VacuumModal({
     findSensorValue(['last_clean_time']);
 
   // --- Dynamic Grid Compression ---
-  const roomCount = mappedAreas.length || roomSelectOptions.length || 0;
-  const isDense = roomCount > 6;
-  const isVeryFew = roomCount > 0 && roomCount <= 4;
   const layoutMode = settings.layoutMode || 'horizontal';
 
   // --- Calculate Session Averages ---
@@ -1360,27 +1356,24 @@ export default function VacuumModal({
   const totalCleanTimeNum = Number(totalCleanTime);
   const totalCleanAreaNum = Number(totalCleanArea);
 
-  const hasCalculatedStats = useMemo(() => {
-    return (
-      Number.isFinite(totalCleanCountNum) &&
-      totalCleanCountNum > 0 &&
-      ((Number.isFinite(totalCleanTimeNum) && totalCleanTimeNum > 0) ||
-        (Number.isFinite(totalCleanAreaNum) && totalCleanAreaNum > 0))
-    );
-  }, [totalCleanCountNum, totalCleanTimeNum, totalCleanAreaNum]);
+  const hasCalculatedStats =
+    Number.isFinite(totalCleanCountNum) &&
+    totalCleanCountNum > 0 &&
+    ((Number.isFinite(totalCleanTimeNum) && totalCleanTimeNum > 0) ||
+      (Number.isFinite(totalCleanAreaNum) && totalCleanAreaNum > 0));
 
-  const avgCleanTime = useMemo(() => {
-    if (!hasCalculatedStats || !totalCleanTimeNum) return '--';
-    return Math.round(totalCleanTimeNum / totalCleanCountNum);
-  }, [hasCalculatedStats, totalCleanTimeNum, totalCleanCountNum]);
+  const avgCleanTime =
+    hasCalculatedStats && totalCleanTimeNum
+      ? Math.round(totalCleanTimeNum / totalCleanCountNum)
+      : '--';
 
-  const avgCleanArea = useMemo(() => {
-    if (!hasCalculatedStats || !totalCleanAreaNum) return '--';
-    return Number((totalCleanAreaNum / totalCleanCountNum).toFixed(1));
-  }, [hasCalculatedStats, totalCleanAreaNum, totalCleanCountNum]);
+  const avgCleanArea =
+    hasCalculatedStats && totalCleanAreaNum
+      ? Number((totalCleanAreaNum / totalCleanCountNum).toFixed(1))
+      : '--';
 
   // --- Advanced Telemetry Discovery ---
-  const displayedSensorIds = useMemo(() => {
+  const displayedSensorIds = (() => {
     const ids = new Set();
 
     // Add primary diagnostics sensors
@@ -1437,9 +1430,9 @@ export default function VacuumModal({
     if (vacuumId) ids.add(vacuumId);
 
     return ids;
-  }, [show, vacuumId, findEntityByKeywords, findConsumableSensor, settings]);
+  })();
 
-  const advancedSensors = useMemo(() => {
+  const advancedSensors = (() => {
     if (!show || !entities || !registryRelatedSensorIds.length) return [];
     return registryRelatedSensorIds
       .filter((eid) => {
@@ -1457,7 +1450,7 @@ export default function VacuumModal({
         };
       })
       .filter((item) => isValidStateValue(item.state));
-  }, [show, entities, registryRelatedSensorIds, displayedSensorIds]);
+  })();
 
   const renderAdvancedTelemetryAccordion = () => {
     return (

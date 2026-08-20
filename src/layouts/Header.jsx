@@ -3,6 +3,24 @@ import { getLocaleForLanguage } from '../i18n';
 import { useConfig } from '../contexts';
 import BatteryBar from '../components/ui/BatteryBar';
 
+const MOBILE_ALIGNMENT_CLASSES = {
+  left: {
+    container: 'items-start text-left',
+    title: 'justify-start',
+    date: 'text-left',
+  },
+  center: {
+    container: 'items-center text-center',
+    title: 'justify-center',
+    date: 'text-center',
+  },
+  right: {
+    container: 'items-end text-right',
+    title: 'justify-end',
+    date: 'text-right',
+  },
+};
+
 /**
  * Header component with title, time and edit controls
  * @param {Object} props
@@ -92,6 +110,10 @@ export default function Header({
   const isBattery = headerSettings?.headerStyle === 'battery';
   const batteryVariant = headerSettings?.batteryVariant || 'glass';
   const showBatteryNub = headerSettings?.showBatteryNub ?? true;
+  const mobileAlignment = MOBILE_ALIGNMENT_CLASSES[headerSettings?.mobileAlignment]
+    ? headerSettings.mobileAlignment
+    : 'center';
+  const mobileAlignmentClasses = MOBILE_ALIGNMENT_CLASSES[mobileAlignment];
 
   const dateStr = now.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -134,7 +156,12 @@ export default function Header({
           </div>
         )}
 
-        <BatteryBar variant={batteryVariant} showNub={showBatteryNub} isMobile={isMobile}>
+        <BatteryBar
+          variant={batteryVariant}
+          showNub={showBatteryNub}
+          isMobile={isMobile}
+          className={isMobile ? `battery-bar--align-${mobileAlignment}` : ''}
+        >
           {/* Left: Title */}
           {headerSettings.showTitle && (
             <h1 className="leading-none select-none whitespace-nowrap" style={titleStyle}>
@@ -169,7 +196,7 @@ export default function Header({
         {/* Mobile date below battery bar */}
         {headerSettings.showDate && isMobile && (
           <p
-            className="mt-2 text-center leading-none font-medium tracking-[0.2em] text-[var(--text-muted)] uppercase opacity-50"
+            className={`mt-2 leading-none font-medium tracking-[0.2em] text-[var(--text-muted)] uppercase opacity-50 ${mobileAlignmentClasses.date}`}
             style={{
               fontSize: `calc(0.75rem * ${dateScale})`,
               fontFamily: resolvedFontFamily,
@@ -205,9 +232,15 @@ export default function Header({
       )}
 
       <div
-        className={`flex items-start justify-between leading-none ${isMobile ? 'flex-col items-center gap-4 text-center' : 'gap-10'}`}
+        className={`flex items-start justify-between leading-none ${
+          isMobile ? `flex-col gap-4 ${mobileAlignmentClasses.container}` : 'gap-10'
+        }`}
       >
-        <div className={`flex items-center gap-4 ${isMobile ? 'w-full justify-center' : ''}`}>
+        <div
+          className={`flex items-center gap-4 ${
+            isMobile ? `w-full ${mobileAlignmentClasses.title}` : ''
+          }`}
+        >
           {headerSettings.showTitle && (
             <h1 className="leading-none select-none" style={titleStyle}>
               {headerTitle || 'Tunet'}

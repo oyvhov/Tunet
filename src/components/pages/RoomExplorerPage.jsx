@@ -79,7 +79,9 @@ function getDomainColor(domain) {
 
 // ── Sort Dropdown (ModernDropdown style) ────────────────────────────────
 
-const SortDropdown = memo(function SortDropdown({ sortMode, onSort, t, sortOptions }) {
+const SortDropdown = memo(
+  /** @param {{ sortMode: string, onSort: (mode: string) => void, t: (key: string) => string, sortOptions: Array<{key: string, icon?: string}> }} props */
+  function SortDropdown({ sortMode, onSort, t, sortOptions }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -123,11 +125,14 @@ const SortDropdown = memo(function SortDropdown({ sortMode, onSort, t, sortOptio
       )}
     </div>
   );
-});
+  }
+);
 
 // ── Entity Row with inline controls ─────────────────────────────────────
 
-const EntityRow = memo(function EntityRow({ entityId, entity, callService, conn, t }) {
+const EntityRow = memo(
+  /** @param {{ entityId: string, entity: any, callService: (...args: any[]) => any, conn: any, t: (key: string) => string }} props */
+  function EntityRow({ entityId, entity, callService, conn, t }) {
   const [optimisticBrightness, setOptimisticBrightness] = useState(null);
   const debounceRef = useRef(null);
 
@@ -271,7 +276,8 @@ const EntityRow = memo(function EntityRow({ entityId, entity, callService, conn,
                 onChange={handleBrightness}
                 min={0}
                 max={100}
-                size="small"
+                step={1}
+                variant="thinLg"
               />
             </div>
           )}
@@ -413,11 +419,14 @@ const EntityRow = memo(function EntityRow({ entityId, entity, callService, conn,
       )}
     </div>
   );
-});
+  }
+);
 
 // ── Room Card (overview) ────────────────────────────────────────────────
 
-const RoomCard = memo(function RoomCard({ area, entityStats, onSelect, onToggleLights, t }) {
+const RoomCard = memo(
+  /** @param {{ area: any, entityStats: any, onSelect: () => void, onToggleLights: () => void, t: (key: string) => string }} props */
+  function RoomCard({ area, entityStats, onSelect, onToggleLights, t }) {
   const { lightsOn, lightsTotal, activeCount, totalCount, temperature, humidity, unavailableCount } = entityStats;
   const hasActivity = lightsOn > 0 || activeCount > 0;
 
@@ -507,11 +516,14 @@ const RoomCard = memo(function RoomCard({ area, entityStats, onSelect, onToggleL
       </div>
     </button>
   );
-});
+  }
+);
 
 // ── Collapsible Domain Section ──────────────────────────────────────────
 
-const DomainSection = memo(function DomainSection({ domain, items, callService, conn, t }) {
+const DomainSection = memo(
+  /** @param {{ domain: string, items: Array<{id: string, entity: any}>, callService: (...args: any[]) => any, conn: any, t: (key: string) => string }} props */
+  function DomainSection({ domain, items, callService, conn, t }) {
   const [collapsed, setCollapsed] = useState(false);
   const DomainIcon = getDomainIcon(domain);
   const color = getDomainColor(domain);
@@ -560,11 +572,14 @@ const DomainSection = memo(function DomainSection({ domain, items, callService, 
       )}
     </div>
   );
-});
+  }
+);
 
 // ── Room Summary Bar (toggle all lights) ────────────────────────────────
 
-const RoomSummaryBar = memo(function RoomSummaryBar({ entityIds, entities, callService, t }) {
+const RoomSummaryBar = memo(
+  /** @param {{ entityIds: string[], entities: Record<string, any>, callService: (...args: any[]) => any, t: (key: string) => string }} props */
+  function RoomSummaryBar({ entityIds, entities, callService, t }) {
   const stats = useMemo(() => {
     let lightsOn = 0, lightsTotal = 0;
     for (const id of entityIds) {
@@ -607,10 +622,12 @@ const RoomSummaryBar = memo(function RoomSummaryBar({ entityIds, entities, callS
       </button>
     </div>
   );
-});
+  }
+);
 
 // ── Main Page ───────────────────────────────────────────────────────────
 
+/** @param {{ entities: Record<string, any>, callService: (...args: any[]) => any, conn: any, pageSettings: Record<string, any>, pageId: string, savePageSetting: (...args: any[]) => any, t: (key: string) => string }} props */
 function RoomExplorerPage({ entities, callService, conn, pageSettings, pageId, savePageSetting, t }) {
   const [areas, setAreas] = useState([]);
   const [selectedAreaId, setSelectedAreaId] = useState(null);

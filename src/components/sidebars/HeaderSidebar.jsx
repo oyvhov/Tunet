@@ -119,6 +119,24 @@ export default function HeaderSidebar({
             />
           </div>
 
+          <div className="space-y-2">
+            <span
+              className="text-[11px] font-bold tracking-wider uppercase"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t('header.mobileAlignment') || 'Mobile position'}
+            </span>
+            <SegmentedControl
+              options={[
+                { value: 'left', label: t('header.alignmentLeft') || 'Left' },
+                { value: 'center', label: t('header.alignmentCenter') || 'Center' },
+                { value: 'right', label: t('header.alignmentRight') || 'Right' },
+              ]}
+              value={setting('mobileAlignment', 'center')}
+              onChange={(v) => update('mobileAlignment', v)}
+            />
+          </div>
+
           {/* Battery-only options */}
           {setting('headerStyle', 'classic') === 'battery' && (
             <>

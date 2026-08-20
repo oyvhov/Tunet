@@ -56,6 +56,7 @@ export default function EditToolbar({
           setShowThemeSidebar={setShowThemeSidebar}
           setShowLayoutSidebar={setShowLayoutSidebar}
           setShowHeaderEditModal={setShowHeaderEditModal}
+          onAddCard={() => setShowAddCardModal(true)}
           onToggleEdit={onToggleEdit}
           editMode={editMode}
           updateCount={updateCount}

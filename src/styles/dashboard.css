@@ -410,6 +410,14 @@ html[data-theme='flat'] .popup-surface-hover {
   gap: 0.25rem;
   text-align: center;
 }
+.battery-bar--mobile.battery-bar--align-left .battery-bar__body {
+  align-items: flex-start;
+  text-align: left;
+}
+.battery-bar--mobile.battery-bar--align-right .battery-bar__body {
+  align-items: flex-end;
+  text-align: right;
+}
 .battery-bar--mobile .battery-bar__nub {
   display: none;
 }

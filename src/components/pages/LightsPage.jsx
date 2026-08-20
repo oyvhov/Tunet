@@ -58,14 +58,16 @@ function hsToRgbString(h, s) {
 
 // ── Individual Light Tile ────────────────────────────────────────────────
 
-const LightTile = memo(function LightTile({
+const LightTile = memo(
+  /** @param {{ entity: any, areaName?: string, onToggle: (entityId: string) => void, onBrightness: (entityId: string, value: number) => void, optimisticBrightness?: number, t: (key: string) => string }} props */
+  function LightTile({
   entity,
   areaName,
   onToggle,
   onBrightness,
   optimisticBrightness,
   t,
-}) {
+  }) {
   const { entity_id, state, attributes } = entity;
   const isOn = state === 'on';
   const isUnavailable = state === 'unavailable' || state === 'unknown';
@@ -181,11 +183,14 @@ const LightTile = memo(function LightTile({
       )}
     </div>
   );
-});
+  }
+);
 
 // ── Confirm Button ───────────────────────────────────────────────────────
 
-const ConfirmButton = memo(function ConfirmButton({ label, confirmLabel, onConfirm, t }) {
+const ConfirmButton = memo(
+  /** @param {{ label: string, confirmLabel: string, onConfirm: () => void, t: (key: string) => string }} props */
+  function ConfirmButton({ label, confirmLabel, onConfirm, t }) {
   const [pending, setPending] = useState(false);
   const ref = useRef(null);
   const timerRef = useRef(null);
@@ -241,11 +246,14 @@ const ConfirmButton = memo(function ConfirmButton({ label, confirmLabel, onConfi
       )}
     </div>
   );
-});
+  }
+);
 
 // ── Sort Dropdown ────────────────────────────────────────────────────────
 
-const SortDropdown = memo(function SortDropdown({ sortMode, onSortChange, t }) {
+const SortDropdown = memo(
+  /** @param {{ sortMode: string, onSortChange: (mode: string) => void, t: (key: string) => string }} props */
+  function SortDropdown({ sortMode, onSortChange, t }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -301,7 +309,8 @@ const SortDropdown = memo(function SortDropdown({ sortMode, onSortChange, t }) {
       )}
     </div>
   );
-});
+  }
+);
 
 // ── Main Lights Page ─────────────────────────────────────────────────────
 

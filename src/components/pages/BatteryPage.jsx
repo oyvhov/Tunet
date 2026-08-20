@@ -47,7 +47,9 @@ function getBatteryStatus(entity) {
 
 // ── Individual Battery Tile ──────────────────────────────────────────────
 
-const BatteryTile = memo(function BatteryTile({ entity, areaName, t }) {
+const BatteryTile = memo(
+  /** @param {{ entity: any, areaName?: string, t: (key: string) => string }} props */
+  function BatteryTile({ entity, areaName, t }) {
   const { entity_id, state, attributes } = entity;
   const isUnavailable = state === 'unavailable' || state === 'unknown';
   const name = attributes?.friendly_name || entity_id.split('.')[1];
@@ -132,11 +134,14 @@ const BatteryTile = memo(function BatteryTile({ entity, areaName, t }) {
       )}
     </div>
   );
-});
+  }
+);
 
 // ── Sort Dropdown ────────────────────────────────────────────────────────
 
-const SortDropdown = memo(function SortDropdown({ sortMode, onSortChange, options, prefix, t }) {
+const SortDropdown = memo(
+  /** @param {{ sortMode: string, onSortChange: (mode: string) => void, options: Array<{key: string, icon?: string}>, prefix: string, t: (key: string) => string }} props */
+  function SortDropdown({ sortMode, onSortChange, options, prefix, t }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -192,7 +197,8 @@ const SortDropdown = memo(function SortDropdown({ sortMode, onSortChange, option
       )}
     </div>
   );
-});
+  }
+);
 
 // ── Main Battery Page ────────────────────────────────────────────────────
 

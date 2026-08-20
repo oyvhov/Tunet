@@ -47,6 +47,12 @@
  * @property {import('react').Dispatch<import('react').SetStateAction<number>>} setCardBorderOpacity
  * @property {string} cardBgColor
  * @property {import('react').Dispatch<import('react').SetStateAction<string>>} setCardBgColor
+ * @property {string} cardMaterial
+ * @property {import('react').Dispatch<import('react').SetStateAction<string>>} setCardMaterial
+ * @property {string} density
+ * @property {import('react').Dispatch<import('react').SetStateAction<string>>} setDensity
+ * @property {number} cardScale
+ * @property {import('react').Dispatch<import('react').SetStateAction<number>>} setCardScale
  * @property {string} appFont
  * @property {import('react').Dispatch<import('react').SetStateAction<string>>} setAppFont
  * @property {HomeAssistantConfig} config
@@ -154,6 +160,8 @@
  * @property {boolean} showClock
  * @property {boolean} showClockOnMobile
  * @property {boolean} showDate
+ * @property {boolean} showPagePillLabelsOnMobile
+ * @property {'left' | 'center' | 'right'} mobileAlignment
  */
 
 /**
@@ -175,6 +183,9 @@
  * @property {string} [sonosHeadingSource]
  * @property {string} [playerNameDisplayFilter]
  * @property {string[]} [sessionSensorIds]
+ * @property {string} [icon]
+ * @property {string} [iconBgColor]
+ * @property {string} [iconColor]
  */
 
 /**
@@ -269,6 +280,9 @@
  * @property {string} activePage
  * @property {(pageId: string) => boolean} isMediaPage
  * @property {(pageId: string) => boolean} isSonosPage
+ * @property {(pageId: string) => boolean} isLightsPage
+ * @property {(pageId: string) => boolean} isBatteryPage
+ * @property {(pageId: string) => boolean} isRoomExplorerPage
  * @property {PagesConfig} pagesConfig
  * @property {(newConfig: PagesConfig) => void} persistConfig
  * @property {CardSettingsMap} cardSettings

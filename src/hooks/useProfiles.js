@@ -95,8 +95,9 @@ function normalizeImportedSnapshot(snapshotCandidate) {
  * Hook for managing server-side profiles and templates.
  *
  * @param {object} options
- * @param {object|null} options.haUser          — HA user from HomeAssistantContext
- * @param {object}      options.contextSetters  — combined setters from PageContext + ConfigContext
+ * @param {{ id?: string }|null} options.haUser - HA user from HomeAssistantContext
+ * @param {Record<string, (...args: any[]) => any>} options.contextSetters - combined setters from PageContext + ConfigContext
+ * @param {boolean} [options.prefetchProfiles] - fetch profiles immediately
  */
 export function useProfiles({ haUser, contextSetters, prefetchProfiles = true }) {
   const [profiles, setProfiles] = useState([]);

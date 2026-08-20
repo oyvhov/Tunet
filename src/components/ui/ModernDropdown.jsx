@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
+/** @type {import('react').CSSProperties} */
 const HIDDEN_PORTAL_STYLE = {
   position: 'fixed',
   top: 0,
@@ -12,7 +13,7 @@ const HIDDEN_PORTAL_STYLE = {
 
 /**
  * @param {Object} props
- * @param {string} props.label
+ * @param {string} [props.label]
  * @param {any} props.icon
  * @param {string[]} props.options
  * @param {string} props.current
@@ -61,7 +62,9 @@ export default function ModernDropdown({
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
   const listboxId = useId().replace(/:/g, '');
-  const [portalStyle, setPortalStyle] = useState(HIDDEN_PORTAL_STYLE);
+  const [portalStyle, setPortalStyle] = useState(
+    /** @returns {import('react').CSSProperties} */ () => HIDDEN_PORTAL_STYLE
+  );
 
   useEffect(() => {
     const handleClickOutside = (event) => {

@@ -25,6 +25,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Validate i18n parity
         run: npm run i18n:check
 
@@ -32,7 +38,13 @@ jobs:
         run: npm run lint:theme-colors
 
       - name: Run tests
-        run: npx vitest run
+        run: npm test
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Chromium E2E tests
+        run: npm run test:e2e:chromium
 
       - name: Build
         run: npx vite build

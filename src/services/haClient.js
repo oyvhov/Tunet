@@ -19,7 +19,7 @@ export function callService(conn, domain, service, service_data) {
     message.service_data = restData;
   } else if (service_data && service_data.entity_id && service === 'clean_area') {
     message.target = { entity_id: service_data.entity_id };
-    const { entity_id, ...rest } = service_data;
+    const { entity_id: _entityId, ...rest } = service_data;
     message.service_data = rest;
   } else {
     message.service_data = service_data;

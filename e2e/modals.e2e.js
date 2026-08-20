@@ -97,12 +97,10 @@ test.describe('Modal Interactions', () => {
     await expect(page.getByTestId('settings-menu-edit')).toHaveAccessibleName('Edit');
 
     await page.getByTestId('settings-menu-edit').click();
-    const doneButton = page.getByTestId('settings-mobile-done');
-    await expect(doneButton).toBeVisible();
-    await expect(doneButton).toHaveAccessibleName('Done');
+    await expect(trigger).toHaveAccessibleName('Done');
 
-    await doneButton.click();
-    await expect(doneButton).not.toBeVisible();
+    await trigger.click();
+    await expect(trigger).toHaveAccessibleName('Edit');
   });
 
   test('should close modal with close button', async ({ page }) => {

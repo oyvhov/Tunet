@@ -474,6 +474,7 @@ export const PageProvider = ({ children }) => {
         showClockOnMobile: true,
         showDate: true,
         headerStyle: 'classic',
+        mobileAlignment: 'center',
         batteryVariant: 'glass',
         showBatteryNub: true,
       }

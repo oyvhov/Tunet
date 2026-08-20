@@ -97,8 +97,8 @@ export function collectSnapshot() {
  * Write a snapshot into localStorage AND update React context state via
  * the provided setter object.
  *
- * @param {object} snapshot           Versioned snapshot (from collectSnapshot or API)
- * @param {object} [contextSetters]   Object with setter functions from PageContext + ConfigContext
+ * @param {any} snapshot Versioned snapshot (from collectSnapshot or API)
+ * @param {Record<string, (...args: any[]) => any>} [contextSetters] Object with setter functions from PageContext + ConfigContext
  */
 export function applySnapshot(snapshot, contextSetters = {}) {
   if (!snapshot || typeof snapshot !== 'object') return;
