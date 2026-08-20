@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Check, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Check, Plus, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
@@ -15,6 +15,8 @@ import {
   isConditionConfigured,
   matchCarEntities,
   normalizeVisibilityConditionConfig,
+  resolveClimateFavoriteModes,
+  toggleClimateFavoriteMode,
 } from '../utils';
 
 const MIN_POPUP_TRIGGER_COOLDOWN_SECONDS = 10;
@@ -752,6 +754,7 @@ export default function EditCardModal({
   isEditRoom,
   isEditAndroidTV,
   isEditFan,
+  isEditClimate,
   isEditVacuum,
   editSettingsKey,
   editSettings,
@@ -884,6 +887,14 @@ export default function EditCardModal({
   const fuelLevelOptions = carMatch.options?.fuelLevelId || EMPTY_ENTITY_IDS;
 
   const climateOptions = byDomain('climate');
+  const selectedClimateEntity = editSettings?.climateId ? entities[editSettings.climateId] : null;
+  const climateModeOptions = Array.isArray(selectedClimateEntity?.attributes?.hvac_modes)
+    ? selectedClimateEntity.attributes.hvac_modes
+    : [];
+  const climateFavoriteModes = resolveClimateFavoriteModes(
+    editSettings?.climateFavoriteModes,
+    climateModeOptions
+  );
   const calendarOptions = byDomain('calendar');
   const todoOptions = byDomain('todo');
   const scriptOptions = byDomain('script');
@@ -1269,6 +1280,67 @@ export default function EditCardModal({
                           className={`min-h-11 rounded-xl border px-2 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                         >
                           {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {isEditClimate && editSettingsKey && climateModeOptions.length > 0 && (
+                <div className="space-y-2">
+                  <div className="ml-1">
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('climate.favoriteModes')}
+                    </label>
+                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                      {t('climate.favoriteModesHint')}
+                    </p>
+                  </div>
+                  <div className="popup-surface flex flex-wrap gap-2 rounded-2xl p-3">
+                    {climateModeOptions.map((mode) => {
+                      const selected = climateFavoriteModes.includes(mode);
+                      const atLimit = climateFavoriteModes.length >= 2;
+                      const labelKeys = {
+                        off: 'off',
+                        auto: 'auto',
+                        cool: 'cool',
+                        dry: 'dry',
+                        fan_only: 'fanOnly',
+                        heat: 'heat',
+                        heat_cool: 'heatCool',
+                      };
+                      const labelKey = labelKeys[mode];
+                      const translatedLabel = labelKey ? t(`climate.hvac.${labelKey}`) : null;
+                      const label =
+                        translatedLabel ||
+                        String(mode)
+                          .replaceAll('_', ' ')
+                          .replace(/^./, (character) => character.toUpperCase());
+
+                      return (
+                        <button
+                          key={mode}
+                          type="button"
+                          aria-pressed={selected}
+                          disabled={!selected && atLimit}
+                          onClick={() =>
+                            saveCardSetting(
+                              editSettingsKey,
+                              'climateFavoriteModes',
+                              toggleClimateFavoriteMode(
+                                editSettings?.climateFavoriteModes,
+                                mode,
+                                climateModeOptions
+                              )
+                            )
+                          }
+                          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] disabled:cursor-not-allowed disabled:opacity-35'}`}
+                        >
+                          <Star
+                            className={`h-3.5 w-3.5 ${selected ? 'fill-current opacity-75' : 'opacity-50'}`}
+                          />
+                          {label}
                         </button>
                       );
                     })}
@@ -1739,7 +1811,6 @@ export default function EditCardModal({
                     editSettings.cameraStreamEngine || 'auto'
                   ).toLowerCase();
                   const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
-                  const recommendedWebrtc = '/api/webrtc?src={entity_object_id}';
                   const refreshMode = editSettings.cameraRefreshMode || 'interval';
                   const refreshInterval = editSettings.cameraRefreshInterval || 10;
                   const motionSensorId = editSettings.cameraMotionSensor || '';
@@ -1784,7 +1855,7 @@ export default function EditCardModal({
                         </div>
                       </div>
 
-                      {/* Optional WebRTC URL */}
+                      {/* Optional external player URL */}
                       {(streamEngine === 'webrtc' || streamEngine === 'auto') && (
                         <div className="space-y-2">
                           <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
@@ -1796,7 +1867,7 @@ export default function EditCardModal({
                             onChange={(e) =>
                               saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', e.target.value)
                             }
-                            placeholder={recommendedWebrtc}
+                            placeholder="http://go2rtc.local:1984/stream.html?src={entity_object_id}&mode=webrtc"
                             className="w-full rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none"
                             style={{
                               backgroundColor: 'var(--glass-bg)',
@@ -1804,24 +1875,9 @@ export default function EditCardModal({
                               color: 'var(--text-primary)',
                             }}
                           />
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'cameraWebrtcUrl',
-                                  recommendedWebrtc
-                                )
-                              }
-                              className="popup-surface popup-surface-hover rounded-xl border border-[var(--glass-border)] px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"
-                            >
-                              {t('camera.useRecommended') || 'Use Recommended'}
-                            </button>
-                          </div>
                           <p className="px-1 text-[11px] text-[var(--text-muted)]">
                             {t('camera.webrtcHint') ||
-                              'Use {entity_object_id} or {entity_id}. Leave empty to skip WebRTC.'}
+                              'Optional go2rtc stream.html or another embeddable player URL. Auto uses Home Assistant WebRTC without a URL.'}
                           </p>
                         </div>
                       )}

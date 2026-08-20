@@ -1,36 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { X, RefreshCw, Video, Camera } from '../icons';
 import { getIconComponent } from '../icons';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
-
-function appendTs(url, ts) {
-  if (!url) return '';
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}_ts=${ts}`;
-}
-
-function buildCameraUrl(basePath, entityId, accessToken) {
-  const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : '';
-  return `${basePath}/${entityId}${tokenQuery}`;
-}
-
-function resolveCameraTemplate(urlTemplate, entityId) {
-  if (!urlTemplate) return '';
-  const objectId = (entityId || '').includes('.')
-    ? entityId.split('.').slice(1).join('.')
-    : entityId;
-  return urlTemplate
-    .replaceAll('{entity_id}', entityId || '')
-    .replaceAll('{entity_object_id}', objectId || '');
-}
-
-function normalizeStreamEngine(value) {
-  const raw = String(value || '').toLowerCase();
-  if (raw === 'webrtc') return 'webrtc';
-  if (raw === 'snapshot') return 'snapshot';
-  if (raw === 'ha' || raw === 'ha_stream' || raw === 'hastream' || raw === 'ha-stream') return 'ha';
-  return 'auto';
-}
+import CameraFeed from '../components/camera/CameraFeed';
 
 export default function CameraModal({
   show,
@@ -39,70 +11,23 @@ export default function CameraModal({
   entity,
   customName,
   customIcon,
+  conn,
   getEntityImageUrl,
   settings,
   t,
 }) {
   const [viewMode, setViewMode] = useState('stream');
   const [refreshTs, setRefreshTs] = useState(Date.now());
-  const [streamSource, setStreamSource] = useState('ha');
   const modalTitleId = `camera-modal-title-${(entityId || 'camera').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const activeEntity = entity || { attributes: {} };
   const activeEntityId = entityId || '';
   const attrs = activeEntity.attributes || {};
-  const accessToken = attrs.access_token || '';
   const name = customName || attrs.friendly_name || activeEntityId;
   const iconName = customIcon || attrs.icon;
   const Icon = iconName ? getIconComponent(iconName) || Camera : Camera;
-
-  const streamBase = useMemo(
-    () => buildCameraUrl('/api/camera_proxy_stream', activeEntityId, accessToken),
-    [activeEntityId, accessToken]
-  );
-  const snapshotBase = useMemo(() => {
-    return buildCameraUrl('/api/camera_proxy', activeEntityId, accessToken) || attrs.entity_picture;
-  }, [activeEntityId, accessToken, attrs.entity_picture]);
-
-  const streamUrl = getEntityImageUrl(appendTs(streamBase, refreshTs));
-  const snapshotUrl = getEntityImageUrl(appendTs(snapshotBase, refreshTs));
-  const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
-  const webrtcTemplate = (settings?.cameraWebrtcUrl || '').trim();
-  const webrtcUrl = useMemo(() => {
-    const resolved = resolveCameraTemplate(webrtcTemplate, activeEntityId);
-    return resolved ? getEntityImageUrl(appendTs(resolved, refreshTs)) : null;
-  }, [webrtcTemplate, activeEntityId, refreshTs, getEntityImageUrl]);
-
-  const preferredSource = useMemo(() => {
-    if (streamEngine === 'snapshot') return 'snapshot';
-    if (streamEngine === 'webrtc') {
-      if (webrtcUrl) return 'webrtc';
-      return 'ha';
-    }
-    if (streamEngine === 'ha') return 'ha';
-    if (webrtcUrl) return 'webrtc';
-    return 'ha';
-  }, [streamEngine, webrtcUrl]);
-
-  useEffect(() => {
-    if (viewMode === 'stream') {
-      setStreamSource(preferredSource);
-    }
-  }, [preferredSource, viewMode]);
-
-  const activeStreamUrl =
-    streamSource === 'webrtc' ? webrtcUrl : streamSource === 'ha' ? streamUrl : snapshotUrl;
-
-  const handleStreamError = () => {
-    setStreamSource((current) => {
-      if (current === 'webrtc') return streamUrl ? 'ha' : 'snapshot';
-      if (current === 'ha') return 'snapshot';
-      return 'snapshot';
-    });
-  };
-
-  const isFallbackActive =
-    viewMode === 'stream' && streamSource === 'snapshot' && preferredSource !== 'snapshot';
+  const activeSettings =
+    viewMode === 'snapshot' ? { ...settings, cameraStreamEngine: 'snapshot' } : settings;
 
   if (!show || !entityId || !entity) return null;
 
@@ -111,9 +36,9 @@ export default function CameraModal({
       open={show && !!entityId && !!entity}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-5"
+      overlayClassName="fixed inset-0 z-[130] flex items-center justify-center p-2 sm:p-5"
       overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.45)' }}
-      panelClassName="popup-anim relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl border p-4 font-sans shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6"
+      panelClassName="popup-anim relative flex max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col rounded-2xl border p-3 font-sans shadow-2xl backdrop-blur-xl sm:max-h-[92vh] sm:rounded-3xl sm:p-6"
       panelStyle={{
         background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
         borderColor: 'var(--glass-border)',
@@ -122,94 +47,86 @@ export default function CameraModal({
     >
       {() => (
         <>
-        <button
-          onClick={onClose}
-          className="modal-close absolute top-4 right-4 z-10 sm:top-6 sm:right-6"
-          aria-label={t?.('common.close') || 'Close'}
-        >
-          <X className="h-4 w-4" />
-        </button>
+          <button
+            onClick={onClose}
+            className="modal-close absolute top-3 right-3 z-10 sm:top-6 sm:right-6"
+            aria-label={t?.('common.close') || 'Close'}
+          >
+            <X className="h-4 w-4" />
+          </button>
 
-        <div className="mb-4 flex items-center justify-between gap-4 pr-12">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-primary)]">
-              <Icon className="h-5 w-5" />
+          <div className="mb-3 flex flex-col gap-3 pr-11 sm:mb-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pr-12">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-primary)]">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase sm:text-xs">
+                  {entityId}
+                </p>
+                <h3
+                  id={modalTitleId}
+                  className="truncate text-lg font-bold text-[var(--text-primary)] sm:text-2xl"
+                >
+                  {name}
+                </h3>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                {entityId}
-              </p>
-              <h3
-                id={modalTitleId}
-                className="truncate text-lg font-bold text-[var(--text-primary)] sm:text-2xl"
+
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 sm:flex sm:items-center">
+              <button
+                type="button"
+                aria-pressed={viewMode === 'stream'}
+                onClick={() => {
+                  setViewMode('stream');
+                  setRefreshTs(Date.now());
+                }}
+                className={`rounded-xl border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors sm:text-xs ${viewMode === 'stream' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
               >
-                {name}
-              </h3>
+                <span className="inline-flex items-center gap-1">
+                  <Video className="h-3.5 w-3.5" /> {t?.('camera.stream') || 'Stream'}
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={viewMode === 'snapshot'}
+                onClick={() => {
+                  setViewMode('snapshot');
+                  setRefreshTs(Date.now());
+                }}
+                className={`rounded-xl border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors sm:text-xs ${viewMode === 'snapshot' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+              >
+                <span className="inline-flex items-center gap-1">
+                  <Camera className="h-3.5 w-3.5" /> {t?.('camera.snapshot') || 'Snapshot'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRefreshTs(Date.now())}
+                className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                title={t?.('camera.refresh') || 'Refresh'}
+                aria-label={t?.('camera.refresh') || 'Refresh'}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setViewMode('stream');
-                setStreamSource(preferredSource);
-                setRefreshTs(Date.now());
-              }}
-              className={`rounded-xl border px-3 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${viewMode === 'stream' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
-            >
-              <span className="inline-flex items-center gap-1">
-                <Video className="h-3.5 w-3.5" /> {t?.('camera.stream') || 'Stream'}
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setViewMode('snapshot');
-                setRefreshTs(Date.now());
-              }}
-              className={`rounded-xl border px-3 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${viewMode === 'snapshot' ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
-            >
-              <span className="inline-flex items-center gap-1">
-                <Camera className="h-3.5 w-3.5" /> {t?.('camera.snapshot') || 'Snapshot'}
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setStreamSource(preferredSource);
-                setRefreshTs(Date.now());
-              }}
-              className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-              title={t?.('camera.refresh') || 'Refresh'}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
+          <div className="relative h-[52dvh] min-h-[240px] shrink-0 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-black/70 sm:h-[68dvh] sm:min-h-[420px]">
+            <CameraFeed
+              entityId={activeEntityId}
+              entity={activeEntity}
+              conn={conn}
+              getEntityImageUrl={getEntityImageUrl}
+              settings={activeSettings}
+              refreshKey={refreshTs}
+              fit="contain"
+              controls={viewMode === 'stream'}
+              muted
+              alt={name}
+              t={t}
+            />
           </div>
-        </div>
-
-        <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-black/70">
-          {viewMode === 'stream' ? (
-            <img
-              src={activeStreamUrl}
-              alt={name}
-              className="h-full w-full object-contain"
-              referrerPolicy="no-referrer"
-              onError={handleStreamError}
-            />
-          ) : (
-            <img
-              src={snapshotUrl}
-              alt={name}
-              className="h-full w-full object-contain"
-              referrerPolicy="no-referrer"
-            />
-          )}
-
-          {isFallbackActive && (
-            <div className="absolute inset-x-0 bottom-0 border-t border-amber-500/20 bg-amber-500/10 p-3 text-center text-sm text-amber-200">
-              {t?.('camera.streamUnavailable') ||
-                'Stream unavailable, showing snapshots may work better.'}
-            </div>
-          )}
-        </div>
         </>
       )}
     </AccessibleModalShell>

@@ -112,7 +112,7 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
   if (cardId.startsWith('climate_card_')) {
     const climateId = typeof settings?.climateId === 'string' ? settings.climateId : null;
     if (!climateId) return false;
-    closeAndOpen(() => setActiveClimateEntityModal(climateId));
+    closeAndOpen(() => setActiveClimateEntityModal({ entityId: climateId, cardId }));
     return true;
   }
 

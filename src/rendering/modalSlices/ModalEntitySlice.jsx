@@ -137,20 +137,37 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
           );
         })()}
 
-      {activeClimateEntityModal && entities[activeClimateEntityModal] && (
-        <ModalSuspense>
-          <GenericClimateModal
-            entityId={activeClimateEntityModal}
-            entity={entities[activeClimateEntityModal]}
-            onClose={() => setActiveClimateEntityModal(null)}
-            callService={callService}
-            hvacMap={hvacMap}
-            fanMap={fanMap}
-            swingMap={swingMap}
-            t={t}
-          />
-        </ModalSuspense>
-      )}
+      {activeClimateEntityModal &&
+        (() => {
+          const target =
+            typeof activeClimateEntityModal === 'string'
+              ? { entityId: activeClimateEntityModal }
+              : activeClimateEntityModal;
+          const climateEntity = entities[target.entityId];
+          if (!climateEntity) return null;
+
+          const settingsKey =
+            target.settingsKey || (target.cardId ? getCardSettingsKey(target.cardId) : null);
+          const settings = settingsKey
+            ? cardSettings[settingsKey] || cardSettings[target.cardId] || {}
+            : {};
+
+          return (
+            <ModalSuspense>
+              <GenericClimateModal
+                entityId={target.entityId}
+                entity={climateEntity}
+                onClose={() => setActiveClimateEntityModal(null)}
+                callService={callService}
+                hvacMap={hvacMap}
+                fanMap={fanMap}
+                swingMap={swingMap}
+                settings={settings}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
       {showLightModal && (
         <ModalSuspense>
@@ -438,6 +455,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 entity={cameraEntity}
                 customName={customNames?.[showCameraModal]}
                 customIcon={customIcons?.[showCameraModal]}
+                conn={conn}
                 getEntityImageUrl={getEntityImageUrl}
                 settings={cameraSettings}
                 t={t}

@@ -44,6 +44,7 @@
     "better-sqlite3": "^13.0.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
+    "hls.js": "^1.7.1",
     "home-assistant-js-websocket": "^9.6.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.31.0",

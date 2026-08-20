@@ -21,17 +21,14 @@ const test = baseTest.extend({
       const buildNordpoolPrices = () => {
         const currentIndex = new Date().getHours() + 47;
         const length = Math.max(72, currentIndex + 1);
-        const prices = Array.from(
-          { length },
-          (_, index) => Number((0.35 + (index % 6) * 0.09).toFixed(2))
+        const prices = Array.from({ length }, (_, index) =>
+          Number((0.35 + (index % 6) * 0.09).toFixed(2))
         );
         prices[currentIndex] = 0.85;
         return prices;
       };
       const emitMessage = (target, payload) =>
-        target.dispatchEvent(
-          new MessageEvent('message', { data: JSON.stringify(payload) })
-        );
+        target.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(payload) }));
       const entityUpdate = (state, attributes) => ({
         s: state,
         a: attributes,
@@ -39,6 +36,7 @@ const test = baseTest.extend({
         lc: testTimestamp,
         lu: testTimestamp,
       });
+      window.__e2eServiceCalls = [];
 
       class MockWebSocket extends EventTarget {
         static CONNECTING = 0;
@@ -71,74 +69,175 @@ const test = baseTest.extend({
             }
 
             if (msg.type === 'supported_features') {
-              setTimeout(() => emitMessage(this, {
-                id: msg.id,
-                type: 'result',
-                success: true,
-                result: null,
-              }), 10);
+              setTimeout(
+                () =>
+                  emitMessage(this, {
+                    id: msg.id,
+                    type: 'result',
+                    success: true,
+                    result: null,
+                  }),
+                10
+              );
               return;
             }
 
             if (msg.type === 'auth/current_user') {
-              setTimeout(() => emitMessage(this, {
-                id: msg.id, type: 'result', success: true,
-                result: { id: 'user-1', name: 'E2E User', is_admin: true, is_owner: false },
-              }), 10);
+              setTimeout(
+                () =>
+                  emitMessage(this, {
+                    id: msg.id,
+                    type: 'result',
+                    success: true,
+                    result: { id: 'user-1', name: 'E2E User', is_admin: true, is_owner: false },
+                  }),
+                10
+              );
               return;
             }
 
             if (msg.type === 'get_config') {
-              setTimeout(() => emitMessage(this, {
-                id: msg.id, type: 'result', success: true,
-                result: {
-                  latitude: 0, longitude: 0, elevation: 0,
-                  unit_system: { temperature: 'C', length: 'km' },
-                  location_name: 'Test Home', time_zone: 'UTC', currency: 'NOK',
-                },
-              }), 10);
+              setTimeout(
+                () =>
+                  emitMessage(this, {
+                    id: msg.id,
+                    type: 'result',
+                    success: true,
+                    result: {
+                      latitude: 0,
+                      longitude: 0,
+                      elevation: 0,
+                      unit_system: { temperature: 'C', length: 'km' },
+                      location_name: 'Test Home',
+                      time_zone: 'UTC',
+                      currency: 'NOK',
+                    },
+                  }),
+                10
+              );
+              return;
+            }
+
+            if (msg.type === 'camera/capabilities') {
+              setTimeout(
+                () =>
+                  emitMessage(this, {
+                    id: msg.id,
+                    type: 'result',
+                    success: true,
+                    result: { frontend_stream_types: ['hls'] },
+                  }),
+                10
+              );
+              return;
+            }
+
+            if (msg.type === 'auth/sign_path') {
+              setTimeout(
+                () =>
+                  emitMessage(this, {
+                    id: msg.id,
+                    type: 'result',
+                    success: true,
+                    result: { path: `${msg.path}?authSig=e2e-signed` },
+                  }),
+                10
+              );
+              return;
+            }
+
+            if (msg.type === 'call_service') {
+              window.__e2eServiceCalls.push(msg);
+              setTimeout(
+                () =>
+                  emitMessage(this, {
+                    id: msg.id,
+                    type: 'result',
+                    success: true,
+                    result: null,
+                  }),
+                10
+              );
+              return;
+            }
+
+            if (msg.type === 'camera/stream') {
+              setTimeout(
+                () =>
+                  emitMessage(this, {
+                    id: msg.id,
+                    type: 'result',
+                    success: true,
+                    result: { url: '/api/hls/front/index.m3u8' },
+                  }),
+                10
+              );
               return;
             }
 
             if (msg.type === 'subscribe_entities') {
-              setTimeout(() => emitMessage(this, { id: msg.id, type: 'result', success: true }), 25);
-              setTimeout(() => emitMessage(this, {
-                id: msg.id,
-                type: 'event',
-                event: {
-                  a: {
-                    'sensor.energy_cost_today': entityUpdate('12.45', {
-                      friendly_name: 'Energy Cost Today',
-                      unit_of_measurement: 'NOK',
-                      device_class: 'monetary',
-                    }),
-                    'sensor.energy_cost_month': entityUpdate('345.67', {
-                      friendly_name: 'Energy Cost Month',
-                      unit_of_measurement: 'NOK',
-                      device_class: 'monetary',
-                    }),
-                    'sensor.nordpool_price': entityUpdate('0.85', {
-                      friendly_name: 'Nordpool Electricity Price',
-                      unit_of_measurement: 'NOK/kWh',
-                      today: buildNordpoolPrices(),
-                      tomorrow: [],
-                      tomorrow_valid: false,
-                    }),
-                    'media_player.living_room': entityUpdate('playing', {
-                      friendly_name: 'Living Room Speaker',
-                      media_title: 'Test Song',
-                      media_artist: 'Test Artist',
-                      media_content_type: 'music',
-                      supported_features: 152461,
-                    }),
-                    'media_player.kitchen': entityUpdate('idle', {
-                      friendly_name: 'Kitchen Speaker',
-                      media_content_type: 'music',
-                      supported_features: 152461,
-                    }),
-                  },
-                },
-              }), 50);
+              setTimeout(
+                () => emitMessage(this, { id: msg.id, type: 'result', success: true }),
+                25
+              );
+              setTimeout(
+                () =>
+                  emitMessage(this, {
+                    id: msg.id,
+                    type: 'event',
+                    event: {
+                      a: {
+                        'sensor.energy_cost_today': entityUpdate('12.45', {
+                          friendly_name: 'Energy Cost Today',
+                          unit_of_measurement: 'NOK',
+                          device_class: 'monetary',
+                        }),
+                        'sensor.energy_cost_month': entityUpdate('345.67', {
+                          friendly_name: 'Energy Cost Month',
+                          unit_of_measurement: 'NOK',
+                          device_class: 'monetary',
+                        }),
+                        'sensor.nordpool_price': entityUpdate('0.85', {
+                          friendly_name: 'Nordpool Electricity Price',
+                          unit_of_measurement: 'NOK/kWh',
+                          today: buildNordpoolPrices(),
+                          tomorrow: [],
+                          tomorrow_valid: false,
+                        }),
+                        'media_player.living_room': entityUpdate('playing', {
+                          friendly_name: 'Living Room Speaker',
+                          media_title: 'Test Song',
+                          media_artist: 'Test Artist',
+                          media_content_type: 'music',
+                          supported_features: 152461,
+                        }),
+                        'media_player.kitchen': entityUpdate('idle', {
+                          friendly_name: 'Kitchen Speaker',
+                          media_content_type: 'music',
+                          supported_features: 152461,
+                        }),
+                        'climate.living_room': entityUpdate('heat', {
+                          friendly_name: 'Living Room Climate',
+                          current_temperature: 20,
+                          temperature: 22,
+                          min_temp: 16,
+                          max_temp: 30,
+                          hvac_action: 'heating',
+                          hvac_modes: ['off', 'heat', 'cool'],
+                          fan_modes: [],
+                          swing_modes: [],
+                          supported_features: 391,
+                        }),
+                        'camera.front': entityUpdate('idle', {
+                          friendly_name: 'Front Camera',
+                          access_token: 'camera-access-token',
+                          supported_features: 2,
+                        }),
+                      },
+                    },
+                  }),
+                50
+              );
             }
           } catch {
             // ignore malformed test messages
@@ -259,11 +358,154 @@ test.describe('Nordpool Card', () => {
     // The nordpool card should render without errors
     // Check that no error/missing-entity state is shown
     const missingCards = page.locator('[class*="border-dashed"]');
-    await expect(missingCards).toHaveCount(0, { timeout: 3000 }).catch(() => {
-      // May show missing if entity not yet loaded — acceptable in E2E
-    });
+    await expect(missingCards)
+      .toHaveCount(0, { timeout: 3000 })
+      .catch(() => {
+        // May show missing if entity not yet loaded — acceptable in E2E
+      });
 
     await waitForCardText(page, 'nordpool_card_e2e_001', /Nordpool Electricity Price/i);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   Climate Card
+   ═══════════════════════════════════════════════════════════ */
+
+test.describe('Climate Card', () => {
+  test.beforeEach(async ({ page, cardMock }) => {
+    await setupPageWithCards(page, ['climate_card_e2e_001'], {
+      'home::climate_card_e2e_001': {
+        climateId: 'climate.living_room',
+        climateFavoriteModes: ['off', 'heat'],
+      },
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('shows responsive mode shortcuts and sends the selected HVAC mode', async ({ page }) => {
+    const card = await waitForCard(page, 'climate_card_e2e_001');
+    await card.click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    const offShortcut = dialog.getByRole('button', { name: /shortcuts: off/i });
+    const heatShortcut = dialog.getByRole('button', { name: /shortcuts: heat/i });
+    await expect(offShortcut).toBeVisible();
+    await expect(heatShortcut).toHaveAttribute('aria-pressed', 'true');
+
+    await offShortcut.click();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          window.__e2eServiceCalls.some(
+            (call) =>
+              call.domain === 'climate' &&
+              call.service === 'set_hvac_mode' &&
+              call.service_data?.entity_id === 'climate.living_room' &&
+              call.service_data?.hvac_mode === 'off'
+          )
+        )
+      )
+      .toBe(true);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const bounds = await dialog.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
+    await expect(offShortcut).toBeVisible();
+    await expect(heatShortcut).toBeVisible();
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   Camera Card
+   ═══════════════════════════════════════════════════════════ */
+
+test.describe('Camera Card', () => {
+  test.beforeEach(async ({ page, cardMock }) => {
+    const cameraFrame = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+        <defs><linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#315d7a"/><stop offset="1" stop-color="#102431"/></linearGradient></defs>
+        <rect width="1280" height="720" fill="url(#sky)"/>
+        <path d="M0 540 L320 330 L570 515 L835 270 L1280 555 V720 H0Z" fill="#142f2c"/>
+        <circle cx="1040" cy="155" r="72" fill="#ffe7a0" opacity=".9"/>
+        <text x="64" y="660" fill="white" font-family="sans-serif" font-size="38">Front Camera · live fallback</text>
+      </svg>`;
+    await page.route('http://localhost:8123/api/hls/front/index.m3u8', (route) =>
+      route.fulfill({ status: 502, contentType: 'text/plain', body: 'stream unavailable' })
+    );
+    await page.route(
+      /http:\/\/localhost:8123\/api\/camera_proxy_stream\/camera\.front.*/,
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'image/svg+xml',
+          headers: { 'access-control-allow-origin': '*' },
+          body: cameraFrame,
+        })
+    );
+    await page.route(/http:\/\/localhost:8123\/api\/camera_proxy\/camera\.front.*/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'image/svg+xml',
+        headers: { 'access-control-allow-origin': '*' },
+        body: cameraFrame,
+      })
+    );
+
+    await setupPageWithCards(page, ['camera_card_e2e_001'], {
+      'home::camera_card_e2e_001': {
+        cameraId: 'camera.front',
+        cameraStreamEngine: 'auto',
+      },
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('falls back from a broken HA HLS stream and keeps the modal usable on mobile', async ({
+    page,
+  }) => {
+    const card = await waitForCard(page, 'camera_card_e2e_001');
+    const cardFeed = card.getByTestId('camera-feed');
+    await expect(cardFeed).toHaveAttribute('data-camera-source', 'mjpeg', { timeout: 20000 });
+    await expect(cardFeed.getByRole('img', { name: 'Front Camera' })).toBeVisible();
+
+    await card.click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId('camera-feed')).toHaveAttribute('data-camera-source', 'mjpeg', {
+      timeout: 20000,
+    });
+    await expect
+      .poll(() =>
+        dialog.getByRole('img', { name: 'Front Camera' }).evaluate((img) => img.naturalWidth)
+      )
+      .toBeGreaterThan(0);
+
+    await dialog.getByRole('button', { name: /snapshot|stillbilde/i }).click();
+    await expect(dialog.getByTestId('camera-feed')).toHaveAttribute(
+      'data-camera-source',
+      'snapshot'
+    );
+    await expect
+      .poll(() =>
+        dialog.getByRole('img', { name: 'Front Camera' }).evaluate((img) => img.naturalWidth)
+      )
+      .toBeGreaterThan(0);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const bounds = await dialog.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
+    await expect(dialog.getByRole('button', { name: /stream|straum|strøm/i })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /refresh|oppdater/i })).toBeVisible();
   });
 });
 

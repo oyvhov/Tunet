@@ -43,13 +43,16 @@ export function useEditModalProps({
     const isEditSpacer = !!editId && editId.startsWith('spacer_card_');
     const isEditCamera = !!editId && editId.startsWith('camera_card_');
     const isEditFan = !!editId && (editId.startsWith('fan.') || editId.startsWith('fan_card_'));
+    const isEditClimate = !!editId && editId.startsWith('climate_card_');
 
     const editSettings = isEditCar ? resolveCarSettings(editId, rawEditSettings) : rawEditSettings;
     const nameFallbackEntityId = isEditCover
       ? editSettings?.coverId || null
-      : isEditLock
-        ? editSettings?.lockId || editId
-        : editId;
+      : isEditClimate
+        ? editSettings?.climateId || null
+        : isEditLock
+          ? editSettings?.lockId || editId
+          : editId;
     const isEditGenericType =
       (!!editSettings?.type &&
         (editSettings.type === 'entity' ||
@@ -120,6 +123,7 @@ export function useEditModalProps({
       isEditWeatherTemp,
       canEditMobileWidth,
       isEditFan,
+      isEditClimate,
       isEditAlarm,
       nameFallbackEntityId,
       editSettingsKey,

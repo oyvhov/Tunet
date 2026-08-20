@@ -84,6 +84,22 @@ describe('useEditModalProps', () => {
     expect(result.current.nameFallbackEntityId).toBe('cover.front_door');
   });
 
+  it('identifies climate cards and uses their mapped entity as the name source', () => {
+    const { result } = renderHook(() =>
+      useEditModalProps(
+        makeBase({
+          showEditCardModal: 'climate_card_1',
+          cardSettings: {
+            'settings::climate_card_1': { climateId: 'climate.living_room' },
+          },
+        })
+      )
+    );
+
+    expect(result.current.isEditClimate).toBe(true);
+    expect(result.current.nameFallbackEntityId).toBe('climate.living_room');
+  });
+
   it.each([
     'weather_temp_home',
     'cost_card_home',

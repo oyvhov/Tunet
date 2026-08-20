@@ -344,7 +344,7 @@
  * @typedef {Object} ModalState
  * @property {string | null} showNordpoolModal
  * @property {string | null} showCostModal
- * @property {string | null} activeClimateEntityModal
+ * @property {string | {entityId: string, cardId?: string, settingsKey?: string} | null} activeClimateEntityModal
  * @property {string | null} showLightModal
  * @property {string | null} activeCarModal
  * @property {string | null} showPersonModal

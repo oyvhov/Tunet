@@ -86,6 +86,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
       dry: t('climate.hvac.dry'),
       fan_only: t('climate.hvac.fanOnly'),
       heat: t('climate.hvac.heat'),
+      heat_cool: t('climate.hvac.heatCool'),
     }),
     [t]
   );

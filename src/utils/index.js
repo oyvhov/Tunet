@@ -10,6 +10,12 @@ export {
   resolveConditionEntityId,
 } from './conditionUtils';
 export { getCardGridSpan, getCardColSpan, buildGridLayout } from './gridLayout';
+export {
+  DEFAULT_CLIMATE_FAVORITE_MODES,
+  MAX_CLIMATE_FAVORITE_MODES,
+  resolveClimateFavoriteModes,
+  toggleClimateFavoriteMode,
+} from './climateFavorites';
 export { createDragAndDropHandlers } from './dragAndDrop';
 export {
   getEffectiveUnitMode,

@@ -1,35 +1,7 @@
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Camera, AlertCircle } from '../../icons';
 import { getIconComponent } from '../../icons';
-
-function buildCameraUrl(basePath, entityId, accessToken) {
-  const tokenQuery = accessToken ? `?token=${encodeURIComponent(accessToken)}` : '';
-  return `${basePath}/${entityId}${tokenQuery}`;
-}
-
-function appendTs(url, ts) {
-  if (!url) return '';
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}_ts=${ts}`;
-}
-
-function resolveCameraTemplate(urlTemplate, entityId) {
-  if (!urlTemplate) return '';
-  const objectId = (entityId || '').includes('.')
-    ? entityId.split('.').slice(1).join('.')
-    : entityId;
-  return urlTemplate
-    .replaceAll('{entity_id}', entityId || '')
-    .replaceAll('{entity_object_id}', objectId || '');
-}
-
-function normalizeStreamEngine(value) {
-  const raw = String(value || '').toLowerCase();
-  if (raw === 'webrtc') return 'webrtc';
-  if (raw === 'snapshot') return 'snapshot';
-  if (raw === 'ha' || raw === 'ha_stream' || raw === 'hastream' || raw === 'ha-stream') return 'ha';
-  return 'auto';
-}
+import CameraFeed from '../camera/CameraFeed';
 
 const CameraCard = memo(/** @param {any} props */ function CameraCard({
   cardId,
@@ -43,13 +15,14 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   editMode,
   customNames,
   customIcons,
+  conn,
   getEntityImageUrl,
   onOpen,
   size,
   t,
 }) {
   const [refreshTs, setRefreshTs] = useState(Date.now());
-  const [streamSource, setStreamSource] = useState('ha');
+  const [activeSource, setActiveSource] = useState('loading');
   const intervalRef = useRef(null);
   const previousMotionActiveRef = useRef(false);
 
@@ -64,52 +37,7 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   const Icon = iconName ? getIconComponent(iconName) || Camera : Camera;
   const isSmall = size === 'small';
 
-  const accessToken = attrs.access_token;
-
-  const haStreamUrl = useMemo(
-    () => getEntityImageUrl(buildCameraUrl('/api/camera_proxy_stream', entityId, accessToken)),
-    [entityId, accessToken, getEntityImageUrl]
-  );
-
-  const snapshotUrl = useMemo(() => {
-    const base = buildCameraUrl('/api/camera_proxy', entityId, accessToken) || attrs.entity_picture;
-    return getEntityImageUrl(appendTs(base, refreshTs));
-  }, [entityId, accessToken, attrs.entity_picture, refreshTs, getEntityImageUrl]);
-
-  const streamEngine = normalizeStreamEngine(settings?.cameraStreamEngine);
-  const webrtcTemplate = (settings?.cameraWebrtcUrl || '').trim();
-  const webrtcUrl = useMemo(() => {
-    const resolved = resolveCameraTemplate(webrtcTemplate, entityId);
-    return resolved ? getEntityImageUrl(resolved) : null;
-  }, [webrtcTemplate, entityId, getEntityImageUrl]);
-
-  const preferredSource = useMemo(() => {
-    if (streamEngine === 'snapshot') return 'snapshot';
-    if (streamEngine === 'webrtc') {
-      if (webrtcUrl) return 'webrtc';
-      return 'ha';
-    }
-    if (streamEngine === 'ha') return 'ha';
-    if (webrtcUrl) return 'webrtc';
-    return 'ha';
-  }, [streamEngine, webrtcUrl]);
-
-  useEffect(() => {
-    setStreamSource(preferredSource);
-  }, [preferredSource]);
-
-  const previewUrl =
-    streamSource === 'webrtc' ? webrtcUrl : streamSource === 'ha' ? haStreamUrl : snapshotUrl;
-
-  const handleStreamError = useCallback(() => {
-    setStreamSource((current) => {
-      if (current === 'webrtc') return haStreamUrl ? 'ha' : 'snapshot';
-      if (current === 'ha') return 'snapshot';
-      return current;
-    });
-  }, [haStreamUrl]);
-
-  const usingSnapshotFallback = streamSource === 'snapshot' && preferredSource !== 'snapshot';
+  const usingSnapshot = activeSource === 'snapshot';
 
   const refreshMode = settings?.cameraRefreshMode || 'interval';
   const refreshInterval = Math.max(2, Number(settings?.cameraRefreshInterval) || 10);
@@ -117,15 +45,14 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
 
   const doRefresh = useCallback(() => {
     setRefreshTs(Date.now());
-    setStreamSource(preferredSource);
-  }, [preferredSource]);
+  }, []);
 
   // Interval-based snapshot refresh (only used when stream has failed)
   useEffect(() => {
-    if (isOffline || !usingSnapshotFallback || refreshMode !== 'interval') return;
+    if (isOffline || !usingSnapshot || refreshMode !== 'interval') return;
     intervalRef.current = setInterval(doRefresh, refreshInterval * 1000);
     return () => clearInterval(intervalRef.current);
-  }, [isOffline, usingSnapshotFallback, refreshMode, refreshInterval, doRefresh]);
+  }, [isOffline, usingSnapshot, refreshMode, refreshInterval, doRefresh]);
 
   // Motion-sensor-based refresh
   useEffect(() => {
@@ -162,12 +89,17 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
         {controls}
         <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-[var(--glass-bg)]">
           {!isOffline ? (
-            <img
-              src={previewUrl}
+            <CameraFeed
+              entityId={entityId}
+              entity={entity}
+              conn={conn}
+              getEntityImageUrl={getEntityImageUrl}
+              settings={settings}
+              refreshKey={refreshTs}
+              fit="cover"
               alt={name}
-              className="h-full w-full object-cover"
-              referrerPolicy="no-referrer"
-              onError={handleStreamError}
+              t={t}
+              onSourceChange={setActiveSource}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[var(--text-secondary)]">
@@ -205,13 +137,20 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
       {controls}
 
       {!isOffline ? (
-        <img
-          src={previewUrl}
-          alt={name}
-          className="absolute inset-0 h-full w-full object-cover"
-          referrerPolicy="no-referrer"
-          onError={handleStreamError}
-        />
+        <div className="absolute inset-0">
+          <CameraFeed
+            entityId={entityId}
+            entity={entity}
+            conn={conn}
+            getEntityImageUrl={getEntityImageUrl}
+            settings={settings}
+            refreshKey={refreshTs}
+            fit="cover"
+            alt={name}
+            t={t}
+            onSourceChange={setActiveSource}
+          />
+        </div>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-[var(--glass-bg)]">
           <div className="flex flex-col items-center gap-2 text-[var(--text-secondary)] opacity-70">
