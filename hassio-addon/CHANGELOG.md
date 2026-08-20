@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.21.0
+
+### Added
+- Adds configurable climate mode shortcuts and automatic camera source fallback (#140, #164).
+
+### Changed
+- Includes dashboard release `1.21.0` with refined navigation and a media chooser that works across Sonos, Music Assistant, Emby, and standard media players.
+
+### Fixed
+- Improves camera stream reliability and the phone layout for media popups.
+
 ## 1.20.9
 
 ### Changed

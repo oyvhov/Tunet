@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.21.0] — 2026-08-20
+
+### Added
+- Added up to two configurable climate mode shortcuts, with Off and Heat as useful defaults when supported.
+- Added automatic camera source fallback across Home Assistant WebRTC and HLS, go2rtc, MJPEG, and signed snapshots (#140, #164).
+
+### Changed
+- Refined dashboard navigation, header controls, mobile badges, and overview-page layouts.
+- Reworked the media chooser to discover favorites, playlists, and libraries across Sonos, Music Assistant, and standard media players.
+- Adapted the Emby media popup for phones and gave climate shortcuts a quieter, neutral selected state.
+
+### Fixed
+- Improved camera card and popup reliability when a preferred live stream is unavailable (#140).
+- Fixed media chooser layout shifts, duplicate close controls, and empty favorites for non-Sonos players.
+
+
 ## [1.20.9] — 2026-08-19
 
 ### Added
