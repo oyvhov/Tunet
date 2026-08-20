@@ -162,6 +162,18 @@ export const test = baseTest.extend({
                           device_class: 'battery',
                           unit_of_measurement: '%',
                         }),
+                        'media_player.emby_tv': entityUpdate('playing', {
+                          friendly_name: 'Gaute - Gaute TV Bibliotek Gaute TV',
+                          media_title: 'Knutsen & Ludvigsen og den fæle Rasputin',
+                          media_series_title: 'Emby',
+                          media_duration: 4505,
+                          media_position: 3558,
+                          volume_level: 0.35,
+                          is_volume_muted: false,
+                          shuffle: false,
+                          repeat: 'off',
+                          supported_features: 152511,
+                        }),
                       },
                     },
                   });

@@ -103,6 +103,84 @@ test.describe('Modal Interactions', () => {
     await expect(trigger).toHaveAccessibleName('Edit');
   });
 
+  test('should keep the immersive Emby media popup inside the mobile viewport', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'tunet_status_pills_config',
+        JSON.stringify([
+          {
+            id: 'emby-mobile',
+            type: 'emby',
+            label: 'Emby',
+            visible: true,
+            clickable: true,
+            conditionEnabled: false,
+            mediaEntityIds: ['media_player.emby_tv'],
+          },
+        ])
+      );
+      localStorage.setItem(
+        'tunet_media_view_mode_by_modal',
+        JSON.stringify({ 'media::default': false })
+      );
+    });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: /Emby/ }).click();
+
+    const modal = page.locator('[role="dialog"]').first();
+    await expect(modal).toBeVisible();
+    await expect(
+      modal
+        .getByTestId('media-immersive-content')
+        .getByRole('heading', { name: 'Knutsen & Ludvigsen og den fæle Rasputin' })
+    ).toBeVisible();
+
+    const modalBounds = await modal.boundingBox();
+    expect(modalBounds).not.toBeNull();
+    expect(modalBounds.x).toBeGreaterThanOrEqual(0);
+    expect(modalBounds.x + modalBounds.width).toBeLessThanOrEqual(390);
+    expect(modalBounds.y).toBeGreaterThanOrEqual(0);
+    expect(modalBounds.y + modalBounds.height).toBeLessThanOrEqual(844);
+
+    await expect(modal.getByTestId('media-immersive-controls')).toHaveCSS(
+      'flex-direction',
+      'column'
+    );
+
+    const visibleButtonBounds = await modal.locator('button').evaluateAll((buttons) =>
+      buttons
+        .filter((button) => {
+          const style = window.getComputedStyle(button);
+          const bounds = button.getBoundingClientRect();
+          return (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            bounds.width > 0 &&
+            bounds.right > 0 &&
+            bounds.left < window.innerWidth &&
+            bounds.bottom > 0 &&
+            bounds.top < window.innerHeight
+          );
+        })
+        .map((button) => {
+          const bounds = button.getBoundingClientRect();
+          return { left: bounds.left, right: bounds.right };
+        })
+    );
+
+    visibleButtonBounds.forEach(({ left, right }) => {
+      expect(left).toBeGreaterThanOrEqual(modalBounds.x - 1);
+      expect(right).toBeLessThanOrEqual(modalBounds.x + modalBounds.width + 1);
+    });
+
+    const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(documentWidth).toBeLessThanOrEqual(390);
+  });
+
   test('should close modal with close button', async ({ page }) => {
     await openSystemModal(page);
 

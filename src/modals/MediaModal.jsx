@@ -997,7 +997,7 @@ export default function MediaModal({
         backdropFilter: showPlayersSidebar ? 'blur(20px)' : 'none',
         backgroundColor: showPlayersSidebar ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.15)',
       }}
-      panelClassName={`popup-anim relative flex w-full flex-col overflow-hidden shadow-2xl md:flex-row ${showPlayersSidebar ? 'max-w-5xl gap-4 rounded-3xl border p-4 backdrop-blur-xl md:gap-10 md:rounded-[4rem] md:p-10' : 'max-w-[95vw] rounded-3xl border-0 p-0 md:rounded-[3rem]'}`}
+      panelClassName={`popup-anim relative flex w-full flex-col overflow-hidden shadow-2xl md:flex-row ${showPlayersSidebar ? 'max-w-5xl gap-4 rounded-3xl border p-4 backdrop-blur-xl md:gap-10 md:rounded-[4rem] md:p-10' : 'max-w-[calc(100vw-1rem)] rounded-2xl border-0 p-0 md:max-w-[95vw] md:rounded-[3rem]'}`}
       panelStyle={{
         background: showPlayersSidebar
           ? 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)'
@@ -1014,7 +1014,7 @@ export default function MediaModal({
         </h2>
         <button
           onClick={handleModalClose}
-          className={`modal-close absolute z-50 ${showPlayersSidebar ? 'top-6 right-6 md:top-10 md:right-10' : 'top-6 right-6 md:top-10 md:right-10'}`}
+          className={`modal-close absolute z-50 ${showPlayersSidebar ? 'top-6 right-6 md:top-10 md:right-10' : 'top-4 right-4 md:top-10 md:right-10'}`}
           aria-label={t('common.close') || 'Close'}
         >
           <X
@@ -1023,27 +1023,27 @@ export default function MediaModal({
         </button>
 
         <div className={`custom-scrollbar relative z-10 flex min-h-0 flex-col justify-start ${showPlayersSidebar ? 'flex-1 pr-1 md:pr-2 overflow-hidden' : 'h-full w-full overflow-hidden'}`}>
-          <div className={`flex items-center gap-3 md:gap-4 flex-shrink-0 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-6 left-6 z-50 md:top-10 md:left-10'}`}>
+          <div className={`flex items-center gap-2 md:gap-4 flex-shrink-0 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-4 right-28 left-4 z-50 md:top-10 md:right-32 md:left-10'}`}>
             <div
-              className="rounded-2xl p-3 transition-all duration-500 md:p-4"
+              className="rounded-xl p-2 transition-all duration-500 md:rounded-2xl md:p-4"
               style={{ backgroundColor: showPlayersSidebar ? 'var(--glass-bg)' : 'rgba(255,255,255,0.1)', color: showPlayersSidebar ? 'var(--text-secondary)' : 'white' }}
             >
               {isChannel ? (
-                <Tv className="h-6 w-6 md:h-8 md:w-8" />
+                <Tv className="h-5 w-5 md:h-8 md:w-8" />
               ) : isCurrentSonos ? (
-                <Speaker className="h-6 w-6 md:h-8 md:w-8" />
+                <Speaker className="h-5 w-5 md:h-8 md:w-8" />
               ) : (
-                <Music className="h-6 w-6 md:h-8 md:w-8" />
+                <Music className="h-5 w-5 md:h-8 md:w-8" />
               )}
             </div>
             <div className="min-w-0">
-              <h3 className={`max-w-full pr-10 text-lg leading-tight font-light tracking-tight break-words uppercase italic md:pr-1 md:text-2xl md:leading-tight ${showPlayersSidebar ? 'text-[var(--text-primary)]' : 'text-white drop-shadow-md'}`}>
+              <h3 className={`max-w-full leading-tight font-light tracking-tight break-words uppercase italic md:leading-tight ${showPlayersSidebar ? 'pr-10 text-lg text-[var(--text-primary)] md:pr-1 md:text-2xl' : 'line-clamp-2 text-sm text-white drop-shadow-md sm:text-base md:text-2xl'}`}>
                 {activeUser
                   ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}`
                   : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
               </h3>
               <div
-                className="mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1"
+                className="mt-1 inline-flex items-center gap-2 rounded-full border px-2 py-0.5 md:mt-2 md:px-3 md:py-1"
                 style={{
                   backgroundColor: showPlayersSidebar ? 'var(--glass-bg)' : 'rgba(0,0,0,0.3)',
                   borderColor: showPlayersSidebar ? 'var(--glass-border)' : 'rgba(255,255,255,0.1)',
@@ -1059,7 +1059,7 @@ export default function MediaModal({
               </div>
             </div>
           </div>
-          <div className={`flex flex-col gap-2 flex-shrink-0 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-6 right-20 z-50 md:top-10 md:right-24'}`}>
+          <div className={`flex flex-col gap-2 flex-shrink-0 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-4 right-14 z-50 md:top-10 md:right-24'}`}>
             <div className="flex flex-wrap items-center gap-2">
               {showPlayersSidebar && (
                 <>
@@ -1410,7 +1410,7 @@ export default function MediaModal({
           </div>
 
           {!showPlayersSidebar && (
-            <div className="flex h-full w-full flex-col justify-end pb-12">
+            <div className="flex h-full w-full flex-col justify-end overflow-y-auto pt-24 pb-4 sm:pb-6 md:overflow-hidden md:pt-0 md:pb-12">
               {/* Background Artwork - Full Screen */}
               <div className="absolute inset-0 z-0">
                 {isImageAvailable(safeCurrentArtworkUrl) ? (
@@ -1431,21 +1431,24 @@ export default function MediaModal({
               </div>
 
               {/* Main Content Overlay - Bottom Aligned Controls */}
-              <div className="relative z-10 flex flex-col items-center gap-6 px-8 md:px-16 w-full max-w-5xl mx-auto">
+              <div
+                data-testid="media-immersive-content"
+                className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-4 sm:gap-4 sm:px-6 md:gap-6 md:px-16"
+              >
                 
                 {/* Intro / Metadata */}
                 <div className="text-center w-full">
-                  <h2 className="text-3xl font-bold text-white md:text-5xl drop-shadow-lg mb-2 line-clamp-2">
+                  <h2 className="mb-1 line-clamp-2 text-xl leading-tight font-bold text-white drop-shadow-lg sm:mb-2 sm:text-2xl md:text-5xl">
                     {mpTitle || t('common.unknown')}
                   </h2>
-                  <p className="text-xl font-medium text-white/80 md:text-2xl drop-shadow-md line-clamp-1">
+                  <p className="line-clamp-1 text-sm font-medium text-white/80 drop-shadow-md sm:text-base md:text-2xl">
                     {mpSeries || mpArtist}
                   </p>
                 </div>
 
                 {/* Progress Bar & Times */}
-                <div className="w-full flex items-center gap-4">
-                  <span className="text-xs font-medium text-white/80 w-12 text-right drop-shadow-md">
+                <div className="flex w-full items-center gap-2 sm:gap-3 md:gap-4">
+                  <span className="w-10 text-right text-[10px] font-medium text-white/80 drop-shadow-md sm:w-12 sm:text-xs">
                     {formatDuration(effectivePosition)}
                   </span>
                   <div className="flex-1">
@@ -1465,15 +1468,21 @@ export default function MediaModal({
                       colorClass="bg-white"
                     />
                   </div>
-                  <span className="text-xs font-medium text-white/80 w-12 drop-shadow-md">
+                  <span className="w-10 text-[10px] font-medium text-white/80 drop-shadow-md sm:w-12 sm:text-xs">
                     {formatDuration(duration)}
                   </span>
                 </div>
 
                 {/* Main Controls Row */}
-                <div className="flex items-center justify-between w-full gap-8">
+                <div
+                  data-testid="media-immersive-controls"
+                  className="flex w-full flex-col items-center justify-between gap-3 md:flex-row md:gap-8"
+                >
                   {/* Volume Group */}
-                  <div className="flex items-center gap-3 bg-black/30 backdrop-blur-md rounded-full px-4 py-2 border border-white/10">
+                  <div
+                    data-testid="media-immersive-volume"
+                    className="flex w-full max-w-sm items-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-md md:w-auto md:max-w-none"
+                  >
                     <button
                       onClick={() =>
                         callService('media_player', 'volume_mute', {
@@ -1483,9 +1492,9 @@ export default function MediaModal({
                       }
                       className="text-white/80 hover:text-white transition-colors"
                     >
-                      {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                      {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
                     </button>
-                    <div className="w-24 md:w-48 lg:w-64">
+                    <div className="min-w-0 flex-1 md:w-48 md:flex-none lg:w-64">
                       <M3Slider
                          variant="volume"
                          min={0}
@@ -1504,7 +1513,10 @@ export default function MediaModal({
                   </div>
 
                   {/* Playback Buttons */}
-                  <div className="flex items-center gap-6 md:gap-8">
+                  <div
+                    data-testid="media-immersive-playback"
+                    className="flex items-center justify-center gap-3 sm:gap-4 md:gap-8"
+                  >
                      <button
                         onClick={() =>
                           callService('media_player', 'shuffle_set', {
@@ -1514,7 +1526,7 @@ export default function MediaModal({
                         }
                         className={`text-white/60 hover:text-white transition-colors ${shuffle ? 'text-[var(--status-success-fg)]' : ''}`}
                       >
-                        <Shuffle size={20} />
+                        <Shuffle className="h-4 w-4 sm:h-5 sm:w-5" />
                       </button>
 
                     <button
@@ -1523,19 +1535,19 @@ export default function MediaModal({
                       }
                       className="text-white hover:text-white/80 transition-transform active:scale-90"
                     >
-                      <SkipBack size={32} fill="currentColor" />
+                      <SkipBack className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" fill="currentColor" />
                     </button>
 
                     <button
                       onClick={() =>
                         callService('media_player', 'media_play_pause', { entity_id: mpId })
                       }
-                      className="flex items-center justify-center bg-white text-black h-16 w-16 md:h-20 md:w-20 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all"
+                      className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-xl transition-all hover:scale-105 active:scale-95 sm:h-16 sm:w-16 md:h-20 md:w-20"
                     >
                        {isPlaying ? (
-                        <Pause size={32} fill="currentColor" />
+                        <Pause className="h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
                       ) : (
-                        <Play size={32} fill="currentColor" className="ml-1" />
+                        <Play className="ml-1 h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
                       )}
                     </button>
 
@@ -1545,7 +1557,7 @@ export default function MediaModal({
                       }
                       className="text-white hover:text-white/80 transition-transform active:scale-90"
                     >
-                      <SkipForward size={32} fill="currentColor" />
+                      <SkipForward className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" fill="currentColor" />
                     </button>
 
                     <button
@@ -1559,7 +1571,11 @@ export default function MediaModal({
                         }}
                         className={`text-white/60 hover:text-white transition-colors ${repeat !== 'off' ? 'text-[var(--status-success-fg)]' : ''}`}
                       >
-                       {repeat === 'one' ? <Repeat1 size={20} /> : <Repeat size={20} />}
+                       {repeat === 'one' ? (
+                        <Repeat1 className="h-4 w-4 sm:h-5 sm:w-5" />
+                       ) : (
+                        <Repeat className="h-4 w-4 sm:h-5 sm:w-5" />
+                       )}
                     </button>
                   </div>
                   
