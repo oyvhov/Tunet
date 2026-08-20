@@ -181,6 +181,90 @@ test.describe('Modal Interactions', () => {
     expect(documentWidth).toBeLessThanOrEqual(390);
   });
 
+  test('should keep the media chooser stable and browse nested favorites for generic players', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1060, height: 600 });
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'tunet_status_pills_config',
+        JSON.stringify([
+          {
+            id: 'generic-media',
+            type: 'media_player',
+            label: 'Media',
+            visible: true,
+            clickable: true,
+            conditionEnabled: false,
+            entityId: 'media_player.emby_tv',
+          },
+        ])
+      );
+      localStorage.setItem(
+        'tunet_media_view_mode_by_modal',
+        JSON.stringify({ 'media::default': true })
+      );
+    });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: /Media/ }).click();
+
+    const modal = page.locator('[role="dialog"]').first();
+    await expect(modal).toBeVisible();
+    await modal.getByRole('button', { name: 'Choose media' }).click();
+
+    const chooser = modal.getByTestId('media-chooser');
+    const results = modal.getByTestId('media-chooser-results');
+    await expect(chooser).toBeVisible();
+    await expect(modal.getByTestId('media-chooser-loading')).toBeVisible();
+
+    const chooserBefore = await chooser.boundingBox();
+    const resultsBefore = await results.boundingBox();
+    expect(chooserBefore).not.toBeNull();
+    expect(resultsBefore).not.toBeNull();
+
+    await expect(chooser.getByRole('button', { name: 'Favorites' })).toBeVisible();
+    await expect(chooser.getByRole('button', { name: 'Playlists' })).toBeVisible();
+    await expect(chooser.getByRole('button', { name: 'Library' })).toBeVisible();
+    await expect(chooser.getByRole('button', { name: 'Search' })).toBeVisible();
+    await expect(chooser.getByText('Born to Be Alive')).toBeVisible();
+
+    const chooserAfter = await chooser.boundingBox();
+    const resultsAfter = await results.boundingBox();
+    expect(Math.abs(chooserAfter.width - chooserBefore.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(resultsAfter.y - resultsBefore.y)).toBeLessThanOrEqual(1);
+    expect(await modal.locator('.modal-close:visible').count()).toBe(1);
+    await expect(modal.getByTestId('media-chooser-close')).toBeVisible();
+
+    await chooser.getByRole('button', { name: 'Library' }).click();
+    await expect(chooser.getByText('90-talet')).toBeVisible();
+
+    await chooser.getByRole('button', { name: 'Search' }).click();
+    await chooser.getByRole('searchbox').fill('90');
+    await expect(chooser.getByText('90-talet')).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileChooserBounds = await chooser.boundingBox();
+    expect(mobileChooserBounds.x).toBeGreaterThanOrEqual(0);
+    expect(mobileChooserBounds.x + mobileChooserBounds.width).toBeLessThanOrEqual(390);
+
+    const mobileTabBounds = await chooser
+      .getByRole('group')
+      .getByRole('button')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const bounds = button.getBoundingClientRect();
+          return { left: bounds.left, right: bounds.right };
+        })
+      );
+    mobileTabBounds.forEach(({ left, right }) => {
+      expect(left).toBeGreaterThanOrEqual(mobileChooserBounds.x);
+      expect(right).toBeLessThanOrEqual(mobileChooserBounds.x + mobileChooserBounds.width);
+    });
+    await chooser.getByRole('button', { name: 'Favorites' }).click();
+  });
+
   test('should close modal with close button', async ({ page }) => {
     await openSystemModal(page);
 

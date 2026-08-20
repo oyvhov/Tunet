@@ -87,6 +87,100 @@ export const test = baseTest.extend({
               return;
             }
 
+            if (msg.type === 'media_player/browse_media') {
+              const contentId = msg.media_content_id || '';
+              const browseResults = {
+                '': {
+                  title: 'Media sources',
+                  children: [
+                    {
+                      title: 'Music Assistant',
+                      media_class: 'app',
+                      media_content_type: 'app',
+                      media_content_id: 'media-source://music-assistant',
+                      can_play: false,
+                      can_expand: true,
+                    },
+                  ],
+                },
+                'media-source://music-assistant': {
+                  title: 'Music Assistant',
+                  children: [
+                    {
+                      title: 'Favorittar',
+                      media_class: 'directory',
+                      media_content_type: 'music',
+                      media_content_id: 'library://favorites',
+                      can_play: false,
+                      can_expand: true,
+                    },
+                    {
+                      title: 'Spelelister',
+                      media_class: 'directory',
+                      media_content_type: 'playlist',
+                      media_content_id: 'library://playlists',
+                      can_play: false,
+                      can_expand: true,
+                    },
+                    {
+                      title: 'Bibliotek',
+                      media_class: 'directory',
+                      media_content_type: 'music',
+                      media_content_id: 'library://albums',
+                      can_play: false,
+                      can_expand: true,
+                    },
+                  ],
+                },
+                'library://favorites': {
+                  title: 'Favorittar',
+                  children: [
+                    {
+                      title: 'Born to Be Alive',
+                      media_content_type: 'music',
+                      media_content_id: 'spotify://track/favorite-1',
+                      can_play: true,
+                      can_expand: false,
+                    },
+                  ],
+                },
+                'library://playlists': {
+                  title: 'Spelelister',
+                  children: [
+                    {
+                      title: '2023',
+                      media_content_type: 'playlist',
+                      media_content_id: 'library://playlist/2023',
+                      can_play: true,
+                      can_expand: false,
+                    },
+                  ],
+                },
+                'library://albums': {
+                  title: 'Bibliotek',
+                  children: [
+                    {
+                      title: '90-talet',
+                      media_content_type: 'album',
+                      media_content_id: 'library://album/90s',
+                      can_play: true,
+                      can_expand: false,
+                    },
+                  ],
+                },
+              };
+
+              setTimeout(() => {
+                emitMessage(this, {
+                  id: msg.id,
+                  type: 'result',
+                  success: true,
+                  result: browseResults[contentId] || { title: '', children: [] },
+                });
+              }, 140);
+              return;
+            }
+
             if (msg.type === 'auth/current_user') {
               setTimeout(() => {
                 emitMessage(this, {
