@@ -159,6 +159,15 @@ function migrateCardSettings(rawSettings) {
   return { migratedSettings, changed };
 }
 
+function loadCardSettings() {
+  const saved = readJSON('tunet_card_settings', null);
+  if (!saved) return {};
+
+  const { migratedSettings, changed } = migrateCardSettings(saved);
+  if (changed) writeJSON('tunet_card_settings', migratedSettings);
+  return migratedSettings;
+}
+
 /** Synchronously load & migrate pagesConfig from localStorage. */
 function loadPagesConfig() {
   const parsed = readJSON('tunet_pages_config', null);
@@ -263,7 +272,7 @@ export const usePages = () => {
 /** @param {PageProviderProps} props */
 export const PageProvider = ({ children }) => {
   const [pagesConfig, setPagesConfig] = useState(loadPagesConfig);
-  const [cardSettings, setCardSettings] = useState({});
+  const [cardSettings, setCardSettings] = useState(loadCardSettings);
   const [customNames, setCustomNames] = useState({});
   const [customIcons, setCustomIcons] = useState({});
   const [hiddenCards, setHiddenCards] = useState([]);
@@ -345,12 +354,6 @@ export const PageProvider = ({ children }) => {
       if (modified) writeJSON('tunet_page_settings', nextSettings);
     }
 
-    const cardSettingsSaved = readJSON('tunet_card_settings', null);
-    if (cardSettingsSaved) {
-      const { migratedSettings, changed } = migrateCardSettings(cardSettingsSaved);
-      setCardSettings(migratedSettings);
-      if (changed) writeJSON('tunet_card_settings', migratedSettings);
-    }
   }, []);
 
   useEffect(() => {
@@ -360,6 +363,10 @@ export const PageProvider = ({ children }) => {
   useEffect(() => {
     writeJSON('tunet_pages_config', pagesConfig);
   }, [pagesConfig]);
+
+  useEffect(() => {
+    writeJSON('tunet_card_settings', cardSettings);
+  }, [cardSettings]);
 
   const saveCustomName = useCallback((id, name) => {
     setCustomNames((prev) => {
@@ -379,12 +386,10 @@ export const PageProvider = ({ children }) => {
 
   const saveCardSetting = useCallback((id, setting, value) => {
     setCardSettings((prev) => {
-      const newSettings = {
+      return {
         ...prev,
         [id]: { ...(prev[id] || {}), [setting]: value },
       };
-      writeJSON('tunet_card_settings', newSettings);
-      return newSettings;
     });
   }, []);
 

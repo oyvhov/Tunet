@@ -52,10 +52,18 @@ test.describe('Modal Interactions', () => {
         JSON.stringify({
           header: [],
           pages: ['home'],
-          home: ['light.bedroom', 'light.kitchen'],
+          home: ['light.bedroom', 'light.kitchen', 'calendar_card_e2e'],
         })
       );
-      localStorage.setItem('tunet_card_settings', JSON.stringify({}));
+      localStorage.setItem(
+        'tunet_card_settings',
+        JSON.stringify({
+          'home::calendar_card_e2e': {
+            calendars: ['calendar.family', 'calendar.work'],
+            size: 'large',
+          },
+        })
+      );
       localStorage.setItem(
         'tunet_auth_cache_v1',
         JSON.stringify({
@@ -179,6 +187,49 @@ test.describe('Modal Interactions', () => {
 
     const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(documentWidth).toBeLessThanOrEqual(390);
+  });
+
+  test('should show a power control and switches for grouped room lights', async ({ page }) => {
+    await page.getByText('Bedroom Light', { exact: true }).click();
+    const modal = page.locator('[role="dialog"]').first();
+    await expect(modal).toBeVisible();
+
+    const mainToggle = modal.getByRole('button', { name: 'light.toggle' });
+    await expect(mainToggle.locator('.lucide-power')).toBeVisible();
+    await expect(
+      modal.getByRole('switch', { name: 'Kitchen Light common.toggle' })
+    ).toHaveAttribute('aria-checked', 'false');
+  });
+
+  test('should focus calendar events and reveal calendar selection on demand', async ({ page }) => {
+    await page.getByText('Calendar', { exact: true }).click();
+    const modal = page.locator('[role="dialog"]').first();
+    await expect(modal).toBeVisible();
+    await expect(modal.getByText('Breakfast appointment')).toBeVisible();
+
+    const pickerButton = modal.getByRole('button', { name: 'Select Calendars' });
+    await expect(pickerButton).toHaveAttribute('aria-expanded', 'false');
+    await expect(modal.locator('#calendar-picker-panel')).toHaveCount(0);
+    await expect(
+      modal.getByText('Breakfast appointment').locator('xpath=ancestor::*[@data-past-event][1]')
+    ).toHaveAttribute('data-past-event', 'true');
+    await expect(
+      modal.getByText('Dinner with family').locator('xpath=ancestor::*[@data-past-event][1]')
+    ).toHaveAttribute('data-past-event', 'false');
+
+    await pickerButton.click();
+    await expect(modal.getByRole('button', { name: 'Hide' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    await expect(modal.locator('#calendar-picker-panel')).toBeVisible();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const modalBounds = await modal.boundingBox();
+    expect(modalBounds).not.toBeNull();
+    expect(modalBounds.x).toBeGreaterThanOrEqual(0);
+    expect(modalBounds.x + modalBounds.width).toBeLessThanOrEqual(390);
+    expect(modalBounds.y + modalBounds.height).toBeLessThanOrEqual(844);
   });
 
   test('should keep the media chooser stable and browse nested favorites for generic players', async ({

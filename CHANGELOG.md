@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.21.1] — 2026-08-21
+
+### Changed
+- Added an animated swipe between current weather and forecast views, with responsive layouts for small, large, and wide mobile cards.
+- Polished the light popup, calendar popup, and media-page editing experience.
+
+### Fixed
+- Restored go2rtc and MSE camera playback with reliable Home Assistant stream fallback (#164).
+- Fixed rapid card-setting changes being overwritten in Firefox.
+
 ## [1.21.0] — 2026-08-20
 
 ### Added

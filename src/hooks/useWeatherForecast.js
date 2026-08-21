@@ -36,16 +36,22 @@ export default function useWeatherForecast(conn, cardSettings) {
       await Promise.all(
         weatherIds.map(async (entityId) => {
           if (cancelled) return;
-          try {
-            let data = await getForecast(conn, { entityId, type: 'hourly' });
-            if (!data || data.length === 0) {
-              data = await getForecast(conn, { entityId, type: 'daily' });
-            }
-            if (!cancelled && data && data.length > 0) {
-              newForecasts[entityId] = data;
-            }
-          } catch (_err) {
-            // Silent failure
+          const [hourlyResult, dailyResult] = await Promise.allSettled([
+            getForecast(conn, { entityId, type: 'hourly' }),
+            getForecast(conn, { entityId, type: 'daily' }),
+          ]);
+
+          if (cancelled) return;
+
+          const hourly = hourlyResult.status === 'fulfilled' ? hourlyResult.value : [];
+          const daily = dailyResult.status === 'fulfilled' ? dailyResult.value : [];
+          const next = {};
+
+          if (Array.isArray(hourly) && hourly.length > 0) next.hourly = hourly;
+          if (Array.isArray(daily) && daily.length > 0) next.daily = daily;
+
+          if (Object.keys(next).length > 0) {
+            newForecasts[entityId] = next;
           }
         })
       );
@@ -54,12 +60,11 @@ export default function useWeatherForecast(conn, cardSettings) {
       setForecastsById((prev) => {
         // Drop stale entries for weather cards that were removed
         const next = weatherIds.reduce((acc, id) => {
-          if (prev[id]) acc[id] = prev[id];
+          const previous = Array.isArray(prev[id]) ? { hourly: prev[id] } : prev[id];
+          const incoming = newForecasts[id];
+          if (previous || incoming) acc[id] = { ...previous, ...incoming };
           return acc;
         }, {});
-        if (Object.keys(newForecasts).length) {
-          return { ...next, ...newForecasts };
-        }
         return next;
       });
     };

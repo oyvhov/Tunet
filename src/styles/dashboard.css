@@ -347,7 +347,10 @@ html[data-theme='flat'] .popup-surface-hover {
   align-items: center;
   border-radius: 999px;
   padding: 0.5rem 0.25rem 0.5rem 1.5rem;
-  transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
   animation: editControlsIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .battery-bar__body {
@@ -509,6 +512,89 @@ html[data-theme='light'][data-card-material='elevated'] .touch-feedback:hover {
     0 4px 10px rgba(0, 0, 0, 0.06) !important;
 }
 
+.weather-card-swipe-content {
+  transform: translate3d(var(--weather-swipe-x, 0), 0, 0);
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease-out;
+  will-change: transform, opacity;
+}
+
+.weather-card-swipe-content[data-dragging='true'] {
+  transition: none;
+}
+
+@keyframes weather-card-swipe-out-left {
+  from {
+    transform: translate3d(var(--weather-swipe-x, 0), 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(-108%, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes weather-card-swipe-out-right {
+  from {
+    transform: translate3d(var(--weather-swipe-x, 0), 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(108%, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes weather-card-swipe-in-left {
+  from {
+    transform: translate3d(-108%, 0, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes weather-card-swipe-in-right {
+  from {
+    transform: translate3d(108%, 0, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.weather-card-swipe-out-left {
+  animation: weather-card-swipe-out-left 150ms ease-in forwards;
+}
+
+.weather-card-swipe-out-right {
+  animation: weather-card-swipe-out-right 150ms ease-in forwards;
+}
+
+.weather-card-swipe-in-left {
+  animation: weather-card-swipe-in-left 190ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.weather-card-swipe-in-right {
+  animation: weather-card-swipe-in-right 190ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-card-swipe-content,
+  .weather-card-swipe-out-left,
+  .weather-card-swipe-out-right,
+  .weather-card-swipe-in-left,
+  .weather-card-swipe-in-right {
+    animation-duration: 1ms;
+    transition-duration: 1ms;
+  }
+}
+
 /* ── Density Modes ── */
 
 /* Compact: tighter spacing, smaller text */
@@ -544,7 +630,6 @@ html[data-density='spacious'] .touch-feedback h3 {
 }
 
 /* ── Card Scale (applied via inline zoom in DashboardGrid) ── */
-
 
 /* Custom scrollbar for modal content */
 .custom-scrollbar::-webkit-scrollbar {

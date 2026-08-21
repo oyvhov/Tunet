@@ -1,49 +1,50 @@
-# Design QA — responsive settings sidebars
+# Weather card design QA
 
-- Source visual truth: `C:/Users/Øyvind/.codex/generated_images/01a009f9-e3e9-76b1-89c3-98b9765273cb/exec-debce9c1-0f37-4f78-8126-c699f908309f.png`
-- Desktop implementation screenshot: `C:/Users/YVIND~1/AppData/Local/Temp/tunet-sidebar-desktop-appearance-final.png`
-- Mobile implementation screenshot: `C:/Users/YVIND~1/AppData/Local/Temp/tunet-sidebar-mobile-appearance-final.png`
-- Combined comparison evidence: `C:/Users/YVIND~1/AppData/Local/Temp/tunet-sidebar-design-comparison.png`
-- Desktop viewport and pixels: 1440 × 1024 CSS px, 1440 × 1024 image px, device scale factor 1
-- Mobile viewport and pixels: 390 × 844 CSS px, 390 × 844 image px, device scale factor 1
-- Source pixels: 1536 × 1056
-- State: dark theme, Nynorsk, Appearance sidebar open; equivalent desktop and mobile states
+## Evidence
 
-## Full-view comparison evidence
+- Original card truth: the weather card in the current Tunet dashboard before this change.
+- Selected forecast direction: `C:\Users\Øyvind\.codex\generated_images\01a02037-48fe-7930-99d7-d5de69743171\exec-4d2aa8d1-8df4-44bc-86bd-88b90097d9e9.png`.
+- Rendered evidence: verified in the in-app Browser against the production component at desktop and mobile sizes; QA screenshots were kept outside the repository.
+- Desktop viewport: 1280 × 720 CSS pixels at device scale factor 1; large card 350 × 216 and small card 350 × 100 CSS pixels.
+- Mobile viewport: 390 × 700 CSS pixels at device scale factor 1; full-width card 358 × 184 and small full-width card 358 × 82 CSS pixels.
+- State: dark theme. Current weather is the default; hourly and daily forecast states were opened and verified in every size.
 
-The combined comparison places the selected concept beside the desktop implementation and the focused 390 × 844 mobile implementation. The production UI preserves the concept's right-side desktop inspector, full-width mobile surface, sticky title and Done action, three-destination navigation, quiet divided rows, background previews, blue selection state, and dark glass treatment.
+## Comparison and intent
 
-## Focused region comparison evidence
-
-The dedicated mobile capture is the focused comparison because the concept's most important constraint is one-handed mobile use. Header, navigation, setting rows, labels, chevrons, preview grid, safe edge spacing, scroll behavior, and 44 px minimum interactive targets were inspected at 1:1 CSS size.
-
-## Required fidelity surfaces
-
-- Fonts and typography: hierarchy, weights, line heights, truncation, and label wrapping are consistent with the source. The implementation uses the user's selected app font, so exact letterforms intentionally remain configurable.
-- Spacing and layout rhythm: the 420 px desktop rail, full-width mobile panel, 66–72 px header, 70–78 px navigation, 64 px inspector rows, section separators, and mobile-safe horizontal padding match the selected direction.
-- Colors and visual tokens: existing Tunet dark/glass variables drive the surface, border, accent, hover, and focus colors. The implementation stays slightly closer to the user's current near-black theme than the concept's navy presentation canvas.
-- Image quality and asset fidelity: the concept contains no required brand or photographic assets. Background mode previews are rendered from the real Tunet background modes and remain crisp at both sizes.
-- Copy and content: the chosen Nynorsk labels are present, including `Grunnstil`, `Utsjånad`, `Oppsett`, `Topptekst`, `Bakgrunn`, and `Ferdig`. Existing settings are preserved rather than replaced with mock-only values.
+The original Tunet weather card remains the default presentation, including its weather graph, icon, temperature, typography, and established hierarchy. A horizontal swipe changes between the current view and a forecast state inspired by the selected concept. Inside that state, the same area switches between `Timar` and `Dagar`. The concept's divider and trend line are intentionally omitted, per the requested direction.
 
 ## Findings
 
-- No actionable P0, P1, or P2 mismatch remains.
-- P3: the concept shows four background choices while Tunet has six real modes. The implementation uses a 3 × 2 grid to retain all existing functionality.
-- P3: card scale appears under Oppsett rather than Utsjånad because the existing information architecture treats it as layout. This avoids moving or duplicating a persisted setting.
-
-## Interaction verification
-
-- Opened Appearance from the floating settings menu.
-- Switched Appearance → Layout → Header using the new navigation.
-- Verified selected-tab semantics and the Done action.
-- Verified collapsed sections do not expose hidden controls to keyboard or accessibility navigation.
-- Verified the sidebar measures 390 px wide at the 390 × 844 breakpoint.
-- Chromium mobile E2E passed for sidebar navigation and closing.
+- No actionable P0, P1, or P2 differences remain.
+- Large card: the original graph view is preserved; the forecast state fits four periods without clipping.
+- Small card: the current view retains the graph and compact hierarchy; the forecast state fits two periods without overlap.
+- Full-width mobile: horizontal content padding is increased independently of the narrow mobile card. The forecast header, controls, four periods, and bottom edge keep visible breathing room.
+- Small full-width mobile: three periods fit beside the compact vertical `Timar`/`Dagar` switch.
+- Typography and colors use the existing Tunet font, uppercase labels, weights, tracking, glass surfaces, borders, and neutral selected state.
+- Existing Meteocons assets are retained at their natural aspect ratio.
+- Hourly and daily values come from Home Assistant's separate forecast responses; legacy forecast arrays remain supported.
 
 ## Comparison history
 
-- First visual pass: Done inherited the old circular modal-button surface, default sliders were too heavy, and collapsed sections left hidden controls focusable.
-- Fixes: isolated the Done text action, scoped slim slider styling to sidebars, and conditionally removed collapsed content from interaction.
-- Post-fix evidence: final desktop and mobile captures listed above show the corrected header, slim sliders, stable navigation, and clean collapsed states.
+- Rejected direction: the first implementation replaced the existing graph view with the forecast layout.
+- Fix: restored the original card as the default and made forecast a separate, reversible state.
+- Mobile P2: in the full-width mobile forecast, temperatures sat too close to the lower border.
+- Fix: reduced only the mobile forecast header/icon density and forecast icon size, leaving clear bottom padding without changing desktop sizing.
+- Interaction revision: removed the current/forecast buttons and replaced them with a two-direction swipe that follows the pointer, then completes with a short slide animation.
+- Post-fix evidence: the final full-width and small full-width mobile checks show no clipping, overlap, or edge crowding.
+
+## Primary interactions and console
+
+- Swiping left opens the hourly forecast without opening the card modal.
+- `Dagar` switches to daily forecast; `Timar` switches back.
+- Swiping right returns to the original graph state.
+- Card click behavior remains unchanged outside the nested controls.
+- The two small neutral indicators show which of the two views is active without acting as buttons.
+- All seven translations include hourly, daily, current, forecast, and the localized swipe hint.
+- The final clean browser tab produced no console warnings or errors.
+
+## Follow-up polish
+
+- None required for this scope.
 
 final result: passed

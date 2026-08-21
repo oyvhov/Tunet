@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.21.1
+
+### Changed
+- Includes dashboard release `1.21.1` with swipeable weather views and refined light, calendar, and media interfaces.
+
+### Fixed
+- Restores go2rtc and MSE camera playback and fixes Firefox card-setting persistence (#164).
+
 ## 1.21.0
 
 ### Added

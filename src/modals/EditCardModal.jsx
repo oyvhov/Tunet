@@ -3,6 +3,7 @@ import { X, Check, Plus, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { getGo2rtcModeFromUrl } from '../components/camera/CameraFeed';
 import { getRelatedEntityIds } from '../services/haClient';
 import { CarMappingsSection, SearchableSelect } from './editCard/CarMappingsSection';
 import { buildCarAnchorOptions } from './editCard/carAnchorOptions';
@@ -1807,10 +1808,20 @@ export default function EditCardModal({
               {isEditCamera &&
                 editSettingsKey &&
                 (() => {
-                  const streamEngine = String(
+                  const savedStreamEngine = String(
                     editSettings.cameraStreamEngine || 'auto'
                   ).toLowerCase();
                   const webrtcTemplate = editSettings.cameraWebrtcUrl || '';
+                  const streamEngine = ['go2rtc', 'custom', 'mse'].includes(savedStreamEngine)
+                    ? 'go2rtc'
+                    : savedStreamEngine === 'webrtc'
+                      ? webrtcTemplate
+                        ? 'go2rtc'
+                        : 'ha'
+                      : savedStreamEngine;
+                  const go2rtcMode = editSettings.cameraGo2rtcMode
+                    ? String(editSettings.cameraGo2rtcMode).toLowerCase()
+                    : getGo2rtcModeFromUrl(webrtcTemplate);
                   const refreshMode = editSettings.cameraRefreshMode || 'interval';
                   const refreshInterval = editSettings.cameraRefreshInterval || 10;
                   const motionSensorId = editSettings.cameraMotionSensor || '';
@@ -1826,8 +1837,14 @@ export default function EditCardModal({
                         <div className="grid grid-cols-2 gap-2">
                           {[
                             { key: 'auto', label: t('camera.streamEngineAuto') || 'Auto' },
-                            { key: 'webrtc', label: t('camera.streamEngineWebrtc') || 'WebRTC' },
-                            { key: 'ha', label: t('camera.streamEngineHa') || 'HA Stream' },
+                            {
+                              key: 'go2rtc',
+                              label: t('camera.streamEngineGo2rtc') || 'go2rtc',
+                            },
+                            {
+                              key: 'ha',
+                              label: t('camera.streamEngineHa') || 'Home Assistant',
+                            },
                             {
                               key: 'snapshot',
                               label: t('camera.streamEngineSnapshot') || 'Snapshot',
@@ -1855,11 +1872,11 @@ export default function EditCardModal({
                         </div>
                       </div>
 
-                      {/* Optional external player URL */}
-                      {(streamEngine === 'webrtc' || streamEngine === 'auto') && (
+                      {/* Optional go2rtc player */}
+                      {(streamEngine === 'go2rtc' || streamEngine === 'auto') && (
                         <div className="space-y-2">
                           <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                            {t('camera.webrtcUrlOptional') || 'WebRTC URL (optional)'}
+                            {t('camera.webrtcUrlOptional') || 'go2rtc player URL'}
                           </label>
                           <input
                             type="text"
@@ -1867,7 +1884,7 @@ export default function EditCardModal({
                             onChange={(e) =>
                               saveCardSetting(editSettingsKey, 'cameraWebrtcUrl', e.target.value)
                             }
-                            placeholder="http://go2rtc.local:1984/stream.html?src={entity_object_id}&mode=webrtc"
+                            placeholder="http://go2rtc.local:1984/stream.html?src={entity_object_id}"
                             className="w-full rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none"
                             style={{
                               backgroundColor: 'var(--glass-bg)',
@@ -1877,8 +1894,50 @@ export default function EditCardModal({
                           />
                           <p className="px-1 text-[11px] text-[var(--text-muted)]">
                             {t('camera.webrtcHint') ||
-                              'Optional go2rtc stream.html or another embeddable player URL. Auto uses Home Assistant WebRTC without a URL.'}
+                              'A configured go2rtc player is preferred in Auto mode. Leave it empty to use Home Assistant.'}
                           </p>
+
+                          <div className="space-y-2 pt-1">
+                            <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                              {t('camera.go2rtcMode') || 'go2rtc mode'}
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                {
+                                  key: 'auto',
+                                  label: t('camera.go2rtcModeAuto') || 'Auto',
+                                },
+                                {
+                                  key: 'webrtc',
+                                  label: t('camera.streamEngineWebrtc') || 'WebRTC',
+                                },
+                                {
+                                  key: 'mse',
+                                  label: t('camera.go2rtcModeMse') || 'MSE',
+                                },
+                              ].map((option) => (
+                                <button
+                                  key={option.key}
+                                  type="button"
+                                  aria-pressed={go2rtcMode === option.key}
+                                  onClick={() =>
+                                    saveCardSetting(editSettingsKey, 'cameraGo2rtcMode', option.key)
+                                  }
+                                  className={`rounded-xl border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors ${go2rtcMode === option.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                                  style={
+                                    go2rtcMode === option.key
+                                      ? {
+                                          backgroundColor: 'var(--glass-bg-hover)',
+                                          borderColor: 'var(--glass-border)',
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       )}
 

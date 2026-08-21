@@ -77,6 +77,43 @@ describe('PageContext persistence', () => {
     });
   });
 
+  it('persists rapid card setting changes without restoring stale values', async () => {
+    localStorage.setItem(
+      'tunet_card_settings',
+      JSON.stringify({
+        'home::camera.front': {
+          cameraId: 'camera.front',
+          cameraStreamEngine: 'auto',
+        },
+      })
+    );
+    const { result } = renderHook(() => usePages(), { wrapper });
+
+    act(() => {
+      result.current.saveCardSetting(
+        'home::camera.front',
+        'cameraStreamEngine',
+        'go2rtc'
+      );
+      result.current.saveCardSetting(
+        'home::camera.front',
+        'cameraWebrtcUrl',
+        'http://go2rtc.local:1984/stream.html?src=front'
+      );
+      result.current.saveCardSetting('home::camera.front', 'cameraGo2rtcMode', 'mse');
+    });
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('tunet_card_settings') || '{}');
+      expect(stored['home::camera.front']).toMatchObject({
+        cameraId: 'camera.front',
+        cameraStreamEngine: 'go2rtc',
+        cameraWebrtcUrl: 'http://go2rtc.local:1984/stream.html?src=front',
+        cameraGo2rtcMode: 'mse',
+      });
+    });
+  });
+
   it('persists status pill text visibility flags across a provider reload', async () => {
     const first = renderHook(() => usePages(), { wrapper });
 

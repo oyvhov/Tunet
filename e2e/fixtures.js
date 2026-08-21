@@ -87,6 +87,53 @@ export const test = baseTest.extend({
               return;
             }
 
+            if (
+              msg.type === 'call_service' &&
+              msg.domain === 'calendar' &&
+              msg.service === 'get_events'
+            ) {
+              const eventAt = (offsetMinutes) =>
+                new Date(Date.now() + offsetMinutes * 60_000).toISOString();
+              setTimeout(() => {
+                emitMessage(this, {
+                  id: msg.id,
+                  type: 'result',
+                  success: true,
+                  result: {
+                    service_response: {
+                      calendar: {
+                        'calendar.family': {
+                          events: [
+                            {
+                              summary: 'Breakfast appointment',
+                              start: eventAt(-120),
+                              end: eventAt(-60),
+                            },
+                            {
+                              summary: 'Dinner with family',
+                              start: eventAt(60),
+                              end: eventAt(120),
+                              location: 'Home',
+                            },
+                          ],
+                        },
+                        'calendar.work': {
+                          events: [
+                            {
+                              summary: 'Project review',
+                              start: eventAt(180),
+                              end: eventAt(240),
+                            },
+                          ],
+                        },
+                      },
+                    },
+                  },
+                });
+              }, 25);
+              return;
+            }
+
             if (msg.type === 'media_player/browse_media') {
               const contentId = msg.media_content_id || '';
               const browseResults = {
@@ -239,6 +286,7 @@ export const test = baseTest.extend({
                           friendly_name: 'Bedroom Light',
                           brightness: 200,
                           supported_features: 1,
+                          entity_id: ['light.kitchen'],
                         }),
                         'light.kitchen': entityUpdate('off', {
                           friendly_name: 'Kitchen Light',
@@ -267,6 +315,12 @@ export const test = baseTest.extend({
                           shuffle: false,
                           repeat: 'off',
                           supported_features: 152511,
+                        }),
+                        'calendar.family': entityUpdate('on', {
+                          friendly_name: 'Family',
+                        }),
+                        'calendar.work': entityUpdate('off', {
+                          friendly_name: 'Work',
                         }),
                       },
                     },

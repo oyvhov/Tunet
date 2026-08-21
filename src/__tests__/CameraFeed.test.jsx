@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CameraFeed, {
+  applyGo2rtcMode,
+  getGo2rtcModeFromUrl,
   getCameraSourcePlan,
   normalizeCameraStreamEngine,
   resolveCameraTemplate,
@@ -33,6 +35,30 @@ describe('camera stream source selection', () => {
     ).toEqual(['webrtc', 'hls', 'mjpeg', 'snapshot']);
   });
 
+  it('keeps an existing go2rtc player ahead of HA sources in Auto mode', () => {
+    expect(
+      getCameraSourcePlan({
+        engine: 'auto',
+        frontendStreamTypes: ['web_rtc', 'hls'],
+        customPlayerUrl: 'https://go2rtc.local/stream.html?src=front&mode=mse',
+        hasConnection: true,
+        hasAccessToken: true,
+      })
+    ).toEqual(['custom', 'webrtc', 'hls', 'mjpeg', 'snapshot']);
+  });
+
+  it('falls back safely when an explicit go2rtc player fails', () => {
+    expect(
+      getCameraSourcePlan({
+        engine: 'go2rtc',
+        frontendStreamTypes: ['web_rtc', 'hls'],
+        customPlayerUrl: 'https://go2rtc.local/stream.html?src=front',
+        hasConnection: true,
+        hasAccessToken: false,
+      })
+    ).toEqual(['custom', 'webrtc', 'hls', 'snapshot']);
+  });
+
   it('tries HLS on older HA versions where capabilities are unavailable', () => {
     expect(
       getCameraSourcePlan({
@@ -63,15 +89,69 @@ describe('camera stream source selection', () => {
         'https://go2rtc.local/stream.html?src={entity_object_id}&entity={entity_id}',
         'camera.front_door'
       )
-    ).toBe(
-      'https://go2rtc.local/stream.html?src=front_door&entity=camera.front_door'
-    );
+    ).toBe('https://go2rtc.local/stream.html?src=front_door&entity=camera.front_door');
     expect(normalizeCameraStreamEngine('HA-STREAM')).toBe('ha');
+    expect(normalizeCameraStreamEngine('mse')).toBe('go2rtc');
     expect(normalizeCameraStreamEngine('future-engine')).toBe('auto');
+  });
+
+  it('applies go2rtc modes without losing templates, query parameters, or hashes', () => {
+    const template =
+      'https://go2rtc.local/stream.html?src={entity_object_id}&background=false#player';
+
+    expect(applyGo2rtcMode(template, 'mse')).toBe(
+      'https://go2rtc.local/stream.html?src=%7Bentity_object_id%7D&background=false&mode=mse#player'
+    );
+    expect(
+      applyGo2rtcMode(
+        'https://go2rtc.local/stream.html?src=front&mode=webrtc&background=false',
+        'auto'
+      )
+    ).toBe('https://go2rtc.local/stream.html?src=front&background=false');
+    expect(getGo2rtcModeFromUrl('https://go2rtc.local/stream.html?src=front&mode=MSE')).toBe('mse');
+    expect(getGo2rtcModeFromUrl('https://go2rtc.local/stream.html?src=front&mode=%')).toBe(
+      'auto'
+    );
   });
 });
 
 describe('CameraFeed', () => {
+  it('keeps a saved MSE player active and applies an explicit mode selection', async () => {
+    const sendMessagePromise = vi.fn(async (message) => {
+      if (message.type === 'camera/capabilities') {
+        return { frontend_stream_types: ['web_rtc', 'hls'] };
+      }
+      if (message.type === 'auth/sign_path') {
+        return { path: '/api/camera_proxy/camera.front?authSig=signed' };
+      }
+      return undefined;
+    });
+
+    render(
+      <CameraFeed
+        entityId="camera.front"
+        entity={{ state: 'idle', attributes: {} }}
+        conn={{ sendMessagePromise }}
+        getEntityImageUrl={(url) => url}
+        settings={{
+          cameraStreamEngine: 'auto',
+          cameraWebrtcUrl: 'https://go2rtc.local/stream.html?src={entity_object_id}&mode=webrtc',
+          cameraGo2rtcMode: 'mse',
+        }}
+        alt="Front camera"
+        t={(key) => key}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('camera-feed')).toHaveAttribute('data-camera-source', 'custom');
+    });
+    expect(screen.getByTitle('Front camera')).toHaveAttribute(
+      'src',
+      'https://go2rtc.local/stream.html?src=front&mode=mse'
+    );
+  });
+
   it('uses Home Assistant WebRTC signaling when the camera advertises support', async () => {
     class FakePeerConnection {
       signalingState = 'have-local-offer';
@@ -122,10 +202,7 @@ describe('CameraFeed', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('camera-feed')).toHaveAttribute(
-        'data-camera-source',
-        'webrtc'
-      );
+      expect(screen.getByTestId('camera-feed')).toHaveAttribute('data-camera-source', 'webrtc');
       expect(subscribeMessage).toHaveBeenCalledWith(expect.any(Function), {
         type: 'camera/webrtc/offer',
         entity_id: 'camera.front',
@@ -173,10 +250,7 @@ describe('CameraFeed', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('camera-feed')).toHaveAttribute(
-        'data-camera-source',
-        'snapshot'
-      );
+      expect(screen.getByTestId('camera-feed')).toHaveAttribute('data-camera-source', 'snapshot');
     });
 
     const snapshot = screen.getByRole('img', { name: 'Front camera' });

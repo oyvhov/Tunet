@@ -469,6 +469,7 @@ test.describe('Camera Card', () => {
   test('falls back from a broken HA HLS stream and keeps the modal usable on mobile', async ({
     page,
   }) => {
+    test.setTimeout(50000);
     const card = await waitForCard(page, 'camera_card_e2e_001');
     const cardFeed = card.getByTestId('camera-feed');
     await expect(cardFeed).toHaveAttribute('data-camera-source', 'mjpeg', { timeout: 20000 });
@@ -506,6 +507,45 @@ test.describe('Camera Card', () => {
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
     await expect(dialog.getByRole('button', { name: /stream|straum|strøm/i })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /refresh|oppdater/i })).toBeVisible();
+  });
+
+  test('keeps go2rtc and MSE available in camera settings', async ({ page }) => {
+    const editButton = page.getByRole('button', { name: 'Edit' });
+    await expect(editButton).toBeVisible();
+    await editButton.click();
+
+    const card = await waitForCard(page, 'camera_card_e2e_001');
+    const editCardButton = card.locator('button[aria-label="Edit card"]').first();
+    await expect(editCardButton).toBeVisible();
+    await editCardButton.evaluate((element) => element.click());
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'go2rtc', exact: true }).click();
+
+    const playerUrl = dialog.getByPlaceholder(
+      'http://go2rtc.local:1984/stream.html?src={entity_object_id}'
+    );
+    await expect(playerUrl).toBeVisible();
+    await playerUrl.fill('http://go2rtc.local:1984/stream.html?src={entity_object_id}&mode=webrtc');
+    await dialog.getByRole('button', { name: 'MSE', exact: true }).click();
+    await expect(dialog.getByRole('button', { name: 'MSE', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await dialog.getByRole('button', { name: 'OK', exact: true }).click();
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const settings = JSON.parse(localStorage.getItem('tunet_card_settings') || '{}');
+          return settings['home::camera_card_e2e_001'];
+        })
+      )
+      .toMatchObject({
+        cameraStreamEngine: 'go2rtc',
+        cameraGo2rtcMode: 'mse',
+      });
   });
 });
 

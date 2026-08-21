@@ -1,23 +1,22 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import MediaPage from '../components/pages/MediaPage';
 
 const makeBaseProps = (overrides = {}) => {
-  const entities =
-    overrides.entities ||
-    {
-      'media_player.kitchen': {
-        entity_id: 'media_player.kitchen',
-        state: 'idle',
-        attributes: {
-          friendly_name: 'Kitchen',
-          integration: 'sonos',
-          supported_features: 0,
-        },
+  const entities = overrides.entities || {
+    'media_player.kitchen': {
+      entity_id: 'media_player.kitchen',
+      state: 'idle',
+      attributes: {
+        friendly_name: 'Kitchen',
+        integration: 'sonos',
+        supported_features: 0,
       },
-    };
+    },
+  };
 
-  const getA = (entityId, attr, fallback = null) => entities[entityId]?.attributes?.[attr] ?? fallback;
+  const getA = (entityId, attr, fallback = null) =>
+    entities[entityId]?.attributes?.[attr] ?? fallback;
 
   return {
     pageId: 'sonos',
@@ -107,10 +106,31 @@ describe('MediaPage Sonos discovery', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('common.show'));
-
     expect(screen.getAllByText('Kitchen').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Living Room').length).toBeGreaterThan(0);
+    expect(screen.getByRole('switch', { name: 'Kitchen' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: 'Living Room' })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    );
+  });
+
+  it('uses one clear switch per player while editing the page', () => {
+    const savePageSetting = vi.fn();
+    render(
+      <MediaPage
+        {...makeBaseProps({
+          editMode: true,
+          savePageSetting,
+          pageSettings: { sonos: { mediaIds: ['media_player.kitchen'] } },
+        })}
+      />
+    );
+
+    const kitchenSwitch = screen.getByRole('switch', { name: 'Kitchen' });
+    fireEvent.click(kitchenSwitch);
+
+    expect(savePageSetting).toHaveBeenCalledWith('sonos', 'mediaIds', []);
   });
 });
 
@@ -185,5 +205,91 @@ describe('MediaPage Sonos grouping', () => {
     fireEvent.click(groupBtn);
 
     expect(callService).not.toHaveBeenCalled();
+  });
+});
+
+describe('MediaPage media chooser', () => {
+  it('browses nested favorites for generic players without replacing the chooser layout', async () => {
+    const browseResults = {
+      '': {
+        title: 'Media sources',
+        children: [
+          {
+            title: 'Music Assistant',
+            media_class: 'app',
+            media_content_type: 'app',
+            media_content_id: 'media-source://music-assistant',
+            can_play: false,
+            can_expand: true,
+          },
+        ],
+      },
+      'media-source://music-assistant': {
+        title: 'Music Assistant',
+        children: [
+          {
+            title: 'Favorittar',
+            media_content_type: 'music',
+            media_content_id: 'library://favorites',
+            can_play: false,
+            can_expand: true,
+          },
+        ],
+      },
+      'library://favorites': {
+        title: 'Favorittar',
+        children: [
+          {
+            title: 'Born to Be Alive',
+            media_content_type: 'music',
+            media_content_id: 'spotify://track/favorite-1',
+            can_play: true,
+            can_expand: false,
+          },
+        ],
+      },
+    };
+    const conn = {
+      sendMessagePromise: vi.fn(async (message) => {
+        const contentId = message.media_content_id || '';
+        return browseResults[contentId] || { title: 'Empty', children: [] };
+      }),
+    };
+    const entities = {
+      'media_player.emby_tv': {
+        entity_id: 'media_player.emby_tv',
+        state: 'idle',
+        attributes: {
+          friendly_name: 'Emby TV',
+          integration: 'emby',
+          supported_features: 0,
+        },
+      },
+    };
+
+    render(
+      <MediaPage
+        {...makeBaseProps({
+          pageId: 'media',
+          mode: 'media',
+          entities,
+          conn,
+        })}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'media.tab.media' }));
+
+    expect(screen.getByTestId('media-page-chooser')).toBeInTheDocument();
+    expect(screen.getByTestId('media-page-chooser-results')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByTestId('media-page-chooser-loading')).toBeInTheDocument();
+
+    await waitFor(() => expect(screen.getByText('Born to Be Alive')).toBeInTheDocument());
+
+    expect(screen.getByTestId('media-page-chooser-results')).toHaveAttribute('aria-busy', 'false');
+    expect(screen.queryByTestId('media-page-chooser-loading')).not.toBeInTheDocument();
+    expect(conn.sendMessagePromise).toHaveBeenCalledWith(
+      expect.objectContaining({ media_content_id: 'library://favorites' })
+    );
   });
 });

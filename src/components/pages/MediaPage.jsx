@@ -5,8 +5,7 @@ import {
   Tv,
   Speaker,
   Check,
-  ChevronDown,
-  ChevronUp,
+  Search,
   Shuffle,
   Repeat,
   Repeat1,
@@ -61,6 +60,37 @@ const BLOCKED_TITLE_WORDS = [
   'cctv',
 ];
 
+function normalizeBrowseText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function browseNodeMatches(node, terms) {
+  const haystack = normalizeBrowseText(
+    [
+      node?.title,
+      node?.name,
+      node?.media_content_type,
+      node?.media_class,
+      node?.media_content_id,
+      node?.id,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+  return terms.some((term) => haystack.includes(term));
+}
+
+function isFavoriteBrowseNode(node) {
+  return browseNodeMatches(node, ['favorite', 'favourite', 'favorit', 'favoritt']);
+}
+
+function isPlaylistBrowseNode(node) {
+  return browseNodeMatches(node, ['playlist', 'spilleliste', 'speleliste', 'spellista']);
+}
+
 function MediaPage({
   pageId,
   entities,
@@ -79,12 +109,9 @@ function MediaPage({
   mode = 'media',
 }) {
   const [mediaSearch, setMediaSearch] = useState('');
-  const [showPlayerSelector, setShowPlayerSelector] = useState(false);
   const [rightPanelView, setRightPanelView] = useState('players');
   const [chooseTab, setChooseTab] = useState('favorites');
   const [chooseQuery, setChooseQuery] = useState('');
-  const [favoritesByPlayer, setFavoritesByPlayer] = useState({});
-  const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [browseChoicesByPlayer, setBrowseChoicesByPlayer] = useState({});
   const [browseLoading, setBrowseLoading] = useState(false);
   const [browseError, setBrowseError] = useState('');
@@ -104,28 +131,31 @@ function MediaPage({
   );
   const showAll = !Array.isArray(pageSetting.mediaIds);
   const selectedIds = showAll ? allMediaIds : pageSetting.mediaIds;
-  const visibleIds = useMemo(
-    () => (selectedIds.length > 0 ? selectedIds : []),
-    [selectedIds]
-  );
+  const visibleIds = useMemo(() => (selectedIds.length > 0 ? selectedIds : []), [selectedIds]);
   const mediaEntities = useMemo(
     () => visibleIds.map((id) => entities[id]).filter(Boolean),
     [visibleIds, entities]
   );
 
-  const sonosEntities = useMemo(
-    () => mediaEntities.filter(isSonosMediaEntity),
-    [mediaEntities]
-  );
+  const sonosEntities = useMemo(() => mediaEntities.filter(isSonosMediaEntity), [mediaEntities]);
   const filteredMediaIds = useMemo(
     () =>
-      allMediaIds.filter((id) => {
-        if (!mediaSearch) return true;
-        const lower = mediaSearch.toLowerCase();
-        const name = entities[id]?.attributes?.friendly_name || id;
-        return id.toLowerCase().includes(lower) || name.toLowerCase().includes(lower);
-      }),
-    [allMediaIds, mediaSearch, entities]
+      allMediaIds
+        .filter((id) => {
+          if (!mediaSearch) return true;
+          const lower = mediaSearch.toLowerCase();
+          const name = entities[id]?.attributes?.friendly_name || id;
+          return id.toLowerCase().includes(lower) || name.toLowerCase().includes(lower);
+        })
+        .sort((a, b) => {
+          const selectedDifference =
+            Number(selectedIds.includes(b)) - Number(selectedIds.includes(a));
+          if (selectedDifference !== 0) return selectedDifference;
+          const aName = entities[a]?.attributes?.friendly_name || a;
+          const bName = entities[b]?.attributes?.friendly_name || b;
+          return aName.localeCompare(bName);
+        }),
+    [allMediaIds, mediaSearch, entities, selectedIds]
   );
 
   const activeSonos = sonosEntities.filter(isSonosActive);
@@ -261,74 +291,40 @@ function MediaPage({
   );
 
   const attrFavoriteChoices = normalizeChoiceArray(getA(mpId, 'sonos_favorites', []), 'music');
-  const sourceListChoices = normalizeChoiceArray(
-    (Array.isArray(getA(mpId, 'source_list', [])) ? getA(mpId, 'source_list', []) : []).map(
-      (source) => ({ title: source, id: source, media_content_type: 'music' })
-    ),
-    'music'
-  );
   const playlistFallbackChoices = normalizeChoiceArray(
     getA(mpId, 'sonos_playlists', []),
     'playlist'
   );
   const isMusicContent = useCallback((item) => {
-    const type = String(item?.media_content_type || '').toLowerCase();
-    const id = String(item?.media_content_id || '').toLowerCase();
-    const title = String(item?.title || '').toLowerCase();
+    if (!item) return false;
+    const type = String(
+      item.media_content_type || item.media_class || item.type || ''
+    ).toLowerCase();
+    const id = String(item.media_content_id || item.id || item.uri || '').toLowerCase();
+    const title = String(item.title || item.name || '').toLowerCase();
+    const isBrowsableContainer =
+      item.can_expand === true && ['', 'app', 'directory', 'folder'].includes(type);
 
-    if (BLOCKED_MEDIA_TYPES.has(type)) return false;
+    if (BLOCKED_MEDIA_TYPES.has(type) && !isBrowsableContainer) return false;
     if (BLOCKED_ID_PATTERNS.some((pattern) => id.includes(pattern))) return false;
     if (BLOCKED_TITLE_WORDS.some((word) => title.includes(word))) return false;
     return true;
   }, []);
 
-  const flattenBrowseChoices = useCallback(
-    (nodes, path = '') => {
-      if (!Array.isArray(nodes) || nodes.length === 0) return [];
-      const items = [];
-      nodes.forEach((node) => {
-        if (!node || !isMusicContent(node)) return;
-
-        const title = String(node.title || node.media_content_id || '').trim();
-        const mediaContentId = String(node.media_content_id || '').trim();
-        const mediaContentType = String(node.media_content_type || 'music').trim();
-        const canPlay = Boolean(node.can_play);
-        const canExpand = Boolean(node.can_expand);
-        const children = Array.isArray(node.children) ? node.children : [];
-        const nextPath = path
-          ? `${path} / ${title || mediaContentType}`
-          : title || mediaContentType;
-
-        if (canPlay && mediaContentId) {
-          items.push({
-            id: mediaContentId,
-            label: title || mediaContentId,
-            type: mediaContentType || 'music',
-            source: path,
-            image: node.thumbnail || node.thumb || node.image || node.icon || null,
-          });
-        }
-
-        if (canExpand && children.length > 0) {
-          items.push(...flattenBrowseChoices(children, nextPath));
-        }
-      });
-      return items;
-    },
-    [isMusicContent]
+  const mergeChoiceArrays = useCallback(
+    (...arrays) => normalizeChoiceArray(arrays.flat(), 'music'),
+    [normalizeChoiceArray]
   );
 
-  const favoriteChoices = favoritesByPlayer[mpId] || attrFavoriteChoices;
-  const browseChoices = browseChoicesByPlayer[mpId] || { playlists: [], library: [] };
-  const playlistChoices = normalizeChoiceArray(
-    [...(browseChoices.playlists || []), ...playlistFallbackChoices],
-    'playlist'
-  );
-  const libraryChoices = browseChoices.library || [];
-  const combinedMusicChoices = normalizeChoiceArray(
-    [...favoriteChoices, ...playlistChoices, ...libraryChoices],
-    'music'
-  );
+  const browseChoices = browseChoicesByPlayer[mpId] || {
+    favorites: [],
+    playlists: [],
+    library: [],
+  };
+  const favoriteChoices = mergeChoiceArrays(browseChoices.favorites || [], attrFavoriteChoices);
+  const playlistChoices = mergeChoiceArrays(browseChoices.playlists || [], playlistFallbackChoices);
+  const libraryChoices = mergeChoiceArrays(browseChoices.library || []);
+  const combinedMusicChoices = mergeChoiceArrays(favoriteChoices, playlistChoices, libraryChoices);
   const loweredChooseQuery = chooseQuery.trim().toLowerCase();
 
   const applyQueryFilter = useCallback(
@@ -351,12 +347,8 @@ function MediaPage({
   const filteredPlaylistChoices = applyQueryFilter(playlistChoices);
   const filteredLibraryChoices = applyQueryFilter(libraryChoices);
   const filteredSearchChoices = applyQueryFilter(combinedMusicChoices);
-  const isChooseLoading =
-    chooseTab === 'favorites'
-      ? favoritesLoading
-      : chooseTab === 'search'
-        ? favoritesLoading || browseLoading
-        : browseLoading;
+  const isChooseLoading = browseLoading;
+  const hasLoadedBrowseChoices = browseChoices._version === 3;
 
   const sonosAllIds = useMemo(
     () => allMediaIds.filter((id) => isSonosMediaEntity(entities[id])),
@@ -399,219 +391,181 @@ function MediaPage({
     savePageSetting(pageId, 'mediaIds', [...selectedIds, id]);
   };
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchFavorites = async () => {
-      if (rightPanelView !== 'choose' || !mpId) return;
-      if (favoritesByPlayer[mpId]?.length > 0) return;
-
-      setFavoritesLoading(true);
-      try {
-        if (!conn || typeof conn.sendMessagePromise !== 'function') {
-          if (!cancelled) {
-            setFavoritesByPlayer((prev) => ({
-              ...prev,
-              [mpId]: normalizeChoiceArray(
-                [...attrFavoriteChoices, ...sourceListChoices, ...playlistFallbackChoices],
-                'music'
-              ),
-            }));
-          }
-          return;
-        }
-
-        const rootResp = await conn.sendMessagePromise({
-          type: 'media_player/browse_media',
-          entity_id: mpId,
-        });
-        const root = rootResp?.result || rootResp || null;
-        const rootChildren = Array.isArray(root?.children) ? root.children : [];
-        const favoritesDir = rootChildren.find((child) => {
-          const type = String(child?.media_content_type || '').toLowerCase();
-          const id = String(child?.media_content_id || '').toLowerCase();
-          const title = String(child?.title || '').toLowerCase();
-          return type === 'favorites' || id === 'favorites' || title.includes('favorite');
-        });
-
-        if (!favoritesDir) {
-          if (!cancelled) {
-            setFavoritesByPlayer((prev) => ({
-              ...prev,
-              [mpId]: normalizeChoiceArray(
-                [...attrFavoriteChoices, ...sourceListChoices, ...playlistFallbackChoices],
-                'music'
-              ),
-            }));
-          }
-          return;
-        }
-
-        const allFavorites = [];
-        const browseFavDir = async (dir, depth = 0) => {
-          if (!dir || depth > 3) return;
-          const resp = await conn.sendMessagePromise({
-            type: 'media_player/browse_media',
-            entity_id: mpId,
-            media_content_type: dir.media_content_type,
-            media_content_id: dir.media_content_id,
-          });
-          const detail = resp?.result || resp || null;
-          const children = Array.isArray(detail?.children) ? detail.children : [];
-          for (const child of children) {
-            if (child?.can_play) {
-              allFavorites.push({
-                id: child.media_content_id || child.title,
-                label: child.title || child.media_content_id,
-                type: child.media_content_type || 'music',
-                source: detail?.title || 'Favorites',
-                image: child.thumbnail || child.thumb || child.image || child.icon || null,
-              });
-            } else if (child?.can_expand) {
-              await browseFavDir(child, depth + 1);
-            }
-          }
-        };
-
-        await browseFavDir(favoritesDir);
-        const merged = normalizeChoiceArray(
-          [
-            ...allFavorites,
-            ...attrFavoriteChoices,
-            ...sourceListChoices,
-            ...playlistFallbackChoices,
-          ],
-          'music'
-        );
-        if (!cancelled) setFavoritesByPlayer((prev) => ({ ...prev, [mpId]: merged }));
-      } catch {
-        if (!cancelled) {
-          setFavoritesByPlayer((prev) => ({
-            ...prev,
-            [mpId]: normalizeChoiceArray(
-              [...attrFavoriteChoices, ...sourceListChoices, ...playlistFallbackChoices],
-              'music'
-            ),
-          }));
-        }
-      } finally {
-        if (!cancelled) setFavoritesLoading(false);
-      }
-    };
-
-    fetchFavorites();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    rightPanelView,
-    mpId,
-    conn,
-    favoritesByPlayer,
-    normalizeChoiceArray,
-    attrFavoriteChoices,
-    sourceListChoices,
-    playlistFallbackChoices,
-  ]);
+  const togglePlayerSelection = (id) => {
+    if (isPlayerAdded(id)) {
+      removePlayerSelection(id);
+    } else {
+      addPlayerSelection(id);
+    }
+  };
 
   useEffect(() => {
+    const canBrowse =
+      rightPanelView === 'choose' &&
+      !!mpId &&
+      conn &&
+      typeof conn.sendMessagePromise === 'function';
+    if (!canBrowse) return;
+
+    const cached = browseChoicesByPlayer[mpId];
+    if (cached?._version === 3) {
+      setBrowseLoading(false);
+      setBrowseError('');
+      return;
+    }
+
     let cancelled = false;
 
-    const fetchBrowseChoices = async () => {
-      if (rightPanelView !== 'choose' || !mpId) return;
-      if (!conn || typeof conn.sendMessagePromise !== 'function') return;
+    const browseNode = async (node = null) => {
+      const payload = {
+        type: 'media_player/browse_media',
+        entity_id: mpId,
+      };
+      if (node?.media_content_type) payload.media_content_type = node.media_content_type;
+      if (node?.media_content_id) payload.media_content_id = node.media_content_id;
+      const response = await conn.sendMessagePromise(payload);
+      return response?.result || response || null;
+    };
 
-      const cached = browseChoicesByPlayer[mpId];
-      if (cached && cached._version === 2) return;
-
+    const loadChoices = async () => {
       setBrowseLoading(true);
       setBrowseError('');
-
       try {
-        const rootResp = await conn.sendMessagePromise({
-          type: 'media_player/browse_media',
-          entity_id: mpId,
-        });
-        const root = rootResp?.result || rootResp || null;
-        const rootChildren = Array.isArray(root?.children) ? root.children : [];
+        const root = await browseNode();
+        if (!root) throw new Error('browse_failed');
+        if (cancelled) return;
 
-        const isPlaylistNode = (node) => {
-          const title = String(node?.title || '').toLowerCase();
-          const type = String(node?.media_content_type || node?.media_class || '').toLowerCase();
-          return (
-            title.includes('playlist') ||
-            title.includes('spilleliste') ||
-            title.includes('speleliste') ||
-            title.includes('spellista') ||
-            type.includes('playlist')
-          );
-        };
-
+        const favorites = [];
         const playlists = [];
         const library = [];
+        const visited = new Set();
+        const maxExpansions = 18;
+        const maxDepth = 4;
+        let expansionCount = 0;
 
-        const musicBranches = rootChildren.filter(
-          (child) => child && typeof child === 'object' && isMusicContent(child)
-        );
-        library.push(...flattenBrowseChoices(musicBranches.filter((child) => child.can_play)));
+        const resolveBucket = (node, inheritedBucket = 'library') => {
+          if (isFavoriteBrowseNode(node)) return 'favorites';
+          if (isPlaylistBrowseNode(node)) return 'playlists';
+          return inheritedBucket;
+        };
 
-        const expandableBranches = musicBranches.filter((child) => child.can_expand).slice(0, 8);
-        for (const branch of expandableBranches) {
-          if (cancelled) break;
-          const sourceHint = branch?.title || '';
-          try {
-            const detailResp = await conn.sendMessagePromise({
-              type: 'media_player/browse_media',
-              entity_id: mpId,
-              media_content_type: branch.media_content_type,
-              media_content_id: branch.media_content_id,
+        const addPlayableChoice = (node, bucket, sourceHint) => {
+          if (node?.can_play !== true) return;
+          const fallbackType = bucket === 'playlists' ? 'playlist' : 'music';
+          const normalized = normalizeChoiceArray(
+            [{ ...node, source: node.source || sourceHint }],
+            fallbackType
+          );
+          if (bucket === 'favorites') favorites.push(...normalized);
+          else if (bucket === 'playlists') playlists.push(...normalized);
+          else library.push(...normalized);
+        };
+
+        const rootChildren = Array.isArray(root.children) ? root.children : [];
+        let frontier = rootChildren
+          .filter((node) => node && typeof node === 'object' && isMusicContent(node))
+          .map((node) => ({
+            node,
+            bucket: resolveBucket(node),
+            sourceHint: root.title || '',
+          }));
+
+        for (let depth = 0; depth < maxDepth && frontier.length > 0; depth += 1) {
+          if (cancelled) return;
+          const nextFrontier = [];
+          const expandable = [];
+
+          frontier.forEach(({ node, bucket: inheritedBucket, sourceHint }) => {
+            if (!isMusicContent(node)) return;
+            const bucket = resolveBucket(node, inheritedBucket);
+            const nextSourceHint = node.title || sourceHint;
+            addPlayableChoice(node, bucket, sourceHint);
+
+            const embeddedChildren = Array.isArray(node.children) ? node.children : [];
+            embeddedChildren.forEach((child) => {
+              if (!child || typeof child !== 'object' || !isMusicContent(child)) return;
+              nextFrontier.push({
+                node: child,
+                bucket: resolveBucket(child, bucket),
+                sourceHint: nextSourceHint,
+              });
             });
-            const detail = detailResp?.result || detailResp || null;
+
+            const nodeId = node.media_content_id || node.id || node.uri;
+            const visitKey = `${node.media_content_type || node.media_class || ''}::${nodeId || ''}`;
+            if (
+              embeddedChildren.length === 0 &&
+              node.can_expand === true &&
+              node.can_play !== true &&
+              nodeId &&
+              !visited.has(visitKey)
+            ) {
+              visited.add(visitKey);
+              expandable.push({ node, bucket, sourceHint: nextSourceHint });
+            }
+          });
+
+          expandable.sort((a, b) => {
+            const priority = { favorites: 0, playlists: 1, library: 2 };
+            return priority[a.bucket] - priority[b.bucket];
+          });
+
+          const remainingExpansions = Math.max(0, maxExpansions - expansionCount);
+          const branches = expandable.slice(0, remainingExpansions);
+          expansionCount += branches.length;
+
+          const branchResults = await Promise.all(
+            branches.map(async (entry) => {
+              try {
+                return { ...entry, detail: await browseNode(entry.node) };
+              } catch {
+                return { ...entry, detail: null };
+              }
+            })
+          );
+
+          branchResults.forEach(({ node, bucket, sourceHint, detail }) => {
             const children = Array.isArray(detail?.children) ? detail.children : [];
-            const items = flattenBrowseChoices(children, sourceHint);
-            if (isPlaylistNode(branch)) playlists.push(...items);
-            else library.push(...items);
-          } catch {
-            // Skip failed branch and continue
+            const nextSourceHint = detail?.title || node.title || sourceHint;
+            children.forEach((child) => {
+              if (!child || typeof child !== 'object' || !isMusicContent(child)) return;
+              nextFrontier.push({
+                node: child,
+                bucket: resolveBucket(child, bucket),
+                sourceHint: nextSourceHint,
+              });
+            });
+          });
+
+          frontier = nextFrontier;
+          if (expansionCount >= maxExpansions && frontier.every(({ node }) => !node.can_play)) {
+            break;
           }
         }
-
-        const normalizedPlaylists = normalizeChoiceArray(playlists, 'playlist');
-        const normalizedLibrary = normalizeChoiceArray(library, 'music');
 
         if (!cancelled) {
           setBrowseChoicesByPlayer((prev) => ({
             ...prev,
             [mpId]: {
-              _version: 2,
-              playlists: normalizedPlaylists,
-              library: normalizedLibrary,
+              _version: 3,
+              favorites: normalizeChoiceArray(favorites, 'music'),
+              playlists: normalizeChoiceArray(playlists, 'playlist'),
+              library: normalizeChoiceArray(library, 'music'),
             },
           }));
         }
-      } catch {
-        if (!cancelled) {
-          setBrowseError(t('media.choose.loadError'));
-        }
+      } catch (error) {
+        if (!cancelled) setBrowseError(error?.message || 'browse_failed');
       } finally {
         if (!cancelled) setBrowseLoading(false);
       }
     };
 
-    fetchBrowseChoices();
+    loadChoices();
     return () => {
       cancelled = true;
     };
-  }, [
-    rightPanelView,
-    mpId,
-    conn,
-    browseChoicesByPlayer,
-    flattenBrowseChoices,
-    isMusicContent,
-    normalizeChoiceArray,
-    t,
-  ]);
+  }, [rightPanelView, mpId, conn, browseChoicesByPlayer, isMusicContent, normalizeChoiceArray]);
 
   const listPlayers = useMemo(
     () =>
@@ -619,9 +573,7 @@ function MediaPage({
         const aActive = isSonosMediaEntity(a) ? isSonosActive(a) : a?.state === 'playing';
         const bActive = isSonosMediaEntity(b) ? isSonosActive(b) : b?.state === 'playing';
         if (aActive !== bActive) return aActive ? -1 : 1;
-        return (a.attributes?.friendly_name || '').localeCompare(
-          b.attributes?.friendly_name || ''
-        );
+        return (a.attributes?.friendly_name || '').localeCompare(b.attributes?.friendly_name || '');
       }),
     [mediaEntities, isSonosActive]
   );
@@ -649,38 +601,37 @@ function MediaPage({
     });
   };
 
-  const renderChoiceTile = (choice, fallbackType = 'music') => (
+  const renderChoiceTile = (choice, fallbackType = 'music') =>
     (() => {
       const choiceImageUrl = resolveMediaImageUrl(choice.image);
       return (
-    <button
-      key={`${choice.type}::${choice.id}`}
-      type="button"
-      onClick={() => playChoice(choice, fallbackType)}
-      className="group flex flex-col items-center gap-2 rounded-xl p-2 transition-colors hover:bg-[var(--glass-bg-hover)]"
-    >
-      <div className="aspect-square w-full flex-shrink-0 overflow-hidden rounded-lg bg-[var(--glass-bg-hover)]">
-        {isImageAvailable(choiceImageUrl) ? (
-          <img
-            src={choiceImageUrl}
-            alt={choice.label}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            onError={() => markImageFailed(choiceImageUrl)}
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Heart className="h-6 w-6 text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-primary)]" />
+        <button
+          key={`${choice.type}::${choice.id}`}
+          type="button"
+          onClick={() => playChoice(choice, fallbackType)}
+          className="group flex flex-col items-center gap-2 rounded-xl p-2 transition-colors hover:bg-[var(--glass-bg-hover)]"
+        >
+          <div className="aspect-square w-full flex-shrink-0 overflow-hidden rounded-lg bg-[var(--glass-bg-hover)]">
+            {isImageAvailable(choiceImageUrl) ? (
+              <img
+                src={choiceImageUrl}
+                alt={choice.label}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                onError={() => markImageFailed(choiceImageUrl)}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Heart className="h-6 w-6 text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-primary)]" />
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <p className="line-clamp-2 w-full text-center text-[10px] leading-tight font-bold tracking-wider text-[var(--text-primary)] uppercase">
-        {choice.label}
-      </p>
-    </button>
+          <p className="line-clamp-2 w-full text-center text-[10px] leading-tight font-bold tracking-wider text-[var(--text-primary)] uppercase">
+            {choice.label}
+          </p>
+        </button>
       );
-    })()
-  );
+    })();
 
   return (
     <div key={pageId} className="fade-in-anim flex flex-col items-start gap-8 font-sans">
@@ -690,122 +641,105 @@ function MediaPage({
         </div>
       )}
       {editMode && (
-        <div className="popup-surface w-full rounded-3xl border border-[var(--glass-border)] p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-xs font-bold tracking-[0.2em] text-[var(--text-muted)] uppercase">
-                {t('media.selectPlayers')}
-              </h3>
-              <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                {t('media.selectPlayersHint')}
-              </p>
+        <div
+          data-testid="media-page-editor"
+          className="popup-surface w-full rounded-3xl border border-[var(--glass-border)] p-4 sm:p-5"
+        >
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]">
+                <Speaker className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs font-bold tracking-[0.2em] text-[var(--text-primary)] uppercase">
+                  {t('media.selectPlayers')}
+                </h3>
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                  {t('media.selectPlayersHint')}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowPlayerSelector((prev) => !prev)}
-                className="popup-surface popup-surface-hover inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <span
+                className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)]"
+                aria-label={`${selectedIds.length} / ${allMediaIds.length}`}
               >
-                {showPlayerSelector ? t('common.hide') || 'Hide' : t('common.show') || 'Show'}
-                {showPlayerSelector ? (
-                  <ChevronUp className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                )}
-              </button>
+                {selectedIds.length} / {allMediaIds.length}
+              </span>
               <button
                 onClick={() => savePageSetting(pageId, 'mediaIds', null)}
-                className="popup-surface popup-surface-hover rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"
+                className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
               >
                 {t('media.selectAll')}
               </button>
               <button
                 onClick={() => savePageSetting(pageId, 'mediaIds', [])}
-                className="popup-surface popup-surface-hover rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"
+                className="rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase transition-colors hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]"
               >
                 {t('media.clearSelection')}
               </button>
             </div>
           </div>
 
-          {showPlayerSelector ? (
-            <div className="w-full lg:mx-auto lg:max-w-2xl">
-              <div className="relative mb-3">
-                <input
-                  type="text"
-                  value={mediaSearch}
-                  onChange={(e) => setMediaSearch(e.target.value)}
-                  placeholder={t('addCard.search')}
-                  className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-2.5 pr-4 pl-4 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                />
-              </div>
-              <div className="custom-scrollbar max-h-64 space-y-2 overflow-y-auto">
-                {filteredMediaIds.map((id) => {
-                  const entity = entities[id];
-                  const isSelected = showAll ? true : selectedIds.includes(id);
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => {
-                        if (showAll) {
-                          const next = allMediaIds.filter((item) => item !== id);
-                          savePageSetting(pageId, 'mediaIds', next);
-                          return;
-                        }
-                        const next = selectedIds.includes(id)
-                          ? selectedIds.filter((item) => item !== id)
-                          : [...selectedIds, id];
-                        savePageSetting(pageId, 'mediaIds', next);
-                      }}
-                      className={`group entity-item flex w-full items-center justify-between rounded-2xl border p-3 text-left transition-colors ${isSelected ? '' : 'popup-surface popup-surface-hover border-transparent'}`}
-                      style={
-                        isSelected
-                          ? {
-                              backgroundColor: 'var(--glass-bg-hover)',
-                              borderColor: 'var(--glass-border)',
-                            }
-                          : undefined
-                      }
+          <div className="relative mb-3">
+            <Search className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input
+              type="search"
+              value={mediaSearch}
+              onChange={(e) => setMediaSearch(e.target.value)}
+              placeholder={t('addCard.search')}
+              aria-label={t('addCard.search')}
+              className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-3 pr-4 pl-11 text-sm text-[var(--text-primary)] transition-colors outline-none placeholder:text-[var(--text-muted)] focus:bg-[var(--glass-bg-hover)]"
+            />
+          </div>
+          <div className="custom-scrollbar grid max-h-72 grid-cols-1 gap-2 overflow-y-auto md:grid-cols-2">
+            {filteredMediaIds.map((id) => {
+              const entity = entities[id];
+              const isSelected = isPlayerAdded(id);
+              const playerName = entity?.attributes?.friendly_name || id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="switch"
+                  aria-checked={isSelected}
+                  aria-label={playerName}
+                  onClick={() => togglePlayerSelection(id)}
+                  className={`group flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-transparent bg-[var(--glass-bg)] hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)]'}`}
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]">
+                    <Speaker className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold text-[var(--text-primary)]">
+                      {playerName}
+                    </span>
+                    <span className="block truncate text-[10px] text-[var(--text-muted)]">
+                      {id}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${isSelected ? 'border-[var(--text-primary)] bg-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)]'}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 flex h-5 w-5 items-center justify-center rounded-full transition-transform ${isSelected ? 'translate-x-5 bg-[var(--modal-bg)] text-[var(--text-primary)]' : 'translate-x-0 bg-[var(--text-muted)] text-transparent'}`}
                     >
-                      <div className="mr-4 flex flex-col overflow-hidden">
-                        <span
-                          className={`truncate text-sm font-bold transition-colors ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}
-                        >
-                          {entity?.attributes?.friendly_name || id}
-                        </span>
-                        <span
-                          className={`truncate text-[11px] font-medium ${isSelected ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]'}`}
-                        >
-                          {id}
-                        </span>
-                      </div>
-                      <div
-                        className={`flex-shrink-0 rounded-full p-2 transition-colors ${isSelected ? '' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] group-hover:bg-[var(--status-success-bg)] group-hover:text-[var(--status-success-fg)]'}`}
-                        style={
-                          isSelected
-                            ? {
-                                backgroundColor: 'var(--glass-bg)',
-                                color: 'var(--text-primary)',
-                              }
-                            : undefined
-                        }
-                      >
-                        {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                      </div>
-                    </button>
-                  );
-                })}
-                {filteredMediaIds.length === 0 && (
-                  <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
-                    {t('form.noResults')}
-                  </div>
-                )}
+                      <Check className="h-3 w-3" />
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+            {filteredMediaIds.length === 0 && (
+              <div className="py-5 text-center text-xs text-[var(--text-muted)] italic md:col-span-2">
+                {t('form.noResults')}
               </div>
-            </div>
-          ) : (
-            <div className="w-full text-center text-[11px] text-[var(--text-muted)] lg:mx-auto lg:max-w-2xl">
-              {showAll ? allMediaIds.length : selectedIds.length} {t('addCard.players')}{' '}
-              {t('common.selected') || 'selected'}
+            )}
+          </div>
+          {allMediaIds.length === 0 && (
+            <div className="py-5 text-center text-xs text-[var(--text-muted)] italic">
+              {t('media.noPlayersFound')}
             </div>
           )}
         </div>
@@ -1052,8 +986,16 @@ function MediaPage({
                     className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
                     type="button"
                     aria-pressed={isMuted}
-                    aria-label={isMuted ? t('media.volume.unmute') || 'Unmute' : t('media.volume.mute') || 'Mute'}
-                    title={isMuted ? t('media.volume.unmute') || 'Unmute' : t('media.volume.mute') || 'Mute'}
+                    aria-label={
+                      isMuted
+                        ? t('media.volume.unmute') || 'Unmute'
+                        : t('media.volume.mute') || 'Mute'
+                    }
+                    title={
+                      isMuted
+                        ? t('media.volume.unmute') || 'Unmute'
+                        : t('media.volume.mute') || 'Mute'
+                    }
                   >
                     {isMuted ? (
                       <VolumeX className="h-4 w-4" />
@@ -1120,6 +1062,7 @@ function MediaPage({
                   </button>
                   <button
                     type="button"
+                    data-testid="media-page-choose-tab"
                     onClick={() => setRightPanelView('choose')}
                     className={`rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'choose' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     style={
@@ -1289,8 +1232,11 @@ function MediaPage({
                 </>
               )}
               {rightPanelView === 'choose' && (
-                <div className="custom-scrollbar flex flex-1 flex-col gap-3 overflow-y-auto">
-                  <div className="popup-surface inline-flex items-center gap-1 rounded-xl border border-[var(--glass-border)] p-1">
+                <div
+                  data-testid="media-page-chooser"
+                  className="flex min-h-0 flex-1 flex-col overflow-hidden"
+                >
+                  <div className="popup-surface grid flex-shrink-0 grid-cols-2 gap-1 rounded-xl border border-[var(--glass-border)] p-1 sm:grid-cols-4">
                     {[
                       ['favorites', t('media.choose.tab.favorites')],
                       ['playlists', t('media.choose.tab.playlists')],
@@ -1317,22 +1263,51 @@ function MediaPage({
                     ))}
                   </div>
 
-                  <input
-                    type="text"
-                    value={chooseQuery}
-                    onChange={(e) => setChooseQuery(e.target.value)}
-                    placeholder={t('media.choose.tab.search')}
-                    className="w-full rounded-xl bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
-                  />
+                  {chooseTab === 'search' && (
+                    <input
+                      type="search"
+                      value={chooseQuery}
+                      onChange={(e) => setChooseQuery(e.target.value)}
+                      placeholder={t('addCard.search')}
+                      className="mt-3 w-full flex-shrink-0 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
+                    />
+                  )}
 
-                  <div className="space-y-2">
-                    {isChooseLoading && (
-                      <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
-                        {t('media.choose.loading')}
+                  <div
+                    data-testid="media-page-chooser-results"
+                    aria-busy={isChooseLoading}
+                    className="custom-scrollbar mt-3 min-h-0 flex-1 overflow-y-auto"
+                  >
+                    <div className="flex h-9 items-center" aria-live="polite">
+                      {isChooseLoading ? (
+                        <span className="text-[11px] font-medium text-[var(--text-muted)] italic">
+                          {t('media.choose.loading')}
+                        </span>
+                      ) : browseError ? (
+                        <span className="text-[11px] font-medium text-amber-400 italic">
+                          {t('media.choose.loadError')}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {isChooseLoading && !hasLoadedBrowseChoices && (
+                      <div
+                        data-testid="media-page-chooser-loading"
+                        className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+                      >
+                        {[0, 1, 2].map((item) => (
+                          <div
+                            key={item}
+                            className="animate-pulse rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-2.5"
+                          >
+                            <div className="aspect-square rounded-xl bg-[var(--glass-bg-hover)]" />
+                            <div className="mt-2 h-3 w-4/5 rounded-full bg-[var(--glass-bg-hover)]" />
+                          </div>
+                        ))}
                       </div>
                     )}
 
-                    {!isChooseLoading && chooseTab === 'favorites' && (
+                    {(!isChooseLoading || hasLoadedBrowseChoices) && chooseTab === 'favorites' && (
                       <>
                         {filteredFavoriteChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
@@ -1348,7 +1323,7 @@ function MediaPage({
                       </>
                     )}
 
-                    {!isChooseLoading && chooseTab === 'playlists' && (
+                    {(!isChooseLoading || hasLoadedBrowseChoices) && chooseTab === 'playlists' && (
                       <>
                         {filteredPlaylistChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
@@ -1364,7 +1339,7 @@ function MediaPage({
                       </>
                     )}
 
-                    {!isChooseLoading && chooseTab === 'library' && (
+                    {(!isChooseLoading || hasLoadedBrowseChoices) && chooseTab === 'library' && (
                       <>
                         {filteredLibraryChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
@@ -1380,7 +1355,7 @@ function MediaPage({
                       </>
                     )}
 
-                    {!isChooseLoading && chooseTab === 'search' && (
+                    {(!isChooseLoading || hasLoadedBrowseChoices) && chooseTab === 'search' && (
                       <>
                         {filteredSearchChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
@@ -1400,40 +1375,49 @@ function MediaPage({
               )}
               {isSonosMode && rightPanelView === 'manage' && (
                 <div className="custom-scrollbar flex flex-1 flex-col gap-3 overflow-y-auto">
-                  <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 border-b border-[var(--glass-border)] px-1 pb-3">
+                    <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
+                      {t('media.selectPlayersHint')}
+                    </p>
+                    <span className="shrink-0 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-secondary)]">
+                      {selectedIds.length} / {manageablePlayerIds.length}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
                     {manageablePlayerIds.map((id) => {
                       const entity = entities[id];
                       const isAdded = isPlayerAdded(id);
+                      const playerName = entity?.attributes?.friendly_name || id;
                       return (
-                        <div
+                        <button
                           key={id}
-                          className="flex items-center justify-between gap-3 rounded-xl p-2 transition-colors hover:bg-[var(--glass-bg-hover)]"
+                          type="button"
+                          role="switch"
+                          aria-checked={isAdded}
+                          aria-label={playerName}
+                          onClick={() => togglePlayerSelection(id)}
+                          className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${isAdded ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-transparent hover:bg-[var(--glass-bg)]'}`}
                         >
-                          <div className="min-w-0">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]">
+                            <Speaker className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0 flex-1">
                             <p className="truncate text-xs font-bold tracking-wider text-[var(--text-primary)] uppercase">
-                              {entity?.attributes?.friendly_name || id}
+                              {playerName}
                             </p>
                             <p className="truncate text-[10px] text-[var(--text-muted)]">{id}</p>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => addPlayerSelection(id)}
-                              disabled={isAdded || showAll}
-                              className={`rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-colors ${isAdded || showAll ? 'cursor-not-allowed bg-[var(--glass-bg)] text-[var(--text-muted)] opacity-50' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
+                          <span
+                            aria-hidden="true"
+                            className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${isAdded ? 'border-[var(--text-primary)] bg-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)]'}`}
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 flex h-5 w-5 items-center justify-center rounded-full transition-transform ${isAdded ? 'translate-x-5 bg-[var(--modal-bg)] text-[var(--text-primary)]' : 'translate-x-0 bg-[var(--text-muted)] text-transparent'}`}
                             >
-                              {t('common.add') || 'Add'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removePlayerSelection(id)}
-                              disabled={!isAdded}
-                              className={`rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-colors ${!isAdded ? 'cursor-not-allowed bg-[var(--glass-bg)] text-[var(--text-muted)] opacity-50' : 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90'}`}
-                            >
-                              {t('common.remove') || t('media.clearSelection') || 'Remove'}
-                            </button>
-                          </div>
-                        </div>
+                              <Check className="h-3 w-3" />
+                            </span>
+                          </span>
+                        </button>
                       );
                     })}
                     {manageablePlayerIds.length === 0 && (
@@ -1453,4 +1437,3 @@ function MediaPage({
 }
 
 export default memo(MediaPage);
-
