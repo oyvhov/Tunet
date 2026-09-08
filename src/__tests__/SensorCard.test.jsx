@@ -206,9 +206,11 @@ describe('SensorCard', () => {
       />
     );
 
-    const gauge = container.querySelector('svg[viewBox="0 0 80 44"]');
+    const gauge = Array.from(container.querySelectorAll('svg')).find(
+      (svg) => svg.getAttribute('viewBox') === '0 0 80 44'
+    );
 
-    expect(gauge).not.toBeNull();
+    expect(gauge).toBeDefined();
     expect(gauge.className.baseVal).toContain('w-[clamp(3.5rem,25cqw,6rem)]');
     expect(gauge.parentElement.className).toContain('ml-auto');
     expect(gauge.parentElement.className).toContain('pr-1');

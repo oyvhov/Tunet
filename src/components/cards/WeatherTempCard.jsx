@@ -48,44 +48,46 @@ const inferForecastType = (forecast) => {
   return Math.abs(second.getTime() - first.getTime()) < 12 * 60 * 60 * 1000 ? 'hourly' : 'daily';
 };
 
-const ForecastTypeToggle = memo(function ForecastTypeToggle({
-  forecastView,
-  setForecastView,
-  t,
-  compact = false,
-}) {
-  return (
-    <div
-      className={`flex rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-0.5 ${compact ? 'flex-col' : ''}`}
-      role="group"
-      aria-label={t?.('weather.view.forecast') || 'Forecast'}
-    >
-      {['hourly', 'daily'].map((view) => {
-        const active = forecastView === view;
-        return (
-          <button
-            key={view}
-            type="button"
-            aria-pressed={active}
-            onClick={(event) => {
-              event.stopPropagation();
-              setForecastView(view);
-            }}
-            className={`rounded-full leading-none font-bold tracking-[0.1em] uppercase transition-colors ${
-              compact ? 'px-1.5 py-1 text-[7px]' : 'px-2.5 py-1 text-[9px]'
-            } ${
-              active
-                ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            {t?.(`weather.view.${view}`) || view}
-          </button>
-        );
-      })}
-    </div>
-  );
-});
+const ForecastTypeToggle = memo(
+  /** @param {{ forecastView: string, setForecastView: (view: string) => void, t?: (key: string) => string, compact?: boolean }} props */ function ForecastTypeToggle({
+    forecastView,
+    setForecastView,
+    t,
+    compact = false,
+  }) {
+    return (
+      <div
+        className={`flex rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-0.5 ${compact ? 'flex-col' : ''}`}
+        role="group"
+        aria-label={t?.('weather.view.forecast') || 'Forecast'}
+      >
+        {['hourly', 'daily'].map((view) => {
+          const active = forecastView === view;
+          return (
+            <button
+              key={view}
+              type="button"
+              aria-pressed={active}
+              onClick={(event) => {
+                event.stopPropagation();
+                setForecastView(view);
+              }}
+              className={`rounded-full leading-none font-bold tracking-[0.1em] uppercase transition-colors ${
+                compact ? 'px-1.5 py-1 text-[7px]' : 'px-2.5 py-1 text-[9px]'
+              } ${
+                active
+                  ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {t?.(`weather.view.${view}`) || view}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+);
 
 const WeatherTempCard = memo(
   /** @param {any} props */ function WeatherTempCard({
