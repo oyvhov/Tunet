@@ -5,142 +5,177 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.21.2] — 2026-09-08
+
+### Changed
+
+- Updated production and development dependencies (#208, #209) and the release action (#204).
+
+### Security
+
+- Updated qs to 6.16.0 to fix two denial-of-service vulnerabilities (#207).
+
+### Fixed
+
+- Fixed weather forecast toggle prop types so CI type checking passes.
+
 ## [1.21.1] — 2026-08-21
 
 ### Changed
+
 - Added an animated swipe between current weather and forecast views, with responsive layouts for small, large, and wide mobile cards.
 - Polished the light popup, calendar popup, and media-page editing experience.
 
 ### Fixed
+
 - Restored go2rtc and MSE camera playback with reliable Home Assistant stream fallback (#164).
 - Fixed rapid card-setting changes being overwritten in Firefox.
 
 ## [1.21.0] — 2026-08-20
 
 ### Added
+
 - Added up to two configurable climate mode shortcuts, with Off and Heat as useful defaults when supported.
 - Added automatic camera source fallback across Home Assistant WebRTC and HLS, go2rtc, MJPEG, and signed snapshots (#140, #164).
 
 ### Changed
+
 - Refined dashboard navigation, header controls, mobile badges, and overview-page layouts.
 - Reworked the media chooser to discover favorites, playlists, and libraries across Sonos, Music Assistant, and standard media players.
 - Adapted the Emby media popup for phones and gave climate shortcuts a quieter, neutral selected state.
 
 ### Fixed
+
 - Improved camera card and popup reliability when a preferred live stream is unavailable (#140).
 - Fixed media chooser layout shifts, duplicate close controls, and empty favorites for non-Sonos players.
-
 
 ## [1.20.9] — 2026-08-19
 
 ### Added
+
 - Added per-card mobile width controls for supported dashboard cards.
 - Added configurable ready and running text for script cards.
 
 ### Changed
+
 - Redesigned the appearance, layout, and header sidebars with clearer shared controls.
 - Improved automatic mobile sizing for media, climate, weather, cost, and Nordpool cards.
 
 ### Fixed
+
 - Improved Home Assistant reconnect feedback and kept grid settings within usable device widths.
 - Fixed custom card name updates and several mobile rendering details across sensor, status, lock, weather, and media cards.
-
 
 ## [1.20.8] — 2026-08-16
 
 ### Added
+
 - Added optional person status text to the mobile header.
 
 ### Changed
+
 - Moved mobile settings beside the person row and increased mobile header and navigation text sizes.
 - Optimized power, climate, fan, light, car, weather, TV, and vacuum popups for phone-sized screens.
 
 ### Fixed
+
 - Fixed PWA installation metadata when Tunet is served through Cloudflare Access.
 - Improved Home Assistant reconnection after returning to the app and delayed offline or stale-data notices briefly while synchronization catches up.
 - Fixed the mobile person status visibility setting and aligned the weather card icon with the other dashboard cards.
 
-
 ## [1.20.7] — 2026-08-13
 
 ### Added
+
 - Added the Home Assistant add-on store icon and logo.
 
 ### Changed
+
 - Updated better-sqlite3, express-rate-limit, lucide-react, and ws.
 
 ### Fixed
+
 - Fixed Roborock vacuum consumables reporting remaining time as a percentage, and restored the sensor consumable reset action (#157).
 
 ### Security
-- Patched advisories in ip-address, js-yaml, and react-router.
 
+- Patched advisories in ip-address, js-yaml, and react-router.
 
 ## [1.20.6] — 2026-08-05
 
 ### Added
+
 - Added low-battery status pills with configurable thresholds and entity scoping.
 - Added configurable decimal places for numeric Sensor pills.
 
 ### Changed
+
 - Improved sensor charts with clearer summaries, labels, sizing, and accessibility.
 - Improved Home Assistant connection setup and numeric unit formatting.
 
 ### Fixed
-- Fixed numeric Sensor pills sometimes showing excessive decimal places.
 
+- Fixed numeric Sensor pills sometimes showing excessive decimal places.
 
 ## [1.20.5] — 2026-07-25
 
 ### Changed
+
 - Migrated Home Assistant app build metadata into the Dockerfile and removed the unsupported `armv7` target.
 
 ### Fixed
+
 - Restored App Store installs by updating the app base image to resolve the musl package conflict (#188).
 
 ## [1.20.4] — 2026-07-24
 
 ### Changed
+
 - Updated production and development dependencies, GitHub Actions, and runtime versions.
 - Moved CI to Node 24 and container builders to Node 26.
 
 ### Fixed
+
 - Added native build tooling and deterministic npm installs for better-sqlite3 13.
 - Updated the changed-file formatting check to parse JSON-safe filenames.
 
 ## [1.20.3] — 2026-06-08
 
 ### Changed
+
 - Improved vacuum maintenance reset button matching so Home Assistant button entities with consumable-style names are detected more reliably.
 
 ### Fixed
-- Fixed the Vacuum modal sensor reset action so maintenance resets call the Home Assistant `button.press` service again.
 
+- Fixed the Vacuum modal sensor reset action so maintenance resets call the Home Assistant `button.press` service again.
 
 ## [1.20.2] — 2026-05-20
 
 ### Added
+
 - Add release notes.
 
 ### Changed
+
 - Add release notes.
 
 ### Fixed
-- Add release notes.
 
+- Add release notes.
 
 ## [1.20.1] — 2026-05-20
 
 ### Changed
+
 - Broadened vacuum map entity discovery to match both `camera.*` and `image.*` domains, and use friendly-name token matching for more reliable auto-detection.
 - Persisted vacuum map zoom and pan position per vacuum to localStorage so the view is restored when reopening the modal.
 - Cleaned map entity display names by stripping vacuum name tokens for a tidier multi-map selector.
 
 ### Fixed
+
 - Fixed vacuum map entity matching for setups where the entity friendly name contains the vacuum name but the entity ID does not.
 - Added Norwegian `kart` keyword to fallback map entity detection.
 - Fixed ModernDropdown portal-aware click-outside handling so dropdown menus rendered through a portal no longer close unexpectedly.
-
 
 ## [1.20.0] — 2026-05-20
 

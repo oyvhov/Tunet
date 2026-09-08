@@ -1,95 +1,131 @@
 # Changelog
 
+## 1.21.2
+
+### Changed
+
+- Updated production and development dependencies (#208, #209) and the release action (#204).
+
+### Security
+
+- Updated qs to 6.16.0 to fix two denial-of-service vulnerabilities (#207).
+
+### Fixed
+
+- Fixed weather forecast toggle prop types so CI type checking passes.
+
 ## 1.21.1
 
 ### Changed
+
 - Includes dashboard release `1.21.1` with swipeable weather views and refined light, calendar, and media interfaces.
 
 ### Fixed
+
 - Restores go2rtc and MSE camera playback and fixes Firefox card-setting persistence (#164).
 
 ## 1.21.0
 
 ### Added
+
 - Adds configurable climate mode shortcuts and automatic camera source fallback (#140, #164).
 
 ### Changed
+
 - Includes dashboard release `1.21.0` with refined navigation and a media chooser that works across Sonos, Music Assistant, Emby, and standard media players.
 
 ### Fixed
+
 - Improves camera stream reliability and the phone layout for media popups.
 
 ## 1.20.9
 
 ### Changed
+
 - Includes dashboard release `1.20.9` with redesigned settings sidebars, per-card mobile width controls, and configurable script status text.
 
 ### Fixed
+
 - Improves Home Assistant reconnect feedback and mobile grid behavior.
 
 ## 1.20.8
 
 ### Changed
+
 - Includes dashboard release `1.20.8` with a more compact mobile header and phone-optimized card popups, including TV and vacuum controls.
 
 ### Fixed
+
 - Improves Home Assistant reconnection after returning to the app and delays premature offline or stale-data notices.
 - Fixes PWA installation metadata when Tunet is served through Cloudflare Access.
 
 ## 1.20.7
 
 ### Added
+
 - Adds the add-on store icon and logo, so Tunet is no longer shown without branding.
 
 ### Fixed
+
 - Includes dashboard release `1.20.7`, fixing Roborock vacuum consumable percentages and the sensor reset action (#157).
 
 ### Security
+
 - Patches advisories in ip-address, js-yaml, and react-router.
 
 ## 1.20.6
 
 ### Changed
+
 - Includes dashboard release `1.20.6` with low-battery status pills, configurable Sensor-pill precision, and improved sensor charts.
 
 ## 1.20.5
 
 ### Changed
+
 - Migrates deprecated build metadata into the Dockerfile and removes the unsupported `armv7` target.
 
 ### Fixed
+
 - Restores App Store installs by updating the app base image to resolve the musl package conflict (#188).
 
 ## 1.20.4
 
 ### Changed
+
 - Includes dashboard release `1.20.4` with current dependencies and the Node 26 builder.
 
 ### Fixed
+
 - Adds the native build toolchain required to install better-sqlite3 13.
 
 ## 1.20.3
 
 ### Changed
+
 - Includes dashboard release `1.20.3`.
 - Improves vacuum maintenance reset button detection for consumable-style Home Assistant button names.
 
 ### Fixed
+
 - Restores the Vacuum modal maintenance sensor reset action.
 
 ## 1.20.2
 
 ### Changed
+
 - Add release notes.
 
 ## 1.20.1
 
 ### Changed
+
 - Includes dashboard release `1.20.1`.
 - Broadens vacuum map entity auto-detection to cover both camera and image domains with friendly-name token matching.
 - Persists vacuum map zoom and pan per vacuum so the map view restores when reopening the modal.
 
 ### Fixed
+
 - Fixes vacuum map detection for setups where the entity friendly name (but not the entity ID) references the vacuum.
 - Adds Norwegian `kart` keyword to fallback map entity discovery.
 - Fixes ModernDropdown portal click-outside handling.
