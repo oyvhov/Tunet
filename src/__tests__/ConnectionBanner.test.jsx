@@ -41,7 +41,13 @@ describe('ConnectionBanner mobile presentation', () => {
       screen.getByText('Home Assistant is currently unavailable. Data may be outdated.')
     ).toHaveClass('hidden', 'sm:inline');
     expect(screen.getByText(/Disconnected for/)).toHaveClass('hidden', 'sm:inline');
-    expect(screen.getByRole('status')).toHaveClass('w-fit', 'rounded-full');
+    expect(screen.getByRole('status')).toHaveClass(
+      'w-fit',
+      'rounded-full',
+      'border-[var(--glass-border)]',
+      'bg-[var(--glass-bg)]',
+      'opacity-80'
+    );
   });
 
   it('keeps the actionable authentication message visible', () => {

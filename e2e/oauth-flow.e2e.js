@@ -1,6 +1,25 @@
 import { test, expect } from './fixtures';
 
 test.describe('OAuth Authentication Flow', () => {
+  test('keeps an expired login warning visible when the mobile app resumes', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('tunet:api-auth-unauthorized', {
+          detail: { authMethod: 'oauth' },
+        })
+      );
+    });
+    const loginButton = page
+      .getByRole('status')
+      .getByRole('button', { name: 'Log in with Home Assistant' });
+    await expect(loginButton).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
+    await expect(loginButton).toBeVisible();
+  });
+
   const openOnboarding = async (page) => {
     await page.addInitScript(() => {
       localStorage.clear();

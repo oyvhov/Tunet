@@ -390,8 +390,8 @@ const WeatherTempCard = memo(
           onPointerUp={(event) => finishPointerGesture(event)}
           onPointerCancel={(event) => finishPointerGesture(event, true)}
           title={editMode ? undefined : swipeHint}
-          className={`glass-texture touch-feedback group relative flex h-full items-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${
-            !editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'
+          className={`weather-card-swipe-shell glass-texture touch-feedback group relative flex h-full items-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${
+            !editMode ? 'cursor-pointer' : 'cursor-move'
           }`}
           style={{ ...cardStyle, touchAction: editMode ? undefined : 'pan-y' }}
         >
@@ -512,8 +512,8 @@ const WeatherTempCard = memo(
         onPointerUp={(event) => finishPointerGesture(event)}
         onPointerCancel={(event) => finishPointerGesture(event, true)}
         title={editMode ? undefined : swipeHint}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${
-          !editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'
+        className={`weather-card-swipe-shell glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${
+          !editMode ? 'cursor-pointer' : 'cursor-move'
         }`}
         style={{ ...cardStyle, touchAction: editMode ? undefined : 'pan-y' }}
       >
