@@ -49,11 +49,13 @@ export default function ConnectionBanner({ t, setConfigTab }) {
 
   return (
     <div
-      className={`popup-anim flex items-center gap-2 border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] ${oauthExpired ? 'mb-6 w-full rounded-2xl px-4 py-4 sm:px-6' : 'mb-3 w-fit rounded-full px-3 py-2 sm:mb-6 sm:w-full sm:gap-3 sm:rounded-2xl sm:px-6 sm:py-4'}`}
+      className={`popup-anim flex items-center gap-2 border ${oauthExpired ? 'mb-6 w-full rounded-2xl border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-4 py-4 text-[var(--status-warning-fg)] sm:px-6' : 'mb-2 w-fit rounded-full border-[var(--glass-border)] bg-[var(--glass-bg)] px-2.5 py-1.5 text-[var(--text-secondary)] opacity-80 backdrop-blur-xl sm:mb-6 sm:w-full sm:gap-3 sm:rounded-2xl sm:border-[var(--status-warning-border)] sm:bg-[var(--status-warning-bg)] sm:px-6 sm:py-4 sm:text-[var(--status-warning-fg)] sm:opacity-100'}`}
       role="status"
       aria-live="polite"
     >
-      <WifiOff className="h-4 w-4 shrink-0 text-[var(--status-warning-fg)] sm:h-5 sm:w-5" />
+      <WifiOff
+        className={`h-3.5 w-3.5 shrink-0 sm:h-5 sm:w-5 ${oauthExpired ? 'text-[var(--status-warning-fg)]' : 'text-[var(--text-secondary)] sm:text-[var(--status-warning-fg)]'}`}
+      />
       <div className="min-w-0 flex-1 text-xs font-semibold sm:text-sm">
         {oauthExpired ? (
           <span>{t('system.oauth.expired')}</span>
@@ -74,7 +76,7 @@ export default function ConnectionBanner({ t, setConfigTab }) {
           <button
             onClick={handleRetry}
             title={t('ha.retry')}
-            className="rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-1 text-[var(--status-warning-fg)] transition-colors hover:opacity-90 sm:p-1.5"
+            className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1 text-[var(--text-secondary)] transition-colors hover:opacity-90 sm:border-[var(--status-warning-border)] sm:bg-[var(--status-warning-bg)] sm:p-1.5 sm:text-[var(--status-warning-fg)]"
           >
             <RefreshCw className="h-4 w-4" />
           </button>

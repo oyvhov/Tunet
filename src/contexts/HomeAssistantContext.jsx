@@ -580,19 +580,45 @@ export const HomeAssistantProvider = ({ children, config }) => {
     return () => clearInterval(timer);
   }, [entitiesLoaded, connected, disconnectedSince, lastEntityUpdateAt]);
 
-  // Show unavailable banner after delay
+  // Delay connection warnings, and restart the grace period when a mobile app resumes.
   useEffect(() => {
-    if (!haUnavailable) {
+    let timer = null;
+
+    const scheduleWarning = () => {
+      if (timer) clearTimeout(timer);
+
+      if (!haUnavailable) {
+        setHaUnavailableVisible(false);
+        return;
+      }
+
+      if (oauthExpired) {
+        setHaUnavailableVisible(true);
+        return;
+      }
+
       setHaUnavailableVisible(false);
-      return;
-    }
-    const viewportWidth = globalThis.window?.innerWidth ?? Number.POSITIVE_INFINITY;
-    const timer = setTimeout(
-      () => setHaUnavailableVisible(true),
-      getConnectionWarningDelayMs(viewportWidth)
-    );
-    return () => clearTimeout(timer);
-  }, [haUnavailable]);
+      const viewportWidth = globalThis.window?.innerWidth ?? Number.POSITIVE_INFINITY;
+      timer = setTimeout(
+        () => setHaUnavailableVisible(true),
+        getConnectionWarningDelayMs(viewportWidth)
+      );
+    };
+
+    scheduleWarning();
+
+    const handleVisibilityChange = () => {
+      if (globalThis.document?.visibilityState === 'visible') scheduleWarning();
+    };
+    globalThis.document?.addEventListener('visibilitychange', handleVisibilityChange);
+    globalThis.window?.addEventListener('pageshow', handleVisibilityChange);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      globalThis.document?.removeEventListener('visibilitychange', handleVisibilityChange);
+      globalThis.window?.removeEventListener('pageshow', handleVisibilityChange);
+    };
+  }, [haUnavailable, oauthExpired]);
 
   useEffect(() => {
     if (typeof globalThis.window === 'undefined') return undefined;

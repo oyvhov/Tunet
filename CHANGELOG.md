@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.21.3] — 2026-09-08
+
+### Changed
+
+- Made mobile connection warnings quieter and restarted the reconnect grace period when returning to the app.
+- Removed the press-to-shrink effect while swiping weather cards.
+
+### Fixed
+
+- Show expired-login warnings immediately and keep them visible when the app resumes.
+
 ## [1.21.2] — 2026-09-08
 
 ### Changed

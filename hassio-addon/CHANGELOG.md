@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.21.3
+
+### Changed
+
+- Made mobile connection warnings quieter and restarted the reconnect grace period when returning to the app.
+- Removed the press-to-shrink effect while swiping weather cards.
+
+### Fixed
+
+- Show expired-login warnings immediately and keep them visible when the app resumes.
+
 ## 1.21.2
 
 ### Changed

@@ -78,7 +78,7 @@ describe('WeatherTempCard', () => {
   };
 
   it('aligns the large weather icon with other dashboard icons on mobile', () => {
-    renderCard({ isMobile: true });
+    const { container } = renderCard({ isMobile: true });
 
     expect(screen.getByAltText('Delvis skya').parentElement).toHaveClass(
       '-mt-1',
@@ -89,6 +89,8 @@ describe('WeatherTempCard', () => {
     expect(screen.getByText('Rivenes')).toHaveClass('line-clamp-2', 'text-left');
     expect(screen.getByText('Rivenes')).not.toHaveClass('truncate');
     expect(screen.getByText('Delvis skya')).toHaveClass('text-[10px]', 'leading-none');
+    expect(container.querySelector('[data-haptic]')).toHaveClass('weather-card-swipe-shell');
+    expect(container.querySelector('[data-haptic]').className).not.toContain('active:scale');
   });
 
   it('keeps the original card by default and swipes to hourly and daily forecasts', () => {

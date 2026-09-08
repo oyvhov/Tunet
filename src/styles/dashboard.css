@@ -281,7 +281,7 @@
   border-color: var(--glass-border) !important;
   z-index: 10;
 }
-.touch-feedback:active {
+.touch-feedback:not(.weather-card-swipe-shell):active {
   transform: scale(0.97);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   filter: brightness(0.95);
