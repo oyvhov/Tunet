@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.22.0
+
+### Added
+
+- Added flexible entity cards: place the same entity on a page more than once and give each card its own name, subtitle, icon, status source, layout, and tap action.
+- Added card actions for entity cards: open details, toggle, turn on or off, activate a scene, run a script, press a button, or call any Home Assistant action, with progress and confirmation feedback.
+- Added an Apple TV card and popup with media controls, an optional remote, linked speakers, and a tap action.
+- Added power buttons with progress feedback to climate and Apple TV cards, plus a tap action setting to open details or toggle power.
+
+### Changed
+
+- Rebuilt the sensor card editor into Content, Status, Appearance, and Action sections, with a live preview beside the settings on wide screens. Options only appear when they apply.
+- Lights, climate devices, and buttons can now be added as sensor cards. Existing sensor cards keep working.
+- Climate power buttons fall back to setting the HVAC mode when a device cannot be turned off directly.
+
+### Fixed
+
+- Fixed Escape closing a whole dialog instead of only the dropdown menu that was open.
+
 ## 1.21.3
 
 ### Changed
