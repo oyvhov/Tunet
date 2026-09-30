@@ -129,12 +129,7 @@ const getAutomaticMobileMinWidth = (cardId, settings) => {
       ) ||
       targetId !== sourceId ||
       ['scene', 'script', 'button', 'input_button', 'climate'].includes(sourceId.split('.')[0]);
-    if (
-      hasButtonAction &&
-      (['compact', 'action'].includes(settings.sensorLayout) ||
-        (settings.size === 'small' && usesPrimaryButton))
-    )
-      return 280;
+    if (hasButtonAction && settings.size === 'small' && usesPrimaryButton) return 280;
     if (settings.size === 'small') return 150;
     return sourceId.startsWith('climate.') ? 280 : 160;
   }

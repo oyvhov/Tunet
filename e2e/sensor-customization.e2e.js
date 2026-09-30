@@ -258,7 +258,7 @@ test.describe('Flexible sensor cards', () => {
     await expect(card(page, SECOND).getByText('Night second', { exact: true })).toBeVisible();
   });
 
-  test('customizes scene text and layout, disables preview actions, and persists independent cards', async ({
+  test('customizes scene text, disables preview actions, and persists independent cards', async ({
     page,
   }, testInfo) => {
     const errors = [];
@@ -273,7 +273,7 @@ test.describe('Flexible sensor cards', () => {
     await editor
       .getByRole('textbox', { name: 'Button text', exact: true })
       .fill('Start night lights');
-    await pick(editor, 'Action tile');
+    await expect(editor.getByText('Compact row')).toHaveCount(0);
     const preview = editor.getByTestId('sensor-card-preview');
     await expect(preview.getByText('Ready for bedtime', { exact: true })).toBeVisible();
     await expect(
@@ -281,7 +281,6 @@ test.describe('Flexible sensor cards', () => {
     ).toBeDisabled();
     await expect.poll(() => page.evaluate(() => window.__sensorCalls.length)).toBe(0);
     await closeEditor(page, editor);
-    await expect(card(page, FIRST)).toHaveAttribute('data-sensor-layout', 'action');
     await expect(card(page, SECOND).getByText('Scene', { exact: true })).toBeVisible();
     await expect(
       card(page, SECOND).getByRole('button', { name: 'Activate', exact: true })
@@ -345,7 +344,6 @@ test.describe('Flexible sensor cards', () => {
         ...settings['home::entity_card_night_first'],
         size: 'small',
         mobileWidth: 'compact',
-        sensorLayout: 'action',
         sensorStatusMode: 'hidden',
         sensorAction: { type: 'scene', trigger: 'button', label: 'Start night lights' },
       };

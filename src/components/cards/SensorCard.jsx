@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Check,
   ArrowRight,
+  Info,
   getIconComponent,
 } from '../../icons';
 import { getHistory, getStatistics } from '../../services/haClient';
@@ -159,6 +160,10 @@ const SensorCard = memo(
         : null;
     const sceneDisplayState =
       config.statusMode === 'auto' && domain === 'scene' ? translate('sensor.scene.label') : null;
+    const buttonDisplayState =
+      config.statusMode === 'auto' && ['button', 'input_button'].includes(domain)
+        ? translate('sensor.button.label')
+        : null;
     const customScriptStatus =
       typeof settings?.scriptStatusText === 'string' ? settings.scriptStatusText.trim() : '';
     const scriptDisplayState =
@@ -173,6 +178,7 @@ const SensorCard = memo(
       : binaryDisplayState ||
         toggleDisplayState ||
         sceneDisplayState ||
+        buttonDisplayState ||
         scriptDisplayState ||
         state;
     const displayState =
@@ -520,9 +526,8 @@ const SensorCard = memo(
       !managedAction && ['input_boolean', 'switch', 'automation', 'light'].includes(primaryDomain);
     const showToggleControls = isToggleDomain && showControls;
     const showCompactMobileToggleState = isMobile && showToggleControls && showStatus && !isNumeric;
-    const useCompactMobileToggleLayout =
-      config.layout === 'auto' && useDenseMobileLargeLayout && showToggleControls;
-    const useCompactSelectLayout = config.layout === 'auto' && isSelectDomain && !isSmall;
+    const useCompactMobileToggleLayout = useDenseMobileLargeLayout && showToggleControls;
+    const useCompactSelectLayout = isSelectDomain && !isSmall;
     const useCompactDesktopSelectLayout = useCompactSelectLayout && !useDenseMobileLargeLayout;
     const compactToggleStateTone = isUnavailable
       ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'
@@ -578,6 +583,7 @@ const SensorCard = memo(
       config.action.type !== 'service' &&
       config.action.entityId &&
       (!config.action.targetEntity ||
+        !config.action.targetSupported ||
         config.action.targetEntity.state === 'unavailable' ||
         (config.action.targetEntity.state === 'unknown' &&
           ['toggle', 'turn_on', 'turn_off'].includes(config.action.type)));
@@ -636,7 +642,7 @@ const SensorCard = memo(
           {translate(`sensor.action.${actionFeedback.status}`)}
         </span>
       );
-    const renderPrimaryButton = (compact = false, narrow = false) =>
+    const renderPrimaryButton = (compact = false) =>
       showControls &&
       config.action.type !== 'none' &&
       config.action.trigger === 'button' && (
@@ -646,7 +652,7 @@ const SensorCard = memo(
           disabled={actionDisabled}
           aria-busy={actionFeedback.pending}
           title={actionLabel}
-          className={`relative z-20 flex min-h-11 ${narrow ? 'max-w-[45%] shrink-0 px-2' : compact ? 'max-w-[10rem] shrink-0 px-3' : 'w-full px-4'} items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-2 text-xs font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-60`}
+          className={`relative z-20 flex min-h-11 ${compact ? 'max-w-[min(10rem,45cqw)] shrink-0 px-3 @max-[200px]:w-11 @max-[200px]:px-0' : 'w-full px-4'} items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-2 text-xs font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-60`}
         >
           {actionFeedback.pending ? (
             <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
@@ -655,7 +661,9 @@ const SensorCard = memo(
           ) : (
             <ActionIcon className="h-4 w-4 shrink-0" />
           )}
-          <span className={`${compact ? 'line-clamp-2' : ''} min-w-0 break-words`}>
+          <span
+            className={`${compact ? 'line-clamp-2 @max-[200px]:sr-only' : ''} min-w-0 break-words`}
+          >
             {actionLabel}
           </span>
         </button>
@@ -767,8 +775,8 @@ const SensorCard = memo(
       return null;
     };
 
-    const renderSmallVariantVisual = (force = false) => {
-      if (!showSmallVariantVisual && !force) return null;
+    const renderSmallVariantVisual = () => {
+      if (!showSmallVariantVisual) return null;
 
       if (variant === 'gauge') {
         return (
@@ -821,117 +829,41 @@ const SensorCard = memo(
     const IconTag = iconIsAction ? 'button' : 'div';
     const SmallIconTag = iconIsAction || showToggleControls ? 'button' : 'div';
     const cardIsAction = config.action.trigger === 'card' && config.action.type !== 'none';
+    const showDetailsButton = cardIsAction && config.action.type !== 'more-info';
     const cardIsInteractive = (cardIsAction || managedAction) && !editMode && !preview;
     const cardLabel = cardIsAction
       ? actionLabel
       : `${String(name)}: ${translate('sensor.action.details')}`;
     const showInputStatus =
       primaryDomain !== 'input_number' || managedAction || config.statusMode !== 'auto';
-    const detailsButton = cardIsAction && (
+    const detailsButton = showDetailsButton && (
       <button
         type="button"
         disabled={editMode || preview}
+        aria-label={translate('sensor.action.details')}
+        title={translate('sensor.action.details')}
         onClick={(event) => {
           event.stopPropagation();
           onOpen?.();
         }}
-        className="relative z-20 min-h-11 rounded-xl px-3 text-xs text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]"
+        className="relative z-20 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors before:absolute before:-inset-1.5 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
       >
-        {translate('sensor.action.details')}
+        <Info className="h-4 w-4" aria-hidden="true" />
       </button>
     );
-    const renderCustomIcon = () =>
-      showIcon && (
-        <IconTag
-          type={iconIsAction ? 'button' : undefined}
-          disabled={iconIsAction ? actionDisabled : undefined}
-          onClick={iconIsAction ? executeAction : undefined}
-          aria-label={iconIsAction ? actionLabel : undefined}
-          aria-busy={iconIsAction ? actionFeedback.pending : undefined}
-          className={`relative z-20 flex ${isSmall && !iconIsAction ? 'h-8 w-8 rounded-xl' : 'h-11 w-11 rounded-2xl'} shrink-0 items-center justify-center ${actionActive ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : iconToneClass} ${iconIsAction ? 'transition-transform active:scale-90 disabled:opacity-60' : ''}`}
+    const actionCaption =
+      config.action.trigger !== 'button' && config.action.type !== 'none'
+        ? config.action.label
+        : '';
+    const renderActionCaption = (className = '') =>
+      actionCaption ? (
+        <span
+          className={`flex min-w-0 items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] ${className}`}
         >
-          {iconIsAction && actionFeedback.pending ? (
-            <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" />
-          ) : Icon ? (
-            <Icon className="h-5 w-5" />
-          ) : (
-            <Activity className="h-5 w-5" />
-          )}
-        </IconTag>
-      );
-    if (config.layout === 'compact' || config.layout === 'action') {
-      const compact = config.layout === 'compact' || isSmall;
-      return (
-        <div
-          ref={cardRef}
-          {...dragProps}
-          onClick={handleCardClick}
-          onKeyDown={handleCardKeyDown}
-          role={cardIsInteractive ? 'button' : undefined}
-          tabIndex={cardIsInteractive ? 0 : undefined}
-          aria-label={cardIsInteractive ? cardLabel : undefined}
-          aria-busy={cardIsAction ? actionFeedback.pending : undefined}
-          aria-disabled={cardIsAction ? !!actionDisabled : undefined}
-          data-sensor-layout={config.layout}
-          className={`touch-feedback group relative flex h-full overflow-hidden rounded-3xl border ${isSmall ? 'gap-2 p-2' : 'gap-3 p-4'} font-sans ${compact ? 'items-center' : 'flex-col'} ${editMode ? 'cursor-move' : 'cursor-pointer'}`}
-          style={cardStyle}
-        >
-          {controls}
-          {showGraph && history.length > 0 && (
-            <div
-              className="pointer-events-none absolute right-0 bottom-0 left-0 z-0 h-16"
-              data-sensor-graph="history"
-            >
-              <SparkLine
-                data={history}
-                height={64}
-                currentIndex={history.length - 1}
-                fade
-                ariaLabel={chartAriaLabel}
-              />
-            </div>
-          )}
-          {renderCustomIcon()}
-          <div className="relative z-10 min-w-0 flex-1">
-            {showName && (
-              <p
-                title={String(name)}
-                className={`${isSmall ? 'line-clamp-2' : ''} text-xs font-bold break-words text-[var(--text-secondary)]`}
-              >
-                {String(name)}
-              </p>
-            )}
-            {config.subtitle && (
-              <p
-                className={`${isSmall ? 'line-clamp-1' : ''} mt-1 text-xs break-words text-[var(--text-secondary)]`}
-              >
-                {config.subtitle}
-              </p>
-            )}
-            {showStatus && (
-              <p
-                className={`${isSmall ? 'line-clamp-1 text-sm' : compact ? 'text-base' : 'text-2xl'} mt-1 break-words text-[var(--text-primary)]`}
-              >
-                {chartDisplayValue ?? displayState}
-                {displayNumericUnit && valueMode !== 'percent' && (
-                  <span className="ml-1 text-xs">{displayNumericUnit}</span>
-                )}
-              </p>
-            )}
-            {renderFeedback()}
-            {showStatus && isRangeVariant && isNumeric && (
-              <div className="mt-2" data-sensor-graph={variant}>
-                {renderSmallVariantVisual(true)}
-              </div>
-            )}
-          </div>
-          {managedAction || config.action.type !== 'none'
-            ? renderPrimaryButton(compact, isSmall)
-            : renderControls()}
-          {detailsButton}
-        </div>
-      );
-    }
+          <ActionIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span className="truncate">{actionCaption}</span>
+        </span>
+      ) : null;
 
     if (isSmall) {
       const smallToggleIconClass = showToggleControls
@@ -999,11 +931,6 @@ const SensorCard = memo(
                   {String(name)}
                 </p>
               )}
-              {config.subtitle && (
-                <p className="mb-1 text-xs break-words text-[var(--text-secondary)]">
-                  {config.subtitle}
-                </p>
-              )}
               {showStatus && (
                 <div
                   className={`flex min-w-0 items-baseline ${useDenseMobileSmallLayout ? 'gap-0.5' : 'gap-1'}`}
@@ -1035,7 +962,9 @@ const SensorCard = memo(
                     )}
                 </div>
               )}
-              {renderFeedback()}
+              {actionFeedback.status !== 'idle'
+                ? renderFeedback()
+                : renderActionCaption('mt-1 @max-[200px]:hidden')}
             </div>
 
             {showSmallVariantVisual && (
@@ -1185,11 +1114,6 @@ const SensorCard = memo(
         <div
           className={`relative z-10 ${useDenseMobileLargeLayout ? (useCompactMobileToggleLayout || useCompactMobileActionLayout ? 'mt-1' : useCompactMobileRangeLayout ? 'mt-1' : 'mt-2') : useCompactDesktopSelectLayout ? 'mt-2.5' : 'mt-4'} ${useCompactMobileToggleLayout ? 'mt-auto pt-2' : ''}`}
         >
-          {config.subtitle && (
-            <p className="mb-2 text-xs break-words text-[var(--text-secondary)]">
-              {config.subtitle}
-            </p>
-          )}
           {showInputStatus && showStatus && !isNumeric && !showCompactMobileToggleState && (
             <div
               className={
@@ -1241,7 +1165,12 @@ const SensorCard = memo(
             <>{renderControls()}</>
           )}
           {renderFeedback()}
-          {detailsButton}
+          {(actionCaption || detailsButton) && (
+            <div className="mt-2 flex min-h-8 items-center justify-between gap-2">
+              {renderActionCaption()}
+              {detailsButton && <span className="ml-auto">{detailsButton}</span>}
+            </div>
+          )}
 
           {showVariantPanel && (
             <div

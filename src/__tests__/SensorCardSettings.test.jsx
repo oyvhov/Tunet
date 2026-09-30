@@ -282,15 +282,30 @@ describe('SensorCardSettings', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Fill in Message before saving.');
     expect(save).not.toHaveBeenCalled();
   });
-  it('hides action details when an entity has no automatic action until one is chosen', () => {
+  it('shows only the action choice for an entity that has no action of its own', () => {
     render(<Editor initialSettings={{ entityId: 'sensor.temperature' }} />);
-    expect(screen.getByText(en['sensor.custom.noAutoAction'])).toBeInTheDocument();
+    expect(screen.getByText('Automatic: Open details')).toBeInTheDocument();
     expect(screen.queryByLabelText('Button text')).not.toBeInTheDocument();
     expect(screen.queryByText('Action target')).not.toBeInTheDocument();
+    expect(screen.queryByText('Activate using')).not.toBeInTheDocument();
+  });
+
+  it('asks for a target instead of pretending the displayed sensor can be toggled', () => {
+    const save = vi.fn();
+    render(<Editor initialSettings={{ entityId: 'sensor.temperature' }} onSave={save} />);
     fireEvent.click(screen.getByRole('button', { name: /^Action type:/ }));
-    fireEvent.click(screen.getByRole('option', { name: 'Open details' }));
-    expect(screen.getByLabelText('Button text')).toBeInTheDocument();
-    expect(screen.getByText('Action target')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: 'Toggle on/off' }));
+    const target = screen.getByText('Action target').parentElement;
+    expect(within(target).getByRole('button', { name: 'Not selected' })).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /Temperature/ })).not.toBeInTheDocument();
+    fireEvent.click(within(target).getByRole('button', { name: 'Not selected' }));
+    expect(within(target).getByRole('button', { name: /Aircondition/ })).toBeInTheDocument();
+  });
+
+  it('keeps the target hidden while the entity uses its own automatic action', () => {
+    render(<Editor />);
+    expect(screen.queryByText('Action target')).not.toBeInTheDocument();
+    expect(screen.getByText('Activate using')).toBeInTheDocument();
   });
 
   it('describes what the automatic action resolves to', () => {
@@ -327,16 +342,14 @@ describe('SensorCardSettings', () => {
     );
   });
 
-  it('uses switches for visibility options and shows the controls switch only when it applies', () => {
+  it('uses switches for what the card shows', () => {
     const save = vi.fn();
     render(<Editor onSave={save} />);
     const showName = screen.getByRole('switch', { name: 'Show name' });
     expect(showName).toBeChecked();
     fireEvent.click(showName);
     expect(save).toHaveBeenCalledWith('entity_card_example', 'showName', false);
-    expect(screen.getByRole('switch', { name: 'Show controls' })).toBeChecked();
-    fireEvent.click(screen.getByRole('button', { name: 'Whole card' }));
-    expect(screen.queryByRole('switch', { name: 'Show controls' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: /controls/i })).not.toBeInTheDocument();
   });
 
   it('offers card styles only for numeric values and hides the graph switch for other styles', () => {
@@ -348,5 +361,96 @@ describe('SensorCardSettings', () => {
     expect(screen.queryByRole('switch', { name: /^Graph/ })).not.toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: 'Min' })).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Color thresholds' })).toBeChecked();
+  });
+  it('does not offer a layout choice because the card size is set on the card itself', () => {
+    render(<Editor initialSettings={{ entityId: 'sensor.temperature' }} />);
+    expect(screen.queryByText(/layout/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /compact row|action tile/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('only shows the Appearance section when the card has numeric styling to offer', () => {
+    const { rerender } = render(<Editor initialSettings={{ entityId: 'scene.night' }} />);
+    expect(screen.queryByRole('heading', { name: 'Appearance' })).not.toBeInTheDocument();
+    rerender(<Editor key="numeric" initialSettings={{ entityId: 'sensor.temperature' }} />);
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeInTheDocument();
+  });
+  it('offers name and icon but no separate subtitle', () => {
+    render(<Editor />);
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/subtitle/i)).not.toBeInTheDocument();
+  });
+  it('always lets the text be set and names the field after where it shows', () => {
+    const save = vi.fn();
+    render(
+      <Editor
+        initialSettings={{ sensorAction: { type: 'toggle', entityId: 'climate.room' } }}
+        onSave={save}
+      />
+    );
+    expect(screen.getByLabelText('Button text')).toHaveAttribute('placeholder', 'Automatic');
+    fireEvent.click(screen.getByRole('button', { name: 'Icon' }));
+    expect(screen.queryByLabelText('Button text')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Text on card'), { target: { value: 'Cooling' } });
+    expect(save).toHaveBeenLastCalledWith('entity_card_example', 'sensorAction', {
+      type: 'toggle',
+      entityId: 'climate.room',
+      trigger: 'icon',
+      label: 'Cooling',
+    });
+    expect(screen.getByText(en['sensor.custom.triggerHint.icon'])).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Whole card' }));
+    expect(screen.getByLabelText('Text on card')).toHaveValue('Cooling');
+    expect(screen.getByText(en['sensor.custom.triggerHint.card'])).toBeInTheDocument();
+  });
+
+  it('has no hidden extra options for state texts, action icon or controls', () => {
+    render(
+      <Editor initialSettings={{ sensorAction: { type: 'toggle', entityId: 'climate.room' } }} />
+    );
+    expect(screen.queryByText('More options')).not.toBeInTheDocument();
+    expect(screen.queryByText('Action icon')).not.toBeInTheDocument();
+    expect(screen.queryByText(/when on/i)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['button', 'Button text'],
+    ['icon', 'Text on card'],
+    ['card', 'Text on card'],
+  ])('replaces legacy state labels when editing %s action text', (trigger, fieldLabel) => {
+    const save = vi.fn();
+    render(
+      <Editor
+        initialSettings={{
+          sensorAction: {
+            type: 'toggle',
+            entityId: 'climate.room',
+            trigger,
+            label: 'Old text',
+            labelOn: 'Stop cooling',
+            labelOff: 'Start cooling',
+            icon: 'Snowflake',
+          },
+        }}
+        onSave={save}
+      />
+    );
+    fireEvent.change(screen.getByLabelText(fieldLabel), { target: { value: 'Toggle cooling' } });
+    expect(save).toHaveBeenLastCalledWith('entity_card_example', 'sensorAction', {
+      type: 'toggle',
+      entityId: 'climate.room',
+      trigger,
+      label: 'Toggle cooling',
+      icon: 'Snowflake',
+    });
+    fireEvent.change(screen.getByLabelText(fieldLabel), { target: { value: '' } });
+    expect(save).toHaveBeenLastCalledWith('entity_card_example', 'sensorAction', {
+      type: 'toggle',
+      entityId: 'climate.room',
+      trigger,
+      label: null,
+      icon: 'Snowflake',
+    });
   });
 });

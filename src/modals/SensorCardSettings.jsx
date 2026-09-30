@@ -1,41 +1,26 @@
 import React, { useMemo } from 'react';
 import IconPicker from '../components/ui/IconPicker';
 import { Activity, Zap } from '../icons';
-import SensorNumericStyle from './editCard/SensorNumericStyle';
+import SensorNumericStyle, { canShowSensorNumericStyle } from './editCard/SensorNumericStyle';
 import SensorServiceSettings from './editCard/SensorServiceSettings';
 import {
   ChoiceChips,
-  Disclosure,
   DropdownField,
   EntityField,
-  Field,
   SettingsSection,
   TextField,
   ToggleRow,
 } from './editCard/settingsControls';
 import {
+  getSensorActionTargetDomains,
   resolveSensorCardConfig,
   SENSOR_ACTION_TYPES,
-  SENSOR_LAYOUTS,
   SENSOR_STATUS_MODES,
 } from '../utils/sensorCardConfig';
 
 const EMPTY_OBJECT = {};
 const TRIGGERS = ['button', 'icon', 'card'];
-const POWER_TARGET_DOMAINS = [
-  'input_boolean',
-  'switch',
-  'light',
-  'automation',
-  'climate',
-  'fan',
-  'media_player',
-  'humidifier',
-  'remote',
-  'siren',
-];
 const APPEARANCE_KEYS = [
-  'sensorLayout',
   'sensorVariant',
   'sensorMin',
   'sensorMinType',
@@ -56,18 +41,15 @@ const STATUS_DETAIL_KEYS = [
 ];
 const STATUS_KEYS = ['sensorStatusMode', ...STATUS_DETAIL_KEYS, 'showStatus'];
 
-const getActionTargetDomains = (type) => {
-  if (type === 'scene' || type === 'script') return [type];
-  if (type === 'press') return ['button', 'input_button'];
-  if (['toggle', 'turn_on', 'turn_off'].includes(type)) return POWER_TARGET_DOMAINS;
-  return null;
+const supportsActionTarget = (type, entityId) => {
+  const domains = getSensorActionTargetDomains(type);
+  return !domains || domains.includes(entityId?.split('.')[0]);
 };
 
 const hasValue = (value) => value !== undefined && value !== null && value !== '';
 
 function isAppearanceCustomized(settings) {
   return (
-    (hasValue(settings.sensorLayout) && settings.sensorLayout !== 'auto') ||
     (hasValue(settings.sensorVariant) && settings.sensorVariant !== 'default') ||
     settings.showGraph === false ||
     settings.sensorUseColorThresholds === false ||
@@ -139,17 +121,19 @@ export default function SensorCardSettings({
   const chipOptions = (prefix, keys) =>
     keys.map((key) => ({ value: key, label: t(`sensor.custom.${prefix}.${key}`) }));
 
-  const targetDomains = getActionTargetDomains(actionType);
+  const targetDomains = getSensorActionTargetDomains(actionType);
   const actionTargets = targetDomains
     ? allEntityIds.filter((id) => targetDomains.includes(id.split('.')[0]))
     : allEntityIds;
+  const showActionTarget =
+    !['auto', 'none', 'service'].includes(actionType) ||
+    (actionType === 'auto' && hasValue(action.entityId));
+  const actionTargetValue =
+    action.entityId || (supportsActionTarget(actionType, primaryId) ? primaryId : '');
   const statusEntity = entities[settings.sensorStatusEntityId || primaryId];
 
   const changeActionType = (type) => {
-    const allowedDomains = getActionTargetDomains(type);
-    const keepTarget =
-      action.entityId &&
-      (!allowedDomains || allowedDomains.includes(action.entityId.split('.')[0]));
+    const keepTarget = action.entityId && supportsActionTarget(type, action.entityId);
     updateAction({
       type,
       entityId: keepTarget ? action.entityId : null,
@@ -160,7 +144,6 @@ export default function SensorCardSettings({
   };
 
   const contentCustomized =
-    hasValue(settings.sensorSubtitle) ||
     settings.showName === false ||
     settings.showIcon === false ||
     hasValue(name) ||
@@ -170,18 +153,17 @@ export default function SensorCardSettings({
     (hasValue(settings.sensorStatusMode) && settings.sensorStatusMode !== 'auto') ||
     STATUS_DETAIL_KEYS.some((key) => hasValue(settings[key]));
   const appearanceCustomized = isAppearanceCustomized(settings);
+  const showAppearance = canShowSensorNumericStyle(primaryId, settings, entities);
   const actionCustomized = isActionCustomized(action) || settings.showControls === false;
-  const showControlsToggle =
-    (hasAction && trigger === 'button') || primaryDomain === 'input_number';
-  const automaticActionHint =
-    actionType !== 'auto'
-      ? undefined
-      : hasAction
-        ? t('sensor.custom.autoAction').replace(
-            '{action}',
-            t(`sensor.custom.actionType.${resolvedActionType}`)
-          )
-        : t('sensor.custom.noAutoAction');
+  const automaticActionLabel = t('sensor.custom.autoAction').replace(
+    '{action}',
+    t(`sensor.custom.actionType.${hasAction ? resolvedActionType : 'more-info'}`)
+  );
+  const actionTypeLabels = {
+    ...label('actionType', SENSOR_ACTION_TYPES),
+    auto: automaticActionLabel,
+  };
+  const triggerHint = trigger === 'button' ? undefined : t(`sensor.custom.triggerHint.${trigger}`);
 
   return (
     <div className="space-y-4" data-testid="sensor-card-settings">
@@ -191,7 +173,7 @@ export default function SensorCardSettings({
         onReset={
           contentCustomized
             ? () => {
-                resetFields(['sensorSubtitle', 'showName', 'showIcon']);
+                resetFields(['showName', 'showIcon']);
                 onNameChange?.('');
                 onIconChange?.(null);
               }
@@ -216,11 +198,6 @@ export default function SensorCardSettings({
             placeholder={entity?.attributes?.friendly_name || t('form.defaultName')}
           />
         ) : null}
-        <TextField
-          label={t('sensor.custom.subtitle')}
-          value={settings.sensorSubtitle}
-          onChange={(value) => save('sensorSubtitle', value || null)}
-        />
         {onIconChange ? (
           <IconPicker
             value={iconName}
@@ -294,27 +271,23 @@ export default function SensorCardSettings({
         ) : null}
       </SettingsSection>
 
-      <SettingsSection
-        title={t('sensor.custom.appearance')}
-        resetLabel={resetLabel}
-        onReset={appearanceCustomized ? () => resetFields(APPEARANCE_KEYS) : undefined}
-      >
-        <ChoiceChips
-          label={t('sensor.custom.layout')}
-          options={chipOptions('layout', SENSOR_LAYOUTS)}
-          value={config.layout}
-          onChange={(layout) => save('sensorLayout', layout)}
-        />
-        <SensorNumericStyle
-          primaryId={primaryId}
-          settings={settings}
-          settingsKey={settingsKey}
-          entities={entities}
-          numericEntityOptions={numericEntityOptions}
-          saveCardSetting={saveCardSetting}
-          t={t}
-        />
-      </SettingsSection>
+      {showAppearance ? (
+        <SettingsSection
+          title={t('sensor.custom.appearance')}
+          resetLabel={resetLabel}
+          onReset={appearanceCustomized ? () => resetFields(APPEARANCE_KEYS) : undefined}
+        >
+          <SensorNumericStyle
+            primaryId={primaryId}
+            settings={settings}
+            settingsKey={settingsKey}
+            entities={entities}
+            numericEntityOptions={numericEntityOptions}
+            saveCardSetting={saveCardSetting}
+            t={t}
+          />
+        </SettingsSection>
+      ) : null}
 
       <SettingsSection
         title={t('sensor.custom.action')}
@@ -324,27 +297,27 @@ export default function SensorCardSettings({
         <DropdownField
           icon={Zap}
           label={t('sensor.custom.actionType')}
-          hint={automaticActionHint}
           options={SENSOR_ACTION_TYPES}
           current={actionType}
-          map={label('actionType', SENSOR_ACTION_TYPES)}
+          map={actionTypeLabels}
           onChange={changeActionType}
           t={t}
         />
+        {showActionTarget ? (
+          <EntityField
+            label={t('sensor.custom.actionTarget')}
+            value={actionTargetValue}
+            options={actionTargets}
+            entities={entities}
+            onChange={(id) => updateAction({ entityId: id || null })}
+            t={t}
+          />
+        ) : null}
         {hasAction ? (
           <>
-            {resolvedActionType !== 'service' ? (
-              <EntityField
-                label={t('sensor.custom.actionTarget')}
-                value={action.entityId || primaryId}
-                options={actionTargets}
-                entities={entities}
-                onChange={(id) => updateAction({ entityId: id || null })}
-                t={t}
-              />
-            ) : null}
             <ChoiceChips
               label={t('sensor.custom.trigger')}
+              hint={triggerHint}
               options={chipOptions('trigger', TRIGGERS)}
               value={trigger}
               onChange={(value) => updateAction({ trigger: value })}
@@ -362,51 +335,19 @@ export default function SensorCardSettings({
               />
             ) : null}
             <TextField
-              label={t('sensor.custom.buttonText')}
+              label={t(
+                trigger === 'button' ? 'sensor.custom.buttonText' : 'sensor.custom.textOnCard'
+              )}
               value={action.label}
-              onChange={(value) => updateAction({ label: value || null })}
-              placeholder={t('sensor.custom.automatic')}
+              onChange={(value) => {
+                const nextAction = { ...action, label: value || null };
+                delete nextAction.labelOn;
+                delete nextAction.labelOff;
+                save('sensorAction', nextAction);
+              }}
+              placeholder={trigger === 'button' ? t('sensor.custom.automatic') : ''}
             />
-            {resolvedActionType === 'toggle' || trigger !== 'card' ? (
-              <Disclosure summary={t('sensor.custom.moreOptions')}>
-                {resolvedActionType === 'toggle' ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <TextField
-                      label={t('sensor.custom.labelOn')}
-                      value={action.labelOn}
-                      onChange={(value) => updateAction({ labelOn: value || null })}
-                      placeholder={t('sensor.action.turnOff')}
-                    />
-                    <TextField
-                      label={t('sensor.custom.labelOff')}
-                      value={action.labelOff}
-                      onChange={(value) => updateAction({ labelOff: value || null })}
-                      placeholder={t('sensor.action.turnOn')}
-                    />
-                  </div>
-                ) : null}
-                {trigger !== 'card' ? (
-                  <Field label={t('sensor.custom.actionIcon')}>
-                    <IconPicker
-                      value={action.icon || null}
-                      onSelect={(icon) => updateAction({ icon })}
-                      onClear={() => updateAction({ icon: null })}
-                      t={t}
-                      maxHeightClass="max-h-48"
-                    />
-                  </Field>
-                ) : null}
-              </Disclosure>
-            ) : null}
           </>
-        ) : null}
-        {showControlsToggle ? (
-          <ToggleRow
-            label={t('sensor.custom.showControls')}
-            hint={t('sensor.custom.showControlsHint')}
-            checked={settings.showControls !== false}
-            onChange={(value) => save('showControls', value)}
-          />
         ) : null}
       </SettingsSection>
     </div>

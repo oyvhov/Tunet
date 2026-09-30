@@ -38,6 +38,7 @@ export {
   BarChart3,
   Eye,
   EyeOff,
+  Info,
   Play,
   Pause,
   SkipBack,
