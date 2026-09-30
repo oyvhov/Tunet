@@ -145,6 +145,10 @@ const makeParams = (overrides = {}) => ({
   setSelectedAndroidTVMediaId: vi.fn(),
   selectedAndroidTVRemoteId: null,
   setSelectedAndroidTVRemoteId: vi.fn(),
+  selectedAppleTVMediaId: null,
+  setSelectedAppleTVMediaId: vi.fn(),
+  selectedAppleTVRemoteId: null,
+  setSelectedAppleTVRemoteId: vi.fn(),
   selectedCostTodayId: null,
   setSelectedCostTodayId: vi.fn(),
   selectedCostMonthId: null,
@@ -185,6 +189,28 @@ describe('useAppViewModels', () => {
     expect(result.current.modalManagerLayout.cardsOnlyMode).toBe(false);
     expect(result.current).not.toHaveProperty('modalManagerState');
     expect(result.current.modalManagerCardConfig.statusPillsConfig).toEqual({});
+  });
+
+  it('forwards the Apple TV add-card selection to the modal manager', () => {
+    const setSelectedAppleTVMediaId = vi.fn();
+    const setSelectedAppleTVRemoteId = vi.fn();
+    const { result } = renderHook(() =>
+      useAppViewModels(
+        makeParams({
+          selectedAppleTVMediaId: 'media_player.living_room_apple_tv',
+          setSelectedAppleTVMediaId,
+          selectedAppleTVRemoteId: 'remote.living_room_apple_tv',
+          setSelectedAppleTVRemoteId,
+        })
+      )
+    );
+
+    expect(result.current.modalManagerAddCard).toMatchObject({
+      selectedAppleTVMediaId: 'media_player.living_room_apple_tv',
+      setSelectedAppleTVMediaId,
+      selectedAppleTVRemoteId: 'remote.living_room_apple_tv',
+      setSelectedAppleTVRemoteId,
+    });
   });
 
   it('updates dashboard page model when activePage changes', () => {

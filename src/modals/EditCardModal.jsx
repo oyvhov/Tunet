@@ -8,6 +8,8 @@ import { getRelatedEntityIds } from '../services/haClient';
 import { CarMappingsSection, SearchableSelect } from './editCard/CarMappingsSection';
 import { buildCarAnchorOptions } from './editCard/carAnchorOptions';
 import { RoomSettingsSection } from './editCard/RoomSettingsSection';
+import SensorCardSettings from './SensorCardSettings';
+import SensorCardPreview from './editCard/SensorCardPreview';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
   convertValueByKind,
@@ -754,6 +756,7 @@ export default function EditCardModal({
   isEditCamera,
   isEditRoom,
   isEditAndroidTV,
+  isEditAppleTV,
   isEditFan,
   isEditClimate,
   isEditVacuum,
@@ -776,7 +779,7 @@ export default function EditCardModal({
   const [registryVacuumSensorIds, setRegistryVacuumSensorIds] = React.useState([]);
   const [carAnchorRelatedEntityIds, setCarAnchorRelatedEntityIds] = React.useState([]);
   const { unitsMode } = useConfig();
-  const { haConfig } = useHomeAssistantMeta();
+  const { haConfig, connected } = useHomeAssistantMeta();
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -1147,6 +1150,8 @@ export default function EditCardModal({
 
   if (!isOpen) return null;
 
+  const showSensorPreview = isEditSensor && !!editSettingsKey;
+
   return (
     <AccessibleModalShell
       open={isOpen}
@@ -1157,7 +1162,7 @@ export default function EditCardModal({
         backdropFilter: 'blur(20px)',
         backgroundColor: 'rgba(0,0,0,0.3)',
       }}
-      panelClassName={`w-full border ${isEditRoom ? 'max-w-2xl' : 'max-w-lg'} popup-anim relative mt-3 flex max-h-[92vh] flex-col rounded-2xl p-4 font-sans shadow-2xl backdrop-blur-xl sm:mt-0 sm:max-h-[85vh] sm:rounded-3xl sm:p-6 md:rounded-[2.5rem] md:p-8`}
+      panelClassName={`w-full border ${isEditRoom ? 'max-w-2xl' : showSensorPreview ? 'max-w-lg lg:max-w-4xl' : 'max-w-lg'} popup-anim relative mt-3 flex max-h-[92vh] flex-col ${showSensorPreview ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-x-6' : ''} rounded-2xl p-4 font-sans shadow-2xl backdrop-blur-xl sm:mt-0 sm:max-h-[85vh] sm:rounded-3xl sm:p-6 md:rounded-[2.5rem] md:p-8`}
       panelStyle={{
         background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
         borderColor: 'var(--glass-border)',
@@ -1191,15 +1196,48 @@ export default function EditCardModal({
             </button>
             <h3
               id={resolvedTitleId}
-              className="mb-4 shrink-0 text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
+              className={`mb-4 shrink-0 text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic ${showSensorPreview ? 'lg:col-span-2' : ''}`}
             >
               {t('modal.editCard.title')}
             </h3>
 
-            <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto pr-2">
+            {showSensorPreview && (
+              <SensorCardPreview
+                entityId={nameFallbackEntityId || entityId}
+                settings={editSettings}
+                entities={entities}
+                name={customNames[entityId] || ''}
+                iconName={customIcons[entityId] || null}
+                className="mb-4 lg:col-start-2 lg:row-start-2 lg:mb-0 lg:max-h-full lg:self-start lg:overflow-y-auto"
+                t={t}
+              />
+            )}
+
+            <div
+              className={`custom-scrollbar min-h-0 flex-1 space-y-6 overflow-y-auto pr-2 ${showSensorPreview ? 'lg:col-start-1 lg:row-start-2' : ''}`}
+            >
+              {showSensorPreview && (
+                <SensorCardSettings
+                  entityId={nameFallbackEntityId || entityId}
+                  settingsKey={editSettingsKey}
+                  settings={editSettings}
+                  entities={entities}
+                  conn={conn}
+                  connected={connected}
+                  saveCardSetting={saveCardSetting}
+                  name={customNames[entityId] || ''}
+                  iconName={customIcons[entityId] || null}
+                  onNameChange={(value) => saveCustomName(entityId, value)}
+                  onIconChange={(value) => saveCustomIcon(entityId, value)}
+                  numericEntityOptions={numericEntityOptions}
+                  t={t}
+                />
+              )}
               {(canEditName || editSettingsKey) && (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {canEditName && (
+                <div
+                  className={`grid grid-cols-1 gap-4 ${canEditName && !isEditSensor ? 'sm:grid-cols-2' : ''}`}
+                >
+                  {canEditName && !isEditSensor && (
                     <div className="space-y-2">
                       <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
                         {t('form.name')}
@@ -1237,7 +1275,7 @@ export default function EditCardModal({
                 </div>
               )}
 
-              {canEditIcon && (
+              {canEditIcon && !isEditSensor && (
                 <div className="space-y-2">
                   <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
                     {t('form.chooseIcon')}
@@ -1278,6 +1316,38 @@ export default function EditCardModal({
                           onClick={() =>
                             saveCardSetting(editSettingsKey, 'mobileWidth', option.key)
                           }
+                          className={`min-h-11 rounded-xl border px-2 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(isEditClimate || isEditAppleTV) && editSettingsKey && (
+                <div className="space-y-2">
+                  <div className="ml-1">
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase">
+                      {t('editCard.tapAction') || 'Tap Action'}
+                    </label>
+                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                      {t('editCard.tapActionHint') || 'Choose what happens when tapping the card.'}
+                    </p>
+                  </div>
+                  <div className="popup-surface grid grid-cols-2 gap-2 rounded-2xl p-2">
+                    {[
+                      { key: 'modal', label: t('editCard.tapActionModal') || 'Open details' },
+                      { key: 'toggle', label: t('editCard.tapActionToggle') || 'Toggle on/off' },
+                    ].map((option) => {
+                      const active = (editSettings.tapAction || 'modal') === option.key;
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => saveCardSetting(editSettingsKey, 'tapAction', option.key)}
                           className={`min-h-11 rounded-xl border px-2 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                         >
                           {option.label}
@@ -2289,10 +2359,11 @@ export default function EditCardModal({
                 </div>
               )}
 
-              {isEditAndroidTV && editSettingsKey && (
+              {(isEditAndroidTV || isEditAppleTV) && editSettingsKey && (
                 <div className="space-y-3">
                   <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                    {t('androidtv.linkedSpeakers') || 'Linked Speakers'}
+                    {t(isEditAppleTV ? 'appletv.linkedSpeakers' : 'androidtv.linkedSpeakers') ||
+                      'Linked Speakers'}
                   </label>
 
                   {/* Selected Players */}
@@ -2327,7 +2398,9 @@ export default function EditCardModal({
 
                   <input
                     type="text"
-                    placeholder={t('androidtv.searchPlayers')}
+                    placeholder={t(
+                      isEditAppleTV ? 'appletv.searchPlayers' : 'androidtv.searchPlayers'
+                    )}
                     value={mediaSearch}
                     onChange={(e) => setMediaSearch(e.target.value)}
                     className="popup-surface mb-2 w-full rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--glass-border)]"
@@ -2492,522 +2565,6 @@ export default function EditCardModal({
                   </div>
                 </div>
               )}
-
-              {isEditSensor &&
-                (() => {
-                  const entity = entities[entityId];
-                  const domain = entityId.split('.')[0];
-                  const canControl = [
-                    'input_boolean',
-                    'switch',
-                    'light',
-                    'input_number',
-                    'automation',
-                    'script',
-                    'scene',
-                    'select',
-                    'input_select',
-                  ].includes(domain);
-
-                  const state = entity?.state;
-                  const isNumeric =
-                    typeof state === 'string'
-                      ? /^\s*-?\d+(\.\d+)?\s*$/.test(state)
-                      : !isNaN(parseFloat(state));
-                  const canGraph = isNumeric && domain !== 'input_number';
-                  const variant = editSettings.sensorVariant || 'default';
-                  const needsMinMax = ['gauge', 'donut', 'bar'].includes(variant) && isNumeric;
-                  const colorThresholdDefaults = [
-                    { limit: 20, color: 'red' },
-                    { limit: 60, color: 'amber' },
-                    { limit: 100, color: 'green' },
-                  ];
-                  const useColorThresholds = editSettings.sensorUseColorThresholds !== false;
-                  const colorThresholds =
-                    Array.isArray(editSettings.sensorColorThresholds) &&
-                    editSettings.sensorColorThresholds.length === 3
-                      ? editSettings.sensorColorThresholds.map((entry, index) => ({
-                          limit: Number.isFinite(parseFloat(entry?.limit))
-                            ? parseFloat(entry?.limit)
-                            : colorThresholdDefaults[index].limit,
-                          color: entry?.color || colorThresholdDefaults[index].color,
-                        }))
-                      : colorThresholdDefaults;
-                  const thresholdColorOptions = [
-                    {
-                      key: 'red',
-                      label: t('sensor.colorRed') || 'Red',
-                      swatch: 'var(--color-red-500)',
-                    },
-                    {
-                      key: 'amber',
-                      label: t('sensor.colorAmber') || 'Amber',
-                      swatch: 'var(--color-amber-400)',
-                    },
-                    {
-                      key: 'green',
-                      label: t('sensor.colorGreen') || 'Green',
-                      swatch: 'var(--color-green-400)',
-                    },
-                  ];
-                  const saveThresholdAt = (index, patch) => {
-                    const next = colorThresholds.map((entry, itemIndex) =>
-                      itemIndex === index ? { ...entry, ...patch } : entry
-                    );
-                    saveCardSetting(editSettingsKey, 'sensorColorThresholds', next);
-                  };
-
-                  return (
-                    <div className="popup-surface space-y-4 rounded-2xl p-4">
-                      {domain === 'script' && (
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                            {t('sensor.script.statusText') || 'Status text'}
-                          </label>
-                          <input
-                            type="text"
-                            className="w-full rounded-xl border-0 bg-[var(--modal-bg)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none"
-                            defaultValue={editSettings.scriptStatusText || ''}
-                            onBlur={(e) =>
-                              saveCardSetting(
-                                editSettingsKey,
-                                'scriptStatusText',
-                                e.target.value.trim() || null
-                              )
-                            }
-                            placeholder={
-                              t('sensor.script.statusTextPlaceholder') ||
-                              'Ready / Running (automatic)'
-                            }
-                          />
-                        </div>
-                      )}
-
-                      {canGraph && (
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                            {t('sensor.variant') || 'Card style'}
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {[
-                              { key: 'default', label: t('sensor.variantDefault') || 'Default' },
-                              { key: 'number', label: t('sensor.variantNumber') || 'Number' },
-                              { key: 'gauge', label: t('sensor.variantGauge') || 'Gauge' },
-                              { key: 'bar', label: t('sensor.variantBar') || 'Bar' },
-                              { key: 'donut', label: t('sensor.variantDonut') || 'Donut' },
-                            ].map((v) => (
-                              <button
-                                key={v.key}
-                                onClick={() =>
-                                  editSettingsKey &&
-                                  saveCardSetting(editSettingsKey, 'sensorVariant', v.key)
-                                }
-                                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                                  variant === v.key
-                                    ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                    : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                                }`}
-                              >
-                                {v.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {needsMinMax && (
-                        <div className="space-y-4 rounded-xl bg-[var(--glass-bg)] p-3">
-                          <label className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                            {t('sensor.range') || 'Min / Max range'}
-                          </label>
-                          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                            <div className="min-w-0 space-y-1">
-                              <span className="text-[10px] text-[var(--text-muted)]">
-                                {t('sensor.minValue') || 'Min'}
-                              </span>
-                              <div className="flex min-w-0 gap-2">
-                                <input
-                                  type="number"
-                                  placeholder="0"
-                                  value={
-                                    editSettings.sensorMinType === 'entity'
-                                      ? ''
-                                      : (editSettings.sensorMin ?? '')
-                                  }
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    saveCardSetting(
-                                      editSettingsKey,
-                                      'sensorMin',
-                                      v === '' ? null : parseFloat(v)
-                                    );
-                                    saveCardSetting(editSettingsKey, 'sensorMinType', 'value');
-                                  }}
-                                  disabled={editSettings.sensorMinType === 'entity'}
-                                  className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none"
-                                />
-                                <select
-                                  value={editSettings.sensorMinType || 'value'}
-                                  onChange={(e) => {
-                                    const ty = e.target.value;
-                                    saveCardSetting(editSettingsKey, 'sensorMinType', ty);
-                                    if (ty === 'value')
-                                      saveCardSetting(editSettingsKey, 'sensorMinEntity', null);
-                                  }}
-                                  className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                                >
-                                  <option value="value">#</option>
-                                  <option value="entity">{t('sensor.entity') || 'Entity'}</option>
-                                </select>
-                              </div>
-                              {editSettings.sensorMinType === 'entity' && (
-                                <select
-                                  value={editSettings.sensorMinEntity || ''}
-                                  onChange={(e) =>
-                                    saveCardSetting(
-                                      editSettingsKey,
-                                      'sensorMinEntity',
-                                      e.target.value || null
-                                    )
-                                  }
-                                  className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                                >
-                                  <option value="">
-                                    {t('sensor.selectEntity') || 'Select...'}
-                                  </option>
-                                  {numericEntityOptions.map((id) => (
-                                    <option key={id} value={id}>
-                                      {entities[id]?.attributes?.friendly_name || id}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
-                            </div>
-                            <div className="min-w-0 space-y-1">
-                              <span className="text-[10px] text-[var(--text-muted)]">
-                                {t('sensor.maxValue') || 'Max'}
-                              </span>
-                              <div className="flex min-w-0 gap-2">
-                                <input
-                                  type="number"
-                                  placeholder="100"
-                                  value={
-                                    editSettings.sensorMaxType === 'entity'
-                                      ? ''
-                                      : (editSettings.sensorMax ?? '')
-                                  }
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    saveCardSetting(
-                                      editSettingsKey,
-                                      'sensorMax',
-                                      v === '' ? null : parseFloat(v)
-                                    );
-                                    saveCardSetting(editSettingsKey, 'sensorMaxType', 'value');
-                                  }}
-                                  disabled={editSettings.sensorMaxType === 'entity'}
-                                  className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-sm text-[var(--text-primary)] outline-none"
-                                />
-                                <select
-                                  value={editSettings.sensorMaxType || 'value'}
-                                  onChange={(e) => {
-                                    const ty = e.target.value;
-                                    saveCardSetting(editSettingsKey, 'sensorMaxType', ty);
-                                    if (ty === 'value')
-                                      saveCardSetting(editSettingsKey, 'sensorMaxEntity', null);
-                                  }}
-                                  className="w-24 shrink-0 rounded-lg border-0 bg-[var(--modal-bg)] px-1 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                                >
-                                  <option value="value">#</option>
-                                  <option value="entity">{t('sensor.entity') || 'Entity'}</option>
-                                </select>
-                              </div>
-                              {editSettings.sensorMaxType === 'entity' && (
-                                <select
-                                  value={editSettings.sensorMaxEntity || ''}
-                                  onChange={(e) =>
-                                    saveCardSetting(
-                                      editSettingsKey,
-                                      'sensorMaxEntity',
-                                      e.target.value || null
-                                    )
-                                  }
-                                  className="mt-1 w-full rounded-lg border-0 bg-[var(--modal-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                                >
-                                  <option value="">
-                                    {t('sensor.selectEntity') || 'Select...'}
-                                  </option>
-                                  {numericEntityOptions.map((id) => (
-                                    <option key={id} value={id}>
-                                      {entities[id]?.attributes?.friendly_name || id}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-[var(--text-muted)]">
-                              {t('sensor.valueDisplay') || 'Value display'}
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={() =>
-                                  saveCardSetting(editSettingsKey, 'sensorValueMode', 'actual')
-                                }
-                                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                                  (editSettings.sensorValueMode || 'actual') === 'actual'
-                                    ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                    : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                                }`}
-                              >
-                                {t('sensor.valueActual') || 'Actual value'}
-                              </button>
-                              <button
-                                onClick={() =>
-                                  saveCardSetting(editSettingsKey, 'sensorValueMode', 'percent')
-                                }
-                                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                                  editSettings.sensorValueMode === 'percent'
-                                    ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                    : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                                }`}
-                              >
-                                {t('sensor.valuePercent') || '% of range'}
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <label className="text-[10px] text-[var(--text-muted)]">
-                                {t('sensor.colorThresholds') || 'Color thresholds'}
-                              </label>
-                              <button
-                                onClick={() =>
-                                  saveCardSetting(
-                                    editSettingsKey,
-                                    'sensorUseColorThresholds',
-                                    !useColorThresholds
-                                  )
-                                }
-                                className={`rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
-                                  useColorThresholds
-                                    ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                    : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                                }`}
-                              >
-                                {useColorThresholds
-                                  ? t('common.on') || 'On'
-                                  : t('common.off') || 'Off'}
-                              </button>
-                            </div>
-
-                            <p className="text-[10px] text-[var(--text-muted)] opacity-80">
-                              {useColorThresholds
-                                ? t('sensor.colorThresholdsHint') ||
-                                  'Set max value for each color step'
-                                : t('sensor.colorThresholdsOffHint') ||
-                                  'Thresholds are disabled. Chart uses blue accent color.'}
-                            </p>
-
-                            {useColorThresholds && (
-                              <div className="space-y-2">
-                                {colorThresholds.map((threshold, index) => (
-                                  <div
-                                    key={`sensor-threshold-${index}`}
-                                    className="space-y-2 rounded-lg bg-[var(--modal-bg)] p-2"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <span className="shrink-0 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                                        {(t('sensor.step') || 'Step') + ` ${index + 1}`}
-                                      </span>
-                                      <input
-                                        type="number"
-                                        value={threshold.limit ?? ''}
-                                        onChange={(e) =>
-                                          saveThresholdAt(index, {
-                                            limit:
-                                              e.target.value === ''
-                                                ? null
-                                                : parseFloat(e.target.value),
-                                          })
-                                        }
-                                        className="min-w-0 flex-1 rounded-lg border-0 bg-[var(--glass-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
-                                      />
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-2">
-                                      {thresholdColorOptions.map((option) => (
-                                        <button
-                                          key={option.key}
-                                          onClick={() =>
-                                            saveThresholdAt(index, { color: option.key })
-                                          }
-                                          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${
-                                            threshold.color === option.key
-                                              ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                              : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                                          }`}
-                                        >
-                                          <span
-                                            className="h-2.5 w-2.5 rounded-full"
-                                            style={{ backgroundColor: option.swatch }}
-                                          />
-                                          {option.label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                          {t('form.showName') || 'Show Name'}
-                        </span>
-                        <button
-                          onClick={() =>
-                            editSettingsKey &&
-                            saveCardSetting(
-                              editSettingsKey,
-                              'showName',
-                              !(editSettings.showName !== false)
-                            )
-                          }
-                          className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div
-                            className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
-                          />
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                          {t('form.showStatus') || 'Show Status'}
-                        </span>
-                        <button
-                          onClick={() =>
-                            editSettingsKey &&
-                            saveCardSetting(
-                              editSettingsKey,
-                              'showStatus',
-                              !(editSettings.showStatus !== false)
-                            )
-                          }
-                          className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showStatus !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div
-                            className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
-                          />
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                          {t('form.showIcon') || 'Show Icon'}
-                        </span>
-                        <button
-                          onClick={() =>
-                            editSettingsKey &&
-                            saveCardSetting(
-                              editSettingsKey,
-                              'showIcon',
-                              !(editSettings.showIcon !== false)
-                            )
-                          }
-                          className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div
-                            className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showIcon !== false ? 'left-7' : 'left-1'}`}
-                          />
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                          {t('form.showLastChanged') || 'Show Last Changed'}
-                        </span>
-                        <button
-                          onClick={() =>
-                            editSettingsKey &&
-                            saveCardSetting(
-                              editSettingsKey,
-                              'showLastChanged',
-                              !(editSettings.showLastChanged !== false)
-                            )
-                          }
-                          className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showLastChanged !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div
-                            className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`}
-                          />
-                        </button>
-                      </div>
-
-                      {canControl && (
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                              {t('form.showControls')}
-                            </span>
-                            <span className="text-[10px] text-[var(--text-muted)]">
-                              {t('form.controlsHint')}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() =>
-                              editSettingsKey &&
-                              saveCardSetting(
-                                editSettingsKey,
-                                'showControls',
-                                !editSettings.showControls
-                              )
-                            }
-                            className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showControls ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                          >
-                            <div
-                              className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showControls ? 'left-7' : 'left-1'}`}
-                            />
-                          </button>
-                        </div>
-                      )}
-
-                      {canGraph && (
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                              {t('form.showGraph')}
-                            </span>
-                            <span className="text-[10px] text-[var(--text-muted)]">
-                              {t('form.graphHint')}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() =>
-                              editSettingsKey &&
-                              saveCardSetting(
-                                editSettingsKey,
-                                'showGraph',
-                                !(editSettings.showGraph !== false)
-                              )
-                            }
-                            className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showGraph !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
-                          >
-                            <div
-                              className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showGraph !== false ? 'left-7' : 'left-1'}`}
-                            />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
 
               {isEditFan && editSettingsKey && (
                 <div className="popup-surface rounded-2xl p-4">
@@ -3664,7 +3221,9 @@ export default function EditCardModal({
               )}
             </div>
 
-            <div className="mt-5 flex justify-end border-t border-[var(--glass-border)] pt-5">
+            <div
+              className={`mt-5 flex justify-end border-t border-[var(--glass-border)] pt-5 ${showSensorPreview ? 'lg:col-span-2' : ''}`}
+            >
               <button
                 onClick={onClose}
                 className="popup-surface popup-surface-hover rounded-2xl px-6 py-2.5 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors"

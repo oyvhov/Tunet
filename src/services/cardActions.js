@@ -15,6 +15,8 @@ export const handleAddSelected = (ctx) => {
     selectedTempId,
     selectedAndroidTVMediaId,
     selectedAndroidTVRemoteId,
+    selectedAppleTVMediaId,
+    selectedAppleTVRemoteId,
     selectedCostTodayId,
     selectedCostMonthId,
     selectedNordpoolId,
@@ -31,6 +33,8 @@ export const handleAddSelected = (ctx) => {
     setSelectedTempId,
     setSelectedAndroidTVMediaId,
     setSelectedAndroidTVRemoteId,
+    setSelectedAppleTVMediaId,
+    setSelectedAppleTVRemoteId,
     setSelectedCostTodayId,
     setSelectedCostMonthId,
     setCostSelectionTarget,
@@ -247,6 +251,18 @@ export const handleAddSelected = (ctx) => {
       return;
     }
 
+    case 'appletv': {
+      if (!selectedAppleTVMediaId) return;
+      const cardId = `appletv_card_${Date.now()}`;
+      commitSingleCard(cardId, {
+        mediaPlayerId: selectedAppleTVMediaId,
+        remoteId: selectedAppleTVRemoteId || null,
+      });
+      if (typeof setSelectedAppleTVMediaId === 'function') setSelectedAppleTVMediaId(null);
+      if (typeof setSelectedAppleTVRemoteId === 'function') setSelectedAppleTVRemoteId(null);
+      return;
+    }
+
     case 'cost': {
       if (!selectedCostTodayId || !selectedCostMonthId) return;
       const cardId = `cost_card_${Date.now()}`;
@@ -285,11 +301,34 @@ export const handleAddSelected = (ctx) => {
       return;
     }
 
-    // entity / toggle / sensor — default path for plain HA entities
+    case 'sensor': {
+      if (selectedEntities.length === 0) return;
+      const newSettings = { ...cardSettings };
+      const existingIds = new Set(Object.values(pagesConfig).filter(Array.isArray).flat());
+      const newCardIds = selectedEntities.map((entityId) => {
+        const uniqueId =
+          globalThis.crypto?.randomUUID?.() ||
+          `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+        const baseId = `entity_card_${uniqueId}`;
+        let cardId = baseId;
+        let suffix = 1;
+        while (existingIds.has(cardId)) cardId = `${baseId}_${suffix++}`;
+        existingIds.add(cardId);
+        const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
+        newSettings[settingsKey] = { type: 'sensor', entityId, size: 'large' };
+        return cardId;
+      });
+      persistCardSettings(newSettings);
+      commitCards(newCardIds);
+      setSelectedEntities([]);
+      return;
+    }
+
+    // entity / toggle — legacy path for plain HA entities
     default: {
       const validSelectedEntities = selectedEntitiesForType();
 
-      if (addCardType === 'entity' || addCardType === 'toggle' || addCardType === 'sensor') {
+      if (addCardType === 'entity' || addCardType === 'toggle') {
         const newSettings = { ...cardSettings };
         validSelectedEntities.forEach((id) => {
           const settingsKey = getCardSettingsKey(id, addCardTargetPage);

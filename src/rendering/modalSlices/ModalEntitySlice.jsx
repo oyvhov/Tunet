@@ -5,6 +5,7 @@ import { prepareNordpoolData } from '../../services';
 const CalendarModal = lazy(() => import('../../modals/CalendarModal'));
 const CostModal = lazy(() => import('../../modals/CostModal'));
 const GenericAndroidTVModal = lazy(() => import('../../modals/GenericAndroidTVModal'));
+const GenericAppleTVModal = lazy(() => import('../../modals/GenericAppleTVModal'));
 const GenericClimateModal = lazy(() => import('../../modals/GenericClimateModal'));
 const GenericFanModal = lazy(() => import('../../modals/GenericFanModal'));
 const CoverModal = lazy(() => import('../../modals/CoverModal'));
@@ -39,6 +40,8 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
     setShowPersonModal,
     showAndroidTVModal,
     setShowAndroidTVModal,
+    showAppleTVModal,
+    setShowAppleTVModal,
     showVacuumModal,
     setShowVacuumModal,
     showMowerModal,
@@ -194,6 +197,29 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
               <GenericAndroidTVModal
                 show={true}
                 onClose={() => setShowAndroidTVModal(null)}
+                entities={entities}
+                mediaPlayerId={settings.mediaPlayerId}
+                remoteId={settings.remoteId}
+                linkedMediaPlayers={settings.linkedMediaPlayers}
+                callService={callService}
+                getA={getA}
+                getEntityImageUrl={getEntityImageUrl}
+                customNames={customNames}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
+
+      {showAppleTVModal &&
+        (() => {
+          const settings = cardSettings[getCardSettingsKey(showAppleTVModal)] || {};
+          return (
+            <ModalSuspense>
+              <GenericAppleTVModal
+                show={true}
+                cardId={showAppleTVModal}
+                onClose={() => setShowAppleTVModal(null)}
                 entities={entities}
                 mediaPlayerId={settings.mediaPlayerId}
                 remoteId={settings.remoteId}
@@ -464,24 +490,31 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
           );
         })()}
 
-      {showSensorInfoModal && (
-        <ModalSuspense>
-          <SensorModal
-            isOpen={!!showSensorInfoModal}
-            onClose={() => setShowSensorInfoModal(null)}
-            entityId={showSensorInfoModal}
-            entity={entities[showSensorInfoModal]}
-            customName={customNames[showSensorInfoModal]}
-            conn={conn}
-            haUrl={activeUrl}
-            haToken={
-              config.authMethod === 'oauth' ? authRef?.current?.accessToken || '' : config.token
-            }
-            callService={callService}
-            t={t}
-          />
-        </ModalSuspense>
-      )}
+      {showSensorInfoModal &&
+        (() => {
+          const target =
+            typeof showSensorInfoModal === 'string'
+              ? { entityId: showSensorInfoModal }
+              : showSensorInfoModal;
+          return (
+            <ModalSuspense>
+              <SensorModal
+                isOpen={true}
+                onClose={() => setShowSensorInfoModal(null)}
+                entityId={target.entityId}
+                entity={entities[target.entityId]}
+                customName={customNames[target.cardId || target.entityId]}
+                conn={conn}
+                haUrl={activeUrl}
+                haToken={
+                  config.authMethod === 'oauth' ? authRef?.current?.accessToken || '' : config.token
+                }
+                callService={callService}
+                t={t}
+              />
+            </ModalSuspense>
+          );
+        })()}
 
       {showPersonModal && (
         <ModalSuspense>

@@ -144,6 +144,35 @@
  */
 
 /**
+ * @typedef {Object} SensorCardAction
+ * @property {'auto' | 'more-info' | 'toggle' | 'turn_on' | 'turn_off' | 'scene' | 'script' | 'press' | 'service' | 'none'} [type]
+ * @property {string} [entityId]
+ * @property {string} [service]
+ * @property {'entity' | 'none'} [targetMode]
+ * @property {Record<string, unknown>} [data]
+ * @property {string | null} [label]
+ * @property {string | null} [labelOn]
+ * @property {string | null} [labelOff]
+ * @property {string | null} [icon]
+ * @property {'button' | 'icon' | 'card'} [trigger]
+ */
+
+/**
+ * @typedef {Object} SensorCardSettings
+ * @property {'sensor'} [type]
+ * @property {string} [entityId]
+ * @property {'small' | 'large'} [size]
+ * @property {'auto' | 'compact' | 'full'} [mobileWidth]
+ * @property {'auto' | 'standard' | 'compact' | 'action' | null} [sensorLayout]
+ * @property {'auto' | 'text' | 'entity' | 'attribute' | 'hidden' | null} [sensorStatusMode]
+ * @property {string | null} [sensorStatusText]
+ * @property {string | null} [sensorStatusEntityId]
+ * @property {string | null} [sensorStatusAttribute]
+ * @property {string | null} [sensorSubtitle]
+ * @property {SensorCardAction | null} [sensorAction]
+ */
+
+/**
  * @typedef {Record<string, Record<string, any>>} PageSettingsMap
  */
 
@@ -315,6 +344,10 @@
  * @property {(value: string | null) => void} setSelectedAndroidTVMediaId
  * @property {string | null} selectedAndroidTVRemoteId
  * @property {(value: string | null) => void} setSelectedAndroidTVRemoteId
+ * @property {string | null} selectedAppleTVMediaId
+ * @property {(value: string | null) => void} setSelectedAppleTVMediaId
+ * @property {string | null} selectedAppleTVRemoteId
+ * @property {(value: string | null) => void} setSelectedAppleTVRemoteId
  * @property {string | null} selectedCostTodayId
  * @property {(value: string | null) => void} setSelectedCostTodayId
  * @property {string | null} selectedCostMonthId
@@ -349,10 +382,11 @@
  * @property {string | null} activeCarModal
  * @property {string | null} showPersonModal
  * @property {string | null} showAndroidTVModal
+ * @property {string | null} showAppleTVModal
  * @property {string | null} showVacuumModal
  * @property {string | null} showMowerModal
  * @property {string | null} showFanModal
- * @property {string | null} showSensorInfoModal
+ * @property {string | {entityId: string, cardId?: string} | null} showSensorInfoModal
  * @property {string | null} showCalendarModal
  * @property {string | null} showTodoModal
  * @property {string | null} showRoomModal
@@ -384,10 +418,11 @@
  * @property {(value: string | null) => void} setActiveCarModal
  * @property {(value: string | null) => void} setShowPersonModal
  * @property {(value: string | null) => void} setShowAndroidTVModal
+ * @property {(value: string | null) => void} setShowAppleTVModal
  * @property {(value: string | null) => void} setShowVacuumModal
  * @property {(value: string | null) => void} setShowMowerModal
  * @property {(value: string | null) => void} setShowFanModal
- * @property {(value: string | null) => void} setShowSensorInfoModal
+ * @property {(value: string | {entityId: string, cardId?: string} | null) => void} setShowSensorInfoModal
  * @property {(value: string | null) => void} setShowCalendarModal
  * @property {(value: string | null) => void} setShowTodoModal
  * @property {(value: string | null) => void} setShowRoomModal
@@ -419,10 +454,11 @@
  * @property {(value: string | null) => void} setActiveCarModal
  * @property {(value: string | null) => void} setShowPersonModal
  * @property {(value: string | null) => void} setShowAndroidTVModal
+ * @property {(value: string | null) => void} setShowAppleTVModal
  * @property {(value: string | null) => void} setShowVacuumModal
  * @property {(value: string | null) => void} setShowMowerModal
  * @property {(value: string | null) => void} setShowFanModal
- * @property {(value: string | null) => void} setShowSensorInfoModal
+ * @property {(value: string | {entityId: string, cardId?: string} | null) => void} setShowSensorInfoModal
  * @property {(value: string | null) => void} setShowCalendarModal
  * @property {(value: string | null) => void} setShowTodoModal
  * @property {(value: string | null) => void} setShowRoomModal

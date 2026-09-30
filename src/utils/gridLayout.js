@@ -3,6 +3,8 @@
  * Pure functions with zero React / UI dependencies.
  */
 
+import { getSensorAutomaticActionType, SENSOR_ACTION_TYPES } from './sensorCardConfig';
+
 /**
  * Determine how many grid columns a card should span.
  *
@@ -22,6 +24,7 @@ const SPAN_TABLE = {
 
 const CARD_SPAN_RULES = [
   // prefix match → category  (checked in order)
+  { prefix: 'entity_card_', category: 'dualSize' },
   { prefix: 'calendar_card_', category: 'triSize' },
   { prefix: 'todo_card_', category: 'triSize' },
   { prefix: 'light_', category: 'dualSize' },
@@ -101,6 +104,40 @@ export const getCardGridSpan = (
 const MOBILE_GRID_HORIZONTAL_PADDING = 16;
 
 const getAutomaticMobileMinWidth = (cardId, settings) => {
+  if (cardId.startsWith('entity_card_')) {
+    const sourceId = typeof settings.entityId === 'string' ? settings.entityId : '';
+    const storedAction = settings.sensorAction || {};
+    const targetId =
+      typeof storedAction.entityId === 'string' && storedAction.entityId
+        ? storedAction.entityId
+        : sourceId;
+    const configuredType = SENSOR_ACTION_TYPES.includes(storedAction.type)
+      ? storedAction.type
+      : 'auto';
+    const actionType =
+      configuredType === 'auto'
+        ? getSensorAutomaticActionType({ entity_id: targetId })
+        : configuredType;
+    const hasButtonAction =
+      settings.showControls !== false &&
+      !['icon', 'card'].includes(storedAction.trigger) &&
+      actionType !== 'none';
+    const usesPrimaryButton =
+      configuredType !== 'auto' ||
+      Boolean(
+        storedAction.label || storedAction.labelOn || storedAction.labelOff || storedAction.icon
+      ) ||
+      targetId !== sourceId ||
+      ['scene', 'script', 'button', 'input_button', 'climate'].includes(sourceId.split('.')[0]);
+    if (
+      hasButtonAction &&
+      (['compact', 'action'].includes(settings.sensorLayout) ||
+        (settings.size === 'small' && usesPrimaryButton))
+    )
+      return 280;
+    if (settings.size === 'small') return 150;
+    return sourceId.startsWith('climate.') ? 280 : 160;
+  }
   if (settings.size === 'small') return 150;
   if (
     cardId.startsWith('media_player.') ||

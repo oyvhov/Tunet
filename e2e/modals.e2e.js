@@ -202,6 +202,9 @@ test.describe('Modal Interactions', () => {
   });
 
   test('should focus calendar events and reveal calendar selection on demand', async ({ page }) => {
+    await page.clock.setFixedTime(
+      await page.evaluate(() => new Date(2026, 8, 29, 12, 0, 0).getTime())
+    );
     await page.getByText('Calendar', { exact: true }).click();
     const modal = page.locator('[role="dialog"]').first();
     await expect(modal).toBeVisible();

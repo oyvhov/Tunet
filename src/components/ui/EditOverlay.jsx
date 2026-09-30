@@ -30,6 +30,7 @@ const RESIZABLE_PREFIXES = [
   'cost_card_',
   'weather_temp_',
   'androidtv_card_',
+  'appletv_card_',
   'calendar_card_',
   'todo_card_',
   'nordpool_card_',
@@ -158,9 +159,19 @@ function EditOverlay({
             className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full border border-white/20 text-white shadow-lg transition-colors hover:bg-[var(--accent-color)]`}
             style={{ backgroundColor: isSmall ? 'var(--accent-color)' : 'rgba(0, 0, 0, 0.6)' }}
             title={
-              isTriple ? t('tooltip.cycleSize') : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')
+              isTriple
+                ? t('tooltip.cycleSize')
+                : isSmall
+                  ? t('tooltip.largeSize')
+                  : t('tooltip.smallSize')
             }
-            aria-label={isTriple ? t('tooltip.cycleSize') : isSmall ? t('tooltip.largeSize') : t('tooltip.smallSize')}
+            aria-label={
+              isTriple
+                ? t('tooltip.cycleSize')
+                : isSmall
+                  ? t('tooltip.largeSize')
+                  : t('tooltip.smallSize')
+            }
           >
             {isSmall ? <Maximize2 className={iconClass} /> : <Minimize2 className={iconClass} />}
           </button>

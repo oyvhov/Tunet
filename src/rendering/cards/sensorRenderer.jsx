@@ -1,7 +1,6 @@
 import { SensorCard } from '../../components';
-import { Activity, Hash, ToggleRight, Power, ListChecks } from '../../icons';
-import { getIconComponent } from '../../icons';
-import { getSettings, renderMissingEntityWhenReady, withEditModeGuard } from '../helpers';
+import { resolveSensorIcon } from '../../components/cards/sensorIcon';
+import { getSettings, renderMissingEntityWhenReady } from '../helpers';
 
 /**
  * @param {string} cardId
@@ -25,7 +24,9 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
     setShowSensorInfoModal,
     t,
   } = ctx;
-  const entity = entities[cardId];
+  const settings = getSettings(cardSettings, settingsKey, cardId);
+  const entityId = settings.entityId || cardId;
+  const entity = entities[entityId];
 
   if (!entity) {
     return renderMissingEntityWhenReady(ctx, {
@@ -33,31 +34,22 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
       dragProps,
       controls: getControls(cardId),
       cardStyle,
-      missingEntityId: cardId,
+      missingEntityId: entityId,
       t,
     });
   }
 
-  const settings = getSettings(cardSettings, settingsKey, cardId);
-  const name = customNames[cardId] || getA(cardId, 'friendly_name', cardId);
-  const domain = cardId.split('.')[0];
-  const defaultIcons = {
-    sensor: Activity,
-    input_number: Hash,
-    input_boolean: ToggleRight,
-    switch: Power,
-    select: ListChecks,
-    input_select: ListChecks,
-    default: Activity,
-  };
-  const DefaultIcon = defaultIcons[domain] || defaultIcons.default;
-  const sensorIconName = customIcons[cardId] || entity?.attributes?.icon;
-  const Icon = sensorIconName ? getIconComponent(sensorIconName) || DefaultIcon : DefaultIcon;
+  const name = customNames[cardId] || getA(entityId, 'friendly_name', entityId);
+  const domain = entityId.split('.')[0];
+  const Icon = resolveSensorIcon(entityId, customIcons[cardId], entity);
 
   const handleControl = (action, value) => {
+    if (editMode || !conn) return;
     if (domain === 'input_number') {
-      if (action === 'increment') callService('input_number', 'increment', { entity_id: cardId });
-      if (action === 'decrement') callService('input_number', 'decrement', { entity_id: cardId });
+      if (action === 'increment')
+        return callService('input_number', 'increment', { entity_id: entityId });
+      if (action === 'decrement')
+        return callService('input_number', 'decrement', { entity_id: entityId });
     }
     if (
       domain === 'input_boolean' ||
@@ -65,14 +57,14 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
       domain === 'light' ||
       domain === 'automation'
     ) {
-      if (action === 'toggle') callService(domain, 'toggle', { entity_id: cardId });
+      if (action === 'toggle') return callService(domain, 'toggle', { entity_id: entityId });
     }
     if (domain === 'script' || domain === 'scene') {
-      if (action === 'turn_on') callService(domain, 'turn_on', { entity_id: cardId });
+      if (action === 'turn_on') return callService(domain, 'turn_on', { entity_id: entityId });
     }
     if (domain === 'select' || domain === 'input_select') {
       if (action === 'select_option' && value) {
-        callService(domain, 'select_option', { entity_id: cardId, option: value });
+        return callService(domain, 'select_option', { entity_id: entityId, option: value });
       }
     }
   };
@@ -83,6 +75,7 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
       entity={entity}
       entities={entities}
       conn={conn}
+      callService={callService}
       settings={settings}
       dragProps={dragProps}
       cardStyle={cardStyle}
@@ -93,7 +86,13 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
       isMobile={isMobile}
       t={t}
       onControl={handleControl}
-      onOpen={withEditModeGuard(editMode, () => setShowSensorInfoModal(cardId))}
+      onOpen={(target) => {
+        if (!editMode)
+          setShowSensorInfoModal({
+            entityId: typeof target === 'string' ? target : entityId,
+            cardId,
+          });
+      }}
     />
   );
 }

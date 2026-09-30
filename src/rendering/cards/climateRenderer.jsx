@@ -54,6 +54,7 @@ export function renderGenericClimateCard(
       isMobile={isMobile}
       settings={settings}
       t={t}
+      callService={callService}
     />
   );
 }

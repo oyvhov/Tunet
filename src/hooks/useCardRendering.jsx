@@ -54,6 +54,7 @@ export function useCardRendering({
   setShowMowerModal: legacySetShowMowerModal,
   setShowFanModal: legacySetShowFanModal,
   setShowAndroidTVModal: legacySetShowAndroidTVModal,
+  setShowAppleTVModal: legacySetShowAppleTVModal,
   setActiveCarModal: legacySetActiveCarModal,
   setShowWeatherModal: legacySetShowWeatherModal,
   setShowNordpoolModal: legacySetShowNordpoolModal,
@@ -83,6 +84,7 @@ export function useCardRendering({
     setShowMowerModal: legacySetShowMowerModal,
     setShowFanModal: legacySetShowFanModal,
     setShowAndroidTVModal: legacySetShowAndroidTVModal,
+    setShowAppleTVModal: legacySetShowAppleTVModal,
     setActiveCarModal: legacySetActiveCarModal,
     setShowWeatherModal: legacySetShowWeatherModal,
     setShowNordpoolModal: legacySetShowNordpoolModal,
@@ -108,6 +110,7 @@ export function useCardRendering({
     setShowMowerModal,
     setShowFanModal,
     setShowAndroidTVModal,
+    setShowAppleTVModal,
     setActiveCarModal,
     setShowWeatherModal,
     setShowNordpoolModal,
@@ -358,6 +361,7 @@ export function useCardRendering({
         setShowMowerModal,
         setShowFanModal,
         setShowAndroidTVModal,
+        setShowAppleTVModal,
         setActiveCarModal,
         setShowWeatherModal,
         setShowNordpoolModal,
@@ -373,8 +377,8 @@ export function useCardRendering({
         setActivePage,
         openMediaModal: (mpId, groupKey, groupIds) => {
           setActiveMediaId(mpId);
-          setActiveMediaGroupKey(groupKey);
-          setActiveMediaGroupIds(groupIds);
+          setActiveMediaGroupKey(groupKey || null);
+          setActiveMediaGroupIds(Array.isArray(groupIds) ? groupIds : null);
           setActiveMediaModal('media');
         },
       };
@@ -449,6 +453,7 @@ export function useCardRendering({
       setShowMowerModal,
       setShowFanModal,
       setShowAndroidTVModal,
+      setShowAppleTVModal,
       setActiveCarModal,
       setShowWeatherModal,
       setShowNordpoolModal,

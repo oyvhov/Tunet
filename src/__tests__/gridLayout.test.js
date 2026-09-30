@@ -71,6 +71,12 @@ describe('getCardGridSpan', () => {
     expect(getCardGridSpan('sensor.xyz', identity, {}, 'home')).toBe(2);
   });
 
+  it('sizes sensor instances independently of their source entity domain', () => {
+    const settings = { entity_card_1: { size: 'small', entityId: 'climate.living_room' } };
+    expect(getCardGridSpan('entity_card_1', identity, settings, 'home')).toBe(1);
+    expect(getCardGridSpan('entity_card_2', identity, {}, 'home')).toBe(2);
+  });
+
   it('returns 1 for small room cards', () => {
     const settings = { room_card_1: { size: 'small' } };
     expect(getCardGridSpan('room_card_1', identity, settings, 'home')).toBe(1);
@@ -215,5 +221,114 @@ describe('getCardColSpan', () => {
       Number.MAX_SAFE_INTEGER
     );
     expect(getCardColSpan('climate_card_bedroom', identity, settings)).toBe(1);
+  });
+
+  it('uses the mapped domain and per-instance mobile width for sensor cards', () => {
+    const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
+    const settings = {
+      entity_card_1: { entityId: 'climate.aircondition' },
+      entity_card_2: { entityId: 'scene.night', mobileWidth: 'full' },
+      entity_card_3: { entityId: 'climate.aircondition', mobileWidth: 'compact' },
+    };
+    expect(getCardColSpan('entity_card_1', identity, settings, options)).toBe(2);
+    expect(getCardColSpan('entity_card_2', identity, settings, options)).toBe(
+      Number.MAX_SAFE_INTEGER
+    );
+    expect(getCardColSpan('entity_card_3', identity, settings, options)).toBe(1);
+    expect(getCardColSpan('entity_card_2', identity, settings)).toBe(1);
+  });
+
+  it.each(['compact', 'action'])(
+    'gives small %s sensor actions room for their text and button',
+    (sensorLayout) => {
+      const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
+      for (const entityId of [
+        'scene.night',
+        'script.goodnight',
+        'button.restart',
+        'input_button.night',
+        'climate.room',
+        'switch.fan',
+        'light.hall',
+        'input_boolean.mode',
+        'automation.night',
+      ]) {
+        const settings = { entity_card_1: { entityId, size: 'small', sensorLayout } };
+        expect(getCardColSpan('entity_card_1', identity, settings, options)).toBe(2);
+        expect(getCardColSpan('entity_card_1', identity, settings)).toBe(1);
+      }
+    }
+  );
+
+  it('gives standard small primary actions and actions on other targets room on mobile', () => {
+    const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
+    for (const entityId of [
+      'scene.night',
+      'script.goodnight',
+      'button.restart',
+      'input_button.night',
+      'climate.room',
+    ]) {
+      expect(
+        getCardColSpan(
+          'entity_card_1',
+          identity,
+          { entity_card_1: { entityId, size: 'small' } },
+          options
+        )
+      ).toBe(2);
+    }
+    const settings = {
+      entity_card_1: {
+        entityId: 'sensor.temperature',
+        size: 'small',
+        sensorAction: { type: 'toggle', entityId: 'climate.room' },
+      },
+    };
+    expect(getCardColSpan('entity_card_1', identity, settings, options)).toBe(2);
+  });
+
+  it('keeps plain numeric and suppressed sensor controls compact on mobile', () => {
+    const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
+    for (const settings of [
+      { entityId: 'sensor.temperature', size: 'small' },
+      { entityId: 'sensor.temperature', size: 'small', sensorLayout: 'action' },
+      { entityId: 'scene.night', size: 'small', sensorLayout: 'compact', showControls: false },
+      {
+        entityId: 'scene.night',
+        size: 'small',
+        sensorLayout: 'compact',
+        sensorAction: { type: 'none' },
+      },
+      {
+        entityId: 'scene.night',
+        size: 'small',
+        sensorLayout: 'compact',
+        sensorAction: { trigger: 'icon' },
+      },
+      {
+        entityId: 'scene.night',
+        size: 'small',
+        sensorLayout: 'action',
+        sensorAction: { trigger: 'card' },
+      },
+      { entityId: 'scene.night', size: 'small', sensorLayout: 'compact', mobileWidth: 'compact' },
+    ]) {
+      expect(getCardColSpan('entity_card_1', identity, { entity_card_1: settings }, options)).toBe(
+        1
+      );
+    }
+  });
+  it('ignores malformed stored entity ids instead of breaking the whole layout', () => {
+    const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
+    for (const settings of [
+      { entityId: 42, size: 'small' },
+      { entityId: { id: 'sensor.temperature' } },
+      { entityId: 'sensor.temperature', sensorAction: { entityId: 7, type: 'toggle' } },
+    ]) {
+      expect(() =>
+        getCardColSpan('entity_card_1', identity, { entity_card_1: settings }, options)
+      ).not.toThrow();
+    }
   });
 });

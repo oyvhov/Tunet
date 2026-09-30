@@ -274,6 +274,51 @@ describe('isCardHiddenByLogic', () => {
     ).toBe(false);
   });
 
+  it.each(['home', 'settings'])(
+    'uses the mapped entity for sensor instance availability on %s',
+    (activePage) => {
+      const ctx = {
+        activePage,
+        getCardSettingsKey: (id) => `${activePage}::${id}`,
+        cardSettings: {
+          [`${activePage}::entity_card_1`]: { type: 'sensor', entityId: 'scene.night' },
+        },
+        entities: { 'scene.night': { entity_id: 'scene.night', state: 'unknown' } },
+      };
+      expect(isCardHiddenByLogic('entity_card_1', ctx)).toBe(false);
+      expect(isCardHiddenByLogic('entity_card_1', { ...ctx, entities: {} })).toBe(true);
+    }
+  );
+
+  it('evaluates a sensor instance visibility condition against its mapped entity', () => {
+    const ctx = {
+      activePage: 'home',
+      getCardSettingsKey: (id) => id,
+      cardSettings: {
+        entity_card_1: {
+          type: 'sensor',
+          entityId: 'switch.fan',
+          visibilityCondition: { type: 'state', states: ['on'] },
+        },
+      },
+      entities: { 'switch.fan': { entity_id: 'switch.fan', state: 'off' } },
+    };
+    expect(isCardHiddenByLogic('entity_card_1', ctx)).toBe(true);
+    ctx.entities['switch.fan'].state = 'on';
+    expect(isCardHiddenByLogic('entity_card_1', ctx)).toBe(false);
+  });
+
+  it('uses an overridden source for an existing sensor card', () => {
+    const ctx = {
+      activePage: 'home',
+      getCardSettingsKey: (id) => id,
+      cardSettings: { 'sensor.kitchen': { type: 'sensor', entityId: 'sensor.hall' } },
+      entities: { 'sensor.hall': { entity_id: 'sensor.hall', state: '20' } },
+    };
+    expect(isCardHiddenByLogic('sensor.kitchen', ctx)).toBe(false);
+    expect(isCardHiddenByLogic('sensor.kitchen', { ...ctx, entities: {} })).toBe(true);
+  });
+
   it('hides card when visibilityCondition does not match', () => {
     expect(
       isCardHiddenByLogic('switch.lamp', {

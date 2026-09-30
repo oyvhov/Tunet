@@ -1,7 +1,16 @@
 import React from 'react';
 import { Plus, RefreshCw, X } from 'lucide-react';
 
-export function SearchableSelect({ label, value, options, onChange, placeholder, entities, t }) {
+export function SearchableSelect({
+  label,
+  labelClassName = 'ml-4 text-xs font-bold text-[var(--text-muted)] uppercase',
+  value,
+  options,
+  onChange,
+  placeholder,
+  entities,
+  t,
+}) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const dropdownRef = React.useRef(null);
@@ -26,7 +35,7 @@ export function SearchableSelect({ label, value, options, onChange, placeholder,
 
   return (
     <div ref={dropdownRef}>
-      <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">{label}</label>
+      <label className={labelClassName}>{label}</label>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -299,7 +308,9 @@ export function CarMappingsSection({
       </button>
 
       {mappedSensors.length === 0 && (
-        <div className="py-8 text-center text-sm text-[var(--text-muted)]">{t('car.noSensorsMapped')}</div>
+        <div className="py-8 text-center text-sm text-[var(--text-muted)]">
+          {t('car.noSensorsMapped')}
+        </div>
       )}
 
       {mappedSensors.length > 0 && (
@@ -463,7 +474,9 @@ export function CarMappingsSection({
       )}
 
       {availableTypes.length === 0 && !showAddSensor && (
-        <div className="py-4 text-center text-xs text-[var(--text-muted)]">{t('car.allSensorsMapped')}</div>
+        <div className="py-4 text-center text-xs text-[var(--text-muted)]">
+          {t('car.allSensorsMapped')}
+        </div>
       )}
     </div>
   );

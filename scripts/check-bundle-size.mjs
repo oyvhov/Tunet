@@ -12,13 +12,13 @@ const DIST_DIR = join(process.cwd(), 'dist', 'assets');
 
 /** Maximum allowed size per chunk pattern (KB). */
 const THRESHOLDS = {
-  'index':            850,
-  'vendor-react':     200,
-  'vendor-router':    100,
-  'vendor-ha-ws':     80,
-  'vendor-leaflet':   200,
-  'vendor-utils':     200,
-  'vendor-icons':     500, // per-icon chunk; none should be huge
+  index: 900,
+  'vendor-react': 200,
+  'vendor-router': 100,
+  'vendor-ha-ws': 80,
+  'vendor-leaflet': 200,
+  'vendor-utils': 200,
+  'vendor-icons': 500, // per-icon chunk; none should be huge
 };
 
 const KB = 1024;

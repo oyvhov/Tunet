@@ -12,6 +12,7 @@ export { renderWeatherTempCard } from './weatherTempRenderer';
 export { renderGenericClimateCard } from './climateRenderer';
 export { renderGenericCostCard } from './costRenderer';
 export { renderGenericAndroidTVCard } from './androidTvRenderer';
+export { renderGenericAppleTVCard } from './appleTvRenderer';
 export { renderCalendarCard } from './calendarRenderer';
 export { renderTodoCard } from './todoRenderer';
 export { renderNordpoolCard } from './nordpoolRenderer';

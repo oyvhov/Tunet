@@ -16,6 +16,7 @@ import {
   renderGenericClimateCard,
   renderGenericCostCard,
   renderGenericAndroidTVCard,
+  renderGenericAppleTVCard,
   renderCalendarCard,
   renderTodoCard,
   renderNordpoolCard,
@@ -31,6 +32,7 @@ import {
  * (cardId, dragProps, getControls, cardStyle, settingsKey, ctx) => JSX|null
  */
 export const CARD_REGISTRY = [
+  { prefix: 'entity_card_', renderer: renderSensorCard },
   { prefix: 'light_', renderer: renderLightCard },
   { prefix: 'light.', renderer: renderLightCard },
   { prefix: 'lock_card_', renderer: renderLockCard },
@@ -47,6 +49,7 @@ export const CARD_REGISTRY = [
   { prefix: 'cost_card_', renderer: renderGenericCostCard },
   { prefix: 'weather_temp_', renderer: renderWeatherTempCard },
   { prefix: 'androidtv_card_', renderer: renderGenericAndroidTVCard },
+  { prefix: 'appletv_card_', renderer: renderGenericAppleTVCard },
   { prefix: 'car_card_', renderer: renderCarCard },
   { prefix: 'nordpool_card_', renderer: renderNordpoolCard },
   { prefix: 'cover_card_', renderer: renderCoverCard },

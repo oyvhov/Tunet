@@ -15,6 +15,7 @@ const rendererMocks = vi.hoisted(() => ({
   renderGenericClimateCard: vi.fn(() => ({ renderer: 'climate' })),
   renderGenericCostCard: vi.fn(() => ({ renderer: 'cost' })),
   renderGenericAndroidTVCard: vi.fn(() => ({ renderer: 'androidtv' })),
+  renderGenericAppleTVCard: vi.fn(() => ({ renderer: 'appletv' })),
   renderCalendarCard: vi.fn(() => ({ renderer: 'calendar' })),
   renderTodoCard: vi.fn(() => ({ renderer: 'todo' })),
   renderNordpoolCard: vi.fn(() => ({ renderer: 'nordpool' })),
@@ -53,11 +54,40 @@ describe('rendering registry dispatch', () => {
   });
 
   it('includes known split-card prefixes', () => {
+    expect(CARD_REGISTRY.some((entry) => entry.prefix === 'entity_card_')).toBe(true);
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'cover_card_')).toBe(true);
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'camera_card_')).toBe(true);
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'lock_card_')).toBe(true);
     expect(CARD_REGISTRY.some((entry) => entry.prefix === 'lock.')).toBe(true);
+    expect(CARD_REGISTRY.some((entry) => entry.prefix === 'appletv_card_')).toBe(true);
   });
+
+  it.each(['light.kitchen', 'climate.living_room'])(
+    'routes an instance of %s to the sensor renderer',
+    (entityId) => {
+      const { dragProps, getControls, cardStyle, settingsKey, ctx } = base();
+      ctx.cardSettings = { [settingsKey]: { type: 'sensor', entityId } };
+      const result = dispatchCardRender(
+        'entity_card_1',
+        dragProps,
+        getControls,
+        cardStyle,
+        settingsKey,
+        ctx
+      );
+      expect(result).toEqual({ renderer: 'sensor' });
+      expect(rendererMocks.renderSensorCard).toHaveBeenCalledWith(
+        'entity_card_1',
+        dragProps,
+        getControls,
+        cardStyle,
+        settingsKey,
+        ctx
+      );
+      expect(rendererMocks.renderLightCard).not.toHaveBeenCalled();
+      expect(rendererMocks.renderGenericClimateCard).not.toHaveBeenCalled();
+    }
+  );
 
   it('routes automation card to sensor renderer for sensor-like types', () => {
     const { dragProps, getControls, cardStyle, settingsKey, ctx } = base();

@@ -11,6 +11,7 @@ import {
 
 /** Prefixes for card types that can always be removed from user pages. */
 const REMOVABLE_PREFIXES = [
+  'entity_card_',
   'light_',
   'light.',
   'lock_card_',
@@ -25,6 +26,7 @@ const REMOVABLE_PREFIXES = [
   'climate_card_',
   'cost_card_',
   'androidtv_card_',
+  'appletv_card_',
   'car_card_',
   'nordpool_card_',
   'todo_card_',
@@ -38,6 +40,7 @@ const REMOVABLE_PREFIXES = [
 
 /** Prefixes for "special" composite cards that don't map 1:1 to an entity. */
 const SPECIAL_CARD_PREFIXES = [
+  'entity_card_',
   'media_group_',
   'sonos_group_',
   'weather_temp_',
@@ -45,6 +48,7 @@ const SPECIAL_CARD_PREFIXES = [
   'climate_card_',
   'cost_card_',
   'androidtv_card_',
+  'appletv_card_',
   'car_card_',
   'nordpool_card_',
   'todo_card_',
@@ -82,6 +86,10 @@ export function isCardHiddenByLogic(
 ) {
   const settingsKey = getCardSettingsKey(cardId);
   const cardConfig = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const entityId =
+    cardId.startsWith('entity_card_') || cardConfig.type === 'sensor'
+      ? cardConfig.entityId || cardId
+      : cardId;
   let hiddenByBaseLogic = false;
 
   if (cardId === 'media_player') {
@@ -101,12 +109,16 @@ export function isCardHiddenByLogic(
     !cardId.startsWith('light_') &&
     !cardId.startsWith('media_player')
   ) {
-    hiddenByBaseLogic = hiddenByBaseLogic || !entities[cardId];
+    hiddenByBaseLogic = hiddenByBaseLogic || !entities[entityId];
   }
 
   const isSpecialCard = cardId === 'car' || SPECIAL_CARD_PREFIXES.some((p) => cardId.startsWith(p));
 
-  if (!isSpecialCard && !entities[cardId]) {
+  if (cardId.startsWith('entity_card_')) {
+    hiddenByBaseLogic = hiddenByBaseLogic || !entities[entityId];
+  }
+
+  if (!isSpecialCard && !entities[entityId]) {
     if (cardId.startsWith('light_') || cardId.startsWith('light.') || cardId.startsWith('lock.')) {
       return false;
     }
