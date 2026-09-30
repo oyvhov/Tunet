@@ -95,7 +95,6 @@ describe('SensorCard customization', () => {
       entity: temperature,
       callService,
       settings: {
-        sensorLayout: 'compact',
         sensorAction: {
           type: 'toggle',
           entityId: climate.entity_id,
@@ -125,12 +124,11 @@ describe('SensorCard customization', () => {
     expect(screen.getByRole('button', { name: 'Stop cooling' })).toBeEnabled();
   });
 
-  it('uses selected status attributes and renders numeric visuals in compact layout', () => {
+  it('uses selected status attributes and renders numeric visuals', () => {
     render(
       <SensorCard
         {...props({
           settings: {
-            sensorLayout: 'compact',
             sensorStatusMode: 'attribute',
             sensorStatusEntityId: climate.entity_id,
             sensorStatusAttribute: 'current_temperature',
@@ -156,13 +154,13 @@ describe('SensorCard customization', () => {
     expect(screen.queryByText('23')).not.toBeInTheDocument();
   });
 
-  it.each(['standard', 'compact', 'action'])(
-    'keeps icon feedback tied to its action target in %s layout',
-    async (sensorLayout) => {
+  it.each(['large', 'small'])(
+    'keeps icon feedback tied to its action target in %s size',
+    async (size) => {
       const p = props({
         entity: temperature,
         settings: {
-          sensorLayout,
+          size,
           sensorAction: {
             type: 'toggle',
             entityId: climate.entity_id,
@@ -194,7 +192,7 @@ describe('SensorCard customization', () => {
 
   it('activates a whole card using the keyboard while keeping details separate', async () => {
     const p = props({
-      settings: { sensorLayout: 'action', sensorAction: { trigger: 'card', label: 'Night' } },
+      settings: { sensorAction: { trigger: 'card', label: 'Night' } },
     });
     render(<SensorCard {...p} />);
     const card = screen.getByRole('button', { name: 'Night', exact: true });
@@ -203,6 +201,7 @@ describe('SensorCard customization', () => {
     fireEvent.keyDown(card, { key: 'Enter' });
     expect(p.conn.sendMessagePromise).toHaveBeenCalledOnce();
     await waitFor(() => expect(card).toHaveAttribute('aria-busy', 'false'));
+    expect(screen.queryByText('sensor.action.details')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'sensor.action.details', exact: true }));
     expect(p.onOpen).toHaveBeenCalledOnce();
     expect(p.conn.sendMessagePromise).toHaveBeenCalledOnce();
@@ -261,7 +260,7 @@ describe('SensorCard customization', () => {
       <SensorCard
         {...props({
           entity: temperature,
-          settings: { sensorStatusMode: 'hidden', sensorVariant: 'gauge', sensorLayout: 'compact' },
+          settings: { sensorStatusMode: 'hidden', sensorVariant: 'gauge' },
         })}
       />
     );
@@ -274,7 +273,7 @@ describe('SensorCard customization', () => {
     (override) => {
       const p = props({
         ...override,
-        settings: { sensorLayout: 'action', sensorAction: { type: 'scene', label: 'Night' } },
+        settings: { sensorAction: { type: 'scene', label: 'Night' } },
       });
       render(<SensorCard {...p} />);
       const button = screen.getByRole('button', { name: 'Night' });
@@ -283,4 +282,107 @@ describe('SensorCard customization', () => {
       if (p.conn) expect(p.conn.sendMessagePromise).not.toHaveBeenCalled();
     }
   );
+  it('ignores layout values stored by earlier versions', () => {
+    const { container } = render(
+      <SensorCard
+        {...props({ settings: { size: 'large', showGraph: false, sensorLayout: 'compact' } })}
+      />
+    );
+    expect(container.querySelector('[data-sensor-layout]')).toBeNull();
+    expect(screen.getByRole('button', { name: 'sensor.scene.activate' }).className).toContain(
+      'w-full'
+    );
+  });
+
+  it('lets a small action button shrink to an icon when its card is narrow', () => {
+    render(
+      <SensorCard
+        {...props({
+          settings: {
+            size: 'small',
+            showGraph: false,
+            sensorAction: { label: 'Start night lights' },
+          },
+        })}
+      />
+    );
+    const button = screen.getByRole('button', { name: 'Start night lights' });
+    expect(button.className).toContain('max-w-[min(10rem,45cqw)]');
+    expect(button.className).toContain('@max-[200px]:w-11');
+    expect(screen.getByText('Start night lights').className).toContain('@max-[200px]:sr-only');
+    expect(screen.getByText('Night lights')).toBeInTheDocument();
+  });
+  it('ignores subtitles stored by earlier versions', () => {
+    render(
+      <SensorCard {...props({ settings: { size: 'large', sensorSubtitle: 'Living room' } })} />
+    );
+    expect(screen.queryByText('Living room')).not.toBeInTheDocument();
+  });
+  it.each([
+    ['button.doorbell', '2026-09-29T19:00:00+00:00'],
+    ['input_button.reset', 'unknown'],
+  ])('shows a plain label instead of the raw state for %s', (entityId, state) => {
+    const entity = { entity_id: entityId, state, attributes: {} };
+    render(<SensorCard {...props({ entity, entities: { [entityId]: entity } })} />);
+    expect(screen.getByText('sensor.button.label')).toBeInTheDocument();
+    expect(screen.queryByText(state)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['icon', 'large'],
+    ['card', 'large'],
+    ['icon', 'small'],
+    ['card', 'small'],
+  ])('shows the text set for a %s action on the %s card', (trigger, size) => {
+    render(
+      <SensorCard
+        {...props({
+          settings: { size, showGraph: false, sensorAction: { trigger, label: 'Good night' } },
+        })}
+      />
+    );
+    expect(screen.getByText('Good night')).toBeInTheDocument();
+  });
+
+  it('shows the text only once when the action is a button', () => {
+    render(
+      <SensorCard
+        {...props({
+          settings: { showGraph: false, sensorAction: { trigger: 'button', label: 'Good night' } },
+        })}
+      />
+    );
+    expect(screen.getAllByText('Good night')).toHaveLength(1);
+  });
+
+  it('adds no caption when no text has been set for an icon action', () => {
+    render(
+      <SensorCard
+        {...props({ settings: { showGraph: false, sensorAction: { trigger: 'icon' } } })}
+      />
+    );
+    expect(screen.queryByText('sensor.scene.activate')).not.toBeInTheDocument();
+  });
+
+  it('disables an action whose target cannot run it instead of failing when tapped', () => {
+    render(
+      <SensorCard
+        {...props({ entity: temperature, settings: { sensorAction: { type: 'toggle' } } })}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'sensor.action.turnOn' })).toBeDisabled();
+  });
+
+  it('does not add an info button when the whole card already opens details', () => {
+    render(
+      <SensorCard
+        {...props({
+          settings: { showGraph: false, sensorAction: { type: 'more-info', trigger: 'card' } },
+        })}
+      />
+    );
+    expect(
+      screen.getAllByRole('button', { name: 'sensor.action.details', exact: true })
+    ).toHaveLength(1);
+  });
 });

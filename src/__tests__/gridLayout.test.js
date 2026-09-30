@@ -238,27 +238,13 @@ describe('getCardColSpan', () => {
     expect(getCardColSpan('entity_card_2', identity, settings)).toBe(1);
   });
 
-  it.each(['compact', 'action'])(
-    'gives small %s sensor actions room for their text and button',
-    (sensorLayout) => {
-      const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
-      for (const entityId of [
-        'scene.night',
-        'script.goodnight',
-        'button.restart',
-        'input_button.night',
-        'climate.room',
-        'switch.fan',
-        'light.hall',
-        'input_boolean.mode',
-        'automation.night',
-      ]) {
-        const settings = { entity_card_1: { entityId, size: 'small', sensorLayout } };
-        expect(getCardColSpan('entity_card_1', identity, settings, options)).toBe(2);
-        expect(getCardColSpan('entity_card_1', identity, settings)).toBe(1);
-      }
+  it('keeps small toggle cards on one column because their icon is the switch', () => {
+    const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
+    for (const entityId of ['switch.fan', 'light.hall', 'input_boolean.mode', 'automation.night']) {
+      const settings = { entity_card_1: { entityId, size: 'small' } };
+      expect(getCardColSpan('entity_card_1', identity, settings, options)).toBe(1);
     }
-  );
+  });
 
   it('gives standard small primary actions and actions on other targets room on mobile', () => {
     const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
@@ -292,27 +278,23 @@ describe('getCardColSpan', () => {
     const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
     for (const settings of [
       { entityId: 'sensor.temperature', size: 'small' },
-      { entityId: 'sensor.temperature', size: 'small', sensorLayout: 'action' },
-      { entityId: 'scene.night', size: 'small', sensorLayout: 'compact', showControls: false },
+      { entityId: 'scene.night', size: 'small', showControls: false },
       {
         entityId: 'scene.night',
         size: 'small',
-        sensorLayout: 'compact',
         sensorAction: { type: 'none' },
       },
       {
         entityId: 'scene.night',
         size: 'small',
-        sensorLayout: 'compact',
         sensorAction: { trigger: 'icon' },
       },
       {
         entityId: 'scene.night',
         size: 'small',
-        sensorLayout: 'action',
         sensorAction: { trigger: 'card' },
       },
-      { entityId: 'scene.night', size: 'small', sensorLayout: 'compact', mobileWidth: 'compact' },
+      { entityId: 'scene.night', size: 'small', mobileWidth: 'compact' },
     ]) {
       expect(getCardColSpan('entity_card_1', identity, { entity_card_1: settings }, options)).toBe(
         1

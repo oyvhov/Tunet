@@ -32,7 +32,8 @@ describe('resolveSensorCardConfig', () => {
   ])('retains automatic defaults for %s', (entityId, type) => {
     const original = entity(entityId);
     const config = resolveSensorCardConfig({}, original);
-    expect(config).toMatchObject({ layout: 'auto', statusMode: 'auto', showLegacyControls: true });
+    expect(config).toMatchObject({ statusMode: 'auto', showLegacyControls: true });
+    expect(config).not.toHaveProperty('layout');
     expect(config.statusEntity).toBe(original);
     expect(config.action).toMatchObject({
       type,
@@ -49,7 +50,6 @@ describe('resolveSensorCardConfig', () => {
     const settings = Object.freeze({
       entityId: primary.entity_id,
       sensorLayout: 'compact',
-      sensorSubtitle: ' Living room ',
       sensorStatusMode: 'attribute',
       sensorStatusEntityId: status.entity_id,
       sensorStatusAttribute: ' brightness ',
@@ -67,15 +67,42 @@ describe('resolveSensorCardConfig', () => {
     });
     expect(config).toMatchObject({
       entityId: primary.entity_id,
-      layout: 'compact',
       statusMode: 'attribute',
       statusEntity: status,
       statusAttribute: 'brightness',
-      subtitle: 'Living room',
       showLegacyControls: false,
       action: { targetEntity: target, labelOn: 'Stop', labelOff: 'Start', trigger: 'icon' },
     });
-    expect(settings.sensorSubtitle).toBe(' Living room ');
+    expect(settings.sensorStatusAttribute).toBe(' brightness ');
+    expect(config).not.toHaveProperty('subtitle');
+    expect(config).not.toHaveProperty('layout');
+  });
+
+  it('flags targets that cannot run the chosen action', () => {
+    const sensor = entity('sensor.temperature', '21');
+    const supported = (settings, entities = {}) =>
+      resolveSensorCardConfig(settings, sensor, entities).action.targetSupported;
+    expect(supported({})).toBe(true);
+    expect(supported({ sensorAction: { type: 'toggle' } })).toBe(false);
+    expect(
+      supported(
+        { sensorAction: { type: 'toggle', entityId: 'climate.room' } },
+        { 'climate.room': climate() }
+      )
+    ).toBe(true);
+    expect(
+      supported(
+        { sensorAction: { type: 'press', entityId: 'light.hall' } },
+        { 'light.hall': entity('light.hall') }
+      )
+    ).toBe(false);
+    expect(
+      supported(
+        { sensorAction: { type: 'scene', entityId: 'scene.night' } },
+        { 'scene.night': entity('scene.night') }
+      )
+    ).toBe(true);
+    expect(supported({ sensorAction: { type: 'more-info' } })).toBe(true);
   });
 
   it('keeps missing selected status entities missing instead of showing the primary entity', () => {

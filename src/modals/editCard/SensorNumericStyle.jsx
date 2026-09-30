@@ -95,6 +95,33 @@ function RangeBound({ label, prefix, settings, entityOptions, entities, save, t 
   );
 }
 
+function getNumericStyleContext(primaryId, settings, entities) {
+  const primaryEntity = entities[primaryId];
+  const config = resolveSensorCardConfig(settings, primaryEntity, entities);
+  const entity = ['entity', 'attribute'].includes(config.statusMode)
+    ? config.statusEntity
+    : primaryEntity;
+  const state =
+    config.statusMode === 'attribute'
+      ? entity?.attributes?.[config.statusAttribute]
+      : entity?.state;
+  const isNumeric =
+    config.statusMode !== 'text' &&
+    config.statusMode !== 'hidden' &&
+    (typeof state === 'string'
+      ? /^\s*-?\d+(\.\d+)?\s*$/.test(state)
+      : typeof state === 'number' && Number.isFinite(state));
+  return {
+    config,
+    entity,
+    available: isNumeric && canSensorUseNumericVariants(config, entity, primaryEntity),
+  };
+}
+
+export function canShowSensorNumericStyle(primaryId, settings, entities) {
+  return getNumericStyleContext(primaryId, settings, entities).available;
+}
+
 /** @param {any} props */
 export default function SensorNumericStyle({
   primaryId,
@@ -106,23 +133,9 @@ export default function SensorNumericStyle({
   t,
 }) {
   const save = (key, value) => saveCardSetting(settingsKey, key, value);
-  const primaryEntity = entities[primaryId];
-  const config = resolveSensorCardConfig(settings, primaryEntity, entities);
-  const entity = ['entity', 'attribute'].includes(config.statusMode)
-    ? config.statusEntity
-    : primaryEntity;
+  const { config, entity, available } = getNumericStyleContext(primaryId, settings, entities);
+  if (!available) return null;
   const domain = entity?.entity_id?.split('.')[0];
-  const state =
-    config.statusMode === 'attribute'
-      ? entity?.attributes?.[config.statusAttribute]
-      : entity?.state;
-  const isNumeric =
-    config.statusMode !== 'text' &&
-    config.statusMode !== 'hidden' &&
-    (typeof state === 'string'
-      ? /^\s*-?\d+(\.\d+)?\s*$/.test(state)
-      : typeof state === 'number' && Number.isFinite(state));
-  if (!isNumeric || !canSensorUseNumericVariants(config, entity, primaryEntity)) return null;
 
   const variant = VARIANTS.includes(settings.sensorVariant) ? settings.sensorVariant : 'default';
   const canGraph = domain !== 'input_number' && config.statusMode !== 'attribute';

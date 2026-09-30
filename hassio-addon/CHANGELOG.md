@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.22.1
+
+### Changed
+
+- Simplified custom card settings and kept scene and action cards consistent with the standard sensor layout (#218).
+- Custom action text now appears for button, icon, and whole-card actions, with buttons that fit narrow mobile cards.
+
+### Fixed
+
+- Editing action text now replaces old on/off labels, and unsupported action targets cannot be activated.
+
+### Security
+
+- Updated ip-address, js-yaml, and brace-expansion to resolve dependency security alerts (#212, #219, #221).
+
 ## 1.22.0
 
 ### Added

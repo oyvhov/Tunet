@@ -163,12 +163,10 @@
  * @property {string} [entityId]
  * @property {'small' | 'large'} [size]
  * @property {'auto' | 'compact' | 'full'} [mobileWidth]
- * @property {'auto' | 'standard' | 'compact' | 'action' | null} [sensorLayout]
  * @property {'auto' | 'text' | 'entity' | 'attribute' | 'hidden' | null} [sensorStatusMode]
  * @property {string | null} [sensorStatusText]
  * @property {string | null} [sensorStatusEntityId]
  * @property {string | null} [sensorStatusAttribute]
- * @property {string | null} [sensorSubtitle]
  * @property {SensorCardAction | null} [sensorAction]
  */
 

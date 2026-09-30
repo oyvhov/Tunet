@@ -1,4 +1,3 @@
-export const SENSOR_LAYOUTS = ['auto', 'standard', 'compact', 'action'];
 export const SENSOR_STATUS_MODES = ['auto', 'text', 'entity', 'attribute', 'hidden'];
 export const SENSOR_ACTION_TYPES = [
   'auto',
@@ -22,10 +21,22 @@ const POWER_DOMAINS = [
   'remote',
   'siren',
 ];
+const ACTION_TARGET_DOMAINS = {
+  scene: ['scene'],
+  script: ['script'],
+  press: ['button', 'input_button'],
+  toggle: POWER_DOMAINS,
+  turn_on: POWER_DOMAINS,
+  turn_off: POWER_DOMAINS,
+};
 const CLIMATE_TURN_OFF = 128;
 const CLIMATE_TURN_ON = 256;
 const textValue = (value) => (typeof value === 'string' ? value.trim() : '');
 const objectValue = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+export function getSensorActionTargetDomains(type) {
+  return ACTION_TARGET_DOMAINS[type] || null;
+}
 
 export function getSensorAutomaticActionType(entity) {
   const domain = entity?.entity_id?.split('.')[0];
@@ -70,23 +81,27 @@ export function resolveSensorCardConfig(settings = {}, entity, entities = {}) {
   if (settings?.showStatus === false) statusMode = 'hidden';
   if (statusMode === 'text' && !statusText) statusMode = 'auto';
 
+  const resolvedActionType =
+    configuredType === 'auto' ? getSensorAutomaticActionType(targetEntity) : configuredType;
+  const allowedTargetDomains = getSensorActionTargetDomains(resolvedActionType);
+
   return {
     entityId,
-    layout: SENSOR_LAYOUTS.includes(settings?.sensorLayout) ? settings.sensorLayout : 'auto',
     statusMode,
     statusEntity,
     statusEntityId,
     statusText,
     statusAttribute: textValue(settings?.sensorStatusAttribute),
-    subtitle: textValue(settings?.sensorSubtitle),
     showLegacyControls: configuredType === 'auto',
     action: {
-      type: configuredType === 'auto' ? getSensorAutomaticActionType(targetEntity) : configuredType,
+      type: resolvedActionType,
       configuredType,
       isAutomatic: configuredType === 'auto',
       targetMode,
       entityId: actionEntityId,
       targetEntity,
+      targetSupported:
+        !allowedTargetDomains || allowedTargetDomains.includes(actionEntityId.split('.')[0]),
       trigger: ['button', 'icon', 'card'].includes(storedAction.trigger)
         ? storedAction.trigger
         : 'button',
