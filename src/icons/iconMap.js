@@ -934,7 +934,15 @@ export function getIconComponent(iconName, fallbackIcon = FALLBACK_ICON) {
       }, [path]);
 
       if (!path) return React.createElement(fallbackIcon, props);
-      return React.createElement(MdiIcon, { path, size: '1.4em', ...props });
+      // @mdi/react mutates props.style when size is set; React 19 dev freezes
+      // style objects, so hand it a copy (same pattern as the rest of the stack).
+      const { style, ...restProps } = props;
+      return React.createElement(MdiIcon, {
+        path,
+        size: '1.4em',
+        ...restProps,
+        ...(style ? { style: { ...style } } : {}),
+      });
     }
     LazyMdiIcon.displayName = `LazyMdiIcon(${iconName})`;
     mdiComponentCache.set(iconName, LazyMdiIcon);
