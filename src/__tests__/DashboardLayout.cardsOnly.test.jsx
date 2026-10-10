@@ -138,9 +138,9 @@ describe('DashboardLayout cards-only mode', () => {
   it('adds bottom clearance only on mobile', () => {
     const { rerender } = renderLayout({ isMobile: true });
 
-    expect(screen.getByRole('main', { name: 'Dashboard' })).toHaveStyle({
-      paddingBottom: 'calc(7rem + env(safe-area-inset-bottom))',
-    });
+    expect(screen.getByRole('main', { name: 'Dashboard' }).style.paddingBottom).toBe(
+      'calc(7rem + env(safe-area-inset-bottom))'
+    );
 
     rerender(<DashboardLayout {...baseProps} isMobile={false} />);
 
