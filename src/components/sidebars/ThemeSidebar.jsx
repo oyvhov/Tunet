@@ -162,7 +162,7 @@ export default function ThemeSidebar({
           <ModernDropdown
             label={t('settings.language')}
             icon={Globe}
-            options={['en', 'nb', 'nn', 'sv', 'de', 'zh', 'fr']}
+            options={['en', 'nb', 'nn', 'sv', 'de', 'zh', 'fr', 'es']}
             current={language}
             onChange={setLanguage}
             map={{
@@ -173,6 +173,7 @@ export default function ThemeSidebar({
               de: t('language.de'),
               zh: t('language.zh'),
               fr: t('language.fr'),
+              es: t('language.es'),
             }}
             placeholder={t('dropdown.noneSelected')}
             variant="inspector"
