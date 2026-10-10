@@ -56,6 +56,28 @@ const getStoredDeviceLabel = () => {
   }
 };
 
+const hasDefaultDashboardLayout = (snapshot) => {
+  const layout = snapshot?.layout;
+  if (!layout) return false;
+  const pagesConfig = layout.pagesConfig || {};
+  const pages = Array.isArray(pagesConfig.pages) ? pagesConfig.pages : [];
+  const header = Array.isArray(pagesConfig.header) ? pagesConfig.header : [];
+  const homeCards = Array.isArray(pagesConfig.home) ? pagesConfig.home : [];
+  if (pages.length !== 1 || pages[0] !== 'home' || header.length > 0 || homeCards.length > 0) {
+    return false;
+  }
+  const isEmptyObject = (value) =>
+    value == null || (typeof value === 'object' && Object.keys(value).length === 0);
+  const isEmptyArray = (value) => value == null || (Array.isArray(value) && value.length === 0);
+  return (
+    isEmptyObject(layout.cardSettings) &&
+    isEmptyObject(layout.customNames) &&
+    isEmptyObject(layout.customIcons) &&
+    isEmptyObject(layout.pageSettings) &&
+    isEmptyArray(layout.hiddenCards)
+  );
+};
+
 const READ_CURRENT_FAILED = Symbol('READ_CURRENT_FAILED');
 const isServiceUnavailableError = (error) => Number(error?.status) === 503;
 
@@ -432,6 +454,24 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
         } catch {
           // ignore bootstrap errors
         }
+      } else if (row.data) {
+        // Fresh device (default dashboard) with existing server settings:
+        // adopt them locally. readCurrentFromServer only records the
+        // revision/baseline; without this the server config never reaches
+        // the UI when it already differs from local state at bootstrap.
+        let localSnapshot = null;
+        try {
+          localSnapshot = collectSnapshot();
+        } catch {
+          localSnapshot = null;
+        }
+        if (
+          localSnapshot &&
+          isValidSnapshot(localSnapshot) &&
+          hasDefaultDashboardLayout(localSnapshot)
+        ) {
+          applySnapshot(row.data, contextSettersRef?.current || {});
+        }
       }
 
       if (disposed || backgroundSyncSuspendedRef.current) return;
@@ -443,6 +483,7 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
     return () => {
       disposed = true;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- contextSettersRef identity is not stable across renders in all callers
   }, [
     autoBootstrap,
     haUserId,
