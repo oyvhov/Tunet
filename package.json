@@ -1,7 +1,7 @@
 {
   "name": "tunet-dashboard",
   "private": true,
-  "version": "1.22.1",
+  "version": "1.22.2",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/oyvhov/tunet.git"
@@ -44,16 +44,16 @@
     "better-sqlite3": "^13.0.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
-    "hls.js": "^1.7.2",
-    "home-assistant-js-websocket": "^9.6.0",
+    "hls.js": "^1.7.3",
+    "home-assistant-js-websocket": "^9.7.0",
     "leaflet": "^1.9.4",
-    "lucide-react": "^1.41.0",
+    "lucide-react": "^1.51.0",
     "prop-types": "^15.8.1",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "react-icons": "^5.7.0",
-    "react-router-dom": "^7.18.3",
-    "ws": "^8.21.3"
+    "react-router-dom": "^7.18.4",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -61,8 +61,8 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.5.5",
     "concurrently": "^10.0.5",
