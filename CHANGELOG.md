@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.23.0] — 2026-10-11
+
+### Added
+
+- Added a Spanish (es-ES) translation (#224).
+
+### Changed
+
+- Updated React to 19.3, along with lucide-react, hls.js, home-assistant-js-websocket, react-router-dom, and ws (#220).
+- Updated build and test tooling, including Vite 8.3, Vitest 5.0.3, and jsdom 30.1 (#217).
+
+### Fixed
+
+- A new device now picks up dashboard settings already saved on the server instead of starting empty (#225).
+
+### Security
+
+- Updated proxy-addr, shell-quote, and source-map-js to resolve dependency security alerts (#226, #227, #228).
+
 ## [1.22.2] — 2026-10-10
 
 ### Fixed
