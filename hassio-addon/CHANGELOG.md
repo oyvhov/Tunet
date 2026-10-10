@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.22.2
+
+### Fixed
+
+- Fixed a crash when rendering MDI icons with custom styles in React 19 (#223).
+
 ## 1.22.1
 
 ### Changed

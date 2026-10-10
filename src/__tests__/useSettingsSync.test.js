@@ -189,6 +189,56 @@ describe('useSettingsSync', () => {
     );
   });
 
+  it('adopts server settings on bootstrap for a fresh device', async () => {
+    fetchCurrentSettings.mockResolvedValue({
+      revision: 2,
+      updated_at: '2026-02-22T12:20:00.000Z',
+      data: {
+        version: 1,
+        layout: { pagesConfig: { header: ['from-server'], pages: ['home'], home: [] } },
+        appearance: {},
+      },
+    });
+
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+
+    await waitFor(() => {
+      expect(applySnapshot).toHaveBeenCalledWith(
+        {
+          version: 1,
+          layout: { pagesConfig: { header: ['from-server'], pages: ['home'], home: [] } },
+          appearance: {},
+        },
+        {}
+      );
+    });
+  });
+
+  it('does not adopt server settings on bootstrap when local config exists', async () => {
+    collectSnapshot.mockReturnValue({
+      version: 1,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: ['local-card'] } },
+      appearance: {},
+    });
+    fetchCurrentSettings.mockResolvedValue({
+      revision: 2,
+      updated_at: '2026-02-22T12:20:00.000Z',
+      data: {
+        version: 1,
+        layout: { pagesConfig: { header: ['from-server'], pages: ['home'], home: [] } },
+        appearance: {},
+      },
+    });
+
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+
+    await waitFor(() => {
+      expect(fetchCurrentSettings).toHaveBeenCalled();
+    });
+    await act(async () => {});
+    expect(applySnapshot).not.toHaveBeenCalled();
+  });
+
   it('registers device on init when no server row exists', async () => {
     fetchCurrentSettings.mockResolvedValue(null);
 
