@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { en, nb, nn, sv, de, zh, fr } from '../i18n';
+import { loadTranslations } from '../i18n/translationLoader';
 
 const getPlaceholders = (value) => {
   const matches = String(value).match(/\{[^}]+\}/g) || [];
@@ -47,6 +48,14 @@ describe('i18n', () => {
     expect(typeof de).toBe('object');
     expect(typeof zh).toBe('object');
     expect(typeof fr).toBe('object');
+  });
+
+  it('loads locale dictionaries on demand', async () => {
+    await expect(loadTranslations('fr')).resolves.toEqual(fr);
+  });
+
+  it('rejects unsupported locale dictionaries', async () => {
+    await expect(loadTranslations('unsupported')).rejects.toThrow('Unsupported language');
   });
 
   it('fan keys exist across all supported locales including German', () => {

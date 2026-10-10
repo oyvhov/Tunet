@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { en, nb, nn, sv, de, zh, fr, DEFAULT_LANGUAGE, normalizeLanguage } from './i18n';
+import en from './i18n/en.json';
+import { DEFAULT_LANGUAGE, normalizeLanguage } from './i18n';
+import { loadTranslations } from './i18n/translationLoader';
 import { LayoutGrid } from './icons';
 
 import { DashboardLayout } from './layouts';
@@ -131,7 +133,24 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   } = usePages();
 
   const { entities, entitiesLoaded, connected, conn, activeUrl, authRef } = useHomeAssistant();
-  const translations = useMemo(() => ({ en, nb, nn, sv, de, zh, fr }), []);
+  const selectedLanguage = normalizeLanguage(language);
+  const [translations, setTranslations] = useState({ [DEFAULT_LANGUAGE]: en });
+  useEffect(() => {
+    if (translations[selectedLanguage]) return undefined;
+
+    let cancelled = false;
+    loadTranslations(selectedLanguage)
+      .then((locale) => {
+        if (!cancelled) {
+          setTranslations((current) => ({ ...current, [selectedLanguage]: locale }));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLanguage, translations]);
   const appFontFamilyMap = useMemo(
     () => ({
       sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
@@ -147,12 +166,11 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   const resolvedAppFontFamily = appFontFamilyMap[appFont] || appFontFamilyMap.sans;
   const t = useCallback(
     (key) => {
-      const selectedLanguage = normalizeLanguage(language);
       const value = translations[selectedLanguage]?.[key] ?? translations[DEFAULT_LANGUAGE]?.[key];
       if (value !== undefined) return value;
       return key;
     },
-    [language, translations]
+    [selectedLanguage, translations]
   );
 
   useEffect(() => {
