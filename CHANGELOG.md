@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Improved theme-aware backgrounds, keyboard navigation, focus visibility, and Chinese translations; load person maps on demand (#239).
-- Updated production and development dependencies, including Vite 8.3.5 (#236, #237, #238).
+- Updated production and development dependencies, including Vite 8.3.5 and ip-address 10.7.4 (#236, #237, #238, #240).
 
 ### Fixed
 
