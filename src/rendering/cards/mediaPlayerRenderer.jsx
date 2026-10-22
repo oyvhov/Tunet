@@ -1,5 +1,5 @@
 import { MediaPlayerCard } from '../../components';
-import { renderMissingEntityWhenReady } from '../helpers';
+import { getSettings, renderMissingEntityWhenReady } from '../helpers';
 
 export function renderMediaPlayerCard(mpId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const {
@@ -17,20 +17,22 @@ export function renderMediaPlayerCard(mpId, dragProps, getControls, cardStyle, s
     isFullWidthMobileCard,
     t,
   } = ctx;
-  if (!entities[mpId]) {
+  const settings = getSettings(cardSettings, settingsKey, mpId);
+  const entityId = settings.entityId || mpId;
+  if (!entities[entityId]) {
     return renderMissingEntityWhenReady(ctx, {
       cardId: mpId,
       dragProps,
       controls: getControls(mpId),
       cardStyle,
-      missingEntityId: mpId,
+      missingEntityId: entityId,
       t,
     });
   }
   return (
     <MediaPlayerCard
       key={mpId}
-      mpId={mpId}
+      mpId={entityId}
       cardId={mpId}
       dragProps={dragProps}
       controls={getControls(mpId)}

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Duplicate dashboard cards with independent settings (#239).
+- Show Home Assistant persistent notifications in the dashboard (#239).
+
+### Changed
+
+- Improved theme-aware backgrounds, keyboard navigation, focus visibility, and Chinese translations; load person maps on demand (#239).
+- Updated production and development dependencies, including Vite 8.3.5 (#236, #237, #238).
+
+### Fixed
+
+- Require an explicit choice for settings sync conflicts and preserve newer settings on publish targets (#239).
+
 ## [1.23.0] — 2026-10-11
 
 ### Added

@@ -222,6 +222,7 @@
 
 /**
  * @typedef {Object} PageContextValue
+ * @property {(cardId: string, pageId?: string) => string | null} duplicateCard
  * @property {PagesConfig} pagesConfig
  * @property {import('react').Dispatch<import('react').SetStateAction<PagesConfig>>} setPagesConfig
  * @property {(newConfig: PagesConfig) => void} persistConfig

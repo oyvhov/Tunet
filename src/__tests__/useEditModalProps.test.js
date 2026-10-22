@@ -209,4 +209,21 @@ describe('useEditModalProps', () => {
 
     expect(result.current.canEditMobileWidth).toBe(true);
   });
+  it('resolves a duplicated light to its entity while keeping independent settings', () => {
+    const cardId = 'light.kitchen__dup_test';
+    const entity = { entity_id: 'light.kitchen', state: 'on' };
+    const { result } = renderHook(() =>
+      useEditModalProps(
+        makeBase({
+          showEditCardModal: cardId,
+          editCardSettingsKey: `home::${cardId}`,
+          cardSettings: { [`home::${cardId}`]: { entityId: 'light.kitchen' } },
+          entities: { 'light.kitchen': entity },
+        })
+      )
+    );
+    expect(result.current.nameFallbackEntityId).toBe('light.kitchen');
+    expect(result.current.editSettingsKey).toBe(`home::${cardId}`);
+    expect(result.current.isEditLight).toBe(true);
+  });
 });

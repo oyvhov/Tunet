@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from '../../icons';
 
 /** @type {import('react').CSSProperties} */
 const HIDDEN_PORTAL_STYLE = {
@@ -60,6 +60,7 @@ export default function ModernDropdown({
 }) {
   const resolvedPlaceholder = placeholder || t?.('dropdown.noneSelected') || 'Not selected';
   const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -177,7 +178,35 @@ export default function ModernDropdown({
 
   const handleTriggerClick = (event) => {
     if (stopPropagation) event.stopPropagation();
+    setActiveIndex(Math.max(0, options.indexOf(current)));
     setIsOpen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const option = menuRef.current?.querySelector(`[data-option-index="${activeIndex}"]`);
+    if (option instanceof HTMLElement) {
+      option.focus();
+      option.scrollIntoView?.({ block: 'nearest' });
+    }
+  }, [isOpen, activeIndex]);
+
+  const handleMenuKeyDown = (event) => {
+    let next;
+    if (event.key === 'ArrowDown') next = (activeIndex + 1) % options.length;
+    else if (event.key === 'ArrowUp') next = (activeIndex + options.length - 1) % options.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = options.length - 1;
+    else return;
+    event.preventDefault();
+    event.stopPropagation();
+    setActiveIndex(next);
+  };
+
+  const handleBlur = (event) => {
+    const next = event.relatedTarget;
+    if (dropdownRef.current?.contains(next) || menuRef.current?.contains(next)) return;
+    setIsOpen(false);
   };
 
   const handleStopPropagation = (event) => {
@@ -188,6 +217,9 @@ export default function ModernDropdown({
     <div
       ref={menuRef}
       role="listbox"
+      aria-label={labelText}
+      onKeyDown={handleMenuKeyDown}
+      onBlur={handleBlur}
       id={listboxId}
       className={`${baseMenuClass} ${menuClassName}`.trim()}
       style={
@@ -204,16 +236,19 @@ export default function ModernDropdown({
       onPointerDown={handleStopPropagation}
     >
       <div className={isCompact ? 'max-h-56 overflow-y-auto' : 'max-h-48 overflow-y-auto'}>
-        {(options || []).map((option) => (
+        {(options || []).map((option, index) => (
           <button
             key={option}
             type="button"
             role="option"
+            data-option-index={index}
+            tabIndex={index === activeIndex ? 0 : -1}
             aria-selected={current === option}
             onClick={(event) => {
               if (stopPropagation) event.stopPropagation();
               if (typeof onChange === 'function') onChange(option);
               setIsOpen(false);
+              buttonRef.current?.focus();
             }}
             onMouseDown={handleStopPropagation}
             onPointerDown={handleStopPropagation}
@@ -241,6 +276,19 @@ export default function ModernDropdown({
         ref={buttonRef}
         type="button"
         onClick={handleTriggerClick}
+        onBlur={handleBlur}
+        onKeyDown={(event) => {
+          if (!['ArrowDown', 'ArrowUp'].includes(event.key) || options.length === 0) return;
+          event.preventDefault();
+          setActiveIndex(
+            current
+              ? Math.max(0, options.indexOf(current))
+              : event.key === 'ArrowUp'
+                ? options.length - 1
+                : 0
+          );
+          setIsOpen(true);
+        }}
         onMouseDown={handleStopPropagation}
         onPointerDown={handleStopPropagation}
         aria-expanded={isOpen}

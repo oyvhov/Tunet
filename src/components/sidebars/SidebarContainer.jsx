@@ -65,6 +65,52 @@ export default function SidebarContainer({
     onClose();
   };
 
+  // Move focus into the panel when it opens and trap Tab inside it, so the
+  // keyboard user cannot wander into the dashboard behind the sidebar.
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const panel = panelRef.current;
+    if (!panel) return undefined;
+
+    const previouslyFocused = document.activeElement;
+    const focusables = () =>
+      Array.from(
+        panel.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(
+        (el) =>
+          el.getAttribute('tabindex') !== '-1' &&
+          !el.closest('[inert]') &&
+          (el.getClientRects().length > 0 || el === document.activeElement)
+      );
+
+    const first = focusables()[0];
+    first?.focus();
+
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Tab') return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const firstItem = items[0];
+      const lastItem = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === firstItem) {
+        e.preventDefault();
+        lastItem.focus();
+      } else if (!e.shiftKey && document.activeElement === lastItem) {
+        e.preventDefault();
+        firstItem.focus();
+      }
+    };
+
+    panel.addEventListener('keydown', handleKeyDown);
+    return () => {
+      panel.removeEventListener('keydown', handleKeyDown);
+      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus?.();
+    };
+  }, [open]);
+
   // Prevent scroll on body when open - DISABLED for better live preview
   /* 
   useEffect(() => {
@@ -97,6 +143,7 @@ export default function SidebarContainer({
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        inert={!open}
         className={`tunet-sidebar popup-anim fixed inset-y-0 right-0 z-[101] w-full max-w-[420px] transform border-l backdrop-blur-2xl transition-transform duration-300 ease-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}

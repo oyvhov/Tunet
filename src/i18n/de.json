@@ -1576,5 +1576,10 @@
   "sensor.action.toggle": "Umschalten",
   "sensor.action.turnOn": "Einschalten",
   "sensor.action.turnOff": "Ausschalten",
-  "sensor.action.press": "Drücken"
+  "sensor.action.press": "Drücken",
+  "profiles.autoSyncConflictHint": "Ein anderes Gerät hat die gemeinsame Konfiguration geändert. Serverversion laden oder mit diesem Gerät überschreiben.",
+  "profiles.autoSyncOverwrite": "Mit diesem Gerät überschreiben",
+  "profiles.autoSyncOverwriteConfirm": "Die gemeinsame Konfiguration mit der Konfiguration dieses Geräts überschreiben?",
+  "profiles.autoSyncPublishConflicts": "Einige Geräte wurden übersprungen, weil sie zwischenzeitlich geändert wurden.",
+  "tooltip.duplicateCard": "Karte duplizieren"
 }

@@ -23,6 +23,7 @@ function getVacuumStateLabel(state, battery, t) {
 
 const VacuumCard = ({
   vacuumId,
+  entityId: entityIdProp,
   dragProps,
   controls,
   cardStyle,
@@ -61,7 +62,8 @@ const VacuumCard = ({
     return () => observer.disconnect();
   }, []);
 
-  const entity = entities[vacuumId];
+  const entityId = entityIdProp || vacuumId;
+  const entity = entities[entityId];
   if (!entity) {
     if (editMode) {
       return (
@@ -91,9 +93,9 @@ const VacuumCard = ({
   const normalizedState = String(state || '').toLowerCase();
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isErrorState = ['error', 'fault', 'problem', 'stuck'].includes(normalizedState);
-  const battery = getA(vacuumId, 'battery_level');
-  const room = getA(vacuumId, 'current_room') || getA(vacuumId, 'room');
-  const name = customNames[vacuumId] || getA(vacuumId, 'friendly_name', t('vacuum.name'));
+  const battery = getA(entityId, 'battery_level');
+  const room = getA(entityId, 'current_room') || getA(entityId, 'room');
+  const name = customNames[vacuumId] || getA(entityId, 'friendly_name', t('vacuum.name'));
   const vacuumIconName = customIcons[vacuumId] || entity?.attributes?.icon;
   const Icon = vacuumIconName ? getIconComponent(vacuumIconName) || Bot : Bot;
   const statusText = getVacuumStateLabel(state, battery, t);
@@ -171,7 +173,7 @@ const VacuumCard = ({
               e.stopPropagation();
               if (!isUnavailable)
                 callService('vacuum', state === 'cleaning' ? 'pause' : 'start', {
-                  entity_id: vacuumId,
+                  entity_id: entityId,
                 });
             }}
             className={`flex items-center justify-center text-[var(--text-primary)] transition-colors active:scale-95 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
@@ -276,7 +278,7 @@ const VacuumCard = ({
               e.stopPropagation();
               if (!isUnavailable)
                 callService('vacuum', state === 'cleaning' ? 'pause' : 'start', {
-                  entity_id: vacuumId,
+                  entity_id: entityId,
                 });
             }}
             className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95`}

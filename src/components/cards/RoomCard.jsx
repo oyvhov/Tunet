@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import { getIconComponent } from '../../icons';
+import { createCardKeyHandler } from '../../utils/keyboard';
 import {
   convertValueByKind,
   formatUnitValue,
@@ -406,6 +407,12 @@ const RoomCard = memo(/** @param {any} props */ function RoomCard({
         e.stopPropagation();
         if (!editMode) onOpen?.();
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={createCardKeyHandler((e) => {
+        e.stopPropagation();
+        if (!editMode) onOpen?.();
+      })}
       className={`glass-texture touch-feedback group relative flex h-full flex-col overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--glass-bg)] font-sans transition-all duration-500 select-none ${isMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} `}
       style={cardStyle}
     >

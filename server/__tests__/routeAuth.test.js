@@ -139,13 +139,7 @@ describe('settings route auth', () => {
         `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
          VALUES (?, ?, ?, ?, 1, ?)`
       )
-      .run(
-        'user-1',
-        'device-1',
-        JSON.stringify({ version: 1 }),
-        null,
-        '2026-03-08T12:00:00.000Z'
-      );
+      .run('user-1', 'device-1', JSON.stringify({ version: 1 }), null, '2026-03-08T12:00:00.000Z');
 
     const response = await harness.request('/publish', {
       method: 'POST',
@@ -175,13 +169,27 @@ describe('settings route auth', () => {
         `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run('user-1', 'device-2', JSON.stringify({ version: 0 }), null, 1, '2026-03-08T12:00:00.000Z');
+      .run(
+        'user-1',
+        'device-2',
+        JSON.stringify({ version: 0 }),
+        null,
+        1,
+        '2026-03-08T12:00:00.000Z'
+      );
     harness.database
       .prepare(
         `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run('user-1', 'device-3', JSON.stringify({ version: 0 }), null, 1, '2026-03-08T12:00:00.000Z');
+      .run(
+        'user-1',
+        'device-3',
+        JSON.stringify({ version: 0 }),
+        null,
+        1,
+        '2026-03-08T12:00:00.000Z'
+      );
 
     const response = await harness.request('/publish', {
       method: 'POST',
@@ -193,7 +201,7 @@ describe('settings route auth', () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ success: true, affected: 2 });
+    await expect(response.json()).resolves.toEqual({ success: true, affected: 2, conflicts: [] });
 
     const targets = harness.database
       .prepare(
@@ -207,6 +215,74 @@ describe('settings route auth', () => {
     expect(targets).toEqual([
       { device_id: 'device-2', data: sourceSnapshot, revision: 2 },
       { device_id: 'device-3', data: sourceSnapshot, revision: 2 },
+    ]);
+  });
+
+  it('skips targets whose revision changed since the client last saw them', async () => {
+    const harness = await startRouterHarness('../routes/settings.js', '/api/settings');
+    const sourceSnapshot = JSON.stringify({ version: 2, layout: {}, appearance: {} });
+
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run('user-1', 'device-1', sourceSnapshot, null, 1, '2026-03-08T12:00:00.000Z');
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        'user-1',
+        'device-2',
+        JSON.stringify({ version: 0 }),
+        null,
+        1,
+        '2026-03-08T12:00:00.000Z'
+      );
+    harness.database
+      .prepare(
+        `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        'user-1',
+        'device-3',
+        JSON.stringify({ version: 0 }),
+        null,
+        5,
+        '2026-03-08T12:00:00.000Z'
+      );
+
+    const response = await harness.request('/publish', {
+      method: 'POST',
+      headers: { 'x-test-user-id': 'user-1' },
+      body: JSON.stringify({
+        ha_user_id: 'user-1',
+        source_device_id: 'device-1',
+        base_revisions: { 'device-2': 1, 'device-3': 4 },
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.success).toBe(true);
+    expect(payload.affected).toBe(1);
+    expect(payload.conflicts).toEqual([{ device_id: 'device-3', revision: 5 }]);
+
+    const targets = harness.database
+      .prepare(
+        `SELECT device_id, data, revision
+         FROM current_settings
+         WHERE ha_user_id = ? AND device_id IN (?, ?)
+         ORDER BY device_id ASC`
+      )
+      .all('user-1', 'device-2', 'device-3');
+
+    expect(targets).toEqual([
+      { device_id: 'device-2', data: sourceSnapshot, revision: 2 },
+      { device_id: 'device-3', data: JSON.stringify({ version: 0 }), revision: 5 },
     ]);
   });
 
@@ -225,13 +301,27 @@ describe('settings route auth', () => {
         `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run('user-1', 'device-2', JSON.stringify({ version: 0 }), null, 1, '2026-03-08T12:00:00.000Z');
+      .run(
+        'user-1',
+        'device-2',
+        JSON.stringify({ version: 0 }),
+        null,
+        1,
+        '2026-03-08T12:00:00.000Z'
+      );
     harness.database
       .prepare(
         `INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run('user-1', 'device-3', JSON.stringify({ version: -1 }), null, 1, '2026-03-08T12:00:00.000Z');
+      .run(
+        'user-1',
+        'device-3',
+        JSON.stringify({ version: -1 }),
+        null,
+        1,
+        '2026-03-08T12:00:00.000Z'
+      );
 
     harness.database.exec(`
       CREATE TRIGGER abort_publish_history

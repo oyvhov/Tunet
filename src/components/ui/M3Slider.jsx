@@ -104,7 +104,7 @@ export default function M3Slider({
         style={{ touchAction: 'pan-y' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="absolute h-1 w-full overflow-hidden rounded-full bg-white/10 transition-all duration-300 group-hover:h-1.5">
+        <div className="absolute h-1 w-full overflow-hidden rounded-full bg-[var(--glass-bg-hover)] transition-all duration-300 group-hover:h-1.5">
           <div
             className={`h-full ${colorClass} transition-all duration-150 ease-out`}
             style={{ width: `${percentage}%` }}
@@ -112,7 +112,7 @@ export default function M3Slider({
         </div>
         <input {...commonInputProps} />
         <div
-          className="pointer-events-none absolute z-10 h-3 w-3 rounded-full bg-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100"
+          className="pointer-events-none absolute z-10 h-3 w-3 rounded-full bg-[var(--text-primary)] opacity-0 shadow-lg transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
           style={{ left: `calc(${percentage}% - 6px)` }}
         />
       </div>
@@ -126,7 +126,7 @@ export default function M3Slider({
         style={{ touchAction: 'pan-y' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="absolute h-2 w-full overflow-hidden rounded-full bg-white/10 transition-all duration-300 group-hover:h-2.5">
+        <div className="absolute h-2 w-full overflow-hidden rounded-full bg-[var(--glass-bg-hover)] transition-all duration-300 group-hover:h-2.5">
           <div
             className={`h-full ${colorClass} transition-all duration-150 ease-out`}
             style={{ width: `${percentage}%` }}
@@ -134,7 +134,7 @@ export default function M3Slider({
         </div>
         <input {...commonInputProps} />
         <div
-          className="pointer-events-none absolute z-10 h-4 w-4 rounded-full bg-white opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100"
+          className="pointer-events-none absolute z-10 h-4 w-4 rounded-full bg-[var(--text-primary)] opacity-0 shadow-lg transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
           style={{ left: `calc(${percentage}% - 8px)` }}
         />
       </div>
@@ -148,7 +148,7 @@ export default function M3Slider({
         style={{ touchAction: 'pan-y' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="absolute h-full w-full overflow-hidden rounded-2xl border border-white/5 bg-white/5">
+        <div className="absolute h-full w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)]">
           <div
             className={`h-full transition-all duration-150 ease-out ${colorClass} opacity-90`}
             style={{ width: `${percentage}%` }}
@@ -186,10 +186,10 @@ export default function M3Slider({
         </div>
       ) : (
         <div
-          className={`m3-slider__track absolute w-full ${height ? 'h-full rounded bg-white/10' : 'h-5 rounded-full border'} overflow-hidden`}
+          className={`m3-slider__track absolute w-full ${height ? 'h-full rounded bg-[var(--glass-bg-hover)]' : 'h-5 rounded-full border'} overflow-hidden`}
           style={
             !height
-              ? { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.05)' }
+              ? { backgroundColor: 'var(--glass-bg-hover)', borderColor: 'var(--glass-border)' }
               : {}
           }
         >
@@ -214,10 +214,10 @@ export default function M3Slider({
       ) : (
         !height && (
           <div
-            className="m3-slider__thumb pointer-events-none absolute h-8 w-1 rounded-full bg-white transition-transform duration-200 group-active:scale-y-110"
+            className="m3-slider__thumb pointer-events-none absolute h-8 w-1 rounded-full bg-[var(--text-primary)] transition-transform duration-200 group-active:scale-y-110"
             style={{
               left: 'calc(var(--m3-slider-position) - var(--m3-slider-thumb-offset, 2px))',
-              boxShadow: '0_0_15px_rgba(255,255,255,0.4)',
+              boxShadow: '0 0 15px color-mix(in srgb, var(--accent-color) 40%, transparent)',
             }}
           />
         )

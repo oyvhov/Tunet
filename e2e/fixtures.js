@@ -21,6 +21,7 @@ export const test = baseTest.extend({
   mockHAConnection: async ({ page }, use) => {
     await page.addInitScript(() => {
       const testTimestamp = 1774816140;
+      window.__haServiceCalls = [];
       const emitMessage = (target, payload) => {
         target.dispatchEvent(
           new MessageEvent('message', {
@@ -268,6 +269,31 @@ export const test = baseTest.extend({
               return;
             }
 
+            if (msg.type === 'persistent_notification/subscribe') {
+              this.notificationListener = (event) =>
+                emitMessage(this, { id: msg.id, type: 'event', event: event.detail });
+              window.addEventListener('test:notification', this.notificationListener);
+              setTimeout(() => {
+                emitMessage(this, { id: msg.id, type: 'result', success: true });
+                emitMessage(this, {
+                  id: msg.id,
+                  type: 'event',
+                  event: { type: 'current', notifications: {} },
+                });
+              }, 10);
+              return;
+            }
+
+            if (msg.type === 'call_service') {
+              window.__haServiceCalls.push(msg);
+              setTimeout(
+                () =>
+                  emitMessage(this, { id: msg.id, type: 'result', success: true, result: null }),
+                10
+              );
+              return;
+            }
+
             if (msg.type === 'subscribe_entities') {
               setTimeout(() => {
                 emitMessage(this, {
@@ -334,6 +360,7 @@ export const test = baseTest.extend({
         }
 
         close() {
+          window.removeEventListener('test:notification', this.notificationListener);
           this.readyState = MockWebSocket.CLOSED;
           this.dispatchEvent(new CloseEvent('close'));
         }

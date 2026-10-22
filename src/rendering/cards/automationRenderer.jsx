@@ -1,11 +1,13 @@
 import { Workflow } from '../../icons';
 import { getIconComponent } from '../../icons';
+import { getSettings } from '../helpers';
 
 export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const { entities, editMode, customNames, customIcons, getA, callService, t } = ctx;
-  const isOn = entities[cardId]?.state === 'on';
-  const friendlyName = customNames[cardId] || getA(cardId, 'friendly_name') || cardId;
-  const automationIconName = customIcons[cardId] || entities[cardId]?.attributes?.icon;
+  const entityId = getSettings(ctx.cardSettings, settingsKey, cardId).entityId || cardId;
+  const isOn = entities[entityId]?.state === 'on';
+  const friendlyName = customNames[cardId] || getA(entityId, 'friendly_name') || cardId;
+  const automationIconName = customIcons[cardId] || entities[entityId]?.attributes?.icon;
   const Icon = automationIconName ? getIconComponent(automationIconName) || Workflow : Workflow;
 
   return (
@@ -26,7 +28,7 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
             : 'rgba(255, 255, 255, 0.04)',
       }}
       onClick={(_e) => {
-        if (!editMode) callService('automation', 'toggle', { entity_id: cardId });
+        if (!editMode) callService('automation', 'toggle', { entity_id: entityId });
       }}
     >
       {getControls(cardId)}

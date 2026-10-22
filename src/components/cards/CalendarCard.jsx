@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Calendar as CalendarIcon, Clock, MapPin, AlertCircle } from 'lucide-react';
 import { getIconComponent } from '../../icons';
 import { getCalendarEvents } from '../../services/haClient';
+import { createCardKeyHandler } from '../../utils/keyboard';
 
 class CalendarErrorBoundary extends React.Component {
   constructor(props) {
@@ -291,6 +292,9 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
         {...dragProps}
         data-haptic={isEditMode ? undefined : 'card'}
         onClick={onClick}
+        role={!isEditMode ? 'button' : undefined}
+        tabIndex={!isEditMode ? 0 : undefined}
+        onKeyDown={!isEditMode ? createCardKeyHandler(onClick) : undefined}
         className={`glass-texture touch-feedback group relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4 pl-5 font-sans backdrop-blur-xl transition-all duration-300 ${className}`}
         style={style}
       >
@@ -399,6 +403,9 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
         {...dragProps}
         data-haptic={isEditMode ? undefined : 'card'}
         onClick={onClick}
+        role={!isEditMode ? 'button' : undefined}
+        tabIndex={!isEditMode ? 0 : undefined}
+        onKeyDown={!isEditMode ? createCardKeyHandler(onClick) : undefined}
         className={`glass-texture touch-feedback group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] font-sans backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
         style={style}
       >
@@ -569,6 +576,9 @@ const CalendarCard = memo(/** @param {any} props */ function CalendarCard({
       {...dragProps}
       data-haptic={isEditMode ? undefined : 'card'}
       onClick={onClick}
+      role={!isEditMode ? 'button' : undefined}
+      tabIndex={!isEditMode ? 0 : undefined}
+      onKeyDown={!isEditMode ? createCardKeyHandler(onClick) : undefined}
       className={`glass-texture touch-feedback group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] font-sans backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
       style={style}
     >

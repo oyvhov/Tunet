@@ -20,6 +20,7 @@ import {
   usePages,
 } from './contexts';
 import ModalManager from './rendering/ModalManager';
+import PersistentNotificationBridge from './components/ui/PersistentNotificationBridge';
 
 import {
   useSmartTheme,
@@ -99,6 +100,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     saveCustomIcon,
     hiddenCards,
     toggleCardVisibility,
+    duplicateCard,
     pageSettings,
     persistPageSettings,
     persistCustomNames,
@@ -556,6 +558,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     setEditCardSettingsKey,
     toggleCardVisibility: guardedToggleCardVisibility,
     removeCard: guardedRemoveCard,
+    duplicateCard,
     isCardRemovable,
   });
 
@@ -852,6 +855,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
         cardConfig={modalManagerCardConfig}
         mediaTick={mediaTick}
       />
+      <PersistentNotificationBridge />
     </>
   );
 }

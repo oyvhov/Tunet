@@ -16,7 +16,8 @@ export function renderLockCard(lockId, dragProps, getControls, cardStyle, settin
     t,
   } = ctx;
   const settings = getSettings(cardSettings, settingsKey, lockId);
-  const entityId = lockId.startsWith('lock.') ? lockId : settings.lockId;
+  const entityId =
+    settings.entityId || settings.lockId || (lockId.startsWith('lock.') ? lockId : null);
   const entity = entityId ? entities[entityId] : null;
 
   if (!entity || !entityId) {

@@ -30,6 +30,7 @@ const supportsFeature = (supportedFeatures, bitMask) => {
 
 const FanCard = memo(/** @param {any} props */ function FanCard({
   fanId,
+  entityId: entityIdProp,
   dragProps,
   controls,
   cardStyle,
@@ -45,7 +46,8 @@ const FanCard = memo(/** @param {any} props */ function FanCard({
   isMobile,
   t,
 }) {
-  const entity = entities[fanId];
+  const entityId = entityIdProp || fanId;
+  const entity = entities[entityId];
 
   if (!entity) {
     if (editMode) {
@@ -87,7 +89,7 @@ const FanCard = memo(/** @param {any} props */ function FanCard({
   const hasDirectionControl = supportsFeature(supportedFeatures, FAN_FEATURE.DIRECTION);
   const hasPresetControl = supportsFeature(supportedFeatures, FAN_FEATURE.PRESET_MODE);
 
-  const percentageValue = Number(getA(fanId, 'percentage') ?? 0);
+  const percentageValue = Number(getA(entityId, 'percentage') ?? 0);
   const boundedPercentage = Number.isFinite(percentageValue)
     ? Math.max(0, Math.min(100, Math.round(percentageValue)))
     : 0;
@@ -96,7 +98,7 @@ const FanCard = memo(/** @param {any} props */ function FanCard({
   const direction = entity.attributes?.direction || null;
   const presetMode = entity.attributes?.preset_mode || null;
 
-  const name = customNames[fanId] || getA(fanId, 'friendly_name', fanId);
+  const name = customNames[fanId] || getA(entityId, 'friendly_name', entityId);
   const fanIconName = customIcons[fanId] || entity.attributes?.icon;
   const Icon = fanIconName ? getIconComponent(fanIconName) || FanIconGlyph : FanIconGlyph;
 
@@ -121,11 +123,11 @@ const FanCard = memo(/** @param {any} props */ function FanCard({
     if (isUnavailable || !canTogglePower) return;
     if (isOn) {
       if (!canTurnOff) return;
-      callService('fan', 'turn_off', { entity_id: fanId });
+      callService('fan', 'turn_off', { entity_id: entityId });
       return;
     }
     if (!canTurnOn) return;
-    callService('fan', 'turn_on', { entity_id: fanId });
+    callService('fan', 'turn_on', { entity_id: entityId });
   };
 
   return (
@@ -209,7 +211,7 @@ const FanCard = memo(/** @param {any} props */ function FanCard({
                     e.stopPropagation();
                     const newDirection = direction === 'forward' ? 'reverse' : 'forward';
                     callService('fan', 'set_direction', {
-                      entity_id: fanId,
+                      entity_id: entityId,
                       direction: newDirection,
                     });
                   }}
@@ -227,7 +229,7 @@ const FanCard = memo(/** @param {any} props */ function FanCard({
                   onClick={(e) => {
                     e.stopPropagation();
                     callService('fan', 'oscillate', {
-                      entity_id: fanId,
+                      entity_id: entityId,
                       oscillating: !oscillating,
                     });
                   }}
@@ -281,7 +283,7 @@ const FanCard = memo(/** @param {any} props */ function FanCard({
                   value={boundedPercentage}
                   onChange={(e) => {
                     const Val = Number(e.target.value);
-                    callService('fan', 'set_percentage', { entity_id: fanId, percentage: Val });
+                    callService('fan', 'set_percentage', { entity_id: entityId, percentage: Val });
                   }}
                   colorClass="bg-[var(--accent-color)]"
                 />

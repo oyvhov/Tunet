@@ -1576,5 +1576,10 @@
   "sensor.action.toggle": "Alternar",
   "sensor.action.turnOn": "Encender",
   "sensor.action.turnOff": "Apagar",
-  "sensor.action.press": "Pulsar"
+  "sensor.action.press": "Pulsar",
+  "profiles.autoSyncConflictHint": "Otro dispositivo cambió la configuración compartida. Carga la versión del servidor o sobrescríbela con este dispositivo.",
+  "profiles.autoSyncOverwrite": "Sobrescribir con este dispositivo",
+  "profiles.autoSyncOverwriteConfirm": "¿Sobrescribir la configuración compartida con la configuración de este dispositivo?",
+  "profiles.autoSyncPublishConflicts": "Se omitieron algunos dispositivos porque cambiaron mientras tanto.",
+  "tooltip.duplicateCard": "Duplicar tarjeta"
 }

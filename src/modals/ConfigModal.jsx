@@ -825,13 +825,43 @@ export default function ConfigModal({
                     </p>
                   )}
 
+                  {autoSync.status === 'conflict' && (
+                    <div className="popup-surface rounded-xl p-3 text-xs" role="alert">
+                      <p>{t('profiles.autoSyncConflictHint')}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(t('profiles.autoSyncOverwriteConfirm'))) {
+                            autoSync.overwriteServerWithLocal?.().catch(() => {});
+                          }
+                        }}
+                        className="mt-2 rounded-lg border border-[var(--glass-border)] px-3 py-2 font-bold"
+                      >
+                        {t('profiles.autoSyncOverwrite')}
+                      </button>
+                    </div>
+                  )}
+                  {autoSync.publishConflicts?.length > 0 && (
+                    <p className="text-xs text-[var(--status-warning-fg)]" role="alert">
+                      {t('profiles.autoSyncPublishConflicts')}{' '}
+                      {autoSync.publishConflicts
+                        .map(
+                          ({ device_id }) =>
+                            autoSync.knownDevices?.find((device) => device.device_id === device_id)
+                              ?.device_label || device_id
+                        )
+                        .join(', ')}
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() =>
-                        autoSync.loadCurrentFromServer(
-                          selectedServerRevision ? Number(selectedServerRevision) : undefined
-                        )
+                        autoSync
+                          .loadCurrentFromServer(
+                            selectedServerRevision ? Number(selectedServerRevision) : undefined
+                          )
+                          .catch(() => {})
                       }
                       className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)]"
                     >
@@ -839,8 +869,14 @@ export default function ConfigModal({
                     </button>
                     <button
                       type="button"
-                      disabled={autoSync.publishing || selectedTargets.length === 0}
-                      onClick={() => autoSync.publishCurrentToDevices(selectedTargets)}
+                      disabled={
+                        autoSync.publishing ||
+                        autoSync.status === 'conflict' ||
+                        selectedTargets.length === 0
+                      }
+                      onClick={() =>
+                        autoSync.publishCurrentToDevices(selectedTargets).catch(() => {})
+                      }
                       className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] disabled:opacity-60"
                     >
                       {publishButtonLabel}
@@ -2329,6 +2365,8 @@ const autoSyncShape = PropTypes.shape({
   setEnabled: PropTypes.func,
   loadCurrentFromServer: PropTypes.func,
   publishCurrentToDevices: PropTypes.func,
+  publishConflicts: PropTypes.array,
+  overwriteServerWithLocal: PropTypes.func,
   renameKnownDevice: PropTypes.func,
   removeKnownDevice: PropTypes.func,
 });

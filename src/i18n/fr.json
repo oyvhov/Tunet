@@ -1576,5 +1576,10 @@
   "sensor.action.toggle": "Basculer",
   "sensor.action.turnOn": "Allumer",
   "sensor.action.turnOff": "Éteindre",
-  "sensor.action.press": "Appuyer"
+  "sensor.action.press": "Appuyer",
+  "profiles.autoSyncConflictHint": "Un autre appareil a modifié la configuration partagée. Chargez la version du serveur ou remplacez-la par celle de cet appareil.",
+  "profiles.autoSyncOverwrite": "Remplacer par cet appareil",
+  "profiles.autoSyncOverwriteConfirm": "Remplacer la configuration partagée par la configuration de cet appareil ?",
+  "profiles.autoSyncPublishConflicts": "Certains appareils ont été ignorés car ils ont été modifiés entre-temps.",
+  "tooltip.duplicateCard": "Dupliquer la carte"
 }

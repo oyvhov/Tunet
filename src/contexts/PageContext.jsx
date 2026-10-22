@@ -7,6 +7,7 @@ import {
   STATUS_GROUP_SELECTION_ALL,
 } from '../utils/statusGroupPills';
 import { normalizeDecimalPlaces } from '../utils/units';
+import { getCardSettingsKey } from '../utils/cardSettingsKey';
 
 /** @typedef {import('../types/dashboard').PageContextValue} PageContextValue */
 /** @typedef {import('../types/dashboard').PageProviderProps} PageProviderProps */
@@ -353,7 +354,6 @@ export const PageProvider = ({ children }) => {
       setPageSettings(nextSettings);
       if (modified) writeJSON('tunet_page_settings', nextSettings);
     }
-
   }, []);
 
   useEffect(() => {
@@ -511,6 +511,60 @@ export const PageProvider = ({ children }) => {
     writeJSON('tunet_card_settings', newSettings);
   }, []);
 
+  /**
+   * Duplicate a card: the copy gets its own card id and its own settings
+   * entry, but keeps the configuration (entity, size, options) of the
+   * original.
+   */
+  const duplicateCard = useCallback(
+    (cardId, pageId = 'home') => {
+      if (!cardId) return null;
+
+      const unique =
+        globalThis.crypto?.randomUUID?.() ||
+        `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+      const newCardId = `${cardId === 'car' ? 'car_card' : cardId}__dup_${unique}`;
+
+      const newConfig = { ...pagesConfig };
+      const listName = pageId === 'header' ? 'header' : pageId;
+      const list = Array.isArray(newConfig[listName]) ? [...newConfig[listName]] : [];
+      const index = list.indexOf(cardId);
+      list.splice(index === -1 ? list.length : index + 1, 0, newCardId);
+      newConfig[listName] = list;
+      persistConfig(newConfig);
+
+      const sourceKey = getCardSettingsKey(cardId, pageId);
+      const targetKey = getCardSettingsKey(newCardId, pageId);
+      const sourceSettings = cardSettings[sourceKey] || cardSettings[cardId] || {};
+      const copiedSettings = JSON.parse(JSON.stringify(sourceSettings));
+      // Cards that are identified by their entity id need the entity stored in
+      // the settings so the copy keeps pointing at the same entity.
+      if (!copiedSettings.entityId && /^[a-z_]+\.[a-z0-9_]+$/i.test(cardId)) {
+        copiedSettings.entityId = cardId;
+      }
+      persistCardSettings({ ...cardSettings, [targetKey]: copiedSettings });
+
+      if (customNames[cardId]) {
+        persistCustomNames({ ...customNames, [newCardId]: customNames[cardId] });
+      }
+      if (customIcons[cardId]) {
+        persistCustomIcons({ ...customIcons, [newCardId]: customIcons[cardId] });
+      }
+
+      return newCardId;
+    },
+    [
+      cardSettings,
+      customIcons,
+      customNames,
+      pagesConfig,
+      persistCardSettings,
+      persistConfig,
+      persistCustomIcons,
+      persistCustomNames,
+    ]
+  );
+
   const setGridColumnsPersisted = useCallback((val) => {
     const next = normalizeGridColumns(val);
     setGridColumns(next);
@@ -573,6 +627,7 @@ export const PageProvider = ({ children }) => {
       saveCustomIcon,
       hiddenCards,
       toggleCardVisibility,
+      duplicateCard,
       pageSettings,
       setPageSettings,
       persistPageSettings,
@@ -615,6 +670,7 @@ export const PageProvider = ({ children }) => {
       saveCustomIcon,
       hiddenCards,
       toggleCardVisibility,
+      duplicateCard,
       pageSettings,
       persistPageSettings,
       persistCustomNames,

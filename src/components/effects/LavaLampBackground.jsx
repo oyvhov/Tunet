@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
+import { isLightColor } from '../../utils/colorUtils';
 
 const MAX_DPR = 1.5;
 const FRAME_INTERVAL_MS = 1000 / 30;
@@ -8,9 +9,10 @@ const FRAME_INTERVAL_MS = 1000 / 30;
  * LavaLampBackground — Slow-moving organic blobs that merge and split,
  * resembling a lava lamp. Deep warm tones on dark base.
  */
-const LavaLampBackground = () => {
+const LavaLampBackground = ({ baseColor = '#1a0a1e' }) => {
   const canvasRef = useRef(null);
   const motionAllowed = useLowPowerMotion();
+  const blendMode = isLightColor(baseColor) ? 'multiply' : 'screen';
 
   useEffect(() => {
     if (!motionAllowed) return undefined;
@@ -53,7 +55,7 @@ const LavaLampBackground = () => {
       lastFrameAt = t;
 
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = '#1a0a1e';
+      ctx.fillStyle = baseColor;
       ctx.fillRect(0, 0, width, height);
 
       blobs.forEach((blob, i) => {
@@ -81,7 +83,7 @@ const LavaLampBackground = () => {
         gradient.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.06)`);
         gradient.addColorStop(1, 'transparent');
 
-        ctx.globalCompositeOperation = 'screen';
+        ctx.globalCompositeOperation = blendMode;
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -97,10 +99,13 @@ const LavaLampBackground = () => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [motionAllowed]);
+  }, [motionAllowed, baseColor, blendMode]);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden bg-[#1a0a1e]">
+    <div
+      className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden"
+      style={{ backgroundColor: baseColor }}
+    >
       {motionAllowed && (
         <canvas
           ref={canvasRef}

@@ -402,7 +402,7 @@ describe('useSettingsSync', () => {
     );
   });
 
-  it('retries revision conflicts when the local snapshot has unsynced changes', async () => {
+  it('keeps local changes and reports a conflict instead of overwriting the server', async () => {
     const baselineSnapshot = { version: 1, layout: {}, appearance: {} };
     const localSnapshot = {
       version: 1,
@@ -448,19 +448,31 @@ describe('useSettingsSync', () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
     });
 
+    // The automatic sync must not push over the other device's revision.
+    await waitFor(() => {
+      expect(result.current.status).toBe('conflict');
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(1);
+    expect(saveCurrentSettings.mock.calls[0][0].base_revision).toBe(1);
+    expect(result.current.currentRevision).toBe(9);
+    expect(applySnapshot).not.toHaveBeenCalled();
+
+    // The explicit overwrite action resolves the conflict.
+    await act(async () => {
+      await result.current.overwriteServerWithLocal();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+
     await waitFor(() => {
       expect(saveCurrentSettings).toHaveBeenCalledTimes(2);
       expect(result.current.currentRevision).toBe(10);
       expect(result.current.status).toBe('synced');
     });
-
-    expect(saveCurrentSettings.mock.calls[0][0].base_revision).toBe(1);
     expect(saveCurrentSettings.mock.calls[1][0].base_revision).toBe(9);
     expect(saveCurrentSettings.mock.calls[1][0].data).toEqual(localSnapshot);
-    expect(applySnapshot).not.toHaveBeenCalled();
   });
 
-  it('retries revision conflicts before applying server data when no baseline is loaded', async () => {
+  it('does not push over a newer server revision without an explicit overwrite', async () => {
     const localSnapshot = {
       version: 1,
       layout: { pagesConfig: { header: [], pages: ['home'], home: ['lock_card_1'] } },
@@ -489,14 +501,11 @@ describe('useSettingsSync', () => {
     });
 
     await waitFor(() => {
-      expect(saveCurrentSettings).toHaveBeenCalledTimes(2);
-      expect(result.current.currentRevision).toBe(10);
-      expect(result.current.status).toBe('synced');
+      expect(result.current.status).toBe('conflict');
     });
 
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(1);
     expect(saveCurrentSettings.mock.calls[0][0].base_revision).toBeNull();
-    expect(saveCurrentSettings.mock.calls[1][0].base_revision).toBe(9);
-    expect(saveCurrentSettings.mock.calls[1][0].data).toEqual(localSnapshot);
     expect(fetchCurrentSettings).not.toHaveBeenCalled();
     expect(applySnapshot).not.toHaveBeenCalled();
   });
@@ -623,5 +632,81 @@ describe('useSettingsSync', () => {
     );
     expect(fetchCurrentDevices.mock.calls.length).toBeGreaterThan(callsBeforeRename);
     expect(result.current.updatingDeviceId).toBe('');
+  });
+  it('resumes sync after resolving a conflict by loading from the server', async () => {
+    const local = {
+      version: 1,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: ['local'] } },
+      appearance: {},
+    };
+    const remote = { ...local, appearance: { theme: 'light' } };
+    collectSnapshot.mockReturnValue(local);
+    const conflict = Object.assign(new Error('Revision conflict'), {
+      status: 409,
+      body: { revision: 9 },
+    });
+    saveCurrentSettings.mockRejectedValueOnce(conflict).mockResolvedValue({ revision: 10 });
+    fetchCurrentSettings.mockResolvedValue({ revision: 9, data: remote });
+    const setters = { current: {} };
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: setters, autoBootstrap: false })
+    );
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(result.current.status).toBe('conflict');
+    await act(async () => {
+      await result.current.loadCurrentFromServer();
+    });
+    expect(result.current.status).toBe('synced');
+    collectSnapshot.mockReturnValue({ ...remote, appearance: { theme: 'dark' } });
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(2);
+  });
+  it('reports skipped publish targets without overwriting their new revisions', async () => {
+    fetchCurrentDevices.mockResolvedValue([
+      { device_id: 'tablet', revision: 3, device_label: 'Kitchen' },
+    ]);
+    publishCurrentSettings.mockResolvedValue({
+      success: true,
+      affected: 0,
+      conflicts: [{ device_id: 'tablet', revision: 4 }],
+    });
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+    await waitFor(() => expect(result.current.knownDevices).toHaveLength(1));
+    await act(async () => {
+      await result.current.publishCurrentToDevices(['tablet']);
+    });
+    expect(publishCurrentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ base_revisions: { tablet: 3 } })
+    );
+    expect(result.current.publishConflicts).toEqual([{ device_id: 'tablet', revision: 4 }]);
+  });
+  it('keeps the conflict resolution available when publishing hits a source conflict', async () => {
+    const conflict = Object.assign(new Error('Revision conflict'), {
+      status: 409,
+      body: { revision: 9 },
+    });
+    saveCurrentSettings.mockRejectedValueOnce(conflict);
+    const { result } = renderHook(() =>
+      useSettingsSync({
+        haUserId: 'user-1',
+        contextSettersRef: { current: {} },
+        autoBootstrap: false,
+      })
+    );
+    await act(async () => {
+      await expect(result.current.publishCurrentToDevices(['tablet'])).rejects.toThrow(
+        'Revision conflict'
+      );
+    });
+    expect(result.current.status).toBe('conflict');
+    expect(publishCurrentSettings).not.toHaveBeenCalled();
   });
 });

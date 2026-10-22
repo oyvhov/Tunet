@@ -1576,5 +1576,10 @@
   "sensor.action.toggle": "Toggle",
   "sensor.action.turnOn": "Turn on",
   "sensor.action.turnOff": "Turn off",
-  "sensor.action.press": "Press"
+  "sensor.action.press": "Press",
+  "profiles.autoSyncConflictHint": "Another device changed the shared setup. Load the server version or overwrite it with this device.",
+  "profiles.autoSyncOverwrite": "Overwrite with this device",
+  "profiles.autoSyncOverwriteConfirm": "Overwrite the shared setup with this device’s configuration?",
+  "profiles.autoSyncPublishConflicts": "Some devices were skipped because they changed in the meantime.",
+  "tooltip.duplicateCard": "Duplicate card"
 }

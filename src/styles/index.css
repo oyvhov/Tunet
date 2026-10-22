@@ -4,16 +4,20 @@
 
 @theme {
   --color-primary: var(--bg-primary);
+
+  /* Theme-aware blue ramp. These live in @theme so Tailwind's own palette is
+     replaced instead of being overridden by an unlayered :root rule, which
+     used to turn every "blue" element into flat grey. */
+  --color-blue-200: color-mix(in srgb, var(--accent-color) 35%, var(--glass-bg-hover) 65%);
+  --color-blue-300: color-mix(in srgb, var(--accent-color) 55%, var(--text-secondary) 45%);
+  --color-blue-400: color-mix(in srgb, var(--accent-color) 75%, var(--text-secondary) 25%);
+  --color-blue-500: color-mix(in srgb, var(--accent-color) 90%, var(--text-primary) 10%);
+  --color-blue-600: var(--accent-color);
 }
 
 /* Card border radius — controlled from settings */
 :root {
   --card-border-radius: 16px;
-  --color-blue-200: color-mix(in srgb, var(--glass-bg-hover) 65%, var(--text-secondary) 35%);
-  --color-blue-300: color-mix(in srgb, var(--glass-border) 45%, var(--text-secondary) 55%);
-  --color-blue-400: color-mix(in srgb, var(--text-secondary) 78%, var(--text-primary) 22%);
-  --color-blue-500: color-mix(in srgb, var(--text-secondary) 62%, var(--text-primary) 38%);
-  --color-blue-600: color-mix(in srgb, var(--text-primary) 88%, var(--text-secondary) 12%);
 
   /* Status Colors */
   --status-success-fg: #4ade80;
@@ -33,6 +37,25 @@
   --color-green-500: var(--status-success-fg);
   --color-red-500: var(--status-error-fg);
   --color-orange-500: var(--status-warning-fg);
+
+  /* One focus ring for the whole app. */
+  --focus-ring-color: var(--accent-color);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+}
+
+/* A visible focus indicator for every interactive element. Components that
+   removed the outline without a replacement get their ring back here. */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: inherit;
+}
+
+/* Slider thumbs are drawn by hand, so the native input keeps the ring but
+   stays invisible itself. */
+input[type='range']:focus-visible {
+  outline-offset: 4px;
 }
 
 /* When custom bg image is active, add overlay for readability */

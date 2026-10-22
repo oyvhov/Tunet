@@ -42,7 +42,9 @@ async function request(
 
     const body = await res.json().catch(() => ({}));
     if (res.status === 401) {
-      throw notifyHomeAssistantApiUnauthorized(body.error || 'Home Assistant authentication failed');
+      throw notifyHomeAssistantApiUnauthorized(
+        body.error || 'Home Assistant authentication failed'
+      );
     }
     const error = /** @type {any} */ (new Error(body.error || `API error ${res.status}`));
     error.status = res.status;
@@ -127,9 +129,16 @@ export function publishCurrentSettings({
   source_device_id,
   target_device_id,
   history_keep_limit,
+  base_revisions,
 }) {
   return request('/settings/publish', {
     method: 'POST',
-    body: JSON.stringify({ ha_user_id, source_device_id, target_device_id, history_keep_limit }),
+    body: JSON.stringify({
+      ha_user_id,
+      source_device_id,
+      target_device_id,
+      history_keep_limit,
+      base_revisions,
+    }),
   });
 }

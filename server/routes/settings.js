@@ -78,7 +78,7 @@ const pruneHistory = (database, haUserId, deviceId, keepLimitRaw) => {
   const keepLimit = resolveKeepLimit(keepLimitRaw);
   database
     .prepare(
-    `DELETE FROM current_settings_history
+      `DELETE FROM current_settings_history
      WHERE ha_user_id = ?
        AND device_id = ?
        AND revision NOT IN (
@@ -487,7 +487,8 @@ router.post('/publish', (req, res) => {
   const requestUserId = ensureRequestUser(req, res);
   if (!requestUserId) return;
 
-  const { ha_user_id, source_device_id, target_device_id, history_keep_limit } = req.body;
+  const { ha_user_id, source_device_id, target_device_id, history_keep_limit, base_revisions } =
+    req.body;
   if (!ha_user_id || !source_device_id) {
     return res.status(400).json({ error: 'ha_user_id and source_device_id are required' });
   }
@@ -527,6 +528,15 @@ router.post('/publish', (req, res) => {
 
   const now = new Date().toISOString();
 
+  // Optional per-target revision map. When the client tells us which revision
+  // it expects on a device, a mismatch means that device changed in the
+  // meantime and must not be overwritten silently.
+  const expectedRevisions =
+    base_revisions && typeof base_revisions === 'object' && !Array.isArray(base_revisions)
+      ? base_revisions
+      : null;
+  const conflicts = [];
+
   const upsertTarget = (deviceId) => {
     const existing = db
       .prepare(
@@ -534,6 +544,18 @@ router.post('/publish', (req, res) => {
        WHERE ha_user_id = ? AND device_id = ?`
       )
       .get(ha_user_id, deviceId);
+
+    if (existing && expectedRevisions) {
+      const expected = Number(expectedRevisions[deviceId]);
+      if (
+        !Object.hasOwn(expectedRevisions, deviceId) ||
+        !Number.isInteger(expected) ||
+        expected !== Number(existing.revision)
+      ) {
+        conflicts.push({ device_id: deviceId, revision: Number(existing.revision) });
+        return 0;
+      }
+    }
 
     if (!existing) {
       db.prepare(
@@ -584,7 +606,7 @@ router.post('/publish', (req, res) => {
 
   try {
     const affected = publishTargets(targetIds);
-    return res.json({ success: true, affected });
+    return res.json({ success: true, affected, conflicts });
   } catch (error) {
     console.error('[settings] Failed to publish settings:', error);
     return res.status(500).json({ error: 'Failed to publish settings to target devices' });

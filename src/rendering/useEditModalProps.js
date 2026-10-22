@@ -25,7 +25,7 @@ export function useEditModalProps({
       isEntityCard ||
       (rawEditSettings?.type === 'sensor' &&
         !/^(light[_.]|lock\.|vacuum\.|lawn_mower\.|fan\.|media_player\.)/.test(editId));
-    const editEntityId = isEditSensor ? rawEditSettings.entityId || editId : editId;
+    const editEntityId = rawEditSettings.entityId || editId;
     const editEntity = entities[editEntityId] || null;
 
     const isEditLight = !!editId && (editId.startsWith('light_') || editId.startsWith('light.'));
@@ -62,8 +62,8 @@ export function useEditModalProps({
           : isEditAppleTV || isEditAndroidTV
             ? editSettings?.mediaPlayerId || null
             : isEditLock
-              ? editSettings?.lockId || editId
-              : editId;
+              ? editSettings?.lockId || editEntityId
+              : editEntityId;
     const isEditGenericType =
       (!!editSettings?.type &&
         (editSettings.type === 'entity' ||

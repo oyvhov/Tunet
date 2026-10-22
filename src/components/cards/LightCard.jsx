@@ -8,6 +8,7 @@ const SLIDER_DEBOUNCE_MS = 200;
 /** @param {any} props */
 const LightCard = ({
   cardId,
+  entityId: entityIdProp,
   dragProps,
   controls,
   cardStyle,
@@ -25,18 +26,19 @@ const LightCard = ({
   setOptimisticLightBrightness,
   t,
 }) => {
-  const entity = entities[cardId];
+  const entityId = entityIdProp || cardId;
+  const entity = entities[entityId];
   const DefaultIcon = Lightbulb;
   const lightIconName = customIcons[cardId] || entity?.attributes?.icon;
   const LightIcon = lightIconName ? getIconComponent(lightIconName) || DefaultIcon : DefaultIcon;
   const state = entity?.state;
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isOn = state === 'on';
-  const br = getA(cardId, 'brightness') || 0;
-  const subEntities = getA(cardId, 'entity_id', []);
+  const br = getA(entityId, 'brightness') || 0;
+  const subEntities = getA(entityId, 'entity_id', []);
   const activeCount = subEntities.filter((id) => entities[id]?.state === 'on').length;
   const totalCount = subEntities.length;
-  const name = customNames[cardId] || getA(cardId, 'friendly_name');
+  const name = customNames[cardId] || getA(entityId, 'friendly_name');
 
   // Determine if light supports dimming
   const supportedColorModes = entity?.attributes?.supported_color_modes;
@@ -58,10 +60,10 @@ const LightCard = ({
       setOptimisticLightBrightness((prev) => ({ ...prev, [cardId]: val }));
       clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        callService('light', 'turn_on', { entity_id: cardId, brightness: val });
+        callService('light', 'turn_on', { entity_id: entityId, brightness: val });
       }, SLIDER_DEBOUNCE_MS);
     },
-    [cardId, callService, setOptimisticLightBrightness]
+    [cardId, entityId, callService, setOptimisticLightBrightness]
   );
 
   const handleToggleLight = useCallback(
@@ -70,9 +72,9 @@ const LightCard = ({
       if (isUnavailable) return;
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
-      callService('light', 'toggle', { entity_id: cardId });
+      callService('light', 'toggle', { entity_id: entityId });
     },
-    [cardId, callService, isUnavailable]
+    [entityId, callService, isUnavailable]
   );
 
   if (isSmall) {
@@ -183,7 +185,9 @@ const LightCard = ({
         <div
           className={`flex items-center rounded-full border transition-all ${isUnavailable ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'border-amber-500/20 bg-amber-500/10 text-amber-500' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}
         >
-          <span className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}>
+          <span
+            className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
+          >
             {isUnavailable
               ? t('status.unavailable')
               : totalCount > 0
@@ -202,7 +206,9 @@ const LightCard = ({
             {String(name || t('common.light'))}
           </p>
         )}
-        <div className={`flex items-baseline gap-1 leading-none ${isDenseMobile ? 'mt-0.5' : 'mt-1'}`}>
+        <div
+          className={`flex items-baseline gap-1 leading-none ${isDenseMobile ? 'mt-0.5' : 'mt-1'}`}
+        >
           {isDimmable ? (
             <>
               <span
@@ -214,7 +220,9 @@ const LightCard = ({
                     ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100)
                     : '0'}
               </span>
-              <span className={`${isDenseMobile ? 'text-lg' : 'ml-1 text-xl'} font-light text-[var(--text-muted)]`}>
+              <span
+                className={`${isDenseMobile ? 'text-lg' : 'ml-1 text-xl'} font-light text-[var(--text-muted)]`}
+              >
                 %
               </span>
             </>
@@ -233,7 +241,9 @@ const LightCard = ({
           </p>
         )}
         {/* Helper to keep layout consistent. For non-dimmable, we keep the empty space where slider would be. */}
-        <div className={`flex w-full items-center ${isDenseMobile ? 'mt-2' : 'mt-3'} ${isDimmable ? '' : isDenseMobile ? 'h-8' : 'h-12'}`}>
+        <div
+          className={`flex w-full items-center ${isDenseMobile ? 'mt-2' : 'mt-3'} ${isDimmable ? '' : isDenseMobile ? 'h-8' : 'h-12'}`}
+        >
           {isDimmable && (
             <M3Slider
               variant={isDenseMobile ? 'thinLg' : 'default'}

@@ -27,6 +27,19 @@ function Editor() {
 }
 
 describe('Modal dropdown interaction', () => {
+  it('moves focus with arrow keys and returns it to the trigger after selecting', () => {
+    render(<Editor />);
+    const trigger = screen.getByRole('button', { name: 'Action: Scene' });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    expect(screen.getByRole('option', { name: 'Scene' })).toHaveFocus();
+    fireEvent.keyDown(document.activeElement, { key: 'End' });
+    expect(screen.getByRole('option', { name: 'Toggle' })).toHaveFocus();
+    fireEvent.keyDown(document.activeElement, { key: 'ArrowDown' });
+    expect(screen.getByRole('option', { name: 'Scene' })).toHaveFocus();
+    fireEvent.click(document.activeElement);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
   it('closes the action menu before closing its editor with Escape', () => {
     render(<Editor />);
     const trigger = screen.getByRole('button', { name: 'Action: Scene' });

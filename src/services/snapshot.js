@@ -223,7 +223,8 @@ export function applySnapshot(snapshot, contextSetters = {}) {
  */
 export function isValidSnapshot(obj) {
   if (!obj || typeof obj !== 'object') return false;
-  if (!obj.version || typeof obj.version !== 'number') return false;
+  if (!Number.isInteger(obj.version) || obj.version < 1 || obj.version > SNAPSHOT_VERSION)
+    return false;
   if (!obj.layout || typeof obj.layout !== 'object') return false;
   if (!obj.appearance || typeof obj.appearance !== 'object') return false;
   return true;

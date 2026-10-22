@@ -1,4 +1,5 @@
 import { VacuumCard } from '../../components';
+import { getSettings } from '../helpers';
 
 export function renderVacuumCard(vacuumId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const {
@@ -14,10 +15,13 @@ export function renderVacuumCard(vacuumId, dragProps, getControls, cardStyle, se
     isMobile,
     t,
   } = ctx;
+  const settings = getSettings(cardSettings, settingsKey, vacuumId);
+  const entityId = settings.entityId || vacuumId;
   return (
     <VacuumCard
       key={vacuumId}
       vacuumId={vacuumId}
+      entityId={entityId}
       dragProps={dragProps}
       controls={getControls(vacuumId)}
       cardStyle={cardStyle}

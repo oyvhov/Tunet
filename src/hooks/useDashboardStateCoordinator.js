@@ -9,6 +9,7 @@ import {
   isBatteryPage as _isBatteryPage,
   isRoomExplorerPage as _isRoomExplorerPage,
 } from '../utils/cardUtils';
+import { getCardSettingsKey as buildCardSettingsKey } from '../utils/cardSettingsKey';
 
 /** @param {any} deps */
 export function useDashboardStateCoordinator(deps) {
@@ -193,7 +194,7 @@ export function useDashboardStateCoordinator(deps) {
     icon: pageDefaults[id]?.icon || LayoutGrid,
   }));
 
-  const getCardSettingsKey = (cardId, pageId = activePage) => `${pageId}::${cardId}`;
+  const getCardSettingsKey = (cardId, pageId = activePage) => buildCardSettingsKey(cardId, pageId);
 
   const cardUtilCtx = { getCardSettingsKey, cardSettings, entities, activePage };
   const isCardRemovable = (cardId, pageId = activePage) =>

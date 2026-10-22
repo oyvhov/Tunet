@@ -1,4 +1,5 @@
 import { FanCard } from '../../components';
+import { getSettings } from '../helpers';
 
 export function renderFanCard(fanId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const {
@@ -13,10 +14,13 @@ export function renderFanCard(fanId, dragProps, getControls, cardStyle, settings
     isMobile,
     t,
   } = ctx;
+  const settings = getSettings(cardSettings, settingsKey, fanId);
+  const entityId = settings.entityId || fanId;
   return (
     <FanCard
       key={fanId}
       fanId={fanId}
+      entityId={entityId}
       dragProps={dragProps}
       controls={getControls(fanId)}
       cardStyle={cardStyle}
@@ -29,7 +33,7 @@ export function renderFanCard(fanId, dragProps, getControls, cardStyle, settings
       getA={getA}
       callService={callService}
       onOpen={() => {
-        if (!editMode) setShowFanModal(fanId);
+        if (!editMode) setShowFanModal(entityId);
       }}
       isMobile={isMobile}
       t={t}

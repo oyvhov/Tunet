@@ -615,4 +615,101 @@ test.describe('Modal Interactions', () => {
     // Focus should return to an interactive trigger.
     expect(['button', 'body', 'html']).toContain(focusedElement);
   });
+  test('duplicates a light with independent settings and targets the original entity', async ({
+    page,
+  }) => {
+    await enableEditMode(page);
+    await page
+      .locator('[data-card-id="light.bedroom"]')
+      .getByRole('button', { name: 'Duplicate card' })
+      .press('Enter');
+    const copy = page.locator('[data-card-id^="light.bedroom__dup_"]');
+    await expect(copy).toHaveCount(1);
+    await expect(copy.getByText('Bedroom Light', { exact: true })).toBeVisible();
+    const copyId = await copy.getAttribute('data-card-id');
+    const stored = await page.evaluate(() => ({
+      pages: JSON.parse(localStorage.getItem('tunet_pages_config')),
+      settings: JSON.parse(localStorage.getItem('tunet_card_settings')),
+    }));
+    expect(stored.pages.home.slice(0, 2)).toEqual(['light.bedroom', copyId]);
+    expect(stored.settings[`home::${copyId}`].entityId).toBe('light.bedroom');
+    await page.getByRole('button', { name: 'Done', exact: true }).first().click();
+    await copy.getByRole('button', { name: 'Bedroom Light: OFF', exact: true }).click();
+    await expect
+      .poll(() => page.evaluate(() => window.__haServiceCalls.at(-1)))
+      .toMatchObject({
+        domain: 'light',
+        service: 'toggle',
+        service_data: { entity_id: 'light.bedroom' },
+      });
+    await copy.getByText('Bedroom Light', { exact: true }).click();
+    await expect(page.locator('[role="dialog"]:visible').first()).toContainText('Bedroom Light');
+  });
+
+  test('supports keyboard theme selection and keeps focus inside the sidebar', async ({ page }) => {
+    const sidebar = await openThemeSidebar(page);
+    const done = sidebar.getByTestId('sidebar-done');
+    await expect(done).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect
+      .poll(() => sidebar.evaluate((node) => node.contains(document.activeElement)))
+      .toBe(true);
+    await page.keyboard.press('Tab');
+    await expect(done).toBeFocused();
+    const theme = sidebar.getByRole('button', { name: /^Theme:/ });
+    await theme.focus();
+    await page.keyboard.press('ArrowDown');
+    const light = sidebar.getByRole('option', { name: 'Light', exact: true });
+    await expect(sidebar.getByRole('listbox')).toBeVisible();
+    await page.keyboard.press('Home');
+    // Select Light through the same focused-option keyboard path used by users.
+    await light.focus();
+    await page.keyboard.press('Enter');
+    await expect(theme).toBeFocused();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('tunet_theme'))).toBe('light');
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
+      .toBe('light');
+    await page.screenshot({ path: test.info().outputPath('light-theme-desktop.png') });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({ path: test.info().outputPath('light-theme-mobile.png') });
+    await page.keyboard.press('Escape');
+    await expect(sidebar).not.toBeVisible();
+  });
+
+  test('opens the calendar using the keyboard', async ({ page }) => {
+    const card = page.locator('[data-card-id="calendar_card_e2e"]');
+    await expect(card).toHaveAttribute('role', 'button');
+    await card.focus();
+    await page.keyboard.press('Enter');
+    await expect(
+      page
+        .locator('[role="dialog"]:visible')
+        .first()
+        .getByRole('button', { name: 'Select Calendars' })
+    ).toBeVisible();
+  });
+
+  test('shows Home Assistant notification updates without duplicating unchanged messages', async ({
+    page,
+  }) => {
+    const update = {
+      type: 'added',
+      notifications: { test: { title: 'Home Assistant', message: 'Door left open' } },
+    };
+    await page.evaluate(
+      (detail) => window.dispatchEvent(new CustomEvent('test:notification', { detail })),
+      update
+    );
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'Home Assistant: Door left open' })
+    ).toHaveCount(1);
+    await page.evaluate(
+      (detail) => window.dispatchEvent(new CustomEvent('test:notification', { detail })),
+      update
+    );
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'Home Assistant: Door left open' })
+    ).toHaveCount(1);
+  });
 });

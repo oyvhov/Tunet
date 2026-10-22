@@ -1576,5 +1576,10 @@
   "sensor.action.toggle": "Slå av/på",
   "sensor.action.turnOn": "Slå på",
   "sensor.action.turnOff": "Slå av",
-  "sensor.action.press": "Trykk"
+  "sensor.action.press": "Trykk",
+  "profiles.autoSyncConflictHint": "En annen enhet endret den delte oppsettet. Hent serverversjonen eller overskriv den med denne enheten.",
+  "profiles.autoSyncOverwrite": "Overskriv med denne enheten",
+  "profiles.autoSyncOverwriteConfirm": "Overskriv det delte oppsettet med denne enhetens konfigurasjon?",
+  "profiles.autoSyncPublishConflicts": "Noen enheter ble hoppet over fordi de ble endret i mellomtiden.",
+  "tooltip.duplicateCard": "Dupliser kort"
 }

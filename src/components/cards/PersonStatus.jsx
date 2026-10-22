@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Edit2, Trash2, User } from '../../icons';
+import { createCardKeyHandler } from '../../utils/keyboard';
 
 const PersonStatus = ({
   id,
@@ -67,9 +68,17 @@ const PersonStatus = ({
           onOpenPerson(id);
         }
       }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={createCardKeyHandler((e) => {
+        if (!editMode) {
+          e.stopPropagation();
+          onOpenPerson(id);
+        }
+      })}
       className={`group relative flex items-center rounded-full transition-all duration-500 hover:bg-[var(--glass-bg)] ${avatarOnly ? 'gap-1 py-1 pr-1.5 pl-1' : 'gap-2 py-1.5 pr-2 pl-1.5 sm:gap-3 sm:pr-5'}`}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+        backgroundColor: 'var(--glass-bg)',
         boxShadow: isHome ? '0 0 20px rgba(34, 197, 94, 0.05)' : 'none',
         cursor: editMode ? 'default' : 'pointer',
       }}

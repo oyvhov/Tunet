@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { themes } from '../config/themes';
+import { isLightColor } from '../utils/colorUtils';
 import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 import { hashPin, verifyPin } from '../utils';
 
@@ -273,7 +274,7 @@ export const ConfigProvider = ({ children }) => {
       document.documentElement.style.setProperty(key, theme[key]);
     }
     document.documentElement.dataset.theme = themeKey;
-    document.documentElement.style.colorScheme = themeKey === 'light' ? 'light' : 'dark';
+    document.documentElement.style.colorScheme = isLightColor(theme['--bg-primary']) ? 'light' : 'dark';
 
     /** @type {HTMLMetaElement | null} */
     let metaThemeColor = document.querySelector("meta[name='theme-color']");

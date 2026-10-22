@@ -108,6 +108,7 @@ vi.mock('../contexts', () => ({
     statusPillsConfig: [],
     saveStatusPillsConfig: vi.fn(),
   }),
+  useHomeAssistantMeta: () => ({ conn: null, connected: false }),
   useHomeAssistant: () => ({
     entities: {
       'update.core': { entity_id: 'update.core', state: 'off', attributes: {} },

@@ -8,6 +8,7 @@ import { memo } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
+  Copy,
   Edit2,
   Eye,
   EyeOff,
@@ -72,6 +73,7 @@ function EditOverlay({
   onToggleVisibility,
   onSaveSize,
   onRemove,
+  onDuplicate,
   dragHandleProps,
   t,
 }) {
@@ -174,6 +176,19 @@ function EditOverlay({
             }
           >
             {isSmall ? <Maximize2 className={iconClass} /> : <Minimize2 className={iconClass} />}
+          </button>
+        )}
+        {onDuplicate && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate();
+            }}
+            className={`${isCompactSpacer ? 'p-1' : 'p-2'} rounded-full border border-white/20 bg-black/60 text-white shadow-lg transition-colors hover:bg-[var(--accent-color)]`}
+            title={t('tooltip.duplicateCard')}
+            aria-label={t('tooltip.duplicateCard')}
+          >
+            <Copy className={iconClass} />
           </button>
         )}
         {canRemove && (

@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
+import { isLightColor } from '../../utils/colorUtils';
 
 const MAX_DPR = 1.5;
 const FRAME_INTERVAL_MS = 1000 / 30;
 
-const AuroraBackground = () => {
+const AuroraBackground = ({ baseColor = '#0f172a' }) => {
   const canvasRef = useRef(null);
   const motionAllowed = useLowPowerMotion();
+  const blendMode = isLightColor(baseColor) ? 'multiply' : 'screen';
 
   useEffect(() => {
     if (!motionAllowed) return undefined;
@@ -54,8 +56,8 @@ const AuroraBackground = () => {
       // Otherwise screen blend mode accumulates, turning the screen white
       ctx.globalCompositeOperation = 'source-over';
 
-      // Clear with base dark color
-      ctx.fillStyle = '#0f172a'; // Slate 900
+      // Clear with the theme base color so text stays readable on any theme
+      ctx.fillStyle = baseColor;
       ctx.fillRect(0, 0, width, height);
 
       // Update and draw orbs
@@ -90,7 +92,7 @@ const AuroraBackground = () => {
         gradient.addColorStop(0.6, orb.color + '22');
         gradient.addColorStop(1, 'transparent');
 
-        ctx.globalCompositeOperation = 'screen';
+        ctx.globalCompositeOperation = blendMode;
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -106,10 +108,13 @@ const AuroraBackground = () => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [motionAllowed]);
+  }, [motionAllowed, baseColor, blendMode]);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden bg-[#0f172a]">
+    <div
+      className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden"
+      style={{ backgroundColor: baseColor }}
+    >
       {motionAllowed && (
         <canvas
           ref={canvasRef}

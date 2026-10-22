@@ -14,6 +14,8 @@ export const useToast = () => {
   return ctx;
 };
 
+export const useOptionalToast = () => useContext(ToastContext);
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const nextId = useRef(0);

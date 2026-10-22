@@ -73,6 +73,7 @@ export function useCardRendering({
   setActiveMediaModal: legacySetActiveMediaModal,
   toggleCardVisibility,
   removeCard,
+  duplicateCard,
   isCardRemovable,
 }) {
   const resolvedEntityModalActions = entityModalActions || {
@@ -271,6 +272,11 @@ export function useCardRendering({
             onToggleVisibility={() => toggleCardVisibility(cardId)}
             onSaveSize={(size) => saveCardSetting(settingsKey, 'size', size)}
             onRemove={() => removeCard(cardId)}
+            onDuplicate={
+              duplicateCard && editId !== 'media_player' && !editId.startsWith('spacer_card_')
+                ? () => duplicateCard(editId, activePage)
+                : undefined
+            }
             dragHandleProps={{
               onContextMenu: (e) => e.preventDefault(),
               onKeyDown: (e) => {
@@ -416,6 +422,7 @@ export function useCardRendering({
       cardSettings,
       isCardRemovable,
       moveCardInArray,
+      duplicateCard,
       setShowEditCardModal,
       setEditCardSettingsKey,
       toggleCardVisibility,

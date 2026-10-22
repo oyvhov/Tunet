@@ -63,7 +63,7 @@ export const MediaPlayerCard = memo(/** @param {any} props */ ({
   const mpState = entity?.state;
   const isPlaying = mpState === 'playing';
   const isActive = isMediaActive(entity);
-  const name = customNames[mpId] || getA(mpId, 'friendly_name', t('media.mediaPlayer'));
+  const name = customNames[cardId || mpId] || getA(mpId, 'friendly_name', t('media.mediaPlayer'));
   const title = getA(mpId, 'media_title') || (isActive ? t('status.active') : t('media.noneMedia'));
   const subtitle =
     getA(mpId, 'media_artist') ||

@@ -1,4 +1,5 @@
 import { MowerCard } from '../../components';
+import { getSettings } from '../helpers';
 
 export function renderMowerCard(mowerId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const {
@@ -14,10 +15,13 @@ export function renderMowerCard(mowerId, dragProps, getControls, cardStyle, sett
     isMobile,
     t,
   } = ctx;
+  const settings = getSettings(cardSettings, settingsKey, mowerId);
+  const entityId = settings.entityId || mowerId;
   return (
     <MowerCard
       key={mowerId}
       mowerId={mowerId}
+      entityId={entityId}
       dragProps={dragProps}
       controls={getControls(mowerId)}
       cardStyle={cardStyle}
@@ -31,7 +35,7 @@ export function renderMowerCard(mowerId, dragProps, getControls, cardStyle, sett
       callService={callService}
       onOpen={() => {
         if (!editMode && setActiveMowerId && setShowMowerModal) {
-          setActiveMowerId(mowerId);
+          setActiveMowerId(entityId);
           setShowMowerModal(true);
         }
       }}

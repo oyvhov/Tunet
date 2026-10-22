@@ -25,6 +25,7 @@ const ACTIVE_STATES = ['mowing', 'cleaning'];
 
 const MowerCard = ({
   mowerId,
+  entityId: entityIdProp,
   dragProps,
   controls,
   cardStyle,
@@ -63,7 +64,8 @@ const MowerCard = ({
     return () => observer.disconnect();
   }, []);
 
-  const entity = entities[mowerId];
+  const entityId = entityIdProp || mowerId;
+  const entity = entities[entityId];
   if (!entity) {
     if (editMode) {
       return (
@@ -94,9 +96,9 @@ const MowerCard = ({
   const isActive = ACTIVE_STATES.includes(normalizedState);
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isErrorState = ['error', 'fault', 'problem', 'stuck'].includes(normalizedState);
-  const battery = getA(mowerId, 'battery_level');
-  const zone = getA(mowerId, 'current_zone') || getA(mowerId, 'zone') || getA(mowerId, 'current_room');
-  const name = customNames[mowerId] || getA(mowerId, 'friendly_name', t('mower.name'));
+  const battery = getA(entityId, 'battery_level');
+  const zone = getA(entityId, 'current_zone') || getA(entityId, 'zone') || getA(entityId, 'current_room');
+  const name = customNames[mowerId] || getA(entityId, 'friendly_name', t('mower.name'));
   const mowerIconName = customIcons[mowerId] || entity?.attributes?.icon;
   const Icon = mowerIconName ? getIconComponent(mowerIconName) || Sprout : Sprout;
   const statusText = getMowerStateLabel(state, battery, t);
@@ -108,11 +110,11 @@ const MowerCard = ({
 
   const callPrimary = () => {
     if (isUnavailable) return;
-    callService('lawn_mower', isActive ? 'pause' : 'start_mowing', { entity_id: mowerId });
+    callService('lawn_mower', isActive ? 'pause' : 'start_mowing', { entity_id: entityId });
   };
   const callDock = () => {
     if (isUnavailable) return;
-    callService('lawn_mower', 'dock', { entity_id: mowerId });
+    callService('lawn_mower', 'dock', { entity_id: entityId });
   };
 
   if (isSmall) {

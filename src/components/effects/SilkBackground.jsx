@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
+import { isLightColor } from '../../utils/colorUtils';
 
 const MAX_DPR = 1.5;
 const FRAME_INTERVAL_MS = 1000 / 30;
@@ -8,9 +9,10 @@ const FRAME_INTERVAL_MS = 1000 / 30;
  * SilkBackground — Soft pastel flowing waves on a bright base.
  * Designed for light themes: gentle, airy, and elegant.
  */
-const SilkBackground = () => {
+const SilkBackground = ({ baseColor = '#f8fafc' }) => {
   const canvasRef = useRef(null);
   const motionAllowed = useLowPowerMotion();
+  const blendMode = isLightColor(baseColor) ? 'multiply' : 'screen';
 
   useEffect(() => {
     if (!motionAllowed) return undefined;
@@ -55,8 +57,8 @@ const SilkBackground = () => {
 
       ctx.globalCompositeOperation = 'source-over';
 
-      // Bright warm-white base
-      ctx.fillStyle = '#f8fafc';
+      // Base follows the active theme so the dashboard text stays readable
+      ctx.fillStyle = baseColor;
       ctx.fillRect(0, 0, width, height);
 
       ribbons.forEach((ribbon, i) => {
@@ -85,7 +87,7 @@ const SilkBackground = () => {
         gradient.addColorStop(0.65, `rgba(${r}, ${g}, ${b}, 0.05)`);
         gradient.addColorStop(1, 'transparent');
 
-        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalCompositeOperation = blendMode;
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -101,10 +103,13 @@ const SilkBackground = () => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [motionAllowed]);
+  }, [motionAllowed, baseColor, blendMode]);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden bg-[#f8fafc]">
+    <div
+      className="pointer-events-none fixed inset-0 z-0 h-full w-full overflow-hidden"
+      style={{ backgroundColor: baseColor }}
+    >
       {motionAllowed && (
         <canvas
           ref={canvasRef}
