@@ -61,4 +61,3 @@ export function getLuminance(value) {
 export function isLightColor(value) {
   return getLuminance(value) > 0.45;
 }
-

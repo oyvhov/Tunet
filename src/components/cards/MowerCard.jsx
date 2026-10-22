@@ -7,10 +7,15 @@ function getMowerStateLabel(state, battery, t) {
   if (!normalized) return t('mower.unknown');
 
   if (normalized === 'mowing' || normalized === 'cleaning') return t('mower.mowing');
-  if (normalized === 'returning' || normalized === 'going_home' || normalized === 'return_to_base') {
+  if (
+    normalized === 'returning' ||
+    normalized === 'going_home' ||
+    normalized === 'return_to_base'
+  ) {
     return t('mower.returning');
   }
-  if ((normalized === 'charging' || normalized === 'docked') && battery === 100) return t('mower.docked');
+  if ((normalized === 'charging' || normalized === 'docked') && battery === 100)
+    return t('mower.docked');
   if (normalized === 'docked') return t('mower.charging');
   if (normalized === 'idle' || normalized === 'ready') return t('mower.idle');
   if (normalized === 'paused' || normalized === 'pause') return t('mower.pause');
@@ -97,7 +102,8 @@ const MowerCard = ({
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isErrorState = ['error', 'fault', 'problem', 'stuck'].includes(normalizedState);
   const battery = getA(entityId, 'battery_level');
-  const zone = getA(entityId, 'current_zone') || getA(entityId, 'zone') || getA(entityId, 'current_room');
+  const zone =
+    getA(entityId, 'current_zone') || getA(entityId, 'zone') || getA(entityId, 'current_room');
   const name = customNames[mowerId] || getA(entityId, 'friendly_name', t('mower.name'));
   const mowerIconName = customIcons[mowerId] || entity?.attributes?.icon;
   const Icon = mowerIconName ? getIconComponent(mowerIconName) || Sprout : Sprout;
@@ -147,18 +153,28 @@ const MowerCard = ({
         }}
       >
         {controls}
-        <div className={`flex min-w-0 ${useStackedSmallControls ? 'flex-1 items-center gap-3' : isMobile ? 'flex-1 items-center gap-3' : 'flex-1 items-center gap-4'}`}>
+        <div
+          className={`flex min-w-0 ${useStackedSmallControls ? 'flex-1 items-center gap-3' : isMobile ? 'flex-1 items-center gap-3' : 'flex-1 items-center gap-4'}`}
+        >
           <div
             className={`flex flex-shrink-0 items-center justify-center transition-all group-hover:scale-110 ${isActive ? 'animate-pulse bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${useStackedSmallControls ? 'h-10 w-10 rounded-xl' : isMobile ? 'h-10 w-10 rounded-xl' : 'h-12 w-12 rounded-2xl'}`}
           >
-            <Icon className={`${useStackedSmallControls ? 'h-[18px] w-[18px]' : isMobile ? 'h-5 w-5' : 'h-6 w-6'} stroke-[1.5px]`} />
+            <Icon
+              className={`${useStackedSmallControls ? 'h-[18px] w-[18px]' : isMobile ? 'h-5 w-5' : 'h-6 w-6'} stroke-[1.5px]`}
+            />
           </div>
           <div className="flex min-w-0 flex-col">
-            <p className={`${useStackedSmallControls ? 'mb-0.5 text-[10px]' : isMobile ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} truncate leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}>
+            <p
+              className={`${useStackedSmallControls ? 'mb-0.5 text-[10px]' : isMobile ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} truncate leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+            >
               {name}
             </p>
-            <div className={`flex min-w-0 items-center ${useStackedSmallControls ? 'gap-1' : isMobile ? 'gap-1.5' : 'gap-2'}`}>
-              <span className={`${useStackedSmallControls ? 'truncate text-[13px]' : isMobile ? 'text-xs' : 'text-sm'} leading-none font-bold text-[var(--text-primary)]`}>
+            <div
+              className={`flex min-w-0 items-center ${useStackedSmallControls ? 'gap-1' : isMobile ? 'gap-1.5' : 'gap-2'}`}
+            >
+              <span
+                className={`${useStackedSmallControls ? 'truncate text-[13px]' : isMobile ? 'text-xs' : 'text-sm'} leading-none font-bold text-[var(--text-primary)]`}
+              >
                 {statusText}
               </span>
               {isErrorState && (
@@ -176,8 +192,8 @@ const MowerCard = ({
         <div
           className={
             useStackedSmallControls
-              ? 'shrink-0 flex flex-col gap-1 rounded-2xl bg-[var(--glass-bg)] p-1'
-              : 'mower-card-controls shrink-0 flex gap-2'
+              ? 'flex shrink-0 flex-col gap-1 rounded-2xl bg-[var(--glass-bg)] p-1'
+              : 'mower-card-controls flex shrink-0 gap-2'
           }
         >
           <button
@@ -236,25 +252,37 @@ const MowerCard = ({
       }}
     >
       {controls}
-      <div className={`flex items-start justify-between font-sans ${useDenseMobileLargeLayout ? 'gap-3' : ''}`}>
+      <div
+        className={`flex items-start justify-between font-sans ${useDenseMobileLargeLayout ? 'gap-3' : ''}`}
+      >
         <div
           className={`transition-all group-hover:scale-110 group-hover:rotate-3 ${isMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'} ${isActive ? 'animate-pulse bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
         >
           <Icon className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px]`} />
         </div>
-        <div className={`flex flex-col items-end ${useDenseMobileLargeLayout ? 'gap-1.5' : 'gap-2'}`}>
+        <div
+          className={`flex flex-col items-end ${useDenseMobileLargeLayout ? 'gap-1.5' : 'gap-2'}`}
+        >
           {isErrorState && (
-            <div className={`flex items-center rounded-full border border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)] ${useDenseMobileLargeLayout ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}>
+            <div
+              className={`flex items-center rounded-full border border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)] ${useDenseMobileLargeLayout ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}
+            >
               <AlertTriangle className={useDenseMobileLargeLayout ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-              <span className={`${useDenseMobileLargeLayout ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}>
+              <span
+                className={`${useDenseMobileLargeLayout ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
+              >
                 {t('mower.error')}
               </span>
             </div>
           )}
           {showZone && (
-            <div className={`flex items-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] ${useDenseMobileLargeLayout ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}>
+            <div
+              className={`flex items-center rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] ${useDenseMobileLargeLayout ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}
+            >
               <MapPin className={useDenseMobileLargeLayout ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
-              <span className={`${useDenseMobileLargeLayout ? 'max-w-[9ch] text-[10px]' : 'text-xs'} truncate font-bold tracking-widest uppercase`}>
+              <span
+                className={`${useDenseMobileLargeLayout ? 'max-w-[9ch] text-[10px]' : 'text-xs'} truncate font-bold tracking-widest uppercase`}
+              >
                 {zone}
               </span>
             </div>
@@ -268,12 +296,18 @@ const MowerCard = ({
         </div>
       </div>
 
-      <div className={`${useDenseMobileLargeLayout ? 'mt-2' : ''} ${useDenseMobileLargeLayout ? 'flex flex-col gap-3' : 'flex items-end justify-between'}`}>
+      <div
+        className={`${useDenseMobileLargeLayout ? 'mt-2' : ''} ${useDenseMobileLargeLayout ? 'flex flex-col gap-3' : 'flex items-end justify-between'}`}
+      >
         <div>
-          <p className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}>
+          <p
+            className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+          >
             {name}
           </p>
-          <h3 className={`${useDenseMobileLargeLayout ? 'text-[1.4rem]' : isMobile ? 'text-[1.65rem]' : 'text-3xl'} leading-none font-thin text-[var(--text-primary)]`}>
+          <h3
+            className={`${useDenseMobileLargeLayout ? 'text-[1.4rem]' : isMobile ? 'text-[1.65rem]' : 'text-3xl'} leading-none font-thin text-[var(--text-primary)]`}
+          >
             {statusText}
           </h3>
           {showBattery && useDenseMobileLargeLayout && (
@@ -283,7 +317,9 @@ const MowerCard = ({
             </div>
           )}
         </div>
-        <div className={`${useDenseMobileLargeLayout ? 'grid w-full grid-cols-2 gap-2' : 'flex gap-2'}`}>
+        <div
+          className={`${useDenseMobileLargeLayout ? 'grid w-full grid-cols-2 gap-2' : 'flex gap-2'}`}
+        >
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -293,9 +329,13 @@ const MowerCard = ({
             className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95`}
           >
             {isActive ? (
-              <Pause className={`${useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} fill-current`} />
+              <Pause
+                className={`${useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} fill-current`}
+              />
             ) : (
-              <Play className={`${useDenseMobileLargeLayout ? 'ml-0.5 h-4 w-4' : 'ml-0.5 h-5 w-5'} fill-current`} />
+              <Play
+                className={`${useDenseMobileLargeLayout ? 'ml-0.5 h-4 w-4' : 'ml-0.5 h-5 w-5'} fill-current`}
+              />
             )}
           </button>
           <button

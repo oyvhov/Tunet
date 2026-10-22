@@ -274,7 +274,9 @@ export const ConfigProvider = ({ children }) => {
       document.documentElement.style.setProperty(key, theme[key]);
     }
     document.documentElement.dataset.theme = themeKey;
-    document.documentElement.style.colorScheme = isLightColor(theme['--bg-primary']) ? 'light' : 'dark';
+    document.documentElement.style.colorScheme = isLightColor(theme['--bg-primary'])
+      ? 'light'
+      : 'dark';
 
     /** @type {HTMLMetaElement | null} */
     let metaThemeColor = document.querySelector("meta[name='theme-color']");
@@ -559,12 +561,15 @@ export const ConfigProvider = ({ children }) => {
     setSettingsLockSessionUnlocked(false);
   }, []);
 
-  const unlockSettingsLock = useCallback((pin) => {
-    if (!settingsLockEnabled) return true;
-    const unlocked = verifyPin(pin, settingsLockPinHash);
-    if (unlocked) setSettingsLockSessionUnlocked(true);
-    return unlocked;
-  }, [settingsLockEnabled, settingsLockPinHash]);
+  const unlockSettingsLock = useCallback(
+    (pin) => {
+      if (!settingsLockEnabled) return true;
+      const unlocked = verifyPin(pin, settingsLockPinHash);
+      if (unlocked) setSettingsLockSessionUnlocked(true);
+      return unlocked;
+    },
+    [settingsLockEnabled, settingsLockPinHash]
+  );
 
   const lockSettingsSession = useCallback(() => {
     if (settingsLockEnabled) {
@@ -580,71 +585,74 @@ export const ConfigProvider = ({ children }) => {
   }, [currentTheme]);
 
   /** @type {ConfigContextValue} */
-  const value = useMemo(() => ({
-    currentTheme,
-    setCurrentTheme,
-    toggleTheme,
-    language,
-    setLanguage,
-    unitsMode,
-    setUnitsMode,
-    settingsLockEnabled,
-    settingsLockSessionUnlocked,
-    enableSettingsLock,
-    disableSettingsLock,
-    unlockSettingsLock,
-    lockSettingsSession,
-    inactivityTimeout,
-    setInactivityTimeout,
-    bgMode,
-    setBgMode,
-    bgColor,
-    setBgColor,
-    bgGradient,
-    setBgGradient,
-    bgImage,
-    setBgImage,
-    cardTransparency,
-    setCardTransparency,
-    cardBorderOpacity,
-    setCardBorderOpacity,
-    cardBgColor,
-    setCardBgColor,
-    cardMaterial,
-    setCardMaterial,
-    density,
-    setDensity,
-    cardScale,
-    setCardScale,
-    appFont,
-    setAppFont,
-    config,
-    setConfig,
-  }), [
-    currentTheme,
-    toggleTheme,
-    language,
-    unitsMode,
-    settingsLockEnabled,
-    settingsLockSessionUnlocked,
-    enableSettingsLock,
-    disableSettingsLock,
-    unlockSettingsLock,
-    lockSettingsSession,
-    inactivityTimeout,
-    bgMode,
-    bgColor,
-    bgGradient,
-    bgImage,
-    cardTransparency,
-    cardBorderOpacity,
-    cardBgColor,
-    cardMaterial,
-    density,
-    cardScale,
-    appFont,
-    config,
-  ]);
+  const value = useMemo(
+    () => ({
+      currentTheme,
+      setCurrentTheme,
+      toggleTheme,
+      language,
+      setLanguage,
+      unitsMode,
+      setUnitsMode,
+      settingsLockEnabled,
+      settingsLockSessionUnlocked,
+      enableSettingsLock,
+      disableSettingsLock,
+      unlockSettingsLock,
+      lockSettingsSession,
+      inactivityTimeout,
+      setInactivityTimeout,
+      bgMode,
+      setBgMode,
+      bgColor,
+      setBgColor,
+      bgGradient,
+      setBgGradient,
+      bgImage,
+      setBgImage,
+      cardTransparency,
+      setCardTransparency,
+      cardBorderOpacity,
+      setCardBorderOpacity,
+      cardBgColor,
+      setCardBgColor,
+      cardMaterial,
+      setCardMaterial,
+      density,
+      setDensity,
+      cardScale,
+      setCardScale,
+      appFont,
+      setAppFont,
+      config,
+      setConfig,
+    }),
+    [
+      currentTheme,
+      toggleTheme,
+      language,
+      unitsMode,
+      settingsLockEnabled,
+      settingsLockSessionUnlocked,
+      enableSettingsLock,
+      disableSettingsLock,
+      unlockSettingsLock,
+      lockSettingsSession,
+      inactivityTimeout,
+      bgMode,
+      bgColor,
+      bgGradient,
+      bgImage,
+      cardTransparency,
+      cardBorderOpacity,
+      cardBgColor,
+      cardMaterial,
+      density,
+      cardScale,
+      appFont,
+      config,
+    ]
+  );
 
   return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>;
 };

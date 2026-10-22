@@ -15,83 +15,138 @@ import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 /* ─── Single media player card ─── */
 
-export const MediaPlayerCard = memo(/** @param {any} props */ ({
-  cardId,
-  mpId,
-  dragProps,
-  controls,
-  cardStyle,
-  entities,
-  editMode,
-  customNames,
-  customIcons,
-  getA,
-  getEntityImageUrl,
-  callService,
-  isMediaActive,
-  onOpen,
-  isMobile,
-  isFullWidthMobile,
-  t,
-  cardSettings,
-  settingsKey,
-}) => {
-  const entity = entities[mpId];
-  if (!entity) {
-    if (editMode) {
+export const MediaPlayerCard = memo(
+  /** @param {any} props */ ({
+    cardId,
+    mpId,
+    dragProps,
+    controls,
+    cardStyle,
+    entities,
+    editMode,
+    customNames,
+    customIcons,
+    getA,
+    getEntityImageUrl,
+    callService,
+    isMediaActive,
+    onOpen,
+    isMobile,
+    isFullWidthMobile,
+    t,
+    cardSettings,
+    settingsKey,
+  }) => {
+    const entity = entities[mpId];
+    if (!entity) {
+      if (editMode) {
+        return (
+          <div
+            key={mpId}
+            {...dragProps}
+            className="glass-texture touch-feedback relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-dashed border-[var(--status-error-border)] bg-[var(--card-bg)] p-4"
+            style={cardStyle}
+          >
+            {controls}
+            <AlertTriangle className="mb-2 h-8 w-8 text-[var(--status-error-fg)] opacity-80" />
+            <p className="text-center text-xs font-bold tracking-widest text-[var(--status-error-fg)] uppercase">
+              {t('common.missing')}
+            </p>
+            <p className="mt-1 line-clamp-2 text-center font-mono text-[10px] break-all text-[var(--status-error-fg)]/70">
+              {mpId}
+            </p>
+          </div>
+        );
+      }
+      return null;
+    }
+
+    const mpState = entity?.state;
+    const isPlaying = mpState === 'playing';
+    const isActive = isMediaActive(entity);
+    const name = customNames[cardId || mpId] || getA(mpId, 'friendly_name', t('media.mediaPlayer'));
+    const title =
+      getA(mpId, 'media_title') || (isActive ? t('status.active') : t('media.noneMedia'));
+    const subtitle =
+      getA(mpId, 'media_artist') ||
+      getA(mpId, 'media_series_title') ||
+      getA(mpId, 'media_album_name') ||
+      '';
+    const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
+    const isChannel = getA(mpId, 'media_content_type') === 'channel';
+    const mediaIconName = customIcons?.[cardId] || customIcons?.[mpId] || null;
+    const MediaIcon = mediaIconName
+      ? getIconComponent(mediaIconName) || (isChannel ? Tv : Speaker)
+      : isChannel
+        ? Tv
+        : Speaker;
+    const powerAction = getMediaPlayerPowerAction(entity);
+    const canTogglePower = Boolean(powerAction);
+    const isPowerOffAction = powerAction === 'turn_off';
+    const isDenseMobile = Boolean(isMobile);
+    const useWideMobileControls = Boolean(isMobile && isFullWidthMobile);
+
+    const settings =
+      cardSettings && settingsKey ? cardSettings[settingsKey] || cardSettings[cardId] || {} : {};
+    const artworkMode = settings.artworkMode || 'default';
+    const isCoverMode = artworkMode === 'cover';
+    const playingBackgroundMotion = settings.playingBackgroundMotion || 'off';
+    const useSubtlePlayingMotion = isPlaying && playingBackgroundMotion === 'subtle';
+
+    if (!isActive) {
       return (
         <div
           key={mpId}
           {...dragProps}
-          className="glass-texture touch-feedback relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border border-dashed border-[var(--status-error-border)] bg-[var(--card-bg)] p-4"
-          style={cardStyle}
+          data-haptic={editMode ? undefined : 'card'}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!editMode) onOpen(mpId, null, null);
+          }}
+          className={`glass-texture touch-feedback group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+          style={{ ...cardStyle, color: 'var(--text-primary)' }}
         >
           {controls}
-          <AlertTriangle className="mb-2 h-8 w-8 text-[var(--status-error-fg)] opacity-80" />
-          <p className="text-center text-xs font-bold tracking-widest text-[var(--status-error-fg)] uppercase">
-            {t('common.missing')}
-          </p>
-          <p className="mt-1 line-clamp-2 text-center font-mono text-[10px] break-all text-[var(--status-error-fg)]/70">
-            {mpId}
-          </p>
+          <div
+            className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+            style={{ backgroundColor: 'var(--glass-bg)' }}
+          >
+            {isChannel ? (
+              <MediaIcon
+                className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)]`}
+              />
+            ) : (
+              <MediaIcon
+                className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)]`}
+              />
+            )}
+          </div>
+          <div className="w-full px-4 text-center">
+            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+              {t('media.noneMusic')}
+            </p>
+            <div className="mt-1 flex items-center justify-center gap-2">
+              <p className="truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40">
+                {name}
+              </p>
+            </div>
+          </div>
+          {canTogglePower && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                callService('media_player', powerAction, { entity_id: mpId });
+              }}
+              className={`mt-4 rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
+              title={isPowerOffAction ? t('status.off') : t('status.on')}
+            >
+              <Power className="h-4 w-4" />
+            </button>
+          )}
         </div>
       );
     }
-    return null;
-  }
 
-  const mpState = entity?.state;
-  const isPlaying = mpState === 'playing';
-  const isActive = isMediaActive(entity);
-  const name = customNames[cardId || mpId] || getA(mpId, 'friendly_name', t('media.mediaPlayer'));
-  const title = getA(mpId, 'media_title') || (isActive ? t('status.active') : t('media.noneMedia'));
-  const subtitle =
-    getA(mpId, 'media_artist') ||
-    getA(mpId, 'media_series_title') ||
-    getA(mpId, 'media_album_name') ||
-    '';
-  const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
-  const isChannel = getA(mpId, 'media_content_type') === 'channel';
-  const mediaIconName = customIcons?.[cardId] || customIcons?.[mpId] || null;
-  const MediaIcon = mediaIconName
-    ? getIconComponent(mediaIconName) || (isChannel ? Tv : Speaker)
-    : isChannel
-      ? Tv
-      : Speaker;
-  const powerAction = getMediaPlayerPowerAction(entity);
-  const canTogglePower = Boolean(powerAction);
-  const isPowerOffAction = powerAction === 'turn_off';
-  const isDenseMobile = Boolean(isMobile);
-  const useWideMobileControls = Boolean(isMobile && isFullWidthMobile);
-
-  const settings =
-    cardSettings && settingsKey ? cardSettings[settingsKey] || cardSettings[cardId] || {} : {};
-  const artworkMode = settings.artworkMode || 'default';
-  const isCoverMode = artworkMode === 'cover';
-  const playingBackgroundMotion = settings.playingBackgroundMotion || 'off';
-  const useSubtlePlayingMotion = isPlaying && playingBackgroundMotion === 'subtle';
-
-  if (!isActive) {
     return (
       <div
         key={mpId}
@@ -101,257 +156,304 @@ export const MediaPlayerCard = memo(/** @param {any} props */ ({
           e.stopPropagation();
           if (!editMode) onOpen(mpId, null, null);
         }}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
-        style={{ ...cardStyle, color: 'var(--text-primary)' }}
+        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        style={{
+          ...cardStyle,
+          color:
+            picture && isCoverMode
+              ? 'white'
+              : picture && !isCoverMode
+                ? 'white'
+                : 'var(--text-primary)',
+        }}
       >
         {controls}
+
+        {/* Background artwork */}
+        {picture && (
+          <div
+            className={`pointer-events-none absolute inset-0 z-0 transition-all duration-500 ${isCoverMode ? 'opacity-100' : 'opacity-20'} ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
+          >
+            <img
+              src={picture}
+              alt=""
+              className={`h-full w-full object-cover transition-transform duration-[10s] ease-in-out ${isCoverMode ? '' : 'scale-150 blur-xl'} ${isPlaying ? 'scale-[1.1]' : 'scale-100'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
+            />
+            <div
+              className={`absolute inset-0 transition-opacity duration-500 ${isCoverMode ? 'bg-gradient-to-t from-black/80 via-black/40 to-black/30' : 'bg-black/20'}`}
+            />
+            {useSubtlePlayingMotion && <div className="media-bg-subtle-overlay absolute inset-0" />}
+          </div>
+        )}
+
         <div
-          className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
-          style={{ backgroundColor: 'var(--glass-bg)' }}
+          className={`relative z-10 ${isCoverMode ? '' : `flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
         >
-          {isChannel ? (
-            <MediaIcon className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)]`} />
-          ) : (
-            <MediaIcon className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)]`} />
+          {!isCoverMode && (
+            <div
+              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20'} flex shrink-0 items-center justify-center overflow-hidden`}
+            >
+              {picture ? (
+                <img
+                  src={picture}
+                  alt="Cover"
+                  className={`h-full w-full object-cover ${isDenseMobile ? 'rounded-xl' : 'rounded-2xl'}`}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <MediaIcon
+                    className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
+                  />
+                </div>
+              )}
+            </div>
           )}
-        </div>
-        <div className="w-full px-4 text-center">
-          <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-            {t('media.noneMusic')}
-          </p>
-          <div className="mt-1 flex items-center justify-center gap-2">
-            <p className="truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40">
-              {name}
-            </p>
+          <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'w-full pt-1' : 'pt-1'}`}>
+            <div className="mb-1 flex items-center gap-2">
+              <p
+                className={`truncate ${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
+              >
+                {name}
+              </p>
+            </div>
+            <h3
+              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'truncate text-base' : 'truncate text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
+            >
+              {title || t('common.unknown')}
+            </h3>
+            {subtitle && (
+              <p
+                className={`${picture || isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'} ${isCoverMode ? (isDenseMobile ? 'text-xs' : 'text-sm') : isDenseMobile ? 'truncate text-[11px]' : 'truncate text-xs'} font-medium`}
+              >
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
-        {canTogglePower && (
+        <div
+          className={`relative z-10 flex items-center justify-center ${useWideMobileControls ? 'mt-2 gap-5 px-1' : isDenseMobile ? 'mt-3 gap-3 px-0' : 'mt-1 gap-[clamp(0.125rem,1.5vw,1.5rem)] px-0.5 sm:mt-2 sm:px-0'}`}
+        >
           <button
             onClick={(e) => {
               e.stopPropagation();
-              callService('media_player', powerAction, { entity_id: mpId });
+              callService('media_player', 'media_previous_track', { entity_id: mpId });
             }}
-            className={`mt-4 rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
-            title={isPowerOffAction ? t('status.off') : t('status.on')}
+            className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
           >
-            <Power className="h-4 w-4" />
+            <SkipBack
+              className={
+                useWideMobileControls
+                  ? 'h-6 w-6'
+                  : isDenseMobile
+                    ? 'h-5 w-5'
+                    : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'
+              }
+            />
           </button>
-        )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              callService('media_player', 'media_play_pause', { entity_id: mpId });
+            }}
+            className={`flex shrink-0 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 ${isCoverMode ? 'border border-white/30 bg-white/20 text-white backdrop-blur-md' : 'bg-white text-black'} ${useWideMobileControls ? 'h-14 w-14' : isDenseMobile ? 'h-11 w-11' : 'h-[clamp(1.9rem,5.8vw,3rem)] w-[clamp(1.9rem,5.8vw,3rem)]'}`}
+          >
+            {isPlaying ? (
+              <Pause
+                className={
+                  useWideMobileControls
+                    ? 'h-6 w-6 fill-current'
+                    : isDenseMobile
+                      ? 'h-5 w-5 fill-current'
+                      : 'h-[clamp(0.85rem,2vw,1.25rem)] w-[clamp(0.85rem,2vw,1.25rem)] fill-current'
+                }
+              />
+            ) : (
+              <Play
+                className={
+                  useWideMobileControls
+                    ? 'ml-0.5 h-6 w-6 fill-current'
+                    : isDenseMobile
+                      ? 'ml-0.5 h-5 w-5 fill-current'
+                      : 'ml-0.5 h-[clamp(0.85rem,2vw,1.25rem)] w-[clamp(0.85rem,2vw,1.25rem)] fill-current'
+                }
+              />
+            )}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              callService('media_player', 'media_next_track', { entity_id: mpId });
+            }}
+            className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+          >
+            <SkipForward
+              className={
+                useWideMobileControls
+                  ? 'h-6 w-6'
+                  : isDenseMobile
+                    ? 'h-5 w-5'
+                    : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'
+              }
+            />
+          </button>
+          {canTogglePower && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                callService('media_player', powerAction, { entity_id: mpId });
+              }}
+              className={`${picture || isCoverMode ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+              title={isPowerOffAction ? t('status.off') : t('status.on')}
+            >
+              <Power
+                className={
+                  useWideMobileControls
+                    ? 'h-6 w-6'
+                    : isDenseMobile
+                      ? 'h-5 w-5'
+                      : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'
+                }
+              />
+            </button>
+          )}
+        </div>
       </div>
     );
   }
-
-  return (
-    <div
-      key={mpId}
-      {...dragProps}
-      data-haptic={editMode ? undefined : 'card'}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!editMode) onOpen(mpId, null, null);
-      }}
-      className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
-      style={{
-        ...cardStyle,
-        color:
-          picture && isCoverMode
-            ? 'white'
-            : picture && !isCoverMode
-              ? 'white'
-              : 'var(--text-primary)',
-      }}
-    >
-      {controls}
-
-      {/* Background artwork */}
-      {picture && (
-        <div
-          className={`pointer-events-none absolute inset-0 z-0 transition-all duration-500 ${isCoverMode ? 'opacity-100' : 'opacity-20'} ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
-        >
-          <img
-            src={picture}
-            alt=""
-            className={`h-full w-full object-cover transition-transform duration-[10s] ease-in-out ${isCoverMode ? '' : 'scale-150 blur-xl'} ${isPlaying ? 'scale-[1.1]' : 'scale-100'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
-          />
-          <div
-            className={`absolute inset-0 transition-opacity duration-500 ${isCoverMode ? 'bg-gradient-to-t from-black/80 via-black/40 to-black/30' : 'bg-black/20'}`}
-          />
-          {useSubtlePlayingMotion && (
-            <div className="media-bg-subtle-overlay absolute inset-0" />
-          )}
-        </div>
-      )}
-
-      <div className={`relative z-10 ${isCoverMode ? '' : `flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}>
-        {!isCoverMode && (
-          <div className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20'} flex shrink-0 items-center justify-center overflow-hidden`}>
-            {picture ? (
-              <img
-                src={picture}
-                alt="Cover"
-                className={`h-full w-full object-cover ${isDenseMobile ? 'rounded-xl' : 'rounded-2xl'}`}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <MediaIcon
-                  className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
-                />
-              </div>
-            )}
-          </div>
-        )}
-        <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'w-full pt-1' : 'pt-1'}`}>
-          <div className="mb-1 flex items-center gap-2">
-            <p className={`truncate ${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}>
-              {name}
-            </p>
-          </div>
-          <h3
-            className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'truncate text-base' : 'truncate text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
-          >
-            {title || t('common.unknown')}
-          </h3>
-          {subtitle && (
-            <p
-              className={`${picture || isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'} ${isCoverMode ? (isDenseMobile ? 'text-xs' : 'text-sm') : isDenseMobile ? 'truncate text-[11px]' : 'truncate text-xs'} font-medium`}
-            >
-              {subtitle}
-            </p>
-          )}
-        </div>
-      </div>
-      <div className={`relative z-10 flex items-center justify-center ${useWideMobileControls ? 'mt-2 gap-5 px-1' : isDenseMobile ? 'mt-3 gap-3 px-0' : 'mt-1 gap-[clamp(0.125rem,1.5vw,1.5rem)] px-0.5 sm:mt-2 sm:px-0'}`}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            callService('media_player', 'media_previous_track', { entity_id: mpId });
-          }}
-          className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
-        >
-          <SkipBack className={useWideMobileControls ? 'h-6 w-6' : isDenseMobile ? 'h-5 w-5' : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            callService('media_player', 'media_play_pause', { entity_id: mpId });
-          }}
-          className={`flex shrink-0 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 ${isCoverMode ? 'border border-white/30 bg-white/20 text-white backdrop-blur-md' : 'bg-white text-black'} ${useWideMobileControls ? 'h-14 w-14' : isDenseMobile ? 'h-11 w-11' : 'h-[clamp(1.9rem,5.8vw,3rem)] w-[clamp(1.9rem,5.8vw,3rem)]'}`}
-        >
-          {isPlaying ? (
-            <Pause className={useWideMobileControls ? 'h-6 w-6 fill-current' : isDenseMobile ? 'h-5 w-5 fill-current' : 'h-[clamp(0.85rem,2vw,1.25rem)] w-[clamp(0.85rem,2vw,1.25rem)] fill-current'} />
-          ) : (
-            <Play className={useWideMobileControls ? 'ml-0.5 h-6 w-6 fill-current' : isDenseMobile ? 'ml-0.5 h-5 w-5 fill-current' : 'ml-0.5 h-[clamp(0.85rem,2vw,1.25rem)] w-[clamp(0.85rem,2vw,1.25rem)] fill-current'} />
-          )}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            callService('media_player', 'media_next_track', { entity_id: mpId });
-          }}
-          className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
-        >
-          <SkipForward className={useWideMobileControls ? 'h-6 w-6' : isDenseMobile ? 'h-5 w-5' : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'} />
-        </button>
-        {canTogglePower && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              callService('media_player', powerAction, { entity_id: mpId });
-            }}
-            className={`${picture || isCoverMode ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
-            title={isPowerOffAction ? t('status.off') : t('status.on')}
-          >
-            <Power className={useWideMobileControls ? 'h-6 w-6' : isDenseMobile ? 'h-5 w-5' : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-});
+);
 
 /* ─── Media group card (multiple players) ─── */
 
-export const MediaGroupCard = memo(/** @param {any} props */ ({
-  cardId,
-  dragProps,
-  controls,
-  cardStyle,
-  entities,
-  editMode,
-  cardSettings,
-  settingsKey,
-  customNames,
-  customIcons,
-  getA,
-  getEntityImageUrl,
-  callService,
-  isMediaActive,
-  saveCardSetting,
-  onOpen,
-  isMobile,
-  isFullWidthMobile,
-  t,
-}) => {
-  const groupSettings = cardSettings[settingsKey] || {};
-  const mediaIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
-  const mediaEntities = mediaIds.map((id) => entities[id]).filter(Boolean);
+export const MediaGroupCard = memo(
+  /** @param {any} props */ ({
+    cardId,
+    dragProps,
+    controls,
+    cardStyle,
+    entities,
+    editMode,
+    cardSettings,
+    settingsKey,
+    customNames,
+    customIcons,
+    getA,
+    getEntityImageUrl,
+    callService,
+    isMediaActive,
+    saveCardSetting,
+    onOpen,
+    isMobile,
+    isFullWidthMobile,
+    t,
+  }) => {
+    const groupSettings = cardSettings[settingsKey] || {};
+    const mediaIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
+    const mediaEntities = mediaIds.map((id) => entities[id]).filter(Boolean);
 
-  if (mediaEntities.length === 0) return null;
+    if (mediaEntities.length === 0) return null;
 
-  const activeEntities = mediaEntities.filter(isMediaActive);
-  const playingEntities = mediaEntities.filter((e) => e.state === 'playing');
-  const pool = activeEntities.length > 0 ? activeEntities : mediaEntities;
-  const cyclePool =
-    playingEntities.length > 1
-      ? playingEntities
-      : activeEntities.length > 1
-        ? activeEntities
-        : pool;
+    const activeEntities = mediaEntities.filter(isMediaActive);
+    const playingEntities = mediaEntities.filter((e) => e.state === 'playing');
+    const pool = activeEntities.length > 0 ? activeEntities : mediaEntities;
+    const cyclePool =
+      playingEntities.length > 1
+        ? playingEntities
+        : activeEntities.length > 1
+          ? activeEntities
+          : pool;
 
-  let currentMp = pool.find((e) => e.entity_id === groupSettings.activeId);
-  if (!currentMp) currentMp = playingEntities[0] || pool[0];
-  if (!currentMp) return null;
+    let currentMp = pool.find((e) => e.entity_id === groupSettings.activeId);
+    if (!currentMp) currentMp = playingEntities[0] || pool[0];
+    if (!currentMp) return null;
 
-  const mpId = currentMp.entity_id;
-  const mpState = currentMp.state;
-  const isPlaying = mpState === 'playing';
-  const isActive = activeEntities.length > 0;
+    const mpId = currentMp.entity_id;
+    const mpState = currentMp.state;
+    const isPlaying = mpState === 'playing';
+    const isActive = activeEntities.length > 0;
 
-  const artworkMode = groupSettings.artworkMode || 'default';
-  const isCoverMode = artworkMode === 'cover';
-  const playingBackgroundMotion = groupSettings.playingBackgroundMotion || 'off';
-  const useSubtlePlayingMotion = isPlaying && playingBackgroundMotion === 'subtle';
+    const artworkMode = groupSettings.artworkMode || 'default';
+    const isCoverMode = artworkMode === 'cover';
+    const playingBackgroundMotion = groupSettings.playingBackgroundMotion || 'off';
+    const useSubtlePlayingMotion = isPlaying && playingBackgroundMotion === 'subtle';
 
-  const name = customNames[cardId] || getA(mpId, 'friendly_name', 'Musikk');
-  const title = getA(mpId, 'media_title') || (isActive ? t('status.active') : t('media.noneMusic'));
-  const subtitle =
-    getA(mpId, 'media_artist') ||
-    getA(mpId, 'media_series_title') ||
-    getA(mpId, 'media_album_name') ||
-    '';
-  const picture = getEntityImageUrl(currentMp.attributes?.entity_picture);
-  const isChannel = getA(mpId, 'media_content_type') === 'channel';
-  const mediaIconName = customIcons?.[cardId] || customIcons?.[mpId] || null;
-  const MediaIcon = mediaIconName
-    ? getIconComponent(mediaIconName) || (isChannel ? Tv : Speaker)
-    : isChannel
-      ? Tv
-      : Speaker;
-  const powerAction = getMediaPlayerPowerAction(currentMp);
-  const canTogglePower = Boolean(powerAction);
-  const isPowerOffAction = powerAction === 'turn_off';
-  const isDenseMobile = Boolean(isMobile);
-  const useWideMobileControls = Boolean(isMobile && isFullWidthMobile);
+    const name = customNames[cardId] || getA(mpId, 'friendly_name', 'Musikk');
+    const title =
+      getA(mpId, 'media_title') || (isActive ? t('status.active') : t('media.noneMusic'));
+    const subtitle =
+      getA(mpId, 'media_artist') ||
+      getA(mpId, 'media_series_title') ||
+      getA(mpId, 'media_album_name') ||
+      '';
+    const picture = getEntityImageUrl(currentMp.attributes?.entity_picture);
+    const isChannel = getA(mpId, 'media_content_type') === 'channel';
+    const mediaIconName = customIcons?.[cardId] || customIcons?.[mpId] || null;
+    const MediaIcon = mediaIconName
+      ? getIconComponent(mediaIconName) || (isChannel ? Tv : Speaker)
+      : isChannel
+        ? Tv
+        : Speaker;
+    const powerAction = getMediaPlayerPowerAction(currentMp);
+    const canTogglePower = Boolean(powerAction);
+    const isPowerOffAction = powerAction === 'turn_off';
+    const isDenseMobile = Boolean(isMobile);
+    const useWideMobileControls = Boolean(isMobile && isFullWidthMobile);
 
-  const cyclePlayers = (e) => {
-    e.stopPropagation();
-    if (cyclePool.length < 2) return;
-    const idx = cyclePool.findIndex((ent) => ent.entity_id === mpId);
-    const next = cyclePool[(idx + 1) % cyclePool.length];
-    saveCardSetting(settingsKey, 'activeId', next.entity_id);
-  };
+    const cyclePlayers = (e) => {
+      e.stopPropagation();
+      if (cyclePool.length < 2) return;
+      const idx = cyclePool.findIndex((ent) => ent.entity_id === mpId);
+      const next = cyclePool[(idx + 1) % cyclePool.length];
+      saveCardSetting(settingsKey, 'activeId', next.entity_id);
+    };
 
-  if (!isActive) {
+    if (!isActive) {
+      return (
+        <div
+          key={cardId}
+          {...dragProps}
+          data-haptic={editMode ? undefined : 'card'}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!editMode) onOpen(mpId, settingsKey, null);
+          }}
+          className={`glass-texture touch-feedback group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+          style={{ ...cardStyle, color: 'var(--text-primary)' }}
+        >
+          {controls}
+          <div
+            className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'}`}
+            style={{ backgroundColor: 'var(--glass-bg)' }}
+          >
+            <MediaIcon
+              className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
+            />
+          </div>
+          <div className="w-full px-4 text-center">
+            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+              {t('media.noneMusic')}
+            </p>
+            <div className="mt-1 flex items-center justify-center gap-2">
+              <p className="truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40">
+                {name}
+              </p>
+            </div>
+          </div>
+          {canTogglePower && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                callService('media_player', powerAction, { entity_id: mpId });
+              }}
+              className={`mt-4 rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
+              title={isPowerOffAction ? t('status.off') : t('status.on')}
+            >
+              <Power className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div
         key={cardId}
@@ -361,202 +463,207 @@ export const MediaGroupCard = memo(/** @param {any} props */ ({
           e.stopPropagation();
           if (!editMode) onOpen(mpId, settingsKey, null);
         }}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
-        style={{ ...cardStyle, color: 'var(--text-primary)' }}
+        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        style={{
+          ...cardStyle,
+          color:
+            picture && isCoverMode
+              ? 'white'
+              : picture && !isCoverMode
+                ? 'white'
+                : 'var(--text-primary)',
+        }}
       >
         {controls}
-        <div className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'}`} style={{ backgroundColor: 'var(--glass-bg)' }}>
-          <MediaIcon
-            className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
-          />
-        </div>
-        <div className="w-full px-4 text-center">
-          <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-            {t('media.noneMusic')}
-          </p>
-          <div className="mt-1 flex items-center justify-center gap-2">
-            <p className="truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40">
-              {name}
-            </p>
+        {cyclePool.length > 1 && (
+          <button
+            onClick={cyclePlayers}
+            className={`absolute z-30 flex items-center gap-1.5 rounded-full border text-[var(--text-secondary)] backdrop-blur-md transition-colors hover:text-[var(--text-primary)] ${isDenseMobile ? 'top-3 right-3 px-2 py-1' : 'top-4 right-4 px-2.5 py-1'}`}
+            style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+          >
+            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--text-secondary)]" />
+            <span className="text-xs font-bold">{cyclePool.length}</span>
+            <ArrowLeftRight className="ml-0.5 h-3 w-3" />
+          </button>
+        )}
+        {isPlaying && (
+          <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-[var(--glass-bg-hover)] via-transparent to-transparent opacity-50" />
+        )}
+        {isPlaying && (
+          <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+        )}
+
+        {/* Background artwork */}
+        {picture && (
+          <>
+            {/* Default artwork (blurred background) */}
+            {!isCoverMode && (
+              <div
+                className={`pointer-events-none absolute inset-0 z-0 opacity-20 ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
+              >
+                <img
+                  src={picture}
+                  alt=""
+                  className={`h-full w-full scale-150 object-cover blur-xl transition-transform duration-[10s] ease-in-out ${isPlaying ? 'scale-[1.6]' : 'scale-150'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
+                />
+                <div className="absolute inset-0 bg-black/20" />
+                {useSubtlePlayingMotion && (
+                  <div className="media-bg-subtle-overlay absolute inset-0" />
+                )}
+              </div>
+            )}
+            {/* Cover artwork (full sharp background) */}
+            {isCoverMode && (
+              <div
+                className={`pointer-events-none absolute inset-0 z-0 ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
+              >
+                <img
+                  src={picture}
+                  alt=""
+                  className={`h-full w-full scale-100 object-cover transition-transform duration-[10s] ease-in-out ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
+                />
+                <div className="absolute inset-0 bg-black/40" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                {useSubtlePlayingMotion && (
+                  <div className="media-bg-subtle-overlay absolute inset-0" />
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        <div
+          className={`relative z-10 ${isCoverMode ? '' : `flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
+        >
+          {!isCoverMode && (
+            <div
+              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20'} flex shrink-0 items-center justify-center overflow-hidden`}
+            >
+              {picture ? (
+                <img
+                  src={picture}
+                  alt="Cover"
+                  className={`h-full w-full object-cover ${isDenseMobile ? 'rounded-xl' : 'rounded-2xl'}`}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <MediaIcon
+                    className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'w-full pt-1' : 'pt-1'}`}>
+            <div className="mb-1 flex items-center gap-2">
+              <p
+                className={`truncate ${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
+              >
+                {name}
+              </p>
+            </div>
+            <h3
+              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'truncate text-base' : 'truncate text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
+            >
+              {title || t('common.unknown')}
+            </h3>
+            {subtitle && (
+              <p
+                className={`${picture || isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'} ${isCoverMode ? (isDenseMobile ? 'text-xs' : 'text-sm') : isDenseMobile ? 'truncate text-[11px]' : 'truncate text-xs'} font-medium`}
+              >
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
-        {canTogglePower && (
+        <div
+          className={`relative z-10 flex items-center justify-center ${useWideMobileControls ? 'mt-2 gap-5 px-1' : isDenseMobile ? 'mt-3 gap-3 px-0' : 'mt-1 gap-[clamp(0.125rem,1.5vw,1.5rem)] px-0.5 sm:mt-2 sm:px-0'}`}
+        >
           <button
             onClick={(e) => {
               e.stopPropagation();
-              callService('media_player', powerAction, { entity_id: mpId });
+              callService('media_player', 'media_previous_track', { entity_id: mpId });
             }}
-            className={`mt-4 rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
-            title={isPowerOffAction ? t('status.off') : t('status.on')}
+            className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
           >
-            <Power className="h-4 w-4" />
+            <SkipBack
+              className={
+                useWideMobileControls
+                  ? 'h-6 w-6'
+                  : isDenseMobile
+                    ? 'h-5 w-5'
+                    : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'
+              }
+            />
           </button>
-        )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              callService('media_player', 'media_play_pause', { entity_id: mpId });
+            }}
+            className={`flex shrink-0 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 ${isCoverMode ? 'border border-white/30 bg-white/20 text-white backdrop-blur-md' : 'bg-white text-black'} ${useWideMobileControls ? 'h-14 w-14' : isDenseMobile ? 'h-11 w-11' : 'h-[clamp(1.9rem,5.8vw,3rem)] w-[clamp(1.9rem,5.8vw,3rem)]'}`}
+          >
+            {isPlaying ? (
+              <Pause
+                className={
+                  useWideMobileControls
+                    ? 'h-6 w-6 fill-current'
+                    : isDenseMobile
+                      ? 'h-5 w-5 fill-current'
+                      : 'h-[clamp(0.85rem,2vw,1.25rem)] w-[clamp(0.85rem,2vw,1.25rem)] fill-current'
+                }
+              />
+            ) : (
+              <Play
+                className={
+                  useWideMobileControls
+                    ? 'ml-0.5 h-6 w-6 fill-current'
+                    : isDenseMobile
+                      ? 'ml-0.5 h-5 w-5 fill-current'
+                      : 'ml-0.5 h-[clamp(0.85rem,2vw,1.25rem)] w-[clamp(0.85rem,2vw,1.25rem)] fill-current'
+                }
+              />
+            )}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              callService('media_player', 'media_next_track', { entity_id: mpId });
+            }}
+            className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+          >
+            <SkipForward
+              className={
+                useWideMobileControls
+                  ? 'h-6 w-6'
+                  : isDenseMobile
+                    ? 'h-5 w-5'
+                    : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'
+              }
+            />
+          </button>
+          {canTogglePower && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                callService('media_player', powerAction, { entity_id: mpId });
+              }}
+              className={`${picture || isCoverMode ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+              title={isPowerOffAction ? t('status.off') : t('status.on')}
+            >
+              <Power
+                className={
+                  useWideMobileControls
+                    ? 'h-6 w-6'
+                    : isDenseMobile
+                      ? 'h-5 w-5'
+                      : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'
+                }
+              />
+            </button>
+          )}
+        </div>
       </div>
     );
   }
-
-  return (
-    <div
-      key={cardId}
-      {...dragProps}
-      data-haptic={editMode ? undefined : 'card'}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!editMode) onOpen(mpId, settingsKey, null);
-      }}
-      className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
-      style={{
-        ...cardStyle,
-        color:
-          picture && isCoverMode
-            ? 'white'
-            : picture && !isCoverMode
-              ? 'white'
-              : 'var(--text-primary)',
-      }}
-    >
-      {controls}
-      {cyclePool.length > 1 && (
-        <button
-          onClick={cyclePlayers}
-          className={`absolute z-30 flex items-center gap-1.5 rounded-full border text-[var(--text-secondary)] backdrop-blur-md transition-colors hover:text-[var(--text-primary)] ${isDenseMobile ? 'top-3 right-3 px-2 py-1' : 'top-4 right-4 px-2.5 py-1'}`}
-          style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
-        >
-          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--text-secondary)]" />
-          <span className="text-xs font-bold">{cyclePool.length}</span>
-          <ArrowLeftRight className="ml-0.5 h-3 w-3" />
-        </button>
-      )}
-      {isPlaying && (
-        <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-[var(--glass-bg-hover)] via-transparent to-transparent opacity-50" />
-      )}
-      {isPlaying && (
-        <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-      )}
-
-      {/* Background artwork */}
-      {picture && (
-        <>
-          {/* Default artwork (blurred background) */}
-          {!isCoverMode && (
-            <div
-              className={`pointer-events-none absolute inset-0 z-0 opacity-20 ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
-            >
-              <img
-                src={picture}
-                alt=""
-                className={`h-full w-full scale-150 object-cover blur-xl transition-transform duration-[10s] ease-in-out ${isPlaying ? 'scale-[1.6]' : 'scale-150'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
-              />
-              <div className="absolute inset-0 bg-black/20" />
-              {useSubtlePlayingMotion && (
-                <div className="media-bg-subtle-overlay absolute inset-0" />
-              )}
-            </div>
-          )}
-          {/* Cover artwork (full sharp background) */}
-          {isCoverMode && (
-            <div
-              className={`pointer-events-none absolute inset-0 z-0 ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
-            >
-              <img
-                src={picture}
-                alt=""
-                className={`h-full w-full scale-100 object-cover transition-transform duration-[10s] ease-in-out ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
-              />
-              <div className="absolute inset-0 bg-black/40" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-              {useSubtlePlayingMotion && (
-                <div className="media-bg-subtle-overlay absolute inset-0" />
-              )}
-            </div>
-          )}
-        </>
-      )}
-
-      <div className={`relative z-10 ${isCoverMode ? '' : `flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}>
-        {!isCoverMode && (
-          <div className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20'} flex shrink-0 items-center justify-center overflow-hidden`}>
-            {picture ? (
-              <img
-                src={picture}
-                alt="Cover"
-                className={`h-full w-full object-cover ${isDenseMobile ? 'rounded-xl' : 'rounded-2xl'}`}
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <MediaIcon
-                  className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
-                />
-              </div>
-            )}
-          </div>
-        )}
-        <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'w-full pt-1' : 'pt-1'}`}>
-          <div className="mb-1 flex items-center gap-2">
-            <p className={`truncate ${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}>
-              {name}
-            </p>
-          </div>
-          <h3
-            className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'truncate text-base' : 'truncate text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
-          >
-            {title || t('common.unknown')}
-          </h3>
-          {subtitle && (
-            <p
-              className={`${picture || isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'} ${isCoverMode ? (isDenseMobile ? 'text-xs' : 'text-sm') : isDenseMobile ? 'truncate text-[11px]' : 'truncate text-xs'} font-medium`}
-            >
-              {subtitle}
-            </p>
-          )}
-        </div>
-      </div>
-      <div className={`relative z-10 flex items-center justify-center ${useWideMobileControls ? 'mt-2 gap-5 px-1' : isDenseMobile ? 'mt-3 gap-3 px-0' : 'mt-1 gap-[clamp(0.125rem,1.5vw,1.5rem)] px-0.5 sm:mt-2 sm:px-0'}`}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            callService('media_player', 'media_previous_track', { entity_id: mpId });
-          }}
-          className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
-        >
-          <SkipBack className={useWideMobileControls ? 'h-6 w-6' : isDenseMobile ? 'h-5 w-5' : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            callService('media_player', 'media_play_pause', { entity_id: mpId });
-          }}
-          className={`flex shrink-0 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 ${isCoverMode ? 'border border-white/30 bg-white/20 text-white backdrop-blur-md' : 'bg-white text-black'} ${useWideMobileControls ? 'h-14 w-14' : isDenseMobile ? 'h-11 w-11' : 'h-[clamp(1.9rem,5.8vw,3rem)] w-[clamp(1.9rem,5.8vw,3rem)]'}`}
-        >
-          {isPlaying ? (
-            <Pause className={useWideMobileControls ? 'h-6 w-6 fill-current' : isDenseMobile ? 'h-5 w-5 fill-current' : 'h-[clamp(0.85rem,2vw,1.25rem)] w-[clamp(0.85rem,2vw,1.25rem)] fill-current'} />
-          ) : (
-            <Play className={useWideMobileControls ? 'ml-0.5 h-6 w-6 fill-current' : isDenseMobile ? 'ml-0.5 h-5 w-5 fill-current' : 'ml-0.5 h-[clamp(0.85rem,2vw,1.25rem)] w-[clamp(0.85rem,2vw,1.25rem)] fill-current'} />
-          )}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            callService('media_player', 'media_next_track', { entity_id: mpId });
-          }}
-          className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
-        >
-          <SkipForward className={useWideMobileControls ? 'h-6 w-6' : isDenseMobile ? 'h-5 w-5' : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'} />
-        </button>
-        {canTogglePower && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              callService('media_player', powerAction, { entity_id: mpId });
-            }}
-            className={`${picture || isCoverMode ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
-            title={isPowerOffAction ? t('status.off') : t('status.on')}
-          >
-            <Power className={useWideMobileControls ? 'h-6 w-6' : isDenseMobile ? 'h-5 w-5' : 'h-[clamp(0.85rem,2.2vw,1.5rem)] w-[clamp(0.85rem,2.2vw,1.5rem)]'} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-});
+);
