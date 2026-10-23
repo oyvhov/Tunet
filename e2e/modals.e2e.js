@@ -690,26 +690,28 @@ test.describe('Modal Interactions', () => {
     ).toBeVisible();
   });
 
-  test('shows Home Assistant notification updates without duplicating unchanged messages', async ({
-    page,
-  }) => {
-    const update = {
-      type: 'added',
-      notifications: { test: { title: 'Home Assistant', message: 'Door left open' } },
-    };
-    await page.evaluate(
-      (detail) => window.dispatchEvent(new CustomEvent('test:notification', { detail })),
-      update
-    );
-    await expect(
-      page.getByRole('alert').filter({ hasText: 'Home Assistant: Door left open' })
-    ).toHaveCount(1);
-    await page.evaluate(
-      (detail) => window.dispatchEvent(new CustomEvent('test:notification', { detail })),
-      update
-    );
-    await expect(
-      page.getByRole('alert').filter({ hasText: 'Home Assistant: Door left open' })
-    ).toHaveCount(1);
+  test('keeps Home Assistant system notifications out of dashboard popups', async ({ page }) => {
+    await page.evaluate(async () => {
+      for (const type of ['current', 'added', 'updated', 'current']) {
+        window.dispatchEvent(
+          new CustomEvent('test:notification', {
+            detail: {
+              type,
+              notifications: Object.fromEntries(
+                Array.from({ length: 20 }, (_, index) => [
+                  `ha-system-${index}`,
+                  { title: 'Home Assistant', message: `System warning ${index} (${type})` },
+                ])
+              ),
+            },
+          })
+        );
+        await new Promise(requestAnimationFrame);
+        if (document.querySelector('[role="alert"]')) {
+          throw new Error('Home Assistant system notifications must not open dashboard popups');
+        }
+      }
+    });
+    await expect(page.getByRole('alert')).toHaveCount(0);
   });
 });

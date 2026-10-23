@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { memo, useId } from 'react';
 import { CHART_STATUS_COLORS, getThresholdColor } from '../../utils/chartColors';
 
 // Helper function to create smooth Bezier curves
@@ -28,7 +28,7 @@ const createBezierPath = (points, smoothing = 0.3, bounds) => {
   }, '');
 };
 
-export default function SparkLine({
+function SparkLine({
   data,
   currentIndex,
   height = 40,
@@ -122,7 +122,7 @@ export default function SparkLine({
 
     return (
       <div
-        className="relative mt-1 opacity-80 transition-all duration-700 group-hover:opacity-100"
+        className="relative mt-1 opacity-80 transition-opacity duration-700 group-hover:opacity-100"
         data-chart-safe-inset={plotInset}
       >
         <svg
@@ -195,7 +195,7 @@ export default function SparkLine({
 
   return (
     <div
-      className="relative mt-1 opacity-80 transition-all duration-700 group-hover:opacity-100"
+      className="relative mt-1 opacity-80 transition-opacity duration-700 group-hover:opacity-100"
       data-chart-safe-inset={plotInset}
     >
       <svg
@@ -253,7 +253,6 @@ export default function SparkLine({
           cy={currentPoint[1]}
           r={pointRadius}
           fill={getValueColor(values[normalizedCurrentIndex])}
-          className="animate-pulse"
         />
       </svg>
       {fade && (
@@ -262,3 +261,5 @@ export default function SparkLine({
     </div>
   );
 }
+
+export default memo(SparkLine);

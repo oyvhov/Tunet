@@ -20,7 +20,6 @@ import {
   usePages,
 } from './contexts';
 import ModalManager from './rendering/ModalManager';
-import PersistentNotificationBridge from './components/ui/PersistentNotificationBridge';
 
 import {
   useSmartTheme,
@@ -855,7 +854,6 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
         cardConfig={modalManagerCardConfig}
         mediaTick={mediaTick}
       />
-      <PersistentNotificationBridge />
     </>
   );
 }

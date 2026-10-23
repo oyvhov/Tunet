@@ -1,9 +1,9 @@
 const hasText = (value) =>
-  typeof value === 'string' || typeof value === 'number'
-    ? String(value).trim().length > 0
-    : false;
+  typeof value === 'string' || typeof value === 'number' ? String(value).trim().length > 0 : false;
 
 const getPreferredDeviceName = (device) => device?.name_by_user || device?.name || null;
+
+const enrichedEntityCache = new WeakMap();
 
 export const buildRegistryLookupMap = (entries, key) => {
   const map = new Map();
@@ -57,19 +57,32 @@ export const enrichEntitiesWithRegistryMetadata = (
     assignIfMissing('device_name', getPreferredDeviceName(deviceRegistryEntry));
     assignIfMissing('area_id', entityRegistryEntry?.area_id || deviceRegistryEntry?.area_id);
 
-    if (Object.keys(metadata).length === 0) {
+    const metadataKeys = Object.keys(metadata);
+    if (metadataKeys.length === 0) {
       nextEntities[entityId] = entity;
       return;
     }
 
     changed = true;
-    nextEntities[entityId] = {
+    const cached = enrichedEntityCache.get(entity);
+    if (
+      cached &&
+      metadataKeys.length === Object.keys(cached.metadata).length &&
+      metadataKeys.every((key) => cached.metadata[key] === metadata[key])
+    ) {
+      nextEntities[entityId] = cached.result;
+      return;
+    }
+
+    const result = {
       ...entity,
       attributes: {
         ...attributes,
         ...metadata,
       },
     };
+    enrichedEntityCache.set(entity, { metadata, result });
+    nextEntities[entityId] = result;
   });
 
   return changed ? nextEntities : entities;
