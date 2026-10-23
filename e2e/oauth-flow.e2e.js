@@ -1,6 +1,84 @@
 import { test, expect } from './fixtures';
 
 test.describe('OAuth Authentication Flow', () => {
+  for (const stage of ['initial connection', 'reconnection']) {
+    test(`offers login when HA rejects OAuth during ${stage}`, async ({
+      page,
+      mockHAConnection,
+    }, testInfo) => {
+      void mockHAConnection;
+      const pageErrors = [];
+      page.on('pageerror', (error) => pageErrors.push(error.message));
+      await page.route('**/api/**', (route) =>
+        route.fulfill({ json: route.request().url().includes('/current') ? null : [] })
+      );
+      await page.route('**/auth/token', (route) =>
+        route.fulfill({ status: 400, json: { error: 'invalid_grant' } })
+      );
+      await page.addInitScript((stage) => {
+        localStorage.setItem('tunet_language', 'en');
+        localStorage.setItem('ha_url', 'http://localhost:8123');
+        localStorage.setItem('ha_auth_method', 'oauth');
+        localStorage.setItem(
+          'tunet_auth_cache_v1',
+          JSON.stringify({
+            access_token: 'revoked-access',
+            refresh_token: 'revoked-refresh',
+            expires: Date.now() + 3600000,
+            hassUrl: 'http://localhost:8123',
+            clientId: window.location.origin + '/',
+          })
+        );
+        const OriginalWebSocket = window.WebSocket;
+        let rejectAuth = stage === 'initial connection';
+        window.WebSocket = class extends OriginalWebSocket {
+          send(data) {
+            const request = JSON.parse(data);
+            if (request.type === 'subscribe_entities') window.__haTestConnected = true;
+            if (request.type === 'auth') {
+              if (rejectAuth) {
+                setTimeout(
+                  () =>
+                    this.dispatchEvent(
+                      new MessageEvent('message', {
+                        data: JSON.stringify({
+                          type: 'auth_invalid',
+                          message: 'Invalid access token',
+                        }),
+                      })
+                    ),
+                  10
+                );
+                return;
+              }
+              window.__revokeOAuth = () => {
+                rejectAuth = true;
+                this.close();
+              };
+            }
+            return super.send(data);
+          }
+        };
+      }, stage);
+      await page.goto('/');
+      await expect(page).toHaveTitle('HOME');
+      if (stage === 'reconnection') {
+        await page.waitForFunction(() => window.__haTestConnected === true);
+        await page.evaluate(() => window.__revokeOAuth());
+      }
+      const login = page
+        .getByRole('status')
+        .getByRole('button', { name: 'Log in with Home Assistant' });
+      await expect(login).toBeVisible({ timeout: 15000 });
+      expect(await page.evaluate(() => localStorage.getItem('tunet_auth_cache_v1'))).toBeNull();
+      await login.click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await expect(page.locator('vite-error-overlay')).toHaveCount(0);
+      expect(pageErrors).toEqual([]);
+      await page.screenshot({ path: testInfo.outputPath('expired-oauth-login.png') });
+    });
+  }
+
   test('keeps an expired login warning visible when the mobile app resumes', async ({
     authenticatedPage: page,
   }) => {

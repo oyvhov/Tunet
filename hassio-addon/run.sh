@@ -5,6 +5,13 @@ export NODE_ENV=production
 export PORT=3002
 export TUNET_TRUST_SUPERVISOR_INGRESS=1
 
+if bashio::config.has_value 'internal_ha_url'; then
+	export TUNET_INTERNAL_HA_URL="$(bashio::config 'internal_ha_url')"
+fi
+if bashio::config.has_value 'internal_ha_fallback_url'; then
+	export TUNET_INTERNAL_HA_FALLBACK_URL="$(bashio::config 'internal_ha_fallback_url')"
+fi
+
 if bashio::config.has_value 'data_encryption_mode'; then
 	export TUNET_ENCRYPTION_MODE="$(bashio::config 'data_encryption_mode')"
 fi

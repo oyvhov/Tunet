@@ -13,8 +13,13 @@ import {
   subscribeEntities,
   getAuth,
 } from 'home-assistant-js-websocket';
-import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
-import { HOME_ASSISTANT_API_UNAUTHORIZED_EVENT, setOAuthAuthProvider } from '../services/apiAuth';
+import { saveTokens, loadTokens, hasOAuthTokens } from '../services/oauthStorage';
+import {
+  HOME_ASSISTANT_API_UNAUTHORIZED_EVENT,
+  isHomeAssistantAuthError,
+  notifyHomeAssistantApiUnauthorized,
+  setOAuthAuthProvider,
+} from '../services/apiAuth';
 import { getDeviceRegistry, getEntityRegistry } from '../services/haClient';
 import { validateUrl } from '../config/onboarding';
 import { useMobileConnectionRecovery } from '../hooks/useMobileConnectionRecovery';
@@ -487,17 +492,11 @@ export const HomeAssistantProvider = ({ children, config }) => {
           globalThis.window.history.replaceState(null, '', globalThis.window.location.pathname);
         }
 
-        if (cancelled) return;
+        if (!isCurrentAttempt()) return;
 
         // For OAuth, if auth is invalid, clear tokens and flag expiry
-        if (isOAuth && err?.message?.includes?.('INVALID_AUTH')) {
-          clearOAuthTokens();
-          if (isCurrentAttempt()) {
-            setConnected(false);
-            setHaUnavailable(true);
-            setDisconnectedSince(Date.now());
-            setOauthExpired(true);
-          }
+        if (isOAuth && isHomeAssistantAuthError(err)) {
+          notifyHomeAssistantApiUnauthorized();
           return;
         }
 
@@ -552,16 +551,23 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const handleDisconnected = () => {
       if (!cancelled) markConnectionRecovering();
     };
+    const handleReconnectError = (_connection, error) => {
+      if (!cancelled && config.authMethod === 'oauth' && isHomeAssistantAuthError(error)) {
+        notifyHomeAssistantApiUnauthorized();
+      }
+    };
 
     conn.addEventListener?.('ready', handleReady);
     conn.addEventListener?.('disconnected', handleDisconnected);
+    conn.addEventListener?.('reconnect-error', handleReconnectError);
 
     return () => {
       cancelled = true;
       conn.removeEventListener?.('ready', handleReady);
       conn.removeEventListener?.('disconnected', handleDisconnected);
+      conn.removeEventListener?.('reconnect-error', handleReconnectError);
     };
-  }, [conn, markConnectionHealthy, markConnectionRecovering]);
+  }, [conn, config.authMethod, markConnectionHealthy, markConnectionRecovering]);
 
   useEffect(() => {
     const updateStaleState = () => {
@@ -625,6 +631,10 @@ export const HomeAssistantProvider = ({ children, config }) => {
 
     const handleUnauthorized = (event) => {
       const authMethod = event?.detail?.authMethod || 'oauth';
+      authRef.current = null;
+      cleanupConnection();
+      setConnected(false);
+      setHaUser(null);
       setHaUnavailable(true);
       setDisconnectedSince(Date.now());
       if (authMethod === 'oauth') {
@@ -639,7 +649,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
         handleUnauthorized
       );
     };
-  }, []);
+  }, [cleanupConnection]);
 
   /** @type {HomeAssistantMetaValue} */
   const metaValue = useMemo(

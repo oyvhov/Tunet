@@ -121,6 +121,8 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
   const pushCurrentToServerRef = useRef(null);
   const backgroundSyncSuspendedRef = useRef(false);
   const currentRevisionRef = useRef(null);
+  const pendingReadRef = useRef(null);
+  const initializedUserRef = useRef(null);
 
   const setCurrentRevision = useCallback((nextRevision) => {
     const normalized = Number.isFinite(Number(nextRevision)) ? Number(nextRevision) : null;
@@ -197,34 +199,44 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
     }
   }, [haUserId, updateBackgroundSyncAvailability]);
 
-  const readCurrentFromServer = useCallback(async () => {
-    if (!haUserId) return null;
-    try {
-      const row = await apiFetchCurrentSettings(haUserId, deviceIdRef.current);
-      updateBackgroundSyncAvailability(true);
-      if (row && typeof row === 'object') {
-        setCurrentRevision(Number.isFinite(Number(row.revision)) ? Number(row.revision) : null);
-        if (typeof row.device_label === 'string') {
-          deviceLabelRef.current = row.device_label.trim();
-          try {
-            localStorage.setItem('tunet_device_label', deviceLabelRef.current);
-          } catch {
-            // ignore storage errors
+  const readCurrentFromServer = useCallback(() => {
+    if (!haUserId) return Promise.resolve(null);
+    if (pendingReadRef.current?.haUserId === haUserId) return pendingReadRef.current.promise;
+    const promise = (async () => {
+      try {
+        const row = await apiFetchCurrentSettings(haUserId, deviceIdRef.current);
+        initializedUserRef.current = haUserId;
+        updateBackgroundSyncAvailability(true);
+        if (conflictRef.current) return row;
+        if (row && typeof row === 'object') {
+          setCurrentRevision(Number.isFinite(Number(row.revision)) ? Number(row.revision) : null);
+          if (typeof row.device_label === 'string') {
+            deviceLabelRef.current = row.device_label.trim();
+            try {
+              localStorage.setItem('tunet_device_label', deviceLabelRef.current);
+            } catch {
+              // ignore storage errors
+            }
           }
+          const serialized = JSON.stringify(row.data || {});
+          lastUploadedHashRef.current = serialized;
+          lastObservedHashRef.current = serialized;
+          setLastSyncedAt(row.updated_at || null);
+          setStatus('synced');
         }
-        const serialized = JSON.stringify(row.data || {});
-        lastUploadedHashRef.current = serialized;
-        lastObservedHashRef.current = serialized;
-        setLastSyncedAt(row.updated_at || null);
-        setStatus('synced');
+        return row;
+      } catch (fetchError) {
+        updateBackgroundSyncAvailability(false, fetchError);
+        setStatus('error');
+        setError(fetchError?.message || 'Failed to fetch current settings');
+        return READ_CURRENT_FAILED;
       }
-      return row;
-    } catch (fetchError) {
-      updateBackgroundSyncAvailability(false, fetchError);
-      setStatus('error');
-      setError(fetchError?.message || 'Failed to fetch current settings');
-      return READ_CURRENT_FAILED;
-    }
+    })();
+    pendingReadRef.current = { haUserId, promise };
+    void promise.finally(() => {
+      if (pendingReadRef.current?.promise === promise) pendingReadRef.current = null;
+    });
+    return promise;
   }, [haUserId, setCurrentRevision, updateBackgroundSyncAvailability]);
 
   const applyServerRow = useCallback(
@@ -303,6 +315,11 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
     async (options = {}) => {
       if (!haUserId) return null;
       if (conflictRef.current && !options.overwriteConflicts) return null;
+      if (initializedUserRef.current !== haUserId) {
+        const row = await readCurrentFromServer();
+        if (row === READ_CURRENT_FAILED) return null;
+        if (conflictRef.current && !options.overwriteConflicts) return null;
+      }
 
       const snapshot = collectSnapshot();
       if (!isValidSnapshot(snapshot)) {
@@ -385,6 +402,7 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
     [
       haUserId,
       historyKeepLimit,
+      readCurrentFromServer,
       reconcileFromServer,
       refreshKnownDevices,
       refreshHistory,
@@ -432,7 +450,7 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
 
     const bootstrap = async () => {
       const row = await readCurrentFromServer();
-      if (disposed) return;
+      if (disposed || conflictRef.current) return;
 
       if (row === READ_CURRENT_FAILED) {
         if (!backgroundSyncSuspendedRef.current) {
@@ -443,10 +461,15 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
       }
 
       if (!row) {
-        try {
-          await pushCurrentToServerRef.current?.({ force: true });
-        } catch {
-          // ignore bootstrap errors
+        if (!syncInFlightRef.current) {
+          syncInFlightRef.current = true;
+          try {
+            await pushCurrentToServerRef.current?.({ force: true });
+          } catch {
+            // ignore bootstrap errors
+          } finally {
+            syncInFlightRef.current = false;
+          }
         }
       } else if (isValidSnapshot(row.data)) {
         // Fresh device (default dashboard) with existing server settings:

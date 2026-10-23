@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSettingsSync } from '../hooks/useSettingsSync';
+import { useProfiles } from '../hooks/useProfiles';
 
 vi.mock('../services/settingsApi', () => ({
   fetchCurrentSettings: vi.fn(),
@@ -34,7 +35,7 @@ import { collectSnapshot, applySnapshot, isValidSnapshot } from '../services/sna
 describe('useSettingsSync', () => {
   beforeEach(() => {
     vi.useRealTimers();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     localStorage.clear();
     fetchCurrentSettings.mockResolvedValue(null);
     fetchSettingsHistory.mockResolvedValue([]);
@@ -76,6 +77,96 @@ describe('useSettingsSync', () => {
       expect(result.current.status).toBe('synced');
       expect(result.current.currentRevision).toBe(4);
     });
+  });
+
+  it('bootstraps sync and saves edits without ever opening the profiles modal', async () => {
+    vi.useFakeTimers();
+    const baseline = collectSnapshot();
+    let finishRead;
+    fetchCurrentSettings.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishRead = resolve;
+      })
+    );
+    const { result } = renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {}, prefetchProfiles: false })
+    );
+    const edited = {
+      ...baseline,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: ['light.kitchen'] } },
+    };
+    collectSnapshot.mockReturnValue(edited);
+    await act(async () => {
+      window.dispatchEvent(new Event('tunet:edit-done'));
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+    await act(async () => {
+      finishRead({ revision: 7, data: baseline });
+    });
+    expect(fetchCurrentSettings).toHaveBeenCalledTimes(1);
+    expect(saveCurrentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ base_revision: 7, data: edited }),
+      {}
+    );
+    expect(result.current.autoSync.status).toBe('synced');
+    expect(applySnapshot).not.toHaveBeenCalled();
+  });
+
+  it('initializes the server revision before manual sync when bootstrap was disabled', async () => {
+    vi.useFakeTimers();
+    fetchCurrentSettings.mockResolvedValue({ revision: 5, data: collectSnapshot() });
+    const { result } = renderHook(() =>
+      useSettingsSync({
+        haUserId: 'user-1',
+        contextSettersRef: { current: {} },
+        autoBootstrap: false,
+      })
+    );
+    await act(async () => {
+      result.current.syncNow();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ base_revision: 5 }),
+      {}
+    );
+    expect(result.current.status).toBe('synced');
+  });
+
+  it('keeps unresolved conflicts visible when bootstrap is enabled later', async () => {
+    vi.useFakeTimers();
+    const local = {
+      version: 1,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: ['local'] } },
+      appearance: {},
+    };
+    collectSnapshot.mockReturnValue(local);
+    fetchCurrentSettings.mockResolvedValue({
+      revision: 3,
+      data: { ...local, appearance: { theme: 'light' } },
+    });
+    saveCurrentSettings.mockRejectedValueOnce(
+      Object.assign(new Error('conflict'), { status: 409, body: { revision: 4 } })
+    );
+    const { result, rerender } = renderHook(
+      ({ autoBootstrap }) =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} }, autoBootstrap }),
+      { initialProps: { autoBootstrap: false } }
+    );
+    await act(async () => {
+      result.current.syncNow();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(result.current.status).toBe('conflict');
+    rerender({ autoBootstrap: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4100);
+    });
+    expect(result.current.status).toBe('conflict');
+    expect(result.current.currentRevision).toBe(4);
+    expect(applySnapshot).not.toHaveBeenCalled();
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(1);
   });
 
   it('skips bootstrap and polling when autoBootstrap is disabled', async () => {
@@ -305,6 +396,8 @@ describe('useSettingsSync', () => {
       expect(result.current.backgroundSyncSuspended).toBe(true);
     });
 
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: collectSnapshot() });
+
     await act(async () => {
       result.current.syncNow();
       await new Promise((resolve) => setTimeout(resolve, 5));
@@ -506,7 +599,7 @@ describe('useSettingsSync', () => {
 
     expect(saveCurrentSettings).toHaveBeenCalledTimes(1);
     expect(saveCurrentSettings.mock.calls[0][0].base_revision).toBeNull();
-    expect(fetchCurrentSettings).not.toHaveBeenCalled();
+    expect(fetchCurrentSettings).toHaveBeenCalledOnce();
     expect(applySnapshot).not.toHaveBeenCalled();
   });
 

@@ -1,1 +1,7 @@
-configuration: {}
+configuration:
+  internal_ha_url:
+    name: Home Assistant URL for direct access
+    description: Required for profiles and settings sync through the optional direct port. Use an HTTP(S) address reachable from this add-on. Ingress does not require this setting.
+  internal_ha_fallback_url:
+    name: Fallback Home Assistant URL
+    description: Optional alternative address for the same Home Assistant instance, used when the primary address cannot be reached.

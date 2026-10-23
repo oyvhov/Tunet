@@ -1,9 +1,12 @@
-import { getAuth } from 'home-assistant-js-websocket';
+import { getAuth, ERR_INVALID_AUTH, ERR_INVALID_AUTH_CALLBACK } from 'home-assistant-js-websocket';
 import { clearOAuthTokens, getOAuthTokenSavedAt, loadTokens, saveTokens } from './oauthStorage';
 
 export const HOME_ASSISTANT_API_UNAUTHORIZED_EVENT = 'tunet:api-auth-unauthorized';
 const OAUTH_PROACTIVE_REFRESH_MS = 45 * 60 * 1000;
 const OAUTH_REFRESH_SKEW_MS = 60 * 1000;
+
+export const isHomeAssistantAuthError = (error) =>
+  error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK;
 
 let oauthAuthProvider = null;
 let detachedOAuthAuth = null;
@@ -31,7 +34,11 @@ const getStoredToken = () => {
       return '';
     }
 
-    return globalThis.localStorage?.getItem('ha_token') || globalThis.sessionStorage?.getItem('ha_token') || '';
+    return (
+      globalThis.localStorage?.getItem('ha_token') ||
+      globalThis.sessionStorage?.getItem('ha_token') ||
+      ''
+    );
   } catch {
     return '';
   }
@@ -134,11 +141,14 @@ const createUnauthorizedError = (message) => {
   return error;
 };
 
-export function notifyHomeAssistantApiUnauthorized(message = 'Home Assistant authentication failed') {
+export function notifyHomeAssistantApiUnauthorized(
+  message = 'Home Assistant authentication failed'
+) {
   const authMethod = getStoredAuthMethod();
 
   if (authMethod === 'oauth') {
     clearCachedOAuthAuth();
+    if (oauthAuthProvider) oauthAuthProvider.current = null;
     clearOAuthTokens();
   } else {
     clearStoredTokenAuth();
@@ -238,6 +248,7 @@ export async function getHomeAssistantRequestHeadersAsync({ forceRefreshOAuth = 
     try {
       await ensureOAuthAuthSession();
     } catch (err) {
+      if (isHomeAssistantAuthError(err)) throw notifyHomeAssistantApiUnauthorized();
       if (forceRefreshOAuth) throw err;
       // Proactive session init failed; continue with existing token
     }
@@ -247,6 +258,7 @@ export async function getHomeAssistantRequestHeadersAsync({ forceRefreshOAuth = 
     try {
       accessToken = await refreshOAuthAccessToken();
     } catch (err) {
+      if (isHomeAssistantAuthError(err)) throw notifyHomeAssistantApiUnauthorized();
       if (forceRefreshOAuth) throw err;
       // Proactive refresh failed; continue with existing token
     }

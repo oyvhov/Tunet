@@ -104,8 +104,8 @@ docker rm tunet-dashboard         # Remove container
 Notes for Profiles / Settings Sync:
 
 - Protected backend routes now validate your Home Assistant identity on the server, not just in the browser.
-- In Docker, the backend must be able to reach Home Assistant from inside the container. If your main HA URL is browser-only, set a token-mode fallback URL that is reachable from Docker.
-- Typical examples: use a LAN IP or an internal hostname as fallback when the primary URL is `localhost`, `.local`, or an external-only hostname.
+- In Docker, set `TUNET_INTERNAL_HA_URL` to an address reachable from inside the container, such as a LAN IP or `http://host.docker.internal:8123`.
+- If needed, set `TUNET_INTERNAL_HA_FALLBACK_URL` to another reachable address for the same Home Assistant instance. Browser connection addresses do not control backend validation.
 - Settings sync is revision-checked. If two tabs/devices save at the same time, the server will return a conflict instead of silently overwriting newer settings.
 - OAuth browser sessions are persisted in browser storage for reload and same-browser tab reuse, while protected backend API calls still revalidate against Home Assistant.
 
@@ -134,7 +134,7 @@ Where data lives:
 | `NODE_ENV`              | `production`            | Environment mode                                                                        |
 | `VITE_PORT`             | `5173`                  | Vite dev server port (dev only)                                                         |
 | `VITE_PROXY_TARGET`     | `http://localhost:3002` | API proxy target (dev)                                                                  |
-| `TUNET_INTERNAL_HA_URL` | _(unset)_               | Optional server-side Home Assistant URL override for backend auth validation             |
+| `TUNET_INTERNAL_HA_URL` | _(unset)_               | Required trusted Home Assistant URL for backend auth outside Supervisor ingress             |
 | `TUNET_INTERNAL_HA_FALLBACK_URL` | _(unset)_      | Optional secondary internal HA URL for backend auth validation in Docker/server setups   |
 | `TUNET_TRUST_SUPERVISOR_INGRESS` | `0`            | Trust Home Assistant Supervisor ingress headers. Intended for the add-on runtime only.   |
 | `TUNET_ENCRYPTION_MODE` | `off`                   | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only`              |
@@ -144,8 +144,9 @@ Where data lives:
 Server-side auth guidance:
 
 - `ha_url` is still the primary browser connection target.
-- `ha_fallback_url` is also sent to the backend and can be used when the server cannot reach the primary HA URL.
-- `TUNET_INTERNAL_HA_URL` and `TUNET_INTERNAL_HA_FALLBACK_URL` take precedence for backend validation and are useful when Docker/server networking differs from browser networking.
+- `ha_fallback_url` is a browser connection fallback; request headers do not choose the backend authentication server.
+- Set `TUNET_INTERNAL_HA_URL` on the server (in `.env` for Docker Compose) to a trusted HTTP(S) URL reachable from the backend. Profiles and settings sync return `503 HA_AUTH_NOT_CONFIGURED` until this is configured, except for trusted Supervisor ingress.
+- `TUNET_INTERNAL_HA_FALLBACK_URL` may specify another address for the same HA instance. Only these configured addresses receive authentication tokens; invalid authentication stops fallback attempts. Docker host aliases such as `http://host.docker.internal:8123` must be configured explicitly.
 - `TUNET_TRUST_SUPERVISOR_INGRESS` should stay disabled outside the Home Assistant add-on. The add-on launcher enables it explicitly for trusted Supervisor ingress requests.
 
 ### Data-at-rest encryption rollout (safe migration)
@@ -180,7 +181,7 @@ Recommended rollout to avoid data loss:
 | Build fails         | Ensure Docker has enough memory. Try `docker system prune -a` then rebuild                                                |
 | Native module error | The Dockerfile installs build tools automatically. If building locally, ensure `python3`, `make`, and `g++` are available |
 | Connection error    | Check HA URL (no trailing `/api`) and token. For external origins ensure HA `cors_allowed_origins` includes your host     |
-| Profiles not saving | Check that the backend is running (`/api/health`) and that the backend container can reach Home Assistant; set `ha_fallback_url` or `TUNET_INTERNAL_HA_URL` if needed |
+| Profiles not saving | Check that the backend is running (`/api/health`) and that the backend container can reach Home Assistant; configure `TUNET_INTERNAL_HA_URL` and, if needed, `TUNET_INTERNAL_HA_FALLBACK_URL` |
 | History/CORS issues | Prefer WebSocket history; otherwise allow your origin in HA `cors_allowed_origins`                                        |
 
 ## Release Workflow (Maintainers)

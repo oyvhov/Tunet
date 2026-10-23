@@ -16,6 +16,8 @@ real-time entity updates, and drag-and-drop customisation.
 
 ## Features
 
+For access through the optional direct port, set `internal_ha_url` in the add-on configuration to an HTTP(S) URL for your Home Assistant instance that the add-on can reach. Profiles and settings sync require this trusted server address. `internal_ha_fallback_url` can point to an alternative address for the same instance. Browser-supplied addresses are never used to validate backend authentication. Sidebar access through Supervisor ingress needs no additional URL configuration.
+
 - **Real-time updates** via Home Assistant WebSocket API.
 - **Trusted Ingress Integration** when running inside the Home Assistant add-on.
 - **PIN Protection** for settings and edit mode.
