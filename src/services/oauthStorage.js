@@ -26,6 +26,7 @@ const LEGACY_STORAGE_SLOT = String.fromCharCode(
 );
 
 const tokenChangeListeners = new Set();
+const logoutListeners = new Set();
 let syncInitialized = false;
 let syncChannel = null;
 let pendingTokenRequest = null;
@@ -123,6 +124,12 @@ const handleSyncPayload = (payload) => {
         tokens,
       });
     }
+    return;
+  }
+
+  if (payload.type === 'oauth-logout') {
+    clearOAuthTokens();
+    logoutListeners.forEach((listener) => listener());
     return;
   }
 
@@ -247,6 +254,21 @@ export function subscribeToOAuthTokenChanges(listener) {
   return () => {
     tokenChangeListeners.delete(listener);
   };
+}
+
+export function subscribeToOAuthLogout(listener) {
+  ensureCrossTabSync();
+  logoutListeners.add(listener);
+  return () => {
+    logoutListeners.delete(listener);
+  };
+}
+
+/** Clear OAuth tokens here and tell every other open tab to drop theirs. */
+export function logoutOAuthEverywhere() {
+  ensureCrossTabSync();
+  clearOAuthTokens();
+  postSyncMessage(OAUTH_SYNC_REQUEST_KEY, { type: 'oauth-logout' });
 }
 
 export function requestTokensFromOtherTabs({ timeoutMs = OAUTH_SYNC_TIMEOUT_MS } = {}) {

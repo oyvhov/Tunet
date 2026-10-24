@@ -4,9 +4,9 @@ import { validateUrl } from '../config/onboarding';
 import {
   saveTokens,
   loadTokens,
-  clearOAuthTokens,
   hasOAuthTokens,
   isOAuthRejected,
+  logoutOAuthEverywhere,
 } from '../services/oauthStorage';
 
 /** @typedef {import('../types/dashboard').UseConnectionSetupDeps} UseConnectionSetupDeps */
@@ -119,7 +119,7 @@ export function useConnectionSetup({
 
   // ── OAuth logout ───────────────────────────────────────────────────────
   const handleOAuthLogout = () => {
-    clearOAuthTokens();
+    logoutOAuthEverywhere();
     setConfig({ ...config, authMethod: 'oauth', token: '' });
     try {
       localStorage.removeItem('ha_oauth_tokens');
@@ -128,6 +128,9 @@ export function useConnectionSetup({
       localStorage.removeItem('ha_token');
       localStorage.setItem('ha_auth_method', 'oauth');
     } catch {}
+    // The live HA connection keeps its auth in memory and would save refreshed
+    // tokens again, so start over from a clean page.
+    globalThis.location?.reload();
   };
 
   // ── Derived: can the user advance past onboarding step 0? ──────────────

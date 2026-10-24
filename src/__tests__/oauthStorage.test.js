@@ -4,8 +4,10 @@ import {
   getOAuthTokenSavedAt,
   hasOAuthTokens,
   loadTokens,
+  logoutOAuthEverywhere,
   requestTokensFromOtherTabs,
   saveTokens,
+  subscribeToOAuthLogout,
   subscribeToOAuthTokenChanges,
 } from '../services/oauthStorage';
 
@@ -121,5 +123,36 @@ describe('oauthStorage', () => {
 
     expect(listener).toHaveBeenCalled();
     unsubscribe();
+  });
+
+  it('clears tokens and notifies listeners when another tab logs out', () => {
+    saveTokens({ access_token: 'access-5', refresh_token: 'refresh-5' });
+    const listener = vi.fn();
+    const unsubscribe = subscribeToOAuthLogout(listener);
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'tunet_auth_sync_request_v1',
+        newValue: JSON.stringify({ type: 'oauth-logout' }),
+      })
+    );
+
+    expect(hasOAuthTokens()).toBe(false);
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
+  it('announces a logout to other tabs and clears local tokens', async () => {
+    saveTokens({ access_token: 'access-6', refresh_token: 'refresh-6' });
+    const otherTab = new BroadcastChannel('tunet_auth_sync_channel_v1');
+    const received = new Promise((resolve) => {
+      otherTab.onmessage = (event) => resolve(event.data);
+    });
+
+    logoutOAuthEverywhere();
+
+    expect(hasOAuthTokens()).toBe(false);
+    await expect(received).resolves.toEqual({ type: 'oauth-logout' });
+    otherTab.close();
   });
 });

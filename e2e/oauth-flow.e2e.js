@@ -79,6 +79,58 @@ test.describe('OAuth Authentication Flow', () => {
     });
   }
 
+  test('logs out every open tab', async ({ page, context, mockHAConnection }) => {
+    void mockHAConnection;
+    const prepare = async (tab) => {
+      await tab.route('**/api/**', (route) =>
+        route.fulfill({ json: route.request().url().includes('/current') ? null : [] })
+      );
+      await tab.addInitScript(() => {
+        localStorage.setItem('tunet_language', 'en');
+        localStorage.setItem('ha_url', 'http://localhost:8123');
+        localStorage.setItem('ha_auth_method', 'oauth');
+        if (sessionStorage.getItem('e2e-seeded')) return;
+        sessionStorage.setItem('e2e-seeded', '1');
+        if (localStorage.getItem('e2e-logged-out')) return;
+        localStorage.setItem(
+          'tunet_auth_cache_v1',
+          JSON.stringify({
+            access_token: 'access',
+            refresh_token: 'refresh',
+            expires: Date.now() + 3600000,
+            hassUrl: 'http://localhost:8123',
+            clientId: window.location.origin + '/',
+          })
+        );
+      });
+    };
+    const tokens = (tab) =>
+      tab.evaluate(() => [
+        localStorage.getItem('tunet_auth_cache_v1'),
+        sessionStorage.getItem('tunet_auth_cache_v1'),
+      ]);
+
+    await prepare(page);
+    await page.goto('/');
+    await expect(page).toHaveTitle('HOME');
+    const otherTab = await context.newPage();
+    await prepare(otherTab);
+    await otherTab.goto('/');
+    await expect(otherTab).toHaveTitle('HOME');
+    await page.evaluate(() => localStorage.setItem('e2e-logged-out', '1'));
+
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.getByRole('menuitem', { name: /system/i }).click();
+    await page.getByRole('button', { name: 'Log out' }).click();
+
+    for (const tab of [page, otherTab]) {
+      await expect(tab.getByRole('dialog', { name: 'Get started' })).toBeVisible({
+        timeout: 10000,
+      });
+      expect(await tokens(tab)).toEqual([null, null]);
+    }
+  });
+
   test('keeps an expired login warning visible when the mobile app resumes', async ({
     authenticatedPage: page,
   }) => {

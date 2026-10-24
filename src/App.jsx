@@ -44,6 +44,7 @@ import './styles/dashboard.css';
 import {
   hasOAuthTokens,
   requestTokensFromOtherTabs,
+  subscribeToOAuthLogout,
   subscribeToOAuthTokenChanges,
 } from './services/oauthStorage';
 import { scheduleLikelyModalPrefetch, scheduleModalPrefetch } from './utils/prefetchModals';
@@ -918,6 +919,9 @@ export default function App() {
       setOAuthTokenRevision((revision) => revision + 1);
     });
   }, []);
+
+  // Another tab logged out: drop this tab's live session as well.
+  useEffect(() => subscribeToOAuthLogout(() => globalThis.location?.reload()), []);
 
   useEffect(() => {
     if (config.authMethod !== 'oauth' || !config.url || isOAuthCallback) return;
