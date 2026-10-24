@@ -15,6 +15,8 @@ import {
   ERR_CANNOT_CONNECT,
   ERR_CONNECTION_LOST,
 } from 'home-assistant-js-websocket';
+import type { Auth, Connection, HassEntities, UnsubscribeFunc } from 'home-assistant-js-websocket';
+import type { ReactElement } from 'react';
 import { saveTokens, loadTokens, hasOAuthTokens } from '../services/oauthStorage';
 import {
   HOME_ASSISTANT_API_UNAUTHORIZED_EVENT,
@@ -23,6 +25,7 @@ import {
   setOAuthAuthProvider,
 } from '../services/apiAuth';
 import { getDeviceRegistry, getEntityRegistry } from '../services/haClient';
+import type { DeviceRegistryEntry, EntityRegistryEntry } from '../services/haClient';
 import { validateUrl } from '../config/onboarding';
 import { useMobileConnectionRecovery } from '../hooks/useMobileConnectionRecovery';
 import {
@@ -32,16 +35,23 @@ import {
   isEntityDataStale,
 } from '../utils';
 
-/** @typedef {import('../types/dashboard').EntityMap} EntityMap */
-/** @typedef {import('../types/dashboard').HomeAssistantContextValue} HomeAssistantContextValue */
-/** @typedef {import('../types/dashboard').HomeAssistantProviderProps} HomeAssistantProviderProps */
-/** @typedef {Omit<HomeAssistantContextValue, 'entities'>} HomeAssistantMetaValue */
+import type {
+  EntityMap,
+  HomeAssistantContextValue,
+  HomeAssistantProviderProps,
+} from '../types/dashboard';
+
+export type HomeAssistantMetaValue = Omit<HomeAssistantContextValue, 'entities'>;
+
+// Shape of a rejected HA command: a {code, message} result, possibly wrapped in `error`.
+// Optional chaining keeps non-object throwables (e.g. ERR_* numbers) yielding undefined fields.
+type HaErrorLike = { error?: HaErrorLike; code?: unknown; message?: unknown } | null | undefined;
 
 const ENTITY_CACHE_KEY = 'tunet_entity_snapshot';
 const ENTITY_CACHE_MAX_AGE_MS = 5 * 60_000; // 5 minutes — stale snapshots are discarded
 
 /** Read cached entity snapshot from sessionStorage (returns {} if absent/expired). */
-function loadCachedEntities() {
+function loadCachedEntities(): EntityMap {
   try {
     const raw = globalThis.sessionStorage.getItem(ENTITY_CACHE_KEY);
     if (!raw) return {};
@@ -57,7 +67,7 @@ function loadCachedEntities() {
 }
 
 /** Persist entity snapshot to sessionStorage (best-effort, never throws). */
-function saveCachedEntities(entities) {
+function saveCachedEntities(entities: EntityMap): void {
   try {
     globalThis.sessionStorage.setItem(
       ENTITY_CACHE_KEY,
@@ -68,13 +78,10 @@ function saveCachedEntities(entities) {
   }
 }
 
-/** @type {import('react').Context<EntityMap | null>} */
-const HomeAssistantEntitiesContext = createContext(null);
-/** @type {import('react').Context<HomeAssistantMetaValue | null>} */
-const HomeAssistantMetaContext = createContext(null);
+const HomeAssistantEntitiesContext = createContext<EntityMap | null>(null);
+const HomeAssistantMetaContext = createContext<HomeAssistantMetaValue | null>(null);
 
-/** @returns {EntityMap} */
-export const useHomeAssistantEntities = () => {
+export const useHomeAssistantEntities = (): EntityMap => {
   const context = useContext(HomeAssistantEntitiesContext);
   if (!context) {
     throw new Error('useHomeAssistantEntities must be used within HomeAssistantProvider');
@@ -82,8 +89,7 @@ export const useHomeAssistantEntities = () => {
   return context;
 };
 
-/** @returns {HomeAssistantMetaValue} */
-export const useHomeAssistantMeta = () => {
+export const useHomeAssistantMeta = (): HomeAssistantMetaValue => {
   const context = useContext(HomeAssistantMetaContext);
   if (!context) {
     throw new Error('useHomeAssistantMeta must be used within HomeAssistantProvider');
@@ -91,8 +97,7 @@ export const useHomeAssistantMeta = () => {
   return context;
 };
 
-/** @returns {HomeAssistantContextValue} */
-export const useHomeAssistant = () => {
+export const useHomeAssistant = (): HomeAssistantContextValue => {
   const entities = useHomeAssistantEntities();
   const meta = useHomeAssistantMeta();
   return useMemo(() => ({ entities, ...meta }), [entities, meta]);
@@ -103,14 +108,13 @@ export const useHomeAssistant = () => {
  * React render per animation frame, preventing full-tree re-renders on
  * every WebSocket message.
  */
-/** @returns {[EntityMap, (updatedEntities: EntityMap) => void]} */
-function useThrottledEntities() {
-  const [entities, setEntities] = useState(loadCachedEntities);
-  const pendingRef = useRef(null);
-  const rafRef = useRef(null);
-  const saveTimerRef = useRef(null);
+function useThrottledEntities(): [EntityMap, (updatedEntities: EntityMap) => void] {
+  const [entities, setEntities] = useState<EntityMap>(loadCachedEntities);
+  const pendingRef = useRef<EntityMap | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const setEntitiesThrottled = useCallback((updatedEntities) => {
+  const setEntitiesThrottled = useCallback((updatedEntities: EntityMap) => {
     pendingRef.current = updatedEntities;
     if (rafRef.current == null) {
       rafRef.current = requestAnimationFrame(() => {
@@ -140,28 +144,30 @@ function useThrottledEntities() {
   return [entities, setEntitiesThrottled];
 }
 
-/** @param {HomeAssistantProviderProps} props */
-export const HomeAssistantProvider = ({ children, config }) => {
+export const HomeAssistantProvider = ({
+  children,
+  config,
+}: HomeAssistantProviderProps): ReactElement => {
   const [entities, setEntities] = useThrottledEntities();
   const [entitiesLoaded, setEntitiesLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [haUnavailable, setHaUnavailable] = useState(false);
   const [haUnavailableVisible, setHaUnavailableVisible] = useState(false);
   const [oauthExpired, setOauthExpired] = useState(false);
-  const [conn, setConn] = useState(null);
+  const [conn, setConn] = useState<Connection | null>(null);
   const [activeUrl, setActiveUrl] = useState(config.url);
-  const [haUser, setHaUser] = useState(null);
-  const [haConfig, setHaConfig] = useState(null);
+  const [haUser, setHaUser] = useState<HomeAssistantMetaValue['haUser']>(null);
+  const [haConfig, setHaConfig] = useState<HomeAssistantMetaValue['haConfig']>(null);
   const [entityDataStale, setEntityDataStale] = useState(false);
   const [lastEntityUpdateAt, setLastEntityUpdateAt] = useState(0);
-  const [disconnectedSince, setDisconnectedSince] = useState(null);
-  const authRef = useRef(null);
-  const connectionRef = useRef(null);
-  const unsubscribeEntitiesRef = useRef(null);
+  const [disconnectedSince, setDisconnectedSince] = useState<number | null>(null);
+  const authRef = useRef<Auth | null>(null);
+  const connectionRef = useRef<Connection | null>(null);
+  const unsubscribeEntitiesRef = useRef<UnsubscribeFunc | null>(null);
   const connectAttemptRef = useRef(0);
-  const rawEntitiesRef = useRef(entities);
-  const entityRegistryByIdRef = useRef(new Map());
-  const deviceRegistryByIdRef = useRef(new Map());
+  const rawEntitiesRef = useRef<EntityMap>(entities);
+  const entityRegistryByIdRef = useRef(new Map<string, EntityRegistryEntry>());
+  const deviceRegistryByIdRef = useRef(new Map<string, DeviceRegistryEntry>());
 
   const markConnectionHealthy = useCallback(() => {
     setConnected(true);
@@ -182,7 +188,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
   });
 
   const applyRegistryMetadata = useCallback(
-    (nextEntities) =>
+    (nextEntities: EntityMap): EntityMap =>
       enrichEntitiesWithRegistryMetadata(
         nextEntities,
         entityRegistryByIdRef.current,
@@ -192,7 +198,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
   );
 
   const pushEntitySnapshot = useCallback(
-    (nextEntities) => {
+    (nextEntities: HassEntities) => {
       rawEntitiesRef.current = nextEntities;
       setEntities(applyRegistryMetadata(nextEntities));
     },
@@ -273,9 +279,9 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const attemptId = connectAttemptRef.current + 1;
     connectAttemptRef.current = attemptId;
 
-    let connection;
+    let connection: Connection | undefined;
     let cancelled = false;
-    let retryTimer;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let retryDelay = 5000;
     const isCurrentAttempt = () => !cancelled && connectAttemptRef.current === attemptId;
 
@@ -288,9 +294,11 @@ export const HomeAssistantProvider = ({ children, config }) => {
     setLastEntityUpdateAt(0);
 
     /** Fetch the authenticated HA user after connecting */
-    async function fetchCurrentUser(connInstance) {
+    async function fetchCurrentUser(connInstance: Connection) {
       try {
-        const user = await connInstance.sendMessagePromise({ type: 'auth/current_user' });
+        const user = await connInstance.sendMessagePromise<
+          NonNullable<HomeAssistantMetaValue['haUser']>
+        >({ type: 'auth/current_user' });
         if (isCurrentAttempt() && user) {
           setHaUser({
             id: user.id,
@@ -300,7 +308,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
           });
         }
       } catch (err) {
-        const resultError = err?.error || err;
+        const resultError = (err as HaErrorLike)?.error || (err as HaErrorLike);
         const errorCode = resultError?.code;
         const errorMessage = String(resultError?.message || '').toLowerCase();
         const isUnsupportedCommand =
@@ -319,14 +327,16 @@ export const HomeAssistantProvider = ({ children, config }) => {
     }
 
     /** Fetch the HA system config (currency, units, etc.) */
-    async function fetchHaConfig(connInstance) {
+    async function fetchHaConfig(connInstance: Connection) {
       try {
-        const conf = await connInstance.sendMessagePromise({ type: 'get_config' });
+        const conf = await connInstance.sendMessagePromise<
+          NonNullable<HomeAssistantMetaValue['haConfig']>
+        >({ type: 'get_config' });
         if (isCurrentAttempt() && conf) {
           setHaConfig(conf);
         }
       } catch (err) {
-        const resultError = err?.error || err;
+        const resultError = (err as HaErrorLike)?.error || (err as HaErrorLike);
         const errorCode = resultError?.code;
         const errorMessage = String(resultError?.message || '').toLowerCase();
         const isUnsupportedCommand =
@@ -348,7 +358,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       }
     }
 
-    async function fetchRegistryMetadata(connInstance) {
+    async function fetchRegistryMetadata(connInstance: Connection) {
       try {
         const [deviceRegistry, entityRegistry] = await Promise.all([
           getDeviceRegistry(connInstance),
@@ -364,7 +374,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
           setEntities(applyRegistryMetadata(rawEntitiesRef.current));
         }
       } catch (err) {
-        const resultError = err?.error || err;
+        const resultError = (err as HaErrorLike)?.error || (err as HaErrorLike);
         const errorCode = resultError?.code;
         const errorMessage = String(resultError?.message || '').toLowerCase();
         const isExpectedRegistryError =
@@ -385,7 +395,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       }
     }
 
-    const persistConfig = (urlUsed) => {
+    const persistConfig = (urlUsed: string) => {
       try {
         localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
         if (!isOAuth) {
@@ -400,7 +410,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       }
     };
 
-    async function connectWithToken(url) {
+    async function connectWithToken(url: string): Promise<Connection | null> {
       // Strip trailing /api or /api/ to prevent double /api/api/websocket
       const cleanUrl = url.replace(/\/api\/?$/, '').replace(/\/$/, '');
       const auth = createLongLivedTokenAuth(cleanUrl, config.token);
@@ -433,7 +443,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
       return connInstance;
     }
 
-    async function connectWithOAuth(url) {
+    async function connectWithOAuth(url: string): Promise<Connection | null> {
       // Let HAWS compute default clientId and redirectUrl so they match
       // the values used during the initial getAuth() redirect in startOAuthLogin.
       // Overriding clientId here (e.g. window.location.origin without trailing
@@ -569,7 +579,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     const handleDisconnected = () => {
       if (!cancelled) markConnectionRecovering();
     };
-    const handleReconnectError = (_connection, error) => {
+    const handleReconnectError = (_connection: Connection, error: unknown) => {
       if (!cancelled && config.authMethod === 'oauth' && isHomeAssistantAuthError(error)) {
         notifyHomeAssistantApiUnauthorized();
       }
@@ -606,7 +616,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
 
   // Delay connection warnings, and restart the grace period when a mobile app resumes.
   useEffect(() => {
-    let timer = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     const scheduleWarning = () => {
       if (timer) clearTimeout(timer);
@@ -647,8 +657,10 @@ export const HomeAssistantProvider = ({ children, config }) => {
   useEffect(() => {
     if (typeof globalThis.window === 'undefined') return undefined;
 
-    const handleUnauthorized = (event) => {
-      const authMethod = event?.detail?.authMethod || 'oauth';
+    const handleUnauthorized = (event: Event) => {
+      // Dispatched as a CustomEvent by notifyHomeAssistantApiUnauthorized; detail may be absent.
+      const authMethod =
+        (event as CustomEvent<{ authMethod?: string } | undefined>)?.detail?.authMethod || 'oauth';
       authRef.current = null;
       cleanupConnection();
       setConnected(false);
@@ -669,8 +681,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     };
   }, [cleanupConnection]);
 
-  /** @type {HomeAssistantMetaValue} */
-  const metaValue = useMemo(
+  const metaValue = useMemo<HomeAssistantMetaValue>(
     () => ({
       entitiesLoaded,
       connected,

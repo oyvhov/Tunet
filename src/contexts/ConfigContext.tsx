@@ -3,11 +3,16 @@ import { themes } from '../config/themes';
 import { isLightColor } from '../utils/colorUtils';
 import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 import { hashPin, verifyPin } from '../utils';
+import type { UnitsMode } from '../utils/units';
+import type {
+  ConfigContextValue,
+  ConfigProviderProps,
+  HomeAssistantConfig,
+} from '../types/dashboard';
 
-/** @typedef {import('../types/dashboard').ConfigContextValue} ConfigContextValue */
-/** @typedef {import('../types/dashboard').ConfigProviderProps} ConfigProviderProps */
+type GradientPreset = { label: string; from: string; to: string };
 
-export const GRADIENT_PRESETS = {
+export const GRADIENT_PRESETS: Record<string, GradientPreset> = {
   midnight: { label: 'Midnight', from: '#0f172a', to: '#020617' },
   ocean: { label: 'Ocean', from: '#0c4a6e', to: '#164e63' },
   sunset: { label: 'Sunset', from: '#7c2d12', to: '#581c87' },
@@ -16,14 +21,14 @@ export const GRADIENT_PRESETS = {
   rose: { label: 'Rose', from: '#881337', to: '#4a044e' },
 };
 
-/** @type {import('react').Context<ConfigContextValue | null>} */
-const ConfigContext = createContext(null);
+const ConfigContext = createContext<ConfigContextValue | null>(null);
 const CONFIG_STORAGE_VERSION_KEY = 'tunet_config_storage_version';
 const CONFIG_STORAGE_VERSION = '1';
 const BACKGROUND_MODES = ['theme', 'solid', 'gradient', 'custom', 'animated', 'lavaLamp', 'silk'];
+// Widened view of themes so it can be indexed by stored (untrusted) theme keys.
+const THEMES: Record<string, { colors: Record<string, string> }> = themes;
 
-/** @returns {ConfigContextValue} */
-export const useConfig = () => {
+export const useConfig = (): ConfigContextValue => {
   const context = useContext(ConfigContext);
   if (!context) {
     throw new Error('useConfig must be used within ConfigProvider');
@@ -31,19 +36,18 @@ export const useConfig = () => {
   return context;
 };
 
-/** @param {ConfigProviderProps} props */
-export const ConfigProvider = ({ children }) => {
+export const ConfigProvider = ({ children }: ConfigProviderProps) => {
   useEffect(() => {
     try {
       localStorage.setItem(CONFIG_STORAGE_VERSION_KEY, CONFIG_STORAGE_VERSION);
     } catch {}
   }, []);
 
-  const [currentTheme, setCurrentTheme] = useState(() => {
+  const [currentTheme, setCurrentTheme] = useState<string>(() => {
     if (typeof globalThis.window !== 'undefined') {
       try {
         const saved = localStorage.getItem('tunet_theme');
-        return saved && themes[saved] ? saved : 'dark';
+        return saved && THEMES[saved] ? saved : 'dark';
       } catch (error) {
         console.error('Failed to read theme from localStorage:', error);
         return 'dark';
@@ -52,7 +56,7 @@ export const ConfigProvider = ({ children }) => {
     return 'dark';
   });
 
-  const [language, setLanguage] = useState(() => {
+  const [language, setLanguage] = useState<string>(() => {
     try {
       const rawLanguage = localStorage.getItem('tunet_language') || DEFAULT_LANGUAGE;
       return normalizeLanguage(rawLanguage);
@@ -62,17 +66,15 @@ export const ConfigProvider = ({ children }) => {
     }
   });
 
-  const [unitsMode, setUnitsMode] = useState(
-    /** @returns {'follow_ha' | 'metric' | 'imperial'} */ () => {
-      try {
-        const saved = localStorage.getItem('tunet_units_mode');
-        if (saved === 'follow_ha' || saved === 'metric' || saved === 'imperial') return saved;
-        return 'follow_ha';
-      } catch {
-        return 'follow_ha';
-      }
+  const [unitsMode, setUnitsMode] = useState<UnitsMode>(() => {
+    try {
+      const saved = localStorage.getItem('tunet_units_mode');
+      if (saved === 'follow_ha' || saved === 'metric' || saved === 'imperial') return saved;
+      return 'follow_ha';
+    } catch {
+      return 'follow_ha';
     }
-  );
+  });
 
   const [settingsLockEnabled, setSettingsLockEnabled] = useState(() => {
     try {
@@ -113,7 +115,7 @@ export const ConfigProvider = ({ children }) => {
     return 60;
   });
 
-  const [bgMode, setBgMode] = useState(() => {
+  const [bgMode, setBgMode] = useState<string>(() => {
     try {
       const saved = localStorage.getItem('tunet_bg_mode');
       return saved && BACKGROUND_MODES.includes(saved) ? saved : 'theme';
@@ -130,7 +132,7 @@ export const ConfigProvider = ({ children }) => {
     }
   });
 
-  const [bgGradient, setBgGradient] = useState(() => {
+  const [bgGradient, setBgGradient] = useState<string>(() => {
     try {
       const saved = localStorage.getItem('tunet_bg_gradient');
       return saved && GRADIENT_PRESETS[saved] ? saved : 'midnight';
@@ -208,7 +210,7 @@ export const ConfigProvider = ({ children }) => {
     return 'sans';
   });
 
-  const [config, setConfig] = useState(() => {
+  const [config, setConfig] = useState<HomeAssistantConfig>(() => {
     if (typeof globalThis.window !== 'undefined') {
       // Ingress auto-detection: if served under /api/hassio_ingress/<token>,
       // connect to HA's root URL via Token (OAuth often fails in Ingress iframe)
@@ -268,8 +270,8 @@ export const ConfigProvider = ({ children }) => {
 
   // Apply theme to DOM
   useEffect(() => {
-    const themeKey = themes[currentTheme] ? currentTheme : 'dark';
-    const theme = themes[themeKey].colors;
+    const themeKey = THEMES[currentTheme] ? currentTheme : 'dark';
+    const theme = THEMES[themeKey].colors;
     for (const key in theme) {
       document.documentElement.style.setProperty(key, theme[key]);
     }
@@ -278,8 +280,7 @@ export const ConfigProvider = ({ children }) => {
       ? 'light'
       : 'dark';
 
-    /** @type {HTMLMetaElement | null} */
-    let metaThemeColor = document.querySelector("meta[name='theme-color']");
+    let metaThemeColor = document.querySelector<HTMLMetaElement>("meta[name='theme-color']");
     if (!metaThemeColor) {
       metaThemeColor = document.createElement('meta');
       metaThemeColor.name = 'theme-color';
@@ -298,8 +299,8 @@ export const ConfigProvider = ({ children }) => {
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
-    const themeKey = themes[currentTheme] ? currentTheme : 'dark';
-    const theme = themes[themeKey].colors;
+    const themeKey = THEMES[currentTheme] ? currentTheme : 'dark';
+    const theme = THEMES[themeKey].colors;
 
     // Clean up custom image background and inline overrides
     body.style.backgroundImage = '';
@@ -343,7 +344,7 @@ export const ConfigProvider = ({ children }) => {
     }
   }, [bgMode, bgColor, bgGradient, bgImage, currentTheme]);
 
-  const parseColorToRgb = (color) => {
+  const parseColorToRgb = (color: unknown) => {
     if (!color || typeof color !== 'string') return null;
 
     if (color.startsWith('#')) {
@@ -378,8 +379,8 @@ export const ConfigProvider = ({ children }) => {
 
   // Apply card transparency to DOM
   useEffect(() => {
-    const themeKey = themes[currentTheme] ? currentTheme : 'dark';
-    const baseColor = cardBgColor || themes[themeKey].colors['--card-bg'];
+    const themeKey = THEMES[currentTheme] ? currentTheme : 'dark';
+    const baseColor = cardBgColor || THEMES[themeKey].colors['--card-bg'];
     const parsed = parseColorToRgb(baseColor);
 
     if (parsed) {
@@ -398,8 +399,8 @@ export const ConfigProvider = ({ children }) => {
 
   // Apply card border opacity to DOM
   useEffect(() => {
-    const themeKey = themes[currentTheme] ? currentTheme : 'dark';
-    const baseBorder = themes[themeKey].colors['--card-border'];
+    const themeKey = THEMES[currentTheme] ? currentTheme : 'dark';
+    const baseBorder = THEMES[themeKey].colors['--card-border'];
 
     if (!baseBorder || baseBorder === 'transparent') return;
 
@@ -548,7 +549,7 @@ export const ConfigProvider = ({ children }) => {
     } catch {}
   }, [settingsLockSessionUnlocked]);
 
-  const enableSettingsLock = useCallback((pin) => {
+  const enableSettingsLock = useCallback((pin: string) => {
     const pinHash = hashPin(pin);
     setSettingsLockPinHash(pinHash);
     setSettingsLockEnabled(true);
@@ -562,7 +563,7 @@ export const ConfigProvider = ({ children }) => {
   }, []);
 
   const unlockSettingsLock = useCallback(
-    (pin) => {
+    (pin: string) => {
       if (!settingsLockEnabled) return true;
       const unlocked = verifyPin(pin, settingsLockPinHash);
       if (unlocked) setSettingsLockSessionUnlocked(true);
@@ -584,8 +585,7 @@ export const ConfigProvider = ({ children }) => {
     setCurrentTheme(themeKeys[nextIndex]);
   }, [currentTheme]);
 
-  /** @type {ConfigContextValue} */
-  const value = useMemo(
+  const value = useMemo<ConfigContextValue>(
     () => ({
       currentTheme,
       setCurrentTheme,

@@ -63,13 +63,6 @@ src/components/ui/SettingsDropdown.jsx
 src/components/ui/ToastContainer.jsx
 src/components/ui/lazyModal.jsx
 src/components/ui/modalStyles.js
-src/contexts/AppUiContext.jsx
-src/contexts/ConfigContext.jsx
-src/contexts/HomeAssistantContext.jsx
-src/contexts/ModalContext.jsx
-src/contexts/PageContext.jsx
-src/contexts/ToastContext.jsx
-src/contexts/index.js
 src/hooks/index.js
 src/hooks/useAddCard.js
 src/hooks/useAppViewModels.js
@@ -178,4 +171,3 @@ src/rendering/modalSlices/roomCardUtils.js
 src/rendering/profileContextSetters.js
 src/rendering/registry.js
 src/rendering/useEditModalProps.js
-src/types/dashboard.js
