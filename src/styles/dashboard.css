@@ -23,7 +23,7 @@
 @keyframes popupIn {
   0% {
     opacity: 0;
-    transform: scale(0.95) translateY(10px);
+    transform: scale(0.99) translateY(3px);
   }
   100% {
     opacity: 1;
@@ -58,7 +58,7 @@
   }
 }
 .popup-anim {
-  animation: popupIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: popupIn 0.12s ease-out forwards;
 }
 .fade-in-anim {
   animation: fadeIn 0.4s ease-out forwards;

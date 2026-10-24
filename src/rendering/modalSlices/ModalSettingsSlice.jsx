@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazyModal as lazy } from '../../components/ui/lazyModal';
 import { ModalSuspense } from '../../components';
 import { themes } from '../../config/themes';
 import { validateUrl } from '../../config/onboarding';
