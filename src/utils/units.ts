@@ -1,14 +1,31 @@
-const normalizeUnit = (unit) =>
+const normalizeUnit = (unit: unknown): string =>
   String(unit || '')
     .trim()
     .toLowerCase();
 
-/** @typedef {'temperature' | 'wind' | 'pressure' | 'precipitation' | 'length'} UnitKind */
-/** @typedef {'follow_ha' | 'metric' | 'imperial'} UnitsMode */
-/** @typedef {{ kind?: UnitKind | null, fromUnit?: string, unitMode?: UnitsMode, fallback?: string, decimals?: number | null }} FormatUnitValueOptions */
-/** @typedef {FormatUnitValueOptions & { includeUnit?: boolean }} FormatKindValueForDisplayOptions */
+export type UnitKind = 'temperature' | 'wind' | 'pressure' | 'precipitation' | 'length';
+export type UnitsMode = 'follow_ha' | 'metric' | 'imperial';
+export type EffectiveUnitMode = 'metric' | 'imperial';
+export type ConvertValueByKindOptions = {
+  kind?: UnitKind | null;
+  fromUnit?: string | null;
+  unitMode?: UnitsMode | null;
+};
+export type FormatUnitValueOptions = ConvertValueByKindOptions & {
+  fallback?: string;
+  decimals?: number | null;
+};
+export type FormatKindValueForDisplayOptions = FormatUnitValueOptions & { includeUnit?: boolean };
+type UnitsHaConfig =
+  | {
+      unit_system?: { temperature?: string | null; length?: string | null } | null;
+      temperature_unit?: string | null;
+      length_unit?: string | null;
+    }
+  | null
+  | undefined;
 
-const isImperialHaConfig = (haConfig) => {
+const isImperialHaConfig = (haConfig: UnitsHaConfig): boolean => {
   const temp = normalizeUnit(haConfig?.unit_system?.temperature || haConfig?.temperature_unit);
   const length = normalizeUnit(haConfig?.unit_system?.length || haConfig?.length_unit);
   if (temp.includes('f')) return true;
@@ -24,12 +41,15 @@ const isImperialHaConfig = (haConfig) => {
   return false;
 };
 
-export const getEffectiveUnitMode = (unitsMode, haConfig) => {
+export const getEffectiveUnitMode = (
+  unitsMode: UnitsMode | string | null | undefined,
+  haConfig: UnitsHaConfig
+): EffectiveUnitMode => {
   if (unitsMode === 'metric' || unitsMode === 'imperial') return unitsMode;
   return isImperialHaConfig(haConfig) ? 'imperial' : 'metric';
 };
 
-export const inferUnitKind = (deviceClass, unit) => {
+export const inferUnitKind = (deviceClass: unknown, unit: unknown): UnitKind | null => {
   const cls = String(deviceClass || '').toLowerCase();
   const u = normalizeUnit(unit);
 
@@ -83,7 +103,10 @@ export const inferUnitKind = (deviceClass, unit) => {
   return null;
 };
 
-export const getUnitModeFromUnit = (kind, unit) => {
+export const getUnitModeFromUnit = (
+  kind: UnitKind | null | undefined,
+  unit: unknown
+): EffectiveUnitMode => {
   const u = normalizeUnit(unit);
   if (kind === 'temperature') return u.includes('f') ? 'imperial' : 'metric';
   if (kind === 'wind') return u === 'mph' ? 'imperial' : 'metric';
@@ -97,7 +120,10 @@ export const getUnitModeFromUnit = (kind, unit) => {
   return 'metric';
 };
 
-export const getDisplayUnitForKind = (kind, unitMode) => {
+export const getDisplayUnitForKind = (
+  kind: UnitKind | null | undefined,
+  unitMode: UnitsMode | null | undefined
+): string => {
   if (kind === 'temperature') return unitMode === 'imperial' ? '°F' : '°C';
   if (kind === 'wind') return unitMode === 'imperial' ? 'mph' : 'km/h';
   if (kind === 'pressure') return unitMode === 'imperial' ? 'inHg' : 'hPa';
@@ -106,12 +132,16 @@ export const getDisplayUnitForKind = (kind, unitMode) => {
   return '';
 };
 
-const toNumber = (value) => {
-  const parsed = typeof value === 'number' ? value : Number.parseFloat(value);
+const toNumber = (value: unknown): number | null => {
+  // parseFloat coerces non-string input itself; the cast only satisfies its string signature
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(value as string);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-export const normalizeDecimalPlaces = (value, fallback = null) => {
+export const normalizeDecimalPlaces = (
+  value: unknown,
+  fallback: number | null = null
+): number | null => {
   if (value === undefined || value === null || value === '') return fallback;
 
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -120,7 +150,7 @@ export const normalizeDecimalPlaces = (value, fallback = null) => {
   return Math.max(0, Math.min(parsed, 6));
 };
 
-const toCelsius = (value, fromUnit) => {
+const toCelsius = (value: unknown, fromUnit: string | null | undefined): number | null => {
   const n = toNumber(value);
   if (n === null) return null;
   const u = normalizeUnit(fromUnit);
@@ -128,13 +158,16 @@ const toCelsius = (value, fromUnit) => {
   return n;
 };
 
-const fromCelsius = (value, unitMode) => {
-  if (!Number.isFinite(value)) return null;
+const fromCelsius = (
+  value: number | null,
+  unitMode: UnitsMode | null | undefined
+): number | null => {
+  if (value === null || !Number.isFinite(value)) return null;
   if (unitMode === 'imperial') return (value * 9) / 5 + 32;
   return value;
 };
 
-const toMetersPerSecond = (value, fromUnit) => {
+const toMetersPerSecond = (value: unknown, fromUnit: string | null | undefined): number | null => {
   const n = toNumber(value);
   if (n === null) return null;
   const u = normalizeUnit(fromUnit);
@@ -144,13 +177,16 @@ const toMetersPerSecond = (value, fromUnit) => {
   return n;
 };
 
-const fromMetersPerSecond = (value, unitMode) => {
-  if (!Number.isFinite(value)) return null;
+const fromMetersPerSecond = (
+  value: number | null,
+  unitMode: UnitsMode | null | undefined
+): number | null => {
+  if (value === null || !Number.isFinite(value)) return null;
   if (unitMode === 'imperial') return value * 2.236936;
   return value * 3.6;
 };
 
-const toHpa = (value, fromUnit) => {
+const toHpa = (value: unknown, fromUnit: string | null | undefined): number | null => {
   const n = toNumber(value);
   if (n === null) return null;
   const u = normalizeUnit(fromUnit);
@@ -162,13 +198,13 @@ const toHpa = (value, fromUnit) => {
   return n;
 };
 
-const fromHpa = (value, unitMode) => {
-  if (!Number.isFinite(value)) return null;
+const fromHpa = (value: number | null, unitMode: UnitsMode | null | undefined): number | null => {
+  if (value === null || !Number.isFinite(value)) return null;
   if (unitMode === 'imperial') return value / 33.8638866667;
   return value;
 };
 
-const toMillimeters = (value, fromUnit) => {
+const toMillimeters = (value: unknown, fromUnit: string | null | undefined): number | null => {
   const n = toNumber(value);
   if (n === null) return null;
   const u = normalizeUnit(fromUnit);
@@ -178,13 +214,16 @@ const toMillimeters = (value, fromUnit) => {
   return n;
 };
 
-const fromMillimeters = (value, unitMode) => {
-  if (!Number.isFinite(value)) return null;
+const fromMillimeters = (
+  value: number | null,
+  unitMode: UnitsMode | null | undefined
+): number | null => {
+  if (value === null || !Number.isFinite(value)) return null;
   if (unitMode === 'imperial') return value / 25.4;
   return value;
 };
 
-const toMeters = (value, fromUnit) => {
+const toMeters = (value: unknown, fromUnit: string | null | undefined): number | null => {
   const n = toNumber(value);
   if (n === null) return null;
   const u = normalizeUnit(fromUnit);
@@ -194,13 +233,19 @@ const toMeters = (value, fromUnit) => {
   return n;
 };
 
-const fromMeters = (value, unitMode) => {
-  if (!Number.isFinite(value)) return null;
+const fromMeters = (
+  value: number | null,
+  unitMode: UnitsMode | null | undefined
+): number | null => {
+  if (value === null || !Number.isFinite(value)) return null;
   if (unitMode === 'imperial') return value / 1609.344;
   return value / 1000;
 };
 
-export const convertValueByKind = (value, { kind, fromUnit, unitMode }) => {
+export const convertValueByKind = (
+  value: unknown,
+  { kind, fromUnit, unitMode }: ConvertValueByKindOptions
+): number | null => {
   if (unitMode !== 'metric' && unitMode !== 'imperial') return toNumber(value);
 
   if (kind === 'temperature') return fromCelsius(toCelsius(value, fromUnit), unitMode);
@@ -212,19 +257,19 @@ export const convertValueByKind = (value, { kind, fromUnit, unitMode }) => {
 };
 
 export const formatUnitValue = (
-  value,
-  /** @type {FormatUnitValueOptions} */ {
+  value: unknown,
+  {
     kind,
     fromUnit,
     unitMode,
     fallback = '--',
     decimals: decimalPlaces,
-  } = {}
-) => {
+  }: FormatUnitValueOptions = {}
+): string => {
   const converted = kind
     ? convertValueByKind(value, { kind, fromUnit, unitMode })
     : toNumber(value);
-  if (!Number.isFinite(converted)) return fallback;
+  if (converted === null || !Number.isFinite(converted)) return fallback;
 
   let decimals = normalizeDecimalPlaces(decimalPlaces);
   if (decimals === null) {
@@ -243,16 +288,16 @@ export const formatUnitValue = (
 };
 
 export const formatKindValueForDisplay = (
-  value,
-  /** @type {FormatKindValueForDisplayOptions} */ {
+  value: unknown,
+  {
     kind,
     fromUnit,
     unitMode,
     fallback = '--',
     includeUnit = true,
     decimals: decimalPlaces,
-  } = {}
-) => {
+  }: FormatKindValueForDisplayOptions = {}
+): { value: string; unit: string; text: string } => {
   const renderedValue = formatUnitValue(value, {
     kind,
     fromUnit,

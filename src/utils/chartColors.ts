@@ -12,7 +12,7 @@ export const WEATHER_BAND_COLORS = {
   hot: 'var(--status-error-fg)',
 };
 
-export function getThresholdColor(normalizedValue) {
+export function getThresholdColor(normalizedValue: number): string {
   if (normalizedValue > 0.6) return CHART_STATUS_COLORS.high;
   if (normalizedValue > 0.3) return CHART_STATUS_COLORS.mid;
   return CHART_STATUS_COLORS.low;

@@ -1,4 +1,4 @@
-const MODAL_IMPORTERS = {
+const MODAL_IMPORTERS: Record<string, () => Promise<unknown>> = {
   addCard: () => import('../modals/AddCardContent'),
   config: () => import('../modals/ConfigModal'),
   editCard: () => import('../modals/EditCardModal'),
@@ -24,10 +24,10 @@ const LIKELY_MODAL_PREFETCH_ORDER = [
   'weather',
 ];
 
-const prefetchedKeys = new Set();
-const scheduledKeys = new Set();
+const prefetchedKeys = new Set<string>();
+const scheduledKeys = new Set<string>();
 
-function requestIdleTask(callback) {
+function requestIdleTask(callback: IdleRequestCallback): number | null {
   if (typeof window === 'undefined') return null;
 
   if (typeof window.requestIdleCallback === 'function') {
@@ -37,7 +37,7 @@ function requestIdleTask(callback) {
   return window.setTimeout(() => callback({ didTimeout: true, timeRemaining: () => 0 }), 900);
 }
 
-function cancelIdleTask(handle) {
+function cancelIdleTask(handle: number | null): void {
   if (typeof window === 'undefined' || handle == null) return;
 
   if (typeof window.cancelIdleCallback === 'function') {
@@ -48,7 +48,7 @@ function cancelIdleTask(handle) {
   window.clearTimeout(handle);
 }
 
-export function scheduleModalPrefetch(keys) {
+export function scheduleModalPrefetch(keys: readonly string[]): () => void {
   if (typeof window === 'undefined') return () => {};
 
   const queue = keys.filter((key) => {
@@ -60,8 +60,8 @@ export function scheduleModalPrefetch(keys) {
   if (queue.length === 0) return () => {};
 
   let cancelled = false;
-  let idleHandle = null;
-  let activeKey = null;
+  let idleHandle: number | null = null;
+  let activeKey: string | null = null;
 
   const runNext = () => {
     if (cancelled) return;

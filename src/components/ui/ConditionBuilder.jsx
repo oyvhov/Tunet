@@ -6,6 +6,7 @@ import {
 } from '../../utils/conditionUtils';
 import { Check, Plus, Search } from '../../icons';
 
+/** @returns {import('../../utils/conditionUtils').VisibilityConditionRule} */
 const createDefaultRule = () => ({
   type: 'state',
   states: ['on'],

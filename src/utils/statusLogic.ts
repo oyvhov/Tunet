@@ -1,12 +1,17 @@
 // Logic for Status Pill component
 
+import type { HassEntity } from '../types/ha';
+
 /**
  * Filter and format player name based on pill configuration patterns
  * @param {string} value - The raw player name
  * @param {string} filterPattern - Comma-separated list of patterns to remove (e.g. "Kodi *")
  * @returns {string} - Cleaned name
  */
-export const applyPlayerNameDisplayFilter = (value, filterPattern) => {
+export const applyPlayerNameDisplayFilter = (
+  value: string | null | undefined,
+  filterPattern?: unknown
+): string => {
   const name = String(value || '');
   const rawFilter = typeof filterPattern === 'string' ? filterPattern : '';
   const patterns = rawFilter
@@ -40,7 +45,7 @@ export const applyPlayerNameDisplayFilter = (value, filterPattern) => {
  * @param {Object} candidate - The entity object
  * @returns {boolean}
  */
-export const hasCandidateMediaMetadata = (candidate) => {
+export const hasCandidateMediaMetadata = (candidate: HassEntity | null | undefined): boolean => {
   if (!candidate) return false;
   const attrs = candidate.attributes || {};
   return Boolean(
@@ -58,10 +63,12 @@ export const hasCandidateMediaMetadata = (candidate) => {
  * @param {Array} candidates - Array of media player entities
  * @returns {Object|null} - The best entity to display
  */
-export const pickBestDisplayEntity = (candidates) => {
+export const pickBestDisplayEntity = (
+  candidates: (HassEntity | null | undefined)[] | null | undefined
+): HassEntity | null => {
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
-  const scored = candidates
-    .filter(Boolean)
+  // filter(Boolean) drops null/undefined but TS doesn't narrow the element type from it
+  const scored = (candidates.filter(Boolean) as HassEntity[])
     .map((candidate) => {
       const attrs = candidate.attributes || {};
       const hasTitle = Boolean(attrs.media_title || attrs.media_channel || attrs.media_album_name);

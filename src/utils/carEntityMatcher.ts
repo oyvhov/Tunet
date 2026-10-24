@@ -21,11 +21,31 @@ const FIELD_ORDER = [
   'chargeLimitNumberId',
   'chargeLimitSelectId',
   'updateButtonId',
-];
+] as const;
 
-const normalize = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+export type CarEntityField = (typeof FIELD_ORDER)[number];
 
-const hasAnyToken = (text, tokens) => tokens.some((token) => text.includes(token));
+type CarEntityLike = {
+  attributes?: { friendly_name?: string; [key: string]: unknown } | null;
+};
+
+type CarEntities = Record<string, CarEntityLike | null | undefined>;
+
+type CandidateEntry = { id: string; score: number };
+
+type CandidateMap = Partial<Record<CarEntityField, CandidateEntry[]>>;
+
+export type CarEntityMatch = {
+  options: Record<CarEntityField, string[]>;
+  suggested: Record<CarEntityField, string | null>;
+  chargeControlIds: string[];
+};
+
+const normalize = (value: unknown): string =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+const hasAnyToken = (text: string, tokens: readonly string[]): boolean =>
+  tokens.some((token) => text.includes(token));
 
 const CHARGE_CONTROL_INCLUDE_TOKENS = [
   'charge',
@@ -56,26 +76,31 @@ const CHARGE_CONTROL_EXCLUDE_TOKENS = [
   'system',
 ];
 
-function isChargeControlCandidate(text) {
+function isChargeControlCandidate(text: string): boolean {
   if (!hasAnyToken(text, CHARGE_CONTROL_INCLUDE_TOKENS)) return false;
   if (hasAnyToken(text, CHARGE_CONTROL_EXCLUDE_TOKENS)) return false;
   return true;
 }
 
-const parseNumeric = (value) => {
+const parseNumeric = (value: unknown): number | null => {
   if (value === null || value === undefined) return null;
   const parsed = parseFloat(String(value).replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-function buildSearchText(id, entity) {
+function buildSearchText(id: string, entity: CarEntityLike | null | undefined): string {
   const friendlyName = normalize(entity?.attributes?.friendly_name);
   const objectId = normalize(id.split('.')[1] || '');
   const uniqueId = normalize(entity?.attributes?.unique_id);
   return `${normalize(id)} ${objectId} ${friendlyName} ${uniqueId}`;
 }
 
-function addCandidate(candidates, key, id, score) {
+function addCandidate(
+  candidates: CandidateMap,
+  key: CarEntityField,
+  id: string,
+  score: number
+): void {
   if (!id || !Number.isFinite(score) || score <= 0) return;
   if (!candidates[key]) candidates[key] = [];
   const existing = candidates[key].find((entry) => entry.id === id);
@@ -86,8 +111,11 @@ function addCandidate(candidates, key, id, score) {
   existing.score = Math.max(existing.score, score);
 }
 
-function rankCandidates(candidates, entities) {
-  const result = {};
+function rankCandidates(
+  candidates: CandidateMap,
+  entities: CarEntities
+): Record<CarEntityField, string[]> {
+  const result = {} as Record<CarEntityField, string[]>;
   for (const key of FIELD_ORDER) {
     const list = Array.isArray(candidates[key]) ? candidates[key] : [];
     const ranked = list
@@ -103,9 +131,9 @@ function rankCandidates(candidates, entities) {
   return result;
 }
 
-export function matchCarEntities(entities = {}) {
-  const candidates = {};
-  const chargeControlScores = new Map();
+export function matchCarEntities(entities: CarEntities = {}): CarEntityMatch {
+  const candidates: CandidateMap = {};
+  const chargeControlScores = new Map<string, number>();
   const entries = Object.entries(entities || {});
 
   for (const [id, entity] of entries) {
@@ -258,7 +286,7 @@ export function matchCarEntities(entities = {}) {
   }
 
   const options = rankCandidates(candidates, entities);
-  const suggested = {};
+  const suggested = {} as Record<CarEntityField, string | null>;
   for (const key of FIELD_ORDER) {
     suggested[key] = options[key]?.[0] || null;
   }

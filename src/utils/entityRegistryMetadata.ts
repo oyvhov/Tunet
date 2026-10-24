@@ -1,12 +1,39 @@
-const hasText = (value) =>
+type RegistryEntry = Record<string, unknown>;
+
+export type EntityRegistryEntry = {
+  device_id?: string | null;
+  platform?: unknown;
+  area_id?: unknown;
+};
+
+export type DeviceRegistryEntry = {
+  name?: unknown;
+  name_by_user?: unknown;
+  manufacturer?: unknown;
+  model?: unknown;
+  area_id?: unknown;
+};
+
+type EntityLike = { attributes?: Record<string, unknown> | null };
+
+type RegistryMetadata = Record<string, unknown>;
+
+const hasText = (value: unknown): boolean =>
   typeof value === 'string' || typeof value === 'number' ? String(value).trim().length > 0 : false;
 
-const getPreferredDeviceName = (device) => device?.name_by_user || device?.name || null;
+const getPreferredDeviceName = (device: DeviceRegistryEntry | null | undefined) =>
+  device?.name_by_user || device?.name || null;
 
-const enrichedEntityCache = new WeakMap();
+const enrichedEntityCache = new WeakMap<
+  object,
+  { metadata: RegistryMetadata; result: Record<string, unknown> }
+>();
 
-export const buildRegistryLookupMap = (entries, key) => {
-  const map = new Map();
+export const buildRegistryLookupMap = <T extends RegistryEntry>(
+  entries: readonly T[] | null | undefined,
+  key: string
+): Map<string, T> => {
+  const map = new Map<string, T>();
   if (!Array.isArray(entries) || !key) return map;
 
   entries.forEach((entry) => {
@@ -19,15 +46,15 @@ export const buildRegistryLookupMap = (entries, key) => {
   return map;
 };
 
-export const enrichEntitiesWithRegistryMetadata = (
-  entities,
-  entityRegistryById = new Map(),
-  deviceRegistryById = new Map()
-) => {
+export const enrichEntitiesWithRegistryMetadata = <E extends Record<string, unknown>>(
+  entities: E | null | undefined,
+  entityRegistryById: Map<string, EntityRegistryEntry> = new Map(),
+  deviceRegistryById: Map<string, DeviceRegistryEntry> = new Map()
+): E | Record<string, never> => {
   if (!entities || typeof entities !== 'object') return {};
 
   let changed = false;
-  const nextEntities = {};
+  const nextEntities: Record<string, unknown> = {};
 
   Object.entries(entities).forEach(([entityId, entity]) => {
     if (!entity || typeof entity !== 'object') {
@@ -35,14 +62,14 @@ export const enrichEntitiesWithRegistryMetadata = (
       return;
     }
 
-    const attributes = entity.attributes || {};
+    const attributes = (entity as EntityLike).attributes || {};
     const entityRegistryEntry = entityRegistryById.get(entityId);
     const deviceRegistryEntry = entityRegistryEntry?.device_id
       ? deviceRegistryById.get(entityRegistryEntry.device_id)
       : null;
 
-    const metadata = {};
-    const assignIfMissing = (key, value) => {
+    const metadata: RegistryMetadata = {};
+    const assignIfMissing = (key: string, value: unknown) => {
       if (!hasText(value)) return;
       if (hasText(attributes[key])) return;
       metadata[key] = value;
@@ -85,5 +112,5 @@ export const enrichEntitiesWithRegistryMetadata = (
     nextEntities[entityId] = result;
   });
 
-  return changed ? nextEntities : entities;
+  return changed ? (nextEntities as E) : entities;
 };

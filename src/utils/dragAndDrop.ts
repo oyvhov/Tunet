@@ -1,4 +1,52 @@
-export const safeVibrate = (ms) => {
+import type {
+  CSSProperties,
+  Dispatch,
+  DragEvent as ReactDragEvent,
+  SetStateAction,
+  TouchEvent as ReactTouchEvent,
+} from 'react';
+
+export type PagesConfig = Record<string, string[] | undefined>;
+
+export interface DragSource {
+  index: number;
+  cardId: string;
+  colIndex?: number;
+}
+
+export interface TouchTarget {
+  targetId: string;
+  targetIndex: number;
+  targetColIndex?: number;
+}
+
+export interface TouchPath {
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+}
+
+type MutableRef<T> = { current: T };
+
+export interface DragAndDropOptions {
+  editMode: boolean;
+  pagesConfig: PagesConfig;
+  setPagesConfig: (config: PagesConfig) => void;
+  persistConfig?: ((config: PagesConfig) => void) | null;
+  activePage: string;
+  dragSourceRef: MutableRef<DragSource | null>;
+  touchTargetRef: MutableRef<TouchTarget | null>;
+  touchSwapCooldownRef: MutableRef<number>;
+  touchPath: TouchPath | null;
+  setTouchPath: Dispatch<SetStateAction<TouchPath | null>>;
+  touchTargetId: string | null;
+  setTouchTargetId: (id: string | null) => void;
+  setDraggingId: (id: string | null) => void;
+  ignoreTouchRef: MutableRef<boolean>;
+}
+
+export const safeVibrate = (ms: VibratePattern) => {
   try {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       if (
@@ -29,11 +77,11 @@ export const createDragAndDropHandlers = ({
   setTouchTargetId,
   setDraggingId,
   ignoreTouchRef,
-}) => {
-  const pendingTouchConfigRef = { current: null };
-  const touchWorkingConfigRef = { current: null };
+}: DragAndDropOptions) => {
+  const pendingTouchConfigRef: MutableRef<PagesConfig | null> = { current: null };
+  const touchWorkingConfigRef: MutableRef<PagesConfig | null> = { current: null };
 
-  const saveConfig = (newConfig) => {
+  const saveConfig = (newConfig: PagesConfig) => {
     if (typeof persistConfig === 'function') {
       persistConfig(newConfig);
       return;
@@ -56,7 +104,13 @@ export const createDragAndDropHandlers = ({
     setTouchPath(null);
   };
 
-  const startTouchDrag = (cardId, index, colIndex, x, y) => {
+  const startTouchDrag = (
+    cardId: string,
+    index: number,
+    colIndex: number | undefined,
+    x: number,
+    y: number
+  ) => {
     if (!editMode) return;
     safeVibrate(50);
     dragSourceRef.current = { index, cardId, colIndex };
@@ -71,9 +125,9 @@ export const createDragAndDropHandlers = ({
     setDraggingId(cardId);
   };
 
-  const moveCard = ({ source, targetIndex }) => {
+  const moveCard = ({ source, targetIndex }: { source: DragSource; targetIndex: number }) => {
     const baseConfig = touchWorkingConfigRef.current || pagesConfig;
-    const newConfig = { ...baseConfig };
+    const newConfig: PagesConfig = { ...baseConfig };
     const currentList = [...(newConfig[activePage] || [])];
     const [movedItem] = currentList.splice(source.index, 1);
     currentList.splice(targetIndex, 0, movedItem);
@@ -84,7 +138,7 @@ export const createDragAndDropHandlers = ({
     return { newConfig, source };
   };
 
-  const updateTouchDrag = (x, y) => {
+  const updateTouchDrag = (x: number, y: number) => {
     if (!editMode || !dragSourceRef.current) return;
     setTouchPath((prev) => (prev ? { ...prev, x, y } : { startX: x, startY: y, x, y }));
     const el = document.elementFromPoint(x, y);
@@ -93,7 +147,8 @@ export const createDragAndDropHandlers = ({
     if (!cardEl) return;
 
     const targetId = cardEl.getAttribute('data-card-id');
-    const targetIndex = parseInt(cardEl.getAttribute('data-index'));
+    // A missing attribute yields parseInt(null) === NaN, same as before typing.
+    const targetIndex = parseInt(cardEl.getAttribute('data-index') as string);
     const targetColIndexStr = cardEl.getAttribute('data-col-index');
     const targetColIndex = targetColIndexStr ? parseInt(targetColIndexStr) : undefined;
 
@@ -117,7 +172,7 @@ export const createDragAndDropHandlers = ({
     safeVibrate(10);
   };
 
-  const performTouchDrop = (x, y) => {
+  const performTouchDrop = (x: number, y: number) => {
     if (!dragSourceRef.current) return;
 
     const cards = Array.from(document.querySelectorAll('[data-card-id]'));
@@ -142,7 +197,8 @@ export const createDragAndDropHandlers = ({
 
     if (!cardElement && touchTargetRef.current) {
       cardElement = cards.find(
-        (card) => card.getAttribute('data-card-id') === touchTargetRef.current.targetId
+        // Checked non-null by the enclosing if; find() runs synchronously.
+        (card) => card.getAttribute('data-card-id') === touchTargetRef.current!.targetId
       );
     }
 
@@ -154,7 +210,8 @@ export const createDragAndDropHandlers = ({
     }
 
     const targetId = cardElement.getAttribute('data-card-id');
-    const targetIndex = parseInt(cardElement.getAttribute('data-index'));
+    // A missing attribute yields parseInt(null) === NaN, same as before typing.
+    const targetIndex = parseInt(cardElement.getAttribute('data-index') as string);
     const targetColIndexStr = cardElement.getAttribute('data-col-index');
     const _targetColIndex = targetColIndexStr ? parseInt(targetColIndexStr) : undefined;
 
@@ -176,7 +233,7 @@ export const createDragAndDropHandlers = ({
     safeVibrate(20);
   };
 
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = (e: ReactTouchEvent<HTMLElement>) => {
     if (!editMode || !dragSourceRef.current) return;
     const touch = e.changedTouches[0];
     const x = touch.clientX;
@@ -185,7 +242,7 @@ export const createDragAndDropHandlers = ({
     resetDragState();
   };
 
-  const handleTouchCancel = (e) => {
+  const handleTouchCancel = (e: ReactTouchEvent<HTMLElement>) => {
     if (!editMode || !dragSourceRef.current) return;
     if (e.cancelable) e.preventDefault();
     const x = touchPath?.x;
@@ -196,25 +253,33 @@ export const createDragAndDropHandlers = ({
     resetDragState();
   };
 
-  const getDragProps = ({ cardId, index, colIndex }) => ({
+  const getDragProps = ({
+    cardId,
+    index,
+    colIndex,
+  }: {
+    cardId: string;
+    index: number;
+    colIndex?: number;
+  }) => ({
     draggable: editMode,
-    onDragStart: (e) => {
+    onDragStart: (e: ReactDragEvent<HTMLElement>) => {
       e.dataTransfer.setData('dragData', JSON.stringify({ index, cardId, colIndex }));
       e.dataTransfer.effectAllowed = 'move';
       setTimeout(() => setDraggingId(cardId), 0);
     },
     onDragEnd: () => setDraggingId(null),
-    onDragOver: (e) => {
+    onDragOver: (e: ReactDragEvent<HTMLElement>) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
     },
-    onDrop: (e) => {
+    onDrop: (e: ReactDragEvent<HTMLElement>) => {
       e.stopPropagation();
       const rawData = e.dataTransfer.getData('dragData');
       if (!rawData) return;
-      const source = JSON.parse(rawData);
+      const source: DragSource = JSON.parse(rawData);
 
-      const newConfig = { ...pagesConfig };
+      const newConfig: PagesConfig = { ...pagesConfig };
       const currentList = [...(newConfig[activePage] || [])];
       const movedItem = currentList.splice(source.index, 1)[0];
       currentList.splice(index, 0, movedItem);
@@ -223,16 +288,17 @@ export const createDragAndDropHandlers = ({
       saveConfig(newConfig);
       setDraggingId(null);
     },
-    onTouchStart: (e) => {
+    onTouchStart: (e: ReactTouchEvent<HTMLElement>) => {
       if (ignoreTouchRef.current) return;
       if (!editMode) return;
-      if (!e.target.closest('[data-drag-handle]')) return;
+      // Touch targets inside a card are always elements.
+      if (!(e.target as Element).closest('[data-drag-handle]')) return;
       if (e.cancelable) e.preventDefault();
       const touch = e.touches[0];
       if (!touch) return;
       startTouchDrag(cardId, index, colIndex, touch.clientX, touch.clientY);
     },
-    onTouchMove: (e) => {
+    onTouchMove: (e: ReactTouchEvent<HTMLElement>) => {
       if (ignoreTouchRef.current) return;
       if (!editMode || !dragSourceRef.current) return;
       if (e.cancelable) e.preventDefault();
@@ -247,10 +313,18 @@ export const createDragAndDropHandlers = ({
     'data-col-index': colIndex,
   });
 
-  const getCardStyle = ({ cardId, isHidden, isDragging }) => {
+  const getCardStyle = ({
+    cardId,
+    isHidden,
+    isDragging,
+  }: {
+    cardId: string;
+    isHidden: boolean;
+    isDragging: boolean;
+  }) => {
     const isTouchTarget = !!touchTargetId && touchTargetId === cardId;
 
-    const style = {
+    const style: CSSProperties = {
       backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
       borderColor: isDragging
         ? 'rgba(96, 165, 250, 1)'
@@ -283,7 +357,7 @@ export const createDragAndDropHandlers = ({
   return {
     getDragProps,
     getCardStyle,
-    isTouchTarget: (cardId) => !!touchTargetId && touchTargetId === cardId,
+    isTouchTarget: (cardId: string) => !!touchTargetId && touchTargetId === cardId,
     startTouchDrag,
     updateTouchDrag,
     performTouchDrop,

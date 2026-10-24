@@ -16,9 +16,36 @@ export const SENSOR_GRAPH_RANGES = {
   '30d': 720,
 };
 
+export type SensorGraphRange = keyof typeof SENSOR_GRAPH_RANGES;
+
+export type TimeSeriesPoint = {
+  value: number;
+  time: Date;
+  min?: number;
+  max?: number;
+  change?: number;
+};
+
+export type SensorGraphWindow = {
+  start: Date;
+  end: Date;
+  buckets: number;
+  boundaries: Date[];
+  period: 'hour' | 'day';
+};
+
+export type AggregateTimeSeriesOptions = {
+  start: Date;
+  end: Date;
+  buckets: number;
+  boundaries?: Date[];
+  stat?: string;
+  stateClass?: string;
+};
+
 export const SENSOR_GRAPH_STATS = ['mean', 'min', 'max', 'change'];
 
-const BUCKET_HOURS = {
+const BUCKET_HOURS: Record<SensorGraphRange, number> = {
   '1h': 1 / 12,
   '6h': 0.25,
   '12h': 0.5,
@@ -28,8 +55,10 @@ const BUCKET_HOURS = {
   '30d': 24,
 };
 
-export function resolveSensorGraphRange(range) {
-  return Object.prototype.hasOwnProperty.call(SENSOR_GRAPH_RANGES, range) ? range : '24h';
+export function resolveSensorGraphRange(range: unknown): SensorGraphRange {
+  return Object.prototype.hasOwnProperty.call(SENSOR_GRAPH_RANGES, range as PropertyKey)
+    ? (range as SensorGraphRange)
+    : '24h';
 }
 
 /**
@@ -42,12 +71,12 @@ export function resolveSensorGraphRange(range) {
  * @param {Date} [now]
  * @returns {{ start: Date, end: Date, buckets: number, boundaries: Date[], period: 'hour' | 'day' }}
  */
-export function getSensorGraphWindow(range, now = new Date()) {
+export function getSensorGraphWindow(range: unknown, now: Date = new Date()): SensorGraphWindow {
   const key = resolveSensorGraphRange(range);
   const hours = SENSOR_GRAPH_RANGES[key];
   const bucketHours = BUCKET_HOURS[key];
   const buckets = Math.round(hours / bucketHours);
-  const boundaries = [];
+  const boundaries: Date[] = [];
   if (bucketHours >= 24) {
     const tomorrow = new Date(now);
     tomorrow.setHours(24, 0, 0, 0);
@@ -88,9 +117,9 @@ export function getSensorGraphWindow(range, now = new Date()) {
  * @returns {{ value: number, time: Date }[]}
  */
 export function aggregateTimeSeries(
-  points,
-  { start, end, buckets, boundaries, stat = 'mean', stateClass }
-) {
+  points: TimeSeriesPoint[],
+  { start, end, buckets, boundaries, stat = 'mean', stateClass }: AggregateTimeSeriesOptions
+): { value: number; time: Date }[] {
   if (!Array.isArray(points) || points.length === 0 || !(buckets > 0)) return [];
   const startMs = start.getTime();
   const span = end.getTime() - startMs;
@@ -102,18 +131,18 @@ export function aggregateTimeSeries(
   const sorted = [...points].sort((a, b) => a.time.getTime() - b.time.getTime());
   const isMeter = stateClass === 'total_increasing';
 
-  let carry = null;
+  let carry: number | null = null;
   let index = 0;
   while (index < sorted.length && sorted[index].time.getTime() < edges[0]) {
     carry = sorted[index].value;
     index += 1;
   }
 
-  const result = [];
+  const result: { value: number; time: Date }[] = [];
   for (let bucket = 0; bucket < buckets; bucket += 1) {
     const bucketStart = edges[bucket];
     const bucketEnd = bucket === buckets - 1 ? Infinity : edges[bucket + 1];
-    const inBucket = [];
+    const inBucket: TimeSeriesPoint[] = [];
     while (index < sorted.length && sorted[index].time.getTime() < bucketEnd) {
       inBucket.push(sorted[index]);
       index += 1;
@@ -129,12 +158,12 @@ export function aggregateTimeSeries(
     const carryCovers = carry !== null && inBucket[0].time.getTime() > bucketStart;
     const samples =
       carryCovers && !isStatistics
-        ? [carry, ...inBucket.map((point) => point.value)]
+        ? [carry as number, ...inBucket.map((point) => point.value)]
         : inBucket.map((point) => point.value);
-    let value;
+    let value: number;
     if (stat === 'change') {
       if (inBucket.every((point) => Number.isFinite(point.change))) {
-        value = inBucket.reduce((sum, point) => sum + point.change, 0);
+        value = inBucket.reduce((sum, point) => sum + (point.change as number), 0);
       } else {
         value = 0;
         let previous = carry ?? inBucket[0].value;
@@ -145,9 +174,13 @@ export function aggregateTimeSeries(
         }
       }
     } else if (stat === 'min') {
-      value = isStatistics ? Math.min(...inBucket.map((point) => point.min)) : Math.min(...samples);
+      value = isStatistics
+        ? Math.min(...inBucket.map((point) => point.min as number))
+        : Math.min(...samples);
     } else if (stat === 'max') {
-      value = isStatistics ? Math.max(...inBucket.map((point) => point.max)) : Math.max(...samples);
+      value = isStatistics
+        ? Math.max(...inBucket.map((point) => point.max as number))
+        : Math.max(...samples);
     } else {
       value = samples.reduce((sum, sample) => sum + sample, 0) / samples.length;
     }
@@ -173,7 +206,10 @@ export function aggregateTimeSeries(
  * @param {number} [maxPoints=150] - Maximum number of output buckets.
  * @returns {{ value: number, time: Date }[]}
  */
-export function downsampleTimeSeries(points, maxPoints = 150) {
+export function downsampleTimeSeries(
+  points: TimeSeriesPoint[],
+  maxPoints: number = 150
+): TimeSeriesPoint[] {
   if (!Array.isArray(points) || points.length === 0) return points;
   if (points.length <= maxPoints) return points;
 
@@ -184,7 +220,7 @@ export function downsampleTimeSeries(points, maxPoints = 150) {
   if (timeRange === 0) {
     // All points at the same timestamp — stride-average by index for consistency
     const step = Math.ceil(points.length / maxPoints);
-    const result = [];
+    const result: TimeSeriesPoint[] = [];
     for (let i = 0; i < points.length; i += step) {
       const group = points.slice(i, i + step);
       const avg = group.reduce((sum, p) => sum + p.value, 0) / group.length;
@@ -193,9 +229,9 @@ export function downsampleTimeSeries(points, maxPoints = 150) {
     return result;
   }
 
-  const bucketSums = new Array(maxPoints).fill(0);
-  const bucketCounts = new Array(maxPoints).fill(0);
-  const bucketTimes = new Array(maxPoints).fill(null);
+  const bucketSums = new Array<number>(maxPoints).fill(0);
+  const bucketCounts = new Array<number>(maxPoints).fill(0);
+  const bucketTimes = new Array<number | null>(maxPoints).fill(null);
 
   for (const point of points) {
     const t = point.time.getTime();
@@ -212,12 +248,12 @@ export function downsampleTimeSeries(points, maxPoints = 150) {
 
   // Return non-empty buckets. The loop above guarantees at least one bucket
   // is non-empty because the input has at least one point (checked at top).
-  const result = [];
+  const result: TimeSeriesPoint[] = [];
   for (let i = 0; i < maxPoints; i++) {
     if (bucketCounts[i] > 0) {
       result.push({
         value: bucketSums[i] / bucketCounts[i],
-        time: new Date(bucketTimes[i]),
+        time: new Date(bucketTimes[i] as number),
       });
     }
   }
