@@ -18,9 +18,9 @@ vi.mock('home-assistant-js-websocket', async (importOriginal) => ({
   ...ha,
 }));
 
-const oauthConfig = { url: 'https://ha.example', token: '', authMethod: 'oauth' };
+const haSetup = { url: 'https://ha.example', token: '', authMethod: 'oauth' };
 const wrapper = ({ children }) => (
-  <HomeAssistantProvider config={oauthConfig}>{children}</HomeAssistantProvider>
+  <HomeAssistantProvider config={haSetup}>{children}</HomeAssistantProvider>
 );
 const makeConnection = () => {
   const listeners = new Map();
@@ -42,8 +42,8 @@ describe('Home Assistant authentication lifecycle', () => {
     localStorage.clear();
     sessionStorage.clear();
     localStorage.setItem('ha_auth_method', 'oauth');
-    localStorage.setItem('ha_url', oauthConfig.url);
-    saveTokens({ access_token: 'access', refresh_token: 'refresh', hassUrl: oauthConfig.url });
+    localStorage.setItem('ha_url', haSetup.url);
+    saveTokens({ access_token: 'access', refresh_token: 'refresh', hassUrl: haSetup.url });
     ha.getAuth.mockResolvedValue({ accessToken: 'access' });
     ha.subscribeEntities.mockReturnValue(vi.fn());
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -95,7 +95,7 @@ describe('Home Assistant authentication lifecycle', () => {
       const connection = makeConnection();
       ha.createConnection.mockRejectedValueOnce(ERR_CANNOT_CONNECT).mockResolvedValue(connection);
       const config = {
-        ...oauthConfig,
+        ...haSetup,
         authMethod,
         token: authMethod === 'token' ? 'long-lived' : '',
       };
@@ -132,7 +132,7 @@ describe('Home Assistant authentication lifecycle', () => {
     const connection = makeConnection();
     ha.createConnection.mockRejectedValueOnce(ERR_CANNOT_CONNECT).mockResolvedValueOnce(connection);
     const config = {
-      ...oauthConfig,
+      ...haSetup,
       authMethod: 'token',
       token: 'long-lived',
       fallbackUrl: 'http://ha.local:8123',
