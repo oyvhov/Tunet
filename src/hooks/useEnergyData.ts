@@ -1,11 +1,21 @@
 import { useMemo } from 'react';
 
-export default function useEnergyData(entity, now = new Date()) {
+type NordpoolPrice = { start: string; end: string; value: number };
+type EnergyEntity = { state?: unknown; attributes?: Record<string, unknown> };
+
+export default function useEnergyData(
+  entity: EnergyEntity | null | undefined,
+  now: Date = new Date()
+) {
   const attributes = entity?.attributes || {};
 
   const fullPriceData = useMemo(() => {
-    const rawToday = Array.isArray(attributes.raw_today) ? attributes.raw_today : [];
-    const rawTomorrow = Array.isArray(attributes.raw_tomorrow) ? attributes.raw_tomorrow : [];
+    const rawToday: NordpoolPrice[] = Array.isArray(attributes.raw_today)
+      ? attributes.raw_today
+      : [];
+    const rawTomorrow: NordpoolPrice[] = Array.isArray(attributes.raw_tomorrow)
+      ? attributes.raw_tomorrow
+      : [];
     const tomorrowValid = attributes.tomorrow_valid === true;
     if (tomorrowValid && rawTomorrow.length > 0) {
       return [...rawToday, ...rawTomorrow];
@@ -14,7 +24,9 @@ export default function useEnergyData(entity, now = new Date()) {
   }, [attributes.raw_today, attributes.raw_tomorrow, attributes.tomorrow_valid]);
 
   const currentPriceIndex = useMemo(() => {
-    const rawToday = Array.isArray(attributes.raw_today) ? attributes.raw_today : [];
+    const rawToday: NordpoolPrice[] = Array.isArray(attributes.raw_today)
+      ? attributes.raw_today
+      : [];
     if (rawToday.length === 0) return -1;
     const nowTime = now.getTime();
     return rawToday.findIndex((d) => {

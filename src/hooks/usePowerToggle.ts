@@ -1,8 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 
-export function usePowerToggle({ entityId, isOn, domain, callService, buildCall = undefined }) {
-  const [pending, setPending] = useState(null);
-  const requestRef = useRef(null);
+interface PowerCall {
+  domain: string;
+  service: string;
+  data: Record<string, unknown>;
+}
+
+interface PowerRequest {
+  entityId: string;
+  target: boolean;
+}
+
+interface UsePowerToggleOptions {
+  entityId: string | null | undefined;
+  isOn: boolean;
+  domain: string;
+  callService?: (domain: string, service: string, data: Record<string, unknown>) => unknown;
+  buildCall?: () => PowerCall | null | undefined;
+}
+
+export function usePowerToggle({
+  entityId,
+  isOn,
+  domain,
+  callService,
+  buildCall = undefined,
+}: UsePowerToggleOptions) {
+  const [pending, setPending] = useState<PowerRequest | null>(null);
+  const requestRef = useRef<PowerRequest | null>(null);
 
   useEffect(() => {
     if (!pending) return;

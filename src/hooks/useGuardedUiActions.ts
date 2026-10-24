@@ -1,7 +1,23 @@
 import { useCallback } from 'react';
 
-/** @param {any} deps */
-export function useGuardedUiActions(deps) {
+type BooleanSetter = (value: boolean) => void;
+
+interface UseGuardedUiActionsDeps {
+  requestSettingsAccess: (onSuccess: () => void) => void;
+  editMode: boolean;
+  setEditMode: BooleanSetter;
+  setShowAddCardModal: BooleanSetter;
+  setShowConfigModal: BooleanSetter;
+  setShowThemeSidebar: BooleanSetter;
+  setShowLayoutSidebar: BooleanSetter;
+  setShowHeaderEditModal: BooleanSetter;
+  // Closing values (null/false) are forwarded to the setter unchanged.
+  setShowEditCardModal: (value: string | null | false) => void;
+  toggleCardVisibility: (cardId: string) => void;
+  removeCard: (cardId: string, listName?: string) => void;
+}
+
+export function useGuardedUiActions(deps: UseGuardedUiActionsDeps) {
   const {
     requestSettingsAccess,
     editMode,
@@ -16,7 +32,7 @@ export function useGuardedUiActions(deps) {
     removeCard,
   } = deps;
 
-  const guardedSetShowEditCardModal = (value) => {
+  const guardedSetShowEditCardModal = (value: string | null | false) => {
     if (value == null || value === false) {
       setShowEditCardModal(value);
       return;
@@ -27,7 +43,7 @@ export function useGuardedUiActions(deps) {
   };
 
   const applySettingsGuardToBooleanSetter = useCallback(
-    (show, setter) => {
+    (show: boolean, setter: BooleanSetter) => {
       if (!show) {
         setter(false);
         return;
@@ -40,7 +56,7 @@ export function useGuardedUiActions(deps) {
   );
 
   const guardedSetEditMode = useCallback(
-    (nextValue) => {
+    (nextValue: boolean | ((prev: boolean) => boolean)) => {
       const resolved = typeof nextValue === 'function' ? nextValue(editMode) : nextValue;
       if (!resolved) {
         setEditMode(false);
@@ -54,47 +70,47 @@ export function useGuardedUiActions(deps) {
   );
 
   const guardedSetShowAddCardModal = useCallback(
-    (show) => {
+    (show: boolean) => {
       applySettingsGuardToBooleanSetter(show, setShowAddCardModal);
     },
     [applySettingsGuardToBooleanSetter, setShowAddCardModal]
   );
 
   const guardedSetShowConfigModal = useCallback(
-    (show) => {
+    (show: boolean) => {
       applySettingsGuardToBooleanSetter(show, setShowConfigModal);
     },
     [applySettingsGuardToBooleanSetter, setShowConfigModal]
   );
 
   const guardedSetShowThemeSidebar = useCallback(
-    (show) => {
+    (show: boolean) => {
       applySettingsGuardToBooleanSetter(show, setShowThemeSidebar);
     },
     [applySettingsGuardToBooleanSetter, setShowThemeSidebar]
   );
 
   const guardedSetShowLayoutSidebar = useCallback(
-    (show) => {
+    (show: boolean) => {
       applySettingsGuardToBooleanSetter(show, setShowLayoutSidebar);
     },
     [applySettingsGuardToBooleanSetter, setShowLayoutSidebar]
   );
 
   const guardedSetShowHeaderEditModal = useCallback(
-    (show) => {
+    (show: boolean) => {
       applySettingsGuardToBooleanSetter(show, setShowHeaderEditModal);
     },
     [applySettingsGuardToBooleanSetter, setShowHeaderEditModal]
   );
 
-  const guardedToggleCardVisibility = (cardId) => {
+  const guardedToggleCardVisibility = (cardId: string) => {
     requestSettingsAccess(() => {
       toggleCardVisibility(cardId);
     });
   };
 
-  const guardedRemoveCard = (cardId, listName) => {
+  const guardedRemoveCard = (cardId: string, listName?: string) => {
     requestSettingsAccess(() => {
       removeCard(cardId, listName);
     });

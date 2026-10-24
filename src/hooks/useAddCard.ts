@@ -1,16 +1,11 @@
 import { useState, useEffect } from 'react';
 import { handleAddSelected } from '../services';
+import type { UseAddCardDeps, UseAddCardResult } from '../types/dashboard';
 
 const DEFAULT_ADD_CARD_TYPE = 'light';
 
-/** @typedef {import('../types/dashboard').UseAddCardDeps} UseAddCardDeps */
-/** @typedef {import('../types/dashboard').UseAddCardResult} UseAddCardResult */
-
 /**
  * Manages all "Add Card" dialog state, selection resets, type inference and submission.
- *
- * @param {UseAddCardDeps} deps
- * @returns {UseAddCardResult}
  */
 export function useAddCard({
   showAddCardModal,
@@ -32,22 +27,22 @@ export function useAddCard({
   setShowEditCardModal,
   setEditCardSettingsKey,
   t,
-}) {
+}: UseAddCardDeps): UseAddCardResult {
   // ── Selection state ────────────────────────────────────────────────────
   const [addCardTargetPage, setAddCardTargetPage] = useState('home');
   const [addCardType, setAddCardType] = useState(DEFAULT_ADD_CARD_TYPE);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEntities, setSelectedEntities] = useState([]);
-  const [selectedWeatherId, setSelectedWeatherId] = useState(null);
-  const [selectedTempId, setSelectedTempId] = useState(null);
-  const [selectedAndroidTVMediaId, setSelectedAndroidTVMediaId] = useState(null);
-  const [selectedAndroidTVRemoteId, setSelectedAndroidTVRemoteId] = useState(null);
-  const [selectedAppleTVMediaId, setSelectedAppleTVMediaId] = useState(null);
-  const [selectedAppleTVRemoteId, setSelectedAppleTVRemoteId] = useState(null);
-  const [selectedCostTodayId, setSelectedCostTodayId] = useState(null);
-  const [selectedCostMonthId, setSelectedCostMonthId] = useState(null);
+  const [selectedEntities, setSelectedEntities] = useState<string[]>([]);
+  const [selectedWeatherId, setSelectedWeatherId] = useState<string | null>(null);
+  const [selectedTempId, setSelectedTempId] = useState<string | null>(null);
+  const [selectedAndroidTVMediaId, setSelectedAndroidTVMediaId] = useState<string | null>(null);
+  const [selectedAndroidTVRemoteId, setSelectedAndroidTVRemoteId] = useState<string | null>(null);
+  const [selectedAppleTVMediaId, setSelectedAppleTVMediaId] = useState<string | null>(null);
+  const [selectedAppleTVRemoteId, setSelectedAppleTVRemoteId] = useState<string | null>(null);
+  const [selectedCostTodayId, setSelectedCostTodayId] = useState<string | null>(null);
+  const [selectedCostMonthId, setSelectedCostMonthId] = useState<string | null>(null);
   const [costSelectionTarget, setCostSelectionTarget] = useState('today');
-  const [selectedNordpoolId, setSelectedNordpoolId] = useState(null);
+  const [selectedNordpoolId, setSelectedNordpoolId] = useState<string | null>(null);
   const [nordpoolDecimals, setNordpoolDecimals] = useState(2);
   const [selectedSpacerVariant, setSelectedSpacerVariant] = useState('divider');
 
@@ -180,7 +175,7 @@ export function useAddCard({
   };
 
   // ── Submit handler ─────────────────────────────────────────────────────
-  const onAddSelected = (options = {}) =>
+  const onAddSelected = (options: { spacerVariant?: string } = {}) =>
     handleAddSelected({
       pagesConfig,
       persistConfig,

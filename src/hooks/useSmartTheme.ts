@@ -1,17 +1,23 @@
 import { useEffect, useRef } from 'react';
+import type { EntityMap } from '../types/dashboard';
+
+export interface UseSmartThemeParams {
+  /** Current theme name */
+  currentTheme: string;
+  /** Background mode ('theme', 'color', etc.) */
+  bgMode: string;
+  /** Home Assistant entities */
+  entities: EntityMap;
+  /** Current timestamp */
+  now: Date;
+}
 
 /**
  * Custom hook for smart contextual theming based on weather and time of day.
  * Applies CSS custom properties for background gradients when bgMode is 'theme'.
- *
- * @param {Object} params
- * @param {string} params.currentTheme - Current theme name
- * @param {string} params.bgMode - Background mode ('theme', 'color', etc.)
- * @param {Object} params.entities - Home Assistant entities
- * @param {Date} params.now - Current timestamp
  */
-export function useSmartTheme({ currentTheme, bgMode, entities, now }) {
-  const weatherEntityIdRef = useRef(null);
+export function useSmartTheme({ currentTheme, bgMode, entities, now }: UseSmartThemeParams) {
+  const weatherEntityIdRef = useRef<string | null>(null);
   const lastAppliedRef = useRef('');
 
   useEffect(() => {
@@ -20,9 +26,12 @@ export function useSmartTheme({ currentTheme, bgMode, entities, now }) {
       return;
     }
 
-    let weatherEntity = weatherEntityIdRef.current ? entities[weatherEntityIdRef.current] : null;
+    let weatherEntity: EntityMap[string] | null | undefined = weatherEntityIdRef.current
+      ? entities[weatherEntityIdRef.current]
+      : null;
     if (!weatherEntity?.entity_id?.startsWith('weather.')) {
-      weatherEntity = Object.values(entities).find((e) => e.entity_id.startsWith('weather.'));
+      // Non-null: every entity from the HA state stream carries its entity_id.
+      weatherEntity = Object.values(entities).find((e) => e.entity_id!.startsWith('weather.'));
       weatherEntityIdRef.current = weatherEntity?.entity_id || null;
     }
 

@@ -20,7 +20,7 @@ export function usePageRouting() {
   });
 
   const setActivePage = useCallback(
-    (page) => {
+    (page: string) => {
       _setActivePage(page);
       try {
         localStorage.setItem('tunet_active_page', page);

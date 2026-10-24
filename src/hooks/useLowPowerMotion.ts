@@ -13,7 +13,10 @@ const getMotionAllowed = () => {
   return !document.hidden && !prefersReducedMotion && !slowUpdate;
 };
 
-const addMediaListener = (query, listener) => {
+const addMediaListener = (
+  query: MediaQueryList | null | undefined,
+  listener: () => void
+): (() => void) => {
   if (!query) return () => {};
   if (typeof query.addEventListener === 'function') {
     query.addEventListener('change', listener);

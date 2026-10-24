@@ -116,7 +116,7 @@ export interface UseConnectionSetupResult {
   setConnectionTestResult: Dispatch<SetStateAction<ConnectionTestResult | null>>;
   configTab: string;
   setConfigTab: Dispatch<SetStateAction<string>>;
-  startOAuthLogin: () => void;
+  startOAuthLogin: (url?: string) => void;
   handleOAuthLogout: () => void;
   canAdvanceOnboarding: boolean;
   isOnboardingActive: boolean;
@@ -324,18 +324,18 @@ export interface UsePageManagementResult {
 export interface UseAddCardDeps {
   showAddCardModal: boolean;
   activePage: string;
-  isMediaPage: (pageId: string) => boolean;
-  isSonosPage: (pageId: string) => boolean;
-  isLightsPage: (pageId: string) => boolean;
-  isBatteryPage: (pageId: string) => boolean;
-  isRoomExplorerPage: (pageId: string) => boolean;
+  isMediaPage?: (pageId: string) => boolean;
+  isSonosPage?: (pageId: string) => boolean;
+  isLightsPage?: (pageId: string) => boolean;
+  isBatteryPage?: (pageId: string) => boolean;
+  isRoomExplorerPage?: (pageId: string) => boolean;
   pagesConfig: PagesConfig;
   persistConfig: (newConfig: PagesConfig) => void;
   cardSettings: CardSettingsMap;
   persistCardSettings: (newSettings: CardSettingsMap) => void;
   hiddenCards: string[];
   persistHiddenCards: (newHidden: string[]) => void;
-  getCardSettingsKey: (cardId: string) => string;
+  getCardSettingsKey: (cardId: string, pageId?: string) => string;
   saveCardSetting: (id: string, setting: string, value: unknown) => void;
   setShowAddCardModal: (show: boolean) => void;
   setShowEditCardModal: (value: string | null) => void;
@@ -376,7 +376,7 @@ export interface UseAddCardResult {
   setNordpoolDecimals: (value: number) => void;
   selectedSpacerVariant: string;
   setSelectedSpacerVariant: (value: string) => void;
-  onAddSelected: () => void;
+  onAddSelected: (options?: { spacerVariant?: string }) => void;
   getAddCardAvailableLabel: () => string;
   getAddCardNoneLeftLabel: () => string;
 }
@@ -398,11 +398,11 @@ export interface ModalState {
   showPersonModal: string | null;
   showAndroidTVModal: string | null;
   showAppleTVModal: string | null;
-  showVacuumModal: string | null;
-  showMowerModal: string | null;
+  showVacuumModal: boolean | null;
+  showMowerModal: boolean | null;
   showFanModal: string | null;
   showSensorInfoModal: string | { entityId: string; cardId?: string } | null;
-  showCalendarModal: string | null;
+  showCalendarModal: boolean | null;
   showTodoModal: string | null;
   showRoomModal: string | null;
   showCoverModal: string | null;
@@ -427,17 +427,17 @@ export interface ModalState {
 export interface ModalSetters {
   setShowNordpoolModal: (value: string | null) => void;
   setShowCostModal: (value: string | null) => void;
-  setActiveClimateEntityModal: (value: string | null) => void;
+  setActiveClimateEntityModal: (value: ModalState['activeClimateEntityModal']) => void;
   setShowLightModal: (value: string | null) => void;
   setActiveCarModal: (value: string | null) => void;
   setShowPersonModal: (value: string | null) => void;
   setShowAndroidTVModal: (value: string | null) => void;
   setShowAppleTVModal: (value: string | null) => void;
-  setShowVacuumModal: (value: string | null) => void;
-  setShowMowerModal: (value: string | null) => void;
+  setShowVacuumModal: (value: boolean | null) => void;
+  setShowMowerModal: (value: boolean | null) => void;
   setShowFanModal: (value: string | null) => void;
   setShowSensorInfoModal: (value: string | { entityId: string; cardId?: string } | null) => void;
-  setShowCalendarModal: (value: string | null) => void;
+  setShowCalendarModal: (value: boolean | null) => void;
   setShowTodoModal: (value: string | null) => void;
   setShowRoomModal: (value: string | null) => void;
   setShowCoverModal: (value: string | null) => void;
@@ -462,17 +462,17 @@ export interface ModalSetters {
 export interface EntityModalActions {
   setShowNordpoolModal: (value: string | null) => void;
   setShowCostModal: (value: string | null) => void;
-  setActiveClimateEntityModal: (value: string | null) => void;
+  setActiveClimateEntityModal: (value: ModalState['activeClimateEntityModal']) => void;
   setShowLightModal: (value: string | null) => void;
   setActiveCarModal: (value: string | null) => void;
   setShowPersonModal: (value: string | null) => void;
   setShowAndroidTVModal: (value: string | null) => void;
   setShowAppleTVModal: (value: string | null) => void;
-  setShowVacuumModal: (value: string | null) => void;
-  setShowMowerModal: (value: string | null) => void;
+  setShowVacuumModal: (value: boolean | null) => void;
+  setShowMowerModal: (value: boolean | null) => void;
   setShowFanModal: (value: string | null) => void;
   setShowSensorInfoModal: (value: string | { entityId: string; cardId?: string } | null) => void;
-  setShowCalendarModal: (value: string | null) => void;
+  setShowCalendarModal: (value: boolean | null) => void;
   setShowTodoModal: (value: string | null) => void;
   setShowRoomModal: (value: string | null) => void;
   setShowCoverModal: (value: string | null) => void;

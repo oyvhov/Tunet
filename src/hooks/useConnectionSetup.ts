@@ -8,15 +8,14 @@ import {
   isOAuthRejected,
   logoutOAuthEverywhere,
 } from '../services/oauthStorage';
-
-/** @typedef {import('../types/dashboard').UseConnectionSetupDeps} UseConnectionSetupDeps */
-/** @typedef {import('../types/dashboard').UseConnectionSetupResult} UseConnectionSetupResult */
+import type {
+  ConnectionTestResult,
+  UseConnectionSetupDeps,
+  UseConnectionSetupResult,
+} from '../types/dashboard';
 
 /**
  * Centralises connection-testing, OAuth login/logout and onboarding-step state.
- *
- * @param {UseConnectionSetupDeps} deps
- * @returns {UseConnectionSetupResult}
  */
 export function useConnectionSetup({
   config,
@@ -27,12 +26,14 @@ export function useConnectionSetup({
   showConfigModal,
   setShowConfigModal,
   t,
-}) {
+}: UseConnectionSetupDeps): UseConnectionSetupResult {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [onboardingUrlError, setOnboardingUrlError] = useState('');
   const [onboardingTokenError, setOnboardingTokenError] = useState('');
   const [testingConnection, setTestingConnection] = useState(false);
-  const [connectionTestResult, setConnectionTestResult] = useState(null);
+  const [connectionTestResult, setConnectionTestResult] = useState<ConnectionTestResult | null>(
+    null
+  );
   const [configTab, setConfigTab] = useState('connection');
 
   // ── Auto-close onboarding when OAuth connects ──────────────────────────

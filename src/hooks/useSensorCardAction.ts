@@ -1,11 +1,46 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
 import { callService as haCallService } from '../services/haClient';
 import {
   resolveSensorCardActionCall,
   sensorActionExpectationMatches,
 } from '../utils/sensorCardConfig';
+import type {
+  SensorActionExpectation,
+  SensorCardAction,
+  SensorEntities,
+} from '../utils/sensorCardConfig';
 
-const EMPTY_ENTITIES = {};
+type SensorHookAction = Omit<SensorCardAction, 'entityId'> & { entityId?: string };
+type SensorActionOverride = string | SensorHookAction;
+type SensorActionStatus = 'idle' | 'pending' | 'sent' | 'confirmed' | 'timeout' | 'error';
+
+interface SensorActionFeedback {
+  status: SensorActionStatus;
+  error: unknown;
+}
+
+interface SensorActionRequest {
+  acknowledged: boolean;
+  expectation: SensorActionExpectation | null;
+  timer: number | null;
+  actionKey: string;
+}
+
+interface UseSensorCardActionOptions {
+  conn: Connection | null | undefined;
+  connected?: boolean;
+  callService?: (domain: string, service: string, data: Record<string, unknown>) => unknown;
+  action: SensorHookAction | null | undefined;
+  entities?: SensorEntities;
+  onOpen?: (entityId: string | undefined) => void;
+  onError?: (error: unknown) => void;
+  disabled?: boolean;
+  timeoutMs?: number;
+  feedbackMs?: number;
+}
+
+const EMPTY_ENTITIES: SensorEntities = {};
 
 export function useSensorCardAction({
   conn,
@@ -18,28 +53,28 @@ export function useSensorCardAction({
   disabled = false,
   timeoutMs = 10000,
   feedbackMs = 2500,
-}) {
-  const [feedback, setFeedback] = useState({ status: 'idle', error: null });
-  const requestRef = useRef(null);
-  const feedbackTimerRef = useRef(null);
+}: UseSensorCardActionOptions) {
+  const [feedback, setFeedback] = useState<SensorActionFeedback>({ status: 'idle', error: null });
+  const requestRef = useRef<SensorActionRequest | null>(null);
+  const feedbackTimerRef = useRef<number | null>(null);
   const entitiesRef = useRef(entities);
   entitiesRef.current = entities;
   const actionKey = JSON.stringify([action?.type, action?.entityId, action?.service, action?.data]);
 
   const reset = useCallback(() => {
-    clearTimeout(requestRef.current?.timer);
-    clearTimeout(feedbackTimerRef.current);
+    clearTimeout(requestRef.current?.timer ?? undefined);
+    clearTimeout(feedbackTimerRef.current ?? undefined);
     requestRef.current = null;
     setFeedback({ status: 'idle', error: null });
   }, []);
 
   const finish = useCallback(
-    (request, status, error = null) => {
+    (request: SensorActionRequest, status: SensorActionStatus, error: unknown = null) => {
       if (requestRef.current !== request) return;
-      clearTimeout(request.timer);
+      clearTimeout(request.timer ?? undefined);
       requestRef.current = null;
       setFeedback({ status, error });
-      clearTimeout(feedbackTimerRef.current);
+      clearTimeout(feedbackTimerRef.current ?? undefined);
       feedbackTimerRef.current = setTimeout(() => {
         setFeedback({ status: 'idle', error: null });
       }, feedbackMs);
@@ -68,15 +103,15 @@ export function useSensorCardAction({
 
   useEffect(
     () => () => {
-      clearTimeout(requestRef.current?.timer);
-      clearTimeout(feedbackTimerRef.current);
+      clearTimeout(requestRef.current?.timer ?? undefined);
+      clearTimeout(feedbackTimerRef.current ?? undefined);
       requestRef.current = null;
     },
     []
   );
 
   const execute = useCallback(
-    async (override) => {
+    async (override?: SensorActionOverride): Promise<boolean> => {
       if (disabled || requestRef.current) return false;
       const resolvedAction = {
         ...action,
@@ -87,25 +122,32 @@ export function useSensorCardAction({
         onOpen?.(resolvedAction.entityId);
         return true;
       }
-      clearTimeout(feedbackTimerRef.current);
-      const request = { acknowledged: false, expectation: null, timer: null, actionKey };
+      clearTimeout(feedbackTimerRef.current ?? undefined);
+      const request: SensorActionRequest = {
+        acknowledged: false,
+        expectation: null,
+        timer: null,
+        actionKey,
+      };
       requestRef.current = request;
       setFeedback({ status: 'pending', error: null });
       request.timer = setTimeout(() => finish(request, 'timeout'), timeoutMs);
 
       try {
         if (!conn || connected === false) throw new Error('disconnected');
+        // A missing entityId indexes as 'undefined' and falls back to targetEntity, as in JS.
         const targetEntity =
-          entitiesRef.current[resolvedAction.entityId] || resolvedAction.targetEntity;
+          entitiesRef.current[resolvedAction.entityId as string] || resolvedAction.targetEntity;
         const call = resolveSensorCardActionCall(resolvedAction, targetEntity);
         if (!call) {
           finish(request, 'idle');
           return false;
         }
         request.expectation = call.expectation;
+        // resolveSensorCardActionCall throws unless entityId (and so domain) is non-empty.
         await (callService
-          ? callService(call.domain, call.service, call.data)
-          : haCallService(conn, call.domain, call.service, call.data));
+          ? callService(call.domain as string, call.service, call.data)
+          : haCallService(conn, call.domain as string, call.service, call.data));
         if (requestRef.current !== request) return false;
         request.acknowledged = true;
         if (!call.expectation) finish(request, 'sent');

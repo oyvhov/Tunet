@@ -4,9 +4,7 @@ import {
   MEDIA_TICK_INTERVAL,
   INITIAL_FETCH_DELAY,
 } from '../config/constants';
-
-/** @typedef {import('../types/dashboard').UseDashboardEffectsDeps} UseDashboardEffectsDeps */
-/** @typedef {import('../types/dashboard').UseDashboardEffectsResult} UseDashboardEffectsResult */
+import type { UseDashboardEffectsDeps, UseDashboardEffectsResult } from '../types/dashboard';
 
 /**
  * Miscellaneous App-level side-effects that don't belong in a specific domain:
@@ -22,10 +20,12 @@ export function useDashboardEffects({
   inactivityTimeout,
   resetToHome,
   activeMediaModal,
-}) {
+}: UseDashboardEffectsDeps): UseDashboardEffectsResult {
   const [now, setNow] = useState(new Date());
   const [mediaTick, setMediaTick] = useState(0);
-  const [optimisticLightBrightness, setOptimisticLightBrightness] = useState({});
+  const [optimisticLightBrightness, setOptimisticLightBrightness] = useState<
+    Record<string, number>
+  >({});
 
   // ── Stable ref so the inactivity timer always calls the latest resetToHome
   const resetToHomeRef = useRef(resetToHome);
@@ -60,20 +60,21 @@ export function useDashboardEffects({
 
   // ── Haptic feedback on touch ───────────────────────────────────────────
   useEffect(() => {
-    let pendingTarget = null;
+    let pendingTarget: EventTarget | null = null;
     let startX = 0;
     let startY = 0;
     const MOVE_THRESHOLD = 10; // px — if finger moves more, it's a scroll
 
-    const onDown = (e) => {
+    const onDown = (e: PointerEvent) => {
       if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
-      if (!e.target?.closest?.('[data-haptic]')) return;
+      // Targets may be non-Element nodes; the optional call keeps that case safe.
+      if (!(e.target as Element | null)?.closest?.('[data-haptic]')) return;
       pendingTarget = e.target;
       startX = e.clientX;
       startY = e.clientY;
     };
 
-    const onMove = (e) => {
+    const onMove = (e: PointerEvent) => {
       if (!pendingTarget) return;
       const dx = Math.abs(e.clientX - startX);
       const dy = Math.abs(e.clientY - startY);
@@ -119,8 +120,7 @@ export function useDashboardEffects({
   useEffect(() => {
     document.title = resolvedHeaderTitle;
 
-    /** @type {HTMLLinkElement | null} */
-    let link = document.querySelector("link[rel~='icon']");
+    let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
     if (!link) {
       link = document.createElement('link');
       link.rel = 'icon';
@@ -130,8 +130,7 @@ export function useDashboardEffects({
     link.href =
       "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>";
 
-    /** @type {HTMLMetaElement | null} */
-    let meta = document.querySelector("meta[name='viewport']");
+    let meta = document.querySelector<HTMLMetaElement>("meta[name='viewport']");
     if (!meta) {
       meta = document.createElement('meta');
       meta.name = 'viewport';
@@ -142,7 +141,7 @@ export function useDashboardEffects({
 
   // ── Inactivity / idle timer ────────────────────────────────────────────
   useEffect(() => {
-    let timer;
+    let timer: number | undefined;
     const reset = () => {
       clearTimeout(timer);
       if (!inactivityTimeout || inactivityTimeout <= 0) return;
@@ -159,10 +158,10 @@ export function useDashboardEffects({
     };
   }, [inactivityTimeout]);
 
-  return /** @type {UseDashboardEffectsResult} */ ({
+  return {
     now,
     mediaTick,
     optimisticLightBrightness,
     setOptimisticLightBrightness,
-  });
+  };
 }

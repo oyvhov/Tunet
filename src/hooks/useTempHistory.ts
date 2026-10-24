@@ -1,30 +1,42 @@
 import { useState, useEffect } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
 import { getHistory, getStatistics } from '../services';
+import type { HistoryEntry, StatisticsEntry } from '../services/haClient';
+import type { CardSettingsMap } from '../types/dashboard';
 import {
   FETCH_STAGGER_BASE,
   FETCH_STAGGER_RANDOM,
   HISTORY_REFRESH_INTERVAL,
 } from '../config/constants';
 
+// Statistics rows are mapped to a history-like shape; history rows are stored as-is.
+type TempHistoryPoint = HistoryEntry | { state: unknown; last_updated: StatisticsEntry['start'] };
+type TempHistoryById = Record<string, TempHistoryPoint[]>;
+
 /**
  * Hook that fetches and refreshes temperature history data for weather cards.
  * Returns [tempHistoryById, setTempHistoryById].
  */
-export default function useTempHistory(conn, cardSettings) {
-  const [tempHistoryById, setTempHistoryById] = useState({});
+export default function useTempHistory(
+  conn: Connection | null | undefined,
+  cardSettings: CardSettingsMap
+): [TempHistoryById, Dispatch<SetStateAction<TempHistoryById>>] {
+  const [tempHistoryById, setTempHistoryById] = useState<TempHistoryById>({});
 
   useEffect(() => {
     if (!conn) return;
     let cancelled = false;
-    const timeoutIds = [];
+    const timeoutIds: number[] = [];
     const tempIds = Object.keys(cardSettings)
       .filter((key) => key.includes('::weather_temp_'))
       .map((key) => cardSettings[key]?.tempId)
-      .filter(Boolean);
+      // Weather-temp cards store entity id strings; filter(Boolean) drops the empty ones.
+      .filter(Boolean) as string[];
 
     const uniqueIds = Array.from(new Set(tempIds));
 
-    const fetchHistoryFor = async (tempId) => {
+    const fetchHistoryFor = async (tempId: string) => {
       const end = new Date();
       const start = new Date();
       start.setHours(start.getHours() - 48);
