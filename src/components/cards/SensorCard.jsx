@@ -458,8 +458,12 @@ const SensorCard = memo(
           if (preferStatistics) {
             const statPoints = await loadStatistics();
             if (cancelled) return;
+            if (graphStyle === 'bar' && statPoints.length > 0) {
+              setHistory(statPoints);
+              return;
+            }
             if (statPoints.length > 1) {
-              setHistory(graphStyle === 'bar' ? statPoints : downsampleTimeSeries(statPoints));
+              setHistory(downsampleTimeSeries(statPoints));
               return;
             }
           }
@@ -514,6 +518,11 @@ const SensorCard = memo(
           const statPoints = preferStatistics ? [] : await loadStatistics();
           if (cancelled) return;
 
+          if (graphStyle === 'bar' && statPoints.length > 0) {
+            setHistory(statPoints);
+            return;
+          }
+
           if (statPoints.length === 1) {
             const onlyPoint = statPoints[0];
             const earlierPoint = {
@@ -565,9 +574,13 @@ const SensorCard = memo(
 
     const graphData = useMemo(() => {
       if (graphStyle !== 'bar' || history.length === 0 || !historyWindowRef.current) return history;
-      const bars = aggregateTimeSeries(history, { ...historyWindowRef.current, stat: graphStat });
+      const bars = aggregateTimeSeries(history, {
+        ...historyWindowRef.current,
+        stat: graphStat,
+        stateClass: displayEntity?.attributes?.state_class,
+      });
       return bars.length > 0 ? bars : history;
-    }, [history, graphStyle, graphStat]);
+    }, [history, graphStyle, graphStat, displayEntity?.attributes?.state_class]);
 
     // Early return AFTER all hooks to respect Rules of Hooks
     if (!entity) return null;

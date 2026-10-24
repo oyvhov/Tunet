@@ -119,4 +119,26 @@ describe('sensor history responses', () => {
     expect(screen.getByRole('status')).toHaveAttribute('data-variant', 'bar');
     expect(screen.getByRole('status')).toHaveTextContent('[6,3]');
   });
+
+  it('keeps a single statistics row for a 30-day bar graph', async () => {
+    vi.setSystemTime(new Date(2026, 9, 24, 12, 0));
+    getStatistics.mockResolvedValue([
+      { start: new Date(2026, 9, 24).getTime(), state: 12, change: 7.5 },
+    ]);
+    render(
+      <SensorCard
+        {...props}
+        settings={{
+          size: 'large',
+          showGraph: true,
+          graphRange: '30d',
+          graphStyle: 'bar',
+          graphStat: 'change',
+        }}
+      />
+    );
+    await tick();
+    expect(getStatistics).toHaveBeenCalledWith({}, expect.objectContaining({ period: 'day' }));
+    expect(screen.getByRole('status')).toHaveTextContent('[7.5]');
+  });
 });

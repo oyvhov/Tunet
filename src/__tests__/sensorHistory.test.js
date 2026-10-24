@@ -135,6 +135,16 @@ describe('getSensorGraphWindow', () => {
     expect(getSensorGraphWindow('30d', now).period).toBe('day');
     expect(getSensorGraphWindow('bogus', now).buckets).toBe(24);
   });
+
+  it('keeps every day boundary on local midnight across a DST change', () => {
+    const window = getSensorGraphWindow('7d', new Date(2026, 9, 26, 12, 0));
+    expect(window.boundaries).toHaveLength(8);
+    for (const boundary of window.boundaries) {
+      expect([boundary.getHours(), boundary.getMinutes()]).toEqual([0, 0]);
+    }
+    expect(window.start).toEqual(new Date(2026, 9, 20));
+    expect(window.end).toEqual(new Date(2026, 9, 27));
+  });
 });
 
 describe('aggregateTimeSeries', () => {
@@ -172,6 +182,46 @@ describe('aggregateTimeSeries', () => {
     expect(aggregateTimeSeries(points, { ...opts, stat: 'max' })[0].value).toBe(12);
     expect(aggregateTimeSeries(points, { ...opts, stat: 'min' })[0].value).toBe(1);
     expect(aggregateTimeSeries(points, { ...opts, stat: 'change' })[0].value).toBe(2);
+  });
+
+  it('ignores the carried state when a reading lands on the bucket start', () => {
+    const points = [
+      { value: 10, time: at(0) },
+      { value: 20, time: at(1) },
+    ];
+    const opts = { start, end: at(2), buckets: 2 };
+    expect(aggregateTimeSeries(points, { ...opts, stat: 'min' })[1].value).toBe(20);
+    expect(aggregateTimeSeries(points, { ...opts, stat: 'mean' })[1].value).toBe(20);
+  });
+
+  it('treats a drop on a total_increasing meter as a reset', () => {
+    const points = [
+      { value: 100, time: at(-1) },
+      { value: 102, time: at(0.2) },
+      { value: 0, time: at(0.4) },
+      { value: 3, time: at(0.6) },
+    ];
+    const opts = { start, end: at(1), buckets: 1, stat: 'change' };
+    expect(aggregateTimeSeries(points, { ...opts, stateClass: 'total_increasing' })[0].value).toBe(
+      5
+    );
+    expect(aggregateTimeSeries(points, opts)[0].value).toBe(-97);
+  });
+
+  it('uses explicit bucket boundaries when given', () => {
+    const points = [
+      { value: 1, time: at(0.5) },
+      { value: 5, time: at(2.5) },
+    ];
+    const result = aggregateTimeSeries(points, {
+      start,
+      end: at(4),
+      buckets: 2,
+      boundaries: [start, at(3), at(4)],
+      stat: 'max',
+    });
+    expect(result.map((p) => p.value)).toEqual([5, 5]);
+    expect(result[1].time).toEqual(at(3));
   });
 
   it('skips buckets before the first known value', () => {

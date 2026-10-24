@@ -33,64 +33,86 @@ export function resolveSensorGraphRange(range) {
 }
 
 /**
- * Time window and bar buckets for a graph range. Day-sized buckets end at the
- * next local midnight so each bar is one calendar day (the last one is today).
+ * Time window and bar buckets for a graph range. Day-sized buckets run from
+ * local midnight to local midnight (23 or 25 hours across a DST change) and
+ * end at the next midnight, so each bar is one calendar day and the last one
+ * is today.
  *
  * @param {string} range - Key of SENSOR_GRAPH_RANGES.
  * @param {Date} [now]
- * @returns {{ start: Date, end: Date, buckets: number, period: 'hour' | 'day' }}
+ * @returns {{ start: Date, end: Date, buckets: number, boundaries: Date[], period: 'hour' | 'day' }}
  */
 export function getSensorGraphWindow(range, now = new Date()) {
   const key = resolveSensorGraphRange(range);
   const hours = SENSOR_GRAPH_RANGES[key];
   const bucketHours = BUCKET_HOURS[key];
   const buckets = Math.round(hours / bucketHours);
-  let end;
+  const boundaries = [];
   if (bucketHours >= 24) {
-    end = new Date(now);
-    end.setHours(24, 0, 0, 0);
+    const tomorrow = new Date(now);
+    tomorrow.setHours(24, 0, 0, 0);
+    for (let day = buckets; day >= 0; day -= 1) {
+      boundaries.push(
+        new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate() - day)
+      );
+    }
   } else {
     const bucketMs = bucketHours * HOUR_MS;
-    end = new Date(Math.ceil(now.getTime() / bucketMs) * bucketMs);
+    const endMs = Math.ceil(now.getTime() / bucketMs) * bucketMs;
+    for (let bucket = buckets; bucket >= 0; bucket -= 1) {
+      boundaries.push(new Date(endMs - bucket * bucketMs));
+    }
   }
   return {
-    start: new Date(end.getTime() - hours * HOUR_MS),
-    end,
+    start: boundaries[0],
+    end: boundaries[boundaries.length - 1],
     buckets,
+    boundaries,
     period: hours > 168 ? 'day' : 'hour',
   };
 }
 
 /**
- * Aggregate time-ordered points into `buckets` equal slices of [start, end).
- * Points may carry native `min`/`max`/`change` (HA long-term statistics);
- * raw history points only have `value`, and the last value before a bucket is
- * treated as the state at its start. Buckets before the first known value are
- * skipped; later empty buckets repeat the last value (change 0).
+ * Aggregate time-ordered points into `buckets` slices of [start, end), or into
+ * the slices given by `boundaries` (buckets + 1 ascending dates). Points may
+ * carry native `min`/`max`/`change` (HA long-term statistics); raw history
+ * points only have `value`, and the last value before a bucket is treated as
+ * the state at its start unless a reading lands exactly on the start. Raw
+ * change sums the step deltas; for `total_increasing` meters a drop is a
+ * reset, so the reading after it counts as consumption from zero. Buckets
+ * before the first known value are skipped; later empty buckets repeat the
+ * last value (change 0).
  *
  * @param {{ value: number, time: Date, min?: number, max?: number, change?: number }[]} points
- * @param {{ start: Date, end: Date, buckets: number, stat?: string }} options
+ * @param {{ start: Date, end: Date, buckets: number, boundaries?: Date[], stat?: string, stateClass?: string }} options
  * @returns {{ value: number, time: Date }[]}
  */
-export function aggregateTimeSeries(points, { start, end, buckets, stat = 'mean' }) {
+export function aggregateTimeSeries(
+  points,
+  { start, end, buckets, boundaries, stat = 'mean', stateClass }
+) {
   if (!Array.isArray(points) || points.length === 0 || !(buckets > 0)) return [];
   const startMs = start.getTime();
   const span = end.getTime() - startMs;
   if (!(span > 0)) return [];
-  const size = span / buckets;
+  const edges =
+    Array.isArray(boundaries) && boundaries.length === buckets + 1
+      ? boundaries.map((date) => date.getTime())
+      : Array.from({ length: buckets + 1 }, (_, index) => startMs + (index * span) / buckets);
   const sorted = [...points].sort((a, b) => a.time.getTime() - b.time.getTime());
+  const isMeter = stateClass === 'total_increasing';
 
   let carry = null;
   let index = 0;
-  while (index < sorted.length && sorted[index].time.getTime() < startMs) {
+  while (index < sorted.length && sorted[index].time.getTime() < edges[0]) {
     carry = sorted[index].value;
     index += 1;
   }
 
   const result = [];
   for (let bucket = 0; bucket < buckets; bucket += 1) {
-    const bucketStart = startMs + bucket * size;
-    const bucketEnd = bucket === buckets - 1 ? Infinity : bucketStart + size;
+    const bucketStart = edges[bucket];
+    const bucketEnd = bucket === buckets - 1 ? Infinity : edges[bucket + 1];
     const inBucket = [];
     while (index < sorted.length && sorted[index].time.getTime() < bucketEnd) {
       inBucket.push(sorted[index]);
@@ -104,15 +126,24 @@ export function aggregateTimeSeries(points, { start, end, buckets, stat = 'mean'
     }
 
     const isStatistics = inBucket.every((point) => Number.isFinite(point.min));
+    const carryCovers = carry !== null && inBucket[0].time.getTime() > bucketStart;
     const samples =
-      carry !== null && !isStatistics
+      carryCovers && !isStatistics
         ? [carry, ...inBucket.map((point) => point.value)]
         : inBucket.map((point) => point.value);
     let value;
     if (stat === 'change') {
-      value = inBucket.every((point) => Number.isFinite(point.change))
-        ? inBucket.reduce((sum, point) => sum + point.change, 0)
-        : inBucket[inBucket.length - 1].value - (carry ?? inBucket[0].value);
+      if (inBucket.every((point) => Number.isFinite(point.change))) {
+        value = inBucket.reduce((sum, point) => sum + point.change, 0);
+      } else {
+        value = 0;
+        let previous = carry ?? inBucket[0].value;
+        for (const point of inBucket) {
+          const delta = point.value - previous;
+          value += isMeter && delta < 0 ? point.value : delta;
+          previous = point.value;
+        }
+      }
     } else if (stat === 'min') {
       value = isStatistics ? Math.min(...inBucket.map((point) => point.min)) : Math.min(...samples);
     } else if (stat === 'max') {
