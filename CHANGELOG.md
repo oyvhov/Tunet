@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.24.1] — 2026-10-24
+
+### Fixed
+
+- Settings changed from the settings panels (theme, language, page tabs, grid, header) now sync to the server; before, only changes made in edit mode were uploaded (#244).
+- An edit finished while another upload was running, or an upload that failed, is retried instead of staying only on the device (#244).
+- Turning off auto-sync also cancels an upload that was already waiting (#244).
+
+### Changed
+
+- Server code is typechecked in strict mode, and every supported language must have a translation table (#243).
+- Added tooling for a gradual TypeScript migration: TypeScript files are linted and strictly typechecked, and new source files must be TypeScript (#245).
+
 ## [1.24.0] — 2026-10-24
 
 ### Added
