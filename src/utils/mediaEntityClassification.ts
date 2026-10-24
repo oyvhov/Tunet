@@ -1,7 +1,14 @@
-const toLowerText = (value) =>
+type MediaAttributes = Record<string, unknown>;
+
+type MediaEntityLike = {
+  entity_id?: unknown;
+  attributes?: MediaAttributes | null;
+};
+
+const toLowerText = (value: unknown): string =>
   typeof value === 'string' || typeof value === 'number' ? String(value).toLowerCase() : '';
 
-const valueContains = (value, needle) => {
+const valueContains = (value: unknown, needle: string): boolean => {
   if (typeof value === 'string' || typeof value === 'number') {
     return String(value).toLowerCase().includes(needle);
   }
@@ -11,11 +18,16 @@ const valueContains = (value, needle) => {
   return false;
 };
 
-const attributesContain = (attributes, keys, needle) =>
-  keys.some((key) => valueContains(attributes?.[key], needle));
+const attributesContain = (
+  attributes: MediaAttributes | null | undefined,
+  keys: readonly string[],
+  needle: string
+): boolean => keys.some((key) => valueContains(attributes?.[key], needle));
 
-const hasAttributePrefix = (attributes, prefix) =>
-  Object.keys(attributes || {}).some((key) => key.toLowerCase().startsWith(prefix));
+const hasAttributePrefix = (
+  attributes: MediaAttributes | null | undefined,
+  prefix: string
+): boolean => Object.keys(attributes || {}).some((key) => key.toLowerCase().startsWith(prefix));
 
 const SONOS_SIGNAL_FIELDS = [
   'manufacturer',
@@ -42,7 +54,7 @@ const MUSIC_ASSISTANT_SIGNAL_FIELDS = [
   'device_model',
 ];
 
-export function isMusicAssistantMediaEntity(entity) {
+export function isMusicAssistantMediaEntity(entity: MediaEntityLike | null | undefined): boolean {
   if (!entity) return false;
   const attributes = entity.attributes || {};
 
@@ -62,7 +74,7 @@ export function isMusicAssistantMediaEntity(entity) {
   );
 }
 
-export function isSonosMediaEntity(entity) {
+export function isSonosMediaEntity(entity: MediaEntityLike | null | undefined): boolean {
   if (!entity) return false;
   if (isMusicAssistantMediaEntity(entity)) return false;
 

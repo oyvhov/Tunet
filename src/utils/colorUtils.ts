@@ -4,10 +4,12 @@
  * hex (#rgb / #rrggbb) and rgb()/rgba().
  */
 
+export type RgbaColor = { r: number; g: number; b: number; a: number };
+
 /**
  * Parse a CSS colour into { r, g, b, a }. Returns null for unsupported values.
  */
-export function parseColor(value) {
+export function parseColor(value: unknown): RgbaColor | null {
   if (typeof value !== 'string') return null;
   const input = value.trim();
 
@@ -44,10 +46,10 @@ export function parseColor(value) {
 /**
  * Relative luminance (0 = black, 1 = white) for a CSS colour.
  */
-export function getLuminance(value) {
+export function getLuminance(value: unknown): number {
   const color = parseColor(value);
   if (!color) return 0;
-  const channel = (c) => {
+  const channel = (c: number) => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   };
@@ -58,6 +60,6 @@ export function getLuminance(value) {
  * True when the colour reads as a light surface (used to pick readable
  * foregrounds and safe canvas blend modes).
  */
-export function isLightColor(value) {
+export function isLightColor(value: unknown): boolean {
   return getLuminance(value) > 0.45;
 }

@@ -1,6 +1,6 @@
 // Media Application Logo Utilities
 
-export const MEDIA_LOGO_MAP = {
+export const MEDIA_LOGO_MAP: Record<string, string> = {
   'notifications for android tv': 'https://cdn.simpleicons.org/android',
   notification: 'https://cdn.simpleicons.org/android',
   android: 'https://cdn.simpleicons.org/android',
@@ -31,7 +31,7 @@ export const NRK_SVG =
  * @param {string} appName - The name of the application
  * @returns {string|null} - The URL of the logo or null if not found
  */
-export const getMediaLogoUrl = (appName) => {
+export const getMediaLogoUrl = (appName: string | null | undefined): string | null => {
   if (!appName) return null;
   const appLower = appName.toLowerCase();
 

@@ -1,10 +1,50 @@
+import type { HassEntity, Translate } from '../types/ha';
+
+// Callers pass live HA entities or lighter test/preview objects.
+type StatusGroupEntity = Partial<HassEntity> | null | undefined;
+export type StatusGroupEntities = Record<string, Partial<HassEntity> | undefined>;
+export type StatusGroupEntityRow = { id: string; entity: Partial<HassEntity> };
+
+export type StatusGroupPill = {
+  groupPreset?: string | null;
+  groupSelectionMode?: string | null;
+  groupEntityIds?: string[] | null;
+  groupThreshold?: string | number | null;
+  label?: unknown;
+  name?: unknown;
+  sublabel?: unknown;
+  hideWhenEmpty?: boolean;
+};
+
+export type StatusGroupPreset = {
+  id: string;
+  labelKey: string;
+  fallbackLabel: string;
+  emptyLabelKey: string;
+  fallbackEmptyLabel: string;
+  icon: string;
+  iconBgColor: string;
+  iconColor: string;
+  actionDomain?: string;
+  actionService?: string;
+  actionLabelKey?: string;
+  fallbackActionLabel?: string;
+  rowActionLabelKey?: string;
+  fallbackRowActionLabel?: string;
+  defaultThreshold?: number;
+  minThreshold?: number;
+  maxThreshold?: number;
+  candidates?: (id: string, entity: StatusGroupEntity) => boolean;
+  matches: (id: string, entity: StatusGroupEntity, pill?: StatusGroupPill | null) => boolean;
+};
+
 export const STATUS_GROUP_PILL_TYPE = 'group_status';
 export const STATUS_GROUP_SELECTION_ALL = 'all';
 export const STATUS_GROUP_SELECTION_INCLUDE = 'include';
 export const STATUS_GROUP_SELECTION_EXCLUDE = 'exclude';
 export const DEFAULT_LOW_BATTERY_THRESHOLD = 20;
 
-const VALID_GROUP_SELECTION_MODES = new Set([
+const VALID_GROUP_SELECTION_MODES = new Set<unknown>([
   STATUS_GROUP_SELECTION_ALL,
   STATUS_GROUP_SELECTION_INCLUDE,
   STATUS_GROUP_SELECTION_EXCLUDE,
@@ -13,44 +53,47 @@ const VALID_GROUP_SELECTION_MODES = new Set([
 const OPENING_DEVICE_CLASSES = new Set(['door', 'garage_door', 'opening', 'window']);
 const UNAVAILABLE_STATES = new Set(['unavailable', 'unknown']);
 
-const toEntityRows = (entities) =>
+const toEntityRows = (entities: StatusGroupEntities | null | undefined): StatusGroupEntityRow[] =>
   Object.entries(entities || {})
     .map(([id, entity]) => ({ id, entity }))
-    .filter(({ entity }) => entity && typeof entity === 'object');
+    .filter((row): row is StatusGroupEntityRow => !!row.entity && typeof row.entity === 'object');
 
-const sortByFriendlyName = (left, right) => {
+const sortByFriendlyName = (left: StatusGroupEntityRow, right: StatusGroupEntityRow) => {
   const leftName = left.entity?.attributes?.friendly_name || left.id;
   const rightName = right.entity?.attributes?.friendly_name || right.id;
   return leftName.localeCompare(rightName);
 };
 
-const isUnavailable = (entity) => UNAVAILABLE_STATES.has(String(entity?.state || '').toLowerCase());
+const isUnavailable = (entity: StatusGroupEntity) =>
+  UNAVAILABLE_STATES.has(String(entity?.state || '').toLowerCase());
 
-const isOpeningSensor = (id, entity) => {
+const isOpeningSensor = (id: string, entity: StatusGroupEntity) => {
   if (!id.startsWith('binary_sensor.')) return false;
   const deviceClass = String(entity?.attributes?.device_class || '').toLowerCase();
   return OPENING_DEVICE_CLASSES.has(deviceClass);
 };
 
-const isBatteryEntity = (_id, entity) =>
+const isBatteryEntity = (_id: string, entity: StatusGroupEntity) =>
   String(entity?.attributes?.device_class || '').toLowerCase() === 'battery';
 
-const getBatteryLevel = (entity) => {
-  const level = Number.parseFloat(entity?.state);
+const getBatteryLevel = (entity: StatusGroupEntity) => {
+  // parseFloat(undefined) is NaN, which the isFinite check below handles
+  const level = Number.parseFloat(entity?.state as string);
   return Number.isFinite(level) ? level : null;
 };
 
-const normalizeGroupSelectionMode = (mode) =>
-  VALID_GROUP_SELECTION_MODES.has(mode) ? mode : STATUS_GROUP_SELECTION_ALL;
+const normalizeGroupSelectionMode = (mode: string | null | undefined): string =>
+  // has() doesn't narrow; a hit means mode is one of the string modes
+  VALID_GROUP_SELECTION_MODES.has(mode) ? (mode as string) : STATUS_GROUP_SELECTION_ALL;
 
-const getGroupEntityIdSet = (pill) =>
+const getGroupEntityIdSet = (pill: StatusGroupPill | null | undefined) =>
   new Set(
     Array.isArray(pill?.groupEntityIds)
       ? pill.groupEntityIds.filter((id) => typeof id === 'string' && id.trim())
       : []
   );
 
-const isAllowedBySelection = (pill, id) => {
+const isAllowedBySelection = (pill: StatusGroupPill | null | undefined, id: string) => {
   const mode = normalizeGroupSelectionMode(pill?.groupSelectionMode);
   if (mode === STATUS_GROUP_SELECTION_ALL) return true;
 
@@ -59,7 +102,7 @@ const isAllowedBySelection = (pill, id) => {
   return !selectedIds.has(id);
 };
 
-export const STATUS_GROUP_PRESETS = [
+export const STATUS_GROUP_PRESETS: StatusGroupPreset[] = [
   {
     id: 'lights_on',
     labelKey: 'statusPills.groupPresetLightsOn',
@@ -129,27 +172,39 @@ export const STATUS_GROUP_PRESETS = [
       if (!isBatteryEntity(id, entity) || isUnavailable(entity)) return false;
       if (id.startsWith('binary_sensor.')) return entity?.state === 'on';
       const level = getBatteryLevel(entity);
-      return level !== null && level <= getStatusGroupThreshold(pill);
+      // low_battery always has a defaultThreshold, so the threshold is a number here
+      return level !== null && level <= (getStatusGroupThreshold(pill) as number);
     },
   },
 ];
 
 export const DEFAULT_STATUS_GROUP_PRESET = STATUS_GROUP_PRESETS[0].id;
 
-export function getStatusGroupPreset(presetId) {
+export function getStatusGroupPreset(presetId: string | null | undefined): StatusGroupPreset {
   return STATUS_GROUP_PRESETS.find((preset) => preset.id === presetId) || STATUS_GROUP_PRESETS[0];
 }
 
-export function getStatusGroupThreshold(pill) {
+export function getStatusGroupThreshold(
+  pill: StatusGroupPill | null | undefined
+): number | undefined {
   const preset = getStatusGroupPreset(pill?.groupPreset);
   if (!Number.isFinite(preset.defaultThreshold)) return undefined;
 
-  const parsed = Number.parseFloat(pill?.groupThreshold);
-  const threshold = Number.isFinite(parsed) ? parsed : preset.defaultThreshold;
-  return Math.min(preset.maxThreshold, Math.max(preset.minThreshold, threshold));
+  // parseFloat coerces numbers/nullish itself; the cast only satisfies its string signature
+  const parsed = Number.parseFloat(pill?.groupThreshold as string);
+  // presets with a defaultThreshold (checked above) also define min/maxThreshold
+  const threshold = Number.isFinite(parsed) ? parsed : (preset.defaultThreshold as number);
+  return Math.min(
+    preset.maxThreshold as number,
+    Math.max(preset.minThreshold as number, threshold)
+  );
 }
 
-export function getStatusGroupPresetText(presetId, t, mode = 'label') {
+export function getStatusGroupPresetText(
+  presetId: string | null | undefined,
+  t: Translate | null | undefined,
+  mode: 'label' | 'empty' = 'label'
+): string {
   const preset = getStatusGroupPreset(presetId);
   const key = mode === 'empty' ? preset.emptyLabelKey : preset.labelKey;
   const fallback = mode === 'empty' ? preset.fallbackEmptyLabel : preset.fallbackLabel;
@@ -157,7 +212,7 @@ export function getStatusGroupPresetText(presetId, t, mode = 'label') {
   return translated && translated !== key ? String(translated) : fallback;
 }
 
-export function buildStatusGroupPillVisuals(presetId) {
+export function buildStatusGroupPillVisuals(presetId: string | null | undefined) {
   const preset = getStatusGroupPreset(presetId);
   return {
     icon: preset.icon,
@@ -166,11 +221,14 @@ export function buildStatusGroupPillVisuals(presetId) {
   };
 }
 
-export function getStatusGroupSelectionMode(pill) {
+export function getStatusGroupSelectionMode(pill: StatusGroupPill | null | undefined): string {
   return normalizeGroupSelectionMode(pill?.groupSelectionMode);
 }
 
-export function resolveStatusGroupCandidates(presetId, entities) {
+export function resolveStatusGroupCandidates(
+  presetId: string | null | undefined,
+  entities: StatusGroupEntities | null | undefined
+): StatusGroupEntityRow[] {
   const preset = getStatusGroupPreset(presetId);
   const candidates = toEntityRows(entities).filter(({ id, entity }) =>
     typeof preset.candidates === 'function'
@@ -181,7 +239,11 @@ export function resolveStatusGroupCandidates(presetId, entities) {
   return candidates;
 }
 
-export function resolveStatusGroupPill(pill, entities, t) {
+export function resolveStatusGroupPill(
+  pill: StatusGroupPill | null | undefined,
+  entities: StatusGroupEntities | null | undefined,
+  t: Translate | null | undefined
+) {
   const preset = getStatusGroupPreset(pill?.groupPreset);
   const matchedEntities = toEntityRows(entities).filter(
     ({ id, entity }) => preset.matches(id, entity, pill) && isAllowedBySelection(pill, id)

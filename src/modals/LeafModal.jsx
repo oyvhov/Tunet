@@ -29,7 +29,7 @@ const formatValue = (val) => {
  * @param {Function} props.callService - Function to call HA services
  * @param {Function} props.getS - Function to get entity state
  * @param {Function} props.getA - Function to get entity attribute
- * @param {Function} props.t - Translation function
+ * @param {(key: string) => string} props.t - Translation function
  * @param {Object} props.car - Car settings and resolved entity IDs
  */
 

@@ -7,7 +7,7 @@ import { isSonosMediaEntity, resolveStatusGroupPill, STATUS_GROUP_PILL_TYPE } fr
  * StatusBar component showing various status indicators
  * @param {Object} props
  * @param {boolean} [props.editMode] - Whether in edit mode
- * @param {Function} props.t - Translation function
+ * @param {(key: string) => string} props.t - Translation function
  * @param {(entity: any) => boolean} [props.isSonosActive] - Check if Sonos is active
  * @param {(entity: any) => boolean} [props.isMediaActive] - Check if media is active
  * @param {(entityId: string, attr: string, fallback?: any) => any} [props.getA] - Get entity attribute

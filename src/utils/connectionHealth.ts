@@ -5,26 +5,26 @@ export const ENTITY_STALE_NO_UPDATE_MS = 60_000;
 export const CONNECTION_WARNING_DELAY_MS = 5_000;
 export const MOBILE_CONNECTION_WARNING_DELAY_MS = 15_000;
 
-export const getConnectionWarningDelayMs = (viewportWidth) =>
+export const getConnectionWarningDelayMs = (viewportWidth: number): number =>
   viewportWidth < MOBILE_BREAKPOINT
     ? MOBILE_CONNECTION_WARNING_DELAY_MS
     : CONNECTION_WARNING_DELAY_MS;
 
-/**
- * @param {Object} input
- * @param {boolean} input.entitiesLoaded
- * @param {boolean} input.connected
- * @param {number | null} input.disconnectedSince
- * @param {number} input.lastEntityUpdateAt
- * @param {number} [input.now]
- */
+export interface EntityDataStaleInput {
+  entitiesLoaded: boolean;
+  connected: boolean;
+  disconnectedSince: number | null;
+  lastEntityUpdateAt: number;
+  now?: number;
+}
+
 export const isEntityDataStale = ({
   entitiesLoaded,
   connected,
   disconnectedSince,
   lastEntityUpdateAt,
   now = Date.now(),
-}) => {
+}: EntityDataStaleInput): boolean => {
   if (!entitiesLoaded) return false;
 
   if (!connected) {

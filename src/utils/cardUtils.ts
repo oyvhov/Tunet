@@ -8,6 +8,15 @@ import {
   isConditionConfigured,
   resolveConditionEntityId,
 } from './conditionUtils';
+import type { HassEntities } from '../types/ha';
+import type { CardSettingsEntry, CardSettingsMap, GetCardSettingsKey } from './cardSettingsKey';
+
+export interface PageSettingsEntry {
+  type?: string;
+  [key: string]: unknown;
+}
+
+export type PageSettingsMap = Record<string, PageSettingsEntry | undefined>;
 
 /** Prefixes for card types that can always be removed from user pages. */
 const REMOVABLE_PREFIXES = [
@@ -63,7 +72,14 @@ const SPECIAL_CARD_PREFIXES = [
 /**
  * Determine whether a card can be removed from a given page.
  */
-export function isCardRemovable(cardId, pageId, { getCardSettingsKey, cardSettings }) {
+export function isCardRemovable(
+  cardId: string,
+  pageId: string,
+  {
+    getCardSettingsKey,
+    cardSettings,
+  }: { getCardSettingsKey: GetCardSettingsKey; cardSettings: CardSettingsMap }
+): boolean {
   if (pageId === 'header') return cardId.startsWith('person.');
   if (pageId === 'settings') {
     if (['car'].includes(cardId)) return false;
@@ -81,11 +97,21 @@ export function isCardRemovable(cardId, pageId, { getCardSettingsKey, cardSettin
  * Determine whether a card should be hidden in view mode based on entity availability.
  */
 export function isCardHiddenByLogic(
-  cardId,
-  { activePage, getCardSettingsKey, cardSettings, entities }
-) {
+  cardId: string,
+  {
+    activePage,
+    getCardSettingsKey,
+    cardSettings,
+    entities,
+  }: {
+    activePage?: string | null;
+    getCardSettingsKey: GetCardSettingsKey;
+    cardSettings: CardSettingsMap;
+    entities: HassEntities;
+  }
+): boolean {
   const settingsKey = getCardSettingsKey(cardId);
-  const cardConfig = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const cardConfig: CardSettingsEntry = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const entityId =
     cardId.startsWith('entity_card_') || cardConfig.type === 'sensor'
       ? cardConfig.entityId || cardId
@@ -99,7 +125,7 @@ export function isCardHiddenByLogic(
   if (cardId.startsWith('media_group_') || cardId.startsWith('sonos_group_')) {
     const groupSettings = cardConfig;
     const selectedIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
-    const hasEntities = selectedIds.some((id) => entities[id]);
+    const hasEntities = selectedIds.some((id: string) => entities[id]);
     hiddenByBaseLogic = !hasEntities;
   }
 
@@ -134,7 +160,8 @@ export function isCardHiddenByLogic(
     if (!targetEntityId) return false;
     const targetEntity = entities[targetEntityId];
     if (!targetEntity) return false;
-    const getAttribute = (entityId, attribute) => entities?.[entityId]?.attributes?.[attribute];
+    const getAttribute = (entityId: string, attribute: string): unknown =>
+      entities?.[entityId]?.attributes?.[attribute];
 
     const shouldShow = evaluateVisibilityConditionConfig({
       condition: cardConfig.visibilityCondition,
@@ -153,7 +180,10 @@ export function isCardHiddenByLogic(
 /**
  * Check if a page is a media/sonos page.
  */
-export function isMediaPage(pageId, pageSettings) {
+export function isMediaPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
   return settings?.type === 'media' || pageId.startsWith('media');
@@ -162,7 +192,10 @@ export function isMediaPage(pageId, pageSettings) {
 /**
  * Check if a page is a SONOS page.
  */
-export function isSonosPage(pageId, pageSettings) {
+export function isSonosPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
   return settings?.type === 'sonos' || pageId.startsWith('sonos');
@@ -171,7 +204,10 @@ export function isSonosPage(pageId, pageSettings) {
 /**
  * Check if a page is a Lights page.
  */
-export function isLightsPage(pageId, pageSettings) {
+export function isLightsPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
   return settings?.type === 'lights' || pageId.startsWith('lights');
@@ -180,7 +216,10 @@ export function isLightsPage(pageId, pageSettings) {
 /**
  * Check if a page is a Battery page.
  */
-export function isBatteryPage(pageId, pageSettings) {
+export function isBatteryPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
   return settings?.type === 'battery' || pageId.startsWith('battery');
@@ -189,7 +228,10 @@ export function isBatteryPage(pageId, pageSettings) {
 /**
  * Check if a page is a Room Explorer page.
  */
-export function isRoomExplorerPage(pageId, pageSettings) {
+export function isRoomExplorerPage(
+  pageId: string | null | undefined,
+  pageSettings: PageSettingsMap
+): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
   return settings?.type === 'room_explorer' || pageId.startsWith('room_explorer');

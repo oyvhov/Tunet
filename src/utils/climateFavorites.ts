@@ -1,24 +1,33 @@
 export const DEFAULT_CLIMATE_FAVORITE_MODES = ['off', 'heat'];
 export const MAX_CLIMATE_FAVORITE_MODES = 2;
 
-export function resolveClimateFavoriteModes(configuredModes, availableModes) {
+export function resolveClimateFavoriteModes(
+  configuredModes: unknown,
+  availableModes: unknown
+): string[] {
   if (!Array.isArray(availableModes)) return [];
 
   const available = new Set(
-    availableModes.filter((mode) => typeof mode === 'string' && mode.trim())
+    availableModes.filter((mode): mode is string => typeof mode === 'string' && !!mode.trim())
   );
-  const candidates = Array.isArray(configuredModes)
+  const candidates: unknown[] = Array.isArray(configuredModes)
     ? configuredModes
     : DEFAULT_CLIMATE_FAVORITE_MODES;
 
   return Array.from(
     new Set(
-      candidates.filter((mode) => typeof mode === 'string' && mode.trim() && available.has(mode))
+      candidates.filter(
+        (mode): mode is string => typeof mode === 'string' && !!mode.trim() && available.has(mode)
+      )
     )
   ).slice(0, MAX_CLIMATE_FAVORITE_MODES);
 }
 
-export function toggleClimateFavoriteMode(configuredModes, mode, availableModes) {
+export function toggleClimateFavoriteMode(
+  configuredModes: unknown,
+  mode: unknown,
+  availableModes: readonly unknown[] | null | undefined
+): string[] {
   if (typeof mode !== 'string' || !availableModes?.includes(mode)) {
     return resolveClimateFavoriteModes(configuredModes, availableModes);
   }

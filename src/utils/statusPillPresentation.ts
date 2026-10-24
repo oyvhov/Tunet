@@ -28,6 +28,9 @@ export const PILL_ANIMATION_PRESET_OPTIONS = [
   },
 ];
 
+export type PillAnimationSource =
+  string | { animationPreset?: unknown; animated?: unknown } | null | undefined;
+
 const PILL_ANIMATION_PRESET_IDS = new Set(PILL_ANIMATION_PRESET_OPTIONS.map((preset) => preset.id));
 
 export const PILL_COLOR_PRESETS = [
@@ -145,9 +148,8 @@ export const PILL_COLOR_PRESETS = [
   },
 ];
 
-export function normalizePillAnimationPreset(pillOrPreset) {
-  const rawPreset =
-    typeof pillOrPreset === 'string' ? pillOrPreset : pillOrPreset?.animationPreset;
+export function normalizePillAnimationPreset(pillOrPreset: PillAnimationSource): string {
+  const rawPreset = typeof pillOrPreset === 'string' ? pillOrPreset : pillOrPreset?.animationPreset;
 
   if (typeof rawPreset === 'string' && PILL_ANIMATION_PRESET_IDS.has(rawPreset)) {
     return rawPreset;
@@ -160,7 +162,10 @@ export function normalizePillAnimationPreset(pillOrPreset) {
   return DEFAULT_PILL_ANIMATION_PRESET;
 }
 
-export function getPillAnimationConfig(pillOrPreset, { active }) {
+export function getPillAnimationConfig(
+  pillOrPreset: PillAnimationSource,
+  { active }: { active?: boolean }
+) {
   const preset = normalizePillAnimationPreset(pillOrPreset);
 
   if (!active || preset === 'none') {

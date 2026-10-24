@@ -1,5 +1,38 @@
-const CONDITION_NUMERIC_OPERATORS = new Set(['>', '<', '>=', '<=', '==']);
-const VISIBILITY_LOGIC_VALUES = new Set(['AND', 'OR']);
+import type { HassEntities, HassEntity } from '../types/ha';
+
+export type VisibilityConditionRule = {
+  type?: string;
+  entityId?: string | null;
+  states?: unknown;
+  attribute?: string | null;
+  value?: unknown;
+  operator?: string;
+  forSeconds?: unknown;
+  [key: string]: unknown;
+};
+
+export type VisibilityConditionInput = VisibilityConditionRule & {
+  logic?: string;
+  enabled?: boolean;
+  rules?: (VisibilityConditionRule | null | undefined)[] | null;
+};
+
+export type NormalizedVisibilityCondition = {
+  entityId: string | null;
+  logic: string;
+  enabled: boolean;
+  rules: VisibilityConditionRule[];
+};
+
+export type GetEntityAttribute = (entityId: string, attribute: string) => unknown;
+
+export type ConditionCardSettings = {
+  visibilityCondition?: VisibilityConditionInput | null;
+  [key: string]: unknown;
+};
+
+const CONDITION_NUMERIC_OPERATORS = new Set<unknown>(['>', '<', '>=', '<=', '==']);
+const VISIBILITY_LOGIC_VALUES = new Set<unknown>(['AND', 'OR']);
 
 const ENTITY_SETTING_KEYS = [
   'entityId',
@@ -76,12 +109,16 @@ const DOMAIN_PREFIXES = [
   'button',
 ];
 
-export function isConditionConfigured(condition) {
+export function isConditionConfigured(
+  condition: VisibilityConditionInput | null | undefined
+): boolean {
   const normalized = normalizeVisibilityConditionConfig(condition);
   return normalized.enabled && normalized.rules.length > 0;
 }
 
-export function normalizeVisibilityConditionConfig(condition) {
+export function normalizeVisibilityConditionConfig(
+  condition: VisibilityConditionInput | null | undefined
+): NormalizedVisibilityCondition {
   if (!condition || typeof condition !== 'object') {
     return { entityId: null, logic: 'AND', enabled: false, rules: [] };
   }
@@ -98,7 +135,8 @@ export function normalizeVisibilityConditionConfig(condition) {
 
     return {
       entityId: typeof condition.entityId === 'string' ? condition.entityId : null,
-      logic: VISIBILITY_LOGIC_VALUES.has(condition.logic) ? condition.logic : 'AND',
+      // has() doesn't narrow; a hit means logic is 'AND' or 'OR'
+      logic: VISIBILITY_LOGIC_VALUES.has(condition.logic) ? (condition.logic as string) : 'AND',
       enabled,
       rules,
     };
@@ -116,7 +154,7 @@ export function normalizeVisibilityConditionConfig(condition) {
   return { entityId: null, logic: 'AND', enabled: false, rules: [] };
 }
 
-function parseStates(states) {
+function parseStates(states: unknown): string[] {
   if (Array.isArray(states)) {
     return states.map((state) => String(state).trim()).filter(Boolean);
   }
@@ -131,7 +169,7 @@ function parseStates(states) {
   return [];
 }
 
-function evaluateNumeric(operator, left, right) {
+function evaluateNumeric(operator: string | undefined, left: number, right: number): boolean {
   switch (operator) {
     case '>':
       return left > right;
@@ -148,7 +186,15 @@ function evaluateNumeric(operator, left, right) {
   }
 }
 
-export function evaluateEntityCondition({ condition, entity, getAttribute }) {
+export function evaluateEntityCondition({
+  condition,
+  entity,
+  getAttribute,
+}: {
+  condition: VisibilityConditionInput | null | undefined;
+  entity?: HassEntity | null;
+  getAttribute?: GetEntityAttribute | null;
+}): boolean {
   const normalized = normalizeVisibilityConditionConfig(condition);
   const activeRule = normalized.rules[0];
   if (!activeRule) return true;
@@ -170,7 +216,8 @@ export function evaluateEntityCondition({ condition, entity, getAttribute }) {
         : entity.attributes?.[attribute]
       : entity.state;
     const numericValue = parseFloat(sourceValue);
-    const compareValue = parseFloat(value);
+    // parseFloat coerces non-string input itself; the cast only satisfies its string signature
+    const compareValue = parseFloat(value as string);
     const usedOperator = CONDITION_NUMERIC_OPERATORS.has(operator) ? operator : '>';
     matchesBase = !(Number.isNaN(numericValue) || Number.isNaN(compareValue))
       ? evaluateNumeric(usedOperator, numericValue, compareValue)
@@ -223,13 +270,19 @@ export function evaluateVisibilityConditionConfig({
   entities,
   getAttribute,
   fallbackEntityId,
-}) {
+}: {
+  condition: VisibilityConditionInput | null | undefined;
+  entity?: HassEntity | null;
+  entities?: HassEntities | null;
+  getAttribute?: GetEntityAttribute | null;
+  fallbackEntityId?: string | null;
+}): boolean {
   const normalized = normalizeVisibilityConditionConfig(condition);
   if (!normalized.enabled) return true;
   if (normalized.rules.length === 0) return true;
   const resolvedFallbackEntityId = fallbackEntityId || entity?.entity_id || null;
 
-  const resolveRuleEntity = (rule) => {
+  const resolveRuleEntity = (rule: VisibilityConditionRule): HassEntity | null => {
     const explicitRuleEntityId =
       typeof rule?.entityId === 'string' && rule.entityId.trim() ? rule.entityId.trim() : null;
     const explicitConfigEntityId =
@@ -266,7 +319,7 @@ export function evaluateVisibilityConditionConfig({
   return results.every(Boolean);
 }
 
-function toEntityIdFromDomainPrefix(cardId) {
+function toEntityIdFromDomainPrefix(cardId: string): string | null {
   for (const domain of DOMAIN_PREFIXES) {
     const prefix = `${domain}_`;
     if (!cardId.startsWith(prefix)) continue;
@@ -277,14 +330,17 @@ function toEntityIdFromDomainPrefix(cardId) {
   return null;
 }
 
-function isLikelyEntityId(value) {
+function isLikelyEntityId(value: unknown): boolean {
   if (typeof value !== 'string') return false;
   const trimmed = value.trim();
   if (!trimmed || !trimmed.includes('.')) return false;
   return ENTITY_ID_PATTERN.test(trimmed);
 }
 
-function pickEntityLikeValue(value, entities) {
+function pickEntityLikeValue(
+  value: unknown,
+  entities: HassEntities | null | undefined
+): string | null {
   if (typeof value === 'string') {
     const candidate = value.trim();
     if (!candidate || !isLikelyEntityId(candidate)) return null;
@@ -302,7 +358,11 @@ function pickEntityLikeValue(value, entities) {
   return null;
 }
 
-export function resolveConditionEntityId(cardId, cardSettings = {}, entities = {}) {
+export function resolveConditionEntityId(
+  cardId: string | null | undefined,
+  cardSettings: ConditionCardSettings | null | undefined = {},
+  entities: HassEntities = {}
+): string | null {
   const condition = cardSettings?.visibilityCondition;
   if (typeof condition?.entityId === 'string' && condition.entityId.trim()) {
     return condition.entityId.trim();
