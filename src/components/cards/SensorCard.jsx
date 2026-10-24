@@ -30,6 +30,11 @@ import {
   getEffectiveUnitMode,
   inferUnitKind,
   downsampleTimeSeries,
+  aggregateTimeSeries,
+  getSensorGraphWindow,
+  resolveSensorGraphRange,
+  SENSOR_GRAPH_RANGES,
+  SENSOR_GRAPH_STATS,
 } from '../../utils';
 
 const SENSOR_THRESHOLD_COLOR_MAP = {
@@ -222,6 +227,12 @@ const SensorCard = memo(
       domain !== 'input_number' &&
       settings?.showGraph !== false &&
       variant === 'default';
+    const graphRange = resolveSensorGraphRange(settings?.graphRange);
+    const graphStyle = settings?.graphStyle === 'bar' ? 'bar' : 'line';
+    const graphStat =
+      graphStyle === 'bar' && SENSOR_GRAPH_STATS.includes(settings?.graphStat)
+        ? settings.graphStat
+        : 'mean';
 
     // Resolve min/max for gauge/donut/bar
     const { chartMin, chartMax } = useMemo(() => {
@@ -365,6 +376,7 @@ const SensorCard = memo(
     const [history, setHistory] = useState([]);
     const [isVisible, setIsVisible] = useState(false);
     const cardRef = useRef(null);
+    const historyWindowRef = useRef(null);
 
     useEffect(() => {
       if (typeof IntersectionObserver === 'undefined') {
@@ -408,16 +420,63 @@ const SensorCard = memo(
       }
 
       let cancelled = false;
+      const parseStatistics = (stats) =>
+        (stats && Array.isArray(stats) ? stats : [])
+          .map((d) => ({
+            value:
+              typeof d.mean === 'number' ? d.mean : typeof d.state === 'number' ? d.state : d.sum,
+            ...(typeof d.min === 'number' ? { min: d.min } : {}),
+            ...(typeof d.max === 'number' ? { max: d.max } : {}),
+            ...(typeof d.change === 'number' ? { change: d.change } : {}),
+            time: new Date(d.start),
+          }))
+          .filter((d) => !isNaN(parseFloat(d.value)));
       const fetchHistory = async () => {
         try {
           const end = new Date();
-          const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-          const data = await getHistory(conn, {
-            entityId: displayEntity.entity_id,
-            start,
-            end,
-            minimal_response: true,
-          });
+          const graphWindow = getSensorGraphWindow(graphRange, end);
+          const rangeHours = SENSOR_GRAPH_RANGES[graphRange];
+          const start =
+            graphStyle === 'bar'
+              ? graphWindow.start
+              : new Date(end.getTime() - rangeHours * 60 * 60 * 1000);
+          historyWindowRef.current = graphWindow;
+          const preferStatistics = rangeHours > 48;
+          const loadStatistics = async () =>
+            parseStatistics(
+              await getStatistics(conn, {
+                statisticId: displayEntity.entity_id,
+                start,
+                end,
+                period: graphWindow.period,
+                ...(graphStyle === 'bar' || preferStatistics
+                  ? { types: ['mean', 'min', 'max', 'state', 'change'] }
+                  : {}),
+              })
+            );
+
+          if (preferStatistics) {
+            const statPoints = await loadStatistics();
+            if (cancelled) return;
+            if (graphStyle === 'bar' && statPoints.length > 0) {
+              setHistory(statPoints);
+              return;
+            }
+            if (statPoints.length > 1) {
+              setHistory(downsampleTimeSeries(statPoints));
+              return;
+            }
+          }
+
+          const data =
+            !preferStatistics || rangeHours <= 168
+              ? await getHistory(conn, {
+                  entityId: displayEntity.entity_id,
+                  start,
+                  end,
+                  minimal_response: true,
+                })
+              : [];
           if (cancelled) return;
 
           const processed = (data && Array.isArray(data) ? data : [])
@@ -452,25 +511,17 @@ const SensorCard = memo(
           }
 
           if (processed.length > 1) {
-            setHistory(downsampleTimeSeries(processed));
+            setHistory(graphStyle === 'bar' ? processed : downsampleTimeSeries(processed));
             return;
           }
 
-          const stats = await getStatistics(conn, {
-            statisticId: displayEntity.entity_id,
-            start,
-            end,
-            period: 'hour',
-          });
+          const statPoints = preferStatistics ? [] : await loadStatistics();
           if (cancelled) return;
 
-          const statPoints = (stats && Array.isArray(stats) ? stats : [])
-            .map((d) => ({
-              value:
-                typeof d.mean === 'number' ? d.mean : typeof d.state === 'number' ? d.state : d.sum,
-              time: new Date(d.start),
-            }))
-            .filter((d) => !isNaN(parseFloat(d.value)));
+          if (graphStyle === 'bar' && statPoints.length > 0) {
+            setHistory(statPoints);
+            return;
+          }
 
           if (statPoints.length === 1) {
             const onlyPoint = statPoints[0];
@@ -519,7 +570,17 @@ const SensorCard = memo(
         if (idleId) window.cancelIdleCallback(idleId);
         if (timerId) clearTimeout(timerId);
       };
-    }, [conn, displayEntity?.entity_id, showGraph, isVisible]);
+    }, [conn, displayEntity?.entity_id, showGraph, isVisible, graphRange, graphStyle]);
+
+    const graphData = useMemo(() => {
+      if (graphStyle !== 'bar' || history.length === 0 || !historyWindowRef.current) return history;
+      const bars = aggregateTimeSeries(history, {
+        ...historyWindowRef.current,
+        stat: graphStat,
+        stateClass: displayEntity?.attributes?.state_class,
+      });
+      return bars.length > 0 ? bars : history;
+    }, [history, graphStyle, graphStat, displayEntity?.attributes?.state_class]);
 
     // Early return AFTER all hooks to respect Rules of Hooks
     if (!entity) return null;
@@ -1016,16 +1077,21 @@ const SensorCard = memo(
           {Icon && <Icon size={140} />}
         </div>
 
-        {showGraph && history.length > 0 && (
+        {showGraph && graphData.length > 0 && (
           <div
             className="pointer-events-none absolute right-0 bottom-0 left-0 z-0 h-24"
             data-sensor-graph="history"
+            data-graph-range={graphRange}
           >
             <SparkLine
-              data={history}
+              data={graphData}
               height={96}
-              currentIndex={history.length - 1}
+              currentIndex={graphData.length - 1}
               fade
+              bleed
+              variant={graphStyle}
+              maxBars={graphData.length}
+              zeroBaseline={graphStat === 'change'}
               ariaLabel={chartAriaLabel}
             />
           </div>

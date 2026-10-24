@@ -26,9 +26,13 @@ const LEGACY_STORAGE_SLOT = String.fromCharCode(
 );
 
 const tokenChangeListeners = new Set();
+const logoutListeners = new Set();
 let syncInitialized = false;
 let syncChannel = null;
 let pendingTokenRequest = null;
+// Set when Home Assistant rejected the stored OAuth session; the expired-login
+// banner owns re-authentication until new tokens are saved.
+let oauthRejected = false;
 
 const getSessionStorage = () => {
   try {
@@ -65,7 +69,8 @@ const clearPrimarySlots = () => {
 const readSavedAtTimestamp = () => {
   const sessionStore = getSessionStorage();
   const localStore = getLocalStorage();
-  const raw = sessionStore?.getItem(TOKEN_SAVED_AT_SLOT) || localStore?.getItem(TOKEN_SAVED_AT_SLOT);
+  const raw =
+    sessionStore?.getItem(TOKEN_SAVED_AT_SLOT) || localStore?.getItem(TOKEN_SAVED_AT_SLOT);
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 };
@@ -122,6 +127,12 @@ const handleSyncPayload = (payload) => {
     return;
   }
 
+  if (payload.type === 'oauth-logout') {
+    clearOAuthTokens();
+    logoutListeners.forEach((listener) => listener());
+    return;
+  }
+
   if (payload.type === 'oauth-token-response' && hasTokenPayload(payload.tokens)) {
     saveTokens(payload.tokens);
   }
@@ -158,6 +169,7 @@ const ensureCrossTabSync = () => {
 };
 
 export function saveTokens(tokenInfo) {
+  oauthRejected = false;
   try {
     const sessionStore = getSessionStorage();
     const localStore = getLocalStorage();
@@ -220,6 +232,14 @@ export function clearOAuthTokens() {
   }
 }
 
+export function markOAuthRejected() {
+  oauthRejected = true;
+}
+
+export function isOAuthRejected() {
+  return oauthRejected;
+}
+
 export function getOAuthTokenSavedAt() {
   try {
     return readSavedAtTimestamp();
@@ -234,6 +254,21 @@ export function subscribeToOAuthTokenChanges(listener) {
   return () => {
     tokenChangeListeners.delete(listener);
   };
+}
+
+export function subscribeToOAuthLogout(listener) {
+  ensureCrossTabSync();
+  logoutListeners.add(listener);
+  return () => {
+    logoutListeners.delete(listener);
+  };
+}
+
+/** Clear OAuth tokens here and tell every other open tab to drop theirs. */
+export function logoutOAuthEverywhere() {
+  ensureCrossTabSync();
+  clearOAuthTokens();
+  postSyncMessage(OAUTH_SYNC_REQUEST_KEY, { type: 'oauth-logout' });
 }
 
 export function requestTokensFromOtherTabs({ timeoutMs = OAUTH_SYNC_TIMEOUT_MS } = {}) {

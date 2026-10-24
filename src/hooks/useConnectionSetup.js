@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createConnection, createLongLivedTokenAuth, getAuth } from 'home-assistant-js-websocket';
 import { validateUrl } from '../config/onboarding';
-import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
+import {
+  saveTokens,
+  loadTokens,
+  hasOAuthTokens,
+  isOAuthRejected,
+  logoutOAuthEverywhere,
+} from '../services/oauthStorage';
 
 /** @typedef {import('../types/dashboard').UseConnectionSetupDeps} UseConnectionSetupDeps */
 /** @typedef {import('../types/dashboard').UseConnectionSetupResult} UseConnectionSetupResult */
@@ -45,6 +51,8 @@ export function useConnectionSetup({
       typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).has('auth_callback');
     if (isOAuthCallback) return;
+    // A rejected OAuth session is handled by the expired-login banner.
+    if (config.authMethod === 'oauth' && isOAuthRejected()) return;
 
     const hasAuth = config.token || (config.authMethod === 'oauth' && hasOAuthTokens());
     if (!hasAuth && !showOnboarding && !showConfigModal) {
@@ -111,7 +119,7 @@ export function useConnectionSetup({
 
   // ── OAuth logout ───────────────────────────────────────────────────────
   const handleOAuthLogout = () => {
-    clearOAuthTokens();
+    logoutOAuthEverywhere();
     setConfig({ ...config, authMethod: 'oauth', token: '' });
     try {
       localStorage.removeItem('ha_oauth_tokens');
@@ -120,6 +128,9 @@ export function useConnectionSetup({
       localStorage.removeItem('ha_token');
       localStorage.setItem('ha_auth_method', 'oauth');
     } catch {}
+    // The live HA connection keeps its auth in memory and would save refreshed
+    // tokens again, so start over from a clean page.
+    globalThis.location?.reload();
   };
 
   // ── Derived: can the user advance past onboarding step 0? ──────────────

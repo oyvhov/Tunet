@@ -1886,16 +1886,18 @@ export default function ConfigModal({
         isLayoutPreview ? 'items-stretch justify-end' : 'items-center justify-center p-4 md:p-8'
       }`}
       overlayStyle={{
-        backdropFilter: isLayoutPreview ? 'none' : 'blur(20px)',
-        backgroundColor: isLayoutPreview ? 'transparent' : 'rgba(0,0,0,0.3)',
+        backdropFilter: 'none',
+        backgroundColor: isLayoutPreview ? 'transparent' : 'var(--modal-backdrop)',
       }}
-      panelClassName={`popup-anim relative flex w-full flex-col overflow-hidden border font-sans text-[var(--text-primary)] ${
+      panelClassName={`system-settings-modal popup-anim relative flex w-full flex-col overflow-hidden border font-sans text-[var(--text-primary)] ${
         isLayoutPreview
-          ? 'animate-in slide-in-from-right-8 fade-in zoom-in-95 h-full max-w-[18rem] origin-right scale-[0.94] rounded-none shadow-2xl duration-300 sm:max-w-[21rem] sm:scale-[0.97] md:max-w-[23rem] md:scale-100 md:rounded-l-[2.5rem]'
+          ? 'h-full max-w-[18rem] rounded-none shadow-2xl sm:max-w-[21rem] md:max-w-[23rem] md:rounded-l-[2.5rem]'
           : 'h-[75vh] max-h-[700px] max-w-5xl rounded-3xl shadow-2xl md:rounded-[3rem]'
       }`}
       panelStyle={{
-        background: 'linear-gradient(160deg, var(--card-bg) 0%, var(--modal-bg) 70%)',
+        backgroundColor: 'var(--modal-bg)',
+        backgroundImage: 'linear-gradient(160deg, var(--card-bg) 0%, var(--modal-bg) 70%)',
+        animation: 'none',
         borderColor: 'var(--glass-border)',
         color: 'var(--text-primary)',
       }}

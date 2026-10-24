@@ -127,7 +127,7 @@ export default function SidebarContainer({
     <>
       {/* Backdrop - Removed blur and reduced opacity so changes can be seen clearly */}
       <div
-        className={`tunet-sidebar-backdrop fixed inset-0 z-[100] transition-opacity duration-300 ${
+        className={`tunet-sidebar-backdrop fixed inset-0 z-[100] ${
           open ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
         style={{
@@ -144,9 +144,10 @@ export default function SidebarContainer({
         aria-modal="true"
         aria-label={title}
         inert={!open}
-        className={`tunet-sidebar popup-anim fixed inset-y-0 right-0 z-[101] w-full max-w-[420px] transform border-l backdrop-blur-2xl transition-transform duration-300 ease-out ${
-          open ? 'translate-x-0' : 'translate-x-full'
+        className={`tunet-sidebar popup-anim fixed inset-y-0 right-0 z-[101] w-full max-w-[420px] border-l ${
+          open ? 'visible' : 'invisible'
         }`}
+        style={{ animation: 'none' }}
       >
         <div className="flex h-full flex-col">
           {/* Header */}

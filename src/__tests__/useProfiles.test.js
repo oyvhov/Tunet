@@ -54,7 +54,6 @@ describe('useProfiles', () => {
     expect(useSettingsSync).toHaveBeenCalledWith({
       haUserId: 'user-1',
       contextSettersRef: expect.objectContaining({ current: {} }),
-      autoBootstrap: false,
     });
   });
 

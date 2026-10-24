@@ -110,7 +110,6 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
   const autoSync = useSettingsSync({
     haUserId: haUser?.id,
     contextSettersRef,
-    autoBootstrap: prefetchProfiles,
   });
 
   // ── Load profiles when haUser changes ──

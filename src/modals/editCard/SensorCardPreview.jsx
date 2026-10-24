@@ -6,7 +6,7 @@ import { ChevronDown } from '../../icons';
 const PREVIEW_CARD_STYLE = {
   backgroundColor: 'var(--card-bg)',
   borderColor: 'var(--card-border)',
-  backdropFilter: 'blur(16px)',
+  backdropFilter: 'none',
   borderStyle: 'solid',
   borderWidth: '1px',
   borderRadius: 'var(--card-border-radius, 16px)',

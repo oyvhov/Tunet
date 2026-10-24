@@ -2,6 +2,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import db from '../db.js';
 import {
+  assertStoredDataWritable,
+  handleDataEncryptionError,
   encryptDataText,
   getEncryptedOnlyPlaintextStub,
   isDataEncryptionEnabled,
@@ -120,7 +122,7 @@ export const writeCurrentSettingsSnapshot = ({
   const writeTransaction = database.transaction(() => {
     const existing = database
       .prepare(
-        `SELECT revision, device_label FROM current_settings
+        `SELECT revision, device_label, data, data_enc FROM current_settings
          WHERE ha_user_id = ? AND device_id = ?`
       )
       .get(haUserId, deviceId);
@@ -169,6 +171,7 @@ export const writeCurrentSettingsSnapshot = ({
     }
 
     const nextRevision = Number(existing.revision) + 1;
+    assertStoredDataWritable(existing, encryptedPayload);
     const resolvedLabel =
       deviceLabel === undefined ? existing.device_label || null : (requestedLabel ?? null);
     const updateInfo = database
@@ -540,7 +543,7 @@ router.post('/publish', (req, res) => {
   const upsertTarget = (deviceId) => {
     const existing = db
       .prepare(
-        `SELECT revision FROM current_settings
+        `SELECT revision, data, data_enc FROM current_settings
        WHERE ha_user_id = ? AND device_id = ?`
       )
       .get(ha_user_id, deviceId);
@@ -572,6 +575,7 @@ router.post('/publish', (req, res) => {
     }
 
     const nextRevision = Number(existing.revision) + 1;
+    assertStoredDataWritable(existing, sourceEncryptedPayload);
     db.prepare(
       `UPDATE current_settings
        SET data = ?, data_enc = ?, revision = ?, updated_at = ?
@@ -608,9 +612,14 @@ router.post('/publish', (req, res) => {
     const affected = publishTargets(targetIds);
     return res.json({ success: true, affected, conflicts });
   } catch (error) {
+    if (error.code === 'DATA_ENCRYPTION_UNAVAILABLE') {
+      return res.status(503).json({ error: error.message, code: error.code });
+    }
     console.error('[settings] Failed to publish settings:', error);
     return res.status(500).json({ error: 'Failed to publish settings to target devices' });
   }
 });
+
+router.use(handleDataEncryptionError);
 
 export default router;

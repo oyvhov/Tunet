@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { Plus, Edit2, ChevronDown } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useModalActions, usePages } from '../../contexts';
@@ -156,6 +156,65 @@ function PageManagerPopover({
 
 // ── Main navigation ─────────────────────────────────────────────────────
 
+export const PAGE_NAV_STYLES = ['pill', 'segmented', 'underline', 'minimal', 'expand'];
+
+export const PAGE_NAV_SIZES = ['sm', 'md', 'lg'];
+
+// Size tokens read by the item classes below via CSS variables.
+const NAV_SIZE_VARS = {
+  sm: {
+    '--nav-px': '0.875rem',
+    '--nav-py': '0.4rem',
+    '--nav-font': '11px',
+    '--nav-icon': '0.875rem',
+  },
+  md: { '--nav-px': '1.25rem', '--nav-py': '0.625rem', '--nav-font': '12px', '--nav-icon': '1rem' },
+  lg: { '--nav-px': '1.5rem', '--nav-py': '0.8rem', '--nav-font': '14px', '--nav-icon': '1.25rem' },
+};
+
+const SLIDING_NAV_STYLES = ['segmented', 'underline'];
+
+const getNavItemClass = (navStyle, isActive, accent, sliding) => {
+  const activeText = accent ? 'text-[var(--accent-color)]' : 'text-[var(--text-primary)]';
+  const idleText = 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]';
+  const activeBg = accent ? 'bg-[var(--accent-bg)]' : 'bg-[var(--glass-bg-hover)]';
+  switch (navStyle) {
+    case 'segmented':
+      return `rounded-full border px-[calc(var(--nav-px)*0.8)] py-[calc(var(--nav-py)*0.8)] ${
+        isActive
+          ? `${sliding ? 'border-transparent bg-transparent' : `border-[var(--glass-border)] ${activeBg}`} ${activeText}`
+          : `border-transparent bg-transparent ${idleText}`
+      }`;
+    case 'underline':
+      return `rounded-none border-0 px-1 py-[var(--nav-py)] ${isActive ? activeText : idleText}`;
+    case 'minimal':
+      return `rounded-xl border-0 px-2 py-[var(--nav-py)] ${
+        isActive ? activeText : `${idleText} opacity-70 hover:opacity-100`
+      }`;
+    case 'expand':
+      return `rounded-full border ${
+        isActive
+          ? `border-[var(--glass-border)] px-[var(--nav-px)] py-[var(--nav-py)] ${activeBg} ${activeText}`
+          : `border-transparent bg-[var(--glass-bg)] p-[var(--nav-py)] ${idleText} hover:bg-[var(--glass-bg-hover)]`
+      }`;
+    default:
+      return `rounded-2xl border px-3 py-2.5 sm:rounded-full sm:px-[var(--nav-px)] sm:py-[var(--nav-py)] ${
+        isActive
+          ? `border-[var(--glass-border)] ${activeBg} ${activeText}`
+          : `border-transparent bg-[var(--glass-bg)] ${idleText} hover:bg-[var(--glass-bg-hover)]`
+      }`;
+  }
+};
+
+const NAV_TRACK_CLASS = {
+  pill: 'gap-[calc(var(--nav-px)*0.6)]',
+  segmented:
+    'gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1 sm:w-fit sm:flex-none',
+  underline: 'gap-[calc(var(--nav-px)*1.1)] border-b border-[var(--glass-border)]',
+  minimal: 'gap-[calc(var(--nav-px)*0.6)]',
+  expand: 'gap-2',
+};
+
 /**
  * PageNavigation - Navigation component for switching between pages
  *
@@ -174,6 +233,14 @@ export default function PageNavigation({
   const { pagesConfig, persistConfig, pageSettings, headerSettings } = usePages();
   const { setShowAddPageModal } = useModalActions();
   const showLabelsOnMobile = headerSettings?.showPagePillLabelsOnMobile ?? false;
+  const navStyle = PAGE_NAV_STYLES.includes(headerSettings?.navStyle)
+    ? headerSettings.navStyle
+    : 'pill';
+  const navAccent = headerSettings?.navActiveAccent === true;
+  const navShowIcons = headerSettings?.navShowIcons !== false;
+  const navUppercase = headerSettings?.navUppercase === true;
+  const navSize = PAGE_NAV_SIZES.includes(headerSettings?.navSize) ? headerSettings.navSize : 'md';
+  const sliding = SLIDING_NAV_STYLES.includes(navStyle);
   const [dragOverId, setDragOverId] = useState(null);
   const [showManager, setShowManager] = useState(false);
   const pageOrder = pagesConfig?.pages || [];
@@ -186,6 +253,42 @@ export default function PageNavigation({
   useEffect(() => {
     if (!editMode) setShowManager(false);
   }, [editMode]);
+
+  const trackRef = useRef(null);
+  const [indicator, setIndicator] = useState(null);
+  useLayoutEffect(() => {
+    const track = trackRef.current;
+    if (!sliding || !track) {
+      setIndicator(null);
+      return undefined;
+    }
+    const update = () => {
+      const active = track.querySelector('[aria-current="page"]');
+      const next = active
+        ? {
+            left: active.offsetLeft,
+            top: active.offsetTop,
+            width: active.offsetWidth,
+            height: active.offsetHeight,
+          }
+        : null;
+      setIndicator((prev) =>
+        prev &&
+        next &&
+        prev.left === next.left &&
+        prev.top === next.top &&
+        prev.width === next.width &&
+        prev.height === next.height
+          ? prev
+          : next
+      );
+    };
+    update();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(update);
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [sliding, activePage, pages, navSize, navShowIcons, navUppercase, editMode]);
 
   const movePage = (sourceId, targetId) => {
     if (!persistConfig) return;
@@ -202,60 +305,95 @@ export default function PageNavigation({
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       {/* Scrollable page pills */}
-      <div className="scrollbar-hide flex min-w-0 flex-1 items-center gap-4 overflow-x-auto pb-2">
-        {pages.map((page) => {
-          const settings = pageSettings[page.id] || {};
-          const label = settings.label || page.label;
-          const isHidden = settings.hidden;
-          const hideSinglePagePill = settings.hideSinglePagePill === true;
-          const Icon = settings.icon ? getIconComponent(settings.icon) || page.icon : page.icon;
-          const isDragOver = dragOverId === page.id;
+      <div className="scrollbar-hide min-w-0 flex-1 overflow-x-auto pb-2">
+        <div
+          ref={trackRef}
+          className={`relative flex min-w-0 items-center ${NAV_TRACK_CLASS[navStyle]}`}
+          style={/** @type {import('react').CSSProperties} */ (NAV_SIZE_VARS[navSize])}
+          data-nav-style={navStyle}
+          data-nav-size={navSize}
+        >
+          {sliding && indicator && (
+            <span
+              aria-hidden="true"
+              data-nav-indicator
+              className={`pointer-events-none absolute left-0 transition-[transform,width,height] duration-300 ease-out motion-reduce:transition-none ${
+                navStyle === 'underline'
+                  ? `-bottom-px h-0.5 rounded-full ${navAccent ? 'bg-[var(--accent-color)]' : 'bg-[var(--text-primary)]'}`
+                  : `rounded-full border border-[var(--glass-border)] ${navAccent ? 'bg-[var(--accent-bg)]' : 'bg-[var(--glass-bg-hover)]'}`
+              }`}
+              style={{
+                width: indicator.width,
+                transform: `translateX(${indicator.left}px)`,
+                ...(navStyle === 'underline'
+                  ? {}
+                  : { top: indicator.top, height: indicator.height }),
+              }}
+            />
+          )}
+          {pages.map((page) => {
+            const settings = pageSettings[page.id] || {};
+            const label = settings.label || page.label;
+            const isHidden = settings.hidden;
+            const hideSinglePagePill = settings.hideSinglePagePill === true;
+            const Icon = settings.icon ? getIconComponent(settings.icon) || page.icon : page.icon;
+            const isDragOver = dragOverId === page.id;
 
-          if (!editMode && isHidden) return null;
-          if (!editMode && isSinglePage && hideSinglePagePill) return null;
+            if (!editMode && isHidden) return null;
+            if (!editMode && isSinglePage && hideSinglePagePill) return null;
 
-          return (
-            <button
-              key={page.id}
-              aria-label={label}
-              draggable={editMode}
-              onClick={() => (editMode ? setEditingPage(page.id) : setActivePage(page.id))}
-              onDragStart={(event) => {
-                if (!editMode) return;
-                event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('text/plain', page.id);
-              }}
-              onDragOver={(event) => {
-                if (!editMode) return;
-                event.preventDefault();
-                event.dataTransfer.dropEffect = 'move';
-                setDragOverId(page.id);
-              }}
-              onDragLeave={() => {
-                if (!editMode) return;
-                setDragOverId(null);
-              }}
-              onDrop={(event) => {
-                if (!editMode) return;
-                event.preventDefault();
-                const sourceId = event.dataTransfer.getData('text/plain');
-                setDragOverId(null);
-                movePage(sourceId, page.id);
-              }}
-              onDragEnd={() => setDragOverId(null)}
-              className={`flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-2xl border px-3 py-2.5 text-[11px] font-bold tracking-wide whitespace-nowrap transition-all sm:min-h-0 sm:min-w-0 sm:rounded-full sm:px-5 sm:py-2.5 sm:text-xs ${
-                activePage === page.id
-                  ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]'
-                  : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-              } ${editMode && isHidden ? 'scale-95 border-gray-500 opacity-50' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-[var(--accent-color)]' : ''}`}
-            >
-              <Icon
-                className={`h-5 w-5 sm:h-4 sm:w-4 ${editMode && isHidden ? 'animate-pulse' : ''}`}
-              />
-              <span className={showLabelsOnMobile ? undefined : 'hidden sm:inline'}>{label}</span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={page.id}
+                aria-label={label}
+                draggable={editMode}
+                onClick={() => (editMode ? setEditingPage(page.id) : setActivePage(page.id))}
+                onDragStart={(event) => {
+                  if (!editMode) return;
+                  event.dataTransfer.effectAllowed = 'move';
+                  event.dataTransfer.setData('text/plain', page.id);
+                }}
+                onDragOver={(event) => {
+                  if (!editMode) return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = 'move';
+                  setDragOverId(page.id);
+                }}
+                onDragLeave={() => {
+                  if (!editMode) return;
+                  setDragOverId(null);
+                }}
+                onDrop={(event) => {
+                  if (!editMode) return;
+                  event.preventDefault();
+                  const sourceId = event.dataTransfer.getData('text/plain');
+                  setDragOverId(null);
+                  movePage(sourceId, page.id);
+                }}
+                onDragEnd={() => setDragOverId(null)}
+                aria-current={activePage === page.id ? 'page' : undefined}
+                className={`relative z-10 flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-[calc(var(--nav-icon)*0.5)] text-[length:var(--nav-font)] font-bold whitespace-nowrap transition-all duration-300 sm:min-h-0 sm:min-w-0 ${navUppercase ? 'tracking-widest uppercase' : 'tracking-wide'} ${getNavItemClass(navStyle, activePage === page.id, navAccent, sliding && indicator !== null)} ${editMode && isHidden ? 'scale-95 border-gray-500 opacity-50' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-[var(--accent-color)]' : ''}`}
+              >
+                {(navShowIcons || navStyle === 'expand') && (
+                  <Icon
+                    className={`h-5 w-5 shrink-0 sm:h-[var(--nav-icon)] sm:w-[var(--nav-icon)] ${editMode && isHidden ? 'animate-pulse' : ''}`}
+                  />
+                )}
+                <span
+                  className={
+                    navStyle === 'expand' && activePage !== page.id
+                      ? 'sr-only'
+                      : showLabelsOnMobile || !navShowIcons
+                        ? undefined
+                        : 'hidden sm:inline'
+                  }
+                >
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Pinned edit-mode page manager trigger — always visible */}

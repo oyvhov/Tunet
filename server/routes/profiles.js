@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import db from '../db.js';
 import {
+  assertStoredDataWritable,
+  handleDataEncryptionError,
   encryptDataText,
   getEncryptedOnlyPlaintextStub,
   isDataEncryptionEnabled,
@@ -164,7 +166,7 @@ router.put('/:id', (req, res) => {
   }
 
   const existing = db
-    .prepare('SELECT id FROM profiles WHERE id = ? AND ha_user_id = ?')
+    .prepare('SELECT id, data, data_enc FROM profiles WHERE id = ? AND ha_user_id = ?')
     .get(req.params.id, requestUserId);
   if (!existing) {
     return res.status(404).json({ error: 'Profile not found' });
@@ -173,6 +175,7 @@ router.put('/:id', (req, res) => {
   const now = new Date().toISOString();
   const payload = data === undefined ? null : JSON.stringify(data);
   const encryptedPayload = payload === null ? null : encryptDataText(payload);
+  if (payload !== null) assertStoredDataWritable(existing, encryptedPayload);
   if (payload !== null && encryptedPayload === null) {
     warnEncryptionWriteFailure('update');
     if (isEncryptionWriteRequired()) {
@@ -231,5 +234,7 @@ router.delete('/:id', (req, res) => {
   }
   res.json({ success: true });
 });
+
+router.use(handleDataEncryptionError);
 
 export default router;

@@ -1159,12 +1159,14 @@ export default function EditCardModal({
       titleId="edit-card-modal-title"
       overlayClassName="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
       overlayStyle={{
-        backdropFilter: 'blur(20px)',
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        backdropFilter: 'none',
+        backgroundColor: 'var(--modal-backdrop)',
       }}
-      panelClassName={`w-full border ${isEditRoom ? 'max-w-2xl' : showSensorPreview ? 'max-w-lg lg:max-w-4xl' : 'max-w-lg'} popup-anim relative mt-3 flex max-h-[92vh] flex-col ${showSensorPreview ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-x-6' : ''} rounded-2xl p-4 font-sans shadow-2xl backdrop-blur-xl sm:mt-0 sm:max-h-[85vh] sm:rounded-3xl sm:p-6 md:rounded-[2.5rem] md:p-8`}
+      panelClassName={`edit-card-modal w-full border ${isEditRoom ? 'max-w-2xl' : showSensorPreview ? 'max-w-lg lg:max-w-4xl' : 'max-w-lg'} popup-anim relative mt-3 flex max-h-[92vh] flex-col ${showSensorPreview ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-x-6' : ''} rounded-2xl p-4 font-sans shadow-2xl sm:mt-0 sm:max-h-[85vh] sm:rounded-3xl sm:p-6 md:rounded-[2.5rem] md:p-8`}
       panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        backgroundColor: 'var(--modal-bg)',
+        backgroundImage: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
+        animation: 'none',
         borderColor: 'var(--glass-border)',
         color: 'var(--text-primary)',
       }}

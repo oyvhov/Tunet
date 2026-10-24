@@ -158,7 +158,6 @@ const WeatherTempCard = memo(
           if (content) {
             content.removeAttribute('data-dragging');
             content.style.setProperty('--weather-swipe-x', '0px');
-            content.style.opacity = '1';
           }
         },
         isOutgoing ? 155 : 195
@@ -295,7 +294,6 @@ const WeatherTempCard = memo(
       if (!content) return;
       content.removeAttribute('data-dragging');
       content.style.setProperty('--weather-swipe-x', '0px');
-      content.style.opacity = '1';
     };
     const handlePointerDown = (event) => {
       if (
@@ -340,10 +338,8 @@ const WeatherTempCard = memo(
       const allowedDirection =
         (cardView === 'current' && deltaX < 0) || (cardView === 'forecast' && deltaX > 0);
       const displayedDelta = allowedDirection ? deltaX : deltaX * 0.16;
-      const width = event.currentTarget.getBoundingClientRect().width || 1;
       content.dataset.dragging = 'true';
       content.style.setProperty('--weather-swipe-x', `${displayedDelta}px`);
-      content.style.opacity = String(1 - Math.min(Math.abs(displayedDelta) / width, 0.32));
     };
     const finishPointerGesture = (event, cancelled = false) => {
       const gesture = swipeGestureRef.current;

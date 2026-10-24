@@ -4,6 +4,8 @@ import { ChoiceChips, FIELD_CLASS, ToggleRow } from './settingsControls';
 import { canSensorUseNumericVariants, resolveSensorCardConfig } from '../../utils/sensorCardConfig';
 
 const VARIANTS = ['default', 'number', 'gauge', 'bar', 'donut'];
+const GRAPH_RANGES = ['1h', '6h', '12h', '24h', '48h', '7d', '30d'];
+const GRAPH_STATS = ['mean', 'min', 'max', 'change'];
 const RANGE_VARIANTS = ['gauge', 'donut', 'bar'];
 const DEFAULT_THRESHOLDS = [
   { limit: 20, color: 'red' },
@@ -140,6 +142,9 @@ export default function SensorNumericStyle({
   const variant = VARIANTS.includes(settings.sensorVariant) ? settings.sensorVariant : 'default';
   const canGraph = domain !== 'input_number' && config.statusMode !== 'attribute';
   const valueMode = settings.sensorValueMode === 'percent' ? 'percent' : 'actual';
+  const graphStyle = settings.graphStyle === 'bar' ? 'bar' : 'line';
+  const graphRange = GRAPH_RANGES.includes(settings.graphRange) ? settings.graphRange : '24h';
+  const graphStat = GRAPH_STATS.includes(settings.graphStat) ? settings.graphStat : 'mean';
   const useColorThresholds = settings.sensorUseColorThresholds !== false;
   const thresholds =
     Array.isArray(settings.sensorColorThresholds) && settings.sensorColorThresholds.length === 3
@@ -175,6 +180,41 @@ export default function SensorNumericStyle({
           checked={settings.showGraph !== false}
           onChange={(value) => save('showGraph', value)}
         />
+      ) : null}
+
+      {canGraph && variant === 'default' && settings.showGraph !== false ? (
+        <div className="space-y-4 rounded-xl bg-[var(--glass-bg)] p-3">
+          <ChoiceChips
+            label={t('sensor.graphStyle') || 'Graph type'}
+            options={[
+              { value: 'line', label: t('sensor.graphStyleLine') || 'Line' },
+              { value: 'bar', label: t('sensor.graphStyleBar') || 'Bars' },
+            ]}
+            value={graphStyle}
+            onChange={(value) => save('graphStyle', value)}
+          />
+          <ChoiceChips
+            label={t('sensor.graphRange') || 'Time range'}
+            options={GRAPH_RANGES.map((key) => ({
+              value: key,
+              label: t(`sensor.graphRange${key}`) || key,
+            }))}
+            value={graphRange}
+            onChange={(value) => save('graphRange', value)}
+          />
+          {graphStyle === 'bar' ? (
+            <ChoiceChips
+              label={t('sensor.graphStat') || 'Value per bar'}
+              hint={graphStat === 'change' ? t('sensor.graphStatChangeHint') : undefined}
+              options={GRAPH_STATS.map((key) => ({
+                value: key,
+                label: t(`sensor.graphStat${key[0].toUpperCase()}${key.slice(1)}`) || key,
+              }))}
+              value={graphStat}
+              onChange={(value) => save('graphStat', value)}
+            />
+          ) : null}
+        </div>
       ) : null}
 
       {RANGE_VARIANTS.includes(variant) ? (

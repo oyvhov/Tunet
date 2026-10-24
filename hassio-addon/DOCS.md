@@ -16,6 +16,8 @@ real-time entity updates, and drag-and-drop customisation.
 
 ## Features
 
+For access through the optional direct port, set `internal_ha_url` in the add-on configuration to an HTTP(S) URL for your Home Assistant instance that the add-on can reach. Profiles and settings sync require this trusted server address. `internal_ha_fallback_url` can point to an alternative address for the same instance. Browser-supplied addresses are never used to validate backend authentication. Sidebar access through Supervisor ingress needs no additional URL configuration.
+
 - **Real-time updates** via Home Assistant WebSocket API.
 - **Trusted Ingress Integration** when running inside the Home Assistant add-on.
 - **PIN Protection** for settings and edit mode.
@@ -53,6 +55,10 @@ real-time entity updates, and drag-and-drop customisation.
 Tunet add-on builds are now version-resolved from release tags before falling back to `main`, which prevents this mismatch in normal updates.
 
 ## Troubleshooting
+
+### Encrypted storage is unavailable
+
+Keep `data_encryption_key` and `data_encryption_salt` unchanged when upgrading or restarting. In `dual` and `enc_only`, a missing or incorrect key prevents startup. Switching `data_encryption_mode` to `off` lets the dashboard start but does not decrypt the database or permit overwriting encrypted rows. Restore the original settings and retain a backup of both the database and key.
 
 ### "Connection failed" after entering the token
 

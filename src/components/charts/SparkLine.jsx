@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { memo, useId } from 'react';
 import { CHART_STATUS_COLORS, getThresholdColor } from '../../utils/chartColors';
 
 // Helper function to create smooth Bezier curves
@@ -28,19 +28,22 @@ const createBezierPath = (points, smoothing = 0.3, bounds) => {
   }, '');
 };
 
-export default function SparkLine({
+function SparkLine({
   data,
   currentIndex,
   height = 40,
   fade = false,
   variant = 'line',
+  bleed = false,
+  maxBars = 16,
+  zeroBaseline = false,
   ariaLabel = 'Sensor history',
 }) {
   const pointsData = Array.isArray(data) ? data : [];
   const lineStrokeWidth = 3;
   const pointRadius = 3.5;
   const verticalPadding = Math.max(4, Math.ceil(pointRadius + lineStrokeWidth / 2));
-  const plotInset = 12;
+  const plotInset = bleed ? 0 : 12;
   const reactId = useId();
   const idSuffix = reactId.replace(/:/g, '');
   const areaId = `cardAreaGrad-${idSuffix}`;
@@ -61,6 +64,10 @@ export default function SparkLine({
   });
   let min = Math.min(...values);
   let max = Math.max(...values);
+  if (zeroBaseline && variant === 'bar') {
+    min = Math.min(0, min);
+    max = Math.max(0, max);
+  }
   if (min === max) {
     min -= 1;
     max += 1;
@@ -68,7 +75,7 @@ export default function SparkLine({
   // Ensure a minimum visual range so small fluctuations don't look extreme
   const rawRange = max - min;
   const minRange = Math.max(2, (Math.abs(max + min) / 2) * 0.1);
-  if (rawRange < minRange) {
+  if (rawRange < minRange && !(zeroBaseline && variant === 'bar')) {
     const mid = (max + min) / 2;
     min = mid - minRange / 2;
     max = mid + minRange / 2;
@@ -92,7 +99,8 @@ export default function SparkLine({
     minY: chartTop,
     maxY: chartBottom,
   });
-  const areaData = `${pathData} L ${width - plotInset},${chartBottom} L ${plotInset},${chartBottom} Z`;
+  const areaBottom = bleed ? height + 4 : chartBottom;
+  const areaData = `${pathData} L ${width - plotInset},${areaBottom} L ${plotInset},${areaBottom} Z`;
   const normalizedCurrentIndex =
     Number.isInteger(currentIndex) && currentIndex >= 0 && currentIndex < values.length
       ? currentIndex
@@ -105,7 +113,6 @@ export default function SparkLine({
   };
 
   if (variant === 'bar') {
-    const maxBars = 16;
     const groupSize = Math.max(1, Math.ceil(values.length / maxBars));
     const barValues =
       groupSize === 1
@@ -118,11 +125,14 @@ export default function SparkLine({
     const activeBarIndex =
       groupSize === 1 ? normalizedCurrentIndex : Math.floor(normalizedCurrentIndex / groupSize);
     const slotWidth = plotWidth / Math.max(barValues.length, 1);
-    const barWidth = Math.max(3, Math.min(12, slotWidth - 1.5));
+    const barWidth = bleed
+      ? Math.max(2, slotWidth * 0.62)
+      : Math.max(3, Math.min(12, slotWidth - 1.5));
+    const barBottom = bleed ? height + 4 : chartBottom;
 
     return (
       <div
-        className="relative mt-1 opacity-80 transition-all duration-700 group-hover:opacity-100"
+        className={`relative ${bleed ? '' : 'mt-1'} opacity-80 transition-opacity duration-700 group-hover:opacity-100`}
         data-chart-safe-inset={plotInset}
       >
         <svg
@@ -146,6 +156,7 @@ export default function SparkLine({
             const barHeight = Math.max(3, intensity * chartHeight);
             const x = plotInset + index * slotWidth + (slotWidth - barWidth) / 2;
             const y = chartBottom - barHeight;
+            const fullHeight = barBottom - y;
             const isCurrent = index === activeBarIndex;
             const fill = getValueColor(value);
 
@@ -155,7 +166,7 @@ export default function SparkLine({
                   x={x}
                   y={y}
                   width={barWidth}
-                  height={barHeight}
+                  height={fullHeight}
                   rx={Math.min(barWidth / 2, 3)}
                   fill={fill}
                   opacity={isCurrent ? 0.95 : 0.52}
@@ -174,7 +185,7 @@ export default function SparkLine({
                     x={Math.max(0, x - 1)}
                     y={Math.max(0, y - 1)}
                     width={Math.min(width - x + 1, barWidth + 2)}
-                    height={Math.min(height - y + 1, barHeight + 2)}
+                    height={bleed ? fullHeight + 1 : Math.min(height - y + 1, barHeight + 2)}
                     rx={Math.min((barWidth + 2) / 2, 4)}
                     fill="none"
                     stroke={fill}
@@ -195,7 +206,7 @@ export default function SparkLine({
 
   return (
     <div
-      className="relative mt-1 opacity-80 transition-all duration-700 group-hover:opacity-100"
+      className={`relative ${bleed ? '' : 'mt-1'} opacity-80 transition-opacity duration-700 group-hover:opacity-100`}
       data-chart-safe-inset={plotInset}
     >
       <svg
@@ -253,7 +264,6 @@ export default function SparkLine({
           cy={currentPoint[1]}
           r={pointRadius}
           fill={getValueColor(values[normalizedCurrentIndex])}
-          className="animate-pulse"
         />
       </svg>
       {fade && (
@@ -262,3 +272,5 @@ export default function SparkLine({
     </div>
   );
 }
+
+export default memo(SparkLine);

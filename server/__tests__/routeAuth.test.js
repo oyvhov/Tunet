@@ -103,6 +103,7 @@ const startRouterHarness = async (routerImportPath, routeBase) => {
 };
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   vi.doUnmock('../db.js');
   vi.resetModules();
 
@@ -111,6 +112,102 @@ afterEach(async () => {
     await closeServer(server);
     database.close();
   }
+});
+
+describe('encrypted route data loss protection', () => {
+  const prepareEncryptedRow = async (mode) => {
+    vi.resetModules();
+    vi.stubEnv('TUNET_ENCRYPTION_MODE', 'enc_only');
+    vi.stubEnv('TUNET_DATA_KEY', 'ab'.repeat(32));
+    const { encryptDataText } = await import('../utils/dataCrypto.js');
+    const encrypted = encryptDataText(JSON.stringify({ version: 1, layout: { pages: ['home'] } }));
+    vi.stubEnv('TUNET_ENCRYPTION_MODE', mode);
+    vi.stubEnv('TUNET_DATA_KEY', mode === 'off' ? 'ab'.repeat(32) : 'cd'.repeat(32));
+    return encrypted;
+  };
+
+  it.each(['off', 'enc_only'])(
+    'protects an encrypted profile from overwrites in %s mode',
+    async (mode) => {
+      const encrypted = await prepareEncryptedRow(mode);
+      const harness = await startRouterHarness('../routes/profiles.js', '/api/profiles');
+      harness.database
+        .prepare(
+          'INSERT INTO profiles (id, ha_user_id, name, data, data_enc) VALUES (?, ?, ?, ?, ?)'
+        )
+        .run('profile', 'user-1', 'Home', '{"_enc_only":true}', encrypted);
+      const response = await harness.request('/profile', {
+        method: 'PUT',
+        headers: { 'x-test-user-id': 'user-1' },
+        body: JSON.stringify({ data: { version: 2 } }),
+      });
+      expect(response.status).toBe(503);
+      expect((await response.json()).code).toBe('DATA_ENCRYPTION_UNAVAILABLE');
+      expect(harness.database.prepare('SELECT data_enc FROM profiles').get().data_enc).toBe(
+        encrypted
+      );
+    }
+  );
+
+  it('returns 503 for unreadable settings and preserves both the current row and history', async () => {
+    const encrypted = await prepareEncryptedRow('enc_only');
+    const harness = await startRouterHarness('../routes/settings.js', '/api/settings');
+    harness.database
+      .prepare(
+        'INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision) VALUES (?, ?, ?, ?, ?)'
+      )
+      .run('user-1', 'tablet', '{"_enc_only":true}', encrypted, 4);
+    const headers = { 'x-test-user-id': 'user-1' };
+    const read = await harness.request('/current?ha_user_id=user-1&device_id=tablet', { headers });
+    expect(read.status).toBe(503);
+    expect((await read.json()).code).toBe('DATA_ENCRYPTION_UNAVAILABLE');
+    const write = await harness.request('/current', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        ha_user_id: 'user-1',
+        device_id: 'tablet',
+        base_revision: 4,
+        data: { version: 2 },
+      }),
+    });
+    expect(write.status).toBe(503);
+    expect(
+      harness.database.prepare('SELECT revision, data_enc FROM current_settings').get()
+    ).toEqual({ revision: 4, data_enc: encrypted });
+    expect(
+      harness.database.prepare('SELECT COUNT(*) AS count FROM current_settings_history').get().count
+    ).toBe(0);
+  });
+
+  it('does not publish plaintext over an encrypted target when encryption is off', async () => {
+    const encrypted = await prepareEncryptedRow('off');
+    const harness = await startRouterHarness('../routes/settings.js', '/api/settings');
+    const insert = harness.database.prepare(
+      'INSERT INTO current_settings (ha_user_id, device_id, data, data_enc, revision) VALUES (?, ?, ?, ?, ?)'
+    );
+    insert.run('user-1', 'source', '{"version":2}', null, 2);
+    insert.run('user-1', 'target', '{"_enc_only":true}', encrypted, 4);
+    const response = await harness.request('/publish', {
+      method: 'POST',
+      headers: { 'x-test-user-id': 'user-1' },
+      body: JSON.stringify({
+        ha_user_id: 'user-1',
+        source_device_id: 'source',
+        target_device_id: 'target',
+        base_revisions: { target: 4 },
+      }),
+    });
+    expect(response.status).toBe(503);
+    expect(
+      harness.database
+        .prepare("SELECT revision, data_enc FROM current_settings WHERE device_id = 'target'")
+        .get()
+    ).toEqual({ revision: 4, data_enc: encrypted });
+    expect(
+      harness.database.prepare('SELECT COUNT(*) AS count FROM current_settings_history').get().count
+    ).toBe(0);
+  });
 });
 
 describe('settings route auth', () => {

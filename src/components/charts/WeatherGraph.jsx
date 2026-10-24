@@ -1,4 +1,4 @@
-import { useId, useMemo } from 'react';
+import { memo, useId, useMemo } from 'react';
 import { WEATHER_BAND_COLORS } from '../../utils/chartColors';
 
 // Helper function to create smooth Bezier curves
@@ -41,12 +41,7 @@ const smoothData = (data, windowSize = 3) => {
   });
 };
 
-export default function WeatherGraph({
-  history,
-  currentTemp,
-  historyHours = 12,
-  colorLimits = [0, 10, 20, 28],
-}) {
+function WeatherGraph({ history, currentTemp, historyHours = 12, colorLimits = [0, 10, 20, 28] }) {
   const gradientIdBase = useId().replace(/:/g, '');
   const width = 800;
   const height = 200;
@@ -259,3 +254,31 @@ export default function WeatherGraph({
     </div>
   );
 }
+
+export default memo(WeatherGraph, (previous, next) => {
+  if (
+    !Object.is(previous.currentTemp, next.currentTemp) ||
+    previous.historyHours !== next.historyHours
+  ) {
+    return false;
+  }
+
+  const sameHistory =
+    previous.history === next.history ||
+    (Array.isArray(previous.history) &&
+      Array.isArray(next.history) &&
+      previous.history.length === next.history.length &&
+      previous.history.every(
+        (point, index) =>
+          point.state === next.history[index].state &&
+          point.last_updated === next.history[index].last_updated
+      ));
+  const sameLimits =
+    previous.colorLimits === next.colorLimits ||
+    (Array.isArray(previous.colorLimits) &&
+      Array.isArray(next.colorLimits) &&
+      previous.colorLimits.length === next.colorLimits.length &&
+      previous.colorLimits.every((value, index) => Object.is(value, next.colorLimits[index])));
+
+  return sameHistory && sameLimits;
+});

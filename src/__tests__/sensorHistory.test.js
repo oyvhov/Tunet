@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { downsampleTimeSeries } from '../utils/sensorHistory';
+import {
+  aggregateTimeSeries,
+  downsampleTimeSeries,
+  getSensorGraphWindow,
+} from '../utils/sensorHistory';
 
 // Helper: build a synthetic time-series of `count` points starting at `startMs`
 // with `intervalMs` between each point, using `valuesFn` to compute values.
@@ -90,7 +94,8 @@ describe('downsampleTimeSeries', () => {
     expect(result.length).toBeGreaterThan(0);
     // Each bucket should be the average of its stride group (not just one sample)
     const step = Math.ceil(500 / 50); // 10
-    const firstGroupAvg = Array.from({ length: step }, (_, i) => i).reduce((s, v) => s + v, 0) / step;
+    const firstGroupAvg =
+      Array.from({ length: step }, (_, i) => i).reduce((s, v) => s + v, 0) / step;
     expect(result[0].value).toBeCloseTo(firstGroupAvg);
   });
 
@@ -109,5 +114,119 @@ describe('downsampleTimeSeries', () => {
       expect(typeof p.value).toBe('number');
       expect(p.time instanceof Date).toBe(true);
     });
+  });
+});
+
+describe('getSensorGraphWindow', () => {
+  it('aligns hourly buckets to the next full hour', () => {
+    const now = new Date(2026, 9, 24, 13, 20);
+    const window = getSensorGraphWindow('24h', now);
+    expect(window.buckets).toBe(24);
+    expect(window.end).toEqual(new Date(2026, 9, 24, 14, 0));
+    expect(window.start).toEqual(new Date(2026, 9, 23, 14, 0));
+    expect(window.period).toBe('hour');
+  });
+
+  it('ends day buckets at local midnight and falls back to 24h for unknown ranges', () => {
+    const now = new Date(2026, 9, 24, 13, 20);
+    const week = getSensorGraphWindow('7d', now);
+    expect(week.buckets).toBe(7);
+    expect(week.end).toEqual(new Date(2026, 9, 25, 0, 0));
+    expect(getSensorGraphWindow('30d', now).period).toBe('day');
+    expect(getSensorGraphWindow('bogus', now).buckets).toBe(24);
+  });
+
+  it('keeps every day boundary on local midnight across a DST change', () => {
+    const window = getSensorGraphWindow('7d', new Date(2026, 9, 26, 12, 0));
+    expect(window.boundaries).toHaveLength(8);
+    for (const boundary of window.boundaries) {
+      expect([boundary.getHours(), boundary.getMinutes()]).toEqual([0, 0]);
+    }
+    expect(window.start).toEqual(new Date(2026, 9, 20));
+    expect(window.end).toEqual(new Date(2026, 9, 27));
+  });
+});
+
+describe('aggregateTimeSeries', () => {
+  const start = new Date(0);
+  const end = new Date(4 * 3600 * 1000);
+  const at = (hours) => new Date(hours * 3600 * 1000);
+
+  it('averages raw history, carrying the previous state into each bucket', () => {
+    const points = [
+      { value: 10, time: at(0) },
+      { value: 20, time: at(0.5) },
+      { value: 40, time: at(2.5) },
+    ];
+    const result = aggregateTimeSeries(points, { start, end, buckets: 4 });
+    expect(result.map((p) => p.value)).toEqual([15, 20, 30, 40]);
+  });
+
+  it('computes per-bucket change from meter readings', () => {
+    const points = [
+      { value: 100, time: at(-1) },
+      { value: 102, time: at(0.5) },
+      { value: 105, time: at(1.5) },
+      { value: 106, time: at(3.2) },
+    ];
+    const result = aggregateTimeSeries(points, { start, end, buckets: 4, stat: 'change' });
+    expect(result.map((p) => p.value)).toEqual([2, 3, 0, 1]);
+  });
+
+  it('uses native statistics min, max and change when present', () => {
+    const points = [
+      { value: 5, min: 1, max: 9, change: 0.5, time: at(0) },
+      { value: 6, min: 2, max: 12, change: 1.5, time: at(1) },
+    ];
+    const opts = { start, end: at(2), buckets: 1 };
+    expect(aggregateTimeSeries(points, { ...opts, stat: 'max' })[0].value).toBe(12);
+    expect(aggregateTimeSeries(points, { ...opts, stat: 'min' })[0].value).toBe(1);
+    expect(aggregateTimeSeries(points, { ...opts, stat: 'change' })[0].value).toBe(2);
+  });
+
+  it('ignores the carried state when a reading lands on the bucket start', () => {
+    const points = [
+      { value: 10, time: at(0) },
+      { value: 20, time: at(1) },
+    ];
+    const opts = { start, end: at(2), buckets: 2 };
+    expect(aggregateTimeSeries(points, { ...opts, stat: 'min' })[1].value).toBe(20);
+    expect(aggregateTimeSeries(points, { ...opts, stat: 'mean' })[1].value).toBe(20);
+  });
+
+  it('treats a drop on a total_increasing meter as a reset', () => {
+    const points = [
+      { value: 100, time: at(-1) },
+      { value: 102, time: at(0.2) },
+      { value: 0, time: at(0.4) },
+      { value: 3, time: at(0.6) },
+    ];
+    const opts = { start, end: at(1), buckets: 1, stat: 'change' };
+    expect(aggregateTimeSeries(points, { ...opts, stateClass: 'total_increasing' })[0].value).toBe(
+      5
+    );
+    expect(aggregateTimeSeries(points, opts)[0].value).toBe(-97);
+  });
+
+  it('uses explicit bucket boundaries when given', () => {
+    const points = [
+      { value: 1, time: at(0.5) },
+      { value: 5, time: at(2.5) },
+    ];
+    const result = aggregateTimeSeries(points, {
+      start,
+      end: at(4),
+      buckets: 2,
+      boundaries: [start, at(3), at(4)],
+      stat: 'max',
+    });
+    expect(result.map((p) => p.value)).toEqual([5, 5]);
+    expect(result[1].time).toEqual(at(3));
+  });
+
+  it('skips buckets before the first known value', () => {
+    const result = aggregateTimeSeries([{ value: 3, time: at(2.5) }], { start, end, buckets: 4 });
+    expect(result).toHaveLength(2);
+    expect(result[0].time).toEqual(at(2));
   });
 });

@@ -91,7 +91,7 @@ export const MediaPlayerCard = memo(
     const artworkMode = settings.artworkMode || 'default';
     const isCoverMode = artworkMode === 'cover';
     const playingBackgroundMotion = settings.playingBackgroundMotion || 'off';
-    const useSubtlePlayingMotion = isPlaying && playingBackgroundMotion === 'subtle';
+    const useSubtlePlayingMotion = !editMode && isPlaying && playingBackgroundMotion === 'subtle';
 
     if (!isActive) {
       return (
@@ -172,15 +172,15 @@ export const MediaPlayerCard = memo(
         {/* Background artwork */}
         {picture && (
           <div
-            className={`pointer-events-none absolute inset-0 z-0 transition-all duration-500 ${isCoverMode ? 'opacity-100' : 'opacity-20'} ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
+            className={`pointer-events-none absolute inset-0 z-0 ${editMode ? '' : 'transition-all duration-500'} ${isCoverMode ? 'opacity-100' : 'opacity-20'} ${useSubtlePlayingMotion ? 'media-bg-subtle-pulse' : ''}`}
           >
             <img
               src={picture}
               alt=""
-              className={`h-full w-full object-cover transition-transform duration-[10s] ease-in-out ${isCoverMode ? '' : 'scale-150 blur-xl'} ${isPlaying ? 'scale-[1.1]' : 'scale-100'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
+              className={`h-full w-full object-cover ${editMode ? '' : 'transition-transform duration-[10s] ease-in-out'} ${isCoverMode ? '' : 'scale-150 blur-xl'} ${isPlaying ? 'scale-[1.1]' : 'scale-100'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
             />
             <div
-              className={`absolute inset-0 transition-opacity duration-500 ${isCoverMode ? 'bg-gradient-to-t from-black/80 via-black/40 to-black/30' : 'bg-black/20'}`}
+              className={`absolute inset-0 ${editMode ? '' : 'transition-opacity duration-500'} ${isCoverMode ? 'bg-gradient-to-t from-black/80 via-black/40 to-black/30' : 'bg-black/20'}`}
             />
             {useSubtlePlayingMotion && <div className="media-bg-subtle-overlay absolute inset-0" />}
           </div>
@@ -374,7 +374,7 @@ export const MediaGroupCard = memo(
     const artworkMode = groupSettings.artworkMode || 'default';
     const isCoverMode = artworkMode === 'cover';
     const playingBackgroundMotion = groupSettings.playingBackgroundMotion || 'off';
-    const useSubtlePlayingMotion = isPlaying && playingBackgroundMotion === 'subtle';
+    const useSubtlePlayingMotion = !editMode && isPlaying && playingBackgroundMotion === 'subtle';
 
     const name = customNames[cardId] || getA(mpId, 'friendly_name', 'Musikk');
     const title =
@@ -504,7 +504,7 @@ export const MediaGroupCard = memo(
                 <img
                   src={picture}
                   alt=""
-                  className={`h-full w-full scale-150 object-cover blur-xl transition-transform duration-[10s] ease-in-out ${isPlaying ? 'scale-[1.6]' : 'scale-150'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
+                  className={`h-full w-full scale-150 object-cover blur-xl ${editMode ? '' : 'transition-transform duration-[10s] ease-in-out'} ${isPlaying ? 'scale-[1.6]' : 'scale-150'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
                 />
                 <div className="absolute inset-0 bg-black/20" />
                 {useSubtlePlayingMotion && (
@@ -520,7 +520,7 @@ export const MediaGroupCard = memo(
                 <img
                   src={picture}
                   alt=""
-                  className={`h-full w-full scale-100 object-cover transition-transform duration-[10s] ease-in-out ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
+                  className={`h-full w-full scale-100 object-cover ${editMode ? '' : 'transition-transform duration-[10s] ease-in-out'} ${useSubtlePlayingMotion ? 'media-bg-subtle-drift' : ''}`}
                 />
                 <div className="absolute inset-0 bg-black/40" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />

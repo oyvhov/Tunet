@@ -21,7 +21,6 @@ const DEFAULT_INVALID_AUTH_CACHE_TTL_MS = Math.min(
 );
 const MAX_CACHE_ENTRIES = 200;
 const TRUSTED_INGRESS_IPS = new Set(['172.30.32.2', '127.0.0.1', '::1']);
-const DOCKER_LOOPBACK_CANDIDATE_HOSTS = ['host.docker.internal', 'host.containers.internal'];
 const NETWORK_ERROR_PATTERNS = [
   'econnrefused',
   'econnreset',
@@ -98,7 +97,11 @@ const normalizeHomeAssistantUrl = (rawUrl) => {
 
   try {
     const parsed = new URL(rawUrl.trim());
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    if (
+      (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+      parsed.username ||
+      parsed.password
+    ) {
       return null;
     }
 
@@ -110,57 +113,20 @@ const normalizeHomeAssistantUrl = (rawUrl) => {
   }
 };
 
-const buildDockerReachableUrlCandidates = (rawUrl) => {
-  const normalized = normalizeHomeAssistantUrl(rawUrl);
-  if (!normalized) return [];
-
-  try {
-    const parsed = new URL(normalized);
-    // Always offer Docker host-gateway fallbacks (host.docker.internal /
-    // host.containers.internal). When the dashboard runs in a container and
-    // Home Assistant runs on the host, the LAN IP the browser uses is often
-    // unreachable from inside the container — these aliases route to the host.
-    // Skip if the URL already targets one of those aliases.
-    if (DOCKER_LOOPBACK_CANDIDATE_HOSTS.includes(parsed.hostname)) {
-      return [];
-    }
-
-    return DOCKER_LOOPBACK_CANDIDATE_HOSTS.map((hostname) => {
-      const candidate = new URL(normalized);
-      candidate.hostname = hostname;
-      return candidate.toString().replace(/\/$/, '');
-    });
-  } catch {
-    return [];
-  }
-};
-
 const pushUniqueCandidate = (candidates, rawCandidate) => {
   const normalized = normalizeHomeAssistantUrl(rawCandidate);
   if (!normalized || candidates.includes(normalized)) return;
   candidates.push(normalized);
 };
 
-const getHomeAssistantUrlCandidates = (req) => {
+const getHomeAssistantUrlCandidates = () => {
   const candidates = [];
-  const envCandidates = [
+  for (const candidate of [
     process.env.TUNET_INTERNAL_HA_URL,
     process.env.TUNET_INTERNAL_HA_FALLBACK_URL,
-  ];
-  const requestCandidates = [req.get('x-ha-url'), req.get('x-ha-fallback-url')];
-
-  envCandidates.forEach((candidate) => {
+  ]) {
     pushUniqueCandidate(candidates, candidate);
-  });
-
-  requestCandidates.forEach((candidate) => {
-    pushUniqueCandidate(candidates, candidate);
-    const dockerCandidates = buildDockerReachableUrlCandidates(candidate);
-    dockerCandidates.forEach((dockerCandidate) => {
-      pushUniqueCandidate(candidates, dockerCandidate);
-    });
-  });
-
+  }
   return candidates;
 };
 
@@ -284,11 +250,6 @@ const sendValidationFailure = (res, error, { haUrls = [] } = {}) => {
   );
 };
 
-const createCachedAuthError = (error) => {
-  if (error instanceof Error) return error;
-  return new Error(String(error || 'Home Assistant authentication failed'));
-};
-
 const loadCurrentUserFromHomeAssistant = async ({ haUrl, accessToken }) => {
   const auth = createLongLivedTokenAuth(haUrl, accessToken);
   const connection = await createConnection({ auth });
@@ -352,7 +313,7 @@ export const createValidatedHomeAssistantUserResolver = ({
       .catch((error) => {
         if (isInvalidAuthError(error)) {
           cache.set(cacheKey, {
-            error: createCachedAuthError(error),
+            error,
             expiresAt: Date.now() + invalidAuthCacheTtlMs,
           });
         } else {
@@ -384,9 +345,14 @@ export const createHomeAssistantAuthMiddleware = ({
       return;
     }
 
-    const haUrls = getHomeAssistantUrlCandidates(req);
+    const haUrls = getHomeAssistantUrlCandidates();
     if (!haUrls.length) {
-      sendJsonError(res, 401, 'Missing or invalid x-ha-url header');
+      sendJsonError(
+        res,
+        503,
+        'Configure TUNET_INTERNAL_HA_URL for backend Home Assistant authentication.',
+        'HA_AUTH_NOT_CONFIGURED'
+      );
       return;
     }
 
@@ -397,7 +363,6 @@ export const createHomeAssistantAuthMiddleware = ({
     }
 
     let lastError = null;
-    let authError = null;
 
     for (const haUrl of haUrls) {
       try {
@@ -408,12 +373,10 @@ export const createHomeAssistantAuthMiddleware = ({
         return;
       } catch (error) {
         lastError = error;
-        if (!authError && isInvalidAuthError(error)) {
-          authError = error;
-        }
+        if (isInvalidAuthError(error)) break;
       }
     }
 
-    sendValidationFailure(res, authError || lastError, { haUrls });
+    sendValidationFailure(res, lastError, { haUrls });
   };
 };

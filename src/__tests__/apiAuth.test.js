@@ -11,10 +11,13 @@ vi.mock('../services/oauthStorage', () => ({
   clearOAuthTokens: () => clearOAuthTokensMock(),
   getOAuthTokenSavedAt: () => getOAuthTokenSavedAtMock(),
   saveTokens: (...args) => saveTokensMock(...args),
+  markOAuthRejected: () => {},
 }));
 
 vi.mock('home-assistant-js-websocket', () => ({
   getAuth: (...args) => getAuthMock(...args),
+  ERR_INVALID_AUTH: 2,
+  ERR_INVALID_AUTH_CALLBACK: 6,
 }));
 
 describe('getHomeAssistantRequestHeaders', () => {
@@ -27,6 +30,55 @@ describe('getHomeAssistantRequestHeaders', () => {
     getOAuthTokenSavedAtMock.mockReturnValue(0);
     saveTokensMock.mockReset();
     getAuthMock.mockReset();
+  });
+
+  it.each([false, true])(
+    'expires revoked OAuth tokens during refresh (forced=%s)',
+    async (forceRefreshOAuth) => {
+      vi.resetModules();
+      localStorage.setItem('ha_auth_method', 'oauth');
+      localStorage.setItem('ha_url', 'https://ha.example');
+      loadTokensMock.mockReturnValue({ access_token: 'revoked', expires: Date.now() - 1000 });
+      clearOAuthTokensMock.mockImplementation(() => loadTokensMock.mockReturnValue(undefined));
+      const {
+        getValidatedHomeAssistantRequestHeadersAsync,
+        setOAuthAuthProvider,
+        HOME_ASSISTANT_API_UNAUTHORIZED_EVENT,
+      } = await import('../services/apiAuth');
+      const refreshAccessToken = vi.fn().mockRejectedValue(2);
+      const provider = { current: { accessToken: 'revoked', expired: true, refreshAccessToken } };
+      setOAuthAuthProvider(provider);
+      const unauthorized = vi.fn();
+      window.addEventListener(HOME_ASSISTANT_API_UNAUTHORIZED_EVENT, unauthorized);
+      try {
+        await expect(
+          getValidatedHomeAssistantRequestHeadersAsync({ forceRefreshOAuth })
+        ).rejects.toMatchObject({ status: 401 });
+        expect(clearOAuthTokensMock).toHaveBeenCalledOnce();
+        expect(unauthorized).toHaveBeenCalledOnce();
+        expect(provider.current).toBeNull();
+        await expect(getValidatedHomeAssistantRequestHeadersAsync()).rejects.toMatchObject({
+          status: 401,
+        });
+        expect(refreshAccessToken).toHaveBeenCalledOnce();
+      } finally {
+        window.removeEventListener(HOME_ASSISTANT_API_UNAUTHORIZED_EVENT, unauthorized);
+        setOAuthAuthProvider(null);
+      }
+    }
+  );
+
+  it('expires OAuth when restoring the stored auth session is rejected', async () => {
+    vi.resetModules();
+    localStorage.setItem('ha_auth_method', 'oauth');
+    localStorage.setItem('ha_url', 'https://ha.example');
+    loadTokensMock.mockReturnValue({ access_token: 'revoked', expires: Date.now() - 1000 });
+    getAuthMock.mockRejectedValue(2);
+    const { getValidatedHomeAssistantRequestHeadersAsync } = await import('../services/apiAuth');
+    await expect(getValidatedHomeAssistantRequestHeadersAsync()).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(clearOAuthTokensMock).toHaveBeenCalledOnce();
   });
 
   it('uses OAuth access tokens when OAuth auth is active', async () => {
@@ -72,9 +124,8 @@ describe('getHomeAssistantRequestHeaders', () => {
     localStorage.setItem('ha_url', 'https://ha.example');
     loadTokensMock.mockReturnValue({ access_token: 'stale-token' });
 
-    const { getHomeAssistantRequestHeaders, setOAuthAuthProvider } = await import(
-      '../services/apiAuth'
-    );
+    const { getHomeAssistantRequestHeaders, setOAuthAuthProvider } =
+      await import('../services/apiAuth');
 
     setOAuthAuthProvider({ current: { accessToken: 'live-token' } });
 
@@ -94,9 +145,8 @@ describe('getHomeAssistantRequestHeaders', () => {
       this.accessToken = 'refreshed-token';
     });
 
-    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } = await import(
-      '../services/apiAuth'
-    );
+    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } =
+      await import('../services/apiAuth');
 
     setOAuthAuthProvider({ current: { accessToken: 'old-live-token', refreshAccessToken } });
 
@@ -121,9 +171,8 @@ describe('getHomeAssistantRequestHeaders', () => {
       this.accessToken = 'proactively-refreshed-token';
     });
 
-    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } = await import(
-      '../services/apiAuth'
-    );
+    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } =
+      await import('../services/apiAuth');
 
     setOAuthAuthProvider({ current: { accessToken: 'stale-live-token', refreshAccessToken } });
 
@@ -183,9 +232,8 @@ describe('getHomeAssistantRequestHeaders', () => {
 
     getAuthMock.mockRejectedValue(new Error('fetch failed'));
 
-    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } = await import(
-      '../services/apiAuth'
-    );
+    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } =
+      await import('../services/apiAuth');
     setOAuthAuthProvider(null);
 
     await expect(getValidatedHomeAssistantRequestHeadersAsync()).resolves.toEqual({
@@ -205,9 +253,8 @@ describe('getHomeAssistantRequestHeaders', () => {
       this.accessToken = 'shared-refreshed-token';
     });
 
-    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } = await import(
-      '../services/apiAuth'
-    );
+    const { getValidatedHomeAssistantRequestHeadersAsync, setOAuthAuthProvider } =
+      await import('../services/apiAuth');
 
     setOAuthAuthProvider({ current: { accessToken: 'stale-live-token', refreshAccessToken } });
 
