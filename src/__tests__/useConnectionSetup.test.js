@@ -294,18 +294,18 @@ describe('useConnectionSetup startOAuthLogin', () => {
 });
 
 describe('useConnectionSetup › lost auth', () => {
-  const oauthProps = () =>
+  const missingLoginProps = () =>
     makeProps({ config: { url: 'http://ha.local:8123', token: '', authMethod: 'oauth' } });
 
   it('re-opens onboarding when OAuth tokens are missing', () => {
-    const props = oauthProps();
+    const props = missingLoginProps();
     renderHook(() => useConnectionSetup(props));
     expect(props.setShowOnboarding).toHaveBeenCalledWith(true);
   });
 
   it('leaves a rejected OAuth session to the expired-login banner', () => {
     isOAuthRejected.mockReturnValueOnce(true);
-    const props = oauthProps();
+    const props = missingLoginProps();
     renderHook(() => useConnectionSetup(props));
     expect(props.setShowOnboarding).not.toHaveBeenCalled();
   });
