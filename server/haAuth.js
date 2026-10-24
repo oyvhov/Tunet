@@ -43,17 +43,34 @@ const TLS_ERROR_PATTERNS = [
 ];
 
 if (typeof globalThis.WebSocket === 'undefined') {
-  globalThis.WebSocket = NodeWebSocket;
+  globalThis.WebSocket = /** @type {typeof globalThis.WebSocket} */ (
+    /** @type {unknown} */ (NodeWebSocket)
+  );
 }
+
+/** @typedef {import('express').Request} Request */
+/** @typedef {import('express').Response} Response */
+/** @typedef {import('express').NextFunction} NextFunction */
+/** @typedef {import('./types.js').HaUser} HaUser */
+/** @typedef {{ haUrl: string, accessToken: string }} HaCredentials */
+/**
+ * @typedef {Object} CacheEntry
+ * @property {HaUser} [user]
+ * @property {unknown} [error]
+ * @property {Promise<HaUser>} [pendingPromise]
+ * @property {number} expiresAt
+ */
 
 const isSupervisorIngressTrustEnabled = () => process.env.TUNET_TRUST_SUPERVISOR_INGRESS === '1';
 
+/** @param {unknown} rawAddress */
 const normalizeRemoteAddress = (rawAddress) => {
   if (typeof rawAddress !== 'string' || !rawAddress.trim()) return '';
   const trimmed = rawAddress.trim();
   return trimmed.startsWith('::ffff:') ? trimmed.slice(7) : trimmed;
 };
 
+/** @param {Request} req */
 const isTrustedIngressRequest = (req) => {
   if (!isSupervisorIngressTrustEnabled()) {
     return false;
@@ -71,6 +88,10 @@ const isTrustedIngressRequest = (req) => {
   return TRUSTED_INGRESS_IPS.has(remoteAddress);
 };
 
+/**
+ * @param {Request} req
+ * @returns {HaUser | null}
+ */
 const getTrustedSupervisorUser = (req) => {
   if (!isTrustedIngressRequest(req)) return null;
 
@@ -92,6 +113,7 @@ const getTrustedSupervisorUser = (req) => {
   };
 };
 
+/** @param {unknown} rawUrl */
 const normalizeHomeAssistantUrl = (rawUrl) => {
   if (typeof rawUrl !== 'string' || !rawUrl.trim()) return null;
 
@@ -113,6 +135,10 @@ const normalizeHomeAssistantUrl = (rawUrl) => {
   }
 };
 
+/**
+ * @param {string[]} candidates
+ * @param {unknown} rawCandidate
+ */
 const pushUniqueCandidate = (candidates, rawCandidate) => {
   const normalized = normalizeHomeAssistantUrl(rawCandidate);
   if (!normalized || candidates.includes(normalized)) return;
@@ -120,6 +146,7 @@ const pushUniqueCandidate = (candidates, rawCandidate) => {
 };
 
 const getHomeAssistantUrlCandidates = () => {
+  /** @type {string[]} */
   const candidates = [];
   for (const candidate of [
     process.env.TUNET_INTERNAL_HA_URL,
@@ -130,6 +157,7 @@ const getHomeAssistantUrlCandidates = () => {
   return candidates;
 };
 
+/** @param {Request} req */
 const getBearerToken = (req) => {
   const authHeader = req.get('authorization');
   if (typeof authHeader !== 'string') return null;
@@ -143,6 +171,10 @@ const getBearerToken = (req) => {
   return token || null;
 };
 
+/**
+ * @param {Map<string, CacheEntry>} cache
+ * @param {number} now
+ */
 const pruneCache = (cache, now) => {
   for (const [cacheKey, entry] of cache.entries()) {
     if ((entry?.expiresAt || 0) <= now && !entry?.pendingPromise) {
@@ -157,6 +189,7 @@ const pruneCache = (cache, now) => {
   }
 };
 
+/** @type {Record<number, string>} */
 const HA_WS_ERROR_LABELS = {
   [ERR_CANNOT_CONNECT]: 'ERR_CANNOT_CONNECT',
   [ERR_INVALID_AUTH]: 'ERR_INVALID_AUTH',
@@ -166,6 +199,7 @@ const HA_WS_ERROR_LABELS = {
   [ERR_INVALID_AUTH_CALLBACK]: 'ERR_INVALID_AUTH_CALLBACK',
 };
 
+/** @param {any} error */
 const describeError = (error) => {
   if (typeof error === 'number' && HA_WS_ERROR_LABELS[error]) {
     return `${HA_WS_ERROR_LABELS[error]} (code ${error})`;
@@ -179,6 +213,7 @@ const describeError = (error) => {
   }
 };
 
+/** @param {any} error */
 const isInvalidAuthError = (error) => {
   if (error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK) return true;
 
@@ -191,6 +226,7 @@ const isInvalidAuthError = (error) => {
   );
 };
 
+/** @param {any} error */
 const isHomeAssistantReachabilityError = (error) => {
   if (
     error === ERR_CANNOT_CONNECT ||
@@ -207,7 +243,14 @@ const isHomeAssistantReachabilityError = (error) => {
   );
 };
 
+/**
+ * @param {Response} res
+ * @param {number} statusCode
+ * @param {string} error
+ * @param {string} [code]
+ */
 const sendJsonError = (res, statusCode, error, code) => {
+  /** @type {{ error: string, code?: string }} */
   const body = { error };
   if (code) {
     body.code = code;
@@ -215,6 +258,11 @@ const sendJsonError = (res, statusCode, error, code) => {
   res.status(statusCode).json(body);
 };
 
+/**
+ * @param {Response} res
+ * @param {unknown} error
+ * @param {{ haUrls?: string[] }} [options]
+ */
 const sendValidationFailure = (res, error, { haUrls = [] } = {}) => {
   const description = describeError(error);
   const urlSummary = haUrls.length ? ` (tried: ${haUrls.join(', ')})` : '';
@@ -250,6 +298,10 @@ const sendValidationFailure = (res, error, { haUrls = [] } = {}) => {
   );
 };
 
+/**
+ * @param {HaCredentials} credentials
+ * @returns {Promise<HaUser>}
+ */
 const loadCurrentUserFromHomeAssistant = async ({ haUrl, accessToken }) => {
   const auth = createLongLivedTokenAuth(haUrl, accessToken);
   const connection = await createConnection({ auth });
@@ -280,8 +332,10 @@ export const createValidatedHomeAssistantUserResolver = ({
   invalidAuthCacheTtlMs = DEFAULT_INVALID_AUTH_CACHE_TTL_MS,
   loadCurrentUser = loadCurrentUserFromHomeAssistant,
 } = {}) => {
+  /** @type {Map<string, CacheEntry>} */
   const cache = new Map();
 
+  /** @param {HaCredentials} credentials */
   return async ({ haUrl, accessToken }) => {
     const tokenHash = createHash('sha256').update(accessToken).digest('hex');
     const cacheKey = `${haUrl}::${tokenHash}`;
@@ -336,6 +390,11 @@ const resolveValidatedHomeAssistantUser = createValidatedHomeAssistantUserResolv
 export const createHomeAssistantAuthMiddleware = ({
   validateHomeAssistantUser = resolveValidatedHomeAssistantUser,
 } = {}) => {
+  /**
+   * @param {Request} req
+   * @param {Response} res
+   * @param {NextFunction} next
+   */
   return async (req, res, next) => {
     const trustedSupervisorUser = getTrustedSupervisorUser(req);
     if (trustedSupervisorUser) {
@@ -362,6 +421,7 @@ export const createHomeAssistantAuthMiddleware = ({
       return;
     }
 
+    /** @type {unknown} */
     let lastError = null;
 
     for (const haUrl of haUrls) {

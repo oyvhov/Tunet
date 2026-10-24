@@ -12,6 +12,15 @@ import {
   shouldPersistPlaintextData,
 } from '../utils/dataCrypto.js';
 
+/** @typedef {import('express').Request} Request */
+/** @typedef {import('express').Response} Response */
+/** @typedef {import('better-sqlite3').Database} Database */
+/** @typedef {import('../types.js').CurrentSettingsRow} CurrentSettingsRow */
+/**
+ * @typedef {{ ok: true, revision: number, updated_at: string }
+ *   | { ok: false, status: number, error: string, revision?: number }} SnapshotResult
+ */
+
 const router = Router();
 const HISTORY_KEEP_LIMIT = Math.min(
   Math.max(Number(process.env.SETTINGS_HISTORY_KEEP_LIMIT) || 50, 5),
@@ -28,16 +37,25 @@ const settingsRateLimiter = rateLimit({
 
 router.use(settingsRateLimiter);
 
+/**
+ * @param {string | null} raw
+ * @param {unknown} [fallback]
+ */
 const safeParseJson = (raw, fallback = null) => {
   try {
-    return JSON.parse(raw);
+    return JSON.parse(/** @type {string} */ (raw));
   } catch {
     return fallback;
   }
 };
 
+/** @param {unknown} value */
 const hasUsableBaseRevision = (value) => Number.isFinite(Number(value));
 
+/**
+ * @param {Request} req
+ * @param {Response} res
+ */
 const ensureRequestUser = (req, res) => {
   const requestUserId = req.authenticatedHaUser?.id;
   if (!requestUserId) {
@@ -47,12 +65,14 @@ const ensureRequestUser = (req, res) => {
   return requestUserId;
 };
 
+/** @param {unknown} rawLimit */
 const resolveKeepLimit = (rawLimit) => {
   const parsed = Number(rawLimit);
   if (!Number.isFinite(parsed)) return HISTORY_KEEP_LIMIT;
   return Math.min(Math.max(Math.trunc(parsed), 5), 500);
 };
 
+/** @param {unknown} value */
 const normalizeDeviceLabel = (value) => {
   if (typeof value !== 'string') return null;
   // eslint-disable-next-line no-control-regex
@@ -60,6 +80,10 @@ const normalizeDeviceLabel = (value) => {
   return trimmed ? trimmed.slice(0, 120) : null;
 };
 
+/**
+ * @param {Pick<CurrentSettingsRow, 'data' | 'data_enc'>} row
+ * @param {string} context
+ */
 const parseStoredData = (row, context) => {
   const resolvedText = resolveStoredDataText({
     plainText: row?.data,
@@ -69,6 +93,7 @@ const parseStoredData = (row, context) => {
   return safeParseJson(resolvedText, {});
 };
 
+/** @param {string} context */
 const warnEncryptionWriteFailure = (context) => {
   if (!isDataEncryptionEnabled()) return;
   if (warnedWriteFailures.has(context)) return;
@@ -76,6 +101,12 @@ const warnEncryptionWriteFailure = (context) => {
   console.warn(`[settings] Failed to produce encrypted payload in ${context}.`);
 };
 
+/**
+ * @param {Database} database
+ * @param {string} haUserId
+ * @param {string} deviceId
+ * @param {unknown} keepLimitRaw
+ */
 const pruneHistory = (database, haUserId, deviceId, keepLimitRaw) => {
   const keepLimit = resolveKeepLimit(keepLimitRaw);
   database
@@ -93,6 +124,18 @@ const pruneHistory = (database, haUserId, deviceId, keepLimitRaw) => {
     .run(haUserId, deviceId, haUserId, deviceId, keepLimit);
 };
 
+/**
+ * @param {Object} options
+ * @param {Database} [options.database]
+ * @param {string} options.haUserId
+ * @param {string} options.deviceId
+ * @param {unknown} options.data
+ * @param {unknown} [options.baseRevision]
+ * @param {unknown} [options.historyKeepLimit]
+ * @param {unknown} [options.deviceLabel]
+ * @param {string} [options.now]
+ * @returns {SnapshotResult}
+ */
 export const writeCurrentSettingsSnapshot = ({
   database = db,
   haUserId,
@@ -119,109 +162,115 @@ export const writeCurrentSettingsSnapshot = ({
   const plainPayload = shouldPersistPlaintextData() ? payload : getEncryptedOnlyPlaintextStub();
   const requestedLabel = deviceLabel === undefined ? undefined : normalizeDeviceLabel(deviceLabel);
 
-  const writeTransaction = database.transaction(() => {
-    const existing = database
-      .prepare(
-        `SELECT revision, device_label, data, data_enc FROM current_settings
+  const writeTransaction = database.transaction(
+    /** @returns {SnapshotResult} */ () => {
+      const existing = /** @type {CurrentSettingsRow | undefined} */ (
+        database
+          .prepare(
+            `SELECT revision, device_label, data, data_enc FROM current_settings
          WHERE ha_user_id = ? AND device_id = ?`
-      )
-      .get(haUserId, deviceId);
+          )
+          .get(haUserId, deviceId)
+      );
 
-    if (!existing) {
-      database
-        .prepare(
-          `INSERT INTO current_settings (ha_user_id, device_id, device_label, data, data_enc, revision, updated_at)
+      if (!existing) {
+        database
+          .prepare(
+            `INSERT INTO current_settings (ha_user_id, device_id, device_label, data, data_enc, revision, updated_at)
            VALUES (?, ?, ?, ?, ?, 1, ?)`
+          )
+          .run(haUserId, deviceId, requestedLabel ?? null, plainPayload, encryptedPayload, now);
+
+        database
+          .prepare(
+            `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
+           VALUES (?, ?, 1, ?, ?, ?)`
+          )
+          .run(haUserId, deviceId, plainPayload, encryptedPayload, now);
+
+        pruneHistory(database, haUserId, deviceId, historyKeepLimit);
+
+        return {
+          ok: true,
+          revision: 1,
+          updated_at: now,
+        };
+      }
+
+      if (!hasUsableBaseRevision(baseRevision)) {
+        return {
+          ok: false,
+          status: 409,
+          error: 'Revision conflict',
+          revision: Number(existing.revision),
+        };
+      }
+
+      const expectedRevision = Number(baseRevision);
+      if (expectedRevision !== Number(existing.revision)) {
+        return {
+          ok: false,
+          status: 409,
+          error: 'Revision conflict',
+          revision: Number(existing.revision),
+        };
+      }
+
+      const nextRevision = Number(existing.revision) + 1;
+      assertStoredDataWritable(existing, encryptedPayload);
+      const resolvedLabel =
+        deviceLabel === undefined ? existing.device_label || null : (requestedLabel ?? null);
+      const updateInfo = database
+        .prepare(
+          `UPDATE current_settings
+         SET data = ?, data_enc = ?, device_label = ?, revision = ?, updated_at = ?
+         WHERE ha_user_id = ? AND device_id = ? AND revision = ?`
         )
-        .run(haUserId, deviceId, requestedLabel ?? null, plainPayload, encryptedPayload, now);
+        .run(
+          plainPayload,
+          encryptedPayload,
+          resolvedLabel,
+          nextRevision,
+          now,
+          haUserId,
+          deviceId,
+          expectedRevision
+        );
+
+      if (!Number(updateInfo?.changes || 0)) {
+        const latest = /** @type {{ revision: number } | undefined} */ (
+          database
+            .prepare(
+              `SELECT revision FROM current_settings
+           WHERE ha_user_id = ? AND device_id = ?`
+            )
+            .get(haUserId, deviceId)
+        );
+
+        return {
+          ok: false,
+          status: 409,
+          error: 'Revision conflict',
+          revision: Number(latest?.revision ?? existing.revision),
+        };
+      }
 
       database
         .prepare(
           `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
-           VALUES (?, ?, 1, ?, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?)`
         )
-        .run(haUserId, deviceId, plainPayload, encryptedPayload, now);
+        .run(haUserId, deviceId, nextRevision, plainPayload, encryptedPayload, now);
 
       pruneHistory(database, haUserId, deviceId, historyKeepLimit);
 
       return {
         ok: true,
-        revision: 1,
+        revision: nextRevision,
         updated_at: now,
       };
     }
-
-    if (!hasUsableBaseRevision(baseRevision)) {
-      return {
-        ok: false,
-        status: 409,
-        error: 'Revision conflict',
-        revision: Number(existing.revision),
-      };
-    }
-
-    const expectedRevision = Number(baseRevision);
-    if (expectedRevision !== Number(existing.revision)) {
-      return {
-        ok: false,
-        status: 409,
-        error: 'Revision conflict',
-        revision: Number(existing.revision),
-      };
-    }
-
-    const nextRevision = Number(existing.revision) + 1;
-    assertStoredDataWritable(existing, encryptedPayload);
-    const resolvedLabel =
-      deviceLabel === undefined ? existing.device_label || null : (requestedLabel ?? null);
-    const updateInfo = database
-      .prepare(
-        `UPDATE current_settings
-         SET data = ?, data_enc = ?, device_label = ?, revision = ?, updated_at = ?
-         WHERE ha_user_id = ? AND device_id = ? AND revision = ?`
-      )
-      .run(
-        plainPayload,
-        encryptedPayload,
-        resolvedLabel,
-        nextRevision,
-        now,
-        haUserId,
-        deviceId,
-        expectedRevision
-      );
-
-    if (!Number(updateInfo?.changes || 0)) {
-      const latest = database
-        .prepare(
-          `SELECT revision FROM current_settings
-           WHERE ha_user_id = ? AND device_id = ?`
-        )
-        .get(haUserId, deviceId);
-
-      return {
-        ok: false,
-        status: 409,
-        error: 'Revision conflict',
-        revision: Number(latest?.revision ?? existing.revision),
-      };
-    }
-
-    database
-      .prepare(
-        `INSERT OR REPLACE INTO current_settings_history (ha_user_id, device_id, revision, data, data_enc, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      )
-      .run(haUserId, deviceId, nextRevision, plainPayload, encryptedPayload, now);
-
-    pruneHistory(database, haUserId, deviceId, historyKeepLimit);
-
-    return {
-      ok: true,
-      revision: nextRevision,
-      updated_at: now,
-    };
-  });
+  );
 
   return writeTransaction();
 };
@@ -240,21 +289,23 @@ router.get('/current', (req, res) => {
     return res.status(403).json({ error: 'Forbidden: user mismatch' });
   }
 
-  const row = revision
-    ? db
-        .prepare(
-          `SELECT ha_user_id, device_id, data, data_enc, revision, updated_at, NULL AS device_label
+  const row = /** @type {CurrentSettingsRow | undefined} */ (
+    revision
+      ? db
+          .prepare(
+            `SELECT ha_user_id, device_id, data, data_enc, revision, updated_at, NULL AS device_label
        FROM current_settings_history
        WHERE ha_user_id = ? AND device_id = ? AND revision = ?`
-        )
-        .get(ha_user_id, device_id, Number(revision))
-    : db
-        .prepare(
-          `SELECT ha_user_id, device_id, data, data_enc, revision, updated_at, device_label
+          )
+          .get(ha_user_id, device_id, Number(revision))
+      : db
+          .prepare(
+            `SELECT ha_user_id, device_id, data, data_enc, revision, updated_at, device_label
        FROM current_settings
        WHERE ha_user_id = ? AND device_id = ?`
-        )
-        .get(ha_user_id, device_id);
+          )
+          .get(ha_user_id, device_id)
+  );
 
   if (!row) return res.json(null);
   return res.json({
@@ -315,13 +366,15 @@ router.delete('/history', (req, res) => {
   const keepLatest = keep_latest === undefined ? true : String(keep_latest) !== '0';
 
   if (keepLatest) {
-    const latest = db
-      .prepare(
-        `SELECT revision
+    const latest = /** @type {{ revision: number } | undefined} */ (
+      db
+        .prepare(
+          `SELECT revision
        FROM current_settings
        WHERE ha_user_id = ? AND device_id = ?`
-      )
-      .get(ha_user_id, device_id);
+        )
+        .get(ha_user_id, device_id)
+    );
 
     if (!latest || !Number.isFinite(Number(latest.revision))) {
       const info = db
@@ -499,12 +552,14 @@ router.post('/publish', (req, res) => {
     return res.status(403).json({ error: 'Forbidden: user mismatch' });
   }
 
-  const source = db
-    .prepare(
-      `SELECT data, data_enc FROM current_settings
+  const source = /** @type {Pick<CurrentSettingsRow, 'data' | 'data_enc'> | undefined} */ (
+    db
+      .prepare(
+        `SELECT data, data_enc FROM current_settings
      WHERE ha_user_id = ? AND device_id = ?`
-    )
-    .get(ha_user_id, source_device_id);
+      )
+      .get(ha_user_id, source_device_id)
+  );
 
   if (!source) {
     return res.status(404).json({ error: 'Source device config not found' });
@@ -538,15 +593,19 @@ router.post('/publish', (req, res) => {
     base_revisions && typeof base_revisions === 'object' && !Array.isArray(base_revisions)
       ? base_revisions
       : null;
+  /** @type {{ device_id: string, revision: number }[]} */
   const conflicts = [];
 
+  /** @param {string} deviceId */
   const upsertTarget = (deviceId) => {
-    const existing = db
-      .prepare(
-        `SELECT revision, data, data_enc FROM current_settings
+    const existing = /** @type {CurrentSettingsRow | undefined} */ (
+      db
+        .prepare(
+          `SELECT revision, data, data_enc FROM current_settings
        WHERE ha_user_id = ? AND device_id = ?`
-      )
-      .get(ha_user_id, deviceId);
+        )
+        .get(ha_user_id, deviceId)
+    );
 
     if (existing && expectedRevisions) {
       const expected = Number(expectedRevisions[deviceId]);
@@ -592,15 +651,16 @@ router.post('/publish', (req, res) => {
 
   const targetIds = target_device_id
     ? [target_device_id]
-    : db
-        .prepare(
-          `SELECT device_id FROM current_settings
+    : /** @type {{ device_id: string }[]} */ (
+        db
+          .prepare(
+            `SELECT device_id FROM current_settings
          WHERE ha_user_id = ? AND device_id != ?`
-        )
-        .all(ha_user_id, source_device_id)
-        .map((row) => row.device_id);
+          )
+          .all(ha_user_id, source_device_id)
+      ).map((row) => row.device_id);
 
-  const publishTargets = db.transaction((deviceIds) => {
+  const publishTargets = db.transaction((/** @type {string[]} */ deviceIds) => {
     let affected = 0;
     deviceIds.forEach((deviceId) => {
       affected += upsertTarget(deviceId);
@@ -612,8 +672,9 @@ router.post('/publish', (req, res) => {
     const affected = publishTargets(targetIds);
     return res.json({ success: true, affected, conflicts });
   } catch (error) {
-    if (error.code === 'DATA_ENCRYPTION_UNAVAILABLE') {
-      return res.status(503).json({ error: error.message, code: error.code });
+    const failure = /** @type {{ code?: string, message?: string }} */ (error);
+    if (failure.code === 'DATA_ENCRYPTION_UNAVAILABLE') {
+      return res.status(503).json({ error: failure.message, code: failure.code });
     }
     console.error('[settings] Failed to publish settings:', error);
     return res.status(500).json({ error: 'Failed to publish settings to target devices' });
