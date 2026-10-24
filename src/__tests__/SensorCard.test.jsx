@@ -329,7 +329,7 @@ describe('SensorCard', () => {
 
     expect(container.querySelector('[data-sensor-graph="history"]').className).toContain('right-0');
     expect(
-      container.querySelector('[data-sensor-graph="history"] [data-chart-safe-inset="12"]')
+      container.querySelector('[data-sensor-graph="history"] [data-chart-safe-inset="0"]')
     ).not.toBeNull();
   });
 

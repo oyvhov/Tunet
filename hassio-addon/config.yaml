@@ -19,10 +19,14 @@ ports:
 ports_description:
   3002/tcp: 'Tunet Web Interface (not needed when using Ingress)'
 options:
+  internal_ha_url: ''
+  internal_ha_fallback_url: ''
   data_encryption_mode: 'off'
   data_encryption_key: ''
   data_encryption_salt: ''
 schema:
+  internal_ha_url: 'str?'
+  internal_ha_fallback_url: 'str?'
   data_encryption_mode: 'list(off|dual|enc_only)?'
   data_encryption_key: 'password?'
   data_encryption_salt: 'password?'

@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createHomeAssistantAuthMiddleware,
   createValidatedHomeAssistantUserResolver,
@@ -88,13 +88,20 @@ describe('createValidatedHomeAssistantUserResolver', () => {
 });
 
 describe('createHomeAssistantAuthMiddleware', () => {
+  beforeEach(() => {
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', 'https://ha.example');
+    vi.stubEnv('TUNET_INTERNAL_HA_FALLBACK_URL', '');
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '0');
+  });
+  afterEach(() => vi.unstubAllEnvs());
   it('trusts Supervisor-provided user headers for ingress requests from the trusted proxy', async () => {
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', '');
     process.env.TUNET_TRUST_SUPERVISOR_INGRESS = '1';
     const validateHomeAssistantUser = vi.fn();
     const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
     const req = createRequest({
-      '__ip': '::ffff:172.30.32.2',
-      '__remoteAddress': '::ffff:172.30.32.2',
+      __ip: '::ffff:172.30.32.2',
+      __remoteAddress: '::ffff:172.30.32.2',
       'x-ingress-path': '/api/hassio_ingress/abc123',
       'x-remote-user-id': 'ha-user-1',
       'x-remote-user-display-name': 'Living Room Tablet',
@@ -117,12 +124,12 @@ describe('createHomeAssistantAuthMiddleware', () => {
   });
 
   it('does not trust ingress headers unless explicitly enabled', async () => {
-    delete process.env.TUNET_TRUST_SUPERVISOR_INGRESS;
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', '');
     const validateHomeAssistantUser = vi.fn();
     const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
     const req = createRequest({
-      '__ip': '::ffff:172.30.32.2',
-      '__remoteAddress': '::ffff:172.30.32.2',
+      __ip: '::ffff:172.30.32.2',
+      __remoteAddress: '::ffff:172.30.32.2',
       'x-ingress-path': '/api/hassio_ingress/abc123',
       'x-remote-user-id': 'ha-user-1',
       'x-remote-user-display-name': 'Living Room Tablet',
@@ -134,12 +141,13 @@ describe('createHomeAssistantAuthMiddleware', () => {
 
     expect(validateHomeAssistantUser).not.toHaveBeenCalled();
     expect(req.authenticatedHaUser).toBeUndefined();
-    expect(res.statusCode).toBe(401);
-    expect(res.body).toEqual({ error: 'Missing or invalid x-ha-url header' });
+    expect(res.statusCode).toBe(503);
+    expect(res.body.code).toBe('HA_AUTH_NOT_CONFIGURED');
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('rejects requests without Home Assistant URL metadata', async () => {
+  it('fails closed when the operator has not configured Home Assistant', async () => {
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', '');
     const middleware = createHomeAssistantAuthMiddleware({
       validateHomeAssistantUser: vi.fn(),
     });
@@ -149,8 +157,8 @@ describe('createHomeAssistantAuthMiddleware', () => {
 
     await middleware(req, res, next);
 
-    expect(res.statusCode).toBe(401);
-    expect(res.body).toEqual({ error: 'Missing or invalid x-ha-url header' });
+    expect(res.statusCode).toBe(503);
+    expect(res.body.code).toBe('HA_AUTH_NOT_CONFIGURED');
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -235,143 +243,112 @@ describe('createHomeAssistantAuthMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('tries the fallback Home Assistant URL when the primary URL is not reachable from Docker', async () => {
+  it('uses only the configured fallback when the primary cannot be reached', async () => {
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', 'http://homeassistant.local:8123');
+    vi.stubEnv('TUNET_INTERNAL_HA_FALLBACK_URL', 'http://host.docker.internal:8123');
     const validateHomeAssistantUser = vi
       .fn()
-      .mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND homeassistant.local'))
-      .mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND host.docker.internal'))
-      .mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND host.containers.internal'))
+      .mockRejectedValueOnce(1)
       .mockResolvedValueOnce({ id: 'user-456' });
-    const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
     const req = createRequest({
       authorization: 'Bearer token-1',
-      'x-ha-url': 'http://homeassistant.local:8123',
-      'x-ha-fallback-url': 'http://192.168.1.20:8123',
+      'x-ha-url': 'http://attacker.invalid',
     });
     const res = createResponse();
     const next = vi.fn();
-
-    await middleware(req, res, next);
-
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(1, {
-      haUrl: 'http://homeassistant.local:8123',
-      accessToken: 'token-1',
-    });
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(4, {
-      haUrl: 'http://192.168.1.20:8123',
-      accessToken: 'token-1',
-    });
-    expect(req.authenticatedHaUser).toEqual({ id: 'user-456' });
-    expect(req.authenticatedHaUrl).toBe('http://192.168.1.20:8123');
-    expect(next).toHaveBeenCalledTimes(1);
+    await createHomeAssistantAuthMiddleware({ validateHomeAssistantUser })(req, res, next);
+    expect(validateHomeAssistantUser.mock.calls.map(([args]) => args.haUrl)).toEqual([
+      'http://homeassistant.local:8123',
+      'http://host.docker.internal:8123',
+    ]);
+    expect(req.authenticatedHaUser.id).toBe('user-456');
+    expect(next).toHaveBeenCalledOnce();
   });
 
-  it('tries host.docker.internal for localhost URLs in Docker mode', async () => {
-    const validateHomeAssistantUser = vi
+  it.each([2, new Error('Invalid auth'), 1])(
+    'never authenticates against a client-selected identity provider after failure %s',
+    async (failure) => {
+      const validateHomeAssistantUser = vi.fn(({ haUrl }) =>
+        haUrl === 'https://ha.example' ? Promise.reject(failure) : Promise.resolve({ id: 'victim' })
+      );
+      const req = createRequest({
+        authorization: 'Bearer forged-token',
+        'x-ha-url': 'http://attacker.invalid',
+        'x-ha-fallback-url': 'http://127.0.0.1:9000/private',
+      });
+      const res = createResponse();
+      const next = vi.fn();
+      await createHomeAssistantAuthMiddleware({ validateHomeAssistantUser })(req, res, next);
+      expect(next).not.toHaveBeenCalled();
+      expect(req.authenticatedHaUser).toBeUndefined();
+      expect(validateHomeAssistantUser).toHaveBeenCalledTimes(1);
+      expect(res.statusCode).toBe(failure === 1 ? 503 : 401);
+    }
+  );
+
+  it('stops on invalid auth, including cached numeric errors, before any configured fallback', async () => {
+    vi.stubEnv('TUNET_INTERNAL_HA_FALLBACK_URL', 'https://backup.example');
+    const loadCurrentUser = vi
       .fn()
-      .mockRejectedValueOnce(new Error('connect ECONNREFUSED 127.0.0.1:8123'))
-      .mockResolvedValueOnce({ id: 'user-789' });
+      .mockRejectedValueOnce(2)
+      .mockResolvedValue({ id: 'wrong-user' });
+    const validateHomeAssistantUser = createValidatedHomeAssistantUserResolver({ loadCurrentUser });
     const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
-    const req = createRequest({
-      authorization: 'Bearer token-1',
-      'x-ha-url': 'http://localhost:8123',
-    });
-    const res = createResponse();
-    const next = vi.fn();
-
-    await middleware(req, res, next);
-
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(1, {
-      haUrl: 'http://localhost:8123',
-      accessToken: 'token-1',
-    });
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(2, {
-      haUrl: 'http://host.docker.internal:8123',
-      accessToken: 'token-1',
-    });
-    expect(req.authenticatedHaUser).toEqual({ id: 'user-789' });
-    expect(req.authenticatedHaUrl).toBe('http://host.docker.internal:8123');
-    expect(next).toHaveBeenCalledTimes(1);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = createResponse();
+      const next = vi.fn();
+      await middleware(createRequest({ authorization: 'Bearer bad-token' }), res, next);
+      expect(res.statusCode).toBe(401);
+      expect(res.body.code).toBe('HA_AUTH_INVALID');
+      expect(next).not.toHaveBeenCalled();
+    }
+    expect(loadCurrentUser).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to host.containers.internal when host.docker.internal is not reachable', async () => {
-    const validateHomeAssistantUser = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('connect ECONNREFUSED 127.0.0.1:8123'))
-      .mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND host.docker.internal'))
-      .mockResolvedValueOnce({ id: 'user-999' });
-    const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
+  it.each(['', 'file:///private', 'https://user:secret@ha.example'])(
+    'does not use browser URLs when server configuration is invalid: %s',
+    async (url) => {
+      vi.stubEnv('TUNET_INTERNAL_HA_URL', url);
+      const validateHomeAssistantUser = vi.fn().mockResolvedValue({ id: 'victim' });
+      const res = createResponse();
+      const next = vi.fn();
+      await createHomeAssistantAuthMiddleware({ validateHomeAssistantUser })(
+        createRequest({
+          authorization: 'Bearer forged',
+          'x-ha-url': 'http://attacker.invalid',
+          'x-ha-fallback-url': 'http://localhost:9000',
+        }),
+        res,
+        next
+      );
+      expect(res.statusCode).toBe(503);
+      expect(res.body.code).toBe('HA_AUTH_NOT_CONFIGURED');
+      expect(validateHomeAssistantUser).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    }
+  );
+
+  it('does not trust forged ingress identity from a direct LAN client', async () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+    const validateHomeAssistantUser = vi.fn().mockResolvedValue({ id: 'real-user' });
     const req = createRequest({
-      authorization: 'Bearer token-1',
-      'x-ha-url': 'http://localhost:8123',
+      __ip: '192.168.1.50',
+      __remoteAddress: '192.168.1.50',
+      'x-ingress-path': '/fake',
+      'x-remote-user-id': 'victim',
+      authorization: 'Bearer real-token',
     });
-    const res = createResponse();
     const next = vi.fn();
-
-    await middleware(req, res, next);
-
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(1, {
-      haUrl: 'http://localhost:8123',
-      accessToken: 'token-1',
+    await createHomeAssistantAuthMiddleware({ validateHomeAssistantUser })(
+      req,
+      createResponse(),
+      next
+    );
+    expect(req.authenticatedHaUser.id).toBe('real-user');
+    expect(validateHomeAssistantUser).toHaveBeenCalledWith({
+      haUrl: 'https://ha.example',
+      accessToken: 'real-token',
     });
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(2, {
-      haUrl: 'http://host.docker.internal:8123',
-      accessToken: 'token-1',
-    });
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(3, {
-      haUrl: 'http://host.containers.internal:8123',
-      accessToken: 'token-1',
-    });
-    expect(req.authenticatedHaUser).toEqual({ id: 'user-999' });
-    expect(req.authenticatedHaUrl).toBe('http://host.containers.internal:8123');
-    expect(next).toHaveBeenCalledTimes(1);
-  });
-
-  it('falls back to host.docker.internal when a LAN HA URL is unreachable from the container', async () => {
-    const validateHomeAssistantUser = vi
-      .fn()
-      .mockRejectedValueOnce(1) // ERR_CANNOT_CONNECT
-      .mockResolvedValueOnce({ id: 'user-lan' });
-    const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
-    const req = createRequest({
-      authorization: 'Bearer token-1',
-      'x-ha-url': 'http://192.168.10.103:8123',
-    });
-    const res = createResponse();
-    const next = vi.fn();
-
-    await middleware(req, res, next);
-
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(1, {
-      haUrl: 'http://192.168.10.103:8123',
-      accessToken: 'token-1',
-    });
-    expect(validateHomeAssistantUser).toHaveBeenNthCalledWith(2, {
-      haUrl: 'http://host.docker.internal:8123',
-      accessToken: 'token-1',
-    });
-    expect(req.authenticatedHaUrl).toBe('http://host.docker.internal:8123');
-    expect(next).toHaveBeenCalledTimes(1);
-  });
-
-  it('prioritises auth errors over reachability errors when multiple URLs are tried', async () => {
-    const validateHomeAssistantUser = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('Invalid auth'))
-      .mockRejectedValueOnce(new Error('connect ECONNREFUSED host.docker.internal:8123'))
-      .mockRejectedValueOnce(new Error('connect ECONNREFUSED host.containers.internal:8123'));
-    const middleware = createHomeAssistantAuthMiddleware({ validateHomeAssistantUser });
-    const req = createRequest({
-      authorization: 'Bearer token-1',
-      'x-ha-url': 'http://localhost:8123',
-    });
-    const res = createResponse();
-    const next = vi.fn();
-
-    await middleware(req, res, next);
-
-    expect(res.statusCode).toBe(401);
-    expect(res.body.code).toBe('HA_AUTH_INVALID');
-    expect(next).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledOnce();
   });
 });

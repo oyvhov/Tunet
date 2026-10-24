@@ -42,6 +42,36 @@ const expectWideControls = (container) => {
 };
 
 describe('mobile media controls', () => {
+  it.each([
+    ['player', MediaPlayerCard],
+    ['group', MediaGroupCard],
+  ])('pauses the %s artwork motion while editing and resumes it afterwards', (_name, Card) => {
+    const cardId = Card === MediaPlayerCard ? entityId : 'sonos_group_kitchen';
+    const settingsKey = `home::${cardId}`;
+    const props = {
+      ...commonProps,
+      cardId,
+      mpId: entityId,
+      settingsKey,
+      saveCardSetting: vi.fn(),
+      cardSettings: {
+        [settingsKey]: {
+          mediaIds: [entityId],
+          artworkMode: 'cover',
+          playingBackgroundMotion: 'subtle',
+        },
+      },
+    };
+    const { container, rerender } = render(<Card {...props} />);
+    expect(container.querySelector('.media-bg-subtle-drift')).not.toBeNull();
+    rerender(<Card {...props} editMode />);
+    expect(container.querySelector('.media-bg-subtle-drift')).toBeNull();
+    expect(container.querySelector('.media-bg-subtle-pulse')).toBeNull();
+    expect(container.querySelector('img')).toHaveAttribute('src', '/artwork.jpg');
+    rerender(<Card {...props} />);
+    expect(container.querySelector('.media-bg-subtle-drift')).not.toBeNull();
+  });
+
   it('uses larger transport controls for a full-width media player card', () => {
     const settingsKey = 'home::media_player.kitchen';
     const { container } = render(

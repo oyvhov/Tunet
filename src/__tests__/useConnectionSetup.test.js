@@ -20,6 +20,7 @@ vi.mock('../services/oauthStorage', () => ({
   loadTokens: vi.fn(() => null),
   clearOAuthTokens: vi.fn(),
   hasOAuthTokens: vi.fn(() => false),
+  isOAuthRejected: vi.fn(() => false),
 }));
 
 vi.mock('home-assistant-js-websocket', () => ({
@@ -29,7 +30,7 @@ vi.mock('home-assistant-js-websocket', () => ({
   subscribeEntities: vi.fn(),
 }));
 
-import { hasOAuthTokens, clearOAuthTokens } from '../services/oauthStorage';
+import { hasOAuthTokens, clearOAuthTokens, isOAuthRejected } from '../services/oauthStorage';
 import { createConnection, createLongLivedTokenAuth, getAuth } from 'home-assistant-js-websocket';
 
 const t = (key) => {
@@ -289,5 +290,23 @@ describe('useConnectionSetup startOAuthLogin', () => {
     act(() => result.current.startOAuthLogin('h'));
 
     expect(getAuth).not.toHaveBeenCalled();
+  });
+});
+
+describe('useConnectionSetup › lost auth', () => {
+  const missingLoginProps = () =>
+    makeProps({ config: { url: 'http://ha.local:8123', token: '', authMethod: 'oauth' } });
+
+  it('re-opens onboarding when OAuth tokens are missing', () => {
+    const props = missingLoginProps();
+    renderHook(() => useConnectionSetup(props));
+    expect(props.setShowOnboarding).toHaveBeenCalledWith(true);
+  });
+
+  it('leaves a rejected OAuth session to the expired-login banner', () => {
+    isOAuthRejected.mockReturnValueOnce(true);
+    const props = missingLoginProps();
+    renderHook(() => useConnectionSetup(props));
+    expect(props.setShowOnboarding).not.toHaveBeenCalled();
   });
 });

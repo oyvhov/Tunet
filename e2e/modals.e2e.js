@@ -48,6 +48,12 @@ test.describe('Modal Interactions', () => {
   };
 
   test.beforeEach(async ({ page, mockHAConnection }) => {
+    await page.route('**/api/settings/**', (route) =>
+      route.fulfill({
+        json: route.request().url().includes('/current') ? { revision: 1, data: null } : [],
+      })
+    );
+    await page.route('**/api/profiles**', (route) => route.fulfill({ json: [] }));
     await page.addInitScript(() => {
       localStorage.setItem('ha_url', 'http://localhost:8123');
       localStorage.setItem('ha_auth_method', 'token');
@@ -90,6 +96,65 @@ test.describe('Modal Interactions', () => {
     // Modal shell is the required assertion for opening system settings.
     await expect(modal).toBeVisible();
   });
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`opens light controls promptly at ${viewport.width}px`, async ({ page }, testInfo) => {
+      await page.setViewportSize(viewport);
+      const errors = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await expect(page).toHaveTitle('HOME');
+      const card = page.locator('[data-card-id="light.bedroom"]');
+      await expect(card).toBeVisible();
+      const timings = [];
+      for (const load of ['first', 'repeat']) {
+        await page.evaluate(() => {
+          window.__popupTiming = null;
+          document.addEventListener(
+            'click',
+            () => {
+              const start = performance.now();
+              const measure = () => {
+                const panel = document.querySelector('[role="dialog"]');
+                if (
+                  !panel ||
+                  panel.getAnimations().some((animation) => animation.playState === 'running')
+                ) {
+                  requestAnimationFrame(measure);
+                  return;
+                }
+                window.__popupTiming = {
+                  elapsed: performance.now() - start,
+                  animation: getComputedStyle(panel).animationDuration,
+                };
+              };
+              requestAnimationFrame(measure);
+            },
+            { capture: true, once: true }
+          );
+        });
+        await card.getByText('Bedroom Light', { exact: true }).click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        await page.waitForFunction(() => window.__popupTiming !== null);
+        const timing = await page.evaluate(() => window.__popupTiming);
+        timings.push({ load, ...timing });
+        await expect(dialog.getByRole('heading').first()).toBeVisible();
+        await page.screenshot({ path: testInfo.outputPath(`light-${load}.png`) });
+        await page.keyboard.press('Escape');
+        await expect(dialog).toHaveCount(0);
+      }
+      await testInfo.attach('popup-timings', {
+        body: JSON.stringify(timings),
+        contentType: 'application/json',
+      });
+      for (const timing of timings) expect(parseFloat(timing.animation)).toBeLessThanOrEqual(0.15);
+      expect(errors).toEqual([]);
+      await expect(page.locator('vite-error-overlay')).toHaveCount(0);
+    });
+  }
 
   test('shows the build version when the server health endpoint is unavailable', async ({
     page,
@@ -690,26 +755,28 @@ test.describe('Modal Interactions', () => {
     ).toBeVisible();
   });
 
-  test('shows Home Assistant notification updates without duplicating unchanged messages', async ({
-    page,
-  }) => {
-    const update = {
-      type: 'added',
-      notifications: { test: { title: 'Home Assistant', message: 'Door left open' } },
-    };
-    await page.evaluate(
-      (detail) => window.dispatchEvent(new CustomEvent('test:notification', { detail })),
-      update
-    );
-    await expect(
-      page.getByRole('alert').filter({ hasText: 'Home Assistant: Door left open' })
-    ).toHaveCount(1);
-    await page.evaluate(
-      (detail) => window.dispatchEvent(new CustomEvent('test:notification', { detail })),
-      update
-    );
-    await expect(
-      page.getByRole('alert').filter({ hasText: 'Home Assistant: Door left open' })
-    ).toHaveCount(1);
+  test('keeps Home Assistant system notifications out of dashboard popups', async ({ page }) => {
+    await page.evaluate(async () => {
+      for (const type of ['current', 'added', 'updated', 'current']) {
+        window.dispatchEvent(
+          new CustomEvent('test:notification', {
+            detail: {
+              type,
+              notifications: Object.fromEntries(
+                Array.from({ length: 20 }, (_, index) => [
+                  `ha-system-${index}`,
+                  { title: 'Home Assistant', message: `System warning ${index} (${type})` },
+                ])
+              ),
+            },
+          })
+        );
+        await new Promise(requestAnimationFrame);
+        if (document.querySelector('[role="alert"]')) {
+          throw new Error('Home Assistant system notifications must not open dashboard popups');
+        }
+      }
+    });
+    await expect(page.getByRole('alert')).toHaveCount(0);
   });
 });

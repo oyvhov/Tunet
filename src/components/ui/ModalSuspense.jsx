@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { DEFAULT_MODAL_OVERLAY_STYLE } from './modalStyles';
 
-const fallback = (
+export const modalLoadingFallback = (
   <div
     className="fixed inset-0 z-50 flex items-center justify-center p-4"
     style={DEFAULT_MODAL_OVERLAY_STYLE}
@@ -26,5 +26,5 @@ const fallback = (
  * Shared Suspense wrapper for lazy-loaded modals.
  */
 export default function ModalSuspense({ children }) {
-  return <Suspense fallback={fallback}>{children}</Suspense>;
+  return <Suspense fallback={modalLoadingFallback}>{children}</Suspense>;
 }

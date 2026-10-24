@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { verifyStoredEncryption } from './utils/dataCrypto.js';
 import { existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 
@@ -67,5 +68,7 @@ ensureColumn('current_settings', 'device_label', 'TEXT');
 ensureColumn('profiles', 'data_enc', 'TEXT');
 ensureColumn('current_settings', 'data_enc', 'TEXT');
 ensureColumn('current_settings_history', 'data_enc', 'TEXT');
+
+verifyStoredEncryption(db);
 
 export default db;

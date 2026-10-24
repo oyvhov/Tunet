@@ -23,7 +23,7 @@
 @keyframes popupIn {
   0% {
     opacity: 0;
-    transform: scale(0.95) translateY(10px);
+    transform: scale(0.99) translateY(3px);
   }
   100% {
     opacity: 1;
@@ -58,7 +58,7 @@
   }
 }
 .popup-anim {
-  animation: popupIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: popupIn 0.12s ease-out forwards;
 }
 .fade-in-anim {
   animation: fadeIn 0.4s ease-out forwards;
@@ -200,6 +200,14 @@
 .popup-surface-hover:hover {
   background: var(--modal-surface-hover, var(--glass-bg-hover));
   border-color: var(--glass-border);
+}
+.edit-card-modal .popup-surface,
+.system-settings-modal .popup-surface,
+.tunet-sidebar .popup-surface {
+  backdrop-filter: none;
+}
+.system-settings-modal .animate-in {
+  animation: none;
 }
 .popup-surface-divider {
   background: color-mix(in srgb, var(--glass-border) 35%, transparent);
@@ -513,58 +521,50 @@ html[data-theme='light'][data-card-material='elevated'] .touch-feedback:hover {
 }
 
 .weather-card-swipe-content {
-  transform: translate3d(var(--weather-swipe-x, 0), 0, 0);
-  transition:
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms ease-out;
-  will-change: transform, opacity;
+  left: 0;
+  right: auto;
+  width: 100%;
+  transition: left 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .weather-card-swipe-content[data-dragging='true'] {
+  left: var(--weather-swipe-x, 0px);
   transition: none;
 }
 
 @keyframes weather-card-swipe-out-left {
   from {
-    transform: translate3d(var(--weather-swipe-x, 0), 0, 0);
-    opacity: 1;
+    left: var(--weather-swipe-x, 0px);
   }
   to {
-    transform: translate3d(-108%, 0, 0);
-    opacity: 0;
+    left: -108%;
   }
 }
 
 @keyframes weather-card-swipe-out-right {
   from {
-    transform: translate3d(var(--weather-swipe-x, 0), 0, 0);
-    opacity: 1;
+    left: var(--weather-swipe-x, 0px);
   }
   to {
-    transform: translate3d(108%, 0, 0);
-    opacity: 0;
+    left: 108%;
   }
 }
 
 @keyframes weather-card-swipe-in-left {
   from {
-    transform: translate3d(-108%, 0, 0);
-    opacity: 0;
+    left: -108%;
   }
   to {
-    transform: translate3d(0, 0, 0);
-    opacity: 1;
+    left: 0;
   }
 }
 
 @keyframes weather-card-swipe-in-right {
   from {
-    transform: translate3d(108%, 0, 0);
-    opacity: 0;
+    left: 108%;
   }
   to {
-    transform: translate3d(0, 0, 0);
-    opacity: 1;
+    left: 0;
   }
 }
 

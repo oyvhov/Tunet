@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createConnection, createLongLivedTokenAuth, getAuth } from 'home-assistant-js-websocket';
 import { validateUrl } from '../config/onboarding';
-import { saveTokens, loadTokens, clearOAuthTokens, hasOAuthTokens } from '../services/oauthStorage';
+import {
+  saveTokens,
+  loadTokens,
+  clearOAuthTokens,
+  hasOAuthTokens,
+  isOAuthRejected,
+} from '../services/oauthStorage';
 
 /** @typedef {import('../types/dashboard').UseConnectionSetupDeps} UseConnectionSetupDeps */
 /** @typedef {import('../types/dashboard').UseConnectionSetupResult} UseConnectionSetupResult */
@@ -45,6 +51,8 @@ export function useConnectionSetup({
       typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).has('auth_callback');
     if (isOAuthCallback) return;
+    // A rejected OAuth session is handled by the expired-login banner.
+    if (config.authMethod === 'oauth' && isOAuthRejected()) return;
 
     const hasAuth = config.token || (config.authMethod === 'oauth' && hasOAuthTokens());
     if (!hasAuth && !showOnboarding && !showConfigModal) {

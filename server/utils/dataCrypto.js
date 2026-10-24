@@ -74,13 +74,13 @@ const DATA_ENCRYPTION_KEY = deriveEncryptionKey(process.env.TUNET_DATA_KEY || ''
 
 if (DATA_ENCRYPTION_MODE !== 'off' && !DATA_ENCRYPTION_KEY) {
   warnOnce(
-    '[data-crypto] TUNET_ENCRYPTION_MODE is enabled but TUNET_DATA_KEY is missing. Falling back to plaintext reads/writes.'
+    '[data-crypto] TUNET_ENCRYPTION_MODE is enabled but TUNET_DATA_KEY is unavailable. Encrypted storage is unavailable.'
   );
 }
 
 export const getDataEncryptionMode = () => DATA_ENCRYPTION_MODE;
 export const isDataEncryptionEnabled = () => DATA_ENCRYPTION_MODE !== 'off';
-export const isEncryptionWriteRequired = () => DATA_ENCRYPTION_MODE === 'enc_only';
+export const isEncryptionWriteRequired = () => DATA_ENCRYPTION_MODE !== 'off';
 export const shouldPersistPlaintextData = () => DATA_ENCRYPTION_MODE !== 'enc_only';
 export const getEncryptedOnlyPlaintextStub = () => '{"_enc_only":true}';
 
@@ -124,22 +124,41 @@ export const resolveStoredDataText = ({ plainText, encryptedText, context = 'unk
   const encrypted =
     typeof encryptedText === 'string' && encryptedText.trim() ? encryptedText : null;
 
-  if (DATA_ENCRYPTION_MODE === 'off') {
-    if (plain) return plain;
-    return encrypted ? decryptPayload(encrypted) : null;
-  }
-
   if (encrypted) {
     const decrypted = decryptPayload(encrypted);
     if (decrypted !== null) return decrypted;
-    if (DATA_ENCRYPTION_MODE === 'enc_only') {
-      warnOnce(`[data-crypto] Failed to decrypt payload in ${context} while in enc_only mode.`);
-      return null;
-    }
-    warnOnce(
-      `[data-crypto] Failed to decrypt payload in ${context}. Falling back to plaintext data.`
-    );
+    warnOnce(`[data-crypto] Failed to decrypt payload in ${context}.`);
+    throw storageEncryptionError();
   }
-
+  if (plain === getEncryptedOnlyPlaintextStub()) throw storageEncryptionError();
   return plain;
+};
+
+const storageEncryptionError = () =>
+  Object.assign(new Error('Encrypted data is unavailable. Check the encryption mode and key.'), {
+    status: 503,
+    code: 'DATA_ENCRYPTION_UNAVAILABLE',
+  });
+
+export const assertStoredDataWritable = (row, encryptedPayload) => {
+  if (!row?.data_enc) return;
+  resolveStoredDataText({ plainText: row.data, encryptedText: row.data_enc });
+  if (!encryptedPayload) throw storageEncryptionError();
+};
+
+export const verifyStoredEncryption = (database) => {
+  if (DATA_ENCRYPTION_MODE === 'off') return;
+  if (isEncryptionWriteRequired() && !DATA_ENCRYPTION_KEY) throw storageEncryptionError();
+  for (const table of ['profiles', 'current_settings', 'current_settings_history']) {
+    const row = database
+      .prepare(`SELECT data, data_enc FROM ${table} WHERE data_enc IS NOT NULL LIMIT 1`)
+      .get();
+    if (row)
+      resolveStoredDataText({ plainText: row.data, encryptedText: row.data_enc, context: table });
+  }
+};
+
+export const handleDataEncryptionError = (error, _req, res, next) => {
+  if (error.code !== 'DATA_ENCRYPTION_UNAVAILABLE') return next(error);
+  return res.status(503).json({ error: error.message, code: error.code });
 };

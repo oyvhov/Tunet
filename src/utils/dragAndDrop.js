@@ -264,13 +264,7 @@ export const createDragAndDropHandlers = ({
       opacity: isHidden && editMode ? 0.4 : 1,
       filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
       transform: isDragging ? 'scale(1.08)' : 'none',
-      animation:
-        editMode && !isDragging ? 'editJiggle 0.3s infinite alternate ease-in-out' : 'none',
-      // Randomize animation start slightly based on card char code sum so they don't sync perfectly
-      animationDelay:
-        editMode && !isDragging
-          ? `${(cardId.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 10) / -10}s`
-          : '0s',
+      animation: 'none',
       boxShadow: isDragging
         ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
         : isTouchTarget

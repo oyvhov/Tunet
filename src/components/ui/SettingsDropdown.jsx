@@ -58,7 +58,7 @@ function SettingsDropdown({
     <>
       {floating && isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]"
+          className="fixed inset-0 z-40 bg-black/10"
           onClick={() => setIsOpen(false)}
           aria-hidden="true"
           data-testid="settings-mobile-backdrop"
@@ -68,44 +68,40 @@ function SettingsDropdown({
       <div className="relative z-50" ref={dropdownRef}>
         <button
           onClick={handleTrigger}
-          className={`group relative z-50 flex flex-shrink-0 items-center justify-center border transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)] focus-visible:outline-none ${
+          className={`group relative z-50 flex flex-shrink-0 items-center justify-center border transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)] focus-visible:outline-none ${
             floating
-              ? `h-14 w-14 rounded-2xl border-transparent text-white shadow-[0_16px_48px_rgba(0,0,0,0.35)] active:scale-95 ${
+              ? `h-14 w-14 rounded-2xl border-transparent text-white shadow-[0_16px_48px_rgba(0,0,0,0.35)] ${
                   isFloatingDone
-                    ? 'bg-[var(--status-success-fg)] text-[var(--bg-primary)] hover:brightness-110'
-                    : 'bg-[var(--accent-color)] hover:-translate-y-0.5 hover:brightness-110'
+                    ? 'bg-[var(--status-success-fg)] text-[var(--bg-primary)]'
+                    : 'bg-[var(--accent-color)]'
                 }`
               : isMobile
                 ? 'h-11 w-11 rounded-full border-transparent'
                 : 'rounded-full border-transparent p-2'
-          } ${!floating ? (isOpen ? 'scale-105 border-[var(--accent-color)] bg-[var(--accent-color)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]') : ''} ${floating && isOpen ? 'scale-105' : ''}`}
-          aria-label={isFloatingDone ? t('nav.done') : floating ? t('menu.edit') : t('menu.settings')}
+          } ${!floating ? (isOpen ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]') : ''}`}
+          aria-label={
+            isFloatingDone ? t('nav.done') : floating ? t('menu.edit') : t('menu.settings')
+          }
           aria-expanded={isFloatingDone ? undefined : isOpen}
           aria-controls={isFloatingDone ? undefined : 'settings-dropdown-menu'}
           data-testid="settings-dropdown-trigger"
         >
           {isFloatingDone ? (
-            <Check className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+            <Check className="h-6 w-6" />
           ) : floating ? (
-            <Edit2 className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+            <Edit2 className="h-6 w-6" />
           ) : (
-            <Settings
-              className={`h-5 w-5 transition-transform duration-500 ${isOpen ? 'rotate-90' : 'group-hover:rotate-45'}`}
-            />
+            <Settings className="h-5 w-5" />
           )}
         </button>
 
         {/* Dropdown Menu */}
         <div
           id="settings-dropdown-menu"
-          className={`absolute right-0 z-50 w-60 transform rounded-3xl border border-[var(--glass-border)] p-2.5 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
-            floating ? 'bottom-full mb-3 origin-bottom-right' : 'top-full mt-2 origin-top-right'
-          } ${
-            isOpen
-              ? 'translate-y-0 scale-100 opacity-100'
-              : `pointer-events-none scale-95 opacity-0 ${floating ? 'translate-y-2' : '-translate-y-2'}`
-          }`}
-          style={{ backgroundColor: 'var(--card-bg)', backdropFilter: 'blur(20px)' }}
+          className={`absolute right-0 z-50 w-60 rounded-3xl border border-[var(--glass-border)] p-2.5 shadow-2xl ${
+            floating ? 'bottom-full mb-3' : 'top-full mt-2'
+          } ${isOpen ? 'visible' : 'pointer-events-none invisible'}`}
+          style={{ backgroundColor: 'var(--modal-bg)' }}
           role="menu"
           aria-hidden={!isOpen}
           data-testid="settings-dropdown-menu"

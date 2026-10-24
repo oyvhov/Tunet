@@ -3,7 +3,7 @@
 }
 
 .tunet-sidebar {
-  background: color-mix(in srgb, var(--modal-bg) 92%, transparent);
+  background: var(--modal-bg);
   border-color: color-mix(in srgb, var(--glass-border) 80%, transparent);
   box-shadow: -24px 0 60px rgba(0, 0, 0, 0.34);
 }
