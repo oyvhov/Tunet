@@ -79,6 +79,7 @@ const hasDefaultDashboardLayout = (snapshot) => {
 };
 
 const READ_CURRENT_FAILED = Symbol('READ_CURRENT_FAILED');
+const LOCAL_CHANGE_SYNC_DELAY_MS = 10000;
 const isServiceUnavailableError = (error) => Number(error?.status) === 503;
 
 export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = true }) {
@@ -483,35 +484,46 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
   pushCurrentToServerRef.current = pushCurrentToServer;
 
   const queueAutoSync = useCallback(
-    (force = false, { ignoreEnabled = false, ignoreSuspended = false } = {}) => {
+    /**
+     * @param {boolean} [force]
+     * @param {{ ignoreEnabled?: boolean, ignoreSuspended?: boolean, delayMs?: number }} [options]
+     */
+    (force = false, { ignoreEnabled = false, ignoreSuspended = false, delayMs } = {}) => {
       if ((!enabled && !ignoreEnabled) || !haUserId || conflictRef.current) return;
-      pendingSyncRef.current = true;
-      if (backgroundSyncSuspendedRef.current && !ignoreSuspended) return;
+      if (backgroundSyncSuspendedRef.current && !ignoreSuspended) {
+        pendingSyncRef.current = true;
+        return;
+      }
 
       const snapshot = collectSnapshot();
       if (!isValidSnapshot(snapshot)) return;
       const serialized = JSON.stringify(snapshot);
 
       if (!force && serialized === lastObservedHashRef.current) return;
+      pendingSyncRef.current = true;
       lastObservedHashRef.current = serialized;
 
       if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current);
-      autoSyncTimerRef.current = setTimeout(
-        async () => {
-          if (syncInFlightRef.current) return;
-          syncInFlightRef.current = true;
-          try {
-            await pushCurrentToServer({ force });
-          } catch {
-            // state already handled
-          } finally {
-            syncInFlightRef.current = false;
-          }
-        },
-        force ? 0 : 3500
-      );
+      const run = async () => {
+        autoSyncTimerRef.current = null;
+        if (syncInFlightRef.current) {
+          // Wait for the running upload instead of dropping this one.
+          autoSyncTimerRef.current = setTimeout(run, 1000);
+          return;
+        }
+        syncInFlightRef.current = true;
+        try {
+          await pushCurrentToServerRef.current?.({ force });
+        } catch {
+          // Forget the observed state so the next local-change check retries.
+          lastObservedHashRef.current = lastUploadedHashRef.current;
+        } finally {
+          syncInFlightRef.current = false;
+        }
+      };
+      autoSyncTimerRef.current = setTimeout(run, delayMs ?? (force ? 0 : 3500));
     },
-    [enabled, haUserId, pushCurrentToServer]
+    [enabled, haUserId]
   );
 
   const queueAutoSyncRef = useRef(queueAutoSync);
@@ -598,6 +610,9 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
     if (!autoBootstrap || !haUserId || backgroundSyncSuspended) return;
     const id = setInterval(() => {
       reconcileFromServer();
+      // Settings changed outside edit mode (appearance, layout, header) have
+      // no edit-done event, so pick them up here once they have settled.
+      queueAutoSyncRef.current(false, { delayMs: LOCAL_CHANGE_SYNC_DELAY_MS });
     }, 4000);
     return () => clearInterval(id);
   }, [autoBootstrap, haUserId, reconcileFromServer, backgroundSyncSuspended]);

@@ -196,6 +196,111 @@ describe('useSettingsSync', () => {
     expect(result.current.backgroundSyncSuspended).toBe(false);
   });
 
+  it('uploads settings changed outside edit mode without an edit-done event', async () => {
+    vi.useFakeTimers();
+    const baseline = collectSnapshot();
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: baseline });
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+    await act(async () => {});
+    const edited = { ...baseline, appearance: { theme: 'light' } };
+    collectSnapshot.mockReturnValue(edited);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20000);
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ data: edited, base_revision: 4 }),
+      {}
+    );
+  });
+
+  it('leaves local changes alone when auto-sync is turned off', async () => {
+    vi.useFakeTimers();
+    localStorage.setItem('tunet_auto_sync_enabled', '0');
+    const baseline = collectSnapshot();
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: baseline });
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+    await act(async () => {});
+    collectSnapshot.mockReturnValue({ ...baseline, appearance: { theme: 'light' } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20000);
+    });
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+  });
+
+  it('uploads an edit finished while another upload is still in flight', async () => {
+    vi.useFakeTimers();
+    const baseline = collectSnapshot();
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: baseline });
+    let finishFirst;
+    saveCurrentSettings
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishFirst = resolve;
+          })
+      )
+      .mockResolvedValue({ revision: 6, updated_at: '2026-10-24T12:00:01.000Z' });
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+    await act(async () => {});
+
+    const first = { ...baseline, layout: { pagesConfig: { home: ['light.a'] } } };
+    collectSnapshot.mockReturnValue(first);
+    await act(async () => {
+      window.dispatchEvent(new Event('tunet:edit-done'));
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(1);
+
+    const second = { ...baseline, layout: { pagesConfig: { home: ['light.a', 'light.b'] } } };
+    collectSnapshot.mockReturnValue(second);
+    await act(async () => {
+      window.dispatchEvent(new Event('tunet:edit-done'));
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    await act(async () => {
+      finishFirst({ revision: 5, updated_at: '2026-10-24T12:00:00.000Z' });
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(2);
+    expect(saveCurrentSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: second, base_revision: 5 }),
+      {}
+    );
+  });
+
+  it('retries an upload that failed with a network error', async () => {
+    vi.useFakeTimers();
+    const baseline = collectSnapshot();
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: baseline });
+    saveCurrentSettings
+      .mockRejectedValueOnce(new Error('Network request failed'))
+      .mockResolvedValue({ revision: 5, updated_at: '2026-10-24T12:00:00.000Z' });
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+    await act(async () => {});
+
+    const edited = { ...baseline, layout: { pagesConfig: { home: ['light.kitchen'] } } };
+    collectSnapshot.mockReturnValue(edited);
+    await act(async () => {
+      window.dispatchEvent(new Event('tunet:edit-done'));
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe('error');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20000);
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(2);
+    expect(saveCurrentSettings).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: edited, base_revision: 4 }),
+      {}
+    );
+    expect(result.current.status).toBe('synced');
+  });
+
   it('bootstraps sync and saves edits without ever opening the profiles modal', async () => {
     vi.useFakeTimers();
     const baseline = collectSnapshot();
