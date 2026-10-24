@@ -7,6 +7,9 @@ const mockFns = {
   setEditMode: vi.fn(),
   setShowAddCardModal: vi.fn(),
   requestSettingsAccess: vi.fn((callback) => callback()),
+  setActiveVacuumId: vi.fn(),
+  setActiveMowerId: vi.fn(),
+  coordinatorDeps: null,
 };
 
 vi.mock('../layouts', () => ({
@@ -210,9 +213,9 @@ vi.mock('../contexts', () => ({
   }),
   useAppUiStateContext: () => ({
     activeVacuumId: null,
-    setActiveVacuumId: vi.fn(),
+    setActiveVacuumId: mockFns.setActiveVacuumId,
     activeMowerId: null,
-    setActiveMowerId: vi.fn(),
+    setActiveMowerId: mockFns.setActiveMowerId,
     showThemeSidebar: false,
     setShowThemeSidebar: vi.fn(),
     showLayoutSidebar: false,
@@ -332,25 +335,28 @@ vi.mock('../hooks', () => ({
     closePinLockModal: vi.fn(),
   }),
   usePopupTriggers: vi.fn(),
-  useDashboardStateCoordinator: () => ({
-    popupModalActions: {},
-    updateCount: 0,
-    resetToHome: vi.fn(),
-    pageDefaults: { home: { label: 'Home' } },
-    pages: [
-      { id: 'home', label: 'Home' },
-      { id: 'kitchen', label: 'kitchen' },
-    ],
-    getCardSettingsKey: (cardId, pageId = 'home') => `${pageId}::${cardId}`,
-    isCardRemovable: vi.fn(() => true),
-    isCardHiddenByLogic: vi.fn(() => false),
-    isMediaPage: vi.fn(() => false),
-    isSonosPage: vi.fn(() => false),
-    isLightsPage: vi.fn(() => false),
-    isBatteryPage: vi.fn(() => false),
-    isRoomExplorerPage: vi.fn(() => false),
-    hasEnabledPopupTriggers: false,
-  }),
+  useDashboardStateCoordinator: (deps) => {
+    mockFns.coordinatorDeps = deps;
+    return {
+      popupModalActions: {},
+      updateCount: 0,
+      resetToHome: vi.fn(),
+      pageDefaults: { home: { label: 'Home' } },
+      pages: [
+        { id: 'home', label: 'Home' },
+        { id: 'kitchen', label: 'kitchen' },
+      ],
+      getCardSettingsKey: (cardId, pageId = 'home') => `${pageId}::${cardId}`,
+      isCardRemovable: vi.fn(() => true),
+      isCardHiddenByLogic: vi.fn(() => false),
+      isMediaPage: vi.fn(() => false),
+      isSonosPage: vi.fn(() => false),
+      isLightsPage: vi.fn(() => false),
+      isBatteryPage: vi.fn(() => false),
+      isRoomExplorerPage: vi.fn(() => false),
+      hasEnabledPopupTriggers: false,
+    };
+  },
   useGuardedUiActions: (deps) => ({
     guardedSetShowEditCardModal: vi.fn(),
     guardedSetEditMode: (nextValue) => {
@@ -416,5 +422,12 @@ describe('AppContent orchestration flow', () => {
     expect(mockFns.setEditMode).toHaveBeenCalledWith(true);
     expect(mockFns.setShowAddCardModal).toHaveBeenCalledWith(true);
     expect(mockFns.setShowAddCardModal).toHaveBeenCalledWith(false);
+  });
+
+  it('hands the vacuum and mower id setters to the popup-trigger coordinator', () => {
+    render(<AppContent showOnboarding={false} setShowOnboarding={vi.fn()} />);
+
+    expect(mockFns.coordinatorDeps.setActiveVacuumId).toBe(mockFns.setActiveVacuumId);
+    expect(mockFns.coordinatorDeps.setActiveMowerId).toBe(mockFns.setActiveMowerId);
   });
 });

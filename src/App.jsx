@@ -343,6 +343,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     editMode,
     setEditMode,
     setActiveVacuumId,
+    setActiveMowerId,
     setEditCardSettingsKey,
     entityModalActions,
     mediaModalActions,
