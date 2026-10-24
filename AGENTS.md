@@ -82,7 +82,8 @@ playwright.config.js      # Playwright configuration (Chromium + Firefox)
 
 - `npm run dev` (Vite, port 5173)
 - `npm run build` -> `dist/`
-- `npm run lint` (ESLint validation)
+- `npm run lint` (ESLint validation, plus the TypeScript-migration JS baseline check)
+- `npm run typecheck` (TypeScript 7: loose JS checks for `src/`, strict JSDoc for `server/`, strict for `.ts`/`.tsx`)
 - `npm test` (Vitest unit/integration tests)
 - `npm run test:e2e` (Playwright E2E tests, headless)
 - `npm run test:e2e:ui` (Playwright interactive mode—recommended for development)
@@ -142,9 +143,17 @@ the rebuilt container is running.
 - **Card components**: Ensure new card components are wrapped with `React.memo()` to maintain performance.
 - **E2E Tests**: When modifying critical flows (OAuth, drag-drop, modals), update corresponding E2E tests in `e2e/` to maintain coverage.
 
+## TypeScript migration
+
+- New source files in `src/` are `.ts`/`.tsx`. `npm run lint` fails on a new `.js`/`.jsx` file (`scripts/check-js-baseline.mjs`). When you convert a file, `git mv` it and remove it from `scripts/js-baseline.txt` (or run `node scripts/check-js-baseline.mjs --update`).
+- `.ts`/`.tsx` files are typechecked in strict mode (`tsconfig.strict.json`). Existing JS keeps the loose `checkJs` setup (`tsconfig.typecheck.json`); `server/` is strict via JSDoc (`tsconfig.server.json`).
+- Conversion PRs rename files and add types only: no behaviour changes or refactors, roughly 1,500 changed lines at most. No `any`, `@ts-ignore` or `@ts-expect-error` without a comment explaining why. Type React props explicitly, keep `React.memo()` on cards, and replace PropTypes with TypeScript props.
+- Order: leaf modules (`utils`, `config`, `services`, `i18n`, `icons`), then `types`/contexts/hooks, then components, then modals (only when no feature work is touching them), then `server/` and tests.
+- Toolchain: `typescript` is pinned to 6.0 because typescript-eslint needs the classic compiler API, which TypeScript 7 does not ship yet. Typechecking uses TypeScript 7 through the `typescript7` alias (`node node_modules/typescript7/bin/tsc`). Drop the alias once typescript-eslint supports TypeScript 7.
+
 ## Discipline
 
-- Don't over-engineer. Make the requested change, nothing more. No drive-by refactors, no unsolicited docstrings/comments/type annotations on untouched code.
+- Don't over-engineer. Make the requested change, nothing more. No drive-by refactors, no unsolicited docstrings/comments/type annotations on untouched code (TypeScript migration PRs are the exception; see above).
 - Don't add error handling for impossible cases. Validate at boundaries only.
 - Always check `if (!conn)` / `!connected` before HA calls.
 - Don't change React hook order.
