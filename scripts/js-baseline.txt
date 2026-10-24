@@ -178,14 +178,4 @@ src/rendering/modalSlices/roomCardUtils.js
 src/rendering/profileContextSetters.js
 src/rendering/registry.js
 src/rendering/useEditModalProps.js
-src/services/apiAuth.js
-src/services/cardActions.js
-src/services/haClient.js
-src/services/index.js
-src/services/nordpoolUtils.js
-src/services/oauthStorage.js
-src/services/persistentNotifications.js
-src/services/profileApi.js
-src/services/settingsApi.js
-src/services/snapshot.js
 src/types/dashboard.js

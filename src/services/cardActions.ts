@@ -1,10 +1,54 @@
+import type { CardSettingsMap, PagesConfig } from '../types/dashboard';
+
+type IdSetter = (value: string | null) => void;
+
+export type AddSelectedContext = {
+  pagesConfig: PagesConfig;
+  persistConfig: (newConfig: PagesConfig) => void;
+  addCardTargetPage: string;
+  addCardType: string;
+  selectedEntities: string[];
+  selectedWeatherId: string | null;
+  selectedTempId: string | null;
+  selectedAndroidTVMediaId: string | null;
+  selectedAndroidTVRemoteId: string | null;
+  selectedAppleTVMediaId?: string | null;
+  selectedAppleTVRemoteId?: string | null;
+  selectedCostTodayId: string | null;
+  selectedCostMonthId: string | null;
+  selectedNordpoolId: string | null;
+  nordpoolDecimals: number;
+  selectedSpacerVariant: string | null;
+  cardSettings: CardSettingsMap;
+  persistCardSettings: (newSettings: CardSettingsMap) => void;
+  hiddenCards?: string[];
+  persistHiddenCards?: (newHidden: string[]) => void;
+  getCardSettingsKey: (cardId: string, pageId: string) => string;
+  saveCardSetting?: (id: string, setting: string, value: unknown) => void;
+  setSelectedEntities: (value: string[]) => void;
+  setShowAddCardModal: (show: boolean) => void;
+  setSelectedWeatherId: IdSetter;
+  setSelectedTempId: IdSetter;
+  setSelectedAndroidTVMediaId: IdSetter;
+  setSelectedAndroidTVRemoteId: IdSetter;
+  setSelectedAppleTVMediaId?: IdSetter;
+  setSelectedAppleTVRemoteId?: IdSetter;
+  setSelectedCostTodayId: IdSetter;
+  setSelectedCostMonthId: IdSetter;
+  setCostSelectionTarget: (value: string) => void;
+  setSelectedNordpoolId: IdSetter;
+  setNordpoolDecimals: (value: number) => void;
+  setShowEditCardModal: (cardId: string | null) => void;
+  setEditCardSettingsKey: (key: string | null) => void;
+};
+
 /**
  * Handles adding selected entities/cards to the dashboard configuration.
  * Extracted from App.jsx to keep the main component lean.
  *
- * @param {Object} ctx - Context object with all required state & setters
+ * @param ctx - Context object with all required state & setters
  */
-export const handleAddSelected = (ctx) => {
+export const handleAddSelected = (ctx: AddSelectedContext): void => {
   const {
     pagesConfig,
     persistConfig,
@@ -76,8 +120,12 @@ export const handleAddSelected = (ctx) => {
   // -- Helpers ---------------------------------------------------------------
 
   /** Append card(s) to page, persist config, and close the add-card modal. */
-  const commitCards = (cardIds) => {
-    newConfig[addCardTargetPage] = [...(newConfig[addCardTargetPage] || []), ...cardIds];
+  const commitCards = (cardIds: string[]) => {
+    // Page entries in pagesConfig are card-id arrays.
+    newConfig[addCardTargetPage] = [
+      ...((newConfig[addCardTargetPage] as string[] | undefined) || []),
+      ...cardIds,
+    ];
     persistConfig(newConfig);
     if (typeof persistHiddenCards === 'function' && Array.isArray(hiddenCards)) {
       const addedCardIds = new Set(cardIds);
@@ -90,7 +138,11 @@ export const handleAddSelected = (ctx) => {
   };
 
   /** Save card settings for a single card and commit it to the page. */
-  const commitSingleCard = (cardId, settingsPayload, { openEdit = false } = {}) => {
+  const commitSingleCard = (
+    cardId: string,
+    settingsPayload: Record<string, unknown>,
+    { openEdit = false }: { openEdit?: boolean } = {}
+  ) => {
     const settingsKey = getCardSettingsKey(cardId, addCardTargetPage);
     const newSettings = {
       ...cardSettings,

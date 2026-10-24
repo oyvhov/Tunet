@@ -325,7 +325,7 @@
  * @property {(cardId: string) => string} getCardSettingsKey
  * @property {(id: string, setting: string, value: unknown) => void} saveCardSetting
  * @property {(show: boolean) => void} setShowAddCardModal
- * @property {(show: boolean) => void} setShowEditCardModal
+ * @property {(value: string | null) => void} setShowEditCardModal
  * @property {(key: string | null) => void} setEditCardSettingsKey
  * @property {(key: string) => string} t
  */
