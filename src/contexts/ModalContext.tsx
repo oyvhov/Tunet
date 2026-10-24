@@ -1,15 +1,25 @@
 import { createContext, useContext, useSyncExternalStore } from 'react';
+import type { ReactNode } from 'react';
 import { useModals } from '../hooks/useModals';
+import type { ModalState, UseModalsResult } from '../types/dashboard';
 
-const ModalContext = createContext(null);
+type ModalActions = Omit<UseModalsResult, keyof ModalState>;
 
-/** @param {{ children: import('react').ReactNode }} props */
-export function ModalProvider({ children }) {
-  const modalStore = useModals();
+interface ModalStore {
+  getSnapshot: () => ModalState;
+  subscribe: (listener: () => void) => () => boolean;
+  actions: ModalActions;
+}
+
+const ModalContext = createContext<ModalStore | null>(null);
+
+export function ModalProvider({ children }: { children: ReactNode }) {
+  // useModals.js builds its setters dynamically, so JS inference can't see them.
+  const modalStore = useModals() as ModalStore;
   return <ModalContext.Provider value={modalStore}>{children}</ModalContext.Provider>;
 }
 
-function useModalStore() {
+function useModalStore(): ModalStore {
   const context = useContext(ModalContext);
   if (!context) {
     throw new Error('useModalState must be used within a ModalProvider');
@@ -17,7 +27,7 @@ function useModalStore() {
   return context;
 }
 
-export function useModalSelector(selector) {
+export function useModalSelector<T>(selector: (state: ModalState) => T): T {
   const modalStore = useModalStore();
   return useSyncExternalStore(
     modalStore.subscribe,
@@ -26,11 +36,11 @@ export function useModalSelector(selector) {
   );
 }
 
-export function useModalActions() {
+export function useModalActions(): ModalActions {
   return useModalStore().actions;
 }
 
-export function useModalState() {
+export function useModalState(): UseModalsResult {
   const modalStore = useModalStore();
   const state = useSyncExternalStore(
     modalStore.subscribe,
