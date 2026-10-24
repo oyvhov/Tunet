@@ -5,21 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.24.0] — 2026-10-24
 
 ### Added
 
+- Sensor card graphs can show bars instead of a line, over 1 hour to 30 days, with average, min, max or change per bar; change on an energy meter gives consumption per bar (#241).
+- Page tabs have five styles (pill, segmented, underline, minimal, expand), three sizes, an accent colour for the active page and icon and uppercase options under Layout → Page tabs (#241).
+- The large Android TV card has an off state with a power button (#241).
+- The energy cost card shows the month total on the small card and a month forecast on the large card (#241).
 - Duplicate dashboard cards with independent settings (#239).
-- Show Home Assistant persistent notifications in the dashboard (#239).
 
 ### Changed
 
+- Sensor card graphs reach the card edges, like the weather card (#241).
+- Dialogs open faster, and dashboard, editing and weather animations are calmer (#241).
 - Improved theme-aware backgrounds, keyboard navigation, focus visibility, and Chinese translations; load person maps on demand (#239).
 - Updated production and development dependencies, including Vite 8.3.5 and ip-address 10.7.4 (#236, #237, #238, #240).
 
 ### Fixed
 
+- Logging out now signs out every open dashboard tab instead of being undone by another tab (#241).
+- An expired Home Assistant login shows the log-in prompt instead of the setup wizard, also when it is rejected at startup (#241).
+- Settings sync remembers the last synced revision, so a reload applies newer server settings or reports a real conflict (#241).
+- The connection to Home Assistant retries with increasing delays after it is lost (#241).
+- Home Assistant persistent notifications no longer pop up on the dashboard (#241).
 - Require an explicit choice for settings sync conflicts and preserve newer settings on publish targets (#239).
+
+### Security
+
+- The server only validates logins against configured Home Assistant addresses. Docker installs must set `TUNET_INTERNAL_HA_URL` (and optionally `TUNET_INTERNAL_HA_FALLBACK_URL`); without it, profiles and settings sync return 503. The add-on has matching `internal_ha_url` options for direct-port access; sidebar access needs no change (#241).
+- Encrypted profiles and settings are never overwritten or silently dropped: the server checks the encryption key at startup and returns 503 for rows it cannot decrypt (#241).
 
 ## [1.23.0] — 2026-10-11
 
