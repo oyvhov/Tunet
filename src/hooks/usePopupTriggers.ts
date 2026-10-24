@@ -4,13 +4,74 @@ import {
   isConditionConfigured,
   resolveConditionEntityId,
 } from '../utils';
+import type { CardSettingsEntry, GetCardSettingsKey } from '../utils/cardSettingsKey';
+import type { VisibilityConditionInput } from '../utils/conditionUtils';
+import type {
+  EntityMap,
+  EntityModalActions,
+  MediaModalActions,
+  PagesConfig,
+} from '../types/dashboard';
+import type { HassEntities, HassEntity } from '../types/ha';
+
+export interface PopupTriggerConfig {
+  enabled?: boolean;
+  condition?: VisibilityConditionInput | null;
+  cooldownSeconds?: unknown;
+  autoCloseSeconds?: unknown;
+}
+
+export interface PopupCardSettings extends CardSettingsEntry {
+  popupTrigger?: PopupTriggerConfig | null;
+}
+
+export type PopupCardSettingsMap = Record<string, PopupCardSettings | undefined>;
+
+export type PopupModalActions = Pick<
+  EntityModalActions,
+  | 'setShowLightModal'
+  | 'setShowSensorInfoModal'
+  | 'setActiveClimateEntityModal'
+  | 'setShowCostModal'
+  | 'setShowVacuumModal'
+  | 'setShowMowerModal'
+  | 'setShowFanModal'
+  | 'setShowAndroidTVModal'
+  | 'setShowAppleTVModal'
+  | 'setActiveCarModal'
+  | 'setShowWeatherModal'
+  | 'setShowNordpoolModal'
+  | 'setShowCalendarModal'
+  | 'setShowTodoModal'
+  | 'setShowRoomModal'
+  | 'setShowCoverModal'
+  | 'setShowAlarmModal'
+  | 'setShowCameraModal'
+> &
+  MediaModalActions & {
+    closeAllModals: () => void;
+    setActiveVacuumId: (id: string | null) => void;
+    setActiveMowerId?: (id: string | null) => void;
+  };
+
+export interface UsePopupTriggersOptions {
+  entities: EntityMap;
+  entitiesLoaded: boolean;
+  pagesConfig: PagesConfig;
+  activePage: string;
+  cardSettings: PopupCardSettingsMap;
+  getCardSettingsKey: GetCardSettingsKey;
+  editMode: boolean;
+  modalActions: PopupModalActions;
+  enabled?: boolean;
+}
 
 const STARTUP_SUPPRESSION_MS = 15000;
 const MIN_REOPEN_SUPPRESSION_MS = 10000;
 const MAX_REOPEN_SUPPRESSION_MS = 3600000;
 const MAX_AUTO_CLOSE_MS = 3600000;
 
-function normalizeCooldownMs(value) {
+function normalizeCooldownMs(value: unknown) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return MIN_REOPEN_SUPPRESSION_MS;
   const clampedSeconds = Math.min(3600, Math.max(10, Math.floor(parsed)));
@@ -20,18 +81,28 @@ function normalizeCooldownMs(value) {
   );
 }
 
-function normalizeAutoCloseMs(value) {
+function normalizeAutoCloseMs(value: unknown) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return 0;
   return Math.min(MAX_AUTO_CLOSE_MS, Math.floor(parsed) * 1000);
 }
 
-function getCardSettingsForPage(cardId, pageId, cardSettings, getCardSettingsKey) {
+function getCardSettingsForPage(
+  cardId: string,
+  pageId: string,
+  cardSettings: PopupCardSettingsMap,
+  getCardSettingsKey: GetCardSettingsKey
+) {
   const scopedKey = getCardSettingsKey(cardId, pageId);
   return cardSettings?.[scopedKey] || cardSettings?.[cardId] || null;
 }
 
-function openPopupForCard(cardId, settings, modalActions, entities) {
+function openPopupForCard(
+  cardId: string,
+  settings: PopupCardSettings | null,
+  modalActions: PopupModalActions,
+  entities: EntityMap
+) {
   const {
     closeAllModals,
     setShowLightModal,
@@ -64,7 +135,7 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
   if (typeof cardId !== 'string' || !cardId.trim()) return false;
 
   const safeClose = typeof closeAllModals === 'function' ? closeAllModals : null;
-  const closeAndOpen = (openFn) => {
+  const closeAndOpen = (openFn: () => void) => {
     safeClose?.();
     openFn();
   };
@@ -77,7 +148,12 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
   }
 
   if (cardId.startsWith('light_') || cardId.startsWith('light.')) {
-    const resolvedLightId = resolveConditionEntityId(cardId, settings || {}, entities || {});
+    // EntityMap holds HA state objects; the condition utils take the full HassEntity shape.
+    const resolvedLightId = resolveConditionEntityId(
+      cardId,
+      settings || {},
+      (entities || {}) as HassEntities
+    );
     const lightId =
       typeof resolvedLightId === 'string' && resolvedLightId.startsWith('light.')
         ? resolvedLightId
@@ -197,7 +273,7 @@ function openPopupForCard(cardId, settings, modalActions, entities) {
 
   if (cardId.startsWith('media_group_') || cardId.startsWith('sonos_group_')) {
     const entityIds = Array.isArray(settings?.mediaIds)
-      ? settings.mediaIds.filter((id) => typeof id === 'string')
+      ? settings.mediaIds.filter((id: unknown): id is string => typeof id === 'string')
       : [];
     const firstEntityId = entityIds[0] || null;
     closeAndOpen(() => {
@@ -229,11 +305,11 @@ export function usePopupTriggers({
   editMode,
   modalActions,
   enabled = true,
-}) {
-  const previousMatchRef = useRef(/** @type {Record<string, boolean>} */ ({}));
-  const seenTriggerRef = useRef(/** @type {Record<string, boolean>} */ ({}));
-  const lastOpenedAtRef = useRef(/** @type {Record<string, number>} */ ({}));
-  const autoCloseTimerRef = useRef(null);
+}: UsePopupTriggersOptions) {
+  const previousMatchRef = useRef<Record<string, boolean>>({});
+  const seenTriggerRef = useRef<Record<string, boolean>>({});
+  const lastOpenedAtRef = useRef<Record<string, number>>({});
+  const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitializedRef = useRef(false);
   const hasLoadedEntitiesRef = useRef(false);
   const suppressUntilRef = useRef(0);
@@ -270,14 +346,14 @@ export function usePopupTriggers({
 
     if (editMode) return;
 
-    const cardIds = Array.isArray(pagesConfig?.[activePage]) ? pagesConfig[activePage] : [];
+    const cardIds: string[] = Array.isArray(pagesConfig?.[activePage])
+      ? pagesConfig[activePage]
+      : [];
     const nextMatchState = { ...previousMatchRef.current };
-    /** @type {string | null} */
-    let cardToOpen = null;
-    /** @type {any} */
-    let cardSettingsToOpen = null;
-    /** @type {string | null} */
-    let triggerIdToOpen = null;
+    // These are assigned inside forEach; the casts stop TS from narrowing them to null.
+    let cardToOpen = null as string | null;
+    let cardSettingsToOpen = null as PopupCardSettings | null;
+    let triggerIdToOpen = null as string | null;
     const startupSuppressed = now < suppressUntilRef.current;
 
     cardIds.forEach((cardId) => {
@@ -293,12 +369,17 @@ export function usePopupTriggers({
         return;
       }
 
-      const fallbackEntityId = resolveConditionEntityId(cardId, settings || {}, entities || {});
+      // EntityMap holds HA state objects; the condition utils take the full HassEntity shape.
+      const fallbackEntityId = resolveConditionEntityId(
+        cardId,
+        settings || {},
+        (entities || {}) as HassEntities
+      );
       const fallbackEntity = fallbackEntityId ? entities?.[fallbackEntityId] : null;
       const matchesNow = evaluateVisibilityConditionConfig({
         condition,
-        entity: fallbackEntity,
-        entities,
+        entity: fallbackEntity as HassEntity | null | undefined,
+        entities: entities as HassEntities,
         getAttribute: undefined,
         fallbackEntityId,
       });

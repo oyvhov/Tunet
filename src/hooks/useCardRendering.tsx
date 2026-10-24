@@ -1,4 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  Dispatch,
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+  SetStateAction,
+} from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
 import {
   getCardGridSpan as _getCardGridSpan,
   getCardColSpan as _getCardColSpan,
@@ -7,8 +15,103 @@ import {
 import { createDragAndDropHandlers } from '../utils/dragAndDrop';
 import { dispatchCardRender } from '../rendering/registry';
 import EditOverlay from '../components/ui/EditOverlay';
+import type { CardSettingsMap, GetCardSettingsKey } from '../utils/cardSettingsKey';
+import type {
+  DragSource,
+  PagesConfig as DragPagesConfig,
+  TouchPath,
+  TouchTarget,
+} from '../utils/dragAndDrop';
+import type {
+  EntityMap,
+  EntityModalActions,
+  MediaModalActions,
+  PageContextValue,
+  PagesConfig,
+  UseDashboardEffectsResult,
+} from '../types/dashboard';
+import type { Translate } from '../types/ha';
+import type { useEntityHelpers } from './useEntityHelpers';
+import type useTempHistory from './useTempHistory';
+import type useWeatherForecast from './useWeatherForecast';
 
-/** @param {any} params */
+type EntityHelpers = ReturnType<typeof useEntityHelpers>;
+
+type CardEntityActions = Pick<
+  EntityModalActions,
+  | 'setShowLightModal'
+  | 'setShowSensorInfoModal'
+  | 'setActiveClimateEntityModal'
+  | 'setShowCostModal'
+  | 'setShowVacuumModal'
+  | 'setShowMowerModal'
+  | 'setShowFanModal'
+  | 'setShowAndroidTVModal'
+  | 'setShowAppleTVModal'
+  | 'setActiveCarModal'
+  | 'setShowWeatherModal'
+  | 'setShowNordpoolModal'
+  | 'setShowCalendarModal'
+  | 'setShowTodoModal'
+  | 'setShowRoomModal'
+  | 'setShowCoverModal'
+  | 'setShowAlarmModal'
+  | 'setShowCameraModal'
+>;
+
+type CardMediaActions = Pick<
+  MediaModalActions,
+  'setActiveMediaId' | 'setActiveMediaGroupKey' | 'setActiveMediaGroupIds' | 'setActiveMediaModal'
+>;
+
+// Grouped action objects are preferred; legacy callers pass the setters individually.
+export interface UseCardRenderingParams
+  extends Partial<CardEntityActions>, Partial<CardMediaActions> {
+  editMode: boolean;
+  pagesConfig: PagesConfig;
+  setPagesConfig: Dispatch<SetStateAction<PagesConfig>>;
+  persistConfig: (newConfig: PagesConfig) => void;
+  activePage: string;
+  setActivePage: (pageId: string) => void;
+  hiddenCards: string[];
+  isCardHiddenByLogic: (cardId: string) => boolean;
+  gridColCount: number;
+  viewportWidth: number;
+  gridGapH: number;
+  gridGapV: number;
+  cardSettings: CardSettingsMap;
+  getCardSettingsKey: GetCardSettingsKey;
+  entities: EntityMap;
+  entitiesLoaded: boolean;
+  conn: Connection | null;
+  customNames: Record<string, string>;
+  customIcons: Record<string, string>;
+  getA: EntityHelpers['getA'];
+  getS: EntityHelpers['getS'];
+  getEntityImageUrl: EntityHelpers['getEntityImageUrl'];
+  callService: EntityHelpers['callService'];
+  isMediaActive: EntityHelpers['isMediaActive'];
+  saveCardSetting: (id: string, setting: string, value: unknown) => void;
+  language: string;
+  isMobile: boolean;
+  t: Translate;
+  optimisticLightBrightness: UseDashboardEffectsResult['optimisticLightBrightness'];
+  setOptimisticLightBrightness: UseDashboardEffectsResult['setOptimisticLightBrightness'];
+  tempHistoryById: ReturnType<typeof useTempHistory>[0];
+  forecastsById: ReturnType<typeof useWeatherForecast>[0];
+  entityModalActions?: CardEntityActions | null;
+  mediaModalActions?: CardMediaActions | null;
+  setActiveVacuumId: (id: string | null) => void;
+  setActiveMowerId?: (id: string | null) => void;
+  setShowAlarmActionModal: EntityModalActions['setShowAlarmActionModal'];
+  setShowEditCardModal: (value: string | null) => void;
+  setEditCardSettingsKey: (key: string | null) => void;
+  toggleCardVisibility: (cardId: string) => void;
+  removeCard: (cardId: string) => void;
+  duplicateCard?: PageContextValue['duplicateCard'] | null;
+  isCardRemovable: (cardId: string) => boolean;
+}
+
 export function useCardRendering({
   editMode,
   pagesConfig,
@@ -75,33 +178,38 @@ export function useCardRendering({
   removeCard,
   duplicateCard,
   isCardRemovable,
-}) {
-  const resolvedEntityModalActions = entityModalActions || {
-    setShowLightModal: legacySetShowLightModal,
-    setShowSensorInfoModal: legacySetShowSensorInfoModal,
-    setActiveClimateEntityModal: legacySetActiveClimateEntityModal,
-    setShowCostModal: legacySetShowCostModal,
-    setShowVacuumModal: legacySetShowVacuumModal,
-    setShowMowerModal: legacySetShowMowerModal,
-    setShowFanModal: legacySetShowFanModal,
-    setShowAndroidTVModal: legacySetShowAndroidTVModal,
-    setShowAppleTVModal: legacySetShowAppleTVModal,
-    setActiveCarModal: legacySetActiveCarModal,
-    setShowWeatherModal: legacySetShowWeatherModal,
-    setShowNordpoolModal: legacySetShowNordpoolModal,
-    setShowCalendarModal: legacySetShowCalendarModal,
-    setShowTodoModal: legacySetShowTodoModal,
-    setShowRoomModal: legacySetShowRoomModal,
-    setShowCoverModal: legacySetShowCoverModal,
-    setShowAlarmModal: legacySetShowAlarmModal,
-    setShowCameraModal: legacySetShowCameraModal,
-  };
-  const resolvedMediaModalActions = mediaModalActions || {
-    setActiveMediaId: legacySetActiveMediaId,
-    setActiveMediaGroupKey: legacySetActiveMediaGroupKey,
-    setActiveMediaGroupIds: legacySetActiveMediaGroupIds,
-    setActiveMediaModal: legacySetActiveMediaModal,
-  };
+}: UseCardRenderingParams) {
+  // Without the grouped objects, legacy callers must supply every setter listed here.
+  const resolvedEntityModalActions =
+    entityModalActions ||
+    ({
+      setShowLightModal: legacySetShowLightModal,
+      setShowSensorInfoModal: legacySetShowSensorInfoModal,
+      setActiveClimateEntityModal: legacySetActiveClimateEntityModal,
+      setShowCostModal: legacySetShowCostModal,
+      setShowVacuumModal: legacySetShowVacuumModal,
+      setShowMowerModal: legacySetShowMowerModal,
+      setShowFanModal: legacySetShowFanModal,
+      setShowAndroidTVModal: legacySetShowAndroidTVModal,
+      setShowAppleTVModal: legacySetShowAppleTVModal,
+      setActiveCarModal: legacySetActiveCarModal,
+      setShowWeatherModal: legacySetShowWeatherModal,
+      setShowNordpoolModal: legacySetShowNordpoolModal,
+      setShowCalendarModal: legacySetShowCalendarModal,
+      setShowTodoModal: legacySetShowTodoModal,
+      setShowRoomModal: legacySetShowRoomModal,
+      setShowCoverModal: legacySetShowCoverModal,
+      setShowAlarmModal: legacySetShowAlarmModal,
+      setShowCameraModal: legacySetShowCameraModal,
+    } as CardEntityActions);
+  const resolvedMediaModalActions =
+    mediaModalActions ||
+    ({
+      setActiveMediaId: legacySetActiveMediaId,
+      setActiveMediaGroupKey: legacySetActiveMediaGroupKey,
+      setActiveMediaGroupIds: legacySetActiveMediaGroupIds,
+      setActiveMediaModal: legacySetActiveMediaModal,
+    } as CardMediaActions);
   const {
     setShowLightModal,
     setShowSensorInfoModal,
@@ -124,14 +232,14 @@ export function useCardRendering({
   } = resolvedEntityModalActions;
   const { setActiveMediaId, setActiveMediaGroupKey, setActiveMediaGroupIds, setActiveMediaModal } =
     resolvedMediaModalActions;
-  const dragSourceRef = useRef(null);
-  const touchTargetRef = useRef(null);
-  const [touchTargetId, setTouchTargetId] = useState(null);
-  const [touchPath, setTouchPath] = useState(null);
+  const dragSourceRef = useRef<DragSource | null>(null);
+  const touchTargetRef = useRef<TouchTarget | null>(null);
+  const [touchTargetId, setTouchTargetId] = useState<string | null>(null);
+  const [touchPath, setTouchPath] = useState<TouchPath | null>(null);
   const touchSwapCooldownRef = useRef(0);
   const pointerDragRef = useRef(false);
   const ignoreTouchRef = useRef(false);
-  const [draggingId, setDraggingId] = useState(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [entitiesMissingReady, setEntitiesMissingReady] = useState(false);
 
   useEffect(() => {
@@ -148,7 +256,7 @@ export function useCardRendering({
   }, [entitiesLoaded]);
 
   const getCardGridSpan = useCallback(
-    (cardId) => {
+    (cardId: string) => {
       const rowPx = isMobile ? 82 : 100;
       const gapPx = gridGapV;
       return _getCardGridSpan(cardId, getCardSettingsKey, cardSettings, activePage, {
@@ -160,7 +268,7 @@ export function useCardRendering({
   );
 
   const getCardColSpan = useCallback(
-    (cardId) => {
+    (cardId: string) => {
       return _getCardColSpan(cardId, getCardSettingsKey, cardSettings, {
         isMobile,
         gridColumns: gridColCount,
@@ -172,9 +280,10 @@ export function useCardRendering({
   );
 
   const moveCardInArray = useCallback(
-    (cardId, direction) => {
+    (cardId: string, direction: 'left' | 'right') => {
       const newConfig = { ...pagesConfig };
-      const pageCards = [...(newConfig[activePage] || [])];
+      // Page entries in PagesConfig are card-id arrays; its index signature is untyped.
+      const pageCards = [...((newConfig[activePage] as string[] | undefined) || [])];
       const currentIndex = pageCards.indexOf(cardId);
       if (currentIndex === -1) return;
 
@@ -192,7 +301,8 @@ export function useCardRendering({
   );
 
   const gridLayout = useMemo(() => {
-    const ids = pagesConfig[activePage] || [];
+    // Page entries in PagesConfig are card-id arrays; its index signature is untyped.
+    const ids = (pagesConfig[activePage] as string[] | undefined) || [];
     const visibleIds = editMode
       ? ids
       : ids.filter((id) => !(hiddenCards.includes(id) || isCardHiddenByLogic(id)));
@@ -212,9 +322,10 @@ export function useCardRendering({
     () =>
       createDragAndDropHandlers({
         editMode,
-        pagesConfig,
-        setPagesConfig,
-        persistConfig,
+        // Same objects, viewed as the card-id-array map the drag helpers work on.
+        pagesConfig: pagesConfig as DragPagesConfig,
+        setPagesConfig: setPagesConfig as (config: DragPagesConfig) => void,
+        persistConfig: persistConfig as (config: DragPagesConfig) => void,
         activePage,
         dragSourceRef,
         touchTargetRef,
@@ -230,7 +341,7 @@ export function useCardRendering({
   );
 
   const renderCard = useCallback(
-    (cardId, index, colIndex) => {
+    (cardId: string, index: number, colIndex?: number) => {
       const isHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
       if (isHidden && !editMode) return null;
       const isDragging = draggingId === cardId;
@@ -248,7 +359,7 @@ export function useCardRendering({
       const cardStyle = getCardStyle({ cardId, isHidden, isDragging });
       const settingsKey = getCardSettingsKey(cardId);
 
-      const getControls = (targetId) => {
+      const getControls = (targetId?: string) => {
         if (!editMode) return null;
         const editId = targetId || cardId;
         const controlsHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
@@ -270,7 +381,7 @@ export function useCardRendering({
               setEditCardSettingsKey(settingsKey);
             }}
             onToggleVisibility={() => toggleCardVisibility(cardId)}
-            onSaveSize={(size) => saveCardSetting(settingsKey, 'size', size)}
+            onSaveSize={(size: string) => saveCardSetting(settingsKey, 'size', size)}
             onRemove={() => removeCard(cardId)}
             onDuplicate={
               duplicateCard && editId !== 'media_player' && !editId.startsWith('spacer_card_')
@@ -278,8 +389,8 @@ export function useCardRendering({
                 : undefined
             }
             dragHandleProps={{
-              onContextMenu: (e) => e.preventDefault(),
-              onKeyDown: (e) => {
+              onContextMenu: (e: ReactMouseEvent) => e.preventDefault(),
+              onKeyDown: (e: ReactKeyboardEvent) => {
                 if (!editMode) return;
                 if (e.key === 'ArrowLeft') {
                   e.preventDefault();
@@ -292,7 +403,7 @@ export function useCardRendering({
                   moveCardInArray(cardId, 'right');
                 }
               },
-              onPointerDown: (e) => {
+              onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
                 if (!editMode || e.pointerType !== 'touch') return;
                 e.preventDefault();
                 e.currentTarget.setPointerCapture(e.pointerId);
@@ -300,13 +411,13 @@ export function useCardRendering({
                 ignoreTouchRef.current = true;
                 startTouchDrag(cardId, index, colIndex, e.clientX, e.clientY);
               },
-              onPointerMove: (e) => {
+              onPointerMove: (e: ReactPointerEvent) => {
                 if (!editMode || e.pointerType !== 'touch') return;
                 if (!pointerDragRef.current) return;
                 e.preventDefault();
                 updateTouchDrag(e.clientX, e.clientY);
               },
-              onPointerUp: (e) => {
+              onPointerUp: (e: ReactPointerEvent) => {
                 if (!editMode || e.pointerType !== 'touch') return;
                 if (!pointerDragRef.current) return;
                 e.preventDefault();
@@ -315,7 +426,7 @@ export function useCardRendering({
                 performTouchDrop(e.clientX, e.clientY);
                 resetDragState();
               },
-              onPointerCancel: (e) => {
+              onPointerCancel: (e: ReactPointerEvent) => {
                 if (!editMode || e.pointerType !== 'touch') return;
                 if (!pointerDragRef.current) return;
                 e.preventDefault();
@@ -381,7 +492,7 @@ export function useCardRendering({
         setEditCardSettingsKey,
         setShowCameraModal,
         setActivePage,
-        openMediaModal: (mpId, groupKey, groupIds) => {
+        openMediaModal: (mpId: string | null, groupKey?: string | null, groupIds?: unknown) => {
           setActiveMediaId(mpId);
           setActiveMediaGroupKey(groupKey || null);
           setActiveMediaGroupIds(Array.isArray(groupIds) ? groupIds : null);
@@ -398,14 +509,12 @@ export function useCardRendering({
             key={`${cardId}-render-error`}
             {...dragProps}
             className="flex h-full w-full items-center justify-center rounded-2xl border p-3 text-center text-xs"
-            style={
-              /** @type {any} */ ({
-                ...cardStyle,
-                backgroundColor: 'var(--glass-bg)',
-                borderColor: 'var(--glass-border)',
-                color: 'var(--text-secondary)',
-              })
-            }
+            style={{
+              ...cardStyle,
+              backgroundColor: 'var(--glass-bg)',
+              borderColor: 'var(--glass-border)',
+              color: 'var(--text-secondary)',
+            }}
           >
             {t('card.error.render')}
           </div>

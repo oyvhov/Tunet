@@ -1,17 +1,27 @@
 import { useCallback, useRef, useState } from 'react';
+import type { Translate } from '../types/ha';
+
+export interface UseSettingsAccessControlDeps {
+  settingsLockEnabled: boolean;
+  settingsLockSessionUnlocked: boolean;
+  unlockSettingsLock: (pin: string) => boolean;
+  t: Translate;
+}
+
+type SettingsAction = () => void;
 
 export function useSettingsAccessControl({
   settingsLockEnabled,
   settingsLockSessionUnlocked,
   unlockSettingsLock,
   t,
-}) {
+}: UseSettingsAccessControlDeps) {
   const [showPinLockModal, setShowPinLockModal] = useState(false);
   const [pinLockError, setPinLockError] = useState('');
-  const pendingSettingsActionRef = useRef(null);
+  const pendingSettingsActionRef = useRef<SettingsAction | null>(null);
 
   const requestSettingsAccess = useCallback(
-    (onSuccess) => {
+    (onSuccess?: SettingsAction | null) => {
       if (!settingsLockEnabled || settingsLockSessionUnlocked) {
         if (typeof onSuccess === 'function') onSuccess();
         return true;
@@ -26,7 +36,7 @@ export function useSettingsAccessControl({
   );
 
   const handlePinSubmit = useCallback(
-    (pin) => {
+    (pin: string) => {
       const unlocked = unlockSettingsLock(pin);
       if (!unlocked) {
         setPinLockError(t('settings.lock.pinIncorrect'));

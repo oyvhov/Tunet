@@ -1,11 +1,18 @@
 import { useMemo } from 'react';
+import type { ModalSetters, ModalState, UseModalsResult } from '../types/dashboard';
 
-/** @typedef {import('../types/dashboard').ModalState} ModalState */
-/** @typedef {import('../types/dashboard').UseModalsResult} UseModalsResult */
+type ModalKey = keyof ModalState;
+type ModalActions = Omit<UseModalsResult, ModalKey>;
+type SetModalValue = <K extends ModalKey>(key: K, value: ModalState[K]) => void;
+
+interface ModalStore {
+  getSnapshot: () => ModalState;
+  subscribe: (listener: () => void) => () => boolean;
+  actions: ModalActions;
+}
 
 // All modal keys with their "closed" value (null = entity-id modals, false = boolean modals)
-/** @type {ModalState} */
-const MODAL_DEFAULTS = {
+const MODAL_DEFAULTS: ModalState = {
   showNordpoolModal: null,
   showCostModal: null,
   activeClimateEntityModal: null,
@@ -41,7 +48,7 @@ const MODAL_DEFAULTS = {
 };
 
 // Keys checked by hasOpenModal
-const OPEN_CHECK_KEYS = [
+const OPEN_CHECK_KEYS: ModalKey[] = [
   'showNordpoolModal',
   'showCostModal',
   'activeClimateEntityModal',
@@ -70,12 +77,19 @@ const OPEN_CHECK_KEYS = [
   'showStatusGroupModal',
 ];
 
-function buildModalActions(setModalValue, closeAllModals, hasOpenModal) {
-  const setters = {};
+function buildModalActions(
+  setModalValue: SetModalValue,
+  closeAllModals: () => void,
+  hasOpenModal: () => boolean
+): ModalActions {
+  // Filled by the loop below with one setter per MODAL_DEFAULTS key.
+  const setters = {} as ModalSetters;
   for (const key of Object.keys(MODAL_DEFAULTS)) {
-    const modalKey = /** @type {keyof ModalState} */ (key);
-    const setterName = 'set' + key[0].toUpperCase() + key.slice(1);
-    setters[setterName] = (value) => setModalValue(modalKey, value);
+    // Object.keys() is typed string[]; the keys come from MODAL_DEFAULTS.
+    const modalKey = key as ModalKey;
+    // Every ModalState key has a matching set<Key> entry in ModalSetters.
+    const setterName = ('set' + key[0].toUpperCase() + key.slice(1)) as keyof ModalSetters;
+    setters[setterName] = (value: ModalState[ModalKey]) => setModalValue(modalKey, value);
   }
 
   const entityModalActions = {
@@ -128,21 +142,21 @@ function buildModalActions(setModalValue, closeAllModals, hasOpenModal) {
   };
 }
 
-function createModalStore() {
-  let state = /** @type {ModalState} */ ({ ...MODAL_DEFAULTS });
-  const listeners = new Set();
+function createModalStore(): ModalStore {
+  let state: ModalState = { ...MODAL_DEFAULTS };
+  const listeners = new Set<() => void>();
 
   const emit = () => {
     listeners.forEach((listener) => listener());
   };
 
   const getSnapshot = () => state;
-  const subscribe = (listener) => {
+  const subscribe = (listener: () => void) => {
     listeners.add(listener);
     return () => listeners.delete(listener);
   };
   const hasOpenModal = () => OPEN_CHECK_KEYS.some((key) => !!state[key]);
-  const setModalValue = (key, value) => {
+  const setModalValue: SetModalValue = (key, value) => {
     if (Object.is(state[key], value)) return;
     state = { ...state, [key]: value };
     emit();
@@ -164,6 +178,6 @@ function createModalStore() {
  * Centralised modal state via a stable external store.
  * Adding a new modal = one entry in MODAL_DEFAULTS (+ OPEN_CHECK_KEYS if needed).
  */
-export function useModals() {
+export function useModals(): ModalStore {
   return useMemo(() => createModalStore(), []);
 }

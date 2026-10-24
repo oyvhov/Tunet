@@ -3,25 +3,33 @@ import { ENTITY_UPDATE_THRESHOLD, MEDIA_TIMEOUT } from '../config/constants';
 import { callService as haCallService } from '../services';
 import { logger } from '../utils/logger';
 import { useToast } from '../contexts/ToastContext';
+import type { Connection } from 'home-assistant-js-websocket';
+import type { ServiceData } from '../services/haClient';
+import type { EntityMap } from '../types/dashboard';
+import type { Translate } from '../types/ha';
+
+export interface UseEntityHelpersDeps {
+  entities: EntityMap;
+  conn: Connection | null;
+  activeUrl: string;
+  now: Date;
+  t: Translate;
+  language?: string;
+}
+
+type ActivityEntity = { state?: string; last_updated?: string } | null | undefined;
 
 /**
  * Shared Home-Assistant entity accessor helpers:  getS, getA, getEntityImageUrl,
  * callService, isSonosActive, isMediaActive, hvacMap/fanMap/swingMap.
  *
  * Everything is stable-ref (useCallback / useMemo) so consumers don't re-render.
- * @param {Object} deps
- * @param {any} deps.entities
- * @param {any} deps.conn
- * @param {any} deps.activeUrl
- * @param {any} [deps.now]
- * @param {Function} deps.t
- * @param {string} [deps.language]
  */
-export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
+export function useEntityHelpers({ entities, conn, activeUrl, now, t }: UseEntityHelpersDeps) {
   const { addToast } = useToast();
   // ── Attribute / state accessors ────────────────────────────────────────
   const getS = useCallback(
-    (id, fallback = '--') => {
+    (id: string, fallback = '--') => {
       const state = entities[id]?.state;
       if (!state || state === 'unavailable' || state === 'unknown') return fallback;
       if (state === 'home') return t('status.home');
@@ -32,12 +40,13 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
   );
 
   const getA = useCallback(
-    (id, attr, fallback = null) => entities[id]?.attributes?.[attr] ?? fallback,
+    (id: string, attr: string, fallback: unknown = null) =>
+      entities[id]?.attributes?.[attr] ?? fallback,
     [entities]
   );
 
   const getEntityImageUrl = useCallback(
-    (rawUrl) => {
+    (rawUrl: string | null | undefined) => {
       if (!rawUrl) return null;
       if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) return rawUrl;
       return `${activeUrl.replace(/\/$/, '')}${rawUrl}`;
@@ -47,7 +56,7 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
 
   // ── Service calls ──────────────────────────────────────────────────────
   const callService = useCallback(
-    (domain, service, data) => {
+    (domain: string, service: string, data?: ServiceData | null) => {
       if (!conn) {
         logger.warn(`Service call attempted while disconnected: ${domain}.${service}`);
         return Promise.reject(new Error('No connection'));
@@ -62,19 +71,23 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }) {
   );
 
   // ── Activity helpers ───────────────────────────────────────────────────
-  const isSonosActive = (entity) => {
+  const isSonosActive = (entity: ActivityEntity) => {
     if (!entity?.state) return false;
     if (entity.state === 'playing') return true;
     if (entity.state === 'paused') {
-      return Date.now() - new Date(entity.last_updated).getTime() < MEDIA_TIMEOUT;
+      // Cast: a missing last_updated gives an Invalid Date, so the check is false.
+      return Date.now() - new Date(entity.last_updated as string).getTime() < MEDIA_TIMEOUT;
     }
     return false;
   };
 
-  const isMediaActive = (entity) => {
+  const isMediaActive = (entity: ActivityEntity) => {
     if (!entity?.state) return false;
     if (entity.state === 'playing') return true;
-    return now.getTime() - new Date(entity.last_updated).getTime() < ENTITY_UPDATE_THRESHOLD;
+    // Cast: a missing last_updated gives an Invalid Date, so the check is false.
+    return (
+      now.getTime() - new Date(entity.last_updated as string).getTime() < ENTITY_UPDATE_THRESHOLD
+    );
   };
 
   // ── i18n maps for climate modal ────────────────────────────────────────

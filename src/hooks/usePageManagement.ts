@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { UsePageManagementDeps, UsePageManagementResult } from '../types/dashboard';
 
-/** @typedef {import('../types/dashboard').UsePageManagementDeps} UsePageManagementDeps */
-/** @typedef {import('../types/dashboard').UsePageManagementResult} UsePageManagementResult */
+interface TypedPageOptions {
+  labelKey: string;
+  fallbackLabel: string;
+  defaultIcon: string;
+  defaultType: string;
+  defaultSlug: string;
+}
 
 /**
  * Encapsulates page CRUD (create / createMedia / delete) and the
  * "new-page" form state (label & icon).
- *
- * @param {UsePageManagementDeps} deps
- * @returns {UsePageManagementResult}
  */
 export function usePageManagement({
   pagesConfig,
@@ -22,10 +25,10 @@ export function usePageManagement({
   showAddPageModal,
   setShowAddPageModal,
   t,
-}) {
+}: UsePageManagementDeps): UsePageManagementResult {
   const [newPageLabel, setNewPageLabel] = useState('');
-  const [newPageIcon, setNewPageIcon] = useState(null);
-  const [editingPage, setEditingPage] = useState(null);
+  const [newPageIcon, setNewPageIcon] = useState<string | null>(null);
+  const [editingPage, setEditingPage] = useState<string | null>(null);
 
   // Reset form when the "add page" modal opens
   useEffect(() => {
@@ -69,7 +72,13 @@ export function usePageManagement({
   };
 
   // ── Create a media/Sonos page ──────────────────────────────────────────
-  const createTypedPage = ({ labelKey, fallbackLabel, defaultIcon, defaultType, defaultSlug }) => {
+  const createTypedPage = ({
+    labelKey,
+    fallbackLabel,
+    defaultIcon,
+    defaultType,
+    defaultSlug,
+  }: TypedPageOptions) => {
     const baseLabel = t(labelKey) || fallbackLabel;
     const existingLabels = (pagesConfig.pages || []).map(
       (id) => pageSettings[id]?.label || pageDefaults[id]?.label || id
@@ -158,7 +167,7 @@ export function usePageManagement({
     });
 
   // ── Delete a page ──────────────────────────────────────────────────────
-  const deletePage = (pageId) => {
+  const deletePage = (pageId: string) => {
     if (!pageId || pageId === 'home') return;
     if (!window.confirm(t('confirm.deletePage'))) return;
 
@@ -176,7 +185,7 @@ export function usePageManagement({
   };
 
   const removeCard = useCallback(
-    (cardId, listName = activePage) => {
+    (cardId: string, listName: string = activePage) => {
       const newConfig = { ...pagesConfig };
       if (listName === 'header') {
         newConfig.header = (newConfig.header || []).filter((id) => id !== cardId);

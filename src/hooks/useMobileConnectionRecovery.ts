@@ -1,7 +1,22 @@
 import { useEffect, useRef } from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
 import { MOBILE_BREAKPOINT } from '../config/constants';
 
 export const CONNECTION_PROBE_TIMEOUT_MS = 3000;
+
+export type ConnectionProbeResult = 'unavailable' | 'reconnecting' | 'healthy';
+
+export interface ConnectionProbeOptions {
+  timeoutMs?: number;
+  onHealthy?: () => void;
+  onRecovering?: () => void;
+}
+
+export interface UseMobileConnectionRecoveryDeps {
+  conn: Connection | null | undefined;
+  onHealthy?: () => void;
+  onRecovering?: () => void;
+}
 
 export function isMobileViewport() {
   return (
@@ -10,9 +25,13 @@ export function isMobileViewport() {
 }
 
 export async function probeAndRecoverConnection(
-  conn,
-  { timeoutMs = CONNECTION_PROBE_TIMEOUT_MS, onHealthy = () => {}, onRecovering = () => {} } = {}
-) {
+  conn: Connection | null | undefined,
+  {
+    timeoutMs = CONNECTION_PROBE_TIMEOUT_MS,
+    onHealthy = () => {},
+    onRecovering = () => {},
+  }: ConnectionProbeOptions = {}
+): Promise<ConnectionProbeResult> {
   if (!conn) return 'unavailable';
 
   if (conn.connected === false) {
@@ -21,7 +40,7 @@ export async function probeAndRecoverConnection(
     return 'reconnecting';
   }
 
-  let timeoutId;
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined;
   try {
     await Promise.race([
       Promise.resolve().then(() => conn.ping()),
@@ -43,8 +62,12 @@ export async function probeAndRecoverConnection(
   }
 }
 
-export function useMobileConnectionRecovery({ conn, onHealthy, onRecovering }) {
-  const recoveryPromiseRef = useRef(null);
+export function useMobileConnectionRecovery({
+  conn,
+  onHealthy,
+  onRecovering,
+}: UseMobileConnectionRecoveryDeps) {
+  const recoveryPromiseRef = useRef<Promise<ConnectionProbeResult> | null>(null);
 
   useEffect(() => {
     if (

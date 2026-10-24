@@ -6,18 +6,37 @@ import {
   deleteProfile as apiDeleteProfile,
 } from '../services/profileApi';
 import { useSettingsSync } from './useSettingsSync';
+import type { ProfileRow } from '../services/profileApi';
 import { collectSnapshot, applySnapshot, isValidSnapshot } from '../services/snapshot';
+import type { SnapshotContextSetters } from '../services/snapshot';
 
-function cloneJson(value, fallback = {}) {
+// Profile and import data is untrusted JSON; fields are re-checked at runtime.
+type JsonRecord = Record<string, unknown>;
+
+type PagesConfigDraft = { header?: string[]; pages?: string[] } & JsonRecord;
+
+type ImportCandidate = { data?: unknown } | null | undefined;
+
+export interface UseProfilesOptions {
+  /** HA user from HomeAssistantContext */
+  haUser: { id?: string } | null | undefined;
+  /** combined setters from PageContext + ConfigContext */
+  contextSetters: SnapshotContextSetters;
+  /** fetch profiles immediately */
+  prefetchProfiles?: boolean;
+}
+
+function cloneJson(value: unknown, fallback: object = {}): JsonRecord {
   try {
-    return globalThis.structuredClone(value ?? fallback);
+    // Cast: callers pass JSON objects; the clone keeps the source's shape.
+    return globalThis.structuredClone(value ?? fallback) as JsonRecord;
   } catch {
-    return globalThis.structuredClone(fallback);
+    return globalThis.structuredClone(fallback) as JsonRecord;
   }
 }
 
-function normalizePagesConfig(candidate, fallback) {
-  const notes = [];
+function normalizePagesConfig(candidate: unknown, fallback: unknown) {
+  const notes: string[] = [];
   const fallbackConfig = cloneJson(fallback, { header: [], pages: ['home'], home: [] });
 
   if (!candidate || typeof candidate !== 'object') {
@@ -25,7 +44,8 @@ function normalizePagesConfig(candidate, fallback) {
     return { pagesConfig: fallbackConfig, notes };
   }
 
-  const next = cloneJson(candidate, fallbackConfig);
+  // Cast: header/pages are only trusted after the Array.isArray checks below.
+  const next = cloneJson(candidate, fallbackConfig) as PagesConfigDraft;
   if (!Array.isArray(next.header)) {
     next.header = Array.isArray(fallbackConfig.header) ? [...fallbackConfig.header] : [];
   }
@@ -74,7 +94,7 @@ function normalizePagesConfig(candidate, fallback) {
   return { pagesConfig: next, notes };
 }
 
-function normalizeImportedSnapshot(snapshotCandidate) {
+function normalizeImportedSnapshot(snapshotCandidate: ImportCandidate) {
   if (!snapshotCandidate || typeof snapshotCandidate !== 'object') {
     return null;
   }
@@ -93,17 +113,16 @@ function normalizeImportedSnapshot(snapshotCandidate) {
 
 /**
  * Hook for managing server-side profiles and templates.
- *
- * @param {object} options
- * @param {{ id?: string }|null} options.haUser - HA user from HomeAssistantContext
- * @param {Record<string, (...args: any[]) => any>} options.contextSetters - combined setters from PageContext + ConfigContext
- * @param {boolean} [options.prefetchProfiles] - fetch profiles immediately
  */
-export function useProfiles({ haUser, contextSetters, prefetchProfiles = true }) {
-  const [profiles, setProfiles] = useState([]);
+export function useProfiles({
+  haUser,
+  contextSetters,
+  prefetchProfiles = true,
+}: UseProfilesOptions) {
+  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [loadSummary, setLoadSummary] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loadSummary, setLoadSummary] = useState<string | null>(null);
   const [backendAvailable, setBackendAvailable] = useState(true);
   const contextSettersRef = useRef(contextSetters);
   contextSettersRef.current = contextSetters;
@@ -132,7 +151,7 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
 
   // ── Save current dashboard as a new profile ──
   const saveProfile = useCallback(
-    async (name, deviceLabel = '') => {
+    async (name: string, deviceLabel = '') => {
       if (!haUser?.id) throw new Error('No HA user');
       setLoading(true);
       setError(null);
@@ -150,7 +169,8 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
         setProfiles((prev) => [profile, ...prev]);
         return profile;
       } catch (err) {
-        setError(err.message);
+        // Cast: the profile API rejects with Error instances.
+        setError((err as Error).message);
         throw err;
       } finally {
         setLoading(false);
@@ -161,7 +181,7 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
 
   // ── Overwrite an existing profile with current dashboard ──
   const overwriteProfile = useCallback(
-    async (profileId, name) => {
+    async (profileId: string, name: string) => {
       if (!haUser?.id) throw new Error('No HA user');
       setLoading(true);
       setError(null);
@@ -178,7 +198,8 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
         setProfiles((prev) => prev.map((p) => (p.id === profileId ? updated : p)));
         return updated;
       } catch (err) {
-        setError(err.message);
+        // Cast: the profile API rejects with Error instances.
+        setError((err as Error).message);
         throw err;
       } finally {
         setLoading(false);
@@ -188,7 +209,7 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
   );
 
   // ── Load a profile onto this device ──
-  const loadProfile = useCallback((profile) => {
+  const loadProfile = useCallback((profile: ProfileRow | null | undefined) => {
     setError(null);
     setLoadSummary(null);
 
@@ -203,7 +224,8 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
     const normalizedSnapshot = {
       ...cloneJson(profile.data, {}),
       layout: {
-        ...cloneJson(profile.data.layout, {}),
+        // Cast: the typeof check above confirmed data is an object.
+        ...cloneJson((profile.data as JsonRecord).layout, {}),
       },
     };
 
@@ -221,7 +243,7 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
     }
   }, []);
 
-  const importDashboard = useCallback((snapshotCandidate) => {
+  const importDashboard = useCallback((snapshotCandidate: ImportCandidate) => {
     setError(null);
     setLoadSummary(null);
 
@@ -237,7 +259,8 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
     const normalizedSnapshot = {
       ...cloneJson(payload, {}),
       layout: {
-        ...cloneJson(payload.layout, {}),
+        // Cast: isValidSnapshot confirmed payload is an object with a layout.
+        ...cloneJson((payload as JsonRecord).layout, {}),
       },
     };
 
@@ -273,7 +296,7 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
 
   // ── Edit profile name/label (no data change) ──
   const editProfile = useCallback(
-    async (profileId, name, deviceLabel) => {
+    async (profileId: string, name: string, deviceLabel?: string | null) => {
       if (!haUser?.id) throw new Error('No HA user');
       setLoading(true);
       setError(null);
@@ -286,7 +309,8 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
         setProfiles((prev) => prev.map((p) => (p.id === profileId ? updated : p)));
         return updated;
       } catch (err) {
-        setError(err.message);
+        // Cast: the profile API rejects with Error instances.
+        setError((err as Error).message);
         throw err;
       } finally {
         setLoading(false);
@@ -297,7 +321,7 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
 
   // ── Delete a profile ──
   const removeProfile = useCallback(
-    async (profileId) => {
+    async (profileId: string) => {
       if (!haUser?.id) throw new Error('No HA user');
       setLoading(true);
       setError(null);
@@ -305,7 +329,8 @@ export function useProfiles({ haUser, contextSetters, prefetchProfiles = true })
         await apiDeleteProfile(profileId, haUser.id);
         setProfiles((prev) => prev.filter((p) => p.id !== profileId));
       } catch (err) {
-        setError(err.message);
+        // Cast: the profile API rejects with Error instances.
+        setError((err as Error).message);
         throw err;
       } finally {
         setLoading(false);
