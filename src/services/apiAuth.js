@@ -1,5 +1,11 @@
 import { getAuth, ERR_INVALID_AUTH, ERR_INVALID_AUTH_CALLBACK } from 'home-assistant-js-websocket';
-import { clearOAuthTokens, getOAuthTokenSavedAt, loadTokens, saveTokens } from './oauthStorage';
+import {
+  clearOAuthTokens,
+  getOAuthTokenSavedAt,
+  loadTokens,
+  markOAuthRejected,
+  saveTokens,
+} from './oauthStorage';
 
 export const HOME_ASSISTANT_API_UNAUTHORIZED_EVENT = 'tunet:api-auth-unauthorized';
 const OAUTH_PROACTIVE_REFRESH_MS = 45 * 60 * 1000;
@@ -149,6 +155,7 @@ export function notifyHomeAssistantApiUnauthorized(
   if (authMethod === 'oauth') {
     clearCachedOAuthAuth();
     if (oauthAuthProvider) oauthAuthProvider.current = null;
+    markOAuthRejected();
     clearOAuthTokens();
   } else {
     clearStoredTokenAuth();

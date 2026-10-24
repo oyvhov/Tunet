@@ -11,6 +11,7 @@ vi.mock('../services/oauthStorage', () => ({
   clearOAuthTokens: () => clearOAuthTokensMock(),
   getOAuthTokenSavedAt: () => getOAuthTokenSavedAtMock(),
   saveTokens: (...args) => saveTokensMock(...args),
+  markOAuthRejected: () => {},
 }));
 
 vi.mock('home-assistant-js-websocket', () => ({

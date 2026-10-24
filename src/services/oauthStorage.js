@@ -29,6 +29,9 @@ const tokenChangeListeners = new Set();
 let syncInitialized = false;
 let syncChannel = null;
 let pendingTokenRequest = null;
+// Set when Home Assistant rejected the stored OAuth session; the expired-login
+// banner owns re-authentication until new tokens are saved.
+let oauthRejected = false;
 
 const getSessionStorage = () => {
   try {
@@ -65,7 +68,8 @@ const clearPrimarySlots = () => {
 const readSavedAtTimestamp = () => {
   const sessionStore = getSessionStorage();
   const localStore = getLocalStorage();
-  const raw = sessionStore?.getItem(TOKEN_SAVED_AT_SLOT) || localStore?.getItem(TOKEN_SAVED_AT_SLOT);
+  const raw =
+    sessionStore?.getItem(TOKEN_SAVED_AT_SLOT) || localStore?.getItem(TOKEN_SAVED_AT_SLOT);
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 };
@@ -158,6 +162,7 @@ const ensureCrossTabSync = () => {
 };
 
 export function saveTokens(tokenInfo) {
+  oauthRejected = false;
   try {
     const sessionStore = getSessionStorage();
     const localStore = getLocalStorage();
@@ -218,6 +223,14 @@ export function clearOAuthTokens() {
   } catch (error) {
     console.error('Failed to clear OAuth tokens from browser storage:', error);
   }
+}
+
+export function markOAuthRejected() {
+  oauthRejected = true;
+}
+
+export function isOAuthRejected() {
+  return oauthRejected;
 }
 
 export function getOAuthTokenSavedAt() {
