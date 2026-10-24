@@ -188,6 +188,11 @@
  * @property {boolean} showClockOnMobile
  * @property {boolean} showDate
  * @property {boolean} showPagePillLabelsOnMobile
+ * @property {'pill' | 'segmented' | 'underline' | 'minimal' | 'expand'} [navStyle]
+ * @property {'sm' | 'md' | 'lg'} [navSize]
+ * @property {boolean} [navActiveAccent]
+ * @property {boolean} [navShowIcons]
+ * @property {boolean} [navUppercase]
  * @property {'left' | 'center' | 'right'} mobileAlignment
  */
 

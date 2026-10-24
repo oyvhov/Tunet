@@ -110,7 +110,10 @@ export async function getHistoryRest(
   return [];
 }
 
-export async function getStatistics(conn, { start, end, statisticId, period = '5minute' }) {
+export async function getStatistics(
+  conn,
+  { start, end, statisticId, period = '5minute', types = undefined }
+) {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
@@ -120,6 +123,7 @@ export async function getStatistics(conn, { start, end, statisticId, period = '5
     end_time: end.toISOString(),
     statistic_ids: [statisticId],
     period,
+    ...(Array.isArray(types) ? { types } : {}),
   });
   const stats = res && res[statisticId];
   return Array.isArray(stats) ? stats : [];

@@ -6,13 +6,78 @@ import {
   MIN_GRID_COLUMNS,
 } from '../../hooks/useResponsiveGrid';
 import { MOBILE_BREAKPOINT } from '../../config/constants';
-import { Columns, Eye, Maximize2 } from '../../icons';
+import { Columns, Eye, Maximize2, Navigation } from '../../icons';
+import { usePages } from '../../contexts';
 import SidebarContainer from './SidebarContainer';
 import {
   SidebarAccordion,
   SidebarNavigation,
   SidebarResetButton as ResetButton,
+  SidebarToggle as Toggle,
 } from './SidebarControls';
+
+const NAV_STYLE_OPTIONS = ['pill', 'segmented', 'underline', 'minimal', 'expand'];
+
+/** @param {{ navStyle: string }} props */
+function NavStylePreview({ navStyle }) {
+  const items = [0, 1, 2];
+  if (navStyle === 'segmented') {
+    return (
+      <div className="flex gap-0.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-0.5">
+        {items.map((item) => (
+          <span
+            key={item}
+            className={`h-2.5 w-5 rounded-full ${item === 0 ? 'bg-[var(--text-secondary)]' : ''}`}
+          />
+        ))}
+      </div>
+    );
+  }
+  if (navStyle === 'underline') {
+    return (
+      <div className="flex gap-2 border-b border-[var(--glass-border)] pb-1">
+        {items.map((item) => (
+          <span key={item} className="relative h-1.5 w-5 rounded-full bg-[var(--text-muted)]">
+            {item === 0 && (
+              <span className="absolute inset-x-0 -bottom-[5px] h-0.5 rounded-full bg-[var(--text-primary)]" />
+            )}
+          </span>
+        ))}
+      </div>
+    );
+  }
+  if (navStyle === 'minimal') {
+    return (
+      <div className="flex gap-2">
+        {items.map((item) => (
+          <span
+            key={item}
+            className={`h-1.5 w-5 rounded-full ${item === 0 ? 'bg-[var(--text-primary)]' : 'bg-[var(--text-muted)] opacity-60'}`}
+          />
+        ))}
+      </div>
+    );
+  }
+  if (navStyle === 'expand') {
+    return (
+      <div className="flex items-center gap-1">
+        <span className="h-3 w-8 rounded-full bg-[var(--text-secondary)]" />
+        <span className="h-3 w-3 rounded-full bg-[var(--glass-bg-hover)]" />
+        <span className="h-3 w-3 rounded-full bg-[var(--glass-bg-hover)]" />
+      </div>
+    );
+  }
+  return (
+    <div className="flex gap-1">
+      {items.map((item) => (
+        <span
+          key={item}
+          className={`h-3 w-6 rounded-full ${item === 0 ? 'bg-[var(--text-secondary)]' : 'bg-[var(--glass-bg-hover)]'}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function LayoutSidebar({
   open,
@@ -52,7 +117,17 @@ export default function LayoutSidebar({
     grid: true,
     spacing: false,
     cards: false,
+    nav: false,
   });
+  const { headerSettings, updateHeaderSettings } = usePages();
+  const navStyle = NAV_STYLE_OPTIONS.includes(headerSettings?.navStyle)
+    ? headerSettings.navStyle
+    : 'pill';
+  const navSize = ['sm', 'md', 'lg'].includes(headerSettings?.navSize)
+    ? headerSettings.navSize
+    : 'md';
+  const updateNavSetting = (key, value) =>
+    updateHeaderSettings({ ...headerSettings, [key]: value });
   const [gridViewportWidth, setGridViewportWidth] = useState(() => {
     if (typeof window === 'undefined') return Number.POSITIVE_INFINITY;
     return window.innerWidth;
@@ -718,6 +793,106 @@ export default function LayoutSidebar({
                 </div>
               </div>
             </div>
+          </div>
+        </SidebarAccordion>
+
+        {/* ── Page Navigation Section ── */}
+        <SidebarAccordion
+          id="nav"
+          icon={Navigation}
+          title={t('settings.navStyle')}
+          isOpen={layoutSections.nav}
+          toggle={toggleSection}
+        >
+          <div className="space-y-2">
+            <span
+              className="text-[11px] font-bold tracking-wider uppercase"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t('settings.navStyleLook')}
+            </span>
+            <div
+              className="grid grid-cols-3 gap-2"
+              role="group"
+              aria-label={t('settings.navStyleLook')}
+            >
+              {NAV_STYLE_OPTIONS.map((option) => {
+                const active = navStyle === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => updateNavSetting('navStyle', option)}
+                    className="flex min-h-16 flex-col items-center justify-center gap-2 rounded-xl border px-1 py-2 text-[10px] font-bold tracking-wider uppercase transition-all"
+                    style={
+                      active
+                        ? {
+                            backgroundColor: 'var(--accent-bg)',
+                            borderColor: 'var(--accent-color)',
+                            color: 'var(--accent-color)',
+                          }
+                        : {
+                            backgroundColor: 'var(--glass-bg)',
+                            borderColor: 'var(--glass-border)',
+                            color: 'var(--text-secondary)',
+                          }
+                    }
+                  >
+                    <NavStylePreview navStyle={option} />
+                    <span>{t(`settings.navStyle.${option}`)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <span
+              className="text-[11px] font-bold tracking-wider uppercase"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t('settings.navSize')}
+            </span>
+            <div
+              className="flex gap-1 rounded-xl border p-0.5"
+              role="group"
+              aria-label={t('settings.navSize')}
+              style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+            >
+              {['sm', 'md', 'lg'].map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  aria-pressed={navSize === size}
+                  onClick={() => updateNavSetting('navSize', size)}
+                  className="flex-1 rounded-lg px-1 py-1.5 text-center text-[10px] font-bold tracking-wider uppercase transition-all"
+                  style={
+                    navSize === size
+                      ? { backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }
+                      : { color: 'var(--text-secondary)', backgroundColor: 'transparent' }
+                  }
+                >
+                  {t(`settings.navSize.${size}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Toggle
+              label={t('settings.navActiveAccent')}
+              value={headerSettings?.navActiveAccent === true}
+              onChange={(value) => updateNavSetting('navActiveAccent', value)}
+            />
+            <Toggle
+              label={t('settings.navShowIcons')}
+              value={headerSettings?.navShowIcons !== false}
+              onChange={(value) => updateNavSetting('navShowIcons', value)}
+            />
+            <Toggle
+              label={t('settings.navUppercase')}
+              value={headerSettings?.navUppercase === true}
+              onChange={(value) => updateNavSetting('navUppercase', value)}
+            />
           </div>
         </SidebarAccordion>
       </div>

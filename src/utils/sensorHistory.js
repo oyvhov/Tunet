@@ -3,6 +3,129 @@
  * before rendering in chart components.
  */
 
+const HOUR_MS = 60 * 60 * 1000;
+
+/** Selectable sensor-card graph ranges, in hours. */
+export const SENSOR_GRAPH_RANGES = {
+  '1h': 1,
+  '6h': 6,
+  '12h': 12,
+  '24h': 24,
+  '48h': 48,
+  '7d': 168,
+  '30d': 720,
+};
+
+export const SENSOR_GRAPH_STATS = ['mean', 'min', 'max', 'change'];
+
+const BUCKET_HOURS = {
+  '1h': 1 / 12,
+  '6h': 0.25,
+  '12h': 0.5,
+  '24h': 1,
+  '48h': 2,
+  '7d': 24,
+  '30d': 24,
+};
+
+export function resolveSensorGraphRange(range) {
+  return Object.prototype.hasOwnProperty.call(SENSOR_GRAPH_RANGES, range) ? range : '24h';
+}
+
+/**
+ * Time window and bar buckets for a graph range. Day-sized buckets end at the
+ * next local midnight so each bar is one calendar day (the last one is today).
+ *
+ * @param {string} range - Key of SENSOR_GRAPH_RANGES.
+ * @param {Date} [now]
+ * @returns {{ start: Date, end: Date, buckets: number, period: 'hour' | 'day' }}
+ */
+export function getSensorGraphWindow(range, now = new Date()) {
+  const key = resolveSensorGraphRange(range);
+  const hours = SENSOR_GRAPH_RANGES[key];
+  const bucketHours = BUCKET_HOURS[key];
+  const buckets = Math.round(hours / bucketHours);
+  let end;
+  if (bucketHours >= 24) {
+    end = new Date(now);
+    end.setHours(24, 0, 0, 0);
+  } else {
+    const bucketMs = bucketHours * HOUR_MS;
+    end = new Date(Math.ceil(now.getTime() / bucketMs) * bucketMs);
+  }
+  return {
+    start: new Date(end.getTime() - hours * HOUR_MS),
+    end,
+    buckets,
+    period: hours > 168 ? 'day' : 'hour',
+  };
+}
+
+/**
+ * Aggregate time-ordered points into `buckets` equal slices of [start, end).
+ * Points may carry native `min`/`max`/`change` (HA long-term statistics);
+ * raw history points only have `value`, and the last value before a bucket is
+ * treated as the state at its start. Buckets before the first known value are
+ * skipped; later empty buckets repeat the last value (change 0).
+ *
+ * @param {{ value: number, time: Date, min?: number, max?: number, change?: number }[]} points
+ * @param {{ start: Date, end: Date, buckets: number, stat?: string }} options
+ * @returns {{ value: number, time: Date }[]}
+ */
+export function aggregateTimeSeries(points, { start, end, buckets, stat = 'mean' }) {
+  if (!Array.isArray(points) || points.length === 0 || !(buckets > 0)) return [];
+  const startMs = start.getTime();
+  const span = end.getTime() - startMs;
+  if (!(span > 0)) return [];
+  const size = span / buckets;
+  const sorted = [...points].sort((a, b) => a.time.getTime() - b.time.getTime());
+
+  let carry = null;
+  let index = 0;
+  while (index < sorted.length && sorted[index].time.getTime() < startMs) {
+    carry = sorted[index].value;
+    index += 1;
+  }
+
+  const result = [];
+  for (let bucket = 0; bucket < buckets; bucket += 1) {
+    const bucketStart = startMs + bucket * size;
+    const bucketEnd = bucket === buckets - 1 ? Infinity : bucketStart + size;
+    const inBucket = [];
+    while (index < sorted.length && sorted[index].time.getTime() < bucketEnd) {
+      inBucket.push(sorted[index]);
+      index += 1;
+    }
+    const time = new Date(bucketStart);
+
+    if (inBucket.length === 0) {
+      if (carry !== null) result.push({ time, value: stat === 'change' ? 0 : carry });
+      continue;
+    }
+
+    const isStatistics = inBucket.every((point) => Number.isFinite(point.min));
+    const samples =
+      carry !== null && !isStatistics
+        ? [carry, ...inBucket.map((point) => point.value)]
+        : inBucket.map((point) => point.value);
+    let value;
+    if (stat === 'change') {
+      value = inBucket.every((point) => Number.isFinite(point.change))
+        ? inBucket.reduce((sum, point) => sum + point.change, 0)
+        : inBucket[inBucket.length - 1].value - (carry ?? inBucket[0].value);
+    } else if (stat === 'min') {
+      value = isStatistics ? Math.min(...inBucket.map((point) => point.min)) : Math.min(...samples);
+    } else if (stat === 'max') {
+      value = isStatistics ? Math.max(...inBucket.map((point) => point.max)) : Math.max(...samples);
+    } else {
+      value = samples.reduce((sum, sample) => sum + sample, 0) / samples.length;
+    }
+    carry = inBucket[inBucket.length - 1].value;
+    result.push({ time, value });
+  }
+  return result;
+}
+
 /**
  * Downsample a time-ordered array of {value, time} points into at most
  * `maxPoints` buckets of equal time duration.  Each bucket's value is the

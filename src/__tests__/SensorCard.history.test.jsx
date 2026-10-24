@@ -16,7 +16,9 @@ vi.mock('../contexts', () => ({
   useHomeAssistantMeta: () => ({ haConfig: {} }),
 }));
 vi.mock('../components/charts/SparkLine', () => ({
-  default: ({ data }) => <output>{JSON.stringify(data.map((point) => point.value))}</output>,
+  default: ({ data, variant }) => (
+    <output data-variant={variant}>{JSON.stringify(data.map((point) => point.value))}</output>
+  ),
 }));
 
 const entity = (id, state) => ({ entity_id: id, state, attributes: {} });
@@ -83,5 +85,38 @@ describe('sensor history responses', () => {
     await tick();
     expect(getHistory).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('status')).toHaveTextContent('[105,105]');
+  });
+
+  it('reads long ranges from statistics and aggregates daily change bars', async () => {
+    vi.setSystemTime(new Date(2026, 9, 24, 12, 0));
+    const day = (offset) => new Date(2026, 9, 24 + offset, 0, 0).getTime();
+    getStatistics.mockResolvedValue([
+      { start: day(-1), state: 10, change: 4 },
+      { start: day(-1) + 3600000, state: 12, change: 2 },
+      { start: day(0), state: 15, change: 3 },
+    ]);
+    render(
+      <SensorCard
+        {...props}
+        settings={{
+          size: 'large',
+          showGraph: true,
+          graphRange: '7d',
+          graphStyle: 'bar',
+          graphStat: 'change',
+        }}
+      />
+    );
+    await tick();
+    expect(getStatistics).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        period: 'hour',
+        types: ['mean', 'min', 'max', 'state', 'change'],
+      })
+    );
+    expect(getHistory).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toHaveAttribute('data-variant', 'bar');
+    expect(screen.getByRole('status')).toHaveTextContent('[6,3]');
   });
 });
