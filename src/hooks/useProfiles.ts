@@ -15,7 +15,8 @@ type JsonRecord = Record<string, unknown>;
 
 type PagesConfigDraft = { header?: string[]; pages?: string[] } & JsonRecord;
 
-type ImportCandidate = { data?: unknown } | null | undefined;
+// Untrusted import JSON: a bare snapshot or a wrapper with it under `data`.
+type ImportCandidate = unknown;
 
 export interface UseProfilesOptions {
   /** HA user from HomeAssistantContext */
@@ -99,10 +100,9 @@ function normalizeImportedSnapshot(snapshotCandidate: ImportCandidate) {
     return null;
   }
 
-  const payload =
-    snapshotCandidate.data && typeof snapshotCandidate.data === 'object'
-      ? snapshotCandidate.data
-      : snapshotCandidate;
+  // Cast: the object check above passed; `data` is only read, not trusted.
+  const wrapped = (snapshotCandidate as { data?: unknown }).data;
+  const payload = wrapped && typeof wrapped === 'object' ? wrapped : snapshotCandidate;
 
   if (!payload || typeof payload !== 'object') {
     return null;
