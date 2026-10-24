@@ -128,6 +128,8 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
   const baselineUserRef = useRef(null);
   const contextSettersLatestRef = useRef(contextSettersRef);
   contextSettersLatestRef.current = contextSettersRef;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   const baselineKey = `tunet_sync_baseline:${encodeURIComponent(haUserId || '')}:${deviceIdRef.current}`;
 
   const persistBaseline = useCallback(
@@ -506,6 +508,11 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
       if (autoSyncTimerRef.current) clearTimeout(autoSyncTimerRef.current);
       const run = async () => {
         autoSyncTimerRef.current = null;
+        if (!ignoreEnabled && !enabledRef.current) {
+          // Auto-sync was turned off while waiting; pick the change up once it is back on.
+          lastObservedHashRef.current = lastUploadedHashRef.current;
+          return;
+        }
         if (syncInFlightRef.current) {
           // Wait for the running upload instead of dropping this one.
           autoSyncTimerRef.current = setTimeout(run, 1000);
@@ -514,6 +521,10 @@ export function useSettingsSync({ haUserId, contextSettersRef, autoBootstrap = t
         syncInFlightRef.current = true;
         try {
           await pushCurrentToServerRef.current?.({ force });
+          if (initializedUserRef.current !== haUserId) {
+            // The initial read failed, so nothing was sent; let the next check retry.
+            lastObservedHashRef.current = lastUploadedHashRef.current;
+          }
         } catch {
           // Forget the observed state so the next local-change check retries.
           lastObservedHashRef.current = lastUploadedHashRef.current;

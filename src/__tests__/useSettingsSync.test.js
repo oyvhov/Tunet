@@ -227,6 +227,62 @@ describe('useSettingsSync', () => {
     expect(saveCurrentSettings).not.toHaveBeenCalled();
   });
 
+  it('cancels a queued automatic upload when auto-sync is turned off, and sends it once re-enabled', async () => {
+    vi.useFakeTimers();
+    const baseline = collectSnapshot();
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: baseline });
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+    await act(async () => {});
+    const edited = { ...baseline, appearance: { theme: 'light' } };
+    collectSnapshot.mockReturnValue(edited);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4100);
+    });
+    act(() => result.current.setEnabled(false));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000);
+    });
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+
+    act(() => result.current.setEnabled(true));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20000);
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ data: edited, base_revision: 4 }),
+      {}
+    );
+  });
+
+  it('uploads local settings once the server recovers from failed initial reads', async () => {
+    vi.useFakeTimers();
+    const serverData = collectSnapshot();
+    let online = false;
+    fetchCurrentSettings.mockImplementation(() =>
+      online
+        ? Promise.resolve({ revision: 4, data: serverData })
+        : Promise.reject(Object.assign(new Error('Server error'), { status: 500 }))
+    );
+    const local = { ...serverData, layout: { pagesConfig: { home: ['light.kitchen'] } } };
+    collectSnapshot.mockReturnValue(local);
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000);
+    });
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+
+    online = true;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ data: local, base_revision: 4 }),
+      {}
+    );
+  });
+
   it('uploads an edit finished while another upload is still in flight', async () => {
     vi.useFakeTimers();
     const baseline = collectSnapshot();
