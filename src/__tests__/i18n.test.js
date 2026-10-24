@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { en, nb, nn, sv, de, zh, fr, es } from '../i18n';
+import { en, nb, nn, sv, de, zh, fr, es, SUPPORTED_LANGUAGES, TRANSLATIONS } from '../i18n';
 
 const getPlaceholders = (value) => {
   const matches = String(value).match(/\{[^}]+\}/g) || [];
@@ -113,5 +113,9 @@ describe('i18n', () => {
     for (const [key, value] of Object.entries(es)) {
       expect(value, `es.json key "${key}" is empty`).not.toBe('');
     }
+  });
+
+  it('registers a translation table for every supported language', () => {
+    expect(Object.keys(TRANSLATIONS).sort()).toEqual([...SUPPORTED_LANGUAGES].sort());
   });
 });
