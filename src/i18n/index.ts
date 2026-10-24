@@ -6,14 +6,21 @@ import de from './de.json';
 import zh from './zh.json';
 import fr from './fr.json';
 import es from './es.json';
+import type { Language } from './languageUtils';
 
 export { en, nb, nn, sv, de, zh, fr, es };
 
-/**
- * Every supported language must have a translation table here.
- * @type {Record<import('./languageUtils').Language, Record<string, string>>}
- */
-export const TRANSLATIONS = { en, nb, nn, sv, de, zh, fr, es };
+// Every supported language must have a translation table here.
+export const TRANSLATIONS: Record<Language, Record<string, string>> = {
+  en,
+  nb,
+  nn,
+  sv,
+  de,
+  zh,
+  fr,
+  es,
+};
 export {
   DEFAULT_LANGUAGE,
   SUPPORTED_LANGUAGES,
@@ -21,3 +28,4 @@ export {
   normalizeLanguage,
   getLocaleForLanguage,
 } from './languageUtils';
+export type { Language } from './languageUtils';

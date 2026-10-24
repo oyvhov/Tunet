@@ -1,24 +1,15 @@
-export const DEFAULT_LANGUAGE = 'en';
-export const SUPPORTED_LANGUAGES = /** @type {const} */ ([
-  'en',
-  'nb',
-  'nn',
-  'sv',
-  'de',
-  'zh',
-  'fr',
-  'es',
-]);
-/** @typedef {(typeof SUPPORTED_LANGUAGES)[number]} Language */
+export const SUPPORTED_LANGUAGES = ['en', 'nb', 'nn', 'sv', 'de', 'zh', 'fr', 'es'] as const;
+export type Language = (typeof SUPPORTED_LANGUAGES)[number];
+export const DEFAULT_LANGUAGE: Language = 'en';
 export const LEGACY_NN_MIGRATION_FLAG = 'tunet_language_migrated_to_nb';
 
-export function normalizeLanguage(language) {
-  return /** @type {readonly string[]} */ (SUPPORTED_LANGUAGES).includes(language)
-    ? language
+export function normalizeLanguage(language: unknown): Language {
+  return (SUPPORTED_LANGUAGES as readonly unknown[]).includes(language)
+    ? (language as Language)
     : DEFAULT_LANGUAGE;
 }
 
-export function getLocaleForLanguage(language) {
+export function getLocaleForLanguage(language: unknown): string {
   if (language === 'nb') return 'nb-NO';
   if (language === 'nn') {
     const supportsNynorsk =

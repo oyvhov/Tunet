@@ -373,7 +373,11 @@ import {
 } from 'react-icons/md';
 import { Icon as MdiIcon } from '@mdi/react';
 
-export const ICON_MAP = {
+// Lucide, react-icons and MDI icons have different prop types; callers pass
+// className/style/size, which all of them accept.
+export type IconComponent = React.ElementType;
+
+export const ICON_MAP: Record<string, IconComponent> = {
   Zap,
   Wind,
   Car,
@@ -815,13 +819,13 @@ export const ICON_MAP = {
 
 const FALLBACK_ICON = ICON_MAP.Activity || ICON_MAP.Settings || (() => null);
 
-const mdiPathByName = new Map();
-const mdiKnownNames = new Set();
-const mdiMissingNames = new Set();
-const mdiPendingByName = new Map();
-let cachedAllIconKeys = null;
+const mdiPathByName = new Map<string, string>();
+const mdiKnownNames = new Set<string>();
+const mdiMissingNames = new Set<string>();
+const mdiPendingByName = new Map<string, Promise<string | null>>();
+let cachedAllIconKeys: string[] | null = null;
 
-const addMdiPath = (iconName, path) => {
+const addMdiPath = (iconName: string, path: unknown) => {
   if (!iconName || typeof path !== 'string') return;
   mdiPathByName.set(iconName, path);
   mdiKnownNames.add(iconName);
@@ -829,9 +833,9 @@ const addMdiPath = (iconName, path) => {
   cachedAllIconKeys = null;
 };
 
-const fetchMdiPath = async (iconName) => {
+const fetchMdiPath = async (iconName: string): Promise<string | null> => {
   if (!iconName || !iconName.startsWith('mdi:')) return null;
-  if (mdiPathByName.has(iconName)) return mdiPathByName.get(iconName);
+  if (mdiPathByName.has(iconName)) return mdiPathByName.get(iconName) ?? null;
   if (mdiMissingNames.has(iconName)) return null;
   const existing = mdiPendingByName.get(iconName);
   if (existing) return existing;
@@ -870,7 +874,7 @@ export async function preloadMdiIcons() {
     if (!res.ok) return getAllIconKeys();
     const body = await res.json().catch(() => null);
     const icons = Array.isArray(body?.icons) ? body.icons : [];
-    icons.forEach((iconName) => {
+    icons.forEach((iconName: unknown) => {
       if (typeof iconName === 'string' && iconName.startsWith('mdi:')) {
         mdiKnownNames.add(iconName);
       }
@@ -882,7 +886,7 @@ export async function preloadMdiIcons() {
   return getAllIconKeys();
 }
 
-export function getAllIconKeys() {
+export function getAllIconKeys(): string[] {
   if (!cachedAllIconKeys) {
     const mdiKeys = Array.from(mdiKnownNames);
     cachedAllIconKeys = [...Object.keys(ICON_MAP), ...mdiKeys];
@@ -894,9 +898,14 @@ export function getAllIconKeys() {
 // name. Without this cache `getIconComponent` would return a brand-new
 // component function on every call, causing React to remount the icon (and
 // reset any CSS animations such as `animate-spin`) on every parent re-render.
-const mdiComponentCache = new Map();
+const mdiComponentCache = new Map<string, IconComponent>();
 
-export function getIconComponent(iconName, fallbackIcon = FALLBACK_ICON) {
+type MdiWrapperProps = Record<string, unknown> & { style?: React.CSSProperties };
+
+export function getIconComponent(
+  iconName: string | null | undefined,
+  fallbackIcon: IconComponent = FALLBACK_ICON
+): IconComponent | null {
   if (!iconName) return null;
   if (ICON_MAP[iconName]) return ICON_MAP[iconName];
   if (iconName.startsWith('mdi:')) {
@@ -905,14 +914,14 @@ export function getIconComponent(iconName, fallbackIcon = FALLBACK_ICON) {
 
     const initialPath = mdiPathByName.get(iconName);
     if (initialPath) {
-      const ResolvedMdiIcon = (props) =>
+      const ResolvedMdiIcon = (props: MdiWrapperProps) =>
         React.createElement(MdiIcon, { path: initialPath, size: '1.4em', ...props });
       ResolvedMdiIcon.displayName = `MdiIcon(${iconName})`;
       mdiComponentCache.set(iconName, ResolvedMdiIcon);
       return ResolvedMdiIcon;
     }
 
-    function LazyMdiIcon(props) {
+    const LazyMdiIcon = (props: MdiWrapperProps) => {
       const [path, setPath] = React.useState(() => mdiPathByName.get(iconName) || null);
 
       React.useEffect(() => {
@@ -943,7 +952,7 @@ export function getIconComponent(iconName, fallbackIcon = FALLBACK_ICON) {
         ...restProps,
         ...(style ? { style: { ...style } } : {}),
       });
-    }
+    };
     LazyMdiIcon.displayName = `LazyMdiIcon(${iconName})`;
     mdiComponentCache.set(iconName, LazyMdiIcon);
     return LazyMdiIcon;
