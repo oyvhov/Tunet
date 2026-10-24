@@ -5,6 +5,7 @@ const router = Router();
 
 const ICON_KEY_PATTERN = /^[a-z0-9-]+$/;
 
+/** @param {string} name */
 const kebabToMdiKey = (name) => {
   const camel = name
     .split('-')
@@ -56,7 +57,7 @@ router.get('/mdi/:name', (req, res) => {
   }
 
   const key = kebabToMdiKey(rawName);
-  const path = mdiIcons[key];
+  const path = /** @type {Record<string, unknown>} */ (mdiIcons)[key];
   if (typeof path !== 'string') {
     return res.status(404).json({ error: 'Icon not found' });
   }

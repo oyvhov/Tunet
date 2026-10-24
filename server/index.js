@@ -49,7 +49,7 @@ export const createApp = ({
       // WebSocket connections to the user's HA instance (any origin, since URL is user-configured)
       "connect-src 'self' ws: wss: http: https:",
       // Leaflet map iframe
-      "frame-src https://www.openstreetmap.org",
+      'frame-src https://www.openstreetmap.org',
       // Block all object/embed/plugin
       "object-src 'none'",
       // Restrict base-uri to prevent base tag injection
@@ -84,7 +84,7 @@ export const createApp = ({
   // Ingress support — strip X-Ingress-Path prefix from request URL
   app.use((req, _res, next) => {
     const ingressPath = req.headers['x-ingress-path'];
-    if (ingressPath && req.url.startsWith(ingressPath)) {
+    if (typeof ingressPath === 'string' && ingressPath && req.url.startsWith(ingressPath)) {
       req.url = req.url.slice(ingressPath.length) || '/';
     }
     next();
@@ -122,12 +122,14 @@ export const createApp = ({
         hashedAssetFallbackMap.set(key, fileName);
       });
 
+      /** @param {import('express').Response} res */
       const setNoCacheHeaders = (res) => {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
       };
 
+      /** @param {import('express').Response} res */
       const sendSpaIndex = (res) => {
         setNoCacheHeaders(res);
         if (indexHtml !== null) {

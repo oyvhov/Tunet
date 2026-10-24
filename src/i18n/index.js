@@ -1,11 +1,19 @@
-export { default as en } from './en.json';
-export { default as nb } from './nb.json';
-export { default as nn } from './nn.json';
-export { default as sv } from './sv.json';
-export { default as de } from './de.json';
-export { default as zh } from './zh.json';
-export { default as fr } from './fr.json';
-export { default as es } from './es.json';
+import en from './en.json';
+import nb from './nb.json';
+import nn from './nn.json';
+import sv from './sv.json';
+import de from './de.json';
+import zh from './zh.json';
+import fr from './fr.json';
+import es from './es.json';
+
+export { en, nb, nn, sv, de, zh, fr, es };
+
+/**
+ * Every supported language must have a translation table here.
+ * @type {Record<import('./languageUtils').Language, Record<string, string>>}
+ */
+export const TRANSLATIONS = { en, nb, nn, sv, de, zh, fr, es };
 export {
   DEFAULT_LANGUAGE,
   SUPPORTED_LANGUAGES,

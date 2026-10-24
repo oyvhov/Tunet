@@ -13,6 +13,10 @@ import {
   shouldPersistPlaintextData,
 } from '../utils/dataCrypto.js';
 
+/** @typedef {import('express').Request} Request */
+/** @typedef {import('express').Response} Response */
+/** @typedef {import('../types.js').ProfileRow} ProfileRow */
+
 const router = Router();
 const warnedWriteFailures = new Set();
 
@@ -25,14 +29,22 @@ const profilesRateLimiter = rateLimit({
 
 router.use(profilesRateLimiter);
 
+/**
+ * @param {string | null} raw
+ * @param {unknown} [fallback]
+ */
 const safeParseJson = (raw, fallback = null) => {
   try {
-    return JSON.parse(raw);
+    return JSON.parse(/** @type {string} */ (raw));
   } catch {
     return fallback;
   }
 };
 
+/**
+ * @param {Request} req
+ * @param {Response} res
+ */
 const ensureRequestUser = (req, res) => {
   const requestUserId = req.authenticatedHaUser?.id;
   if (!requestUserId) {
@@ -42,6 +54,10 @@ const ensureRequestUser = (req, res) => {
   return requestUserId;
 };
 
+/**
+ * @param {Pick<ProfileRow, 'data' | 'data_enc'>} row
+ * @param {string} context
+ */
 const parseStoredProfileData = (row, context) => {
   const resolvedText = resolveStoredDataText({
     plainText: row?.data,
@@ -51,6 +67,7 @@ const parseStoredProfileData = (row, context) => {
   return safeParseJson(resolvedText, {});
 };
 
+/** @param {string} context */
 const warnEncryptionWriteFailure = (context) => {
   if (!isDataEncryptionEnabled()) return;
   if (warnedWriteFailures.has(context)) return;
@@ -71,11 +88,13 @@ router.get('/', (req, res) => {
     return res.status(403).json({ error: 'Forbidden: user mismatch' });
   }
 
-  const profiles = db
-    .prepare(
-      'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE ha_user_id = ? ORDER BY updated_at DESC'
-    )
-    .all(ha_user_id);
+  const profiles = /** @type {ProfileRow[]} */ (
+    db
+      .prepare(
+        'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE ha_user_id = ? ORDER BY updated_at DESC'
+      )
+      .all(ha_user_id)
+  );
 
   // Parse data JSON for each profile
   const parsed = profiles.map((p) => ({
@@ -96,11 +115,13 @@ router.get('/:id', (req, res) => {
   const requestUserId = ensureRequestUser(req, res);
   if (!requestUserId) return;
 
-  const profile = db
-    .prepare(
-      'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
-    )
-    .get(req.params.id, requestUserId);
+  const profile = /** @type {ProfileRow | undefined} */ (
+    db
+      .prepare(
+        'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
+      )
+      .get(req.params.id, requestUserId)
+  );
 
   if (!profile) {
     return res.status(404).json({ error: 'Profile not found' });
@@ -165,9 +186,11 @@ router.put('/:id', (req, res) => {
     return res.status(400).json({ error: 'data must be an object when provided' });
   }
 
-  const existing = db
-    .prepare('SELECT id, data, data_enc FROM profiles WHERE id = ? AND ha_user_id = ?')
-    .get(req.params.id, requestUserId);
+  const existing = /** @type {Pick<ProfileRow, 'id' | 'data' | 'data_enc'> | undefined} */ (
+    db
+      .prepare('SELECT id, data, data_enc FROM profiles WHERE id = ? AND ha_user_id = ?')
+      .get(req.params.id, requestUserId)
+  );
   if (!existing) {
     return res.status(404).json({ error: 'Profile not found' });
   }
@@ -204,11 +227,13 @@ router.put('/:id', (req, res) => {
     requestUserId
   );
 
-  const updated = db
-    .prepare(
-      'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
-    )
-    .get(req.params.id, requestUserId);
+  const updated = /** @type {ProfileRow} */ (
+    db
+      .prepare(
+        'SELECT id, ha_user_id, name, device_label, data, data_enc, created_at, updated_at FROM profiles WHERE id = ? AND ha_user_id = ?'
+      )
+      .get(req.params.id, requestUserId)
+  );
 
   res.json({
     id: updated.id,

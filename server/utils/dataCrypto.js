@@ -5,18 +5,21 @@ const ENCRYPTION_PREFIX = 'enc:v1:';
 const PASSPHRASE_SALT = process.env.TUNET_DATA_KEY_SALT || '';
 const warnedMessages = new Set();
 
+/** @param {string} message */
 const warnOnce = (message) => {
   if (warnedMessages.has(message)) return;
   warnedMessages.add(message);
   console.warn(message);
 };
 
+/** @param {unknown} rawMode */
 const normalizeMode = (rawMode) => {
   if (typeof rawMode !== 'string') return 'off';
   const mode = rawMode.trim().toLowerCase();
   return SUPPORTED_MODES.has(mode) ? mode : 'off';
 };
 
+/** @param {string} rawKey */
 const decodeBase64Candidate = (rawKey) => {
   try {
     const decoded = Buffer.from(rawKey, 'base64');
@@ -26,6 +29,7 @@ const decodeBase64Candidate = (rawKey) => {
   }
 };
 
+/** @param {string} rawKey */
 const decodeHexCandidate = (rawKey) => {
   const cleaned = rawKey.trim();
   if (!/^[0-9a-fA-F]{64}$/.test(cleaned)) return null;
@@ -37,6 +41,7 @@ const decodeHexCandidate = (rawKey) => {
   }
 };
 
+/** @param {unknown} rawKey */
 const deriveEncryptionKey = (rawKey) => {
   if (typeof rawKey !== 'string' || !rawKey.trim()) return null;
 
@@ -86,6 +91,7 @@ export const getEncryptedOnlyPlaintextStub = () => '{"_enc_only":true}';
 
 const canWriteEncryptedData = () => DATA_ENCRYPTION_MODE !== 'off' && Boolean(DATA_ENCRYPTION_KEY);
 
+/** @param {unknown} encryptedValue */
 const decryptPayload = (encryptedValue) => {
   if (!DATA_ENCRYPTION_KEY) return null;
   if (typeof encryptedValue !== 'string' || !encryptedValue.startsWith(ENCRYPTION_PREFIX))
@@ -108,8 +114,12 @@ const decryptPayload = (encryptedValue) => {
   }
 };
 
+/**
+ * @param {unknown} plainText
+ * @returns {string | null}
+ */
 export const encryptDataText = (plainText) => {
-  if (!canWriteEncryptedData()) return null;
+  if (!canWriteEncryptedData() || !DATA_ENCRYPTION_KEY) return null;
   if (typeof plainText !== 'string') return null;
 
   const iv = randomBytes(12);
@@ -119,6 +129,10 @@ export const encryptDataText = (plainText) => {
   return `${ENCRYPTION_PREFIX}${Buffer.concat([iv, authTag, encrypted]).toString('base64')}`;
 };
 
+/**
+ * @param {{ plainText?: unknown, encryptedText?: unknown, context?: string }} stored
+ * @returns {string | null}
+ */
 export const resolveStoredDataText = ({ plainText, encryptedText, context = 'unknown' }) => {
   const plain = typeof plainText === 'string' ? plainText : null;
   const encrypted =
@@ -140,24 +154,32 @@ const storageEncryptionError = () =>
     code: 'DATA_ENCRYPTION_UNAVAILABLE',
   });
 
+/**
+ * @param {{ data?: string, data_enc?: string | null }} row
+ * @param {string | null} encryptedPayload
+ */
 export const assertStoredDataWritable = (row, encryptedPayload) => {
   if (!row?.data_enc) return;
   resolveStoredDataText({ plainText: row.data, encryptedText: row.data_enc });
   if (!encryptedPayload) throw storageEncryptionError();
 };
 
+/** @param {import('better-sqlite3').Database} database */
 export const verifyStoredEncryption = (database) => {
   if (DATA_ENCRYPTION_MODE === 'off') return;
   if (isEncryptionWriteRequired() && !DATA_ENCRYPTION_KEY) throw storageEncryptionError();
   for (const table of ['profiles', 'current_settings', 'current_settings_history']) {
-    const row = database
-      .prepare(`SELECT data, data_enc FROM ${table} WHERE data_enc IS NOT NULL LIMIT 1`)
-      .get();
+    const row = /** @type {{ data: string, data_enc: string } | undefined} */ (
+      database
+        .prepare(`SELECT data, data_enc FROM ${table} WHERE data_enc IS NOT NULL LIMIT 1`)
+        .get()
+    );
     if (row)
       resolveStoredDataText({ plainText: row.data, encryptedText: row.data_enc, context: table });
   }
 };
 
+/** @type {import('express').ErrorRequestHandler} */
 export const handleDataEncryptionError = (error, _req, res, next) => {
   if (error.code !== 'DATA_ENCRYPTION_UNAVAILABLE') return next(error);
   return res.status(503).json({ error: error.message, code: error.code });

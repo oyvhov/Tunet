@@ -56,8 +56,15 @@ db.exec(`
     ON current_settings_history(ha_user_id, device_id, revision DESC);
 `);
 
+/**
+ * @param {string} tableName
+ * @param {string} columnName
+ * @param {string} columnSql
+ */
 const ensureColumn = (tableName, columnName, columnSql) => {
-  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  const columns = /** @type {{ name: string }[]} */ (
+    db.prepare(`PRAGMA table_info(${tableName})`).all()
+  );
   const exists = Array.isArray(columns) && columns.some((col) => col.name === columnName);
   if (!exists) {
     db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnSql}`);
