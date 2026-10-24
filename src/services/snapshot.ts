@@ -10,24 +10,124 @@ import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 
 const SNAPSHOT_VERSION = 1;
 
+export interface PagesConfig {
+  header?: string[];
+  pages?: string[];
+  [key: string]: unknown;
+}
+
+export interface HeaderSettings {
+  showTitle?: boolean;
+  showClock?: boolean;
+  showDate?: boolean;
+  [key: string]: unknown;
+}
+
+export interface SectionSpacing {
+  headerToStatus?: number;
+  statusToNav?: number;
+  navToGrid?: number;
+}
+
+export interface SnapshotLayout {
+  pagesConfig: PagesConfig | null;
+  cardSettings: Record<string, unknown> | null;
+  hiddenCards: string[] | null;
+  customNames: Record<string, string> | null;
+  customIcons: Record<string, string> | null;
+  pageSettings: Record<string, unknown> | null;
+  gridColumns: number;
+  dynamicGridColumns: boolean;
+  gridGapH: number;
+  gridGapV: number;
+  cardBorderRadius: number;
+  cardsOnlyMode: boolean;
+  headerSettings: HeaderSettings | null;
+  headerTitle: string;
+  headerScale: number;
+  sectionSpacing: SectionSpacing | null;
+  statusPillsConfig: unknown[] | null;
+}
+
+export interface SnapshotAppearance {
+  theme: string;
+  language: string;
+  appFont: string;
+  unitsMode: string;
+  bgMode: string;
+  bgColor: string;
+  bgGradient: string;
+  bgImage: string;
+  cardBgColor: string;
+  cardTransparency: number;
+  cardBorderOpacity: number;
+  inactivityTimeout: number;
+}
+
+export interface DashboardSnapshot {
+  version: number;
+  layout: SnapshotLayout;
+  appearance: SnapshotAppearance;
+}
+
+type SnapshotInput = {
+  layout?: Partial<SnapshotLayout>;
+  appearance?: Partial<SnapshotAppearance>;
+};
+
+type Setter<T> = (value: T) => unknown;
+
+export interface SnapshotContextSetters {
+  persistConfig?: Setter<PagesConfig>;
+  persistCardSettings?: Setter<Record<string, unknown>>;
+  persistPageSettings?: Setter<Record<string, unknown>>;
+  persistCustomNames?: Setter<Record<string, string>>;
+  persistCustomIcons?: Setter<Record<string, string>>;
+  persistHiddenCards?: Setter<string[]>;
+  setGridColumns?: Setter<number>;
+  setDynamicGridColumns?: Setter<boolean>;
+  setGridGapH?: Setter<number>;
+  setGridGapV?: Setter<number>;
+  setCardBorderRadius?: Setter<number>;
+  updateCardsOnlyMode?: Setter<boolean>;
+  updateHeaderScale?: Setter<number>;
+  updateHeaderTitle?: Setter<string>;
+  updateHeaderSettings?: Setter<HeaderSettings>;
+  updateSectionSpacing?: Setter<SectionSpacing>;
+  saveStatusPillsConfig?: Setter<unknown[]>;
+  setCurrentTheme?: Setter<string>;
+  setLanguage?: Setter<string>;
+  setAppFont?: Setter<string>;
+  setUnitsMode?: Setter<string>;
+  setBgMode?: Setter<string>;
+  setBgColor?: Setter<string>;
+  setBgGradient?: Setter<string>;
+  setBgImage?: Setter<string>;
+  setCardBgColor?: Setter<string>;
+  setCardTransparency?: Setter<number>;
+  setCardBorderOpacity?: Setter<number>;
+  setInactivityTimeout?: Setter<number>;
+}
+
 // ── helpers ──────────────────────────────────────────────────────────
 
-const readJSON = (key, fallback = null) => {
+const readJSON = <T>(key: string, fallback: T | null = null): T | null => {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
+    // Stored JSON is trusted to have the same shape as the fallback.
+    return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
   }
 };
 
-const readNumber = (key, fallback) => {
+const readNumber = (key: string, fallback: number): number => {
   const raw = localStorage.getItem(key);
   const n = raw === null ? NaN : Number(raw);
   return Number.isFinite(n) ? n : fallback;
 };
 
-const readBoolean = (key, fallback) => {
+const readBoolean = (key: string, fallback: boolean): boolean => {
   const raw = localStorage.getItem(key);
   if (raw === null) return fallback;
   if (raw === '1' || raw === 'true') return true;
@@ -35,42 +135,46 @@ const readBoolean = (key, fallback) => {
   return fallback;
 };
 
-const normalizeSnapshotLanguage = (language) => normalizeLanguage(language);
+const normalizeSnapshotLanguage = (language: string): string => normalizeLanguage(language);
 
 // ── collect ──────────────────────────────────────────────────────────
 
 /**
  * Read all relevant localStorage keys and return a versioned snapshot object.
  */
-export function collectSnapshot() {
+export function collectSnapshot(): DashboardSnapshot {
   return {
     version: SNAPSHOT_VERSION,
     layout: {
-      pagesConfig: readJSON('tunet_pages_config', { header: [], pages: ['home'], home: [] }),
-      cardSettings: readJSON('tunet_card_settings', {}),
-      hiddenCards: readJSON('tunet_hidden_cards', []),
-      customNames: readJSON('tunet_custom_names', {}),
-      customIcons: readJSON('tunet_custom_icons', {}),
-      pageSettings: readJSON('tunet_page_settings', {}),
+      pagesConfig: readJSON<PagesConfig>('tunet_pages_config', {
+        header: [],
+        pages: ['home'],
+        home: [],
+      }),
+      cardSettings: readJSON<Record<string, unknown>>('tunet_card_settings', {}),
+      hiddenCards: readJSON<string[]>('tunet_hidden_cards', []),
+      customNames: readJSON<Record<string, string>>('tunet_custom_names', {}),
+      customIcons: readJSON<Record<string, string>>('tunet_custom_icons', {}),
+      pageSettings: readJSON<Record<string, unknown>>('tunet_page_settings', {}),
       gridColumns: readNumber('tunet_grid_columns', 4),
       dynamicGridColumns: readBoolean('tunet_grid_columns_dynamic', true),
       gridGapH: readNumber('tunet_grid_gap_h', 20),
       gridGapV: readNumber('tunet_grid_gap_v', 20),
       cardBorderRadius: readNumber('tunet_card_border_radius', 16),
       cardsOnlyMode: readBoolean('tunet_cards_only_mode', false),
-      headerSettings: readJSON('tunet_header_settings', {
+      headerSettings: readJSON<HeaderSettings>('tunet_header_settings', {
         showTitle: true,
         showClock: true,
         showDate: true,
       }),
       headerTitle: localStorage.getItem('tunet_header_title') || '',
       headerScale: readNumber('tunet_header_scale', 1),
-      sectionSpacing: readJSON('tunet_section_spacing', {
+      sectionSpacing: readJSON<SectionSpacing>('tunet_section_spacing', {
         headerToStatus: 16,
         statusToNav: 24,
         navToGrid: 24,
       }),
-      statusPillsConfig: readJSON('tunet_status_pills_config', []),
+      statusPillsConfig: readJSON<unknown[]>('tunet_status_pills_config', []),
     },
     appearance: {
       theme: localStorage.getItem('tunet_theme') || 'dark',
@@ -97,13 +201,17 @@ export function collectSnapshot() {
  * Write a snapshot into localStorage AND update React context state via
  * the provided setter object.
  *
- * @param {any} snapshot Versioned snapshot (from collectSnapshot or API)
- * @param {Record<string, (...args: any[]) => any>} [contextSetters] Object with setter functions from PageContext + ConfigContext
+ * @param snapshot Versioned snapshot (from collectSnapshot or API)
+ * @param [contextSetters] Object with setter functions from PageContext + ConfigContext
  */
-export function applySnapshot(snapshot, contextSetters = {}) {
+export function applySnapshot(
+  snapshot: unknown,
+  contextSetters: SnapshotContextSetters = {}
+): void {
   if (!snapshot || typeof snapshot !== 'object') return;
 
-  const { layout = {}, appearance = {} } = snapshot;
+  // Untrusted input (API or file import): only the object check above is enforced at runtime.
+  const { layout = {}, appearance = {} } = snapshot as SnapshotInput;
 
   // ── Layout → localStorage ──
   if (layout.pagesConfig)
@@ -221,11 +329,13 @@ export function applySnapshot(snapshot, contextSetters = {}) {
 /**
  * Lightweight check that an object looks like a valid snapshot.
  */
-export function isValidSnapshot(obj) {
+export function isValidSnapshot(obj: unknown): boolean {
   if (!obj || typeof obj !== 'object') return false;
-  if (!Number.isInteger(obj.version) || obj.version < 1 || obj.version > SNAPSHOT_VERSION)
-    return false;
-  if (!obj.layout || typeof obj.layout !== 'object') return false;
-  if (!obj.appearance || typeof obj.appearance !== 'object') return false;
+  const candidate = obj as Record<string, unknown>;
+  // Number.isInteger() is not a type guard; once it passes, `version` is a number.
+  const version = candidate.version as number;
+  if (!Number.isInteger(version) || version < 1 || version > SNAPSHOT_VERSION) return false;
+  if (!candidate.layout || typeof candidate.layout !== 'object') return false;
+  if (!candidate.appearance || typeof candidate.appearance !== 'object') return false;
   return true;
 }

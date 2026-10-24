@@ -1,6 +1,16 @@
 // OAuth2 token persistence for Home Assistant
 // Used as saveTokens / loadTokens callbacks for HAWS getAuth()
 
+import type { AuthData } from 'home-assistant-js-websocket';
+
+// What HAWS hands to saveTokens and what we persist and read back.
+export type OAuthTokens = AuthData;
+
+type OAuthSyncPayload =
+  | { type: 'oauth-token-request' }
+  | { type: 'oauth-token-response'; tokens: OAuthTokens }
+  | { type: 'oauth-logout' };
+
 const PRIMARY_STORAGE_SLOT = 'tunet_auth_cache_v1';
 const TOKEN_SAVED_AT_SLOT = 'tunet_auth_saved_at_v1';
 const OAUTH_SYNC_REQUEST_KEY = 'tunet_auth_sync_request_v1';
@@ -25,11 +35,11 @@ const LEGACY_STORAGE_SLOT = String.fromCharCode(
   115
 );
 
-const tokenChangeListeners = new Set();
-const logoutListeners = new Set();
+const tokenChangeListeners = new Set<() => void>();
+const logoutListeners = new Set<() => void>();
 let syncInitialized = false;
-let syncChannel = null;
-let pendingTokenRequest = null;
+let syncChannel: BroadcastChannel | null = null;
+let pendingTokenRequest: Promise<OAuthTokens | undefined> | null = null;
 // Set when Home Assistant rejected the stored OAuth session; the expired-login
 // banner owns re-authentication until new tokens are saved.
 let oauthRejected = false;
@@ -85,13 +95,15 @@ const emitTokenChange = () => {
   }
 };
 
-const hasTokenPayload = (tokens) => Boolean(tokens?.access_token || tokens?.refresh_token);
+const hasTokenPayload = (tokens: OAuthTokens | null | undefined): tokens is OAuthTokens =>
+  Boolean(tokens?.access_token || tokens?.refresh_token);
 
-const parseStoredTokens = (raw) => {
+const parseStoredTokens = (raw: string | null | undefined): OAuthTokens | undefined => {
   if (!raw) return undefined;
-  const parsed = JSON.parse(raw);
+  const parsed: unknown = JSON.parse(raw);
   if (!parsed || typeof parsed !== 'object') return undefined;
-  return parsed;
+  // Written by saveTokens; only the object check above is done at runtime.
+  return parsed as OAuthTokens;
 };
 
 const readSessionTokens = () => {
@@ -101,7 +113,7 @@ const readSessionTokens = () => {
   return parseStoredTokens(sessionRaw);
 };
 
-const postSyncMessage = (key, payload) => {
+const postSyncMessage = (key: string, payload: OAuthSyncPayload) => {
   if (syncChannel) {
     syncChannel.postMessage(payload);
     return;
@@ -113,7 +125,7 @@ const postSyncMessage = (key, payload) => {
   localStore.removeItem(key);
 };
 
-const handleSyncPayload = (payload) => {
+const handleSyncPayload = (payload: OAuthSyncPayload | null | undefined) => {
   if (!payload || typeof payload !== 'object') return;
 
   if (payload.type === 'oauth-token-request') {
@@ -144,7 +156,8 @@ const ensureCrossTabSync = () => {
 
   if (typeof globalThis.BroadcastChannel === 'function') {
     syncChannel = new globalThis.BroadcastChannel(OAUTH_SYNC_CHANNEL_NAME);
-    const onMessage = (event) => handleSyncPayload(event?.data);
+    const onMessage = (event: MessageEvent<OAuthSyncPayload | null>) =>
+      handleSyncPayload(event?.data);
     if (typeof syncChannel.addEventListener === 'function') {
       syncChannel.addEventListener('message', onMessage);
     } else {
@@ -168,7 +181,7 @@ const ensureCrossTabSync = () => {
   });
 };
 
-export function saveTokens(tokenInfo) {
+export function saveTokens(tokenInfo: OAuthTokens | null): void {
   oauthRejected = false;
   try {
     const sessionStore = getSessionStorage();
@@ -187,7 +200,7 @@ export function saveTokens(tokenInfo) {
   }
 }
 
-export function loadTokens() {
+export function loadTokens(): OAuthTokens | undefined {
   try {
     const sessionStore = getSessionStorage();
     const localStore = getLocalStorage();
@@ -248,7 +261,7 @@ export function getOAuthTokenSavedAt() {
   }
 }
 
-export function subscribeToOAuthTokenChanges(listener) {
+export function subscribeToOAuthTokenChanges(listener: () => void): () => void {
   ensureCrossTabSync();
   tokenChangeListeners.add(listener);
   return () => {
@@ -256,7 +269,7 @@ export function subscribeToOAuthTokenChanges(listener) {
   };
 }
 
-export function subscribeToOAuthLogout(listener) {
+export function subscribeToOAuthLogout(listener: () => void): () => void {
   ensureCrossTabSync();
   logoutListeners.add(listener);
   return () => {
@@ -271,7 +284,9 @@ export function logoutOAuthEverywhere() {
   postSyncMessage(OAUTH_SYNC_REQUEST_KEY, { type: 'oauth-logout' });
 }
 
-export function requestTokensFromOtherTabs({ timeoutMs = OAUTH_SYNC_TIMEOUT_MS } = {}) {
+export function requestTokensFromOtherTabs({
+  timeoutMs = OAUTH_SYNC_TIMEOUT_MS,
+}: { timeoutMs?: number } = {}): Promise<OAuthTokens | undefined> {
   ensureCrossTabSync();
 
   const existingTokens = loadTokens();
@@ -283,7 +298,7 @@ export function requestTokensFromOtherTabs({ timeoutMs = OAUTH_SYNC_TIMEOUT_MS }
     return pendingTokenRequest;
   }
 
-  pendingTokenRequest = new Promise((resolve) => {
+  pendingTokenRequest = new Promise<OAuthTokens | undefined>((resolve) => {
     const unsubscribe = subscribeToOAuthTokenChanges(() => {
       const tokens = loadTokens();
       if (!hasTokenPayload(tokens)) return;

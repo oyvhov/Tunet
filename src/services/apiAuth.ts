@@ -1,4 +1,5 @@
 import { getAuth, ERR_INVALID_AUTH, ERR_INVALID_AUTH_CALLBACK } from 'home-assistant-js-websocket';
+import type { Auth } from 'home-assistant-js-websocket';
 import {
   clearOAuthTokens,
   getOAuthTokenSavedAt,
@@ -11,13 +12,20 @@ export const HOME_ASSISTANT_API_UNAUTHORIZED_EVENT = 'tunet:api-auth-unauthorize
 const OAUTH_PROACTIVE_REFRESH_MS = 45 * 60 * 1000;
 const OAUTH_REFRESH_SKEW_MS = 60 * 1000;
 
-export const isHomeAssistantAuthError = (error) =>
+// The context hands over its auth ref so requests reuse the live HAWS session.
+export type OAuthAuthProvider = { current: Auth | null };
+
+export type HomeAssistantRequestHeaders = Record<string, string>;
+
+export type HomeAssistantRequestHeadersOptions = { forceRefreshOAuth?: boolean };
+
+export const isHomeAssistantAuthError = (error: unknown) =>
   error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK;
 
-let oauthAuthProvider = null;
-let detachedOAuthAuth = null;
-let pendingOAuthRefreshPromise = null;
-let pendingOAuthAuthPromise = null;
+let oauthAuthProvider: OAuthAuthProvider | null = null;
+let detachedOAuthAuth: Auth | null = null;
+let pendingOAuthRefreshPromise: Promise<string> | null = null;
+let pendingOAuthAuthPromise: Promise<Auth> | null = null;
 
 export const getStoredAuthMethod = () => {
   try {
@@ -69,7 +77,7 @@ const clearCachedOAuthAuth = () => {
   pendingOAuthAuthPromise = null;
 };
 
-const ensureOAuthAuthSession = async () => {
+const ensureOAuthAuthSession = async (): Promise<Auth | null> => {
   if (!isOAuthAuthMethod()) {
     return null;
   }
@@ -138,10 +146,11 @@ const clearStoredTokenAuth = () => {
   }
 };
 
-/** @typedef {Error & { status: number, body: { error: string } }} UnauthorizedApiError */
+export type UnauthorizedApiError = Error & { status: number; body: { error: string } };
 
-const createUnauthorizedError = (message) => {
-  const error = /** @type {UnauthorizedApiError} */ (new Error(message));
+const createUnauthorizedError = (message: string) => {
+  // status and body are assigned right below.
+  const error = new Error(message) as UnauthorizedApiError;
   error.status = 401;
   error.body = { error: message };
   return error;
@@ -149,7 +158,7 @@ const createUnauthorizedError = (message) => {
 
 export function notifyHomeAssistantApiUnauthorized(
   message = 'Home Assistant authentication failed'
-) {
+): UnauthorizedApiError {
   const authMethod = getStoredAuthMethod();
 
   if (authMethod === 'oauth') {
@@ -175,14 +184,14 @@ export function notifyHomeAssistantApiUnauthorized(
   return createUnauthorizedError(message);
 }
 
-export function setOAuthAuthProvider(provider) {
+export function setOAuthAuthProvider(provider: OAuthAuthProvider | null | undefined): void {
   oauthAuthProvider = provider ?? null;
   if (provider) {
     detachedOAuthAuth = null;
   }
 }
 
-export async function refreshOAuthAccessToken() {
+export async function refreshOAuthAccessToken(): Promise<string> {
   if (!isOAuthAuthMethod()) {
     return getStoredToken();
   }
@@ -224,8 +233,8 @@ const getStoredFallbackUrl = () => {
   }
 };
 
-export function getHomeAssistantRequestHeaders() {
-  const headers = {};
+export function getHomeAssistantRequestHeaders(): HomeAssistantRequestHeaders {
+  const headers: HomeAssistantRequestHeaders = {};
   const haUrl = getStoredUrl();
   const fallbackUrl = getStoredFallbackUrl();
   const accessToken = isOAuthAuthMethod() ? getCurrentOAuthAccessToken() : getStoredToken();
@@ -245,8 +254,10 @@ export function getHomeAssistantRequestHeaders() {
   return headers;
 }
 
-export async function getHomeAssistantRequestHeadersAsync({ forceRefreshOAuth = false } = {}) {
-  const headers = {};
+export async function getHomeAssistantRequestHeadersAsync({
+  forceRefreshOAuth = false,
+}: HomeAssistantRequestHeadersOptions = {}): Promise<HomeAssistantRequestHeaders> {
+  const headers: HomeAssistantRequestHeaders = {};
   const haUrl = getStoredUrl();
   const fallbackUrl = getStoredFallbackUrl();
   let accessToken = isOAuthAuthMethod() ? getCurrentOAuthAccessToken() : getStoredToken();
@@ -286,12 +297,12 @@ export async function getHomeAssistantRequestHeadersAsync({ forceRefreshOAuth = 
   return headers;
 }
 
-export function hasHomeAssistantRequestAuth() {
+export function hasHomeAssistantRequestAuth(): boolean {
   const headers = getHomeAssistantRequestHeaders();
   return Boolean(headers['x-ha-url'] && headers.Authorization);
 }
 
-export function getValidatedHomeAssistantRequestHeaders() {
+export function getValidatedHomeAssistantRequestHeaders(): HomeAssistantRequestHeaders {
   const headers = getHomeAssistantRequestHeaders();
 
   if (!headers['x-ha-url']) {
@@ -305,7 +316,9 @@ export function getValidatedHomeAssistantRequestHeaders() {
   return headers;
 }
 
-export async function getValidatedHomeAssistantRequestHeadersAsync(options = {}) {
+export async function getValidatedHomeAssistantRequestHeadersAsync(
+  options: HomeAssistantRequestHeadersOptions = {}
+): Promise<HomeAssistantRequestHeaders> {
   const headers = await getHomeAssistantRequestHeadersAsync(options);
 
   if (!headers['x-ha-url']) {

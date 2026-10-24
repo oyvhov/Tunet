@@ -2,13 +2,120 @@
 // All functions assume a valid Home Assistant connection `conn`
 // via home-assistant-js-websocket createConnection.
 
-export function callService(conn, domain, service, service_data) {
+import type { Connection } from 'home-assistant-js-websocket';
+
+type HaConnection = Connection | null | undefined;
+
+export type ServiceData = Record<string, unknown>;
+
+type CallServiceMessage = {
+  type: 'call_service';
+  domain: string;
+  service: string;
+  target?: unknown;
+  service_data?: ServiceData | null;
+};
+
+// Service responses nest differently across HA versions and are probed defensively.
+type ResponseTree = { [key: string]: ResponseTree | undefined };
+
+// Full (state/last_changed) and compressed (s/lc/lu) history formats.
+export type HistoryEntry = {
+  entity_id?: string;
+  state?: string;
+  attributes?: Record<string, unknown>;
+  last_changed?: string;
+  last_updated?: string;
+  last_reported?: string;
+  s?: string;
+  a?: Record<string, unknown>;
+  lc?: number;
+  lu?: number;
+  [key: string]: unknown;
+};
+
+export type StatisticsEntry = {
+  start: number | string;
+  end?: number | string;
+  mean?: number | null;
+  min?: number | null;
+  max?: number | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SensorModal/WeatherModal (JS) parseFloat this; tighten when they migrate
+  state?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- same parseFloat use as state
+  sum?: any;
+  change?: number | null;
+  [key: string]: unknown;
+};
+
+export type ForecastEntry = Record<string, unknown>;
+
+export type CalendarEvent = Record<string, unknown>;
+
+export type CalendarEventsByEntity = Record<string, { events: CalendarEvent[] }>;
+
+export type TodoItem = {
+  uid: string;
+  summary: string;
+  status: string;
+  [key: string]: unknown;
+};
+
+export type AreaRegistryEntry = {
+  area_id: string;
+  name: string;
+  [key: string]: unknown;
+};
+
+export type DeviceRegistryEntry = {
+  id: string;
+  area_id?: string | null;
+  [key: string]: unknown;
+};
+
+export type EntityRegistryEntry = {
+  entity_id: string;
+  device_id?: string | null;
+  area_id?: string | null;
+  config_entry_id?: string | null;
+  config_entry_ids?: string[];
+  disabled_by?: string | null;
+  hidden_by?: string | null;
+  [key: string]: unknown;
+};
+
+type RegistryListResponse<T> = T[] | { result?: T[] } | null | undefined;
+
+export type HistoryOptions = {
+  start: Date;
+  end: Date;
+  entityId: string;
+  minimal_response?: boolean;
+  no_attributes?: boolean;
+};
+
+export type HistoryRestOptions = HistoryOptions & { significant_changes_only?: boolean };
+
+export type StatisticsOptions = {
+  start: Date;
+  end: Date;
+  statisticId: string;
+  period?: string;
+  types?: string[];
+};
+
+export function callService(
+  conn: HaConnection,
+  domain: string,
+  service: string,
+  service_data?: ServiceData | null
+): Promise<unknown> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     return Promise.reject(new Error('Invalid or disconnected HA connection'));
   }
 
-  const { target, ...restData } = service_data || {};
-  const message = {
+  const { target, ...restData }: ServiceData = service_data || {};
+  const message: CallServiceMessage = {
     type: 'call_service',
     domain,
     service,
@@ -25,20 +132,20 @@ export function callService(conn, domain, service, service_data) {
     message.service_data = service_data;
   }
 
-  return conn.sendMessagePromise(message).catch((error) => {
+  return conn.sendMessagePromise<unknown>(message).catch((error: unknown) => {
     console.error(`Service call failed (${domain}.${service}):`, error);
     throw error;
   });
 }
 
 export async function getHistory(
-  conn,
-  { start, end, entityId, minimal_response = false, no_attributes = true }
-) {
+  conn: HaConnection,
+  { start, end, entityId, minimal_response = false, no_attributes = true }: HistoryOptions
+): Promise<HistoryEntry[]> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
-  const res = await conn.sendMessagePromise({
+  const res = await conn.sendMessagePromise<ResponseTree | unknown[] | null>({
     type: 'history/history_during_period',
     start_time: start.toISOString(),
     end_time: end.toISOString(),
@@ -55,14 +162,18 @@ export async function getHistory(
   }
 
   // Support both object keyed by entity_id and array formats
-  let historyData = payload && payload[entityId];
+  // Arrays have no entity-id keys, so indexing them just yields undefined.
+  let historyData: unknown = payload && (payload as ResponseTree)[entityId];
   if (!historyData && Array.isArray(payload) && payload.length > 0) {
     historyData = Array.isArray(payload[0]) ? payload[0] : payload;
   }
   return Array.isArray(historyData) ? historyData : [];
 }
 
-export function canUseHistoryRest(baseUrl, currentOrigin = globalThis?.window?.location?.origin) {
+export function canUseHistoryRest(
+  baseUrl: string | null | undefined,
+  currentOrigin: string | undefined = globalThis?.window?.location?.origin
+): boolean {
   if (!baseUrl) return false;
   if (!currentOrigin) return true;
 
@@ -75,8 +186,8 @@ export function canUseHistoryRest(baseUrl, currentOrigin = globalThis?.window?.l
 }
 
 export async function getHistoryRest(
-  baseUrl,
-  token,
+  baseUrl: string | null | undefined,
+  token: string | null | undefined,
   {
     start,
     end: _end,
@@ -84,8 +195,8 @@ export async function getHistoryRest(
     minimal_response = false,
     no_attributes = false,
     significant_changes_only = false,
-  }
-) {
+  }: HistoryRestOptions
+): Promise<HistoryEntry[]> {
   if (!baseUrl) throw new Error('Missing HA url');
   const root = String(baseUrl).replace(/\/$/, '');
   const startIso = start.toISOString();
@@ -96,14 +207,14 @@ export async function getHistoryRest(
     significant_changes_only: significant_changes_only ? '1' : '0',
   });
   const url = `${root}/api/history/period/${startIso}?${params.toString()}`;
-  const headers = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, { headers });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`History REST failed: ${res.status} ${text}`);
   }
-  const data = await res.json();
+  const data: unknown = await res.json();
   if (Array.isArray(data) && data.length > 0) {
     return Array.isArray(data[0]) ? data[0] : data;
   }
@@ -111,13 +222,13 @@ export async function getHistoryRest(
 }
 
 export async function getStatistics(
-  conn,
-  { start, end, statisticId, period = '5minute', types = undefined }
-) {
+  conn: HaConnection,
+  { start, end, statisticId, period = '5minute', types = undefined }: StatisticsOptions
+): Promise<StatisticsEntry[]> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
-  const res = await conn.sendMessagePromise({
+  const res = await conn.sendMessagePromise<Record<string, StatisticsEntry[]> | null>({
     type: 'recorder/statistics_during_period',
     start_time: start.toISOString(),
     end_time: end.toISOString(),
@@ -129,11 +240,14 @@ export async function getStatistics(
   return Array.isArray(stats) ? stats : [];
 }
 
-export async function getForecast(conn, { entityId, type = 'hourly' }) {
+export async function getForecast(
+  conn: HaConnection,
+  { entityId, type = 'hourly' }: { entityId: string; type?: string }
+): Promise<ForecastEntry[]> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
-  const res = await conn.sendMessagePromise({
+  const res = await conn.sendMessagePromise<ResponseTree | null>({
     type: 'call_service',
     domain: 'weather',
     service: 'get_forecasts',
@@ -142,7 +256,7 @@ export async function getForecast(conn, { entityId, type = 'hourly' }) {
     return_response: true,
   });
 
-  const extractForecast = (obj) => {
+  const extractForecast = (obj: ResponseTree | null | undefined): ForecastEntry[] | null => {
     if (!obj || typeof obj !== 'object') return null;
     if (Array.isArray(obj.forecast)) return obj.forecast;
     return null;
@@ -168,11 +282,14 @@ export async function getForecast(conn, { entityId, type = 'hourly' }) {
   return [];
 }
 
-export async function getCalendarEvents(conn, { start, end, entityIds }) {
+export async function getCalendarEvents(
+  conn: HaConnection,
+  { start, end, entityIds }: { start: Date; end: Date; entityIds: string | string[] }
+): Promise<CalendarEventsByEntity> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
-  const res = await conn.sendMessagePromise({
+  const res = await conn.sendMessagePromise<ResponseTree | null>({
     type: 'call_service',
     domain: 'calendar',
     service: 'get_events',
@@ -184,12 +301,13 @@ export async function getCalendarEvents(conn, { start, end, entityIds }) {
     return_response: true,
   });
 
-  const normalized = {};
-  const addEntries = (obj) => {
+  const normalized: CalendarEventsByEntity = {};
+  const addEntries = (obj: ResponseTree | null | undefined) => {
     if (!obj || typeof obj !== 'object') return;
     Object.entries(obj).forEach(([key, value]) => {
       if (value && Array.isArray(value.events)) {
-        normalized[key] = value;
+        // value.events was checked to be an array just above; ResponseTree can't express that.
+        normalized[key] = value as unknown as { events: CalendarEvent[] };
       } else if (Array.isArray(value)) {
         normalized[key] = { events: value };
       }
@@ -217,14 +335,14 @@ export async function getCalendarEvents(conn, { start, end, entityIds }) {
 
 // ─── Todo helpers ─────────────────────────────────────────────
 
-export async function getTodoItems(conn, entityId) {
+export async function getTodoItems(conn: HaConnection, entityId: string): Promise<TodoItem[]> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
 
   // Try the dedicated WebSocket command first (preferred for frontends)
   try {
-    const res = await conn.sendMessagePromise({
+    const res = await conn.sendMessagePromise<{ items?: TodoItem[] } | null>({
       type: 'todo/item/list',
       entity_id: entityId,
     });
@@ -235,7 +353,7 @@ export async function getTodoItems(conn, entityId) {
     // If todo/item/list is not available or fails, fall back to service call
   }
 
-  const res = await conn.sendMessagePromise({
+  const res = await conn.sendMessagePromise<ResponseTree | null>({
     type: 'call_service',
     domain: 'todo',
     service: 'get_items',
@@ -245,7 +363,7 @@ export async function getTodoItems(conn, entityId) {
   });
 
   // HA can wrap the response in several layers
-  const extract = (obj) => {
+  const extract = (obj: ResponseTree | null | undefined): TodoItem[] => {
     if (!obj || typeof obj !== 'object') return [];
     if (Array.isArray(obj.items)) return obj.items;
     const inner = obj[entityId] || obj.response?.[entityId] || obj.service_response?.[entityId];
@@ -266,7 +384,11 @@ export async function getTodoItems(conn, entityId) {
   );
 }
 
-export async function addTodoItem(conn, entityId, summary) {
+export async function addTodoItem(
+  conn: HaConnection,
+  entityId: string,
+  summary: string
+): Promise<unknown> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
@@ -279,7 +401,12 @@ export async function addTodoItem(conn, entityId, summary) {
   });
 }
 
-export async function updateTodoItem(conn, entityId, uid, status) {
+export async function updateTodoItem(
+  conn: HaConnection,
+  entityId: string,
+  uid: string,
+  status: string
+): Promise<unknown> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
@@ -292,7 +419,11 @@ export async function updateTodoItem(conn, entityId, uid, status) {
   });
 }
 
-export async function removeTodoItem(conn, entityId, uid) {
+export async function removeTodoItem(
+  conn: HaConnection,
+  entityId: string,
+  uid: string
+): Promise<unknown> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
@@ -307,27 +438,33 @@ export async function removeTodoItem(conn, entityId, uid) {
 
 // ─── Area / Room registry helpers ─────────────────────────────
 
-export async function getAreas(conn) {
+export async function getAreas(conn: HaConnection): Promise<AreaRegistryEntry[]> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
-  const res = await conn.sendMessagePromise({ type: 'config/area_registry/list' });
+  const res = await conn.sendMessagePromise<RegistryListResponse<AreaRegistryEntry>>({
+    type: 'config/area_registry/list',
+  });
   return Array.isArray(res) ? res : res?.result || [];
 }
 
-export async function getDeviceRegistry(conn) {
+export async function getDeviceRegistry(conn: HaConnection): Promise<DeviceRegistryEntry[]> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
-  const res = await conn.sendMessagePromise({ type: 'config/device_registry/list' });
+  const res = await conn.sendMessagePromise<RegistryListResponse<DeviceRegistryEntry>>({
+    type: 'config/device_registry/list',
+  });
   return Array.isArray(res) ? res : res?.result || [];
 }
 
-export async function getEntityRegistry(conn) {
+export async function getEntityRegistry(conn: HaConnection): Promise<EntityRegistryEntry[]> {
   if (!conn || typeof conn.sendMessagePromise !== 'function') {
     throw new Error('Invalid or disconnected HA connection');
   }
-  const res = await conn.sendMessagePromise({ type: 'config/entity_registry/list' });
+  const res = await conn.sendMessagePromise<RegistryListResponse<EntityRegistryEntry>>({
+    type: 'config/entity_registry/list',
+  });
   return Array.isArray(res) ? res : res?.result || [];
 }
 
@@ -335,7 +472,11 @@ export async function getEntityRegistry(conn) {
  * Get related entity IDs for a source entity using HA registry linkage.
  * Relations are determined by shared device_id and/or config entry id.
  */
-export async function getRelatedEntityIds(conn, sourceEntityId, options = {}) {
+export async function getRelatedEntityIds(
+  conn: HaConnection,
+  sourceEntityId: string | null | undefined,
+  options: { domains?: string[] } = {}
+): Promise<string[]> {
   if (!sourceEntityId) return [];
 
   const domains = Array.isArray(options.domains) ? options.domains : null;
@@ -379,7 +520,10 @@ export async function getRelatedEntityIds(conn, sourceEntityId, options = {}) {
  * Get all entity IDs that belong to a given area.
  * Resolves via entity registry (direct area_id) and device registry (device -> area).
  */
-export async function getEntitiesForArea(conn, areaId) {
+export async function getEntitiesForArea(
+  conn: HaConnection,
+  areaId: string | null | undefined
+): Promise<string[]> {
   const [entityReg, deviceReg] = await Promise.all([
     getEntityRegistry(conn),
     getDeviceRegistry(conn),
