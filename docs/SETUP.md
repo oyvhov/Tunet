@@ -127,19 +127,19 @@ Where data lives:
 
 ## Environment Variables
 
-| Variable                | Default                 | Description                                                                             |
-| ----------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
-| `PORT`                  | `3002`                  | Backend server port                                                                     |
-| `DATA_DIR`              | `/app/data`             | SQLite database directory                                                               |
-| `NODE_ENV`              | `production`            | Environment mode                                                                        |
-| `VITE_PORT`             | `5173`                  | Vite dev server port (dev only)                                                         |
-| `VITE_PROXY_TARGET`     | `http://localhost:3002` | API proxy target (dev)                                                                  |
-| `TUNET_INTERNAL_HA_URL` | _(unset)_               | Required trusted Home Assistant URL for backend auth outside Supervisor ingress             |
-| `TUNET_INTERNAL_HA_FALLBACK_URL` | _(unset)_      | Optional secondary internal HA URL for backend auth validation in Docker/server setups   |
-| `TUNET_TRUST_SUPERVISOR_INGRESS` | `0`            | Trust Home Assistant Supervisor ingress headers. Intended for the add-on runtime only.   |
-| `TUNET_ENCRYPTION_MODE` | `off`                   | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only`              |
-| `TUNET_DATA_KEY`        | _(unset)_               | Secret used for encryption when mode is `dual` or `enc_only`                            |
-| `TUNET_DATA_KEY_SALT`   | _(unset)_               | Required only when `TUNET_DATA_KEY` is a passphrase instead of a 32-byte base64/hex key |
+| Variable                         | Default                 | Description                                                                             |
+| -------------------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
+| `PORT`                           | `3002`                  | Backend server port                                                                     |
+| `DATA_DIR`                       | `/app/data`             | SQLite database directory                                                               |
+| `NODE_ENV`                       | `production`            | Environment mode                                                                        |
+| `VITE_PORT`                      | `5173`                  | Vite dev server port (dev only)                                                         |
+| `VITE_PROXY_TARGET`              | `http://localhost:3002` | API proxy target (dev)                                                                  |
+| `TUNET_INTERNAL_HA_URL`          | _(unset)_               | Required trusted Home Assistant URL for backend auth outside Supervisor ingress         |
+| `TUNET_INTERNAL_HA_FALLBACK_URL` | _(unset)_               | Optional secondary internal HA URL for backend auth validation in Docker/server setups  |
+| `TUNET_TRUST_SUPERVISOR_INGRESS` | `0`                     | Trust Home Assistant Supervisor ingress headers. Intended for the add-on runtime only.  |
+| `TUNET_ENCRYPTION_MODE`          | `off`                   | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only`              |
+| `TUNET_DATA_KEY`                 | _(unset)_               | Secret used for encryption when mode is `dual` or `enc_only`                            |
+| `TUNET_DATA_KEY_SALT`            | _(unset)_               | Required only when `TUNET_DATA_KEY` is a passphrase instead of a 32-byte base64/hex key |
 
 Server-side auth guidance:
 
@@ -151,8 +151,8 @@ Server-side auth guidance:
 
 ### Data-at-rest encryption rollout (safe migration)
 
-- `off`: legacy behavior (plaintext DB storage only).
-- `dual`: writes plaintext + encrypted data, reads encrypted first then falls back to plaintext.
+- `off`: plaintext storage for unencrypted rows. Existing encrypted rows still require the original key to read and cannot be overwritten without encryption.
+- `dual`: writes plaintext + encrypted data and requires a working key. Existing encrypted payloads must decrypt successfully; unreadable ciphertext never falls back to plaintext.
 - `enc_only`: requires encrypted writes and stores only a minimal plaintext stub for new writes; reads encrypted first and only falls back to legacy plaintext rows that have no encrypted payload.
 
 Key guidance:
@@ -173,16 +173,18 @@ Recommended rollout to avoid data loss:
 2. Keep `dual` for at least one full release cycle.
 3. Move to `enc_only` only after confirming all rows/devices are migrated and keep the same key.
 
+Keep a backup of the database, key, and passphrase salt together. In `dual` and `enc_only`, startup checks the configured key against existing encrypted storage and stops if it cannot decrypt it. In `off`, the dashboard can start, but unreadable encrypted rows return `503 DATA_ENCRYPTION_UNAVAILABLE`; writes and publishing leave those rows intact. Restore the original key and mode instead of switching to `off` or generating a replacement key. Key rotation and conversion back to plaintext require an explicit migration.
+
 ## Troubleshooting
 
-| Problem             | Solution                                                                                                                  |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Port in use         | Change the port mapping in `docker-compose.yml`                                                                           |
-| Build fails         | Ensure Docker has enough memory. Try `docker system prune -a` then rebuild                                                |
-| Native module error | The Dockerfile installs build tools automatically. If building locally, ensure `python3`, `make`, and `g++` are available |
-| Connection error    | Check HA URL (no trailing `/api`) and token. For external origins ensure HA `cors_allowed_origins` includes your host     |
+| Problem             | Solution                                                                                                                                                                                      |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Port in use         | Change the port mapping in `docker-compose.yml`                                                                                                                                               |
+| Build fails         | Ensure Docker has enough memory. Try `docker system prune -a` then rebuild                                                                                                                    |
+| Native module error | The Dockerfile installs build tools automatically. If building locally, ensure `python3`, `make`, and `g++` are available                                                                     |
+| Connection error    | Check HA URL (no trailing `/api`) and token. For external origins ensure HA `cors_allowed_origins` includes your host                                                                         |
 | Profiles not saving | Check that the backend is running (`/api/health`) and that the backend container can reach Home Assistant; configure `TUNET_INTERNAL_HA_URL` and, if needed, `TUNET_INTERNAL_HA_FALLBACK_URL` |
-| History/CORS issues | Prefer WebSocket history; otherwise allow your origin in HA `cors_allowed_origins`                                        |
+| History/CORS issues | Prefer WebSocket history; otherwise allow your origin in HA `cors_allowed_origins`                                                                                                            |
 
 ## Release Workflow (Maintainers)
 

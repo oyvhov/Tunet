@@ -56,6 +56,10 @@ Tunet add-on builds are now version-resolved from release tags before falling ba
 
 ## Troubleshooting
 
+### Encrypted storage is unavailable
+
+Keep `data_encryption_key` and `data_encryption_salt` unchanged when upgrading or restarting. In `dual` and `enc_only`, a missing or incorrect key prevents startup. Switching `data_encryption_mode` to `off` lets the dashboard start but does not decrypt the database or permit overwriting encrypted rows. Restore the original settings and retain a backup of both the database and key.
+
 ### "Connection failed" after entering the token
 
 - Make sure the URL is correct (e.g., `http://homeassistant.local:8123`).
