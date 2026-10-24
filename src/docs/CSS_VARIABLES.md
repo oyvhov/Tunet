@@ -4,7 +4,7 @@ This file is the source of truth for theme tokens used by Tunet Dashboard.
 
 ## Where tokens are defined
 
-- Theme definitions: `src/config/themes.js`
+- Theme definitions: `src/config/themes.ts`
 - Applied at runtime: `src/contexts/ConfigContext.jsx`
 - Global defaults/aliases: `src/styles/index.css`
 

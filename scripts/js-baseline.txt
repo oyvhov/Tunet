@@ -63,10 +63,6 @@ src/components/ui/SettingsDropdown.jsx
 src/components/ui/ToastContainer.jsx
 src/components/ui/lazyModal.jsx
 src/components/ui/modalStyles.js
-src/config/constants.js
-src/config/defaults.js
-src/config/onboarding.js
-src/config/themes.js
 src/contexts/AppUiContext.jsx
 src/contexts/ConfigContext.jsx
 src/contexts/HomeAssistantContext.jsx
@@ -99,11 +95,6 @@ src/hooks/useSettingsSync.js
 src/hooks/useSmartTheme.js
 src/hooks/useTempHistory.js
 src/hooks/useWeatherForecast.js
-src/i18n/index.js
-src/i18n/languageUtils.js
-src/icons/iconMap.js
-src/icons/index.js
-src/icons/lucide.js
 src/layouts/BackgroundLayer.jsx
 src/layouts/ConnectionBanner.jsx
 src/layouts/DashboardLayout.jsx
