@@ -50,6 +50,7 @@ describe('Home Assistant authentication lifecycle', () => {
   });
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -85,6 +86,45 @@ describe('Home Assistant authentication lifecycle', () => {
     await waitFor(() => expect(result.current.haUnavailable).toBe(true));
     expect(result.current.oauthExpired).toBe(false);
     expect(hasOAuthTokens()).toBe(true);
+  });
+
+  it.each(['oauth', 'token'])(
+    'retries an unavailable HA on startup in %s mode',
+    async (authMethod) => {
+      vi.useFakeTimers();
+      const connection = makeConnection();
+      ha.createConnection.mockRejectedValueOnce(ERR_CANNOT_CONNECT).mockResolvedValue(connection);
+      const config = {
+        ...oauthConfig,
+        authMethod,
+        token: authMethod === 'token' ? 'long-lived' : '',
+      };
+      const { result, unmount } = renderHook(useHomeAssistantMeta, {
+        wrapper: ({ children }) => (
+          <HomeAssistantProvider config={config}>{children}</HomeAssistantProvider>
+        ),
+      });
+      await act(async () => {});
+      expect(result.current.connected).toBe(false);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(result.current.connected).toBe(true);
+      expect(ha.createConnection).toHaveBeenCalledTimes(2);
+      unmount();
+    }
+  );
+
+  it('cancels a pending startup retry when unmounted', async () => {
+    vi.useFakeTimers();
+    ha.createConnection.mockRejectedValue(ERR_CANNOT_CONNECT);
+    const { unmount } = renderHook(useHomeAssistantMeta, { wrapper });
+    await act(async () => {});
+    unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60000);
+    });
+    expect(ha.createConnection).toHaveBeenCalledTimes(1);
   });
 
   it('still connects with a long-lived token through the browser fallback URL', async () => {

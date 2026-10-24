@@ -12,6 +12,8 @@ import {
   createLongLivedTokenAuth,
   subscribeEntities,
   getAuth,
+  ERR_CANNOT_CONNECT,
+  ERR_CONNECTION_LOST,
 } from 'home-assistant-js-websocket';
 import { saveTokens, loadTokens, hasOAuthTokens } from '../services/oauthStorage';
 import {
@@ -273,6 +275,8 @@ export const HomeAssistantProvider = ({ children, config }) => {
 
     let connection;
     let cancelled = false;
+    let retryTimer;
+    let retryDelay = 5000;
     const isCurrentAttempt = () => !cancelled && connectAttemptRef.current === attemptId;
 
     setConnected(false);
@@ -495,6 +499,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
         if (!isCurrentAttempt()) return;
 
         // For OAuth, if auth is invalid, clear tokens and flag expiry
+        let retryError = err;
         if (isOAuth && isHomeAssistantAuthError(err)) {
           notifyHomeAssistantApiUnauthorized();
           return;
@@ -507,6 +512,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
             return;
           } catch (e) {
             if (!isCurrentAttempt()) return;
+            retryError = e;
             console.error('Fallback connection failed:', e);
           }
         }
@@ -514,6 +520,17 @@ export const HomeAssistantProvider = ({ children, config }) => {
           setConnected(false);
           setHaUnavailable(true);
           setDisconnectedSince(Date.now());
+          if (
+            retryError === ERR_CANNOT_CONNECT ||
+            retryError === ERR_CONNECTION_LOST ||
+            retryError instanceof TypeError
+          ) {
+            retryTimer = setTimeout(() => {
+              if (isCurrentAttempt() && (!isOAuth || hasOAuthTokens() || config.isIngress))
+                connect();
+            }, retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 60000);
+          }
         }
       }
     }
@@ -521,6 +538,7 @@ export const HomeAssistantProvider = ({ children, config }) => {
     connect();
     return () => {
       cancelled = true;
+      clearTimeout(retryTimer);
       if (connection) {
         try {
           connection.close();

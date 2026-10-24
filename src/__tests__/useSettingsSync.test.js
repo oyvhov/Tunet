@@ -79,6 +79,123 @@ describe('useSettingsSync', () => {
     });
   });
 
+  it.each([false, true])(
+    'reconciles an offline publication after reload (local edits=%s)',
+    async (edited) => {
+      vi.useFakeTimers();
+      const baseline = { ...collectSnapshot(), layout: { pagesConfig: { home: ['old'] } } };
+      const published = { ...baseline, layout: { pagesConfig: { home: ['published'] } } };
+      const local = { ...baseline, layout: { pagesConfig: { home: ['local-edit'] } } };
+      collectSnapshot.mockReturnValue(baseline);
+      fetchCurrentSettings.mockResolvedValue({ revision: 4, data: baseline });
+      const first = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await act(async () => {});
+      expect(first.result.current.currentRevision).toBe(4);
+      first.unmount();
+      collectSnapshot.mockReturnValue(edited ? local : baseline);
+      fetchCurrentSettings.mockResolvedValue({ revision: 5, data: published });
+      applySnapshot.mockImplementation((snapshot) => collectSnapshot.mockReturnValue(snapshot));
+      const second = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await act(async () => {});
+      expect(second.result.current.currentRevision).toBe(5);
+      if (edited) {
+        expect(second.result.current.status).toBe('conflict');
+        expect(applySnapshot).not.toHaveBeenCalled();
+        await act(async () => {
+          window.dispatchEvent(new Event('tunet:edit-done'));
+          await vi.advanceTimersByTimeAsync(1);
+        });
+        expect(saveCurrentSettings).not.toHaveBeenCalled();
+        second.unmount();
+        const third = renderHook(() =>
+          useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+        );
+        await act(async () => {});
+        expect(third.result.current.status).toBe('conflict');
+        await act(async () => {
+          await third.result.current.loadCurrentFromServer();
+        });
+        expect(collectSnapshot()).toEqual(published);
+        expect(third.result.current.status).toBe('synced');
+      } else {
+        expect(collectSnapshot()).toEqual(published);
+        expect(second.result.current.status).toBe('synced');
+        expect(saveCurrentSettings).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  it('recovers automatically after a temporary 503 without reloading the dashboard', async () => {
+    vi.useFakeTimers();
+    fetchCurrentSettings
+      .mockRejectedValueOnce(Object.assign(new Error('HA restarting'), { status: 503 }))
+      .mockResolvedValue({ revision: 4, data: collectSnapshot() });
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+    await act(async () => {});
+    expect(result.current.backgroundSyncSuspended).toBe(true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000);
+    });
+    expect(result.current.backgroundSyncSuspended).toBe(false);
+    expect(result.current.status).toBe('synced');
+    const reads = fetchCurrentSettings.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    });
+    expect(fetchCurrentSettings.mock.calls.length).toBeGreaterThan(reads);
+  });
+
+  it('does not mark unsaved edits as a conflict when the server revision has not changed', async () => {
+    vi.useFakeTimers();
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: collectSnapshot() });
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+    await act(async () => {});
+    collectSnapshot.mockReturnValue({ ...collectSnapshot(), appearance: { theme: 'light' } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4100);
+    });
+    expect(result.current.status).not.toBe('conflict');
+  });
+
+  it('saves an edit made during a temporary outage once the backend recovers', async () => {
+    vi.useFakeTimers();
+    const baseline = collectSnapshot();
+    fetchCurrentSettings
+      .mockRejectedValueOnce(Object.assign(new Error('HA restarting'), { status: 503 }))
+      .mockResolvedValue({ revision: 4, data: baseline });
+    const { result } = renderHook(() =>
+      useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+    );
+    await act(async () => {});
+    const edited = { ...baseline, layout: { pagesConfig: { home: ['offline-edit'] } } };
+    collectSnapshot.mockReturnValue(edited);
+    await act(async () => {
+      window.dispatchEvent(new Event('tunet:edit-done'));
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(saveCurrentSettings).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(saveCurrentSettings).toHaveBeenCalledTimes(1);
+    expect(saveCurrentSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ data: edited, base_revision: 4 }),
+      {}
+    );
+    expect(result.current.backgroundSyncSuspended).toBe(false);
+  });
+
   it('bootstraps sync and saves edits without ever opening the profiles modal', async () => {
     vi.useFakeTimers();
     const baseline = collectSnapshot();
@@ -254,6 +371,7 @@ describe('useSettingsSync', () => {
 
   it('applies published server config when device had no prior revision', async () => {
     vi.useFakeTimers();
+    saveCurrentSettings.mockRejectedValueOnce(new Error('Connection interrupted'));
     fetchCurrentSettings.mockResolvedValueOnce(null).mockResolvedValueOnce({
       revision: 1,
       updated_at: '2026-02-22T12:10:00.000Z',
