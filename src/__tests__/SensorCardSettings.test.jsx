@@ -488,4 +488,22 @@ describe('SensorCardSettings', () => {
       icon: 'Snowflake',
     });
   });
+
+  it('asks for a link instead of a target when the action opens a link', () => {
+    const save = vi.fn();
+    render(<Editor onSave={save} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Action type:/ }));
+    fireEvent.click(screen.getByRole('option', { name: 'Open link' }));
+    expect(screen.queryByText('Action target')).not.toBeInTheDocument();
+    const link = screen.getByLabelText('Link');
+    fireEvent.change(link, { target: { value: 'music.local' } });
+    expect(screen.getByText(en['sensor.custom.linkInvalid'])).toBeInTheDocument();
+    fireEvent.change(link, { target: { value: 'http://ma.local:8095' } });
+    expect(save).toHaveBeenLastCalledWith(
+      'entity_card_example',
+      'sensorAction',
+      expect.objectContaining({ type: 'url', url: 'http://ma.local:8095' })
+    );
+    expect(screen.getByText(en['sensor.custom.linkHint'])).toBeInTheDocument();
+  });
 });

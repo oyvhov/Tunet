@@ -100,6 +100,7 @@ export {
   VolumeX,
   Volume1,
   Link,
+  ExternalLink,
   Unlink,
   Search,
   ListChecks,

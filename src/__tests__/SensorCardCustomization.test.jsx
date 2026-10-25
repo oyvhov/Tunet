@@ -485,4 +485,41 @@ describe('SensorCard customization', () => {
     );
     expect(container.querySelector('[data-sensor-layout]')).toBeNull();
   });
+
+  it('opens a link action in a new tab, even while offline', () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    try {
+      render(
+        <SensorCard
+          {...props({
+            conn: null,
+            settings: {
+              size: 'large',
+              showGraph: false,
+              sensorAction: { type: 'url', url: 'http://ma.local:8095' },
+            },
+          })}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'sensor.action.openLink' }));
+      expect(open).toHaveBeenCalledWith('http://ma.local:8095/', '_blank', 'noopener,noreferrer');
+    } finally {
+      open.mockRestore();
+    }
+  });
+
+  it('disables a link action without a valid address', () => {
+    render(
+      <SensorCard
+        {...props({
+          settings: {
+            size: 'large',
+            showGraph: false,
+            sensorAction: { type: 'url', url: 'javascript:alert(1)' },
+          },
+        })}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'sensor.action.openLink' })).toBeDisabled();
+  });
 });

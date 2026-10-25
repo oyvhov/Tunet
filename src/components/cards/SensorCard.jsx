@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Check,
   ArrowRight,
+  ExternalLink,
   Info,
   getIconComponent,
 } from '../../icons';
@@ -670,7 +671,9 @@ const SensorCard = memo(
       editMode ||
       preview ||
       actionFeedback.pending ||
-      (config.action.type !== 'more-info' && (!conn || actionUnavailable));
+      (config.action.type === 'url'
+        ? !config.action.url
+        : config.action.type !== 'more-info' && (!conn || actionUnavailable));
     const actionLabel =
       (actionActive ? config.action.labelOn : config.action.labelOff) ||
       config.action.label ||
@@ -688,14 +691,18 @@ const SensorCard = memo(
                   ? translate('sensor.action.details')
                   : config.action.type === 'press'
                     ? translate('sensor.action.press')
-                    : translate('sensor.scene.activate'));
+                    : config.action.type === 'url'
+                      ? translate('sensor.action.openLink')
+                      : translate('sensor.scene.activate'));
     const ActionIcon =
       getIconComponent(config.action.icon) ||
       (['toggle', 'turn_on', 'turn_off'].includes(config.action.type)
         ? Power
         : config.action.type === 'more-info'
           ? ArrowRight
-          : Play);
+          : config.action.type === 'url'
+            ? ExternalLink
+            : Play);
     const confirmText = config.action.confirmLabel || translate('sensor.action.confirmPrompt');
     const isArmed = (override) => armedAction === (override || 'default');
     const executeAction = (event, override) => {

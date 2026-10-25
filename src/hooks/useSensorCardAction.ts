@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Connection } from 'home-assistant-js-websocket';
 import { callService as haCallService } from '../services/haClient';
+import { openExternalUrl } from '../utils/externalLinks';
 import {
   resolveSensorCardActionCall,
   sensorActionExpectationMatches,
@@ -122,6 +123,7 @@ export function useSensorCardAction({
         onOpen?.(resolvedAction.entityId);
         return true;
       }
+      if (resolvedAction.type === 'url') return openExternalUrl(resolvedAction.url);
       clearTimeout(feedbackTimerRef.current ?? undefined);
       const request: SensorActionRequest = {
         acknowledged: false,

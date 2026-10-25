@@ -128,7 +128,7 @@ export default function SensorCardSettings({
     ? allEntityIds.filter((id) => targetDomains.includes(id.split('.')[0]))
     : allEntityIds;
   const showActionTarget =
-    !['auto', 'none', 'service'].includes(actionType) ||
+    !['auto', 'none', 'service', 'url'].includes(actionType) ||
     (actionType === 'auto' && hasValue(action.entityId));
   const actionTargetValue =
     action.entityId || (supportsActionTarget(actionType, primaryId) ? primaryId : '');
@@ -334,6 +334,19 @@ export default function SensorCardSettings({
               value={trigger}
               onChange={(value) => updateAction({ trigger: value })}
             />
+            {resolvedActionType === 'url' ? (
+              <TextField
+                label={t('sensor.custom.link')}
+                hint={
+                  hasValue(action.url) && !config.action.url
+                    ? t('sensor.custom.linkInvalid')
+                    : t('sensor.custom.linkHint')
+                }
+                value={action.url}
+                onChange={(value) => updateAction({ url: value || null })}
+                placeholder="https://"
+              />
+            ) : null}
             {resolvedActionType === 'service' ? (
               <SensorServiceSettings
                 key={settingsKey}

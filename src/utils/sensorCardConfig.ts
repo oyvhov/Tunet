@@ -1,3 +1,5 @@
+import { normalizeExternalUrl } from './externalLinks';
+
 export const SENSOR_STATUS_MODES = ['auto', 'text', 'entity', 'attribute', 'hidden'];
 export const SENSOR_ACTION_TYPES = [
   'auto',
@@ -9,6 +11,7 @@ export const SENSOR_ACTION_TYPES = [
   'script',
   'press',
   'service',
+  'url',
   'none',
 ];
 
@@ -50,6 +53,7 @@ export type SensorActionSettings = {
   data?: unknown;
   confirm?: unknown;
   confirmLabel?: unknown;
+  url?: unknown;
 };
 
 export type SensorCardSettings = {
@@ -70,6 +74,7 @@ export type SensorCardAction = {
   targetEntity?: SensorEntity;
   service?: unknown;
   data?: Record<string, unknown>;
+  url?: unknown;
 };
 
 export type SensorActionExpectation = {
@@ -118,7 +123,9 @@ export function resolveSensorCardConfig(
     ? (storedAction.type as string)
     : 'auto';
   const targetMode =
-    configuredType === 'service' && storedAction.targetMode === 'none' ? 'none' : 'entity';
+    configuredType === 'url' || (configuredType === 'service' && storedAction.targetMode === 'none')
+      ? 'none'
+      : 'entity';
   const actionEntityId = targetMode === 'none' ? '' : textValue(storedAction.entityId) || entityId;
   const targetEntity =
     entities[actionEntityId] ||
@@ -169,6 +176,7 @@ export function resolveSensorCardConfig(
       data: objectValue(storedAction.data) ? { ...storedAction.data } : {},
       confirm: storedAction.confirm === true && !['none', 'more-info'].includes(resolvedActionType),
       confirmLabel: textValue(storedAction.confirmLabel),
+      url: normalizeExternalUrl(storedAction.url),
     },
   };
 }
@@ -195,7 +203,7 @@ export function resolveSensorCardActionCall(
   entity: SensorEntity | null | undefined = action?.targetEntity
 ) {
   const type = action?.type === 'auto' ? getSensorAutomaticActionType(entity) : action?.type;
-  if (type === 'none' || type === 'more-info') return null;
+  if (type === 'none' || type === 'more-info' || type === 'url') return null;
   const entityId =
     type === 'service' && action?.targetMode === 'none'
       ? ''

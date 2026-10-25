@@ -25,7 +25,8 @@ import {
 import M3Slider from '../components/ui/M3Slider';
 import SafeImage from '../components/ui/SafeImage';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
-import { isSonosMediaEntity } from '../utils';
+import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../utils';
+import MusicAssistantLink from '../components/media/MusicAssistantLink';
 import { getMediaPlayerPowerAction } from '../utils/mediaPlayerFeatures';
 
 const readJSON = (key, fallback) => {
@@ -1051,6 +1052,9 @@ export default function MediaModal({
                           {t('media.choose.lastChoice')}: {lastChoice.label}
                         </span>
                       </button>
+                    )}
+                    {isMusicAssistantMediaEntity(currentMp) && (
+                      <MusicAssistantLink title={t('media.openMusicAssistant')} />
                     )}
                   </>
                 )}
