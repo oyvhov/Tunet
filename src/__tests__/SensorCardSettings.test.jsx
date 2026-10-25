@@ -370,6 +370,41 @@ describe('SensorCardSettings', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('offers a centered layout for large cards that show a state', () => {
+    const save = vi.fn();
+    const { rerender } = render(<Editor onSave={save} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Centered' }));
+    expect(save).toHaveBeenCalledWith('entity_card_example', 'sensorLayout', 'centered');
+    fireEvent.click(screen.getByRole('button', { name: 'Standard' }));
+    expect(save).toHaveBeenLastCalledWith('entity_card_example', 'sensorLayout', null);
+    rerender(<Editor key="small" initialSettings={{ size: 'small' }} />);
+    expect(screen.queryByRole('button', { name: 'Centered' })).not.toBeInTheDocument();
+  });
+
+  it('lets an action ask for confirmation with its own text', () => {
+    const save = vi.fn();
+    render(<Editor onSave={save} />);
+    expect(screen.queryByLabelText('Confirmation text')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: 'Ask for confirmation' }));
+    expect(save).toHaveBeenLastCalledWith('entity_card_example', 'sensorAction', {
+      confirm: true,
+    });
+    const field = screen.getByLabelText('Confirmation text');
+    expect(field).toHaveAttribute('placeholder', 'Tap again to confirm');
+    fireEvent.change(field, { target: { value: 'Shut down?' } });
+    expect(save).toHaveBeenLastCalledWith('entity_card_example', 'sensorAction', {
+      confirm: true,
+      confirmLabel: 'Shut down?',
+    });
+    const actionSection = screen.getByRole('heading', { name: 'Action' }).closest('section');
+    expect(within(actionSection).getByRole('button', { name: 'Use defaults' })).toBeInTheDocument();
+  });
+
+  it('does not offer confirmation for an action that only opens details', () => {
+    render(<Editor initialSettings={{ entityId: 'sensor.temperature' }} />);
+    expect(screen.queryByRole('switch', { name: 'Ask for confirmation' })).not.toBeInTheDocument();
+  });
+
   it('only shows the Appearance section when the card has numeric styling to offer', () => {
     const { rerender } = render(<Editor initialSettings={{ entityId: 'scene.night' }} />);
     expect(screen.queryByRole('heading', { name: 'Appearance' })).not.toBeInTheDocument();

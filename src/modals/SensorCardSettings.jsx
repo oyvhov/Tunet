@@ -20,6 +20,7 @@ import {
 
 const EMPTY_OBJECT = {};
 const TRIGGERS = ['button', 'icon', 'card'];
+const LAYOUTS = ['standard', 'centered'];
 const APPEARANCE_KEYS = [
   'sensorVariant',
   'sensorMin',
@@ -68,6 +69,7 @@ function isActionCustomized(action) {
     if (key === 'type') return value !== 'auto';
     if (key === 'trigger') return value !== 'button';
     if (key === 'targetMode') return value !== 'entity';
+    if (key === 'confirm') return value === true;
     if (key === 'data') return Object.keys(value).length > 0;
     return true;
   });
@@ -146,6 +148,7 @@ export default function SensorCardSettings({
   const contentCustomized =
     settings.showName === false ||
     settings.showIcon === false ||
+    settings.sensorLayout === 'centered' ||
     hasValue(name) ||
     hasValue(iconName);
   const statusCustomized =
@@ -173,7 +176,7 @@ export default function SensorCardSettings({
         onReset={
           contentCustomized
             ? () => {
-                resetFields(['showName', 'showIcon']);
+                resetFields(['showName', 'showIcon', 'sensorLayout']);
                 onNameChange?.('');
                 onIconChange?.(null);
               }
@@ -219,6 +222,15 @@ export default function SensorCardSettings({
             onChange={(value) => save('showIcon', value)}
           />
         </div>
+        {settings.size !== 'small' && !showAppearance ? (
+          <ChoiceChips
+            label={t('sensor.custom.layout')}
+            hint={t('sensor.custom.layoutHint')}
+            options={chipOptions('layout', LAYOUTS)}
+            value={settings.sensorLayout === 'centered' ? 'centered' : 'standard'}
+            onChange={(value) => save('sensorLayout', value === 'centered' ? value : null)}
+          />
+        ) : null}
       </SettingsSection>
 
       <SettingsSection
@@ -347,6 +359,24 @@ export default function SensorCardSettings({
               }}
               placeholder={trigger === 'button' ? t('sensor.custom.automatic') : ''}
             />
+            {resolvedActionType !== 'more-info' ? (
+              <>
+                <ToggleRow
+                  label={t('sensor.custom.confirm')}
+                  hint={t('sensor.custom.confirmHint')}
+                  checked={action.confirm === true}
+                  onChange={(value) => updateAction({ confirm: value || null })}
+                />
+                {action.confirm === true ? (
+                  <TextField
+                    label={t('sensor.custom.confirmText')}
+                    value={action.confirmLabel}
+                    onChange={(value) => updateAction({ confirmLabel: value || null })}
+                    placeholder={t('sensor.action.confirmPrompt')}
+                  />
+                ) : null}
+              </>
+            ) : null}
           </>
         ) : null}
       </SettingsSection>
