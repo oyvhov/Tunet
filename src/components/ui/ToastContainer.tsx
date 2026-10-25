@@ -1,6 +1,9 @@
 import { useToast } from '../../contexts/ToastContext';
 
-const TYPE_STYLES = {
+const TYPE_STYLES: Record<
+  'error' | 'success' | 'info',
+  { bg: string; border: string; text: string }
+> = {
   error: {
     bg: 'var(--status-error-bg)',
     border: 'var(--status-error-border)',
@@ -25,12 +28,12 @@ export default function ToastContainer() {
   return (
     <div className="pointer-events-none fixed bottom-6 left-1/2 z-[9999] flex -translate-x-1/2 flex-col items-center gap-2">
       {toasts.map((toast) => {
-        const style = TYPE_STYLES[toast.type] || TYPE_STYLES.error;
+        const style = TYPE_STYLES[toast.type ?? 'error'] || TYPE_STYLES.error;
         return (
           <div
             key={toast.id}
             role="alert"
-            className="pointer-events-auto flex max-w-sm items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-md popup-anim"
+            className="popup-anim pointer-events-auto flex max-w-sm items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-md"
             style={{
               background: style.bg,
               border: `1px solid ${style.border}`,

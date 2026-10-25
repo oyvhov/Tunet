@@ -1,10 +1,19 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from '../../icons';
 import AccessibleModalShell from './AccessibleModalShell';
+import type { Translate } from '../../types/ha';
 
-export default function PinLockModal({ open, onClose, onSubmit, t, error }) {
+interface PinLockModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (pin: string) => void;
+  t: Translate;
+  error?: string | null;
+}
+
+export default function PinLockModal({ open, onClose, onSubmit, t, error }: PinLockModalProps) {
   const [pin, setPin] = useState('');
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const digits = useMemo(() => ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'], []);
 
@@ -19,7 +28,7 @@ export default function PinLockModal({ open, onClose, onSubmit, t, error }) {
 
   if (!open) return null;
 
-  const addDigit = (digit) => {
+  const addDigit = (digit: string) => {
     if (!digit || pin.length >= 4) return;
     setPin((prev) => `${prev}${digit}`);
   };

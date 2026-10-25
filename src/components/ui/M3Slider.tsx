@@ -1,4 +1,23 @@
 import { useState, useEffect, useRef, useId } from 'react';
+import type { ChangeEvent, FormEvent, InputHTMLAttributes } from 'react';
+
+interface M3SliderProps {
+  min: number;
+  max: number;
+  step?: number;
+  value: number;
+  onChange: (event: { target: { value: string } }) => void;
+  colorClass?: string;
+  disabled?: boolean;
+  variant?: 'default' | 'thin' | 'thinLg' | 'volume' | (string & {});
+  trackClass?: string;
+  thumbClass?: string;
+  height?: string;
+  ariaLabel?: string;
+  ariaValueText?: string;
+  id?: string;
+  name?: string;
+}
 
 export default function M3Slider({
   min,
@@ -16,7 +35,7 @@ export default function M3Slider({
   ariaValueText = undefined,
   id = undefined,
   name = undefined,
-}) {
+}: M3SliderProps) {
   const generatedId = useId();
   const inputId = id || `m3-slider-${generatedId.replace(/:/g, '')}`;
   const inputName = name || inputId;
@@ -24,8 +43,8 @@ export default function M3Slider({
     propColorClass === 'bg-[var(--accent-color)]' ? 'bg-[var(--accent-color)]' : propColorClass;
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
-  const timeoutRef = useRef(null);
-  const frameRef = useRef(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const frameRef = useRef<number | null>(null);
   const pendingValueRef = useRef(value);
 
   useEffect(() => {
@@ -56,8 +75,8 @@ export default function M3Slider({
     timeoutRef.current = setTimeout(() => setIsInteracting(false), 120);
   };
 
-  const handleInputChange = (e) => {
-    const nextValue = parseFloat(e.target.value);
+  const handleInputChange = (e: FormEvent<HTMLInputElement> | ChangeEvent<HTMLInputElement>) => {
+    const nextValue = parseFloat((e.target as HTMLInputElement).value);
     setInternalValue(nextValue);
     pendingValueRef.current = nextValue;
 
@@ -69,7 +88,7 @@ export default function M3Slider({
     });
   };
 
-  const commonInputProps = {
+  const commonInputProps: InputHTMLAttributes<HTMLInputElement> = {
     type: 'range',
     min,
     max,
@@ -79,7 +98,7 @@ export default function M3Slider({
     id: inputId,
     name: inputName,
     'aria-label': ariaLabel,
-    'aria-orientation': /** @type {const} */ ('horizontal'),
+    'aria-orientation': 'horizontal',
     'aria-valuemin': min,
     'aria-valuemax': max,
     'aria-valuenow': internalValue,
@@ -170,9 +189,9 @@ export default function M3Slider({
       className={`m3-slider-default relative w-full ${containerH} group flex items-center ${disabled ? 'pointer-events-none opacity-30' : ''}`}
       style={{
         touchAction: 'pan-y',
-        .../** @type {Record<string, string>} */ ({
+        .../** @type {Record<string, string>} */ {
           '--m3-slider-position': `${percentage}%`,
-        }),
+        },
       }}
       onClick={(e) => e.stopPropagation()}
     >

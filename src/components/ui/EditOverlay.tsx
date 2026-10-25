@@ -5,6 +5,7 @@
  * Extracted from the inline `getControls` function in App.jsx.
  */
 import { memo } from 'react';
+import type { ButtonHTMLAttributes } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,6 +18,30 @@ import {
   Minimize2,
   Trash2,
 } from '../../icons';
+
+interface EditOverlaySettings {
+  type?: string;
+  heightPx?: unknown;
+}
+
+interface EditOverlayProps {
+  cardId?: string;
+  editId: string;
+  settingsKey?: string;
+  isHidden?: boolean;
+  currentSize?: string;
+  settings?: EditOverlaySettings | null;
+  canRemove?: boolean;
+  onMoveLeft: () => void;
+  onMoveRight: () => void;
+  onEdit: () => void;
+  onToggleVisibility: () => void;
+  onSaveSize: (size: string) => void;
+  onRemove: () => void;
+  onDuplicate?: () => void;
+  dragHandleProps?: ButtonHTMLAttributes<HTMLButtonElement>;
+  t: (key: string) => string;
+}
 
 /** Prefixes for cards that support size toggling. */
 const RESIZABLE_PREFIXES = [
@@ -46,13 +71,13 @@ const RESIZABLE_PREFIXES = [
 /** Prefixes that cycle through 3 sizes (small → medium → large). */
 const TRIPLE_SIZE_PREFIXES = ['calendar_card_', 'todo_card_'];
 
-function canResize(editId, settings) {
+function canResize(editId: string, settings?: EditOverlaySettings | null) {
   if (editId === 'car') return true;
-  if (['entity', 'toggle', 'sensor', 'fan'].includes(settings?.type)) return true;
+  if (['entity', 'toggle', 'sensor', 'fan'].includes(settings?.type ?? '')) return true;
   return RESIZABLE_PREFIXES.some((p) => editId.startsWith(p));
 }
 
-function getNextSize(editId, currentSize) {
+function getNextSize(editId: string, currentSize?: string) {
   if (TRIPLE_SIZE_PREFIXES.some((p) => editId.startsWith(p))) {
     return currentSize === 'small' ? 'medium' : currentSize === 'medium' ? 'large' : 'small';
   }
@@ -76,7 +101,7 @@ function EditOverlay({
   onDuplicate,
   dragHandleProps,
   t,
-}) {
+}: EditOverlayProps) {
   const isSpacerCard = editId?.startsWith('spacer_card_');
   const isCompactSpacer =
     isSpacerCard && Number(settings?.heightPx || 0) > 0 && Number(settings?.heightPx || 0) <= 56;

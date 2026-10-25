@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { normalizeModalOverlayStyle } from './modalStyles';
 
 const FOCUSABLE_SELECTOR =
@@ -6,19 +7,22 @@ const FOCUSABLE_SELECTOR =
 const PRIORITY_FOCUS_SELECTOR =
   '[data-autofocus], [autofocus], input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]';
 
+interface AccessibleModalShellProps {
+  open: boolean;
+  // Also runs as the overlay click handler, so it can receive a mouse event.
+  onClose?: (event?: unknown) => void;
+  titleId?: string;
+  describedBy?: string;
+  overlayClassName?: string;
+  overlayStyle?: CSSProperties | null;
+  panelClassName?: string;
+  panelStyle?: CSSProperties;
+  children: (titleId: string) => ReactNode;
+}
+
 /**
  * Shared accessible modal shell with dialog semantics and focus management.
  * Keep visual styling in each modal by passing overlay/panel classes and styles.
- * @param {Object} props
- * @param {boolean} props.open
- * @param {(e?: any) => void} props.onClose
- * @param {string} [props.titleId]
- * @param {string} [props.describedBy]
- * @param {string} [props.overlayClassName]
- * @param {Object} [props.overlayStyle]
- * @param {string} [props.panelClassName]
- * @param {Object} [props.panelStyle]
- * @param {Function} props.children
  */
 export default function AccessibleModalShell({
   open,
@@ -30,11 +34,11 @@ export default function AccessibleModalShell({
   panelClassName,
   panelStyle,
   children,
-}) {
+}: AccessibleModalShellProps) {
   const fallbackTitleId = useId().replace(/:/g, '');
   const resolvedTitleId = titleId || `modal-title-${fallbackTitleId}`;
-  const panelRef = useRef(null);
-  const previousActiveRef = useRef(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousActiveRef = useRef<Element | null>(null);
   const wasOpenRef = useRef(false);
   const onCloseRef = useRef(onClose);
 
@@ -66,7 +70,7 @@ export default function AccessibleModalShell({
       if (target instanceof HTMLElement) target.focus();
     }
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (!panelRef.current) return;
       if (event.key === 'Escape') {
         event.preventDefault();

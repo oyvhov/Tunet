@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { ReactNode } from 'react';
 import { DEFAULT_MODAL_OVERLAY_STYLE } from './modalStyles';
 
 export const modalLoadingFallback = (
@@ -25,6 +26,6 @@ export const modalLoadingFallback = (
 /**
  * Shared Suspense wrapper for lazy-loaded modals.
  */
-export default function ModalSuspense({ children }) {
+export default function ModalSuspense({ children }: { children?: ReactNode }) {
   return <Suspense fallback={modalLoadingFallback}>{children}</Suspense>;
 }

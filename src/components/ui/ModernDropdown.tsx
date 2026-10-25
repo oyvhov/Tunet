@@ -1,9 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, SyntheticEvent } from 'react';
+import type { ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronRight } from '../../icons';
 
-/** @type {import('react').CSSProperties} */
-const HIDDEN_PORTAL_STYLE = {
+const HIDDEN_PORTAL_STYLE: CSSProperties = {
   position: 'fixed',
   top: 0,
   left: 0,
@@ -11,30 +12,30 @@ const HIDDEN_PORTAL_STYLE = {
   pointerEvents: 'none',
 };
 
-/**
- * @param {Object} props
- * @param {string} [props.label]
- * @param {any} props.icon
- * @param {string[]} props.options
- * @param {string} props.current
- * @param {Function} props.onChange
- * @param {Record<string, string>} [props.map]
- * @param {string} [props.placeholder]
- * @param {Function} [props.t]
- * @param {boolean} [props.labelHidden]
- * @param {'default'|'compact'|'inspector'} [props.variant]
- * @param {string} [props.wrapperClassName]
- * @param {string} [props.buttonClassName]
- * @param {string} [props.menuClassName]
- * @param {string} [props.optionClassName]
- * @param {string} [props.valueClassName]
- * @param {boolean} [props.menuPortal]
- * @param {'start'|'end'} [props.menuAlign]
- * @param {number} [props.menuMinWidth]
- * @param {number} [props.menuOffset]
- * @param {number} [props.menuZIndex]
- * @param {boolean} [props.stopPropagation]
- */
+interface ModernDropdownProps {
+  label?: string;
+  icon?: ComponentType<{ className?: string }>;
+  options: string[];
+  current: string;
+  onChange?: (option: string) => void;
+  map?: Record<string, string>;
+  placeholder?: string;
+  t?: (key: string) => string;
+  labelHidden?: boolean;
+  variant?: 'default' | 'compact' | 'inspector';
+  wrapperClassName?: string;
+  buttonClassName?: string;
+  menuClassName?: string;
+  optionClassName?: string;
+  valueClassName?: string;
+  menuPortal?: boolean;
+  menuAlign?: 'start' | 'end';
+  menuMinWidth?: number;
+  menuOffset?: number;
+  menuZIndex?: number;
+  stopPropagation?: boolean;
+}
+
 export default function ModernDropdown({
   label,
   icon: Icon,
@@ -57,24 +58,23 @@ export default function ModernDropdown({
   menuOffset = 8,
   menuZIndex = 80,
   stopPropagation = false,
-}) {
+}: ModernDropdownProps) {
   const resolvedPlaceholder = placeholder || t?.('dropdown.noneSelected') || 'Not selected';
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const dropdownRef = useRef(null);
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const listboxId = useId().replace(/:/g, '');
-  const [portalStyle, setPortalStyle] = useState(
-    /** @returns {import('react').CSSProperties} */ () => HIDDEN_PORTAL_STYLE
-  );
+  const [portalStyle, setPortalStyle] = useState<CSSProperties>(() => HIDDEN_PORTAL_STYLE);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: globalThis.MouseEvent) => {
+      const target = event.target as Node;
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        (!menuPortal || !menuRef.current?.contains(event.target))
+        !dropdownRef.current.contains(target) &&
+        (!menuPortal || !menuRef.current?.contains(target))
       ) {
         setIsOpen(false);
       }
@@ -86,7 +86,7 @@ export default function ModernDropdown({
   useEffect(() => {
     if (!isOpen) return undefined;
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.stopPropagation();
       setIsOpen(false);
@@ -149,7 +149,7 @@ export default function ModernDropdown({
     };
   }, [isOpen, menuPortal, menuAlign, menuMinWidth, menuOffset, menuZIndex, options]);
 
-  const getLabel = (val) => (map && map[val] ? map[val] : val);
+  const getLabel = (val: string) => (map && map[val] ? map[val] : val);
   const selectedLabel = String(getLabel(current) || resolvedPlaceholder);
   const isCompact = variant === 'compact';
   const isInspector = variant === 'inspector';
@@ -176,7 +176,7 @@ export default function ModernDropdown({
       : 'min-w-0 truncate text-xs font-bold tracking-widest uppercase italic';
   const labelText = label || resolvedPlaceholder;
 
-  const handleTriggerClick = (event) => {
+  const handleTriggerClick = (event: MouseEvent) => {
     if (stopPropagation) event.stopPropagation();
     setActiveIndex(Math.max(0, options.indexOf(current)));
     setIsOpen((prev) => !prev);
@@ -191,8 +191,8 @@ export default function ModernDropdown({
     }
   }, [isOpen, activeIndex]);
 
-  const handleMenuKeyDown = (event) => {
-    let next;
+  const handleMenuKeyDown = (event: KeyboardEvent) => {
+    let next: number;
     if (event.key === 'ArrowDown') next = (activeIndex + 1) % options.length;
     else if (event.key === 'ArrowUp') next = (activeIndex + options.length - 1) % options.length;
     else if (event.key === 'Home') next = 0;
@@ -203,13 +203,13 @@ export default function ModernDropdown({
     setActiveIndex(next);
   };
 
-  const handleBlur = (event) => {
-    const next = event.relatedTarget;
+  const handleBlur = (event: FocusEvent) => {
+    const next = event.relatedTarget as Node | null;
     if (dropdownRef.current?.contains(next) || menuRef.current?.contains(next)) return;
     setIsOpen(false);
   };
 
-  const handleStopPropagation = (event) => {
+  const handleStopPropagation = (event: SyntheticEvent) => {
     if (stopPropagation) event.stopPropagation();
   };
 
