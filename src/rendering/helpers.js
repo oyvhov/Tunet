@@ -34,5 +34,8 @@ export function withEditModeGuard(editMode, callback) {
  */
 export function renderMissingEntityWhenReady(ctx, props) {
   if (!ctx?.entitiesMissingReady) return null;
-  return createElement(MissingEntityCard, props);
+  return createElement(
+    MissingEntityCard,
+    /** @type {import('../components/cards/MissingEntityCard').MissingEntityCardProps} */ (props)
+  );
 }

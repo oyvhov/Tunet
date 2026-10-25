@@ -1,4 +1,16 @@
 import { memo } from 'react';
+import type { CardBaseProps } from '../../types/dashboard';
+import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+
+interface SpacerCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle'
+> {
+  cardSettings: CardSettingsMap;
+  settingsKey: string;
+  editMode?: boolean;
+  className?: string;
+}
 
 /**
  * SpacerCard – a layout utility card for visual separation.
@@ -17,11 +29,11 @@ const SpacerCard = ({
   settingsKey,
   editMode,
   className = '',
-}) => {
+}: SpacerCardProps) => {
   const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
   const variant = settings.variant || 'spacer';
   const heading = typeof settings.heading === 'string' ? settings.heading.trim() : '';
-  const headingAlign = ['left', 'center', 'right'].includes(settings.headingAlign)
+  const headingAlign = ['left', 'center', 'right'].includes(String(settings.headingAlign))
     ? settings.headingAlign
     : 'center';
 

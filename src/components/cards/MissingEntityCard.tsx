@@ -1,10 +1,19 @@
 import { memo } from 'react';
 import { AlertTriangle } from '../../icons';
+import type { CardBaseProps } from '../../types/dashboard';
+
+export interface MissingEntityCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 't'
+> {
+  label?: string;
+  missingEntityId?: string;
+}
 
 /**
  * Placeholder card shown in edit mode when an entity is missing or broken.
  */
-const MissingEntityCard = memo(/** @param {any} props */ function MissingEntityCard({
+const MissingEntityCard = memo(function MissingEntityCard({
   cardId,
   dragProps,
   controls,
@@ -12,7 +21,7 @@ const MissingEntityCard = memo(/** @param {any} props */ function MissingEntityC
   label,
   missingEntityId,
   t,
-}) {
+}: MissingEntityCardProps) {
   return (
     <div
       key={cardId}
