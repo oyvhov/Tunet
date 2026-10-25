@@ -697,6 +697,8 @@
   "profiles.autoSyncStatusSyncing": "正在同步",
   "profiles.autoSyncSyncNow": "立即同步",
   "profiles.autoSyncTitle": "自动保存当前设置",
+  "profiles.accountLayoutTitle": "在我的所有设备上使用相同布局",
+  "profiles.accountLayoutHint": "为你的 Home Assistant 账户保留一个布局，而不是每个浏览器一个。开启后会加载账户布局并重新加载页面。",
   "profiles.backendUnavailable": "配置文件服务器不可用。",
   "profiles.blankActive": "仪表板已重置。您可以撤消以恢复之前的设置。",
   "profiles.cancelEdit": "取消",

@@ -743,6 +743,8 @@
   "profiles.autoSyncStatusSyncing": "Synchronisiere",
   "profiles.autoSyncSyncNow": "Jetzt synchronisieren",
   "profiles.autoSyncTitle": "Aktuelle Konfiguration automatisch speichern",
+  "profiles.accountLayoutTitle": "Gleiches Layout auf allen meinen Geräten",
+  "profiles.accountLayoutHint": "Verwendet ein Layout für dein Home-Assistant-Konto statt eines pro Browser. Beim Einschalten wird das Konto-Layout geladen und die Seite neu geladen.",
   "profiles.backendUnavailable": "Profil-Server nicht verfügbar.",
   "profiles.blankActive": "Dashboard wurde zurückgesetzt. Du kannst dies rückgängig machen, um dein vorheriges Setup wiederherzustellen.",
   "profiles.cancelEdit": "Abbrechen",
