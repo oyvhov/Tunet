@@ -25,16 +25,6 @@ src/components/cards/TodoCard.jsx
 src/components/cards/VacuumCard.jsx
 src/components/cards/WeatherTempCard.jsx
 src/components/cards/sensorIcon.js
-src/components/charts/BinaryTimeline.jsx
-src/components/charts/InteractivePowerGraph.jsx
-src/components/charts/SensorGauge.jsx
-src/components/charts/SensorHistoryGraph.jsx
-src/components/charts/SparkLine.jsx
-src/components/charts/WeatherGraph.jsx
-src/components/effects/AuroraBackground.jsx
-src/components/effects/LavaLampBackground.jsx
-src/components/effects/SilkBackground.jsx
-src/components/effects/WeatherEffects.jsx
 src/components/index.js
 src/components/pages/BatteryPage.jsx
 src/components/pages/LightsPage.jsx

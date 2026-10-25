@@ -1,16 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
 import { isLightColor } from '../../utils/colorUtils';
 
 const MAX_DPR = 1.5;
 const FRAME_INTERVAL_MS = 1000 / 30;
 
-/**
- * SilkBackground — Soft pastel flowing waves on a bright base.
- * Designed for light themes: gentle, airy, and elegant.
- */
-const SilkBackground = ({ baseColor = '#f8fafc' }) => {
-  const canvasRef = useRef(null);
+const AuroraBackground = ({ baseColor = '#0f172a' }: { baseColor?: string }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const motionAllowed = useLowPowerMotion();
   const blendMode = isLightColor(baseColor) ? 'multiply' : 'screen';
 
@@ -21,21 +17,24 @@ const SilkBackground = ({ baseColor = '#f8fafc' }) => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    let animationFrameId;
-    let width, height;
+    if (!ctx) return undefined;
+    let animationFrameId = 0;
+    let width = 0;
+    let height = 0;
 
-    // Soft pastel ribbons
-    const ribbons = [
-      { x: 0.2, y: 0.15, r: 0.55, color: [147, 197, 253], phase: 0, speed: 0.00003 }, // Soft blue
-      { x: 0.75, y: 0.25, r: 0.5, color: [196, 181, 253], phase: 1.8, speed: 0.000025 }, // Lavender
-      { x: 0.5, y: 0.75, r: 0.45, color: [167, 243, 208], phase: 3.2, speed: 0.000035 }, // Mint
-      { x: 0.1, y: 0.6, r: 0.4, color: [253, 186, 116], phase: 4.8, speed: 0.00003 }, // Peach
-      { x: 0.85, y: 0.7, r: 0.38, color: [252, 165, 206], phase: 2.5, speed: 0.000028 }, // Rose
+    // Configuration - Reduced speeds for more fluid, languid movement
+    const orbs = [
+      { x: 0.2, y: 0.2, r: 0.5, color: '#4f46e5', phase: 0, speed: 0.00005 }, // Indigo
+      { x: 0.8, y: 0.3, r: 0.6, color: '#0ea5e9', phase: 2, speed: 0.00004 }, // Sky
+      { x: 0.5, y: 0.8, r: 0.5, color: '#8b5cf6', phase: 4, speed: 0.00006 }, // Violet
+      { x: 0.1, y: 0.9, r: 0.4, color: '#14b8a6', phase: 1, speed: 0.00005 }, // Teal
     ];
 
     const resize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
+
+      // Handle high DPI displays
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
       canvas.width = Math.ceil(width * dpr);
       canvas.height = Math.ceil(height * dpr);
@@ -48,43 +47,51 @@ const SilkBackground = ({ baseColor = '#f8fafc' }) => {
     resize();
 
     let lastFrameAt = 0;
-    const draw = (t) => {
+    const draw = (t: number) => {
       if (t - lastFrameAt < FRAME_INTERVAL_MS) {
         animationFrameId = requestAnimationFrame(draw);
         return;
       }
       lastFrameAt = t;
 
+      // Reset composite operation to ensure background clears correctly
+      // Otherwise screen blend mode accumulates, turning the screen white
       ctx.globalCompositeOperation = 'source-over';
 
-      // Base follows the active theme so the dashboard text stays readable
+      // Clear with the theme base color so text stays readable on any theme
       ctx.fillStyle = baseColor;
       ctx.fillRect(0, 0, width, height);
 
-      ribbons.forEach((ribbon, i) => {
-        // Gentle silk-like drifting
-        const xWave =
-          Math.sin(t * ribbon.speed * 3 + ribbon.phase) * 0.15 +
-          Math.sin(t * ribbon.speed * 7 + ribbon.phase * 1.3) * 0.05;
+      // Update and draw orbs
+      orbs.forEach((orb, i) => {
+        // Organic fluid movement using compound sine waves
+        const time = t * 1.0;
 
-        const yWave =
-          Math.cos(t * ribbon.speed * 2 + ribbon.phase) * 0.12 +
-          Math.cos(t * ribbon.speed * 5 + ribbon.phase * 0.8) * 0.06;
+        // Compound sine waves for non-linear path
+        // Using the orb.speed (very small number) directly with large time multiplier
+        const noiseX =
+          Math.sin(time * orb.speed * 4 + orb.phase) * 0.2 +
+          Math.sin(time * orb.speed * 8 + orb.phase) * 0.1;
 
-        // Gentle breathing
-        const breathe = Math.sin(t * 0.0004 + i * 1.5) * 0.06;
+        const noiseY =
+          Math.cos(time * orb.speed * 3 + orb.phase) * 0.2 +
+          Math.cos(time * orb.speed * 5 + orb.phase) * 0.1;
 
-        const x = (ribbon.x + xWave) * width;
-        const y = (ribbon.y + yWave) * height;
-        const radius = Math.min(width, height) * (ribbon.r + breathe);
+        // Interaction term
+        const interaction = Math.sin(time * 0.0001) * 0.02;
 
+        const x = (orb.x + noiseX + interaction) * width;
+        const y = (orb.y + noiseY + interaction) * height;
+
+        // Breathing radius
+        const radius = Math.min(width, height) * (orb.r + Math.sin(time * 0.0005 + i) * 0.05);
+
+        // Draw radial gradient
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-        const [r, g, b] = ribbon.color;
 
-        // Very soft layering — multiply blending on white gives watercolor effect
-        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.3)`);
-        gradient.addColorStop(0.35, `rgba(${r}, ${g}, ${b}, 0.15)`);
-        gradient.addColorStop(0.65, `rgba(${r}, ${g}, ${b}, 0.05)`);
+        // Soft ehereal blending
+        gradient.addColorStop(0, orb.color + '66');
+        gradient.addColorStop(0.6, orb.color + '22');
         gradient.addColorStop(1, 'transparent');
 
         ctx.globalCompositeOperation = blendMode;
@@ -113,12 +120,13 @@ const SilkBackground = ({ baseColor = '#f8fafc' }) => {
       {motionAllowed && (
         <canvas
           ref={canvasRef}
-          style={{ filter: 'blur(64px)', opacity: 0.7 }}
+          style={{ filter: 'blur(56px)', opacity: 0.8 }}
           className="absolute inset-0 h-full w-full"
         />
       )}
+      {/* Noise texture overlay for texture */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.02]"
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}
@@ -127,4 +135,4 @@ const SilkBackground = ({ baseColor = '#f8fafc' }) => {
   );
 };
 
-export default SilkBackground;
+export default AuroraBackground;

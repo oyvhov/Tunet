@@ -1,22 +1,41 @@
 import { useState, useRef } from 'react';
 import { CHART_STATUS_COLORS, getThresholdColor } from '../../utils/chartColors';
 
-/**
- * @param {Object} props
- * @param {any} props.data
- * @param {any} props.currentIndex
- * @param {Function} props.t
- * @param {string} [props.locale]
- * @param {string} [props.language]
- * @param {string} [props.unit]
- * @param {any} [props.priceStats]
- */
-export default function InteractivePowerGraph({ data, currentIndex, t, locale, language, unit }) {
-  const translate = t || ((key) => key);
+interface PowerDatum {
+  value: number;
+  start: string | number | Date;
+}
+
+interface PowerPoint {
+  x: number;
+  y: number;
+  val: number;
+  time: string;
+}
+
+interface InteractivePowerGraphProps {
+  data?: PowerDatum[] | null;
+  currentIndex?: number;
+  t?: (key: string) => string;
+  locale?: string;
+  language?: string;
+  unit?: string;
+  priceStats?: unknown;
+}
+
+export default function InteractivePowerGraph({
+  data,
+  currentIndex,
+  t,
+  locale,
+  language,
+  unit,
+}: InteractivePowerGraphProps) {
+  const translate = t || ((key: string) => key);
   const currency = unit || translate('power.ore');
   const timeLocale = locale || language || 'en-GB';
-  const [hoverIndex, setHoverIndex] = useState(null);
-  const svgRef = useRef(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   if (!data || data.length === 0) return null;
   const values = data.map((d) => d.value);
   const min = Math.min(...values);
@@ -30,7 +49,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, l
   const chartTop = verticalPadding;
   const chartBottom = height - verticalPadding;
   const chartHeight = Math.max(1, chartBottom - chartTop);
-  const points = values.map((v, i) => ({
+  const points: PowerPoint[] = values.map((v, i) => ({
     x: values.length === 1 ? width / 2 : (i / (values.length - 1)) * width,
     y: chartBottom - ((v - min) / range) * chartHeight,
     val: v,
@@ -41,10 +60,15 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, l
   }));
 
   // Bezier smoothing helper
-  const getBezierPath = (points, _isClosed = false) => {
+  const getBezierPath = (points: PowerPoint[], _isClosed = false) => {
     if (points.length === 0) return '';
 
-    const controlPoint = (current, previous, next, reverse) => {
+    const controlPoint = (
+      current: PowerPoint,
+      previous: PowerPoint | undefined,
+      next: PowerPoint | undefined,
+      reverse?: boolean
+    ) => {
       const p = previous || current;
       const n = next || current;
       const smoothing = 0.2;
@@ -56,7 +80,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, l
       return { x, y };
     };
 
-    const line = (pointA, pointB) => {
+    const line = (pointA: PowerPoint, pointB: PowerPoint) => {
       const lengthX = pointB.x - pointA.x;
       const lengthY = pointB.y - pointA.y;
       return {
@@ -65,7 +89,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, l
       };
     };
 
-    const d = points.reduce((acc, point, i, a) => {
+    const d = points.reduce((acc: string, point, i, a) => {
       if (i === 0) return `M ${point.x},${point.y}`;
       const cps = controlPoint(a[i - 1], a[i - 2], point);
       const cpe = controlPoint(point, a[i - 1], a[i + 1], true);
@@ -77,10 +101,10 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, l
 
   const pathData = getBezierPath(points);
   const areaData = `${pathData} L ${width},${chartBottom} L 0,${chartBottom} Z`;
-  const currentPointData = points[currentIndex] || points[0];
+  const currentPointData = points[currentIndex ?? -1] || points[0];
   const hoverPointData = (hoverIndex !== null ? points[hoverIndex] : currentPointData) || points[0];
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: { clientX: number }) => {
     if (!svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * width;
@@ -88,7 +112,7 @@ export default function InteractivePowerGraph({ data, currentIndex, t, locale, l
     if (idx >= 0 && idx < values.length) setHoverIndex(idx);
   };
 
-  const getDotColor = (val) => {
+  const getDotColor = (val: number) => {
     const t = (val - min) / range;
     return getThresholdColor(t);
   };

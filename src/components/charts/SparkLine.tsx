@@ -1,14 +1,41 @@
 import { memo, useId } from 'react';
 import { CHART_STATUS_COLORS, getThresholdColor } from '../../utils/chartColors';
 
+type Point = [number, number];
+
+interface SparkLineDatum {
+  value: number;
+}
+
+interface SparkLineProps {
+  data?: SparkLineDatum[] | null;
+  currentIndex?: number;
+  height?: number;
+  fade?: boolean;
+  variant?: 'line' | 'bar';
+  bleed?: boolean;
+  maxBars?: number;
+  zeroBaseline?: boolean;
+  ariaLabel?: string;
+}
+
 // Helper function to create smooth Bezier curves
-const createBezierPath = (points, smoothing = 0.3, bounds) => {
-  const line = (p1, p2) => {
+const createBezierPath = (
+  points: Point[],
+  smoothing = 0.3,
+  bounds?: { minY: number; maxY: number }
+) => {
+  const line = (p1: Point, p2: Point) => {
     const dx = p2[0] - p1[0];
     const dy = p2[1] - p1[1];
     return { length: Math.sqrt(dx * dx + dy * dy), angle: Math.atan2(dy, dx) };
   };
-  const controlPoint = (current, previous, next, reverse) => {
+  const controlPoint = (
+    current: Point,
+    previous: Point | undefined,
+    next: Point | undefined,
+    reverse: boolean
+  ): Point => {
     const p = previous || current;
     const n = next || current;
     const l = line(p, n);
@@ -20,7 +47,7 @@ const createBezierPath = (points, smoothing = 0.3, bounds) => {
       bounds ? Math.max(bounds.minY, Math.min(bounds.maxY, y)) : y,
     ];
   };
-  return points.reduce((acc, point, i, a) => {
+  return points.reduce((acc: string, point, i, a) => {
     if (i === 0) return `M ${point[0]},${point[1]}`;
     const [cpsX, cpsY] = controlPoint(a[i - 1], a[i - 2], point, false);
     const [cpeX, cpeY] = controlPoint(point, a[i - 1], a[i + 1], true);
@@ -38,7 +65,7 @@ function SparkLine({
   maxBars = 16,
   zeroBaseline = false,
   ariaLabel = 'Sensor history',
-}) {
+}: SparkLineProps) {
   const pointsData = Array.isArray(data) ? data : [];
   const lineStrokeWidth = 3;
   const pointRadius = 3.5;
@@ -90,7 +117,7 @@ function SparkLine({
   const chartTop = verticalPadding;
   const chartBottom = height - verticalPadding;
   const chartHeight = Math.max(1, chartBottom - chartTop);
-  const points = values.map((v, i) => [
+  const points: Point[] = values.map((v, i) => [
     values.length === 1 ? width / 2 : plotInset + (i / (values.length - 1)) * plotWidth,
     chartBottom - ((v - min) / range) * chartHeight,
   ]);
@@ -102,12 +129,15 @@ function SparkLine({
   const areaBottom = bleed ? height + 4 : chartBottom;
   const areaData = `${pathData} L ${width - plotInset},${areaBottom} L ${plotInset},${areaBottom} Z`;
   const normalizedCurrentIndex =
-    Number.isInteger(currentIndex) && currentIndex >= 0 && currentIndex < values.length
+    typeof currentIndex === 'number' &&
+    Number.isInteger(currentIndex) &&
+    currentIndex >= 0 &&
+    currentIndex < values.length
       ? currentIndex
       : 0;
   const currentPoint = points[normalizedCurrentIndex] || points[0];
 
-  const getValueColor = (val) => {
+  const getValueColor = (val: number) => {
     const t = (val - min) / range;
     return getThresholdColor(t);
   };
