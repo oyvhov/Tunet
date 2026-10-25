@@ -912,7 +912,9 @@ export default function App() {
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('auth_callback');
   const hasAuth =
-    config.token || (config.authMethod === 'oauth' && (hasOAuthTokens() || isOAuthCallback));
+    config.token ||
+    config.haSession ||
+    (config.authMethod === 'oauth' && (hasOAuthTokens() || isOAuthCallback));
   const [showOnboarding, setShowOnboarding] = useState(() => !hasAuth);
 
   useEffect(() => {
