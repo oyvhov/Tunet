@@ -1,6 +1,14 @@
 import { useMemo } from 'react';
+import type { ReactEventHandler } from 'react';
 
-export default function SafeImage({ imageUrl, alt = '', className = '', onError }) {
+interface SafeImageProps {
+  imageUrl?: unknown;
+  alt?: string;
+  className?: string;
+  onError?: ReactEventHandler<HTMLImageElement>;
+}
+
+export default function SafeImage({ imageUrl, alt = '', className = '', onError }: SafeImageProps) {
   const safeSrc = useMemo(() => {
     if (typeof imageUrl !== 'string') return null;
     const value = imageUrl.trim();

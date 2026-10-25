@@ -1,7 +1,17 @@
-import React from 'react';
 import { HardDrive } from 'lucide-react';
+import type { ComponentType, SVGProps } from 'react';
 
-export function EmbyLogo(props) {
+type LogoProps = SVGProps<SVGSVGElement>;
+
+export interface ServerInfo {
+  name: string;
+  icon: ComponentType<LogoProps>;
+  color: string;
+  bg: string;
+  border: string;
+}
+
+export function EmbyLogo(props: LogoProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
       <path d="M11,2L6,7L7,8L2,13L7,18L8,17L13,22L18,17L17,16L22,11L17,6L16,7L11,2M10,8.5L16,12L10,15.5V8.5Z" />
@@ -9,7 +19,7 @@ export function EmbyLogo(props) {
   );
 }
 
-export function JellyfinLogo(props) {
+export function JellyfinLogo(props: LogoProps) {
   return (
     <svg viewBox="0 0 512 512" {...props}>
       <defs>
@@ -37,7 +47,7 @@ export function JellyfinLogo(props) {
   );
 }
 
-export function NRKLogo(props) {
+export function NRKLogo(props: LogoProps) {
   return (
     <svg viewBox="0 0 100 100" fill="currentColor" {...props}>
       {/* NRK logo - stylized N shape */}
@@ -53,7 +63,7 @@ export function NRKLogo(props) {
   );
 }
 
-export function getServerInfo(id) {
+export function getServerInfo(id?: unknown): ServerInfo {
   if (!id || typeof id !== 'string')
     return {
       name: 'Media',

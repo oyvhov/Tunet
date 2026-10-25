@@ -1,15 +1,16 @@
-import React from 'react';
+import type { ReactNode } from 'react';
+
+interface BatteryBarProps {
+  variant?: 'glass' | 'solid' | 'outline';
+  showNub?: boolean;
+  isMobile?: boolean;
+  className?: string;
+  children?: ReactNode;
+}
 
 /**
  * Battery-shaped container for header content.
  * Pure presentational — pill shape with optional terminal nub.
- *
- * @param {Object} props
- * @param {'glass'|'solid'|'outline'} [props.variant='glass']
- * @param {boolean} [props.showNub=true]
- * @param {boolean} [props.isMobile=false]
- * @param {string} [props.className]
- * @param {React.ReactNode} props.children
  */
 export default function BatteryBar({
   variant = 'glass',
@@ -17,7 +18,7 @@ export default function BatteryBar({
   isMobile = false,
   className = '',
   children,
-}) {
+}: BatteryBarProps) {
   const variantClass =
     variant === 'solid'
       ? 'battery-bar--solid'
