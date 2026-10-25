@@ -397,6 +397,164 @@ test.describe('Modal Interactions', () => {
     await chooser.getByRole('button', { name: 'Favorites' }).click();
   });
 
+  test('should browse, search and play Music Assistant media through its own actions', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1060, height: 700 });
+    await page.addInitScript(() => {
+      const item = (media_type, id, name, extra = {}) => ({
+        media_type,
+        uri: `library://${media_type}/${id}`,
+        name,
+        version: '',
+        image: null,
+        ...extra,
+      });
+      const library = {
+        playlist: [item('playlist', 1, 'Fredagsmiks')],
+        album: [item('album', 7, 'Lust For Life', { artists: [{ name: 'Lana Del Rey' }] })],
+      };
+      const favorites = { album: [item('album', 53, 'Born To Die')] };
+      window.__maCalls = [];
+
+      class MusicAssistantWebSocket extends window.WebSocket {
+        dispatchEvent(event) {
+          if (event.type === 'message') {
+            const payload = JSON.parse(event.data);
+            if (payload.type === 'event' && payload.event?.a) {
+              payload.event.a['media_player.kitchen_ma'] = {
+                s: 'playing',
+                a: {
+                  friendly_name: 'Kitchen MA',
+                  media_title: 'Video Games',
+                  media_artist: 'Lana Del Rey',
+                  mass_player_type: 'player',
+                  app_id: 'music_assistant',
+                  supported_features: 4127295,
+                },
+                c: 'ma-e2e',
+                lc: 1774816140,
+                lu: 1774816140,
+              };
+              return super.dispatchEvent(
+                new MessageEvent('message', { data: JSON.stringify(payload) })
+              );
+            }
+          }
+          return super.dispatchEvent(event);
+        }
+
+        send(data) {
+          const message = JSON.parse(data);
+          const reply = (result) =>
+            setTimeout(
+              () =>
+                this.dispatchEvent(
+                  new MessageEvent('message', {
+                    data: JSON.stringify({ id: message.id, type: 'result', success: true, result }),
+                  })
+                ),
+              10
+            );
+          if (message.type === 'config/entity_registry/get') {
+            reply({ entity_id: message.entity_id, config_entry_id: 'ma-entry' });
+            return;
+          }
+          if (message.type === 'call_service' && message.domain === 'music_assistant') {
+            window.__maCalls.push(message);
+            const data = message.service_data || {};
+            if (message.service === 'get_library') {
+              const items = data.favorite
+                ? favorites[data.media_type] || []
+                : library[data.media_type] || [];
+              reply({ context: { id: 'ma' }, response: { items } });
+              return;
+            }
+            if (message.service === 'search') {
+              reply({
+                context: { id: 'ma' },
+                response: {
+                  tracks: [
+                    item('track', 60, '13 Beaches', { artists: [{ name: 'Lana Del Rey' }] }),
+                  ],
+                  albums: [],
+                  artists: [],
+                  playlists: [],
+                  radio: [],
+                  podcasts: [],
+                  audiobooks: [],
+                },
+              });
+              return;
+            }
+            reply({ context: { id: 'ma' } });
+            return;
+          }
+          if (message.type === 'media_player/browse_media') {
+            window.__maCalls.push(message);
+          }
+          super.send(data);
+        }
+      }
+      window.WebSocket = MusicAssistantWebSocket;
+      localStorage.setItem(
+        'tunet_status_pills_config',
+        JSON.stringify([
+          {
+            id: 'ma-media',
+            type: 'media_player',
+            label: 'Kitchen music',
+            visible: true,
+            clickable: true,
+            conditionEnabled: false,
+            entityId: 'media_player.kitchen_ma',
+          },
+        ])
+      );
+      localStorage.setItem(
+        'tunet_media_view_mode_by_modal',
+        JSON.stringify({ 'media::default': true })
+      );
+    });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: /Kitchen music Lana Del Rey/ }).click();
+    const modal = page.locator('[role="dialog"]').first();
+    await expect(modal).toBeVisible();
+    await modal.getByRole('button', { name: 'Choose media' }).click();
+
+    const chooser = modal.getByTestId('media-chooser');
+    await expect(chooser.getByText('Born To Die')).toBeVisible();
+    await chooser.getByRole('button', { name: 'Playlists' }).click();
+    await expect(chooser.getByText('Fredagsmiks')).toBeVisible();
+    await chooser.getByRole('button', { name: 'Library' }).click();
+    await expect(chooser.getByText('Lust For Life')).toBeVisible();
+    await expect(chooser.getByText('Lana Del Rey')).toBeVisible();
+
+    await chooser.getByRole('button', { name: 'Search' }).click();
+    await expect(chooser.getByText('Type to search Music Assistant')).toBeVisible();
+    await chooser.getByRole('searchbox').fill('lana');
+    await chooser.getByText('13 Beaches').click();
+
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => window.__maCalls.find((call) => call.service === 'play_media')?.service_data
+        )
+      )
+      .toEqual({
+        entity_id: 'media_player.kitchen_ma',
+        media_id: 'library://track/60',
+        media_type: 'track',
+      });
+    const calls = await page.evaluate(() => window.__maCalls);
+    expect(calls.some((call) => call.type === 'media_player/browse_media')).toBe(false);
+    expect(calls.find((call) => call.service === 'search')?.service_data).toMatchObject({
+      config_entry_id: 'ma-entry',
+      name: 'lana',
+    });
+  });
+
   test('should close modal with close button', async ({ page }) => {
     await openSystemModal(page);
 

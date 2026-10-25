@@ -27,6 +27,7 @@ import SafeImage from '../components/ui/SafeImage';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../utils';
 import MusicAssistantLink from '../components/media/MusicAssistantLink';
+import { useMusicAssistantChoices } from '../hooks/useMusicAssistantChoices';
 import { getMediaPlayerPowerAction } from '../utils/mediaPlayerFeatures';
 
 const readJSON = (key, fallback) => {
@@ -603,10 +604,17 @@ export default function MediaModal({
     setShowAddSonosPicker(false);
   }, [activeMediaModal, activeMediaGroupKey, activeMediaId]);
 
+  const isMusicAssistantPlayer = !!mpId && isMusicAssistantMediaEntity(currentMp);
+
   // ── Unified media browse for Sonos and generic players ─────────────
   useEffect(() => {
     const canBrowse =
-      show && showChoosePanel && !!mpId && conn && typeof conn.sendMessagePromise === 'function';
+      show &&
+      showChoosePanel &&
+      !!mpId &&
+      !isMusicAssistantPlayer &&
+      conn &&
+      typeof conn.sendMessagePromise === 'function';
     if (!canBrowse) return;
 
     const cached = browseChoicesByPlayer?.[mpId];
@@ -769,11 +777,19 @@ export default function MediaModal({
     show,
     showChoosePanel,
     mpId,
+    isMusicAssistantPlayer,
     conn,
     browseChoicesByPlayer,
     isMusicContent,
     normalizeChoiceArray,
   ]);
+
+  const musicAssistantChoices = useMusicAssistantChoices({
+    conn,
+    playerId: isMusicAssistantPlayer ? mpId : null,
+    active: show && showChoosePanel,
+    query: chooseTab === 'search' ? chooseQuery : '',
+  });
 
   const browseChoices = browseChoicesByPlayer?.[mpId] || {
     favorites: [],
@@ -805,21 +821,27 @@ export default function MediaModal({
     : allSearchChoices;
 
   const activeChooseChoices =
-    {
+    (musicAssistantChoices || {
       favorites: currentFavorites,
       playlists: playlistChoices,
       library: libraryChoices,
       search: filteredSearchChoices,
-    }[chooseTab] || [];
+    })[chooseTab] || [];
 
   const activeChooseEmptyMessage =
     chooseTab === 'favorites'
       ? t('media.choose.emptyFavorites')
       : chooseTab === 'playlists'
         ? t('media.choose.emptyPlaylists')
-        : t('media.choose.emptyResults');
+        : musicAssistantChoices && chooseTab === 'search' && !chooseQuery.trim()
+          ? t('media.choose.searchHint')
+          : t('media.choose.emptyResults');
 
-  const hasLoadedBrowseChoices = browseChoices._version === 3;
+  const chooseLoading = musicAssistantChoices ? musicAssistantChoices.loading : browseLoading;
+  const chooseError = musicAssistantChoices ? musicAssistantChoices.error : browseError;
+  const hasLoadedBrowseChoices = musicAssistantChoices
+    ? musicAssistantChoices.loaded
+    : browseChoices._version === 3;
 
   const lastChoice = lastChoiceByPlayer?.[mpId] || null;
 
@@ -831,17 +853,26 @@ export default function MediaModal({
 
   const playChoice = (choice) => {
     if (!choice?.id) return;
-    callService('media_player', 'play_media', {
-      entity_id: mpId,
-      media_content_id: choice.id,
-      media_content_type: choice.type || 'music',
-    });
+    if (choice.musicAssistant) {
+      callService('music_assistant', 'play_media', {
+        entity_id: mpId,
+        media_id: choice.id,
+        media_type: choice.type,
+      });
+    } else {
+      callService('media_player', 'play_media', {
+        entity_id: mpId,
+        media_content_id: choice.id,
+        media_content_type: choice.type || 'music',
+      });
+    }
     setLastChoiceByPlayer((prev) => ({
       ...(prev || {}),
       [mpId]: {
         id: choice.id,
         label: choice.label,
         type: choice.type || 'music',
+        ...(choice.musicAssistant ? { musicAssistant: true } : {}),
       },
     }));
     setShowChoosePanel(false);
@@ -878,7 +909,9 @@ export default function MediaModal({
           {choice.label}
         </p>
         <p className="mt-0.5 truncate text-[9px] tracking-wide text-[var(--text-muted)] uppercase">
-          {choice.source || choice.type || t('media.choose.unknownSource')}
+          {choice.source ||
+            (choice.musicAssistant ? t(`media.choose.type.${choice.type}`) : choice.type) ||
+            t('media.choose.unknownSource')}
         </p>
       </button>
     );
@@ -1860,7 +1893,9 @@ export default function MediaModal({
                     type="search"
                     value={chooseQuery}
                     onChange={(event) => setChooseQuery(event.target.value)}
-                    placeholder={t('addCard.search')}
+                    placeholder={
+                      musicAssistantChoices ? t('media.choose.searchHint') : t('addCard.search')
+                    }
                     className="mt-3 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2.5 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
                   />
                 )}
@@ -1868,22 +1903,22 @@ export default function MediaModal({
 
               <div
                 data-testid="media-chooser-results"
-                aria-busy={browseLoading}
+                aria-busy={chooseLoading}
                 className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-5 md:px-5"
               >
                 <div className="flex h-9 items-center" aria-live="polite">
-                  {browseLoading ? (
+                  {chooseLoading ? (
                     <span className="text-[11px] font-medium text-[var(--text-muted)] italic">
                       {t('media.choose.loading')}
                     </span>
-                  ) : browseError ? (
+                  ) : chooseError ? (
                     <span className="text-[11px] font-medium text-amber-400 italic">
                       {t('media.choose.loadError')}
                     </span>
                   ) : null}
                 </div>
 
-                {browseLoading && !hasLoadedBrowseChoices ? (
+                {chooseLoading && !hasLoadedBrowseChoices ? (
                   <div data-testid="media-chooser-loading" className="grid grid-cols-2 gap-3">
                     {[0, 1, 2, 3].map((item) => (
                       <div
