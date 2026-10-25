@@ -7,6 +7,7 @@ import App from './App.jsx';
 import { ConfigProvider } from './contexts/ConfigContext';
 import { PageProvider } from './contexts/PageContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { loadTranslations } from './i18n';
 import ToastContainer from './components/ui/ToastContainer';
 
 function isChunkLoadError(error) {
@@ -86,8 +87,12 @@ class ErrorBoundary extends Component {
                 transition: 'all 0.2s',
                 boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
               }}
-              onMouseOver={(e) => (/** @type {HTMLElement} */ (e.target).style.background = '#2563eb')}
-              onMouseOut={(e) => (/** @type {HTMLElement} */ (e.target).style.background = '#3b82f6')}
+              onMouseOver={(e) => {
+                /** @type {HTMLElement} */ (e.target).style.background = '#2563eb';
+              }}
+              onMouseOut={(e) => {
+                /** @type {HTMLElement} */ (e.target).style.background = '#3b82f6';
+              }}
               onFocus={(e) => (e.target.style.background = '#2563eb')}
               onBlur={(e) => (e.target.style.background = '#3b82f6')}
             >
@@ -112,19 +117,34 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <ToastProvider>
-        <ConfigProvider>
-          <PageProvider>
-            <HashRouter>
-              <App />
-            </HashRouter>
-          </PageProvider>
-        </ConfigProvider>
-        <ToastContainer />
-      </ToastProvider>
-    </ErrorBoundary>
-  </StrictMode>
-);
+function readStoredLanguage() {
+  try {
+    return localStorage.getItem('tunet_language');
+  } catch {
+    return null;
+  }
+}
+
+// Load the saved language before the first render so the dashboard does not flash English.
+loadTranslations(readStoredLanguage())
+  .catch(() => {})
+  .finally(renderApp);
+
+function renderApp() {
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <ToastProvider>
+          <ConfigProvider>
+            <PageProvider>
+              <HashRouter>
+                <App />
+              </HashRouter>
+            </PageProvider>
+          </ConfigProvider>
+          <ToastContainer />
+        </ToastProvider>
+      </ErrorBoundary>
+    </StrictMode>
+  );
+}
