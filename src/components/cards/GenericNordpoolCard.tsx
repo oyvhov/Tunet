@@ -3,8 +3,28 @@ import SparkLine from '../charts/SparkLine';
 import { Zap } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useHomeAssistantMeta } from '../../contexts';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 
-const GenericNordpoolCard = memo(/** @param {any} props */ function GenericNordpoolCard({
+interface NordpoolSettings {
+  currency?: string;
+  decimals?: number;
+  size?: string;
+  graphStyle?: string;
+}
+
+interface GenericNordpoolCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 'isMobile' | 't'
+> {
+  editMode?: boolean;
+  entity?: EntityMap[string] | null;
+  customNames?: Record<string, string>;
+  customIcons?: Record<string, string>;
+  onOpen?: () => void;
+  settings?: NordpoolSettings;
+}
+
+const GenericNordpoolCard = memo(function GenericNordpoolCard({
   cardId,
   dragProps,
   controls,
@@ -17,9 +37,9 @@ const GenericNordpoolCard = memo(/** @param {any} props */ function GenericNordp
   isMobile,
   t,
   settings = {},
-}) {
+}: GenericNordpoolCardProps) {
   const { haConfig } = useHomeAssistantMeta();
-  const translate = t || ((key) => key);
+  const translate = t || ((key: string) => key);
   const currency = settings?.currency || haConfig?.currency || 'kr';
 
   if (!entity) return null;
@@ -30,8 +50,10 @@ const GenericNordpoolCard = memo(/** @param {any} props */ function GenericNordp
   const isDenseMobile = isMobile && settings.size !== 'small';
 
   // Extract price data from sensor attributes
-  const todayPrices = Array.isArray(entity.attributes?.today) ? entity.attributes.today : [];
-  const tomorrowPrices = Array.isArray(entity.attributes?.tomorrow)
+  const todayPrices: number[] = Array.isArray(entity.attributes?.today)
+    ? entity.attributes.today
+    : [];
+  const tomorrowPrices: number[] = Array.isArray(entity.attributes?.tomorrow)
     ? entity.attributes.tomorrow
     : [];
   const tomorrowValid = entity.attributes?.tomorrow_valid === true;
@@ -183,10 +205,7 @@ const GenericNordpoolCard = memo(/** @param {any} props */ function GenericNordp
             className={`text-amber-400 transition-transform duration-500 group-hover:scale-110 ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
             style={{ backgroundColor: 'rgba(217, 119, 6, 0.1)' }}
           >
-            <Icon
-              className={isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'}
-              style={{ strokeWidth: 1.5 }}
-            />
+            <Icon className={isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} style={{ strokeWidth: 1.5 }} />
           </div>
           {isDenseMobile ? (
             <div className="flex items-end gap-1 leading-none">
@@ -222,7 +241,9 @@ const GenericNordpoolCard = memo(/** @param {any} props */ function GenericNordp
               <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">
                 {String(priceDisplay)}
               </span>
-              <span className="ml-1 text-base font-medium text-[var(--text-muted)]">{currency}</span>
+              <span className="ml-1 text-base font-medium text-[var(--text-muted)]">
+                {currency}
+              </span>
             </div>
           )}
         </div>
