@@ -1,18 +1,40 @@
 import { useEffect, useState, memo } from 'react';
 import { AlertTriangle, Key, Lock, Unlock } from '../../icons';
 import { getIconComponent } from '../../icons';
+import type { MouseEvent } from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
+import type { CardBaseProps } from '../../types/dashboard';
+import type { CardCallService, GetEntityAttribute } from '../../types/cards';
+import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+
+interface LockCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 'isMobile' | 't'
+> {
+  lockId: string;
+  entities: NonNullable<CardBaseProps['entities']>;
+  conn?: Connection | null;
+  editMode?: boolean;
+  cardSettings: CardSettingsMap;
+  settingsKey: string;
+  customNames: Record<string, string>;
+  customIcons: Record<string, string>;
+  getA: GetEntityAttribute;
+  callService: CardCallService;
+  onOpen: () => void;
+}
 
 const FEATURE_OPEN = 1;
-const normalizeState = (state) => String(state || 'unknown').toLowerCase();
+const normalizeState = (state: unknown) => String(state || 'unknown').toLowerCase();
 
-function getLockStateLabel(state, t) {
+function getLockStateLabel(state: unknown, t: CardBaseProps['t']) {
   const normalized = normalizeState(state);
   const key = `lock.state.${normalized}`;
   const translated = t(key);
-  return translated === key ? state || t('common.unknown') : translated;
+  return translated === key ? String(state || t('common.unknown')) : translated;
 }
 
-const LockCard = memo(/** @param {any} props */ function LockCard({
+const LockCard = memo(function LockCard({
   cardId,
   lockId,
   dragProps,
@@ -30,7 +52,7 @@ const LockCard = memo(/** @param {any} props */ function LockCard({
   onOpen,
   isMobile,
   t,
-}) {
+}: LockCardProps) {
   const entity = entities[lockId];
   const [confirmUnlock, setConfirmUnlock] = useState(false);
 
@@ -98,7 +120,7 @@ const LockCard = memo(/** @param {any} props */ function LockCard({
         : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]';
 
   const buildServicePayload = () => {
-    const payload = { entity_id: lockId };
+    const payload: { entity_id: string; code?: string } = { entity_id: lockId };
     if (!requiresCode) return payload;
     const code = globalThis.window?.prompt?.(t('lock.code.prompt'));
     if (code === null || code === undefined) return null;
@@ -107,7 +129,7 @@ const LockCard = memo(/** @param {any} props */ function LockCard({
     return payload;
   };
 
-  const runLockService = (event) => {
+  const runLockService = (event: MouseEvent) => {
     event.stopPropagation();
     setConfirmUnlock(false);
     if (isActionDisabled || isLocked) return;
@@ -116,7 +138,7 @@ const LockCard = memo(/** @param {any} props */ function LockCard({
     callService('lock', 'lock', payload);
   };
 
-  const runUnlockService = (event) => {
+  const runUnlockService = (event: MouseEvent) => {
     event.stopPropagation();
     if (isActionDisabled || isUnlocked || isOpen) return;
     if (!confirmUnlock) {
@@ -129,7 +151,7 @@ const LockCard = memo(/** @param {any} props */ function LockCard({
     callService('lock', 'unlock', payload);
   };
 
-  const runOpenService = (event) => {
+  const runOpenService = (event: MouseEvent) => {
     event.stopPropagation();
     setConfirmUnlock(false);
     if (isActionDisabled || !supportsOpen || isOpen) return;
@@ -141,18 +163,20 @@ const LockCard = memo(/** @param {any} props */ function LockCard({
   const lockButtonDisabled = isActionDisabled || isLocked;
   const unlockButtonDisabled = isActionDisabled || isUnlocked || isOpen;
   const openButtonDisabled = isActionDisabled || !supportsOpen || isOpen;
-  const actionButtonBase = 'flex items-center justify-center rounded-xl transition-colors active:scale-95 disabled:cursor-not-allowed disabled:opacity-40';
+  const actionButtonBase =
+    'flex items-center justify-center rounded-xl transition-colors active:scale-95 disabled:cursor-not-allowed disabled:opacity-40';
   const lockButtonClass = `${actionButtonBase} bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:bg-[var(--status-success-border)]`;
   const unlockButtonClass = `${actionButtonBase} ${confirmUnlock ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] ring-1 ring-[var(--status-warning-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`;
   const openButtonClass = `${actionButtonBase} bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]`;
 
   if (isSmall) {
     const primaryAction = isUnlocked || isOpen ? runLockService : runUnlockService;
-    const primaryLabel = isUnlocked || isOpen
-      ? t('lock.action.lock')
-      : confirmUnlock
-        ? t('lock.action.confirmUnlock')
-        : t('lock.action.unlock');
+    const primaryLabel =
+      isUnlocked || isOpen
+        ? t('lock.action.lock')
+        : confirmUnlock
+          ? t('lock.action.confirmUnlock')
+          : t('lock.action.unlock');
     const PrimaryIcon = isUnlocked || isOpen ? Lock : Key;
     const primaryDisabled = isUnlocked || isOpen ? lockButtonDisabled : unlockButtonDisabled;
 
@@ -170,7 +194,9 @@ const LockCard = memo(/** @param {any} props */ function LockCard({
       >
         {controls}
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-all group-hover:scale-110 ${iconTone}`}>
+          <div
+            className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-all group-hover:scale-110 ${iconTone}`}
+          >
             <Icon className="h-6 w-6 stroke-[1.5px]" />
           </div>
           <div className="flex min-w-0 flex-col gap-0.5">
@@ -223,32 +249,48 @@ const LockCard = memo(/** @param {any} props */ function LockCard({
       style={{ ...cardStyle, backgroundColor: 'var(--card-bg)' }}
     >
       {controls}
-      <div className={`flex items-start justify-between ${useDenseMobileLargeLayout ? 'gap-3' : 'gap-4'}`}>
-        <div className={`transition-all group-hover:scale-110 group-hover:rotate-3 ${isMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'} ${iconTone}`}>
+      <div
+        className={`flex items-start justify-between ${useDenseMobileLargeLayout ? 'gap-3' : 'gap-4'}`}
+      >
+        <div
+          className={`transition-all group-hover:scale-110 group-hover:rotate-3 ${isMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'} ${iconTone}`}
+        >
           <Icon className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px]`} />
         </div>
-        <div className={`flex items-center rounded-full border ${statusTone} ${useDenseMobileLargeLayout ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}>
+        <div
+          className={`flex items-center rounded-full border ${statusTone} ${useDenseMobileLargeLayout ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}
+        >
           {isUnlocked || isOpen ? (
             <Unlock className={useDenseMobileLargeLayout ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
           ) : (
             <Lock className={useDenseMobileLargeLayout ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
           )}
-          <span className={`${useDenseMobileLargeLayout ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}>
+          <span
+            className={`${useDenseMobileLargeLayout ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
+          >
             {statusText}
           </span>
         </div>
       </div>
 
-      <div className={`${useDenseMobileLargeLayout ? 'mt-2 flex flex-col gap-3' : 'flex items-end justify-between gap-4'}`}>
+      <div
+        className={`${useDenseMobileLargeLayout ? 'mt-2 flex flex-col gap-3' : 'flex items-end justify-between gap-4'}`}
+      >
         <div className="min-w-0">
-          <p className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} truncate font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}>
+          <p
+            className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} truncate font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+          >
             {name}
           </p>
-          <h3 className={`${useDenseMobileLargeLayout ? 'text-[1.4rem]' : isMobile ? 'text-[1.65rem]' : 'text-3xl'} truncate leading-none font-thin text-[var(--text-primary)]`}>
+          <h3
+            className={`${useDenseMobileLargeLayout ? 'text-[1.4rem]' : isMobile ? 'text-[1.65rem]' : 'text-3xl'} truncate leading-none font-thin text-[var(--text-primary)]`}
+          >
             {statusText}
           </h3>
         </div>
-        <div className={`${useDenseMobileLargeLayout ? `grid w-full ${supportsOpen ? 'grid-cols-3' : 'grid-cols-2'} gap-2` : 'flex gap-2'}`}>
+        <div
+          className={`${useDenseMobileLargeLayout ? `grid w-full ${supportsOpen ? 'grid-cols-3' : 'grid-cols-2'} gap-2` : 'flex gap-2'}`}
+        >
           <button
             type="button"
             onClick={runLockService}

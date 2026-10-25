@@ -8,23 +8,51 @@ import {
   getDisplayUnitForKind,
   getEffectiveUnitMode,
 } from '../../utils';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+
+interface CarCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 'isMobile' | 't'
+> {
+  entities: EntityMap;
+  editMode?: boolean;
+  cardSettings: CardSettingsMap;
+  settingsKey: string;
+  customNames: Record<string, string>;
+  customIcons: Record<string, string>;
+  getS: (id: string) => string;
+  getEntityImageUrl?: (url: string | null | undefined) => string | null;
+  onOpen: () => void;
+}
+
+interface CarSettings {
+  batteryId?: string;
+  rangeId?: string;
+  locationId?: string;
+  chargingId?: string;
+  chargingStateId?: string;
+  pluggedId?: string;
+  climateId?: string;
+  imageUrl?: string;
+}
 
 /* ─── Helpers (pure, no React) ─── */
 
-const getSafeState = (entities, id) => {
+const getSafeState = (entities: EntityMap, id?: string | null) => {
   const state = id ? entities[id]?.state : null;
   if (!state || state === 'unavailable' || state === 'unknown') return null;
   return state;
 };
 
-const getNumberState = (entities, id) => {
+const getNumberState = (entities: EntityMap, id?: string | null) => {
   const state = getSafeState(entities, id);
   if (state === null) return null;
   const value = parseFloat(state);
   return Number.isFinite(value) ? value : null;
 };
 
-const formatValue = (num) => {
+const formatValue = (num: unknown) => {
   if (num === null || num === undefined) return null;
   const strVal = String(num).replace(',', '.');
   const parsed = parseFloat(strVal);
@@ -34,7 +62,6 @@ const formatValue = (num) => {
 
 /* ─── CarCard ─── */
 
-/** @param {any} props */
 const CarCard = ({
   cardId,
   dragProps,
@@ -51,8 +78,8 @@ const CarCard = ({
   onOpen,
   isMobile,
   t,
-}) => {
-  const cardRef = useRef(null);
+}: CarCardProps) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isNarrowLargeCard, setIsNarrowLargeCard] = useState(false);
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
@@ -61,7 +88,7 @@ const CarCard = ({
     const element = cardRef.current;
     if (!element || typeof ResizeObserver === 'undefined') return;
 
-    const updateByWidth = (width) => {
+    const updateByWidth = (width: number) => {
       setIsNarrowLargeCard((prev) => {
         if (prev) return width < 336;
         return width < 316;
@@ -79,7 +106,7 @@ const CarCard = ({
     return () => observer.disconnect();
   }, []);
 
-  const settings = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  const settings = (cardSettings[settingsKey] || cardSettings[cardId] || {}) as CarSettings;
   const {
     batteryId,
     rangeId,
@@ -116,7 +143,8 @@ const CarCard = ({
 
   const isCharging = chargingState === 'on' || chargingState === 'charging';
   const isPlugged = pluggedState === 'on' || pluggedState === 'plugged' || pluggedState === 'true';
-  const isHtg = climateEntity && !['off', 'unavailable', 'unknown'].includes(climateEntity.state);
+  const isHtg =
+    climateEntity && !['off', 'unavailable', 'unknown'].includes(climateEntity.state ?? '');
   const resolvedImageUrl = imageUrl
     ? getEntityImageUrl
       ? getEntityImageUrl(imageUrl)
@@ -202,7 +230,9 @@ const CarCard = ({
       }}
     >
       {controls}
-      <div className={`flex items-start justify-between font-sans ${isDenseMobile ? 'gap-3' : 'gap-4'}`}>
+      <div
+        className={`flex items-start justify-between font-sans ${isDenseMobile ? 'gap-3' : 'gap-4'}`}
+      >
         <div className={`flex min-w-0 flex-col items-start ${isDenseMobile ? 'gap-2' : 'gap-2.5'}`}>
           <div
             className={`flex-shrink-0 transition-all group-hover:scale-110 ${isCharging ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
@@ -216,12 +246,16 @@ const CarCard = ({
             {name}
           </p>
         </div>
-        <div className={`flex max-w-[62%] flex-col items-end ${isDenseMobile ? 'gap-1.5' : 'gap-2'}`}>
+        <div
+          className={`flex max-w-[62%] flex-col items-end ${isDenseMobile ? 'gap-1.5' : 'gap-2'}`}
+        >
           {locationLabel && (
             <div
               className={`flex max-w-full items-start border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] ${isDenseMobile ? 'gap-1 rounded-xl px-2.5 py-1' : 'gap-1.5 rounded-2xl px-3 py-1.5'}`}
             >
-              <MapPin className={`${isDenseMobile ? 'mt-0 h-2.5 w-2.5' : 'mt-0.5 h-3 w-3'} flex-shrink-0`} />
+              <MapPin
+                className={`${isDenseMobile ? 'mt-0 h-2.5 w-2.5' : 'mt-0.5 h-3 w-3'} flex-shrink-0`}
+              />
               <span
                 className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-tight font-bold tracking-widest break-words whitespace-normal uppercase`}
               >
@@ -237,7 +271,9 @@ const CarCard = ({
                   aria-label={t('car.heating')}
                   title={t('car.heating')}
                 >
-                  <Flame className={`${isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} stroke-[1.75px]`} />
+                  <Flame
+                    className={`${isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} stroke-[1.75px]`}
+                  />
                 </div>
               )}
               {isPlugged && (
@@ -246,7 +282,9 @@ const CarCard = ({
                   aria-label={t('car.pluggedIn')}
                   title={t('car.pluggedIn')}
                 >
-                  <Plug className={`${isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} stroke-[1.75px]`} />
+                  <Plug
+                    className={`${isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} stroke-[1.75px]`}
+                  />
                 </div>
               )}
             </div>
@@ -255,7 +293,9 @@ const CarCard = ({
       </div>
       <div className={`flex items-start justify-between ${useCompactMetrics ? 'gap-3' : 'gap-4'}`}>
         <div className="min-w-0 flex-1">
-          <div className={`flex min-w-0 items-baseline font-sans leading-none ${useCompactMetrics ? 'gap-1.5' : 'gap-2'}`}>
+          <div
+            className={`flex min-w-0 items-baseline font-sans leading-none ${useCompactMetrics ? 'gap-1.5' : 'gap-2'}`}
+          >
             <span
               className={`${useCompactMetrics ? 'text-[2rem]' : 'text-4xl'} leading-none font-thin ${isCharging ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'}`}
             >
@@ -282,7 +322,7 @@ const CarCard = ({
             alt=""
             className={`pointer-events-none w-auto object-contain opacity-80 drop-shadow-lg select-none ${useCompactMetrics ? 'mt-1 h-[4.5rem] max-w-[38%]' : 'mt-1 h-20 max-w-[45%]'}`}
             onError={(e) => {
-              /** @type {HTMLElement} */ (e.target).style.display = 'none';
+              (e.target as HTMLElement).style.display = 'none';
             }}
           />
         )}

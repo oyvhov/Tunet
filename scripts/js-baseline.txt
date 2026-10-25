@@ -2,15 +2,10 @@ src/App.jsx
 src/components/camera/CameraFeed.jsx
 src/components/cards/AlarmCard.jsx
 src/components/cards/CalendarCard.jsx
-src/components/cards/CarCard.jsx
 src/components/cards/CoverCard.jsx
-src/components/cards/FanCard.jsx
 src/components/cards/GenericAndroidTVCard.jsx
 src/components/cards/GenericAppleTVCard.jsx
 src/components/cards/GenericClimateCard.jsx
-src/components/cards/GenericEnergyCostCard.jsx
-src/components/cards/GenericNordpoolCard.jsx
-src/components/cards/LockCard.jsx
 src/components/cards/MediaCards.jsx
 src/components/cards/MowerCard.jsx
 src/components/cards/RoomCard.jsx
