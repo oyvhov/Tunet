@@ -30,7 +30,9 @@ LABEL \
 	io.hass.type="app" \
 	io.hass.arch="${BUILD_ARCH}"
 
-RUN apk add --no-cache nodejs npm python3 make g++
+# The base image pins musl in /etc/apk/world; let apk move it to the version
+# the current Alpine repo's musl-dev (pulled in by g++) requires.
+RUN apk add --no-cache --upgrade musl nodejs npm python3 make g++
 
 WORKDIR /app
 
