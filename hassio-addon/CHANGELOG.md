@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.24.2
+
+### Fixed
+
+- The Home Assistant add-on builds again: the base image's pinned musl conflicted with the newer musl-dev pulled in by g++ (#253).
+- Lawn mower popup triggers open the mower details again; the mower id was never set, so the popup stayed empty (#251).
+
+### Changed
+
+- Continued the TypeScript migration: config, translations, icons, utilities, services, shared types, contexts and hooks are now strict TypeScript (#246, #247, #248, #249, #250).
+
+## Changed
+
+- Add release notes.
+
 ## 1.24.1
 
 ### Fixed

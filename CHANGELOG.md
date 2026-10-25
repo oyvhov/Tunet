@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.24.2] — 2026-10-25
+
+### Fixed
+
+- The Home Assistant add-on builds again: the base image's pinned musl conflicted with the newer musl-dev pulled in by g++ (#253).
+- Lawn mower popup triggers open the mower details again; the mower id was never set, so the popup stayed empty (#251).
+
+### Changed
+
+- Continued the TypeScript migration: config, translations, icons, utilities, services, shared types, contexts and hooks are now strict TypeScript (#246, #247, #248, #249, #250).
+
 ## [1.24.1] — 2026-10-24
 
 ### Fixed
