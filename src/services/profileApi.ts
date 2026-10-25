@@ -9,6 +9,7 @@ import {
   getValidatedHomeAssistantRequestHeadersAsync,
   notifyHomeAssistantApiUnauthorized,
 } from './apiAuth';
+import { INGRESS_SESSION_INVALID, isIngressSessionRejection } from './ingressSession';
 
 const API_BASE = './api';
 
@@ -67,6 +68,13 @@ async function request<T>(
   });
 
   if (!res.ok) {
+    if (isIngressSessionRejection(res)) {
+      // Keep the stored credentials: only the ingress session is stale.
+      const error: ApiError = new Error('Home Assistant ingress session is not valid');
+      error.status = res.status;
+      error.body = { error: INGRESS_SESSION_INVALID };
+      throw error;
+    }
     if (res.status === 401 && retryOnOAuthUnauthorized && getStoredAuthMethod() === 'oauth') {
       const retryHeaders = await getValidatedHomeAssistantRequestHeadersAsync({
         forceRefreshOAuth: true,
