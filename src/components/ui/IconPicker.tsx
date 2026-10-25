@@ -1,15 +1,29 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { getAllIconKeys, getIconComponent, preloadMdiIcons } from '../../icons';
 
-export default function IconPicker({ value, onSelect, onClear, t, maxHeightClass = 'max-h-72' }) {
+interface IconPickerProps {
+  value?: string | null;
+  onSelect: (iconName: string) => void;
+  onClear?: () => void;
+  t?: (key: string) => string;
+  maxHeightClass?: string;
+}
+
+export default function IconPicker({
+  value,
+  onSelect,
+  onClear,
+  t,
+  maxHeightClass = 'max-h-72',
+}: IconPickerProps) {
   const [query, setQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   const [open, setOpen] = useState(false);
   const [mdiLoadedVersion, setMdiLoadedVersion] = useState(0);
-  const scrollRef = useRef(null);
-  const translate = t || ((key) => key);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const translate = t || ((key: string) => key);
 
   const COLUMN_COUNT = 6;
   const ROW_HEIGHT = 52;
@@ -65,7 +79,7 @@ export default function IconPicker({ value, onSelect, onClear, t, maxHeightClass
   const topSpacerHeight = startRow * ROW_HEIGHT;
   const bottomSpacerHeight = Math.max(0, (totalRows - endRow) * ROW_HEIGHT);
 
-  const SelectedIcon = value ? getIconComponent(value) : RefreshCw;
+  const SelectedIcon = (value && getIconComponent(value)) || RefreshCw;
   const selectedLabel = value || '';
 
   return (

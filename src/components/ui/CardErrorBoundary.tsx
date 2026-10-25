@@ -1,21 +1,36 @@
 import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
+
+interface CardErrorBoundaryProps {
+  cardId?: string;
+  t?: (key: string) => string;
+  children?: ReactNode;
+}
+
+interface CardErrorBoundaryState {
+  hasError: boolean;
+  error: unknown;
+}
 
 /**
  * Error boundary that wraps individual dashboard cards.
  * Prevents a single card crash from taking down the whole dashboard.
  */
-export default class CardErrorBoundary extends Component {
-  constructor(props) {
+export default class CardErrorBoundary extends Component<
+  CardErrorBoundaryProps,
+  CardErrorBoundaryState
+> {
+  constructor(props: CardErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: unknown) {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, info) {
-    console.error(`Card crashed [${this.props.cardId}]:`, error, info?.componentStack);
+  componentDidCatch(error: unknown, info: ErrorInfo) {
+    console.error(`Card crashed [${this.props.cardId}]:`, error, info.componentStack);
   }
 
   render() {

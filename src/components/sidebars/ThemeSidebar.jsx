@@ -183,7 +183,9 @@ export default function ThemeSidebar({
             icon={RefreshCw}
             options={['follow_ha', 'metric', 'imperial']}
             current={unitsMode}
-            onChange={setUnitsMode}
+            onChange={(mode) =>
+              setUnitsMode(/** @type {import('../../utils/units').UnitsMode} */ (mode))
+            }
             map={{
               follow_ha: t('settings.unitSystem.followHa'),
               metric: t('settings.unitSystem.metric'),

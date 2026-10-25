@@ -1,6 +1,19 @@
 // Dropdown Menu Component that looks nice
-import React, { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect } from 'react';
 import { Settings, Palette, LayoutGrid, Server, Type, Edit2, Plus, Check } from '../../icons';
+
+interface SettingsDropdownProps {
+  onOpenSettings?: () => void;
+  onOpenTheme?: () => void;
+  onOpenLayout?: () => void;
+  onOpenHeader?: () => void;
+  onAddCard?: () => void;
+  onToggleEdit?: () => void;
+  editMode?: boolean;
+  isMobile?: boolean;
+  floating?: boolean;
+  t: (key: string) => string;
+}
 
 function SettingsDropdown({
   onOpenSettings,
@@ -13,15 +26,15 @@ function SettingsDropdown({
   isMobile,
   floating = false,
   t,
-}) {
+}: SettingsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const isFloatingDone = Boolean(floating && isMobile && editMode && onToggleEdit);
 
   // Close when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -32,7 +45,7 @@ function SettingsDropdown({
   useEffect(() => {
     if (!isOpen) return undefined;
 
-    const handleEscape = (event) => {
+    const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
 
@@ -40,7 +53,7 @@ function SettingsDropdown({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen]);
 
-  const handleSelect = (action) => {
+  const handleSelect = (action?: () => void) => {
     setIsOpen(false);
     if (typeof action === 'function') action();
   };
@@ -48,7 +61,7 @@ function SettingsDropdown({
   const handleTrigger = () => {
     if (isFloatingDone) {
       setIsOpen(false);
-      onToggleEdit();
+      onToggleEdit?.();
       return;
     }
     setIsOpen((open) => !open);

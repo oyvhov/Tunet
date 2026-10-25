@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
+import type { ComponentType } from 'react';
 import { modalLoadingFallback } from './ModalSuspense';
+
+type LazyModalState<P> = { Component: ComponentType<P> | undefined | null; error: unknown };
 
 // Modal imports use urgent state updates so React's Suspense fallback throttle
 // does not add a minimum spinner delay to the first opening.
-export function lazyModal(load) {
-  let loaded;
-  let pending;
+export function lazyModal<P extends object>(load: () => Promise<{ default: ComponentType<P> }>) {
+  let loaded: ComponentType<P> | undefined;
+  let pending: Promise<ComponentType<P>> | undefined;
 
-  return function DeferredModal(props) {
-    const [state, setState] = useState(() => ({ Component: loaded, error: null }));
+  return function DeferredModal(props: P) {
+    const [state, setState] = useState<LazyModalState<P>>(() => ({
+      Component: loaded,
+      error: null,
+    }));
     useEffect(() => {
       if (state.Component) return;
       let active = true;
@@ -20,7 +26,7 @@ export function lazyModal(load) {
         (Component) => {
           if (active) setState({ Component, error: null });
         },
-        (error) => {
+        (error: unknown) => {
           if (active) setState({ Component: null, error });
         }
       );
