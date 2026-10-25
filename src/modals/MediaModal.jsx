@@ -25,7 +25,8 @@ import {
 import M3Slider from '../components/ui/M3Slider';
 import SafeImage from '../components/ui/SafeImage';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
-import { isSonosMediaEntity } from '../utils';
+import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../utils';
+import MusicAssistantLink from '../components/media/MusicAssistantLink';
 import { getMediaPlayerPowerAction } from '../utils/mediaPlayerFeatures';
 
 const readJSON = (key, fallback) => {
@@ -145,7 +146,8 @@ function normalizeMediaChoice(item, fallbackType) {
   }
   if (typeof item !== 'object') return null;
 
-  const id = item.media_content_id || item.id || item.uri || item.url || item.entity_id || item.value;
+  const id =
+    item.media_content_id || item.id || item.uri || item.url || item.entity_id || item.value;
   if (!id || typeof id !== 'string') return null;
 
   const label = item.title || item.name || item.friendly_name || item.label || id;
@@ -336,9 +338,7 @@ export default function MediaModal({
   const [browseError, setBrowseError] = useState('');
   const [showAddSonosPicker, setShowAddSonosPicker] = useState(false);
   const [showPlayersSidebar, setShowPlayersSidebar] = useState(true);
-  const [viewModeByModal, setViewModeByModal] = useState(() =>
-    readJSON(MEDIA_VIEW_MODE_KEY, {})
-  );
+  const [viewModeByModal, setViewModeByModal] = useState(() => readJSON(MEDIA_VIEW_MODE_KEY, {}));
   const [failedImageMap, setFailedImageMap] = useState({});
   const wasOpenRef = useRef(false);
   const [playerNameDisplayFilter, setPlayerNameDisplayFilter] = useState(() =>
@@ -793,11 +793,7 @@ export default function MediaModal({
 
   const libraryChoices = mergeChoiceArrays(browseChoices.library || []);
 
-  const allSearchChoices = mergeChoiceArrays(
-    currentFavorites,
-    playlistChoices,
-    libraryChoices
-  );
+  const allSearchChoices = mergeChoiceArrays(currentFavorites, playlistChoices, libraryChoices);
 
   const loweredQuery = chooseQuery.trim().toLowerCase();
   const filteredSearchChoices = loweredQuery
@@ -927,17 +923,17 @@ export default function MediaModal({
       >
         {(resolvedTitleId) => (
           <>
-          <h2 id={resolvedTitleId} className="sr-only">
-            {t('addCard.type.media')}
-          </h2>
-          <button
-            onClick={handleModalClose}
-            className="modal-close absolute top-6 right-6 z-20 md:top-10 md:right-10"
-            aria-label={t('common.close') || 'Close'}
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="text-center text-[var(--text-primary)]">{t('media.noPlayerFound')}</div>
+            <h2 id={resolvedTitleId} className="sr-only">
+              {t('addCard.type.media')}
+            </h2>
+            <button
+              onClick={handleModalClose}
+              className="modal-close absolute top-6 right-6 z-20 md:top-10 md:right-10"
+              aria-label={t('common.close') || 'Close'}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="text-center text-[var(--text-primary)]">{t('media.noPlayerFound')}</div>
           </>
         )}
       </AccessibleModalShell>
@@ -966,560 +962,242 @@ export default function MediaModal({
     >
       {(resolvedTitleId) => (
         <>
-        <h2 id={resolvedTitleId} className="sr-only">
-          {t('addCard.type.media')}
-        </h2>
-        {!showChoosePanel && (
-          <button
-            onClick={handleModalClose}
-            className={`modal-close absolute z-50 ${showPlayersSidebar ? 'top-6 right-6 md:top-10 md:right-10' : 'top-4 right-4 md:top-10 md:right-10'}`}
-            aria-label={t('common.close') || 'Close'}
-          >
-            <X
-              className={`h-6 w-6 drop-shadow-md ${showPlayersSidebar ? 'text-[var(--text-primary)]' : 'text-[var(--accent-color)]'}`}
-            />
-          </button>
-        )}
-
-        <div className={`custom-scrollbar relative z-10 flex min-h-0 flex-col justify-start ${showPlayersSidebar ? 'flex-1 pr-1 md:pr-2 overflow-hidden' : 'h-full w-full overflow-hidden'}`}>
-          <div className={`flex items-center gap-2 md:gap-4 flex-shrink-0 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-4 right-28 left-4 z-50 md:top-10 md:right-32 md:left-10'}`}>
-            <div
-              className="rounded-xl p-2 transition-all duration-500 md:rounded-2xl md:p-4"
-              style={{ backgroundColor: showPlayersSidebar ? 'var(--glass-bg)' : 'rgba(255,255,255,0.1)', color: showPlayersSidebar ? 'var(--text-secondary)' : 'white' }}
+          <h2 id={resolvedTitleId} className="sr-only">
+            {t('addCard.type.media')}
+          </h2>
+          {!showChoosePanel && (
+            <button
+              onClick={handleModalClose}
+              className={`modal-close absolute z-50 ${showPlayersSidebar ? 'top-6 right-6 md:top-10 md:right-10' : 'top-4 right-4 md:top-10 md:right-10'}`}
+              aria-label={t('common.close') || 'Close'}
             >
-              {isChannel ? (
-                <Tv className="h-5 w-5 md:h-8 md:w-8" />
-              ) : isCurrentSonos ? (
-                <Speaker className="h-5 w-5 md:h-8 md:w-8" />
-              ) : (
-                <Music className="h-5 w-5 md:h-8 md:w-8" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <h3 className={`max-w-full leading-tight font-light tracking-tight break-words uppercase italic md:leading-tight ${showPlayersSidebar ? 'pr-10 text-lg text-[var(--text-primary)] md:pr-1 md:text-2xl' : 'line-clamp-2 text-sm text-white drop-shadow-md sm:text-base md:text-2xl'}`}>
-                {activeUser
-                  ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}`
-                  : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
-              </h3>
-              <div
-                className="mt-1 inline-flex items-center gap-2 rounded-full border px-2 py-0.5 md:mt-2 md:px-3 md:py-1"
-                style={{
-                  backgroundColor: showPlayersSidebar ? 'var(--glass-bg)' : 'rgba(0,0,0,0.3)',
-                  borderColor: showPlayersSidebar ? 'var(--glass-border)' : 'rgba(255,255,255,0.1)',
-                  color: showPlayersSidebar ? 'var(--text-secondary)' : 'rgba(255,255,255,0.7)',
-                }}
-              >
-                <div
-                  className={`h-1.5 w-1.5 rounded-full ${mpState === 'playing' ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' : mpState === 'paused' ? 'bg-amber-400' : 'bg-slate-600'}`}
-                />
-                <span className="text-[10px] font-bold tracking-widest uppercase italic hidden sm:inline">
-                  {isCurrentSonos ? t('media.sonosLabel') : popupHeading || mpState}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className={`flex flex-col gap-2 flex-shrink-0 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-4 right-14 z-50 md:top-10 md:right-24'}`}>
-            <div className="flex flex-wrap items-center gap-2">
-              {showPlayersSidebar && (
-                <>
-                  <button
-                    type="button"
-                    onClick={openChoosePanel}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="text-xs font-bold tracking-wider uppercase">
-                      {t('media.chooseMedia')}
-                    </span>
-                  </button>
-                  {lastChoice?.id && (
-                    <button
-                      type="button"
-                      onClick={() => playChoice(lastChoice)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 transition-colors hover:bg-[var(--glass-bg-hover)]"
-                    >
-                      <Music className="h-4 w-4 text-[var(--text-secondary)]" />
-                      <span className="max-w-[220px] truncate text-[11px] font-semibold text-[var(--text-secondary)]">
-                        {t('media.choose.lastChoice')}: {lastChoice.label}
-                      </span>
-                    </button>
-                  )}
-                </>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowPlayersSidebar((prev) => !prev)}
-                className={`ml-auto rounded-xl border transition-colors hover:scale-105 active:scale-95 ${
-                  showPlayersSidebar
-                    ? 'border-[var(--glass-border)] bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                    : 'rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] hover:opacity-90'
-                }`}
-                aria-label={showPlayersSidebar ? t('common.hide') || 'Hide' : t('common.show') || 'Show'}
-                title={showPlayersSidebar ? t('common.hide') || 'Hide' : t('common.show') || 'Show'}
-              >
-                {showPlayersSidebar ? (
-                  <ChevronRight className="h-4 w-4" />
-                ) : (
-                  <ChevronLeft className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-          </div>
+              <X
+                className={`h-6 w-6 drop-shadow-md ${showPlayersSidebar ? 'text-[var(--text-primary)]' : 'text-[var(--accent-color)]'}`}
+              />
+            </button>
+          )}
 
           <div
-            className={`flex flex-1 min-h-0 flex-col justify-evenly gap-2 md:gap-4 ${showPlayersSidebar ? '' : 'hidden'}`}
+            className={`custom-scrollbar relative z-10 flex min-h-0 flex-col justify-start ${showPlayersSidebar ? 'flex-1 overflow-hidden pr-1 md:pr-2' : 'h-full w-full overflow-hidden'}`}
           >
             <div
-              className={`group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-2xl md:rounded-3xl flex-shrink ${showPlayersSidebar ? 'w-full aspect-square max-h-[40vh] mx-auto object-contain' : 'h-44 w-full sm:h-52 md:h-auto md:w-[clamp(14rem,30vw,20rem)] md:flex-shrink-0 md:aspect-square'}`}
+              className={`flex flex-shrink-0 items-center gap-2 md:gap-4 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-4 right-28 left-4 z-50 md:top-10 md:right-32 md:left-10'}`}
             >
-              {isImageAvailable(safeCurrentArtworkUrl) ? (
-                <SafeImage
-                  imageUrl={safeCurrentArtworkUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  onError={() => markImageFailed(safeCurrentArtworkUrl)}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  {isChannel ? (
-                    <Tv className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
-                  ) : isSonos ? (
-                    <Speaker className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
-                  ) : (
-                    <Music className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
-                  )}
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
-              <div className="absolute bottom-0 left-0 w-full p-4 md:p-8">
-                <p className="mb-1 text-[11px] font-bold tracking-widest text-[var(--accent-color)] uppercase md:mb-2 md:text-sm">
+              <div
+                className="rounded-xl p-2 transition-all duration-500 md:rounded-2xl md:p-4"
+                style={{
+                  backgroundColor: showPlayersSidebar ? 'var(--glass-bg)' : 'rgba(255,255,255,0.1)',
+                  color: showPlayersSidebar ? 'var(--text-secondary)' : 'white',
+                }}
+              >
+                {isChannel ? (
+                  <Tv className="h-5 w-5 md:h-8 md:w-8" />
+                ) : isCurrentSonos ? (
+                  <Speaker className="h-5 w-5 md:h-8 md:w-8" />
+                ) : (
+                  <Music className="h-5 w-5 md:h-8 md:w-8" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h3
+                  className={`max-w-full leading-tight font-light tracking-tight break-words uppercase italic md:leading-tight ${showPlayersSidebar ? 'pr-10 text-lg text-[var(--text-primary)] md:pr-1 md:text-2xl' : 'line-clamp-2 text-sm text-white drop-shadow-md sm:text-base md:text-2xl'}`}
+                >
                   {activeUser
                     ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}`
                     : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
-                </p>
-                <h2 className="mb-1 line-clamp-2 text-lg leading-tight font-bold text-white md:mb-2 md:text-3xl">
-                  {mpTitle || t('common.unknown')}
-                </h2>
-                <p className="line-clamp-1 text-sm font-medium text-white/80 md:text-xl">
-                  {mpSeries}
-                </p>
+                </h3>
+                <div
+                  className="mt-1 inline-flex items-center gap-2 rounded-full border px-2 py-0.5 md:mt-2 md:px-3 md:py-1"
+                  style={{
+                    backgroundColor: showPlayersSidebar ? 'var(--glass-bg)' : 'rgba(0,0,0,0.3)',
+                    borderColor: showPlayersSidebar
+                      ? 'var(--glass-border)'
+                      : 'rgba(255,255,255,0.1)',
+                    color: showPlayersSidebar ? 'var(--text-secondary)' : 'rgba(255,255,255,0.7)',
+                  }}
+                >
+                  <div
+                    className={`h-1.5 w-1.5 rounded-full ${mpState === 'playing' ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' : mpState === 'paused' ? 'bg-amber-400' : 'bg-slate-600'}`}
+                  />
+                  <span className="hidden text-[10px] font-bold tracking-widest uppercase italic sm:inline">
+                    {isCurrentSonos ? t('media.sonosLabel') : popupHeading || mpState}
+                  </span>
+                </div>
               </div>
             </div>
-
-            <div className={`flex flex-col gap-2 flex-shrink-0 ${showPlayersSidebar ? 'mt-2 space-y-2' : 'mt-4 space-y-4 md:mt-0 md:flex-1'}`}>
-              <div className="flex flex-shrink-0 items-center justify-between px-1 text-xs font-bold tracking-widest text-[var(--text-muted)]">
-                <span>{formatDuration(effectivePosition)}</span>
-                <span>{formatDuration(duration)}</span>
-              </div>
-              <M3Slider
-                variant="thin"
-                min={0}
-                max={duration || 100}
-                step={1}
-                value={effectivePosition || 0}
-                disabled={!duration}
-                onChange={(e) =>
-                  callService('media_player', 'media_seek', {
-                    entity_id: mpId,
-                    seek_position: parseFloat(e.target.value),
-                  })
-                }
-                colorClass="bg-white"
-              />
-
-              {isSonos ? (
-                <div className="flex flex-col gap-4 pt-2">
-                  <div className="flex items-center justify-center gap-[clamp(0.25rem,1.6vw,1.5rem)]">
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'shuffle_set', {
-                          entity_id: mpId,
-                          shuffle: !shuffle,
-                        })
-                      }
-                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${shuffle ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                    >
-                      <Shuffle className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_previous_track', { entity_id: mpId })
-                      }
-                      className="rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
-                    >
-                      <SkipBack className="h-[clamp(1.1rem,2.6vw,1.25rem)] w-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_play_pause', { entity_id: mpId })
-                      }
-                      className="rounded-full bg-[var(--text-primary)] p-[clamp(0.35rem,1.2vw,0.75rem)] shadow-lg transition-colors active:scale-95"
-                    >
-                      {isPlaying ? (
-                        <Pause
-                          className="h-[clamp(1.25rem,3vw,1.5rem)] w-[clamp(1.25rem,3vw,1.5rem)]"
-                          color="var(--bg-primary)"
-                          fill="var(--bg-primary)"
-                        />
-                      ) : (
-                        <Play
-                          className="ml-0.5 h-[clamp(1.25rem,3vw,1.5rem)] w-[clamp(1.25rem,3vw,1.5rem)]"
-                          color="var(--bg-primary)"
-                          fill="var(--bg-primary)"
-                        />
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_next_track', { entity_id: mpId })
-                      }
-                      className="rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
-                    >
-                      <SkipForward className="h-[clamp(1.1rem,2.6vw,1.25rem)] w-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" />
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        const modes = ['off', 'one', 'all'];
-                        const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length];
-                        callService('media_player', 'repeat_set', {
-                          entity_id: mpId,
-                          repeat: nextMode,
-                        });
-                      }}
-                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${repeat !== 'off' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                    >
-                      {repeat === 'one' ? (
-                        <Repeat1 className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
-                      ) : (
-                        <Repeat className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
-                      )}
-                    </button>
-                    {canTogglePower && (
-                      <button
-                        onClick={() =>
-                          callService('media_player', powerAction, { entity_id: mpId })
-                        }
-                        className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
-                        title={isPowerOffAction ? t('status.off') : t('status.on')}
-                      >
-                        <Power className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-2">
-                    <button
-                      onClick={() => changeVolumeByStep(-VOLUME_STEP)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                      aria-label="Volume down"
-                      title="Volume down"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'volume_mute', {
-                          entity_id: mpId,
-                          is_volume_muted: !isMuted,
-                        })
-                      }
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                    >
-                      {isMuted ? (
-                        <VolumeX className="h-4 w-4" />
-                      ) : volume < 0.5 ? (
-                        <Volume1 className="h-4 w-4" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
-                    </button>
-                    <div className="flex-1 px-1">
-                      <M3Slider
-                        variant="volume"
-                        min={0}
-                        max={100}
-                        step={1}
-                        value={volume * 100}
-                        onChange={(e) =>
-                          callService('media_player', 'volume_set', {
-                            entity_id: mpId,
-                            volume_level: parseFloat(e.target.value) / 100,
-                          })
-                        }
-                        colorClass="bg-white"
-                      />
-                    </div>
-                    <button
-                      onClick={() => changeVolumeByStep(VOLUME_STEP)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                      aria-label="Volume up"
-                      title="Volume up"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-4 pt-2">
-                  <div className="flex items-center justify-center gap-[clamp(0.25rem,1.8vw,1.5rem)]">
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_previous_track', { entity_id: mpId })
-                      }
-                      className="rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
-                    >
-                      <SkipBack className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_play_pause', { entity_id: mpId })
-                      }
-                      className="rounded-full bg-[var(--text-primary)] p-[clamp(0.65rem,2vw,1.5rem)] shadow-lg transition-colors active:scale-95"
-                    >
-                      {isPlaying ? (
-                        <Pause
-                          className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]"
-                          color="var(--bg-primary)"
-                          fill="var(--bg-primary)"
-                        />
-                      ) : (
-                        <Play
-                          className="ml-1 h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]"
-                          color="var(--bg-primary)"
-                          fill="var(--bg-primary)"
-                        />
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_next_track', { entity_id: mpId })
-                      }
-                      className="rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
-                    >
-                      <SkipForward className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" />
-                    </button>
-                    {canTogglePower && (
-                      <button
-                        onClick={() =>
-                          callService('media_player', powerAction, { entity_id: mpId })
-                        }
-                        className={`rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
-                        title={isPowerOffAction ? t('status.off') : t('status.on')}
-                      >
-                        <Power className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-2">
-                    <button
-                      onClick={() => changeVolumeByStep(-VOLUME_STEP)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                      aria-label="Volume down"
-                      title="Volume down"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'volume_mute', {
-                          entity_id: mpId,
-                          is_volume_muted: !isMuted,
-                        })
-                      }
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                    >
-                      {isMuted ? (
-                        <VolumeX className="h-4 w-4" />
-                      ) : volume < 0.5 ? (
-                        <Volume1 className="h-4 w-4" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
-                    </button>
-                    <div className="flex-1 px-1">
-                      <M3Slider
-                        variant="volume"
-                        min={0}
-                        max={100}
-                        step={1}
-                        value={volume * 100}
-                        onChange={(e) =>
-                          callService('media_player', 'volume_set', {
-                            entity_id: mpId,
-                            volume_level: parseFloat(e.target.value) / 100,
-                          })
-                        }
-                        colorClass="bg-white"
-                      />
-                    </div>
-                    <button
-                      onClick={() => changeVolumeByStep(VOLUME_STEP)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                      aria-label="Volume up"
-                      title="Volume up"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {!showPlayersSidebar && (
-            <div className="flex h-full w-full flex-col justify-end overflow-y-auto pt-24 pb-4 sm:pb-6 md:overflow-hidden md:pt-0 md:pb-12">
-              {/* Background Artwork - Full Screen */}
-              <div className="absolute inset-0 z-0">
-                {isImageAvailable(safeCurrentArtworkUrl) ? (
+            <div
+              className={`flex flex-shrink-0 flex-col gap-2 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-4 right-14 z-50 md:top-10 md:right-24'}`}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                {showPlayersSidebar && (
                   <>
-                    <SafeImage
-                      imageUrl={safeCurrentArtworkUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      onError={() => markImageFailed(safeCurrentArtworkUrl)}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
+                    <button
+                      type="button"
+                      onClick={openChoosePanel}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="text-xs font-bold tracking-wider uppercase">
+                        {t('media.chooseMedia')}
+                      </span>
+                    </button>
+                    {lastChoice?.id && (
+                      <button
+                        type="button"
+                        onClick={() => playChoice(lastChoice)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 transition-colors hover:bg-[var(--glass-bg-hover)]"
+                      >
+                        <Music className="h-4 w-4 text-[var(--text-secondary)]" />
+                        <span className="max-w-[220px] truncate text-[11px] font-semibold text-[var(--text-secondary)]">
+                          {t('media.choose.lastChoice')}: {lastChoice.label}
+                        </span>
+                      </button>
+                    )}
+                    {isMusicAssistantMediaEntity(currentMp) && (
+                      <MusicAssistantLink title={t('media.openMusicAssistant')} />
+                    )}
                   </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowPlayersSidebar((prev) => !prev)}
+                  className={`ml-auto rounded-xl border transition-colors hover:scale-105 active:scale-95 ${
+                    showPlayersSidebar
+                      ? 'border-[var(--glass-border)] bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                      : 'rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] hover:opacity-90'
+                  }`}
+                  aria-label={
+                    showPlayersSidebar ? t('common.hide') || 'Hide' : t('common.show') || 'Show'
+                  }
+                  title={
+                    showPlayersSidebar ? t('common.hide') || 'Hide' : t('common.show') || 'Show'
+                  }
+                >
+                  {showPlayersSidebar ? (
+                    <ChevronRight className="h-4 w-4" />
+                  ) : (
+                    <ChevronLeft className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div
+              className={`flex min-h-0 flex-1 flex-col justify-evenly gap-2 md:gap-4 ${showPlayersSidebar ? '' : 'hidden'}`}
+            >
+              <div
+                className={`group relative flex-shrink overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-2xl md:rounded-3xl ${showPlayersSidebar ? 'mx-auto aspect-square max-h-[40vh] w-full object-contain' : 'h-44 w-full sm:h-52 md:aspect-square md:h-auto md:w-[clamp(14rem,30vw,20rem)] md:flex-shrink-0'}`}
+              >
+                {isImageAvailable(safeCurrentArtworkUrl) ? (
+                  <SafeImage
+                    imageUrl={safeCurrentArtworkUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={() => markImageFailed(safeCurrentArtworkUrl)}
+                  />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-gray-900">
-                    <Music className="h-32 w-32 text-[var(--text-muted)]" />
+                  <div className="flex h-full w-full items-center justify-center">
+                    {isChannel ? (
+                      <Tv className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
+                    ) : isSonos ? (
+                      <Speaker className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
+                    ) : (
+                      <Music className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
+                    )}
                   </div>
                 )}
-              </div>
-
-              {/* Main Content Overlay - Bottom Aligned Controls */}
-              <div
-                data-testid="media-immersive-content"
-                className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-4 sm:gap-4 sm:px-6 md:gap-6 md:px-16"
-              >
-                
-                {/* Intro / Metadata */}
-                <div className="text-center w-full">
-                  <h2 className="mb-1 line-clamp-2 text-xl leading-tight font-bold text-white drop-shadow-lg sm:mb-2 sm:text-2xl md:text-5xl">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                <div className="absolute bottom-0 left-0 w-full p-4 md:p-8">
+                  <p className="mb-1 text-[11px] font-bold tracking-widest text-[var(--accent-color)] uppercase md:mb-2 md:text-sm">
+                    {activeUser
+                      ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}`
+                      : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
+                  </p>
+                  <h2 className="mb-1 line-clamp-2 text-lg leading-tight font-bold text-white md:mb-2 md:text-3xl">
                     {mpTitle || t('common.unknown')}
                   </h2>
-                  <p className="line-clamp-1 text-sm font-medium text-white/80 drop-shadow-md sm:text-base md:text-2xl">
-                    {mpSeries || mpArtist}
+                  <p className="line-clamp-1 text-sm font-medium text-white/80 md:text-xl">
+                    {mpSeries}
                   </p>
                 </div>
+              </div>
 
-                {/* Progress Bar & Times */}
-                <div className="flex w-full items-center gap-2 sm:gap-3 md:gap-4">
-                  <span className="w-10 text-right text-[10px] font-medium text-white/80 drop-shadow-md sm:w-12 sm:text-xs">
-                    {formatDuration(effectivePosition)}
-                  </span>
-                  <div className="flex-1">
-                    <M3Slider
-                      variant="thin"
-                      min={0}
-                      max={duration || 100}
-                      step={1}
-                      value={effectivePosition || 0}
-                      disabled={!duration}
-                      onChange={(e) =>
-                        callService('media_player', 'media_seek', {
-                          entity_id: mpId,
-                          seek_position: parseFloat(e.target.value),
-                        })
-                      }
-                      colorClass="bg-white"
-                    />
-                  </div>
-                  <span className="w-10 text-[10px] font-medium text-white/80 drop-shadow-md sm:w-12 sm:text-xs">
-                    {formatDuration(duration)}
-                  </span>
+              <div
+                className={`flex flex-shrink-0 flex-col gap-2 ${showPlayersSidebar ? 'mt-2 space-y-2' : 'mt-4 space-y-4 md:mt-0 md:flex-1'}`}
+              >
+                <div className="flex flex-shrink-0 items-center justify-between px-1 text-xs font-bold tracking-widest text-[var(--text-muted)]">
+                  <span>{formatDuration(effectivePosition)}</span>
+                  <span>{formatDuration(duration)}</span>
                 </div>
+                <M3Slider
+                  variant="thin"
+                  min={0}
+                  max={duration || 100}
+                  step={1}
+                  value={effectivePosition || 0}
+                  disabled={!duration}
+                  onChange={(e) =>
+                    callService('media_player', 'media_seek', {
+                      entity_id: mpId,
+                      seek_position: parseFloat(e.target.value),
+                    })
+                  }
+                  colorClass="bg-white"
+                />
 
-                {/* Main Controls Row */}
-                <div
-                  data-testid="media-immersive-controls"
-                  className="flex w-full flex-col items-center justify-between gap-3 md:flex-row md:gap-8"
-                >
-                  {/* Volume Group */}
-                  <div
-                    data-testid="media-immersive-volume"
-                    className="flex w-full max-w-sm items-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-md md:w-auto md:max-w-none"
-                  >
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'volume_mute', {
-                          entity_id: mpId,
-                          is_volume_muted: !isMuted,
-                        })
-                      }
-                      className="text-white/80 hover:text-white transition-colors"
-                    >
-                      {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                    </button>
-                    <div className="min-w-0 flex-1 md:w-48 md:flex-none lg:w-64">
-                      <M3Slider
-                         variant="volume"
-                         min={0}
-                         max={100}
-                         step={1}
-                         value={volume * 100}
-                         onChange={(e) =>
-                           callService('media_player', 'volume_set', {
-                             entity_id: mpId,
-                             volume_level: parseFloat(e.target.value) / 100,
-                           })
-                         }
-                         colorClass="bg-white"
-                       />
-                    </div>
-                  </div>
-
-                  {/* Playback Buttons */}
-                  <div
-                    data-testid="media-immersive-playback"
-                    className="flex items-center justify-center gap-3 sm:gap-4 md:gap-8"
-                  >
-                     <button
+                {isSonos ? (
+                  <div className="flex flex-col gap-4 pt-2">
+                    <div className="flex items-center justify-center gap-[clamp(0.25rem,1.6vw,1.5rem)]">
+                      <button
                         onClick={() =>
                           callService('media_player', 'shuffle_set', {
                             entity_id: mpId,
                             shuffle: !shuffle,
                           })
                         }
-                        className={`text-white/60 hover:text-white transition-colors ${shuffle ? 'text-[var(--status-success-fg)]' : ''}`}
+                        className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${shuffle ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                       >
-                        <Shuffle className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <Shuffle className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
                       </button>
 
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_previous_track', { entity_id: mpId })
-                      }
-                      className="text-white hover:text-white/80 transition-transform active:scale-90"
-                    >
-                      <SkipBack className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" fill="currentColor" />
-                    </button>
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_previous_track', { entity_id: mpId })
+                        }
+                        className="rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                      >
+                        <SkipBack className="h-[clamp(1.1rem,2.6vw,1.25rem)] w-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_play_pause', { entity_id: mpId })
+                        }
+                        className="rounded-full bg-[var(--text-primary)] p-[clamp(0.35rem,1.2vw,0.75rem)] shadow-lg transition-colors active:scale-95"
+                      >
+                        {isPlaying ? (
+                          <Pause
+                            className="h-[clamp(1.25rem,3vw,1.5rem)] w-[clamp(1.25rem,3vw,1.5rem)]"
+                            color="var(--bg-primary)"
+                            fill="var(--bg-primary)"
+                          />
+                        ) : (
+                          <Play
+                            className="ml-0.5 h-[clamp(1.25rem,3vw,1.5rem)] w-[clamp(1.25rem,3vw,1.5rem)]"
+                            color="var(--bg-primary)"
+                            fill="var(--bg-primary)"
+                          />
+                        )}
+                      </button>
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_next_track', { entity_id: mpId })
+                        }
+                        className="rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                      >
+                        <SkipForward className="h-[clamp(1.1rem,2.6vw,1.25rem)] w-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" />
+                      </button>
 
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_play_pause', { entity_id: mpId })
-                      }
-                      className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-xl transition-all hover:scale-105 active:scale-95 sm:h-16 sm:w-16 md:h-20 md:w-20"
-                    >
-                       {isPlaying ? (
-                        <Pause className="h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
-                      ) : (
-                        <Play className="ml-1 h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        callService('media_player', 'media_next_track', { entity_id: mpId })
-                      }
-                      className="text-white hover:text-white/80 transition-transform active:scale-90"
-                    >
-                      <SkipForward className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" fill="currentColor" />
-                    </button>
-
-                    <button
+                      <button
                         onClick={() => {
                           const modes = ['off', 'one', 'all'];
                           const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length];
@@ -1528,364 +1206,721 @@ export default function MediaModal({
                             repeat: nextMode,
                           });
                         }}
-                        className={`text-white/60 hover:text-white transition-colors ${repeat !== 'off' ? 'text-[var(--status-success-fg)]' : ''}`}
+                        className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${repeat !== 'off' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                       >
-                       {repeat === 'one' ? (
-                        <Repeat1 className="h-4 w-4 sm:h-5 sm:w-5" />
-                       ) : (
-                        <Repeat className="h-4 w-4 sm:h-5 sm:w-5" />
-                       )}
-                    </button>
-                  </div>
-                  
-                  {/* Empty spacer to balance layout or auxiliary controls */}
-                  <div className="hidden md:block w-[140px]" /> 
-                  
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {showPlayersSidebar && (
-          <div className="relative min-h-0 w-full overflow-hidden border-t border-[var(--glass-border)] transition-all duration-300 ease-out md:w-80 md:border-t-0 md:border-l lg:w-[22rem]">
-            <div className="custom-scrollbar absolute inset-0 flex min-h-0 flex-col gap-6 overflow-y-auto pt-4 pl-0 md:pt-10 md:pl-8 lg:pt-16 lg:pl-12">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold tracking-[0.2em] text-[var(--text-muted)] uppercase">
-              {isSonos || isAllSonos
-                ? t('media.group.sonosPlayers')
-                : t('media.group.selectedPlayers')}
-            </h3>
-            <div className="flex items-center gap-2">
-              {canGroup && listPlayers.length > 1 && (
-                <button
-                  onClick={() => {
-                    const allIds = listPlayers.map((p) => p.entity_id);
-                    const unjoined = allIds.filter((id) => !groupMembers.includes(id));
-                    if (unjoined.length > 0) {
-                      callService('media_player', 'join', {
-                        entity_id: mpId,
-                        group_members: unjoined,
-                      });
-                    } else {
-                      const others = groupMembers.filter((id) => id !== mpId);
-                      others.forEach((id) =>
-                        callService('media_player', 'unjoin', { entity_id: id })
-                      );
-                    }
-                  }}
-                  className="text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:text-white"
-                >
-                  {listPlayers.every((p) => groupMembers.includes(p.entity_id))
-                    ? t('sonos.ungroupAll')
-                    : t('sonos.groupAll')}
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col gap-4">
-            {listPlayers.length === 0 && (
-              <p className="text-sm text-[var(--text-muted)] italic">{t('media.noPlayersFound')}</p>
-            )}
-            {listPlayers.map((p, idx) => {
-              const isSelected = p.entity_id === mpId;
-              const isMember = groupMembers.includes(p.entity_id);
-              const isSelf = p.entity_id === mpId;
-              const isActivePlayer = treatAsSonos ? isSonosActive(p) : isMediaActive(p);
-              const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
-              const pUser = (() => {
-                const s = Array.isArray(sessions)
-                  ? sessions.find(
-                      (s) =>
-                        s.device_name &&
-                        (p.attributes?.friendly_name || '')
-                          .toLowerCase()
-                          .includes(s.device_name.toLowerCase())
-                    )
-                  : null;
-                return s?.user_name || '';
-              })();
-              const pArtworkUrl = getArtworkUrl(p);
-              const safePArtworkUrl = sanitizeImageSrc(pArtworkUrl);
-
-              return (
-                <div
-                  key={p.entity_id || idx}
-                  className={`flex items-center gap-3 rounded-2xl border p-3 transition-all ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-transparent hover:bg-[var(--glass-bg)]'} ${isActivePlayer ? '' : 'opacity-70'}`}
-                >
-                  <button
-                    onClick={() => setActiveMediaId(p.entity_id)}
-                    className="group flex min-w-0 flex-1 items-center gap-4 text-left"
-                  >
-                    <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-[var(--glass-bg)]">
-                      {isImageAvailable(safePArtworkUrl) ? (
-                        <SafeImage
-                          imageUrl={safePArtworkUrl}
-                          alt=""
-                          className="h-full w-full object-cover"
-                          onError={() => markImageFailed(safePArtworkUrl)}
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          {isSonosUiEntity(p) ? (
-                            <Speaker className="h-5 w-5 text-[var(--text-muted)]" />
-                          ) : (
-                            <Music className="h-5 w-5 text-[var(--text-muted)]" />
-                          )}
-                        </div>
+                        {repeat === 'one' ? (
+                          <Repeat1 className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
+                        ) : (
+                          <Repeat className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
+                        )}
+                      </button>
+                      {canTogglePower && (
+                        <button
+                          onClick={() =>
+                            callService('media_player', powerAction, { entity_id: mpId })
+                          }
+                          className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
+                          title={isPowerOffAction ? t('status.off') : t('status.on')}
+                        >
+                          <Power className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
+                        </button>
                       )}
                     </div>
-                    <div className="overflow-hidden">
-                      <p
-                        className={`truncate text-xs font-bold tracking-wider uppercase ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}
+
+                    <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-2">
+                      <button
+                        onClick={() => changeVolumeByStep(-VOLUME_STEP)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                        aria-label="Volume down"
+                        title="Volume down"
                       >
-                        {applyPlayerNameDisplayFilter(p.attributes?.friendly_name || p.entity_id)}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text-muted)] md:text-sm">
-                        {pTitle}
-                      </p>
-                      {pUser && <p className="truncate text-[10px] text-[var(--text-muted)]">{pUser}</p>}
-                    </div>
-                  </button>
-                  {p.state === 'playing' && (
-                    <div
-                      className="ml-1 flex h-7 items-end gap-0.5 px-1"
-                      title={t('status.playing') || 'Playing'}
-                      aria-label={t('status.playing') || 'Playing'}
-                    >
-                      <span
-                        className="media-eq-bar h-2.5 w-0.5 rounded-full bg-[var(--accent-color)]"
-                        style={{ animationDuration: '1.05s', animationDelay: '0s' }}
-                      />
-                      <span
-                        className="media-eq-bar h-4 w-0.5 rounded-full bg-[var(--accent-color)]"
-                        style={{ animationDuration: '0.9s', animationDelay: '0.12s' }}
-                      />
-                      <span
-                        className="media-eq-bar h-3 w-0.5 rounded-full bg-[var(--accent-color)]"
-                        style={{ animationDuration: '1.2s', animationDelay: '0.2s' }}
-                      />
-                      <span
-                        className="media-eq-bar h-5 w-0.5 rounded-full bg-[var(--accent-color)]"
-                        style={{ animationDuration: '0.95s', animationDelay: '0.32s' }}
-                      />
-                    </div>
-                  )}
-                  {canGroup && !isSelf && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isMember) {
-                          callService('media_player', 'unjoin', { entity_id: p.entity_id });
-                        } else {
-                          callService('media_player', 'join', {
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'volume_mute', {
                             entity_id: mpId,
-                            group_members: [p.entity_id],
-                          });
+                            is_volume_muted: !isMuted,
+                          })
                         }
-                      }}
-                      className={`rounded-full p-2.5 transition-all ${isMember ? 'border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] shadow-lg ' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                      title={isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')}
-                    >
-                      {isMember ? <Link className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                    </button>
-                  )}
-                  {canGroup && isSelf && groupMembers.length > 1 && (
-                    <div
-                      className="rounded-full bg-[var(--accent-bg)] p-2.5 text-[var(--accent-color)]"
-                      title={t('tooltip.linked')}
-                    >
-                      <Link className="h-4 w-4" />
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                      >
+                        {isMuted ? (
+                          <VolumeX className="h-4 w-4" />
+                        ) : volume < 0.5 ? (
+                          <Volume1 className="h-4 w-4" />
+                        ) : (
+                          <Volume2 className="h-4 w-4" />
+                        )}
+                      </button>
+                      <div className="flex-1 px-1">
+                        <M3Slider
+                          variant="volume"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={volume * 100}
+                          onChange={(e) =>
+                            callService('media_player', 'volume_set', {
+                              entity_id: mpId,
+                              volume_level: parseFloat(e.target.value) / 100,
+                            })
+                          }
+                          colorClass="bg-white"
+                        />
+                      </div>
+                      <button
+                        onClick={() => changeVolumeByStep(VOLUME_STEP)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                        aria-label="Volume up"
+                        title="Volume up"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {canGroup && (
-            <div className="space-y-2 border-t border-[var(--glass-border)] pt-2">
-              <button
-                type="button"
-                onClick={() => setShowAddSonosPicker((prev) => !prev)}
-                className="text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase transition-colors hover:opacity-80"
-              >
-                + {t('media.addSonosPlayer')}
-              </button>
-              {showAddSonosPicker && (
-                <div className="popup-surface space-y-2 rounded-2xl border border-[var(--glass-border)] p-3">
-                  {extraSelectedPlayerIds.length > 0 && (
-                    <div className="space-y-2 border-b border-[var(--glass-border)] pb-2">
-                      <p className="text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
-                        {t('media.group.selectedPlayers')}
-                      </p>
-                      {effectiveExtras
-                        .map((id) => entities[id])
-                        .filter(Boolean)
-                        .map((player) => (
-                          <div
-                            key={`selected-${player.entity_id}`}
-                            className="flex items-center justify-between gap-2 rounded-xl bg-[var(--glass-bg)] px-3 py-2"
-                          >
-                            <span className="truncate text-xs text-[var(--text-secondary)]">
-                              {applyPlayerNameDisplayFilter(
-                                player.attributes?.friendly_name || player.entity_id
-                              )}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExtraSelectedPlayerIds((prev) =>
-                                  prev.filter((id) => id !== player.entity_id)
-                                )
-                              }
-                              className="text-[10px] font-bold tracking-widest text-rose-400 uppercase transition-colors hover:text-rose-300"
-                            >
-                              {t('media.clearSelection')}
-                            </button>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                  {availableSonosToAdd.length === 0 && (
-                    <p className="text-xs text-[var(--text-muted)] italic">
-                      {t('media.noAvailableSonosPlayers')}
-                    </p>
-                  )}
-                  {availableSonosToAdd.map((player) => (
-                    <button
-                      key={player.entity_id}
-                      type="button"
-                      onClick={() => {
-                        setExtraSelectedPlayerIds((prev) => [
-                          ...new Set([...(prev || []), player.entity_id]),
-                        ]);
-                        setShowAddSonosPicker(false);
-                      }}
-                      className="popup-surface popup-surface-hover w-full rounded-xl px-3 py-2 text-left text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    >
-                      {applyPlayerNameDisplayFilter(
-                        player.attributes?.friendly_name || player.entity_id
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4 pt-2">
+                    <div className="flex items-center justify-center gap-[clamp(0.25rem,1.8vw,1.5rem)]">
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_previous_track', { entity_id: mpId })
+                        }
+                        className="rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                      >
+                        <SkipBack className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_play_pause', { entity_id: mpId })
+                        }
+                        className="rounded-full bg-[var(--text-primary)] p-[clamp(0.65rem,2vw,1.5rem)] shadow-lg transition-colors active:scale-95"
+                      >
+                        {isPlaying ? (
+                          <Pause
+                            className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]"
+                            color="var(--bg-primary)"
+                            fill="var(--bg-primary)"
+                          />
+                        ) : (
+                          <Play
+                            className="ml-1 h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]"
+                            color="var(--bg-primary)"
+                            fill="var(--bg-primary)"
+                          />
+                        )}
+                      </button>
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_next_track', { entity_id: mpId })
+                        }
+                        className="rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                      >
+                        <SkipForward className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" />
+                      </button>
+                      {canTogglePower && (
+                        <button
+                          onClick={() =>
+                            callService('media_player', powerAction, { entity_id: mpId })
+                          }
+                          className={`rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
+                          title={isPowerOffAction ? t('status.off') : t('status.on')}
+                        >
+                          <Power className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]" />
+                        </button>
                       )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-            </div>
-          </div>
-        )}
-
-        {showChoosePanel && (
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 z-20 bg-black/30"
-            onClick={() => setShowChoosePanel(false)}
-          />
-        )}
-
-        <aside
-          data-testid="media-chooser"
-          aria-hidden={!showChoosePanel}
-          inert={!showChoosePanel}
-          className={`absolute top-0 right-0 z-30 h-full w-full transform overflow-hidden border-l border-[var(--glass-border)] bg-[var(--modal-bg)] backdrop-blur-2xl transition-transform duration-200 ease-out will-change-transform motion-reduce:transition-none md:w-[420px] ${showChoosePanel ? 'translate-x-0' : 'translate-x-full'}`}
-        >
-          <div className="flex h-full min-h-0 flex-col">
-            <header className="flex-shrink-0 border-b border-[var(--glass-border)] px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 pt-0.5">
-                  <h4 className="text-sm font-bold tracking-[0.2em] text-[var(--text-primary)] uppercase">
-                    {t('media.chooseMedia')}
-                  </h4>
-                  <p className="mt-1 truncate text-[11px] text-[var(--text-muted)]">
-                    {t('media.chooseMediaHint')}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  data-testid="media-chooser-close"
-                  onClick={() => setShowChoosePanel(false)}
-                  className="modal-close modal-close-dark flex-shrink-0"
-                  aria-label={t('common.close') || 'Close'}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-4 gap-1.5" role="group">
-                {renderChooseTabButton('favorites', t('media.choose.tab.favorites'))}
-                {renderChooseTabButton('playlists', t('media.choose.tab.playlists'))}
-                {renderChooseTabButton('library', t('media.choose.tab.library'))}
-                {renderChooseTabButton('search', t('media.choose.tab.search'))}
-              </div>
-
-              {chooseTab === 'search' && (
-                <input
-                  type="search"
-                  value={chooseQuery}
-                  onChange={(event) => setChooseQuery(event.target.value)}
-                  placeholder={t('addCard.search')}
-                  className="mt-3 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2.5 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
-                />
-              )}
-            </header>
-
-            <div
-              data-testid="media-chooser-results"
-              aria-busy={browseLoading}
-              className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-5 md:px-5"
-            >
-              <div className="flex h-9 items-center" aria-live="polite">
-                {browseLoading ? (
-                  <span className="text-[11px] font-medium text-[var(--text-muted)] italic">
-                    {t('media.choose.loading')}
-                  </span>
-                ) : browseError ? (
-                  <span className="text-[11px] font-medium text-amber-400 italic">
-                    {t('media.choose.loadError')}
-                  </span>
-                ) : null}
-              </div>
-
-              {browseLoading && !hasLoadedBrowseChoices ? (
-                <div data-testid="media-chooser-loading" className="grid grid-cols-2 gap-3">
-                  {[0, 1, 2, 3].map((item) => (
-                    <div
-                      key={item}
-                      className="animate-pulse rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-2.5"
-                    >
-                      <div className="aspect-square rounded-xl bg-[var(--glass-bg-hover)]" />
-                      <div className="mt-2 h-3 w-4/5 rounded-full bg-[var(--glass-bg-hover)]" />
-                      <div className="mt-2 h-2 w-2/5 rounded-full bg-[var(--glass-bg-hover)]" />
                     </div>
-                  ))}
-                </div>
-              ) : activeChooseChoices.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3">
-                  {activeChooseChoices.map((choice) =>
-                    renderChoiceButton(choice, `${chooseTab}::`)
+                    <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-2">
+                      <button
+                        onClick={() => changeVolumeByStep(-VOLUME_STEP)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                        aria-label="Volume down"
+                        title="Volume down"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'volume_mute', {
+                            entity_id: mpId,
+                            is_volume_muted: !isMuted,
+                          })
+                        }
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                      >
+                        {isMuted ? (
+                          <VolumeX className="h-4 w-4" />
+                        ) : volume < 0.5 ? (
+                          <Volume1 className="h-4 w-4" />
+                        ) : (
+                          <Volume2 className="h-4 w-4" />
+                        )}
+                      </button>
+                      <div className="flex-1 px-1">
+                        <M3Slider
+                          variant="volume"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={volume * 100}
+                          onChange={(e) =>
+                            callService('media_player', 'volume_set', {
+                              entity_id: mpId,
+                              volume_level: parseFloat(e.target.value) / 100,
+                            })
+                          }
+                          colorClass="bg-white"
+                        />
+                      </div>
+                      <button
+                        onClick={() => changeVolumeByStep(VOLUME_STEP)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                        aria-label="Volume up"
+                        title="Volume up"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {!showPlayersSidebar && (
+              <div className="flex h-full w-full flex-col justify-end overflow-y-auto pt-24 pb-4 sm:pb-6 md:overflow-hidden md:pt-0 md:pb-12">
+                {/* Background Artwork - Full Screen */}
+                <div className="absolute inset-0 z-0">
+                  {isImageAvailable(safeCurrentArtworkUrl) ? (
+                    <>
+                      <SafeImage
+                        imageUrl={safeCurrentArtworkUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={() => markImageFailed(safeCurrentArtworkUrl)}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
+                    </>
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gray-900">
+                      <Music className="h-32 w-32 text-[var(--text-muted)]" />
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--glass-border)] px-6 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-muted)]">
-                    {chooseTab === 'favorites' ? (
-                      <Heart className="h-5 w-5" />
-                    ) : (
-                      <Music className="h-5 w-5" />
+
+                {/* Main Content Overlay - Bottom Aligned Controls */}
+                <div
+                  data-testid="media-immersive-content"
+                  className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-4 sm:gap-4 sm:px-6 md:gap-6 md:px-16"
+                >
+                  {/* Intro / Metadata */}
+                  <div className="w-full text-center">
+                    <h2 className="mb-1 line-clamp-2 text-xl leading-tight font-bold text-white drop-shadow-lg sm:mb-2 sm:text-2xl md:text-5xl">
+                      {mpTitle || t('common.unknown')}
+                    </h2>
+                    <p className="line-clamp-1 text-sm font-medium text-white/80 drop-shadow-md sm:text-base md:text-2xl">
+                      {mpSeries || mpArtist}
+                    </p>
+                  </div>
+
+                  {/* Progress Bar & Times */}
+                  <div className="flex w-full items-center gap-2 sm:gap-3 md:gap-4">
+                    <span className="w-10 text-right text-[10px] font-medium text-white/80 drop-shadow-md sm:w-12 sm:text-xs">
+                      {formatDuration(effectivePosition)}
+                    </span>
+                    <div className="flex-1">
+                      <M3Slider
+                        variant="thin"
+                        min={0}
+                        max={duration || 100}
+                        step={1}
+                        value={effectivePosition || 0}
+                        disabled={!duration}
+                        onChange={(e) =>
+                          callService('media_player', 'media_seek', {
+                            entity_id: mpId,
+                            seek_position: parseFloat(e.target.value),
+                          })
+                        }
+                        colorClass="bg-white"
+                      />
+                    </div>
+                    <span className="w-10 text-[10px] font-medium text-white/80 drop-shadow-md sm:w-12 sm:text-xs">
+                      {formatDuration(duration)}
+                    </span>
+                  </div>
+
+                  {/* Main Controls Row */}
+                  <div
+                    data-testid="media-immersive-controls"
+                    className="flex w-full flex-col items-center justify-between gap-3 md:flex-row md:gap-8"
+                  >
+                    {/* Volume Group */}
+                    <div
+                      data-testid="media-immersive-volume"
+                      className="flex w-full max-w-sm items-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-md md:w-auto md:max-w-none"
+                    >
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'volume_mute', {
+                            entity_id: mpId,
+                            is_volume_muted: !isMuted,
+                          })
+                        }
+                        className="text-white/80 transition-colors hover:text-white"
+                      >
+                        {isMuted ? (
+                          <VolumeX className="h-5 w-5" />
+                        ) : (
+                          <Volume2 className="h-5 w-5" />
+                        )}
+                      </button>
+                      <div className="min-w-0 flex-1 md:w-48 md:flex-none lg:w-64">
+                        <M3Slider
+                          variant="volume"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={volume * 100}
+                          onChange={(e) =>
+                            callService('media_player', 'volume_set', {
+                              entity_id: mpId,
+                              volume_level: parseFloat(e.target.value) / 100,
+                            })
+                          }
+                          colorClass="bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Playback Buttons */}
+                    <div
+                      data-testid="media-immersive-playback"
+                      className="flex items-center justify-center gap-3 sm:gap-4 md:gap-8"
+                    >
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'shuffle_set', {
+                            entity_id: mpId,
+                            shuffle: !shuffle,
+                          })
+                        }
+                        className={`text-white/60 transition-colors hover:text-white ${shuffle ? 'text-[var(--status-success-fg)]' : ''}`}
+                      >
+                        <Shuffle className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_previous_track', { entity_id: mpId })
+                        }
+                        className="text-white transition-transform hover:text-white/80 active:scale-90"
+                      >
+                        <SkipBack
+                          className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+                          fill="currentColor"
+                        />
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_play_pause', { entity_id: mpId })
+                        }
+                        className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-xl transition-all hover:scale-105 active:scale-95 sm:h-16 sm:w-16 md:h-20 md:w-20"
+                      >
+                        {isPlaying ? (
+                          <Pause className="h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
+                        ) : (
+                          <Play className="ml-1 h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_next_track', { entity_id: mpId })
+                        }
+                        className="text-white transition-transform hover:text-white/80 active:scale-90"
+                      >
+                        <SkipForward
+                          className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+                          fill="currentColor"
+                        />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          const modes = ['off', 'one', 'all'];
+                          const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length];
+                          callService('media_player', 'repeat_set', {
+                            entity_id: mpId,
+                            repeat: nextMode,
+                          });
+                        }}
+                        className={`text-white/60 transition-colors hover:text-white ${repeat !== 'off' ? 'text-[var(--status-success-fg)]' : ''}`}
+                      >
+                        {repeat === 'one' ? (
+                          <Repeat1 className="h-4 w-4 sm:h-5 sm:w-5" />
+                        ) : (
+                          <Repeat className="h-4 w-4 sm:h-5 sm:w-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Empty spacer to balance layout or auxiliary controls */}
+                    <div className="hidden w-[140px] md:block" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {showPlayersSidebar && (
+            <div className="relative min-h-0 w-full overflow-hidden border-t border-[var(--glass-border)] transition-all duration-300 ease-out md:w-80 md:border-t-0 md:border-l lg:w-[22rem]">
+              <div className="custom-scrollbar absolute inset-0 flex min-h-0 flex-col gap-6 overflow-y-auto pt-4 pl-0 md:pt-10 md:pl-8 lg:pt-16 lg:pl-12">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold tracking-[0.2em] text-[var(--text-muted)] uppercase">
+                    {isSonos || isAllSonos
+                      ? t('media.group.sonosPlayers')
+                      : t('media.group.selectedPlayers')}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {canGroup && listPlayers.length > 1 && (
+                      <button
+                        onClick={() => {
+                          const allIds = listPlayers.map((p) => p.entity_id);
+                          const unjoined = allIds.filter((id) => !groupMembers.includes(id));
+                          if (unjoined.length > 0) {
+                            callService('media_player', 'join', {
+                              entity_id: mpId,
+                              group_members: unjoined,
+                            });
+                          } else {
+                            const others = groupMembers.filter((id) => id !== mpId);
+                            others.forEach((id) =>
+                              callService('media_player', 'unjoin', { entity_id: id })
+                            );
+                          }
+                        }}
+                        className="text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:text-white"
+                      >
+                        {listPlayers.every((p) => groupMembers.includes(p.entity_id))
+                          ? t('sonos.ungroupAll')
+                          : t('sonos.groupAll')}
+                      </button>
                     )}
                   </div>
-                  <p className="mt-3 text-sm font-medium text-[var(--text-secondary)] italic">
-                    {activeChooseEmptyMessage}
-                  </p>
                 </div>
-              )}
+                <div className="flex flex-col gap-4">
+                  {listPlayers.length === 0 && (
+                    <p className="text-sm text-[var(--text-muted)] italic">
+                      {t('media.noPlayersFound')}
+                    </p>
+                  )}
+                  {listPlayers.map((p, idx) => {
+                    const isSelected = p.entity_id === mpId;
+                    const isMember = groupMembers.includes(p.entity_id);
+                    const isSelf = p.entity_id === mpId;
+                    const isActivePlayer = treatAsSonos ? isSonosActive(p) : isMediaActive(p);
+                    const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
+                    const pUser = (() => {
+                      const s = Array.isArray(sessions)
+                        ? sessions.find(
+                            (s) =>
+                              s.device_name &&
+                              (p.attributes?.friendly_name || '')
+                                .toLowerCase()
+                                .includes(s.device_name.toLowerCase())
+                          )
+                        : null;
+                      return s?.user_name || '';
+                    })();
+                    const pArtworkUrl = getArtworkUrl(p);
+                    const safePArtworkUrl = sanitizeImageSrc(pArtworkUrl);
+
+                    return (
+                      <div
+                        key={p.entity_id || idx}
+                        className={`flex items-center gap-3 rounded-2xl border p-3 transition-all ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-transparent hover:bg-[var(--glass-bg)]'} ${isActivePlayer ? '' : 'opacity-70'}`}
+                      >
+                        <button
+                          onClick={() => setActiveMediaId(p.entity_id)}
+                          className="group flex min-w-0 flex-1 items-center gap-4 text-left"
+                        >
+                          <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-[var(--glass-bg)]">
+                            {isImageAvailable(safePArtworkUrl) ? (
+                              <SafeImage
+                                imageUrl={safePArtworkUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                                onError={() => markImageFailed(safePArtworkUrl)}
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                {isSonosUiEntity(p) ? (
+                                  <Speaker className="h-5 w-5 text-[var(--text-muted)]" />
+                                ) : (
+                                  <Music className="h-5 w-5 text-[var(--text-muted)]" />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="overflow-hidden">
+                            <p
+                              className={`truncate text-xs font-bold tracking-wider uppercase ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}
+                            >
+                              {applyPlayerNameDisplayFilter(
+                                p.attributes?.friendly_name || p.entity_id
+                              )}
+                            </p>
+                            <p className="mt-0.5 truncate text-xs font-semibold text-[var(--text-muted)] md:text-sm">
+                              {pTitle}
+                            </p>
+                            {pUser && (
+                              <p className="truncate text-[10px] text-[var(--text-muted)]">
+                                {pUser}
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                        {p.state === 'playing' && (
+                          <div
+                            className="ml-1 flex h-7 items-end gap-0.5 px-1"
+                            title={t('status.playing') || 'Playing'}
+                            aria-label={t('status.playing') || 'Playing'}
+                          >
+                            <span
+                              className="media-eq-bar h-2.5 w-0.5 rounded-full bg-[var(--accent-color)]"
+                              style={{ animationDuration: '1.05s', animationDelay: '0s' }}
+                            />
+                            <span
+                              className="media-eq-bar h-4 w-0.5 rounded-full bg-[var(--accent-color)]"
+                              style={{ animationDuration: '0.9s', animationDelay: '0.12s' }}
+                            />
+                            <span
+                              className="media-eq-bar h-3 w-0.5 rounded-full bg-[var(--accent-color)]"
+                              style={{ animationDuration: '1.2s', animationDelay: '0.2s' }}
+                            />
+                            <span
+                              className="media-eq-bar h-5 w-0.5 rounded-full bg-[var(--accent-color)]"
+                              style={{ animationDuration: '0.95s', animationDelay: '0.32s' }}
+                            />
+                          </div>
+                        )}
+                        {canGroup && !isSelf && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isMember) {
+                                callService('media_player', 'unjoin', { entity_id: p.entity_id });
+                              } else {
+                                callService('media_player', 'join', {
+                                  entity_id: mpId,
+                                  group_members: [p.entity_id],
+                                });
+                              }
+                            }}
+                            className={`rounded-full p-2.5 transition-all ${isMember ? 'border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] shadow-lg ' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                            title={
+                              isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')
+                            }
+                          >
+                            {isMember ? <Link className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                          </button>
+                        )}
+                        {canGroup && isSelf && groupMembers.length > 1 && (
+                          <div
+                            className="rounded-full bg-[var(--accent-bg)] p-2.5 text-[var(--accent-color)]"
+                            title={t('tooltip.linked')}
+                          >
+                            <Link className="h-4 w-4" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {canGroup && (
+                  <div className="space-y-2 border-t border-[var(--glass-border)] pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddSonosPicker((prev) => !prev)}
+                      className="text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase transition-colors hover:opacity-80"
+                    >
+                      + {t('media.addSonosPlayer')}
+                    </button>
+                    {showAddSonosPicker && (
+                      <div className="popup-surface space-y-2 rounded-2xl border border-[var(--glass-border)] p-3">
+                        {extraSelectedPlayerIds.length > 0 && (
+                          <div className="space-y-2 border-b border-[var(--glass-border)] pb-2">
+                            <p className="text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
+                              {t('media.group.selectedPlayers')}
+                            </p>
+                            {effectiveExtras
+                              .map((id) => entities[id])
+                              .filter(Boolean)
+                              .map((player) => (
+                                <div
+                                  key={`selected-${player.entity_id}`}
+                                  className="flex items-center justify-between gap-2 rounded-xl bg-[var(--glass-bg)] px-3 py-2"
+                                >
+                                  <span className="truncate text-xs text-[var(--text-secondary)]">
+                                    {applyPlayerNameDisplayFilter(
+                                      player.attributes?.friendly_name || player.entity_id
+                                    )}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExtraSelectedPlayerIds((prev) =>
+                                        prev.filter((id) => id !== player.entity_id)
+                                      )
+                                    }
+                                    className="text-[10px] font-bold tracking-widest text-rose-400 uppercase transition-colors hover:text-rose-300"
+                                  >
+                                    {t('media.clearSelection')}
+                                  </button>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                        {availableSonosToAdd.length === 0 && (
+                          <p className="text-xs text-[var(--text-muted)] italic">
+                            {t('media.noAvailableSonosPlayers')}
+                          </p>
+                        )}
+                        {availableSonosToAdd.map((player) => (
+                          <button
+                            key={player.entity_id}
+                            type="button"
+                            onClick={() => {
+                              setExtraSelectedPlayerIds((prev) => [
+                                ...new Set([...(prev || []), player.entity_id]),
+                              ]);
+                              setShowAddSonosPicker(false);
+                            }}
+                            className="popup-surface popup-surface-hover w-full rounded-xl px-3 py-2 text-left text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          >
+                            {applyPlayerNameDisplayFilter(
+                              player.attributes?.friendly_name || player.entity_id
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </aside>
+          )}
+
+          {showChoosePanel && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 z-20 bg-black/30"
+              onClick={() => setShowChoosePanel(false)}
+            />
+          )}
+
+          <aside
+            data-testid="media-chooser"
+            aria-hidden={!showChoosePanel}
+            inert={!showChoosePanel}
+            className={`absolute top-0 right-0 z-30 h-full w-full transform overflow-hidden border-l border-[var(--glass-border)] bg-[var(--modal-bg)] backdrop-blur-2xl transition-transform duration-200 ease-out will-change-transform motion-reduce:transition-none md:w-[420px] ${showChoosePanel ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <div className="flex h-full min-h-0 flex-col">
+              <header className="flex-shrink-0 border-b border-[var(--glass-border)] px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 pt-0.5">
+                    <h4 className="text-sm font-bold tracking-[0.2em] text-[var(--text-primary)] uppercase">
+                      {t('media.chooseMedia')}
+                    </h4>
+                    <p className="mt-1 truncate text-[11px] text-[var(--text-muted)]">
+                      {t('media.chooseMediaHint')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="media-chooser-close"
+                    onClick={() => setShowChoosePanel(false)}
+                    className="modal-close modal-close-dark flex-shrink-0"
+                    aria-label={t('common.close') || 'Close'}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-4 gap-1.5" role="group">
+                  {renderChooseTabButton('favorites', t('media.choose.tab.favorites'))}
+                  {renderChooseTabButton('playlists', t('media.choose.tab.playlists'))}
+                  {renderChooseTabButton('library', t('media.choose.tab.library'))}
+                  {renderChooseTabButton('search', t('media.choose.tab.search'))}
+                </div>
+
+                {chooseTab === 'search' && (
+                  <input
+                    type="search"
+                    value={chooseQuery}
+                    onChange={(event) => setChooseQuery(event.target.value)}
+                    placeholder={t('addCard.search')}
+                    className="mt-3 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2.5 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
+                  />
+                )}
+              </header>
+
+              <div
+                data-testid="media-chooser-results"
+                aria-busy={browseLoading}
+                className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-5 md:px-5"
+              >
+                <div className="flex h-9 items-center" aria-live="polite">
+                  {browseLoading ? (
+                    <span className="text-[11px] font-medium text-[var(--text-muted)] italic">
+                      {t('media.choose.loading')}
+                    </span>
+                  ) : browseError ? (
+                    <span className="text-[11px] font-medium text-amber-400 italic">
+                      {t('media.choose.loadError')}
+                    </span>
+                  ) : null}
+                </div>
+
+                {browseLoading && !hasLoadedBrowseChoices ? (
+                  <div data-testid="media-chooser-loading" className="grid grid-cols-2 gap-3">
+                    {[0, 1, 2, 3].map((item) => (
+                      <div
+                        key={item}
+                        className="animate-pulse rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-2.5"
+                      >
+                        <div className="aspect-square rounded-xl bg-[var(--glass-bg-hover)]" />
+                        <div className="mt-2 h-3 w-4/5 rounded-full bg-[var(--glass-bg-hover)]" />
+                        <div className="mt-2 h-2 w-2/5 rounded-full bg-[var(--glass-bg-hover)]" />
+                      </div>
+                    ))}
+                  </div>
+                ) : activeChooseChoices.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {activeChooseChoices.map((choice) =>
+                      renderChoiceButton(choice, `${chooseTab}::`)
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--glass-border)] px-6 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-muted)]">
+                      {chooseTab === 'favorites' ? (
+                        <Heart className="h-5 w-5" />
+                      ) : (
+                        <Music className="h-5 w-5" />
+                      )}
+                    </div>
+                    <p className="mt-3 text-sm font-medium text-[var(--text-secondary)] italic">
+                      {activeChooseEmptyMessage}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
         </>
       )}
     </AccessibleModalShell>
   );
 }
-

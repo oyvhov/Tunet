@@ -5,6 +5,7 @@ import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
 import { hasOAuthTokens } from '../services/oauthStorage';
+import MusicAssistantUrlField from './MusicAssistantUrlField';
 import {
   getEffectiveGridColumnsForWidth,
   getMaxGridColumnsForWidth,
@@ -479,6 +480,8 @@ export default function ConfigModal({
           </div>
         </>
       )}
+
+      <MusicAssistantUrlField t={t} />
     </div>
   );
 

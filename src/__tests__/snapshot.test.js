@@ -167,4 +167,23 @@ describe('snapshot service', () => {
     expect(JSON.parse(localStorage.getItem('tunet_card_settings') || '{}')).toEqual(cardSettings);
     expect(persistCardSettings).toHaveBeenCalledWith(cardSettings);
   });
+
+  it('syncs the Music Assistant address and clears it when removed', () => {
+    localStorage.setItem('tunet_music_assistant_url', 'http://ma.local:8095');
+    expect(collectSnapshot().layout.musicAssistantUrl).toBe('http://ma.local:8095');
+
+    applySnapshot({
+      version: 1,
+      layout: { musicAssistantUrl: 'https://ma.example' },
+      appearance: {},
+    });
+    expect(localStorage.getItem('tunet_music_assistant_url')).toBe('https://ma.example');
+
+    applySnapshot({ version: 1, layout: { musicAssistantUrl: '' }, appearance: {} });
+    expect(localStorage.getItem('tunet_music_assistant_url')).toBeNull();
+
+    localStorage.setItem('tunet_music_assistant_url', 'http://kept.local');
+    applySnapshot({ version: 1, layout: {}, appearance: {} });
+    expect(localStorage.getItem('tunet_music_assistant_url')).toBe('http://kept.local');
+  });
 });

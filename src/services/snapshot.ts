@@ -47,6 +47,7 @@ export interface SnapshotLayout {
   headerScale: number;
   sectionSpacing: SectionSpacing | null;
   statusPillsConfig: unknown[] | null;
+  musicAssistantUrl?: string;
 }
 
 export interface SnapshotAppearance {
@@ -175,6 +176,7 @@ export function collectSnapshot(): DashboardSnapshot {
         navToGrid: 24,
       }),
       statusPillsConfig: readJSON<unknown[]>('tunet_status_pills_config', []),
+      musicAssistantUrl: localStorage.getItem('tunet_music_assistant_url') || '',
     },
     appearance: {
       theme: localStorage.getItem('tunet_theme') || 'dark',
@@ -249,6 +251,10 @@ export function applySnapshot(
     localStorage.setItem('tunet_header_scale', String(layout.headerScale));
   if (layout.headerTitle !== undefined)
     localStorage.setItem('tunet_header_title', layout.headerTitle);
+  if (layout.musicAssistantUrl)
+    localStorage.setItem('tunet_music_assistant_url', layout.musicAssistantUrl);
+  else if (layout.musicAssistantUrl !== undefined)
+    localStorage.removeItem('tunet_music_assistant_url');
 
   // ── Appearance → localStorage ──
   if (appearance.theme) localStorage.setItem('tunet_theme', appearance.theme);

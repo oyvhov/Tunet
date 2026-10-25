@@ -22,7 +22,8 @@ import {
   Plus,
   Heart,
 } from '../../icons';
-import { isSonosMediaEntity } from '../../utils';
+import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../../utils';
+import MusicAssistantLink from '../media/MusicAssistantLink';
 import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 const BLOCKED_MEDIA_TYPES = new Set([
@@ -797,6 +798,11 @@ function MediaPage({
                   {isSonosMode ? t('sonos.pageName') : t('addCard.type.media')}
                 </span>
               </div>
+              {isMusicAssistantMediaEntity(currentMp) && (
+                <span className="ml-2 inline-flex align-middle">
+                  <MusicAssistantLink title={t('media.openMusicAssistant')} />
+                </span>
+              )}
               {isSonosMode && (
                 <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--status-info-fg)]/35 bg-[var(--status-info-bg)] px-3 py-1 text-[10px] font-bold tracking-widest text-[var(--status-info-fg)] uppercase">
                   <span>{listPlayers.length}</span>

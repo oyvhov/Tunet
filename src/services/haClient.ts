@@ -3,6 +3,7 @@
 // via home-assistant-js-websocket createConnection.
 
 import type { Connection } from 'home-assistant-js-websocket';
+import type { HaPanels } from '../utils/externalLinks';
 
 type HaConnection = Connection | null | undefined;
 
@@ -434,6 +435,14 @@ export async function removeTodoItem(
     target: { entity_id: entityId },
     service_data: { item: uid },
   });
+}
+
+export async function getPanels(conn: HaConnection): Promise<HaPanels> {
+  if (!conn || typeof conn.sendMessagePromise !== 'function') {
+    throw new Error('Invalid or disconnected HA connection');
+  }
+  const res = await conn.sendMessagePromise<HaPanels | null>({ type: 'get_panels' });
+  return res && typeof res === 'object' ? res : {};
 }
 
 // ─── Area / Room registry helpers ─────────────────────────────
