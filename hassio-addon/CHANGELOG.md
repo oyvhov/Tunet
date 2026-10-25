@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.25.0
+
+### Added
+
+- Sensor card actions can ask for confirmation: the first tap arms the action for three seconds and a second tap runs it. This works for the button, icon and whole-card triggers and for the on/off toggle, and the confirmation text can be changed (#255).
+- A centered layout for large sensor cards that show a state. It looks like the inactive media card, with a round green or red action button (#255).
+- Music Assistant players get a Music Assistant button in the media popup and on the media page. It opens the Music Assistant add-on panel in Home Assistant, or an address set under Settings → Connection (#256).
+- A new "Open link" sensor card action opens a web address in a new tab, for example as a shortcut to Music Assistant (#256).
+
+## Changed
+
+- Add release notes.
+
 ## 1.24.2
 
 ### Fixed
