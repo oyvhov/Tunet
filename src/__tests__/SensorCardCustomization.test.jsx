@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SensorCard from '../components/cards/SensorCard';
 
@@ -384,5 +384,105 @@ describe('SensorCard customization', () => {
     expect(
       screen.getAllByRole('button', { name: 'sensor.action.details', exact: true })
     ).toHaveLength(1);
+  });
+
+  it('asks for a second tap before running a confirmed action', async () => {
+    const p = props({
+      settings: {
+        size: 'large',
+        showGraph: false,
+        sensorAction: { label: 'Shut down PC', confirm: true, confirmLabel: 'Really shut down?' },
+      },
+    });
+    render(<SensorCard {...p} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Shut down PC' }));
+    expect(p.conn.sendMessagePromise).not.toHaveBeenCalled();
+    const armed = screen.getByRole('button', { name: 'Really shut down?' });
+    expect(armed.className).toContain('status-warning');
+    fireEvent.click(armed);
+    await waitFor(() => expect(p.conn.sendMessagePromise).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Really shut down?')).not.toBeInTheDocument();
+  });
+
+  it('disarms a confirmed action after three seconds', () => {
+    vi.useFakeTimers();
+    try {
+      const p = props({
+        settings: { size: 'large', showGraph: false, sensorAction: { confirm: true } },
+      });
+      render(<SensorCard {...p} />);
+      fireEvent.click(screen.getByRole('button', { name: 'sensor.scene.activate' }));
+      expect(
+        screen.getByRole('button', { name: 'sensor.action.confirmPrompt' })
+      ).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(3000));
+      fireEvent.click(screen.getByRole('button', { name: 'sensor.scene.activate' }));
+      expect(p.conn.sendMessagePromise).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('asks for confirmation on the on/off toggle and the icon trigger', async () => {
+    const plug = { entity_id: 'switch.pc', state: 'off', attributes: { friendly_name: 'PC' } };
+    const p = props({
+      entity: plug,
+      entities: { [plug.entity_id]: plug },
+      settings: { size: 'large', showGraph: false, sensorAction: { confirm: true } },
+    });
+    const { rerender } = render(<SensorCard {...p} />);
+    fireEvent.click(screen.getByRole('button', { name: 'common.on' }));
+    expect(p.conn.sendMessagePromise).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'sensor.action.confirmPrompt' }));
+    await waitFor(() =>
+      expect(p.conn.sendMessagePromise).toHaveBeenCalledWith(
+        expect.objectContaining({ domain: 'switch', service: 'turn_on' })
+      )
+    );
+
+    const iconProps = props({
+      entity: plug,
+      entities: { [plug.entity_id]: plug },
+      settings: {
+        size: 'large',
+        showGraph: false,
+        sensorAction: { trigger: 'icon', confirm: true },
+      },
+    });
+    rerender(<SensorCard key="icon" {...iconProps} />);
+    fireEvent.click(screen.getByRole('button', { name: 'sensor.action.turnOn' }));
+    expect(iconProps.conn.sendMessagePromise).not.toHaveBeenCalled();
+    expect(screen.getByText('sensor.action.confirmPrompt')).toBeInTheDocument();
+  });
+
+  it('renders a centered layout with a round power button for state cards', () => {
+    const plug = { entity_id: 'switch.pc', state: 'on', attributes: { friendly_name: 'PC' } };
+    const { container } = render(
+      <SensorCard
+        {...props({
+          entity: plug,
+          entities: { [plug.entity_id]: plug },
+          name: 'PC',
+          settings: { size: 'large', showGraph: false, sensorLayout: 'centered' },
+        })}
+      />
+    );
+    expect(container.querySelector('[data-sensor-layout="centered"]')).not.toBeNull();
+    expect(screen.getByText('status.on')).toBeInTheDocument();
+    const power = screen.getByRole('button', { name: 'sensor.action.turnOff' });
+    expect(power.className).toContain('rounded-full');
+    expect(power.className).toContain('status-error');
+  });
+
+  it('keeps the standard layout for numeric cards set to centered', () => {
+    const { container } = render(
+      <SensorCard
+        {...props({
+          entity: temperature,
+          settings: { size: 'large', showGraph: false, sensorLayout: 'centered' },
+        })}
+      />
+    );
+    expect(container.querySelector('[data-sensor-layout]')).toBeNull();
   });
 });

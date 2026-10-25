@@ -48,6 +48,8 @@ export type SensorActionSettings = {
   icon?: unknown;
   service?: unknown;
   data?: unknown;
+  confirm?: unknown;
+  confirmLabel?: unknown;
 };
 
 export type SensorCardSettings = {
@@ -165,6 +167,8 @@ export function resolveSensorCardConfig(
       icon: textValue(storedAction.icon),
       service: textValue(storedAction.service),
       data: objectValue(storedAction.data) ? { ...storedAction.data } : {},
+      confirm: storedAction.confirm === true && !['none', 'more-info'].includes(resolvedActionType),
+      confirmLabel: textValue(storedAction.confirmLabel),
     },
   };
 }
