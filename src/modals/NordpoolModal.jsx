@@ -92,118 +92,122 @@ export default function NordpoolModal({
     >
       {() => (
         <>
-        <div className="absolute top-4 right-4 z-20 flex gap-2 sm:top-6 sm:right-6 sm:gap-3 md:top-10 md:right-10">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const newValue = !showWithSupport;
-              setShowWithSupport(newValue);
-              if (saveCardSetting && cardId) {
-                saveCardSetting(cardId, 'showWithSupport', newValue);
-              }
-            }}
-            className={`flex h-9 items-center gap-2 rounded-full border px-4 shadow-lg backdrop-blur-md transition-all ${showWithSupport ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-          >
-            {showWithSupport ? (
-              <ToggleRight className="h-4 w-4" />
-            ) : (
-              <ToggleLeft className="h-4 w-4" />
-            )}
-            <span className="hidden text-[10px] font-bold tracking-widest uppercase sm:inline">
-              {showWithSupport ? t('nordpool.withSupport') : t('nordpool.withoutSupport')}
-            </span>
-          </button>
-          <button onClick={onClose} className="modal-close" aria-label={translate('common.close')}>
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Header Section */}
-        <div className="mb-4 flex items-center gap-3 pr-24 font-sans sm:mb-6 sm:gap-4 sm:pr-0">
-          <div
-            className="rounded-2xl p-3 transition-all duration-500 sm:p-4"
-            style={{ backgroundColor: 'rgba(217, 119, 6, 0.15)', color: '#fbbf24' }}
-          >
-            <Zap className="h-6 w-6 sm:h-8 sm:w-8" />
-          </div>
-          <div>
-            <h3
-              id={modalTitleId}
-              className="text-xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic sm:text-2xl"
-            >
-              {name}
-            </h3>
-            <div
-              className="mt-2 inline-block rounded-full border px-3 py-1 transition-all duration-500"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                borderColor: 'var(--glass-border)',
-                color: 'var(--text-secondary)',
+          <div className="absolute top-4 right-4 z-20 flex gap-2 sm:top-6 sm:right-6 sm:gap-3 md:top-10 md:right-10">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const newValue = !showWithSupport;
+                setShowWithSupport(newValue);
+                if (saveCardSetting && cardId) {
+                  saveCardSetting(cardId, 'showWithSupport', newValue);
+                }
               }}
+              className={`flex h-9 items-center gap-2 rounded-full border px-4 shadow-lg backdrop-blur-md transition-all ${showWithSupport ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
             >
-              <p className="text-[10px] font-bold tracking-widest uppercase italic">
-                {translate('power.title')}
-              </p>
+              {showWithSupport ? (
+                <ToggleRight className="h-4 w-4" />
+              ) : (
+                <ToggleLeft className="h-4 w-4" />
+              )}
+              <span className="hidden text-[10px] font-bold tracking-widest uppercase sm:inline">
+                {showWithSupport ? t('nordpool.withSupport') : t('nordpool.withoutSupport')}
+              </span>
+            </button>
+            <button
+              onClick={onClose}
+              className="modal-close"
+              aria-label={translate('common.close')}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Header Section */}
+          <div className="mb-4 flex items-center gap-3 pr-24 font-sans sm:mb-6 sm:gap-4 sm:pr-0">
+            <div
+              className="rounded-2xl p-3 transition-all duration-500 sm:p-4"
+              style={{ backgroundColor: 'rgba(217, 119, 6, 0.15)', color: '#fbbf24' }}
+            >
+              <Zap className="h-6 w-6 sm:h-8 sm:w-8" />
+            </div>
+            <div>
+              <h3
+                id={modalTitleId}
+                className="text-xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic sm:text-2xl"
+              >
+                {name}
+              </h3>
+              <div
+                className="mt-2 inline-block rounded-full border px-3 py-1 transition-all duration-500"
+                style={{
+                  backgroundColor: 'var(--glass-bg)',
+                  borderColor: 'var(--glass-border)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <p className="text-[10px] font-bold tracking-widest uppercase italic">
+                  {translate('power.title')}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 items-start gap-4 font-sans sm:gap-12 lg:grid-cols-5">
-          {/* Left Column - Graph (Span 3) */}
-          <div className="lg:col-span-3">
-            {displayPriceData && displayPriceData.length > 0 && (
-              <div className="w-full">
-                <InteractivePowerGraph
-                  key={`graph-${showWithSupport}`}
-                  data={displayPriceData}
-                  currentIndex={currentPriceIndex}
-                  priceStats={displayPriceStats}
-                  t={translate}
-                  language={language}
-                  unit={currency}
-                />
-              </div>
-            )}
-          </div>
+          <div className="grid grid-cols-1 items-start gap-4 font-sans sm:gap-12 lg:grid-cols-5">
+            {/* Left Column - Graph (Span 3) */}
+            <div className="lg:col-span-3">
+              {displayPriceData && displayPriceData.length > 0 && (
+                <div className="w-full">
+                  <InteractivePowerGraph
+                    key={`graph-${showWithSupport}`}
+                    data={displayPriceData}
+                    currentIndex={currentPriceIndex}
+                    priceStats={displayPriceStats}
+                    t={translate}
+                    language={language}
+                    unit={currency}
+                  />
+                </div>
+              )}
+            </div>
 
-          {/* Right Column - Stats (Span 2) */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 lg:col-span-2 lg:grid-cols-2">
-            {displayPriceStats && (
-              <>
-                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-3 transition-all sm:gap-2 sm:rounded-3xl sm:p-8 lg:col-span-2">
-                  <p className="text-[10px] font-bold tracking-[0.16em] text-[var(--accent-color)] uppercase sm:text-xs sm:tracking-[0.2em]">
-                    {translate('power.avg')}
-                  </p>
-                  <div className="flex items-baseline gap-1 sm:gap-2">
-                    <span className="text-2xl leading-none font-light text-[var(--accent-color)] italic sm:text-6xl">
-                      {displayPriceStats.avg.toFixed(2)}
-                    </span>
-                    <span className="text-[10px] font-medium text-[var(--text-muted)] sm:text-xl">
-                      {currency}
-                    </span>
+            {/* Right Column - Stats (Span 2) */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 lg:col-span-2 lg:grid-cols-2">
+              {displayPriceStats && (
+                <>
+                  <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-3 transition-all sm:gap-2 sm:rounded-3xl sm:p-8 lg:col-span-2">
+                    <p className="text-[10px] font-bold tracking-[0.16em] text-[var(--accent-color)] uppercase sm:text-xs sm:tracking-[0.2em]">
+                      {translate('power.avg')}
+                    </p>
+                    <div className="flex items-baseline gap-1 sm:gap-2">
+                      <span className="text-2xl leading-none font-light text-[var(--accent-color)] italic sm:text-6xl">
+                        {displayPriceStats.avg.toFixed(2)}
+                      </span>
+                      <span className="text-[10px] font-medium text-[var(--text-muted)] sm:text-xl">
+                        {currency}
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-3 sm:rounded-3xl sm:p-6">
-                  <p className="text-[10px] font-bold tracking-[0.16em] text-[var(--status-success-fg)] uppercase sm:mb-1 sm:text-xs sm:tracking-[0.2em]">
-                    {translate('power.low')}
-                  </p>
-                  <p className="text-2xl font-light text-[var(--text-primary)] sm:text-3xl">
-                    {displayPriceStats.min.toFixed(2)}
-                  </p>
-                </div>
-                <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-3 sm:rounded-3xl sm:p-6">
-                  <p className="text-[10px] font-bold tracking-[0.16em] text-[var(--status-error-fg)] uppercase sm:mb-1 sm:text-xs sm:tracking-[0.2em]">
-                    {translate('power.high')}
-                  </p>
-                  <p className="text-2xl font-light text-[var(--text-primary)] sm:text-3xl">
-                    {displayPriceStats.max.toFixed(2)}
-                  </p>
-                </div>
-              </>
-            )}
+                  <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-3 sm:rounded-3xl sm:p-6">
+                    <p className="text-[10px] font-bold tracking-[0.16em] text-[var(--status-success-fg)] uppercase sm:mb-1 sm:text-xs sm:tracking-[0.2em]">
+                      {translate('power.low')}
+                    </p>
+                    <p className="text-2xl font-light text-[var(--text-primary)] sm:text-3xl">
+                      {displayPriceStats.min.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-3 sm:rounded-3xl sm:p-6">
+                    <p className="text-[10px] font-bold tracking-[0.16em] text-[var(--status-error-fg)] uppercase sm:mb-1 sm:text-xs sm:tracking-[0.2em]">
+                      {translate('power.high')}
+                    </p>
+                    <p className="text-2xl font-light text-[var(--text-primary)] sm:text-3xl">
+                      {displayPriceStats.max.toFixed(2)}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
         </>
       )}
     </AccessibleModalShell>
