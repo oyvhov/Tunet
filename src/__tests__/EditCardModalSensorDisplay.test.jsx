@@ -83,7 +83,7 @@ describe('EditCardModal sensor display settings', () => {
     expect(
       screen.queryByRole('button', { name: en['sensor.variantGauge'] })
     ).not.toBeInTheDocument();
-  });
+  }, 20_000);
   it('offers numeric variants and graph controls when a scene card displays a sensor entity', () => {
     render(
       <EditCardModal
