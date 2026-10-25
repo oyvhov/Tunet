@@ -27,6 +27,7 @@ import {
 import { getDeviceRegistry, getEntityRegistry } from '../services/haClient';
 import type { DeviceRegistryEntry, EntityRegistryEntry } from '../services/haClient';
 import { validateUrl } from '../config/onboarding';
+import { getParentHaAuth } from '../services/haParentSession';
 import { useMobileConnectionRecovery } from '../hooks/useMobileConnectionRecovery';
 import {
   buildRegistryLookupMap,
@@ -243,6 +244,8 @@ export const HomeAssistantProvider = ({
   useEffect(() => {
     const isOAuth = config.authMethod === 'oauth';
     const hasToken = !!config.token;
+    // Without a stored token, an Ingress panel signs in with the Home Assistant session around it.
+    const useHaSession = !isOAuth && !hasToken && !!config.haSession;
     const hasOAuth = hasOAuthTokens();
     const isOAuthCallback =
       typeof globalThis.window !== 'undefined' &&
@@ -258,7 +261,7 @@ export const HomeAssistantProvider = ({
     }
 
     // For token mode, require token
-    if (!isOAuth && !hasToken) {
+    if (!isOAuth && !hasToken && !useHaSession) {
       cleanupConnection();
       setConnected(false);
       setEntityDataStale(false);
@@ -398,7 +401,7 @@ export const HomeAssistantProvider = ({
     const persistConfig = (urlUsed: string) => {
       try {
         localStorage.setItem('ha_url', urlUsed.replace(/\/$/, ''));
-        if (!isOAuth) {
+        if (!isOAuth && !useHaSession) {
           localStorage.setItem('ha_token', config.token || '');
           globalThis.sessionStorage.removeItem('ha_token');
         }
@@ -413,7 +416,10 @@ export const HomeAssistantProvider = ({
     async function connectWithToken(url: string): Promise<Connection | null> {
       // Strip trailing /api or /api/ to prevent double /api/api/websocket
       const cleanUrl = url.replace(/\/api\/?$/, '').replace(/\/$/, '');
-      const auth = createLongLivedTokenAuth(cleanUrl, config.token);
+      const auth = useHaSession
+        ? await getParentHaAuth()
+        : createLongLivedTokenAuth(cleanUrl, config.token);
+      if (!auth) throw ERR_CANNOT_CONNECT;
       const connInstance = await createConnection({ auth });
       fetchHaConfig(connInstance);
       if (!isCurrentAttempt()) {
@@ -562,6 +568,7 @@ export const HomeAssistantProvider = ({
     config.token,
     config.authMethod,
     config.isIngress,
+    config.haSession,
     cleanupConnection,
     setEntities,
     applyRegistryMetadata,

@@ -11,6 +11,8 @@ export interface HomeAssistantConfig {
   token: string;
   authMethod: string;
   isIngress?: boolean;
+  /** Ingress panel that can reuse the surrounding Home Assistant frontend's session. */
+  haSession?: boolean;
 }
 
 export interface ConfigProviderProps {
