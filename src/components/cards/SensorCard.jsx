@@ -21,6 +21,7 @@ import {
   resolveSensorCardConfig,
   isSensorEntityActive,
   canSensorUseNumericVariants,
+  SENSOR_CONFIRM_TIMEOUT_MS,
 } from '../../utils/sensorCardConfig';
 import { useSensorCardAction } from '../../hooks/useSensorCardAction';
 import {
@@ -186,10 +187,24 @@ const SensorCard = memo(
         buttonDisplayState ||
         scriptDisplayState ||
         state;
+    // Actions with confirmation run on the second tap; the armed key keeps
+    // the On and Off toggle buttons from confirming each other.
+    const [confirmArmed, setConfirmArmed] = useState(null);
+    useEffect(() => {
+      if (!confirmArmed) return undefined;
+      const timeout = setTimeout(() => setConfirmArmed(null), SENSOR_CONFIRM_TIMEOUT_MS);
+      return () => clearTimeout(timeout);
+    }, [confirmArmed]);
+    useEffect(() => {
+      if (editMode || preview) setConfirmArmed(null);
+    }, [editMode, preview]);
+    const confirmText = config.action.confirmLabel || translate('sensor.action.confirm');
     const displayState =
-      config.statusMode === 'text'
-        ? config.statusText || automaticDisplayState
-        : (automaticDisplayState ?? '--');
+      confirmArmed && !isNumeric
+        ? confirmText
+        : config.statusMode === 'text'
+          ? config.statusText || automaticDisplayState
+          : (automaticDisplayState ?? '--');
     const actionActive = isSensorEntityActive(config.action.targetEntity);
     const actionFeedback = useSensorCardAction({
       conn,
@@ -665,24 +680,25 @@ const SensorCard = memo(
       preview ||
       actionFeedback.pending ||
       (config.action.type !== 'more-info' && (!conn || actionUnavailable));
-    const actionLabel =
-      (actionActive ? config.action.labelOn : config.action.labelOff) ||
-      config.action.label ||
-      (config.action.type === 'scene'
-        ? translate('sensor.scene.activate')
-        : config.action.type === 'script'
-          ? translate('sensor.script.run')
-          : config.action.type === 'toggle'
-            ? translate(actionActive ? 'sensor.action.turnOff' : 'sensor.action.turnOn')
-            : config.action.type === 'turn_on'
-              ? translate('sensor.action.turnOn')
-              : config.action.type === 'turn_off'
-                ? translate('sensor.action.turnOff')
-                : config.action.type === 'more-info'
-                  ? translate('sensor.action.details')
-                  : config.action.type === 'press'
-                    ? translate('sensor.action.press')
-                    : translate('sensor.scene.activate'));
+    const actionLabel = confirmArmed
+      ? confirmText
+      : (actionActive ? config.action.labelOn : config.action.labelOff) ||
+        config.action.label ||
+        (config.action.type === 'scene'
+          ? translate('sensor.scene.activate')
+          : config.action.type === 'script'
+            ? translate('sensor.script.run')
+            : config.action.type === 'toggle'
+              ? translate(actionActive ? 'sensor.action.turnOff' : 'sensor.action.turnOn')
+              : config.action.type === 'turn_on'
+                ? translate('sensor.action.turnOn')
+                : config.action.type === 'turn_off'
+                  ? translate('sensor.action.turnOff')
+                  : config.action.type === 'more-info'
+                    ? translate('sensor.action.details')
+                    : config.action.type === 'press'
+                      ? translate('sensor.action.press')
+                      : translate('sensor.scene.activate'));
     const ActionIcon =
       getIconComponent(config.action.icon) ||
       (['toggle', 'turn_on', 'turn_off'].includes(config.action.type)
@@ -693,8 +709,16 @@ const SensorCard = memo(
     const executeAction = (event, override) => {
       event?.stopPropagation();
       if (actionDisabled) return;
+      const confirmKey = override || config.action.type;
+      if (config.action.confirm && confirmKey !== 'more-info' && confirmArmed !== confirmKey) {
+        setConfirmArmed(confirmKey);
+        return;
+      }
+      setConfirmArmed(null);
       actionFeedback.execute(override);
     };
+    const confirmToneClass =
+      'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] ring-1 ring-[var(--status-warning-border)]';
     const handleCardClick = (event) => {
       if (editMode || preview) return;
       if (config.action.trigger === 'card' && config.action.type !== 'none') executeAction(event);
@@ -725,7 +749,7 @@ const SensorCard = memo(
           disabled={actionDisabled}
           aria-busy={actionFeedback.pending}
           title={actionLabel}
-          className={`relative z-20 flex min-h-11 ${compact ? 'max-w-[min(10rem,45cqw)] shrink-0 px-3 @max-[200px]:w-11 @max-[200px]:px-0' : 'w-full px-4'} items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-2 text-xs font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-60`}
+          className={`relative z-20 flex min-h-11 ${compact ? 'max-w-[min(10rem,45cqw)] shrink-0 px-3 @max-[200px]:w-11 @max-[200px]:px-0' : 'w-full px-4'} items-center justify-center gap-2 rounded-xl border py-2 text-xs font-bold transition-all active:scale-95 disabled:opacity-60 ${confirmArmed ? `border-transparent ${confirmToneClass}` : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-primary)] hover:bg-[var(--glass-bg-hover)]'}`}
         >
           {actionFeedback.pending ? (
             <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
@@ -939,13 +963,16 @@ const SensorCard = memo(
       ) : null;
 
     if (isSmall) {
-      const smallToggleIconClass = showToggleControls
-        ? actionActive
-          ? 'ring-1 ring-[var(--accent-color)]/40 bg-[var(--accent-bg)] text-[var(--accent-color)]'
-          : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50'
-        : iconIsAction && actionActive
-          ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-          : iconToneClass;
+      const smallToggleIconClass =
+        (iconIsAction || showToggleControls) && confirmArmed
+          ? confirmToneClass
+          : showToggleControls
+            ? actionActive
+              ? 'ring-1 ring-[var(--accent-color)]/40 bg-[var(--accent-bg)] text-[var(--accent-color)]'
+              : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50'
+            : iconIsAction && actionActive
+              ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+              : iconToneClass;
 
       return (
         <div
@@ -1056,6 +1083,98 @@ const SensorCard = memo(
       );
     }
 
+    const useCenteredLayout =
+      settings?.sensorLayout === 'centered' && !isNumeric && !isSelectDomain;
+    if (useCenteredLayout) {
+      const showRoundAction =
+        showControls && config.action.type !== 'none' && config.action.trigger === 'button';
+      const targetState = config.action.targetEntity?.state;
+      const roundActionToneClass = confirmArmed
+        ? confirmToneClass
+        : targetState === 'on' || targetState === 'off'
+          ? actionActive
+            ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90'
+            : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'
+          : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]';
+      const centeredIconSize = useDenseMobileLargeLayout ? 'h-6 w-6' : 'h-8 w-8';
+
+      return (
+        <div
+          ref={cardRef}
+          {...dragProps}
+          data-haptic={editMode ? undefined : 'card'}
+          data-sensor-layout="centered"
+          onClick={handleCardClick}
+          onKeyDown={handleCardKeyDown}
+          role={cardIsInteractive ? 'button' : undefined}
+          tabIndex={cardIsInteractive ? 0 : undefined}
+          aria-label={cardIsInteractive ? cardLabel : undefined}
+          aria-busy={cardIsAction ? actionFeedback.pending : undefined}
+          aria-disabled={cardIsAction ? !!actionDisabled : undefined}
+          className={`touch-feedback group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${useDenseMobileLargeLayout ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer' : 'cursor-move'}`}
+          style={cardStyle}
+        >
+          {controls}
+          {detailsButton && <span className="absolute top-3 right-3 z-20">{detailsButton}</span>}
+          {showIcon && (
+            <IconTag
+              type={iconIsAction ? 'button' : undefined}
+              disabled={iconIsAction ? actionDisabled : undefined}
+              onClick={iconIsAction ? executeAction : undefined}
+              aria-label={iconIsAction ? actionLabel : undefined}
+              aria-busy={iconIsAction ? actionFeedback.pending : undefined}
+              className={`relative z-10 flex items-center justify-center rounded-full ${useDenseMobileLargeLayout ? 'mb-3 p-4' : 'mb-4 p-5'} ${iconIsAction && confirmArmed ? confirmToneClass : iconIsAction && actionActive ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+            >
+              {iconIsAction && actionFeedback.pending ? (
+                <RefreshCw
+                  className={`${centeredIconSize} animate-spin motion-reduce:animate-none`}
+                />
+              ) : Icon ? (
+                <Icon className={`${centeredIconSize} stroke-[1.5px]`} />
+              ) : (
+                <Activity className={centeredIconSize} />
+              )}
+            </IconTag>
+          )}
+          <div className="relative z-10 w-full px-4 text-center">
+            {showStatus && (
+              <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                {displayState}
+              </p>
+            )}
+            {showName && (
+              <p
+                className={`${showStatus ? 'mt-1' : ''} truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40`}
+                title={String(name)}
+              >
+                {String(name)}
+              </p>
+            )}
+          </div>
+          {showRoundAction && (
+            <button
+              type="button"
+              onClick={executeAction}
+              disabled={actionDisabled}
+              aria-busy={actionFeedback.pending}
+              aria-label={actionLabel}
+              title={actionLabel}
+              className={`relative z-20 mt-4 rounded-full p-2.5 transition-colors active:scale-95 disabled:opacity-60 ${roundActionToneClass}`}
+            >
+              {actionFeedback.pending ? (
+                <RefreshCw className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+              ) : (
+                <ActionIcon className="h-4 w-4" />
+              )}
+            </button>
+          )}
+          {['error', 'timeout'].includes(actionFeedback.status) && (
+            <div className="relative z-10 mt-2">{renderFeedback()}</div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div
         ref={cardRef}
@@ -1108,7 +1227,7 @@ const SensorCard = memo(
                 onClick={iconIsAction ? executeAction : undefined}
                 aria-label={iconIsAction ? actionLabel : undefined}
                 aria-busy={iconIsAction ? actionFeedback.pending : undefined}
-                className={`flex items-center justify-center ${iconIsAction ? 'h-11 w-11 rounded-2xl' : useCompactMobileActionLayout ? 'h-8 w-8 rounded-xl' : useDenseMobileLargeLayout ? (useCompactMobileToggleLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl') : useCompactDesktopSelectLayout ? 'h-10 w-10 rounded-xl' : 'h-11 w-11 rounded-2xl'} ${iconIsAction && actionActive ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+                className={`flex items-center justify-center ${iconIsAction ? 'h-11 w-11 rounded-2xl' : useCompactMobileActionLayout ? 'h-8 w-8 rounded-xl' : useDenseMobileLargeLayout ? (useCompactMobileToggleLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl') : useCompactDesktopSelectLayout ? 'h-10 w-10 rounded-xl' : 'h-11 w-11 rounded-2xl'} ${iconIsAction && confirmArmed ? confirmToneClass : iconIsAction && actionActive ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
               >
                 {iconIsAction && actionFeedback.pending ? (
                   <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" />
@@ -1223,7 +1342,7 @@ const SensorCard = memo(
                   e.stopPropagation();
                   if (primaryState === 'on') executeAction(e, 'turn_off');
                 }}
-                className={`${useDenseMobileLargeLayout ? `${useCompactMobileToggleLayout ? 'flex h-9 items-center justify-center rounded-xl px-2.5 py-2 text-[9px]' : 'flex h-10 items-center justify-center rounded-xl px-3 py-2 text-[10px]'} bg-[var(--glass-bg)]` : 'rounded-full px-4 py-2 text-xs'} font-bold tracking-widest uppercase transition-all ${primaryState !== 'on' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                className={`${useDenseMobileLargeLayout ? `${useCompactMobileToggleLayout ? 'flex h-9 items-center justify-center rounded-xl px-2.5 py-2 text-[9px]' : 'flex h-10 items-center justify-center rounded-xl px-3 py-2 text-[10px]'} bg-[var(--glass-bg)]` : 'rounded-full px-4 py-2 text-xs'} font-bold tracking-widest uppercase transition-all ${confirmArmed === 'turn_off' ? confirmToneClass : primaryState !== 'on' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
               >
                 {translate('common.off')}
               </button>
@@ -1234,7 +1353,7 @@ const SensorCard = memo(
                   e.stopPropagation();
                   if (primaryState !== 'on') executeAction(e, 'turn_on');
                 }}
-                className={`${useDenseMobileLargeLayout ? `${useCompactMobileToggleLayout ? 'flex h-9 items-center justify-center rounded-xl px-2.5 py-2 text-[9px]' : 'flex h-10 items-center justify-center rounded-xl px-3 py-2 text-[10px]'} bg-[var(--glass-bg)]` : 'rounded-full px-4 py-2 text-xs'} font-bold tracking-widest uppercase transition-all ${primaryState === 'on' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                className={`${useDenseMobileLargeLayout ? `${useCompactMobileToggleLayout ? 'flex h-9 items-center justify-center rounded-xl px-2.5 py-2 text-[9px]' : 'flex h-10 items-center justify-center rounded-xl px-3 py-2 text-[10px]'} bg-[var(--glass-bg)]` : 'rounded-full px-4 py-2 text-xs'} font-bold tracking-widest uppercase transition-all ${confirmArmed === 'turn_on' ? confirmToneClass : primaryState === 'on' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
               >
                 {translate('common.on')}
               </button>

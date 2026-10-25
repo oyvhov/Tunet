@@ -15,6 +15,7 @@ import {
   getSensorActionTargetDomains,
   resolveSensorCardConfig,
   SENSOR_ACTION_TYPES,
+  SENSOR_LAYOUTS,
   SENSOR_STATUS_MODES,
 } from '../utils/sensorCardConfig';
 
@@ -67,6 +68,7 @@ function isActionCustomized(action) {
     if (!hasValue(value)) return false;
     if (key === 'type') return value !== 'auto';
     if (key === 'trigger') return value !== 'button';
+    if (key === 'confirm') return value === true;
     if (key === 'targetMode') return value !== 'entity';
     if (key === 'data') return Object.keys(value).length > 0;
     return true;
@@ -144,6 +146,7 @@ export default function SensorCardSettings({
   };
 
   const contentCustomized =
+    settings.sensorLayout === 'centered' ||
     settings.showName === false ||
     settings.showIcon === false ||
     hasValue(name) ||
@@ -154,6 +157,9 @@ export default function SensorCardSettings({
     STATUS_DETAIL_KEYS.some((key) => hasValue(settings[key]));
   const appearanceCustomized = isAppearanceCustomized(settings);
   const showAppearance = canShowSensorNumericStyle(primaryId, settings, entities);
+  // The centered layout only renders text states, so numbers and selects keep the standard one.
+  const showLayout =
+    !showAppearance && !['select', 'input_select', 'input_number'].includes(primaryDomain);
   const actionCustomized = isActionCustomized(action) || settings.showControls === false;
   const automaticActionLabel = t('sensor.custom.autoAction').replace(
     '{action}',
@@ -173,7 +179,7 @@ export default function SensorCardSettings({
         onReset={
           contentCustomized
             ? () => {
-                resetFields(['showName', 'showIcon']);
+                resetFields(['showName', 'showIcon', 'sensorLayout']);
                 onNameChange?.('');
                 onIconChange?.(null);
               }
@@ -219,6 +225,15 @@ export default function SensorCardSettings({
             onChange={(value) => save('showIcon', value)}
           />
         </div>
+        {showLayout ? (
+          <ChoiceChips
+            label={t('sensor.custom.layout')}
+            hint={t('sensor.custom.layoutHint')}
+            options={chipOptions('layout', SENSOR_LAYOUTS)}
+            value={settings.sensorLayout || 'default'}
+            onChange={(layout) => save('sensorLayout', layout === 'default' ? null : layout)}
+          />
+        ) : null}
       </SettingsSection>
 
       <SettingsSection
@@ -347,6 +362,24 @@ export default function SensorCardSettings({
               }}
               placeholder={trigger === 'button' ? t('sensor.custom.automatic') : ''}
             />
+            {resolvedActionType !== 'more-info' ? (
+              <ToggleRow
+                label={t('sensor.custom.confirm')}
+                hint={t('sensor.custom.confirmHint')}
+                checked={action.confirm === true}
+                onChange={(value) =>
+                  updateAction({ confirm: value || null, ...(value ? {} : { confirmLabel: null }) })
+                }
+              />
+            ) : null}
+            {action.confirm === true && resolvedActionType !== 'more-info' ? (
+              <TextField
+                label={t('sensor.custom.confirmText')}
+                value={action.confirmLabel}
+                onChange={(value) => updateAction({ confirmLabel: value || null })}
+                placeholder={t('sensor.action.confirm')}
+              />
+            ) : null}
           </>
         ) : null}
       </SettingsSection>

@@ -160,6 +160,8 @@ export interface SensorCardAction {
   labelOff?: string | null;
   icon?: string | null;
   trigger?: 'button' | 'icon' | 'card';
+  confirm?: boolean | null;
+  confirmLabel?: string | null;
 }
 
 export interface SensorCardSettings {
@@ -172,6 +174,7 @@ export interface SensorCardSettings {
   sensorStatusEntityId?: string | null;
   sensorStatusAttribute?: string | null;
   sensorAction?: SensorCardAction | null;
+  sensorLayout?: 'default' | 'centered' | null;
 }
 
 export interface PageSettings extends PageSettingsEntry {

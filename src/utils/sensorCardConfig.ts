@@ -1,4 +1,6 @@
 export const SENSOR_STATUS_MODES = ['auto', 'text', 'entity', 'attribute', 'hidden'];
+export const SENSOR_LAYOUTS = ['default', 'centered'];
+export const SENSOR_CONFIRM_TIMEOUT_MS = 3000;
 export const SENSOR_ACTION_TYPES = [
   'auto',
   'more-info',
@@ -48,6 +50,8 @@ export type SensorActionSettings = {
   icon?: unknown;
   service?: unknown;
   data?: unknown;
+  confirm?: unknown;
+  confirmLabel?: unknown;
 };
 
 export type SensorCardSettings = {
@@ -163,6 +167,8 @@ export function resolveSensorCardConfig(
       labelOn: textValue(storedAction.labelOn),
       labelOff: textValue(storedAction.labelOff),
       icon: textValue(storedAction.icon),
+      confirm: storedAction.confirm === true,
+      confirmLabel: textValue(storedAction.confirmLabel),
       service: textValue(storedAction.service),
       data: objectValue(storedAction.data) ? { ...storedAction.data } : {},
     },
