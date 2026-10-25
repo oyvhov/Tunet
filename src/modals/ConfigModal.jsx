@@ -765,6 +765,28 @@ export default function ConfigModal({
             </h3>
             <div className="popup-surface space-y-4 p-4">
               <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-[var(--text-primary)]">
+                    {t('profiles.accountLayoutTitle')}
+                  </p>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    {t('profiles.accountLayoutHint')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={Boolean(autoSync.accountLayout)}
+                  aria-label={t('profiles.accountLayoutTitle')}
+                  onClick={() => autoSync.setAccountLayout?.(!autoSync.accountLayout)}
+                  className={`relative h-6 w-10 shrink-0 rounded-full p-1 transition-colors ${autoSync.accountLayout ? 'bg-[var(--accent-color)]' : 'bg-gray-500/30'}`}
+                >
+                  <div
+                    className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${autoSync.accountLayout ? 'translate-x-4' : 'translate-x-0'}`}
+                  />
+                </button>
+              </div>
+              <div className="flex items-start justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => setAutoSyncExpanded((prev) => !prev)}

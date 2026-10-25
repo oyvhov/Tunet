@@ -743,6 +743,8 @@
   "profiles.autoSyncStatusSyncing": "Synchronisation",
   "profiles.autoSyncSyncNow": "Synchroniser maintenant",
   "profiles.autoSyncTitle": "Sauvegarder automatiquement la configuration actuelle",
+  "profiles.accountLayoutTitle": "Même disposition sur tous mes appareils",
+  "profiles.accountLayoutHint": "Utilise une disposition pour votre compte Home Assistant au lieu d'une par navigateur. L'activer charge la disposition du compte et recharge la page.",
   "profiles.backendUnavailable": "Le serveur de profils n'est pas disponible.",
   "profiles.blankActive": "Le tableau de bord a été réinitialisé. Vous pouvez annuler pour restaurer votre configuration précédente.",
   "profiles.cancelEdit": "Annuler",

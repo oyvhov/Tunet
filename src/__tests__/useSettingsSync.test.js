@@ -609,6 +609,87 @@ describe('useSettingsSync', () => {
     expect(applySnapshot).not.toHaveBeenCalled();
   });
 
+  describe('account layout', () => {
+    const localWithCards = {
+      version: 1,
+      layout: { pagesConfig: { header: [], pages: ['home'], home: ['local-card'] } },
+      appearance: {},
+    };
+    const accountRow = {
+      revision: 5,
+      updated_at: '2026-02-22T12:30:00.000Z',
+      data: {
+        version: 1,
+        layout: { pagesConfig: { header: [], pages: ['home'], home: ['account-card'] } },
+        appearance: {},
+      },
+    };
+
+    it('keeps a per-browser device id unless the account layout is chosen', async () => {
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await waitFor(() => expect(fetchCurrentSettings).toHaveBeenCalled());
+      expect(result.current.accountLayout).toBe(false);
+      expect(result.current.deviceId).not.toBe('account');
+    });
+
+    it('syncs the shared account row and adopts it once after switching', async () => {
+      localStorage.setItem('tunet_account_layout', '1');
+      localStorage.setItem('tunet_account_layout_adopt', '1');
+      collectSnapshot.mockReturnValue(localWithCards);
+      fetchCurrentSettings.mockResolvedValue(accountRow);
+
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+
+      await waitFor(() => {
+        expect(fetchCurrentSettings).toHaveBeenCalledWith('user-1', 'account');
+        expect(applySnapshot).toHaveBeenCalledWith(accountRow.data, {});
+      });
+      expect(result.current.accountLayout).toBe(true);
+      expect(result.current.deviceId).toBe('account');
+      expect(localStorage.getItem('tunet_account_layout_adopt')).toBeNull();
+      expect(saveCurrentSettings).not.toHaveBeenCalled();
+    });
+
+    it('does not adopt again on later visits with local changes', async () => {
+      localStorage.setItem('tunet_account_layout', '1');
+      collectSnapshot.mockReturnValue(localWithCards);
+      fetchCurrentSettings.mockResolvedValue(accountRow);
+
+      renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+
+      await waitFor(() => expect(fetchCurrentSettings).toHaveBeenCalledWith('user-1', 'account'));
+      await act(async () => {});
+      expect(applySnapshot).not.toHaveBeenCalled();
+    });
+
+    it('stores the choice and reloads when switched', async () => {
+      const reload = vi.fn();
+      const originalLocation = globalThis.location;
+      Object.defineProperty(globalThis, 'location', {
+        configurable: true,
+        value: { ...originalLocation, reload },
+      });
+      try {
+        const { result } = renderHook(() =>
+          useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+        );
+        act(() => result.current.setAccountLayout(true));
+        expect(localStorage.getItem('tunet_account_layout')).toBe('1');
+        expect(localStorage.getItem('tunet_account_layout_adopt')).toBe('1');
+        expect(reload).toHaveBeenCalledTimes(1);
+      } finally {
+        Object.defineProperty(globalThis, 'location', {
+          configurable: true,
+          value: originalLocation,
+        });
+      }
+    });
+  });
+
   it('registers device on init when no server row exists', async () => {
     fetchCurrentSettings.mockResolvedValue(null);
 

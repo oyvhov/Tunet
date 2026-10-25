@@ -786,6 +786,8 @@
   "profiles.updated": "Actualizado",
   "profiles.autoSyncSection": "Sincronización automática (por dispositivo)",
   "profiles.autoSyncTitle": "Guardar la configuración actual automáticamente",
+  "profiles.accountLayoutTitle": "El mismo diseño en todos mis dispositivos",
+  "profiles.accountLayoutHint": "Usa un diseño para tu cuenta de Home Assistant en lugar de uno por navegador. Al activarlo se carga el diseño de la cuenta y se recarga la página.",
   "profiles.autoSyncDeviceId": "ID del dispositivo",
   "profiles.autoSyncStatusLabel": "Estado",
   "profiles.autoSyncLastSynced": "Última sincronización",

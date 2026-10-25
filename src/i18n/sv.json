@@ -743,6 +743,8 @@
   "profiles.autoSyncStatusSyncing": "Synkar",
   "profiles.autoSyncSyncNow": "Synka nu",
   "profiles.autoSyncTitle": "Spara nuvarande konfiguration automatiskt",
+  "profiles.accountLayoutTitle": "Samma layout på alla mina enheter",
+  "profiles.accountLayoutHint": "Använder en layout för ditt Home Assistant-konto i stället för en per webbläsare. När den slås på laddas kontots layout och sidan laddas om.",
   "profiles.backendUnavailable": "Profilservern är inte tillgänglig.",
   "profiles.blankActive": "Instrumentpanelen återställdes. Du kan ångra för att återställa din tidigare layout.",
   "profiles.cancelEdit": "Avbryt",

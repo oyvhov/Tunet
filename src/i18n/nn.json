@@ -754,6 +754,8 @@
   "profiles.autoSyncStatusSyncing": "Synkroniserer",
   "profiles.autoSyncSyncNow": "Synk no",
   "profiles.autoSyncTitle": "Lagre noverande oppsett automatisk",
+  "profiles.accountLayoutTitle": "Same oppsett på alle einingane mine",
+  "profiles.accountLayoutHint": "Brukar eitt oppsett for Home Assistant-kontoen din i staden for eitt per nettlesar. Når det blir slått på, blir kontooppsettet lasta og sida lasta inn på nytt.",
   "profiles.backendUnavailable": "Profilserveren er ikkje tilgjengeleg.",
   "profiles.blankActive": "Dashbordet vart tilbakestilt. Du kan angre for å gjenopprette det førre oppsettet.",
   "profiles.cancelEdit": "Avbryt",
