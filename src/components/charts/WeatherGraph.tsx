@@ -1,14 +1,38 @@
 import { memo, useId, useMemo } from 'react';
 import { WEATHER_BAND_COLORS } from '../../utils/chartColors';
 
+type Point = [number, number];
+
+interface HistoryEntry {
+  state: unknown;
+  last_updated: string | number | Date;
+}
+
+interface TempPoint {
+  time: Date;
+  temp: number;
+}
+
+interface WeatherGraphProps {
+  history?: HistoryEntry[] | null;
+  currentTemp?: number | string;
+  historyHours?: number;
+  colorLimits?: unknown[];
+}
+
 // Helper function to create smooth Bezier curves
-const createBezierPath = (points, smoothing = 0.4) => {
-  const line = (p1, p2) => {
+const createBezierPath = (points: Point[], smoothing = 0.4) => {
+  const line = (p1: Point, p2: Point) => {
     const dx = p2[0] - p1[0];
     const dy = p2[1] - p1[1];
     return { length: Math.sqrt(dx * dx + dy * dy), angle: Math.atan2(dy, dx) };
   };
-  const controlPoint = (current, previous, next, reverse) => {
+  const controlPoint = (
+    current: Point,
+    previous: Point | undefined,
+    next: Point | undefined,
+    reverse: boolean
+  ): Point => {
     const p = previous || current;
     const n = next || current;
     const l = line(p, n);
@@ -16,7 +40,7 @@ const createBezierPath = (points, smoothing = 0.4) => {
     const length = l.length * smoothing;
     return [current[0] + Math.cos(angle) * length, current[1] + Math.sin(angle) * length];
   };
-  return points.reduce((acc, point, i, a) => {
+  return points.reduce((acc: string, point, i, a) => {
     if (i === 0) return `M ${point[0]},${point[1]}`;
     const [cpsX, cpsY] = controlPoint(a[i - 1], a[i - 2], point, false);
     const [cpeX, cpeY] = controlPoint(point, a[i - 1], a[i + 1], true);
@@ -25,12 +49,12 @@ const createBezierPath = (points, smoothing = 0.4) => {
 };
 
 // Helper function to create smooth curves (Catmull-Rom to Bezier)
-const getSvgPath = (points, smoothing = 0.4) => {
+const getSvgPath = (points: Point[], smoothing = 0.4) => {
   return createBezierPath(points, smoothing);
 };
 
 // Smooth data using Moving Average
-const smoothData = (data, windowSize = 3) => {
+const smoothData = (data: TempPoint[], windowSize = 3): TempPoint[] => {
   if (data.length < windowSize) return data;
   return data.map((point, index, array) => {
     const start = Math.max(0, index - Math.floor(windowSize / 2));
@@ -41,7 +65,12 @@ const smoothData = (data, windowSize = 3) => {
   });
 };
 
-function WeatherGraph({ history, currentTemp, historyHours = 12, colorLimits = [0, 10, 20, 28] }) {
+function WeatherGraph({
+  history,
+  currentTemp,
+  historyHours = 12,
+  colorLimits = [0, 10, 20, 28],
+}: WeatherGraphProps) {
   const gradientIdBase = useId().replace(/:/g, '');
   const width = 800;
   const height = 200;
@@ -55,16 +84,16 @@ function WeatherGraph({ history, currentTemp, historyHours = 12, colorLimits = [
     const historyAgo = new Date(Date.now() - historyHours * 60 * 60 * 1000);
 
     // Process history
-    let points = history
+    let points: TempPoint[] = history
       .map((d) => ({
         time: new Date(d.last_updated),
-        temp: parseFloat(d.state),
+        temp: parseFloat(String(d.state)),
       }))
       .filter((p) => !isNaN(p.temp) && p.time >= historyAgo)
-      .sort((a, b) => a.time - b.time);
+      .sort((a, b) => a.time.getTime() - b.time.getTime());
 
     // Add current time point
-    if (currentTemp !== undefined && !isNaN(currentTemp)) {
+    if (currentTemp !== undefined && !isNaN(Number(currentTemp))) {
       const now = new Date();
 
       // Check if we already have a point very close to now (within 1 minute)
@@ -73,10 +102,10 @@ function WeatherGraph({ history, currentTemp, historyHours = 12, colorLimits = [
       if (!hasClosePoint) {
         points.push({
           time: now,
-          temp: parseFloat(currentTemp),
+          temp: parseFloat(String(currentTemp)),
         });
         // Re-sort to place current temp correctly (e.g. between history and forecast)
-        points.sort((a, b) => a.time - b.time);
+        points.sort((a, b) => a.time.getTime() - b.time.getTime());
       }
     }
 
@@ -118,11 +147,12 @@ function WeatherGraph({ history, currentTemp, historyHours = 12, colorLimits = [
   const chartTop = verticalPadding;
   const chartBottom = height - verticalPadding;
   const chartHeight = Math.max(1, chartBottom - chartTop);
-  const getX = (t) => paddingX + ((t.getTime() - minTime) / timeRange) * (width - paddingX * 2);
-  const getY = (temp) => chartBottom - ((temp - yMin) / yRange) * chartHeight;
+  const getX = (t: Date) =>
+    paddingX + ((t.getTime() - minTime) / timeRange) * (width - paddingX * 2);
+  const getY = (temp: number) => chartBottom - ((temp - yMin) / yRange) * chartHeight;
 
   // Generate points and smooth path
-  const points = plotData.map((p) => [getX(p.time), getY(p.temp)]);
+  const points: Point[] = plotData.map((p) => [getX(p.time), getY(p.temp)]);
   const smoothPath = getSvgPath(points);
 
   // Generate fill area
@@ -145,7 +175,7 @@ function WeatherGraph({ history, currentTemp, historyHours = 12, colorLimits = [
   }, [colorLimits]);
 
   const colorStops = useMemo(() => {
-    const getColorForTemp = (temp) => {
+    const getColorForTemp = (temp: number) => {
       const [l1, l2, l3, l4] = sortedLimits;
       if (temp <= l1) return WEATHER_BAND_COLORS.cold;
       if (temp <= l2) return WEATHER_BAND_COLORS.cool;
@@ -229,7 +259,7 @@ function WeatherGraph({ history, currentTemp, historyHours = 12, colorLimits = [
         />
 
         {/* Dot for current temperature */}
-        {!isNaN(currentTemp) && (
+        {!isNaN(Number(currentTemp)) && (
           <>
             <circle
               cx={points[points.length - 1][0]}
@@ -263,22 +293,26 @@ export default memo(WeatherGraph, (previous, next) => {
     return false;
   }
 
+  const previousHistory = previous.history;
+  const nextHistory = next.history;
   const sameHistory =
-    previous.history === next.history ||
-    (Array.isArray(previous.history) &&
-      Array.isArray(next.history) &&
-      previous.history.length === next.history.length &&
-      previous.history.every(
+    previousHistory === nextHistory ||
+    (Array.isArray(previousHistory) &&
+      Array.isArray(nextHistory) &&
+      previousHistory.length === nextHistory.length &&
+      previousHistory.every(
         (point, index) =>
-          point.state === next.history[index].state &&
-          point.last_updated === next.history[index].last_updated
+          point.state === nextHistory[index].state &&
+          point.last_updated === nextHistory[index].last_updated
       ));
+  const previousLimits = previous.colorLimits;
+  const nextLimits = next.colorLimits;
   const sameLimits =
-    previous.colorLimits === next.colorLimits ||
-    (Array.isArray(previous.colorLimits) &&
-      Array.isArray(next.colorLimits) &&
-      previous.colorLimits.length === next.colorLimits.length &&
-      previous.colorLimits.every((value, index) => Object.is(value, next.colorLimits[index])));
+    previousLimits === nextLimits ||
+    (Array.isArray(previousLimits) &&
+      Array.isArray(nextLimits) &&
+      previousLimits.length === nextLimits.length &&
+      previousLimits.every((value, index) => Object.is(value, nextLimits[index])));
 
   return sameHistory && sameLimits;
 });

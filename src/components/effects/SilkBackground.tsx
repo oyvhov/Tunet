@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
 import { isLightColor } from '../../utils/colorUtils';
 
@@ -6,11 +6,11 @@ const MAX_DPR = 1.5;
 const FRAME_INTERVAL_MS = 1000 / 30;
 
 /**
- * LavaLampBackground — Slow-moving organic blobs that merge and split,
- * resembling a lava lamp. Deep warm tones on dark base.
+ * SilkBackground — Soft pastel flowing waves on a bright base.
+ * Designed for light themes: gentle, airy, and elegant.
  */
-const LavaLampBackground = ({ baseColor = '#1a0a1e' }) => {
-  const canvasRef = useRef(null);
+const SilkBackground = ({ baseColor = '#f8fafc' }: { baseColor?: string }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const motionAllowed = useLowPowerMotion();
   const blendMode = isLightColor(baseColor) ? 'multiply' : 'screen';
 
@@ -21,15 +21,18 @@ const LavaLampBackground = ({ baseColor = '#1a0a1e' }) => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    let animationFrameId;
-    let width, height;
+    if (!ctx) return undefined;
+    let animationFrameId = 0;
+    let width = 0;
+    let height = 0;
 
-    const blobs = [
-      { x: 0.25, y: 0.3, r: 0.38, color: [220, 60, 60], phase: 0, speed: 0.00003 }, // Warm red
-      { x: 0.7, y: 0.2, r: 0.42, color: [200, 100, 30], phase: 1.5, speed: 0.00004 }, // Orange
-      { x: 0.5, y: 0.7, r: 0.35, color: [180, 40, 120], phase: 3, speed: 0.00005 }, // Magenta
-      { x: 0.15, y: 0.8, r: 0.3, color: [140, 50, 180], phase: 4.5, speed: 0.00003 }, // Purple
-      { x: 0.85, y: 0.6, r: 0.32, color: [230, 80, 50], phase: 2, speed: 0.00004 }, // Deep orange
+    // Soft pastel ribbons
+    const ribbons = [
+      { x: 0.2, y: 0.15, r: 0.55, color: [147, 197, 253], phase: 0, speed: 0.00003 }, // Soft blue
+      { x: 0.75, y: 0.25, r: 0.5, color: [196, 181, 253], phase: 1.8, speed: 0.000025 }, // Lavender
+      { x: 0.5, y: 0.75, r: 0.45, color: [167, 243, 208], phase: 3.2, speed: 0.000035 }, // Mint
+      { x: 0.1, y: 0.6, r: 0.4, color: [253, 186, 116], phase: 4.8, speed: 0.00003 }, // Peach
+      { x: 0.85, y: 0.7, r: 0.38, color: [252, 165, 206], phase: 2.5, speed: 0.000028 }, // Rose
     ];
 
     const resize = () => {
@@ -47,7 +50,7 @@ const LavaLampBackground = ({ baseColor = '#1a0a1e' }) => {
     resize();
 
     let lastFrameAt = 0;
-    const draw = (t) => {
+    const draw = (t: number) => {
       if (t - lastFrameAt < FRAME_INTERVAL_MS) {
         animationFrameId = requestAnimationFrame(draw);
         return;
@@ -55,32 +58,35 @@ const LavaLampBackground = ({ baseColor = '#1a0a1e' }) => {
       lastFrameAt = t;
 
       ctx.globalCompositeOperation = 'source-over';
+
+      // Base follows the active theme so the dashboard text stays readable
       ctx.fillStyle = baseColor;
       ctx.fillRect(0, 0, width, height);
 
-      blobs.forEach((blob, i) => {
-        // Slow lava-like rising/falling motion
-        const yDrift =
-          Math.sin(t * blob.speed * 2 + blob.phase) * 0.25 +
-          Math.sin(t * blob.speed * 5 + blob.phase * 0.7) * 0.08;
+      ribbons.forEach((ribbon, i) => {
+        // Gentle silk-like drifting
+        const xWave =
+          Math.sin(t * ribbon.speed * 3 + ribbon.phase) * 0.15 +
+          Math.sin(t * ribbon.speed * 7 + ribbon.phase * 1.3) * 0.05;
 
-        const xDrift =
-          Math.sin(t * blob.speed * 1.5 + blob.phase + 1) * 0.12 +
-          Math.cos(t * blob.speed * 3 + blob.phase) * 0.06;
+        const yWave =
+          Math.cos(t * ribbon.speed * 2 + ribbon.phase) * 0.12 +
+          Math.cos(t * ribbon.speed * 5 + ribbon.phase * 0.8) * 0.06;
 
-        // Slow pulsing blob size
-        const breathe = Math.sin(t * 0.0003 + i * 1.2) * 0.08;
+        // Gentle breathing
+        const breathe = Math.sin(t * 0.0004 + i * 1.5) * 0.06;
 
-        const x = (blob.x + xDrift) * width;
-        const y = (blob.y + yDrift) * height;
-        const radius = Math.min(width, height) * (blob.r + breathe);
+        const x = (ribbon.x + xWave) * width;
+        const y = (ribbon.y + yWave) * height;
+        const radius = Math.min(width, height) * (ribbon.r + breathe);
 
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-        const [r, g, b] = blob.color;
+        const [r, g, b] = ribbon.color;
 
-        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.5)`);
-        gradient.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, 0.2)`);
-        gradient.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.06)`);
+        // Very soft layering — multiply blending on white gives watercolor effect
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.3)`);
+        gradient.addColorStop(0.35, `rgba(${r}, ${g}, ${b}, 0.15)`);
+        gradient.addColorStop(0.65, `rgba(${r}, ${g}, ${b}, 0.05)`);
         gradient.addColorStop(1, 'transparent');
 
         ctx.globalCompositeOperation = blendMode;
@@ -109,12 +115,12 @@ const LavaLampBackground = ({ baseColor = '#1a0a1e' }) => {
       {motionAllowed && (
         <canvas
           ref={canvasRef}
-          style={{ filter: 'blur(60px)', opacity: 0.85 }}
+          style={{ filter: 'blur(64px)', opacity: 0.7 }}
           className="absolute inset-0 h-full w-full"
         />
       )}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        className="pointer-events-none absolute inset-0 opacity-[0.02]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
         }}
@@ -123,4 +129,4 @@ const LavaLampBackground = ({ baseColor = '#1a0a1e' }) => {
   );
 };
 
-export default LavaLampBackground;
+export default SilkBackground;

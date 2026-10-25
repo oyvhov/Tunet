@@ -1,12 +1,39 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
-const createBezierPath = (points, smoothing = 0.3, bounds) => {
-  const line = (p1, p2) => {
+type Point = [number, number];
+
+interface HistoryPoint {
+  time: string | number | Date;
+  value: unknown;
+}
+
+interface SensorHistoryGraphProps {
+  data?: HistoryPoint[] | null;
+  height?: number;
+  color?: string;
+  noDataLabel?: string;
+  formatXLabel?: (date: Date) => string;
+  strokeColor?: string;
+  areaColor?: string;
+  ariaLabel?: string;
+}
+
+const createBezierPath = (
+  points: Point[],
+  smoothing = 0.3,
+  bounds?: { minY: number; maxY: number }
+) => {
+  const line = (p1: Point, p2: Point) => {
     const dx = p2[0] - p1[0];
     const dy = p2[1] - p1[1];
     return { length: Math.sqrt(dx * dx + dy * dy), angle: Math.atan2(dy, dx) };
   };
-  const controlPoint = (current, previous, next, reverse) => {
+  const controlPoint = (
+    current: Point,
+    previous: Point | undefined,
+    next: Point | undefined,
+    reverse: boolean
+  ): Point => {
     const p = previous || current;
     const n = next || current;
     const l = line(p, n);
@@ -18,7 +45,7 @@ const createBezierPath = (points, smoothing = 0.3, bounds) => {
       bounds ? Math.max(bounds.minY, Math.min(bounds.maxY, y)) : y,
     ];
   };
-  return points.reduce((path, point, index, allPoints) => {
+  return points.reduce((path: string, point, index, allPoints) => {
     if (index === 0) return `M ${point[0]},${point[1]}`;
     const [cpsX, cpsY] = controlPoint(allPoints[index - 1], allPoints[index - 2], point, false);
     const [cpeX, cpeY] = controlPoint(point, allPoints[index - 1], allPoints[index + 1], true);
@@ -26,7 +53,7 @@ const createBezierPath = (points, smoothing = 0.3, bounds) => {
   }, '');
 };
 
-const formatSummaryValue = (value, range) =>
+const formatSummaryValue = (value: number, range: number) =>
   value.toLocaleString(undefined, {
     maximumFractionDigits: range < 10 ? 1 : 0,
   });
@@ -40,8 +67,8 @@ export default function SensorHistoryGraph({
   strokeColor = undefined,
   areaColor = undefined,
   ariaLabel = undefined,
-}) {
-  const containerRef = useRef(null);
+}: SensorHistoryGraphProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const reactId = useId().replace(/:/g, '');
   const [containerWidth, setContainerWidth] = useState(600);
 
@@ -49,7 +76,7 @@ export default function SensorHistoryGraph({
     const element = containerRef.current;
     if (!element) return undefined;
 
-    const updateWidth = (width) => {
+    const updateWidth = (width: number) => {
       if (Number.isFinite(width) && width > 0) setContainerWidth(width);
     };
     updateWidth(element.getBoundingClientRect().width);
@@ -132,7 +159,7 @@ export default function SensorHistoryGraph({
     min = Math.floor(min / snapStep) * snapStep;
     max = Math.ceil(max / snapStep) * snapStep;
     const range = max - min || 1;
-    const points = values.map((value, index) => [
+    const points: Point[] = values.map((value, index) => [
       padding.left + (index / Math.max(values.length - 1, 1)) * graphWidth,
       padding.top + graphHeight - ((value - min) / range) * graphHeight,
     ]);
@@ -167,8 +194,8 @@ export default function SensorHistoryGraph({
       const label = formatXLabel
         ? formatXLabel(date)
         : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      /** @type {'start' | 'middle' | 'end'} */
-      const anchor = index === 0 ? 'start' : index === labelCount - 1 ? 'end' : 'middle';
+      const anchor: 'start' | 'middle' | 'end' =
+        index === 0 ? 'start' : index === labelCount - 1 ? 'end' : 'middle';
       return {
         x: padding.left + fraction * graphWidth,
         label,

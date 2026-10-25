@@ -15,7 +15,7 @@ import AccessibleModalShell from '../components/ui/AccessibleModalShell';
  * @param {number} props.currentPriceIndex - Index of current price
  * @param {Object} props.priceStats - Price statistics (min, max, avg)
  * @param {string} props.name - Display name for the card
- * @param {Function} props.t - Translation function
+ * @param {(key: string) => string} props.t - Translation function
  * @param {string} props.language - Current language code
  * @param {Function} props.saveCardSetting - Function to save settings
  * @param {string} props.cardId - ID of the card

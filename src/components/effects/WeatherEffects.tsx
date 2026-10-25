@@ -1,15 +1,26 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLowPowerMotion } from '../../hooks/useLowPowerMotion';
 
 const FRAME_INTERVAL_MS = 1000 / 30;
 
-const WeatherEffects = ({ condition }) => {
-  const canvasRef = useRef(null);
+type EffectType = 'rain' | 'snow';
+
+interface Particle {
+  x: number;
+  y: number;
+  speed: number;
+  length: number;
+  radius: number;
+  opacity: number;
+}
+
+const WeatherEffects = ({ condition }: { condition?: string | null }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const motionAllowed = useLowPowerMotion();
   const [isVisible, setIsVisible] = useState(true);
 
   // Normalize condition
-  const getEffectType = (cond) => {
+  const getEffectType = (cond?: string | null): EffectType | null => {
     if (!cond) return null;
     const c = cond.toLowerCase();
     if (['rainy', 'pouring', 'lightning-rainy'].includes(c)) return 'rain';
@@ -36,14 +47,15 @@ const WeatherEffects = ({ condition }) => {
 
   useEffect(() => {
     if (!motionAllowed || !isVisible) return undefined;
-    if (!effectType) return;
+    if (!effectType) return undefined;
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return undefined;
 
     const ctx = canvas.getContext('2d');
-    let animationFrameId;
-    let particles = [];
+    if (!ctx) return undefined;
+    let animationFrameId = 0;
+    let particles: Particle[] = [];
 
     // Resize handling
     const resizeCanvas = () => {
@@ -57,7 +69,18 @@ const WeatherEffects = ({ condition }) => {
     resizeCanvas();
 
     // Particle config
-    const config = {
+    const config: Record<
+      EffectType,
+      {
+        count: number;
+        speed: { min: number; max: number };
+        angle: { min: number; max: number };
+        color: string;
+        width?: number;
+        length?: { min: number; max: number };
+        radius?: { min: number; max: number };
+      }
+    > = {
       rain: {
         count: 36,
         speed: { min: 2.5, max: 5.5 }, // Slower rain
@@ -95,7 +118,7 @@ const WeatherEffects = ({ condition }) => {
     };
 
     let lastFrameAt = 0;
-    const draw = (time) => {
+    const draw = (time: number) => {
       if (time - lastFrameAt < FRAME_INTERVAL_MS) {
         animationFrameId = requestAnimationFrame(draw);
         return;
@@ -139,7 +162,7 @@ const WeatherEffects = ({ condition }) => {
     };
 
     initParticles();
-    draw();
+    draw(performance.now());
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);

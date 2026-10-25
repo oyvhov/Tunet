@@ -1,4 +1,24 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
+
+interface TimelineEvent {
+  time: Date;
+  state: unknown;
+}
+
+interface TimelineSegment {
+  state: unknown;
+  start: Date;
+  end: Date;
+  duration: number;
+}
+
+interface BinaryTimelineProps {
+  events?: TimelineEvent[] | null;
+  startTime: Date;
+  endTime: Date;
+  activeLabel?: string;
+  eventLabel?: string;
+}
 
 const ACTIVE_STATES = new Set([
   'on',
@@ -12,9 +32,9 @@ const ACTIVE_STATES = new Set([
   'occupied',
 ]);
 
-const isActiveState = (state) => ACTIVE_STATES.has(String(state).toLowerCase());
+const isActiveState = (state: unknown) => ACTIVE_STATES.has(String(state).toLowerCase());
 
-const formatDuration = (milliseconds) => {
+const formatDuration = (milliseconds: number) => {
   const totalMinutes = Math.max(0, Math.round(milliseconds / 60000));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -28,7 +48,7 @@ export default function BinaryTimeline({
   endTime,
   activeLabel = 'Active',
   eventLabel = 'Events',
-}) {
+}: BinaryTimelineProps) {
   const eventList = useMemo(() => (Array.isArray(events) ? events : []), [events]);
   const totalDuration = endTime.getTime() - startTime.getTime();
 
@@ -37,7 +57,7 @@ export default function BinaryTimeline({
 
     const sortedEvents = [...eventList]
       .filter((event) => event?.time instanceof Date && !Number.isNaN(event.time.getTime()))
-      .sort((a, b) => a.time - b.time);
+      .sort((a, b) => a.time.getTime() - b.time.getTime());
     if (sortedEvents.length === 0) return [];
 
     if (sortedEvents.length === 1) {
@@ -51,7 +71,7 @@ export default function BinaryTimeline({
       ];
     }
 
-    const result = [];
+    const result: TimelineSegment[] = [];
     if (sortedEvents[0].time > startTime) {
       result.push({
         state: 'nodata',
@@ -89,7 +109,7 @@ export default function BinaryTimeline({
 
   if (segments.length === 0 || totalDuration <= 0) return null;
 
-  const getStyle = (state) => {
+  const getStyle = (state: unknown) => {
     const normalized = String(state).toLowerCase();
     if (isActiveState(normalized)) return 'bg-[var(--status-success-fg)] opacity-85';
     if (['unavailable', 'unknown', 'nodata'].includes(normalized)) {
@@ -127,7 +147,7 @@ export default function BinaryTimeline({
         })}
       </div>
 
-      <div className="mt-2 flex justify-between px-1 font-mono text-[10px] uppercase text-[var(--text-secondary)] opacity-50">
+      <div className="mt-2 flex justify-between px-1 font-mono text-[10px] text-[var(--text-secondary)] uppercase opacity-50">
         <span>{startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         <span className="binary-timeline__axis-intermediate">
           {new Date(startTime.getTime() + totalDuration * 0.25).toLocaleTimeString([], {
