@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import LightCard from '../components/cards/LightCard';
-import { getLightDisplayRgb, kelvinToRgb, rgbCss } from '../utils/lightColor';
+import LightModal from '../modals/LightModal';
+import { getLightDisplayRgb, kelvinToRgb, rgbCss, rgbHex } from '../utils/lightColor';
 
 describe('light display colour', () => {
   it('uses rgb_color in colour modes', () => {
@@ -27,6 +28,7 @@ describe('light display colour', () => {
   it('formats CSS colours', () => {
     expect(rgbCss([1, 2, 3])).toBe('rgb(1, 2, 3)');
     expect(rgbCss([1, 2, 3], 0.2)).toBe('rgba(1, 2, 3, 0.2)');
+    expect(rgbHex([255, 105, 180])).toBe('#ff69b4');
   });
 });
 
@@ -78,5 +80,50 @@ describe('LightCard tint', () => {
     expect(screen.getByRole('button', { name: 'Adult: common.on' })).not.toHaveStyle({
       color: 'rgb(255, 105, 180)',
     });
+  });
+});
+
+describe('LightModal tint', () => {
+  const renderModal = (attributes, state = 'on') => {
+    const entities = {
+      'light.adult': {
+        entity_id: 'light.adult',
+        state,
+        attributes: {
+          friendly_name: 'Adult',
+          brightness: 128,
+          supported_color_modes: ['hs', 'color_temp'],
+          ...attributes,
+        },
+      },
+    };
+    render(
+      <LightModal
+        show
+        onClose={vi.fn()}
+        lightId="light.adult"
+        entities={entities}
+        callService={vi.fn()}
+        getA={(id, key, fallback = null) => entities[id]?.attributes?.[key] ?? fallback}
+        optimisticLightBrightness={{}}
+        setOptimisticLightBrightness={vi.fn()}
+        customIcons={{}}
+        t={(key) => key}
+      />
+    );
+  };
+
+  it('uses the light colour for the power icon and the brightness slider', () => {
+    renderModal({ color_mode: 'hs', rgb_color: [255, 105, 180] });
+    const powerIcon = screen.getByRole('button', { name: 'light.toggle' }).querySelector('svg');
+    expect(powerIcon).toHaveStyle({ color: 'rgb(255, 105, 180)' });
+    expect(
+      document.querySelector('[style*="background-color: rgb(255, 105, 180)"]')
+    ).not.toBeNull();
+  });
+
+  it('keeps amber when the light reports no colour', () => {
+    renderModal({ color_mode: 'brightness' });
+    expect(document.querySelector('.bg-amber-500')).not.toBeNull();
   });
 });

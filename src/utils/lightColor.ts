@@ -44,3 +44,6 @@ export function getLightDisplayRgb(
 
 export const rgbCss = ([r, g, b]: RgbTriple, alpha = 1) =>
   alpha >= 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+export const rgbHex = ([r, g, b]: RgbTriple) =>
+  `#${[r, g, b].map((part) => part.toString(16).padStart(2, '0')).join('')}`;
