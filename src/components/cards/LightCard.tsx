@@ -2,10 +2,31 @@ import { useRef, useEffect, useCallback, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Lightbulb } from '../../icons';
 import M3Slider from '../ui/M3Slider';
+import type { Dispatch, KeyboardEvent, MouseEvent, SetStateAction } from 'react';
+import type { useEntityHelpers } from '../../hooks/useEntityHelpers';
+import type { CardBaseProps } from '../../types/dashboard';
+import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+
+interface LightCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 'isMobile' | 't'
+> {
+  entityId?: string;
+  entities: NonNullable<CardBaseProps['entities']>;
+  editMode?: boolean;
+  cardSettings: CardSettingsMap;
+  settingsKey: string;
+  customNames: Record<string, string>;
+  customIcons: Record<string, string>;
+  getA: ReturnType<typeof useEntityHelpers>['getA'];
+  callService: (domain: string, service: string, data?: Record<string, unknown>) => unknown;
+  onOpen: () => void;
+  optimisticLightBrightness: Record<string, number>;
+  setOptimisticLightBrightness: Dispatch<SetStateAction<Record<string, number>>>;
+}
 
 const SLIDER_DEBOUNCE_MS = 200;
 
-/** @param {any} props */
 const LightCard = ({
   cardId,
   entityId: entityIdProp,
@@ -25,7 +46,7 @@ const LightCard = ({
   optimisticLightBrightness,
   setOptimisticLightBrightness,
   t,
-}) => {
+}: LightCardProps) => {
   const entityId = entityIdProp || cardId;
   const entity = entities[entityId];
   const DefaultIcon = Lightbulb;
@@ -36,7 +57,7 @@ const LightCard = ({
   const isOn = state === 'on';
   const br = getA(entityId, 'brightness') || 0;
   const subEntities = getA(entityId, 'entity_id', []);
-  const activeCount = subEntities.filter((id) => entities[id]?.state === 'on').length;
+  const activeCount = subEntities.filter((id: string) => entities[id]?.state === 'on').length;
   const totalCount = subEntities.length;
   const name = customNames[cardId] || getA(entityId, 'friendly_name');
 
@@ -44,21 +65,21 @@ const LightCard = ({
   const supportedColorModes = entity?.attributes?.supported_color_modes;
   const isDimmable = supportedColorModes
     ? !supportedColorModes.includes('onoff') || supportedColorModes.length > 1
-    : (entity?.attributes?.supported_features & 1) === 1;
+    : ((entity?.attributes?.supported_features ?? 0) & 1) === 1;
 
   const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
   const isSmall = sizeSetting === 'small';
   const isDenseMobile = isMobile && !isSmall;
 
   // Debounced brightness service call
-  const debounceRef = useRef(null);
-  useEffect(() => () => clearTimeout(debounceRef.current), []);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => clearTimeout(debounceRef.current ?? undefined), []);
 
   const handleBrightnessChange = useCallback(
-    (e) => {
+    (e: { target: { value: string } }) => {
       const val = parseInt(e.target.value);
       setOptimisticLightBrightness((prev) => ({ ...prev, [cardId]: val }));
-      clearTimeout(debounceRef.current);
+      clearTimeout(debounceRef.current ?? undefined);
       debounceRef.current = setTimeout(() => {
         callService('light', 'turn_on', { entity_id: entityId, brightness: val });
       }, SLIDER_DEBOUNCE_MS);
@@ -67,10 +88,10 @@ const LightCard = ({
   );
 
   const handleToggleLight = useCallback(
-    (event) => {
+    (event: MouseEvent | KeyboardEvent) => {
       event.stopPropagation();
       if (isUnavailable) return;
-      clearTimeout(debounceRef.current);
+      clearTimeout(debounceRef.current ?? undefined);
       debounceRef.current = null;
       callService('light', 'toggle', { entity_id: entityId });
     },

@@ -2,6 +2,24 @@ import { memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Edit2, Trash2, User } from '../../icons';
 import { createCardKeyHandler } from '../../utils/keyboard';
+import type { EntityMap } from '../../types/dashboard';
+import type { CardSettingsMap, GetCardSettingsKey } from '../../utils/cardSettingsKey';
+
+interface PersonStatusProps {
+  id: string;
+  entities: EntityMap;
+  editMode?: boolean;
+  customNames: Record<string, string>;
+  customIcons: Record<string, string>;
+  cardSettings: CardSettingsMap;
+  getCardSettingsKey: GetCardSettingsKey;
+  getEntityImageUrl: (url: string | null | undefined) => string | null;
+  getS: (id: string) => string;
+  onOpenPerson: (id: string) => void;
+  onEditCard: (id: string, settingsKey: string) => void;
+  onRemoveCard: (id: string, pageId?: string) => void;
+  t?: unknown;
+}
 
 const PersonStatus = ({
   id,
@@ -17,7 +35,7 @@ const PersonStatus = ({
   onEditCard,
   onRemoveCard,
   t: _t,
-}) => {
+}: PersonStatusProps) => {
   const entity = entities[id];
   if (!entity && !editMode) return null;
 
@@ -36,7 +54,7 @@ const PersonStatus = ({
   const personIconName = customIcons[id] || entity?.attributes?.icon;
   const PersonIcon = personIconName ? getIconComponent(personIconName) || User : User;
 
-  const normalizeZoneValue = (value) =>
+  const normalizeZoneValue = (value: unknown) =>
     String(value || '')
       .trim()
       .toLowerCase()

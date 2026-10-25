@@ -2,8 +2,26 @@ import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Camera, AlertCircle } from '../../icons';
 import { getIconComponent } from '../../icons';
 import CameraFeed from '../camera/CameraFeed';
+import type { Connection } from 'home-assistant-js-websocket';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 
-const CameraCard = memo(/** @param {any} props */ function CameraCard({
+interface CameraCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 'customNames' | 'customIcons' | 't'
+> {
+  entityId: string;
+  entity?: EntityMap[string];
+  settings?: CardSettingsEntry;
+  entities?: EntityMap;
+  editMode?: boolean;
+  conn?: Connection | null;
+  getEntityImageUrl: (url: string | null | undefined) => string | null;
+  onOpen?: () => void;
+  size?: string;
+}
+
+const CameraCard = memo(function CameraCard({
   cardId,
   entityId,
   entity,
@@ -20,10 +38,10 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   onOpen,
   size,
   t,
-}) {
+}: CameraCardProps) {
   const [refreshTs, setRefreshTs] = useState(Date.now());
   const [activeSource, setActiveSource] = useState('loading');
-  const intervalRef = useRef(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const previousMotionActiveRef = useRef(false);
 
   const attrs = entity?.attributes || {};
@@ -41,7 +59,7 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
 
   const refreshMode = settings?.cameraRefreshMode || 'interval';
   const refreshInterval = Math.max(2, Number(settings?.cameraRefreshInterval) || 10);
-  const motionSensorId = settings?.cameraMotionSensor || null;
+  const motionSensorId = settings?.cameraMotionSensor ? String(settings.cameraMotionSensor) : null;
 
   const doRefresh = useCallback(() => {
     setRefreshTs(Date.now());
@@ -51,7 +69,9 @@ const CameraCard = memo(/** @param {any} props */ function CameraCard({
   useEffect(() => {
     if (isOffline || !usingSnapshot || refreshMode !== 'interval') return;
     intervalRef.current = setInterval(doRefresh, refreshInterval * 1000);
-    return () => clearInterval(intervalRef.current);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isOffline, usingSnapshot, refreshMode, refreshInterval, doRefresh]);
 
   // Motion-sensor-based refresh
