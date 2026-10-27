@@ -47,7 +47,7 @@
     "hls.js": "^1.7.3",
     "home-assistant-js-websocket": "^9.7.1",
     "leaflet": "^1.9.4",
-    "lucide-react": "^1.59.0",
+    "lucide-react": "^1.61.0",
     "prop-types": "^15.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
