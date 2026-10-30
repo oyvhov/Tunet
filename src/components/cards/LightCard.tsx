@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Lightbulb } from '../../icons';
 import M3Slider from '../ui/M3Slider';
+import { getLightDisplayRgb, rgbCss } from '../../utils/lightColor';
 import type { Dispatch, KeyboardEvent, MouseEvent, SetStateAction } from 'react';
 import type { useEntityHelpers } from '../../hooks/useEntityHelpers';
 import type { CardBaseProps } from '../../types/dashboard';
@@ -60,6 +61,20 @@ const LightCard = ({
   const activeCount = subEntities.filter((id: string) => entities[id]?.state === 'on').length;
   const totalCount = subEntities.length;
   const name = customNames[cardId] || getA(entityId, 'friendly_name');
+  // Tint the card with the colour the light is showing, so its setting is visible at a glance.
+  const lightRgb = isOn ? getLightDisplayRgb(entity?.attributes) : null;
+  const tint = lightRgb
+    ? {
+        icon: { backgroundColor: rgbCss(lightRgb, 0.2), color: rgbCss(lightRgb) },
+        iconFill: { fill: rgbCss(lightRgb, 0.2) },
+        badge: {
+          borderColor: rgbCss(lightRgb, 0.25),
+          backgroundColor: rgbCss(lightRgb, 0.1),
+          color: rgbCss(lightRgb),
+        },
+        fill: rgbCss(lightRgb),
+      }
+    : null;
 
   // Determine if light supports dimming
   const supportedColorModes = entity?.attributes?.supported_color_modes;
@@ -125,12 +140,14 @@ const LightCard = ({
 
         <button
           onClick={handleToggleLight}
-          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`}
+          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 ${isOn ? (tint ? '' : 'bg-amber-500/20 text-amber-400') : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`}
+          style={tint?.icon}
           disabled={isUnavailable}
           aria-label={`${name || t('common.light')}: ${isOn ? t('common.off') : t('common.on')}`}
         >
           <LightIcon
-            className={`h-6 w-6 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110`}
+            className={`h-6 w-6 stroke-[1.5px] ${isOn && !tint ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110`}
+            style={tint?.iconFill}
           />
         </button>
 
@@ -160,6 +177,7 @@ const LightCard = ({
                 disabled={isUnavailable}
                 onChange={handleBrightnessChange}
                 colorClass="bg-amber-500"
+                fillColor={tint?.fill}
                 ariaLabel={t('light.brightness')}
               />
             )}
@@ -195,16 +213,19 @@ const LightCard = ({
       <div className="flex items-start justify-between">
         <button
           onClick={handleToggleLight}
-          className={`transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'} ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
+          className={`transition-all duration-500 ${isOn ? (tint ? '' : 'bg-amber-500/20 text-amber-400') : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'} ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
+          style={tint?.icon}
           disabled={isUnavailable}
           aria-label={`${name || t('common.light')}: ${isOn ? t('common.off') : t('common.on')}`}
         >
           <LightIcon
-            className={`${isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}
+            className={`${isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px] ${isOn && !tint ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}
+            style={tint?.iconFill}
           />
         </button>
         <div
-          className={`flex items-center rounded-full border transition-all ${isUnavailable ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'border-amber-500/20 bg-amber-500/10 text-amber-500' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}
+          className={`flex items-center rounded-full border transition-all ${isUnavailable ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? (tint ? '' : 'border-amber-500/20 bg-amber-500/10 text-amber-500') : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}
+          style={!isUnavailable ? tint?.badge : undefined}
         >
           <span
             className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
@@ -275,6 +296,7 @@ const LightCard = ({
               disabled={isUnavailable}
               onChange={handleBrightnessChange}
               colorClass="bg-amber-500"
+              fillColor={tint?.fill}
               ariaLabel={t('light.brightness')}
             />
           )}

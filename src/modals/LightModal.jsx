@@ -12,6 +12,7 @@ import {
   Power,
 } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
+import { getLightDisplayRgb, rgbCss, rgbHex } from '../utils/lightColor';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getIconComponent } from '../icons';
 
@@ -113,6 +114,9 @@ export default function LightModal({
     callService('light', 'turn_on', { entity_id: activeLightId, hs_color: [val, 100] });
   };
 
+  // The colour the light is showing, so the popup matches its card.
+  const lightRgb = isOn ? getLightDisplayRgb(entity?.attributes) : null;
+
   // Determine glow color
   const getGlowColor = () => {
     if (!isOn) return 'transparent';
@@ -124,7 +128,7 @@ export default function LightModal({
       if (localKelvin > 5000) return '#93c5fd'; // Cool/Blue
       return '#fbbf24'; // Neutral
     }
-    return '#fbbf24'; // Default amber
+    return lightRgb ? rgbHex(lightRgb) : '#fbbf24'; // Light colour, else amber
   };
 
   if (!show || !activeLightId) return null;
@@ -166,7 +170,12 @@ export default function LightModal({
             {/* Header */}
             <div className="relative z-10 mb-4 flex shrink-0 items-center gap-3 pr-12 sm:mb-6 sm:gap-4 sm:pr-0">
               <div
-                className={`rounded-2xl p-3 transition-all duration-500 sm:p-4 ${isUnavailable ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'bg-amber-500/15 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+                className={`rounded-2xl p-3 transition-all duration-500 sm:p-4 ${isUnavailable ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? (lightRgb ? '' : 'bg-amber-500/15 text-amber-400') : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+                style={
+                  !isUnavailable && lightRgb
+                    ? { backgroundColor: rgbCss(lightRgb, 0.15), color: rgbCss(lightRgb) }
+                    : undefined
+                }
               >
                 <LightIcon className="h-6 w-6 sm:h-8 sm:w-8" />
               </div>
@@ -229,7 +238,10 @@ export default function LightModal({
                 {isUnavailable ? (
                   <AlertTriangle className="h-8 w-8 md:h-10 md:w-10" />
                 ) : (
-                  <Power className="h-10 w-10 stroke-[1.5px] md:h-16 md:w-16" />
+                  <Power
+                    className="h-10 w-10 stroke-[1.5px] md:h-16 md:w-16"
+                    style={lightRgb ? { color: rgbCss(lightRgb) } : undefined}
+                  />
                 )}
 
                 {/* Subtle inner ring */}
@@ -320,6 +332,7 @@ export default function LightModal({
                             }}
                             ariaLabel={t('light.brightness')}
                             colorClass="bg-amber-500"
+                            fillColor={lightRgb ? rgbCss(lightRgb) : undefined}
                             variant="fat" // Keep fat for touch, but in smaller container
                           />
                         </div>

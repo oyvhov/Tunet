@@ -8,6 +8,7 @@ interface M3SliderProps {
   value: number;
   onChange: (event: { target: { value: string } }) => void;
   colorClass?: string;
+  fillColor?: string;
   disabled?: boolean;
   variant?: 'default' | 'thin' | 'thinLg' | 'volume' | (string & {});
   trackClass?: string;
@@ -26,6 +27,7 @@ export default function M3Slider({
   value,
   onChange,
   colorClass: propColorClass = 'bg-[var(--accent-color)]',
+  fillColor = undefined,
   disabled = false,
   variant = 'default',
   trackClass = '',
@@ -39,8 +41,13 @@ export default function M3Slider({
   const generatedId = useId();
   const inputId = id || `m3-slider-${generatedId.replace(/:/g, '')}`;
   const inputName = name || inputId;
-  const colorClass =
-    propColorClass === 'bg-[var(--accent-color)]' ? 'bg-[var(--accent-color)]' : propColorClass;
+  // An explicit fill colour (e.g. a light's current colour) replaces the colour class.
+  const colorClass = fillColor
+    ? ''
+    : propColorClass === 'bg-[var(--accent-color)]'
+      ? 'bg-[var(--accent-color)]'
+      : propColorClass;
+  const fillStyle = fillColor ? { backgroundColor: fillColor } : {};
   const [internalValue, setInternalValue] = useState(value);
   const [isInteracting, setIsInteracting] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,7 +133,7 @@ export default function M3Slider({
         <div className="absolute h-1 w-full overflow-hidden rounded-full bg-[var(--glass-bg-hover)] transition-[height] duration-300 group-hover:h-1.5">
           <div
             className={`h-full ${colorClass} transition-colors duration-150 ease-out`}
-            style={{ width: `${percentage}%` }}
+            style={{ width: `${percentage}%`, ...fillStyle }}
           />
         </div>
         <input {...commonInputProps} />
@@ -148,7 +155,7 @@ export default function M3Slider({
         <div className="absolute h-2 w-full overflow-hidden rounded-full bg-[var(--glass-bg-hover)] transition-[height] duration-300 group-hover:h-2.5">
           <div
             className={`h-full ${colorClass} transition-colors duration-150 ease-out`}
-            style={{ width: `${percentage}%` }}
+            style={{ width: `${percentage}%`, ...fillStyle }}
           />
         </div>
         <input {...commonInputProps} />
@@ -170,7 +177,7 @@ export default function M3Slider({
         <div className="absolute h-full w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)]">
           <div
             className={`h-full transition-colors duration-150 ease-out ${colorClass} opacity-90`}
-            style={{ width: `${percentage}%` }}
+            style={{ width: `${percentage}%`, ...fillStyle }}
           />
         </div>
         <input
@@ -200,7 +207,7 @@ export default function M3Slider({
         <div className={`absolute w-full ${trackClass} overflow-hidden rounded-full`}>
           <div
             className={`h-full ${colorClass} transition-colors duration-150 ease-out`}
-            style={{ width: `${percentage}%` }}
+            style={{ width: `${percentage}%`, ...fillStyle }}
           />
         </div>
       ) : (
@@ -216,6 +223,7 @@ export default function M3Slider({
             className={`h-full transition-colors duration-150 ease-out ${colorClass}`}
             style={{
               width: `${percentage}%`,
+              ...fillStyle,
               boxShadow: !height ? '0_0_15px_rgba(0,0,0,0.2)' : 'none',
             }}
           />
