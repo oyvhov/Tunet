@@ -1,5 +1,103 @@
 import { test, expect } from './fixtures';
 
+test.describe('Ingress authentication failures', () => {
+  for (const endpoint of ['profiles', 'settings/current']) {
+    for (const isIngressRejection of [true, false]) {
+      test(`${isIngressRejection ? 'preserves' : 'clears'} the token for ${isIngressRejection ? 'Ingress' : 'backend'} 401 from ${endpoint}`, async ({
+        page,
+        mockHAConnection,
+      }) => {
+        void mockHAConnection;
+        const pageErrors = [];
+        page.on('pageerror', (error) => pageErrors.push(error.message));
+        let rejections = 0;
+        let rejectRequests = endpoint !== 'profiles';
+        await page.route('**/api/**', (route) => {
+          const pathname = new URL(route.request().url()).pathname;
+          if (rejectRequests && pathname === `/api/${endpoint}`) {
+            rejections += 1;
+            return route.fulfill({
+              status: 401,
+              contentType: isIngressRejection ? 'text/plain' : 'application/json',
+              body: isIngressRejection
+                ? '401: Unauthorized'
+                : JSON.stringify({ error: 'Invalid Home Assistant token' }),
+            });
+          }
+          return route.fulfill({
+            json: pathname.endsWith('/current') ? { revision: 1, data: null } : [],
+          });
+        });
+        await page.addInitScript(() => {
+          window.__haUnauthorizedEvents = 0;
+          window.addEventListener('tunet:api-auth-unauthorized', () => {
+            window.__haUnauthorizedEvents += 1;
+          });
+          if (sessionStorage.getItem('e2e-ingress-auth-seeded')) return;
+          sessionStorage.setItem('e2e-ingress-auth-seeded', '1');
+          localStorage.setItem('tunet_language', 'en');
+          localStorage.setItem('ha_url', 'http://localhost:8123');
+          localStorage.setItem('ha_auth_method', 'token');
+          localStorage.setItem('ha_token', 'test_token');
+          localStorage.setItem(
+            'tunet_pages_config',
+            JSON.stringify({ header: [], pages: ['home'], home: ['light.bedroom'] })
+          );
+        });
+
+        const openConnectionSettings = async () => {
+          await expect(page.locator('[data-card-id="light.bedroom"]')).toBeVisible();
+          await page.getByTestId('settings-dropdown-trigger').click();
+          await expect(page.getByTestId('settings-dropdown-menu')).toBeVisible();
+          await page.getByTestId('settings-menu-system').click();
+        };
+        await page.goto('/', { waitUntil: 'domcontentloaded' });
+        if (endpoint === 'profiles') {
+          await expect(page.locator('[data-card-id="light.bedroom"]')).toBeVisible();
+          rejectRequests = true;
+          await openConnectionSettings();
+        }
+        await expect.poll(() => rejections).toBeGreaterThan(0);
+
+        if (!isIngressRejection) {
+          await expect.poll(() => page.evaluate(() => localStorage.getItem('ha_token'))).toBeNull();
+          expect(await page.evaluate(() => window.__haUnauthorizedEvents)).toBeGreaterThan(0);
+          await page.reload({ waitUntil: 'domcontentloaded' });
+          await expect(page.getByRole('dialog', { name: 'Get started' })).toBeVisible();
+        } else {
+          expect(await page.evaluate(() => localStorage.getItem('ha_token'))).toBe('test_token');
+          expect(await page.evaluate(() => window.__haUnauthorizedEvents)).toBe(0);
+          rejectRequests = false;
+          await page.reload({ waitUntil: 'domcontentloaded' });
+          await openConnectionSettings();
+          await expect(page.getByText('E2E User', { exact: true })).toBeVisible();
+          const settingsDialog = page.getByRole('dialog');
+          await settingsDialog.getByRole('button', { name: 'Close', exact: true }).click();
+          await expect(settingsDialog).toHaveCount(0);
+          await page
+            .locator('[data-card-id="light.bedroom"]')
+            .getByRole('button', { name: /^Bedroom Light: off$/i })
+            .click();
+          await expect
+            .poll(() =>
+              page.evaluate(() =>
+                window.__haServiceCalls.some(
+                  (call) => call.domain === 'light' && call.service === 'toggle'
+                )
+              )
+            )
+            .toBe(true);
+          expect(await page.evaluate(() => localStorage.getItem('ha_token'))).toBe('test_token');
+          expect(await page.evaluate(() => window.__haUnauthorizedEvents)).toBe(0);
+          await expect(page.getByRole('dialog', { name: 'Get started' })).toHaveCount(0);
+        }
+        await expect(page.locator('vite-error-overlay')).toHaveCount(0);
+        expect(pageErrors).toEqual([]);
+      });
+    }
+  }
+});
+
 test.describe('OAuth Authentication Flow', () => {
   for (const stage of ['initial connection', 'reconnection']) {
     test(`offers login when HA rejects OAuth during ${stage}`, async ({
