@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { en, nb, nn, sv, de, zh, fr, es, SUPPORTED_LANGUAGES, TRANSLATIONS } from '../i18n';
+import {
+  en,
+  getLoadedTranslations,
+  loadTranslations,
+  SUPPORTED_LANGUAGES,
+  TRANSLATION_LOADERS,
+} from '../i18n';
+import nb from '../i18n/nb.json';
+import nn from '../i18n/nn.json';
+import sv from '../i18n/sv.json';
+import de from '../i18n/de.json';
+import zh from '../i18n/zh.json';
+import fr from '../i18n/fr.json';
+import es from '../i18n/es.json';
 
 const getPlaceholders = (value) => {
   const matches = String(value).match(/\{[^}]+\}/g) || [];
@@ -115,7 +128,17 @@ describe('i18n', () => {
     }
   });
 
-  it('registers a translation table for every supported language', () => {
-    expect(Object.keys(TRANSLATIONS).sort()).toEqual([...SUPPORTED_LANGUAGES].sort());
+  it('registers a translation loader for every supported language', () => {
+    expect(Object.keys(TRANSLATION_LOADERS).sort()).toEqual([...SUPPORTED_LANGUAGES].sort());
+  });
+
+  it('keeps only English loaded until another language is requested', async () => {
+    expect(getLoadedTranslations('en')).toBe(en);
+    expect(getLoadedTranslations('nn')).toBeUndefined();
+    const [first, second] = await Promise.all([loadTranslations('nn'), loadTranslations('nn')]);
+    expect(first).toBe(second);
+    expect(first).toEqual(nn);
+    expect(getLoadedTranslations('nn')).toBe(first);
+    expect(await loadTranslations('klingon')).toBe(en);
   });
 });

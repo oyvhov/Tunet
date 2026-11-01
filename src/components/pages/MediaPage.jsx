@@ -24,6 +24,7 @@ import {
 } from '../../icons';
 import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../../utils';
 import MusicAssistantLink from '../media/MusicAssistantLink';
+import { useMusicAssistantChoices } from '../../hooks/useMusicAssistantChoices';
 import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 const BLOCKED_MEDIA_TYPES = new Set([
@@ -344,12 +345,31 @@ function MediaPage({
     [loweredChooseQuery]
   );
 
-  const filteredFavoriteChoices = applyQueryFilter(favoriteChoices);
-  const filteredPlaylistChoices = applyQueryFilter(playlistChoices);
-  const filteredLibraryChoices = applyQueryFilter(libraryChoices);
-  const filteredSearchChoices = applyQueryFilter(combinedMusicChoices);
-  const isChooseLoading = browseLoading;
-  const hasLoadedBrowseChoices = browseChoices._version === 3;
+  const isMusicAssistantPlayer = !!mpId && isMusicAssistantMediaEntity(currentMp);
+  const musicAssistantChoices = useMusicAssistantChoices({
+    conn,
+    playerId: isMusicAssistantPlayer ? mpId : null,
+    active: rightPanelView === 'choose',
+    query: chooseTab === 'search' ? chooseQuery : '',
+  });
+
+  const filteredFavoriteChoices = musicAssistantChoices
+    ? musicAssistantChoices.favorites
+    : applyQueryFilter(favoriteChoices);
+  const filteredPlaylistChoices = musicAssistantChoices
+    ? musicAssistantChoices.playlists
+    : applyQueryFilter(playlistChoices);
+  const filteredLibraryChoices = musicAssistantChoices
+    ? musicAssistantChoices.library
+    : applyQueryFilter(libraryChoices);
+  const filteredSearchChoices = musicAssistantChoices
+    ? musicAssistantChoices.search
+    : applyQueryFilter(combinedMusicChoices);
+  const isChooseLoading = musicAssistantChoices ? musicAssistantChoices.loading : browseLoading;
+  const chooseError = musicAssistantChoices ? musicAssistantChoices.error : browseError;
+  const hasLoadedBrowseChoices = musicAssistantChoices
+    ? musicAssistantChoices.loaded
+    : browseChoices._version === 3;
 
   const sonosAllIds = useMemo(
     () => allMediaIds.filter((id) => isSonosMediaEntity(entities[id])),
@@ -404,6 +424,7 @@ function MediaPage({
     const canBrowse =
       rightPanelView === 'choose' &&
       !!mpId &&
+      !isMusicAssistantPlayer &&
       conn &&
       typeof conn.sendMessagePromise === 'function';
     if (!canBrowse) return;
@@ -566,7 +587,15 @@ function MediaPage({
     return () => {
       cancelled = true;
     };
-  }, [rightPanelView, mpId, conn, browseChoicesByPlayer, isMusicContent, normalizeChoiceArray]);
+  }, [
+    rightPanelView,
+    mpId,
+    isMusicAssistantPlayer,
+    conn,
+    browseChoicesByPlayer,
+    isMusicContent,
+    normalizeChoiceArray,
+  ]);
 
   const listPlayers = useMemo(
     () =>
@@ -595,6 +624,14 @@ function MediaPage({
 
   const playChoice = (choice, fallbackType = 'music') => {
     if (!choice?.id || !mpId) return;
+    if (choice.musicAssistant) {
+      callService('music_assistant', 'play_media', {
+        entity_id: mpId,
+        media_id: choice.id,
+        media_type: choice.type,
+      });
+      return;
+    }
     callService('media_player', 'play_media', {
       entity_id: mpId,
       media_content_id: choice.id,
@@ -1274,7 +1311,9 @@ function MediaPage({
                       type="search"
                       value={chooseQuery}
                       onChange={(e) => setChooseQuery(e.target.value)}
-                      placeholder={t('addCard.search')}
+                      placeholder={
+                        musicAssistantChoices ? t('media.choose.searchHint') : t('addCard.search')
+                      }
                       className="mt-3 w-full flex-shrink-0 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
                     />
                   )}
@@ -1289,7 +1328,7 @@ function MediaPage({
                         <span className="text-[11px] font-medium text-[var(--text-muted)] italic">
                           {t('media.choose.loading')}
                         </span>
-                      ) : browseError ? (
+                      ) : chooseError ? (
                         <span className="text-[11px] font-medium text-amber-400 italic">
                           {t('media.choose.loadError')}
                         </span>
@@ -1371,7 +1410,9 @@ function MediaPage({
                           </div>
                         ) : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
-                            {t('form.noResults')}
+                            {musicAssistantChoices && !chooseQuery.trim()
+                              ? t('media.choose.searchHint')
+                              : t('form.noResults')}
                           </div>
                         )}
                       </>

@@ -61,7 +61,7 @@ test.describe('Modal Interactions', () => {
       localStorage.setItem(
         'tunet_pages_config',
         JSON.stringify({
-          header: [],
+          header: ['person.alex'],
           pages: ['home'],
           home: ['light.bedroom', 'light.kitchen', 'calendar_card_e2e'],
         })
@@ -96,6 +96,72 @@ test.describe('Modal Interactions', () => {
     // Modal shell is the required assertion for opening system settings.
     await expect(modal).toBeVisible();
   });
+
+  for (const theme of ['light', 'dark']) {
+    test(`opens the person map without an API key in ${theme} mode`, async ({ page }, testInfo) => {
+      await page.setViewportSize(
+        theme === 'light' ? { width: 390, height: 844 } : { width: 1440, height: 900 }
+      );
+      const errors = [];
+      const cartoRequests = [];
+      const tileRequests = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      page.on('request', (request) => {
+        if (new URL(request.url()).hostname.endsWith('.cartocdn.com')) {
+          cartoRequests.push(request.url());
+        }
+      });
+      await page.route('https://tile.openstreetmap.org/**', (route) => {
+        tileRequests.push(route.request().url());
+        return route.fulfill({
+          contentType: 'image/svg+xml',
+          body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e4edd9"/><path d="M0 80H256M100 0V256" stroke="#fff" stroke-width="12"/><text x="120" y="120" font-size="14">Test map</text></svg>',
+        });
+      });
+      await page.evaluate((selectedTheme) => {
+        localStorage.setItem('tunet_theme', selectedTheme);
+      }, theme);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page).toHaveTitle('HOME');
+      const person = page.getByRole('button', { name: /Alex/ });
+      await expect(person).toBeVisible();
+      expect(tileRequests).toEqual([]);
+
+      for (const opening of ['first', 'repeat']) {
+        await person.click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog.getByRole('heading', { name: 'Alex' })).toBeVisible();
+        const map = dialog.locator('.person-map');
+        await expect(map).toHaveAttribute('data-map-theme', theme);
+        await expect(map.locator('.leaflet-tile-loaded').first()).toBeVisible();
+        await expect(map.locator('.custom-person-marker')).toBeVisible();
+        await expect(map.getByRole('link', { name: 'OpenStreetMap' })).toBeVisible();
+        await expect(map.getByRole('link', { name: 'OpenStreetMap' })).toHaveAttribute(
+          'href',
+          'https://www.openstreetmap.org/copyright'
+        );
+        const tileFilter = await map
+          .locator('.leaflet-tile-pane')
+          .evaluate((node) => getComputedStyle(node).filter);
+        expect(tileFilter === 'none').toBe(theme === 'light');
+        await expect(map.locator('.leaflet-marker-pane')).toHaveCSS('filter', 'none');
+        if (opening === 'first') {
+          await page.screenshot({ path: testInfo.outputPath(`person-map-${theme}.png`) });
+        }
+        await page.keyboard.press('Escape');
+        await expect(dialog).toHaveCount(0);
+      }
+      expect(tileRequests.length).toBeGreaterThan(0);
+      expect(
+        tileRequests.every((url) =>
+          /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(url)
+        )
+      ).toBe(true);
+      expect(cartoRequests).toEqual([]);
+      expect(errors).toEqual([]);
+      await expect(page.locator('vite-error-overlay')).toHaveCount(0);
+    });
+  }
 
   for (const viewport of [
     { width: 1440, height: 900 },
@@ -395,6 +461,164 @@ test.describe('Modal Interactions', () => {
       expect(right).toBeLessThanOrEqual(mobileChooserBounds.x + mobileChooserBounds.width);
     });
     await chooser.getByRole('button', { name: 'Favorites' }).click();
+  });
+
+  test('should browse, search and play Music Assistant media through its own actions', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1060, height: 700 });
+    await page.addInitScript(() => {
+      const item = (media_type, id, name, extra = {}) => ({
+        media_type,
+        uri: `library://${media_type}/${id}`,
+        name,
+        version: '',
+        image: null,
+        ...extra,
+      });
+      const library = {
+        playlist: [item('playlist', 1, 'Fredagsmiks')],
+        album: [item('album', 7, 'Lust For Life', { artists: [{ name: 'Lana Del Rey' }] })],
+      };
+      const favorites = { album: [item('album', 53, 'Born To Die')] };
+      window.__maCalls = [];
+
+      class MusicAssistantWebSocket extends window.WebSocket {
+        dispatchEvent(event) {
+          if (event.type === 'message') {
+            const payload = JSON.parse(event.data);
+            if (payload.type === 'event' && payload.event?.a) {
+              payload.event.a['media_player.kitchen_ma'] = {
+                s: 'playing',
+                a: {
+                  friendly_name: 'Kitchen MA',
+                  media_title: 'Video Games',
+                  media_artist: 'Lana Del Rey',
+                  mass_player_type: 'player',
+                  app_id: 'music_assistant',
+                  supported_features: 4127295,
+                },
+                c: 'ma-e2e',
+                lc: 1774816140,
+                lu: 1774816140,
+              };
+              return super.dispatchEvent(
+                new MessageEvent('message', { data: JSON.stringify(payload) })
+              );
+            }
+          }
+          return super.dispatchEvent(event);
+        }
+
+        send(data) {
+          const message = JSON.parse(data);
+          const reply = (result) =>
+            setTimeout(
+              () =>
+                this.dispatchEvent(
+                  new MessageEvent('message', {
+                    data: JSON.stringify({ id: message.id, type: 'result', success: true, result }),
+                  })
+                ),
+              10
+            );
+          if (message.type === 'config/entity_registry/get') {
+            reply({ entity_id: message.entity_id, config_entry_id: 'ma-entry' });
+            return;
+          }
+          if (message.type === 'call_service' && message.domain === 'music_assistant') {
+            window.__maCalls.push(message);
+            const data = message.service_data || {};
+            if (message.service === 'get_library') {
+              const items = data.favorite
+                ? favorites[data.media_type] || []
+                : library[data.media_type] || [];
+              reply({ context: { id: 'ma' }, response: { items } });
+              return;
+            }
+            if (message.service === 'search') {
+              reply({
+                context: { id: 'ma' },
+                response: {
+                  tracks: [
+                    item('track', 60, '13 Beaches', { artists: [{ name: 'Lana Del Rey' }] }),
+                  ],
+                  albums: [],
+                  artists: [],
+                  playlists: [],
+                  radio: [],
+                  podcasts: [],
+                  audiobooks: [],
+                },
+              });
+              return;
+            }
+            reply({ context: { id: 'ma' } });
+            return;
+          }
+          if (message.type === 'media_player/browse_media') {
+            window.__maCalls.push(message);
+          }
+          super.send(data);
+        }
+      }
+      window.WebSocket = MusicAssistantWebSocket;
+      localStorage.setItem(
+        'tunet_status_pills_config',
+        JSON.stringify([
+          {
+            id: 'ma-media',
+            type: 'media_player',
+            label: 'Kitchen music',
+            visible: true,
+            clickable: true,
+            conditionEnabled: false,
+            entityId: 'media_player.kitchen_ma',
+          },
+        ])
+      );
+      localStorage.setItem(
+        'tunet_media_view_mode_by_modal',
+        JSON.stringify({ 'media::default': true })
+      );
+    });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: /Kitchen music Lana Del Rey/ }).click();
+    const modal = page.locator('[role="dialog"]').first();
+    await expect(modal).toBeVisible();
+    await modal.getByRole('button', { name: 'Choose media' }).click();
+
+    const chooser = modal.getByTestId('media-chooser');
+    await expect(chooser.getByText('Born To Die')).toBeVisible();
+    await chooser.getByRole('button', { name: 'Playlists' }).click();
+    await expect(chooser.getByText('Fredagsmiks')).toBeVisible();
+    await chooser.getByRole('button', { name: 'Library' }).click();
+    await expect(chooser.getByText('Lust For Life')).toBeVisible();
+    await expect(chooser.getByText('Lana Del Rey')).toBeVisible();
+
+    await chooser.getByRole('button', { name: 'Search' }).click();
+    await expect(chooser.getByText('Type to search Music Assistant')).toBeVisible();
+    await chooser.getByRole('searchbox').fill('lana');
+    await chooser.getByText('13 Beaches').click();
+
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => window.__maCalls.find((call) => call.service === 'play_media')?.service_data
+        )
+      )
+      .toEqual({
+        entity_id: 'media_player.kitchen_ma',
+        media_id: 'library://track/60',
+        media_type: 'track',
+      });
+    const calls = await page.evaluate(() => window.__maCalls);
+    expect(calls.some((call) => call.type === 'media_player/browse_media')).toBe(false);
+    expect(calls.find((call) => call.service === 'search')?.service_data).toMatchObject({
+      config_entry_id: 'ma-entry',
+      name: 'lana',
+    });
   });
 
   test('should close modal with close button', async ({ page }) => {
