@@ -61,7 +61,7 @@ test.describe('Modal Interactions', () => {
       localStorage.setItem(
         'tunet_pages_config',
         JSON.stringify({
-          header: [],
+          header: ['person.alex'],
           pages: ['home'],
           home: ['light.bedroom', 'light.kitchen', 'calendar_card_e2e'],
         })
@@ -96,6 +96,72 @@ test.describe('Modal Interactions', () => {
     // Modal shell is the required assertion for opening system settings.
     await expect(modal).toBeVisible();
   });
+
+  for (const theme of ['light', 'dark']) {
+    test(`opens the person map without an API key in ${theme} mode`, async ({ page }, testInfo) => {
+      await page.setViewportSize(
+        theme === 'light' ? { width: 390, height: 844 } : { width: 1440, height: 900 }
+      );
+      const errors = [];
+      const cartoRequests = [];
+      const tileRequests = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      page.on('request', (request) => {
+        if (new URL(request.url()).hostname.endsWith('.cartocdn.com')) {
+          cartoRequests.push(request.url());
+        }
+      });
+      await page.route('https://tile.openstreetmap.org/**', (route) => {
+        tileRequests.push(route.request().url());
+        return route.fulfill({
+          contentType: 'image/svg+xml',
+          body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e4edd9"/><path d="M0 80H256M100 0V256" stroke="#fff" stroke-width="12"/><text x="120" y="120" font-size="14">Test map</text></svg>',
+        });
+      });
+      await page.evaluate((selectedTheme) => {
+        localStorage.setItem('tunet_theme', selectedTheme);
+      }, theme);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page).toHaveTitle('HOME');
+      const person = page.getByRole('button', { name: /Alex/ });
+      await expect(person).toBeVisible();
+      expect(tileRequests).toEqual([]);
+
+      for (const opening of ['first', 'repeat']) {
+        await person.click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog.getByRole('heading', { name: 'Alex' })).toBeVisible();
+        const map = dialog.locator('.person-map');
+        await expect(map).toHaveAttribute('data-map-theme', theme);
+        await expect(map.locator('.leaflet-tile-loaded').first()).toBeVisible();
+        await expect(map.locator('.custom-person-marker')).toBeVisible();
+        await expect(map.getByRole('link', { name: 'OpenStreetMap' })).toBeVisible();
+        await expect(map.getByRole('link', { name: 'OpenStreetMap' })).toHaveAttribute(
+          'href',
+          'https://www.openstreetmap.org/copyright'
+        );
+        const tileFilter = await map
+          .locator('.leaflet-tile-pane')
+          .evaluate((node) => getComputedStyle(node).filter);
+        expect(tileFilter === 'none').toBe(theme === 'light');
+        await expect(map.locator('.leaflet-marker-pane')).toHaveCSS('filter', 'none');
+        if (opening === 'first') {
+          await page.screenshot({ path: testInfo.outputPath(`person-map-${theme}.png`) });
+        }
+        await page.keyboard.press('Escape');
+        await expect(dialog).toHaveCount(0);
+      }
+      expect(tileRequests.length).toBeGreaterThan(0);
+      expect(
+        tileRequests.every((url) =>
+          /^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/.test(url)
+        )
+      ).toBe(true);
+      expect(cartoRequests).toEqual([]);
+      expect(errors).toEqual([]);
+      await expect(page.locator('vite-error-overlay')).toHaveCount(0);
+    });
+  }
 
   for (const viewport of [
     { width: 1440, height: 900 },
