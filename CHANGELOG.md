@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.25.1] — 2026-11-01
+
+### Fixed
+
+- Person maps use OpenStreetMap tiles without an API key, removing the CARTO watermark while keeping light and dark map views (#280).
+
 ## [1.25.0] — 2026-10-25
 
 ### Added

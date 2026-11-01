@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.25.1
+
+### Fixed
+
+- Person maps use OpenStreetMap tiles without an API key, removing the CARTO watermark while keeping light and dark map views (#280).
+
 ## 1.25.0
 
 ### Added

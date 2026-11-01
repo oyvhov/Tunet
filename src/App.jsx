@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { TRANSLATIONS, DEFAULT_LANGUAGE, normalizeLanguage } from './i18n';
+import { en } from './i18n';
+import { useTranslationTable } from './hooks/useTranslationTable';
 import { LayoutGrid } from './icons';
 
 import { DashboardLayout } from './layouts';
@@ -133,7 +134,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   } = usePages();
 
   const { entities, entitiesLoaded, connected, conn, activeUrl, authRef } = useHomeAssistant();
-  const translations = useMemo(() => TRANSLATIONS, []);
+  const translations = useTranslationTable(language);
   const appFontFamilyMap = useMemo(
     () => ({
       sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
@@ -149,12 +150,11 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
   const resolvedAppFontFamily = appFontFamilyMap[appFont] || appFontFamilyMap.sans;
   const t = useCallback(
     (key) => {
-      const selectedLanguage = normalizeLanguage(language);
-      const value = translations[selectedLanguage]?.[key] ?? translations[DEFAULT_LANGUAGE]?.[key];
+      const value = translations[key] ?? en[key];
       if (value !== undefined) return value;
       return key;
     },
-    [language, translations]
+    [translations]
   );
 
   useEffect(() => {
