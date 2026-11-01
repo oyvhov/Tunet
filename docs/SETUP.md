@@ -130,7 +130,7 @@ Where data lives:
 | Variable                         | Default                 | Description                                                                             |
 | -------------------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
 | `PORT`                           | `3002`                  | Backend server port                                                                     |
-| `DATA_DIR`                       | `/app/data`             | SQLite database directory                                                               |
+| `DATA_DIR`                       | `/app/data`             | SQLite database directory (the Home Assistant add-on uses its persistent `/data`)       |
 | `NODE_ENV`                       | `production`            | Environment mode                                                                        |
 | `VITE_PORT`                      | `5173`                  | Vite dev server port (dev only)                                                         |
 | `VITE_PROXY_TARGET`              | `http://localhost:3002` | API proxy target (dev)                                                                  |
