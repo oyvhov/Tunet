@@ -20,7 +20,10 @@ describe('settingsApi OAuth refresh retry', () => {
     vi.clearAllMocks();
     getStoredAuthMethodMock.mockReturnValue('oauth');
     getValidatedHeadersAsyncMock
-      .mockResolvedValueOnce({ 'x-ha-url': 'https://ha.example', Authorization: 'Bearer old-token' })
+      .mockResolvedValueOnce({
+        'x-ha-url': 'https://ha.example',
+        Authorization: 'Bearer old-token',
+      })
       .mockResolvedValueOnce({
         'x-ha-url': 'https://ha.example',
         Authorization: 'Bearer refreshed-token',
@@ -110,5 +113,47 @@ describe('settingsApi OAuth refresh retry', () => {
     expect(getValidatedHeadersAsyncMock).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(notifyUnauthorizedMock).not.toHaveBeenCalled();
+  });
+});
+describe('settingsApi ingress session rejection', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    getStoredAuthMethodMock.mockReturnValue('token');
+    getValidatedHeadersAsyncMock.mockResolvedValue({
+      'x-ha-url': 'https://ha.example',
+      Authorization: 'Bearer stored-token',
+    });
+  });
+
+  it('keeps the stored token when the Supervisor rejects a stale ingress session', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      headers: { get: (name) => (name === 'content-type' ? 'text/plain; charset=utf-8' : null) },
+      json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+    });
+    const { fetchCurrentSettings } = await import('../services/settingsApi');
+
+    await expect(fetchCurrentSettings('user-1', 'device-1')).rejects.toMatchObject({
+      status: 401,
+      body: { error: 'INGRESS_SESSION_INVALID' },
+    });
+    expect(notifyUnauthorizedMock).not.toHaveBeenCalled();
+  });
+
+  it('still clears credentials when the Tunet backend rejects the token', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      headers: { get: (name) => (name === 'content-type' ? 'application/json' : null) },
+      json: vi.fn().mockResolvedValue({ error: 'Invalid Home Assistant token' }),
+    });
+    const { fetchCurrentSettings } = await import('../services/settingsApi');
+
+    await expect(fetchCurrentSettings('user-1', 'device-1')).rejects.toThrow(
+      'Invalid Home Assistant token'
+    );
+    expect(notifyUnauthorizedMock).toHaveBeenCalledWith('Invalid Home Assistant token');
   });
 });
