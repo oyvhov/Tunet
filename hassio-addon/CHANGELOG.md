@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.25.2
 
 ### Before updating from 1.25.1 or earlier
 
