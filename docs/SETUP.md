@@ -125,10 +125,12 @@ Where data lives:
 - HA credentials: `ha_url`, `ha_token`, and the OAuth session cache are stored in browser storage for reconnect and same-browser tab reuse.
 - Profiles: server-side SQLite (`server/db.js`, default `data/` dir).
 
-The Home Assistant add-on stores its database in the persistent `/data` folder.
-Before the first update that uses this location, load and export any saved dashboards
-you want to keep via System → Profiles → Export to file. The old container-local
-database is not migrated; import the exported dashboards after updating.
+The Home Assistant add-on now stores its database in the persistent `/data` folder.
+Users upgrading from **1.25.1 or earlier must turn off automatic updates until they
+have exported the profiles they want to keep**. A normal Home Assistant backup does
+not include the old, incorrectly stored database. The active dashboard remains in the
+same browser if its site data is retained, but saved profiles and server history are
+not automatically migrated. See the [browser-only upgrade steps](../hassio-addon/README.md#before-the-first-storage-update).
 
 ## Environment Variables
 

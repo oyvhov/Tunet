@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Before updating from 1.25.1 or earlier
+
+Turn off automatic updates for Tunet until you have saved any profiles you want to keep.
+Before updating, export your current dashboard, then load and export each saved profile
+under **System → Profiles → Export to file**. Repeat for each Home Assistant user with
+saved profiles. After updating, import each file and save it as a profile again.
+
+The old add-on database is lost when Home Assistant replaces the container. A normal
+Home Assistant backup does not include this incorrectly stored database. Dashboard
+exports preserve individual layouts, not the complete settings history. Load and export
+any historical layout you want to keep before updating too. Your active dashboard stays
+in the same browser as long as its site data is retained.
+
+### Fixed
+
+- Profiles and settings now use persistent add-on storage, so later updates preserve them (#267).
+- An expired Ingress session no longer clears the Home Assistant token (#268).
+- The Ingress panel can reuse the surrounding Home Assistant login (#269).
+
 ## 1.25.1
 
 ### Fixed
