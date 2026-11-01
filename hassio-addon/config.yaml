@@ -1,6 +1,6 @@
 name: 'Tunet'
 description: 'A modern, responsive dashboard for Home Assistant'
-version: '1.25.1'
+version: '1.25.2'
 # Keep this boundary for the first release using persistent database storage.
 breaking_versions:
   - '1.25.2'

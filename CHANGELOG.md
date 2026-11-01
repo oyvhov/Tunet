@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.25.2] — 2026-11-01
+
+### Before updating the Home Assistant add-on
+
+**Upgrading from 1.25.1 or earlier? Turn off automatic updates until you have exported
+the profiles you want to keep.** Export your current dashboard first, then load and
+export each saved profile under **System → Profiles → Export to file**. After updating,
+import each file and save it as a profile again. Repeat for each Home Assistant user.
+
+The old container-local database is not migrated or included in a normal Home Assistant
+backup. Exports preserve individual layouts, not complete settings history. Your active
+dashboard remains in the same browser if its site data is retained. See the
+[upgrade steps](https://github.com/oyvhov/Tunet/blob/v1.25.2/hassio-addon/README.md#before-the-first-storage-update).
+
+### Fixed
+
+- Profiles and settings now use persistent add-on storage, so later updates preserve them (#267).
+- An expired Ingress session no longer clears the Home Assistant token (#268).
+- The Ingress panel can reuse the surrounding Home Assistant login (#269).
+
 ## [1.25.1] — 2026-11-01
 
 ### Fixed
