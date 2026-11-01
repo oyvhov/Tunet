@@ -125,12 +125,17 @@ Where data lives:
 - HA credentials: `ha_url`, `ha_token`, and the OAuth session cache are stored in browser storage for reconnect and same-browser tab reuse.
 - Profiles: server-side SQLite (`server/db.js`, default `data/` dir).
 
+The Home Assistant add-on stores its database in the persistent `/data` folder.
+Before the first update that uses this location, load and export any saved dashboards
+you want to keep via System → Profiles → Export to file. The old container-local
+database is not migrated; import the exported dashboards after updating.
+
 ## Environment Variables
 
 | Variable                         | Default                 | Description                                                                             |
 | -------------------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
 | `PORT`                           | `3002`                  | Backend server port                                                                     |
-| `DATA_DIR`                       | `/app/data`             | SQLite database directory                                                               |
+| `DATA_DIR`                       | `/app/data`             | SQLite database directory (the Home Assistant add-on uses its persistent `/data`)       |
 | `NODE_ENV`                       | `production`            | Environment mode                                                                        |
 | `VITE_PORT`                      | `5173`                  | Vite dev server port (dev only)                                                         |
 | `VITE_PROXY_TARGET`              | `http://localhost:3002` | API proxy target (dev)                                                                  |
