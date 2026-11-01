@@ -107,7 +107,9 @@ test.describe('Modal Interactions', () => {
       const tileRequests = [];
       page.on('pageerror', (error) => errors.push(error.message));
       page.on('request', (request) => {
-        if (request.url().includes('cartocdn.com')) cartoRequests.push(request.url());
+        if (new URL(request.url()).hostname.endsWith('.cartocdn.com')) {
+          cartoRequests.push(request.url());
+        }
       });
       await page.route('https://tile.openstreetmap.org/**', (route) => {
         tileRequests.push(route.request().url());
