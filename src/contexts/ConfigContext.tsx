@@ -9,6 +9,7 @@ import type {
   ConfigProviderProps,
   HomeAssistantConfig,
 } from '../types/dashboard';
+import { hasParentHaSession } from '../services/haParentSession';
 
 type GradientPreset = { label: string; from: string; to: string };
 
@@ -243,6 +244,7 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
           token: savedToken,
           authMethod: 'token',
           isIngress: true,
+          haSession: hasParentHaSession(),
         };
       }
 

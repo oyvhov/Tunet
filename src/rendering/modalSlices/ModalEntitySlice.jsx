@@ -507,7 +507,9 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 conn={conn}
                 haUrl={activeUrl}
                 haToken={
-                  config.authMethod === 'oauth' ? authRef?.current?.accessToken || '' : config.token
+                  config.authMethod === 'oauth' || !config.token
+                    ? authRef?.current?.accessToken || ''
+                    : config.token
                 }
                 callService={callService}
                 t={t}

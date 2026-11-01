@@ -7,6 +7,11 @@ import {
   markOAuthRejected,
   saveTokens,
 } from './oauthStorage';
+import {
+  getCachedParentHaAccessToken,
+  getParentHaAccessToken,
+  hasParentHaSession,
+} from './haParentSession';
 
 export const HOME_ASSISTANT_API_UNAUTHORIZED_EVENT = 'tunet:api-auth-unauthorized';
 const OAUTH_PROACTIVE_REFRESH_MS = 45 * 60 * 1000;
@@ -219,10 +224,13 @@ export async function refreshOAuthAccessToken(): Promise<string> {
 
 const getStoredUrl = () => {
   try {
-    return globalThis.localStorage?.getItem('ha_url') || '';
+    const stored = globalThis.localStorage?.getItem('ha_url') || '';
+    if (stored) return stored;
   } catch {
-    return '';
+    // fall through to the Ingress origin
   }
+  // Inside an Ingress panel, Home Assistant is the page's own origin.
+  return hasParentHaSession() ? globalThis.window?.location?.origin || '' : '';
 };
 
 const getStoredFallbackUrl = () => {
@@ -237,7 +245,9 @@ export function getHomeAssistantRequestHeaders(): HomeAssistantRequestHeaders {
   const headers: HomeAssistantRequestHeaders = {};
   const haUrl = getStoredUrl();
   const fallbackUrl = getStoredFallbackUrl();
-  const accessToken = isOAuthAuthMethod() ? getCurrentOAuthAccessToken() : getStoredToken();
+  const accessToken = isOAuthAuthMethod()
+    ? getCurrentOAuthAccessToken()
+    : getStoredToken() || getCachedParentHaAccessToken();
 
   if (haUrl) {
     headers['x-ha-url'] = haUrl;
@@ -261,6 +271,7 @@ export async function getHomeAssistantRequestHeadersAsync({
   const haUrl = getStoredUrl();
   const fallbackUrl = getStoredFallbackUrl();
   let accessToken = isOAuthAuthMethod() ? getCurrentOAuthAccessToken() : getStoredToken();
+  if (!accessToken && !isOAuthAuthMethod()) accessToken = await getParentHaAccessToken();
 
   if ((forceRefreshOAuth || shouldProactivelyRefreshOAuth()) && isOAuthAuthMethod()) {
     try {

@@ -55,13 +55,21 @@ export function useConnectionSetup({
     // A rejected OAuth session is handled by the expired-login banner.
     if (config.authMethod === 'oauth' && isOAuthRejected()) return;
 
-    const hasAuth = config.token || (config.authMethod === 'oauth' && hasOAuthTokens());
+    const hasAuth =
+      config.token || config.haSession || (config.authMethod === 'oauth' && hasOAuthTokens());
     if (!hasAuth && !showOnboarding && !showConfigModal) {
       setShowOnboarding(true);
       setOnboardingStep(0);
       setConfigTab('connection');
     }
-  }, [config.token, config.authMethod, showOnboarding, showConfigModal, setShowOnboarding]);
+  }, [
+    config.token,
+    config.haSession,
+    config.authMethod,
+    showOnboarding,
+    showConfigModal,
+    setShowOnboarding,
+  ]);
 
   // ── Connection test (long-lived token) ─────────────────────────────────
   const testConnection = async () => {
