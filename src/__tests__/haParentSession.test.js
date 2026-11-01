@@ -80,6 +80,36 @@ describe('Home Assistant parent session', () => {
     });
   });
 
+  it('stops returning cached credentials when the parent session disappears', async () => {
+    setParent({ hassConnection: Promise.resolve({ auth: makeAuth() }) });
+    const session = await import('../services/haParentSession');
+    await expect(session.getParentHaAccessToken()).resolves.toBe('session-token');
+    setParent(window);
+    expect(session.getCachedParentHaAccessToken()).toBe('');
+    await expect(session.getParentHaAuth()).resolves.toBeNull();
+  });
+
+  it('clears cached credentials when the parent connection rejects', async () => {
+    setParent({ hassConnection: Promise.resolve({ auth: makeAuth() }) });
+    const session = await import('../services/haParentSession');
+    await session.getParentHaAuth();
+    setParent({ hassConnection: Promise.reject(new Error('Signed out')) });
+    await expect(session.getParentHaAuth()).resolves.toBeNull();
+    expect(session.getCachedParentHaAccessToken()).toBe('');
+  });
+
+  it('does not reuse an expired token if refreshing fails', async () => {
+    const auth = makeAuth();
+    setParent({ hassConnection: Promise.resolve({ auth }) });
+    const session = await import('../services/haParentSession');
+    await session.getParentHaAuth();
+    auth.expired = true;
+    auth.refreshAccessToken.mockRejectedValue(new Error('Signed out'));
+    expect(session.getCachedParentHaAccessToken()).toBe('');
+    await expect(session.getParentHaAccessToken()).resolves.toBe('');
+    expect(session.getCachedParentHaAccessToken()).toBe('');
+  });
+
   it('keeps preferring a stored long-lived token', async () => {
     setParent({ hassConnection: Promise.resolve({ auth: makeAuth() }) });
     localStorage.setItem('ha_auth_method', 'token');

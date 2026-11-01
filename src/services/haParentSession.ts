@@ -31,12 +31,16 @@ export const hasParentHaSession = (): boolean => getParentHassConnection() !== n
 /** The Home Assistant frontend's auth object, which refreshes its own access token. */
 export async function getParentHaAuth(): Promise<Auth | null> {
   const parentConnection = getParentHassConnection();
-  if (!parentConnection) return null;
+  if (!parentConnection) {
+    cachedAuth = null;
+    return null;
+  }
   try {
     const { auth } = await parentConnection;
     cachedAuth = auth || null;
     return cachedAuth;
   } catch {
+    cachedAuth = null;
     return null;
   }
 }
@@ -49,6 +53,7 @@ export async function getParentHaAccessToken(): Promise<string> {
     try {
       await auth.refreshAccessToken();
     } catch {
+      cachedAuth = null;
       return '';
     }
   }
@@ -56,4 +61,5 @@ export async function getParentHaAccessToken(): Promise<string> {
 }
 
 /** The last known parent access token, for synchronous callers. */
-export const getCachedParentHaAccessToken = (): string => cachedAuth?.accessToken || '';
+export const getCachedParentHaAccessToken = (): string =>
+  hasParentHaSession() && cachedAuth && !cachedAuth.expired ? cachedAuth.accessToken || '' : '';
