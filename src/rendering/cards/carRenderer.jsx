@@ -8,9 +8,7 @@ export function renderCarCard(cardId, dragProps, getControls, cardStyle, setting
     customNames,
     customIcons,
     getS,
-    getA,
     getEntityImageUrl,
-    callService,
     setActiveCarModal,
     isMobile,
     t,
@@ -29,9 +27,7 @@ export function renderCarCard(cardId, dragProps, getControls, cardStyle, setting
       customNames={customNames}
       customIcons={customIcons}
       getS={getS}
-      getA={getA}
       getEntityImageUrl={getEntityImageUrl}
-      callService={callService}
       onOpen={() => {
         if (!editMode) setActiveCarModal(cardId);
       }}
