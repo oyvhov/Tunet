@@ -308,6 +308,11 @@ export const test = baseTest.extend({
                     type: 'event',
                     event: {
                       a: {
+                        'person.alex': entityUpdate('home', {
+                          friendly_name: 'Alex',
+                          latitude: 59.91,
+                          longitude: 10.75,
+                        }),
                         'light.bedroom': entityUpdate('on', {
                           friendly_name: 'Bedroom Light',
                           brightness: 200,
