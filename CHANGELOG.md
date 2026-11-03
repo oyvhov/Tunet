@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.25.3] — 2026-11-03
+
+### Fixed
+
+- A browser that already had the dashboard open no longer keeps showing the previous version after an upgrade. The cached fallback page is now replaced on every release instead of staying until the site data is cleared (#286).
+
 ## [1.25.2] — 2026-11-01
 
 ### Before updating the Home Assistant add-on
