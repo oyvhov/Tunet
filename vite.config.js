@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync, writeFileSync } from 'fs';
+import { join, resolve } from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
@@ -9,12 +10,16 @@ const analyze = process.env.ANALYZE === 'true';
 // The service worker lives in public/ and is copied verbatim, so its cache names
 // cannot use the __APP_VERSION__ define. Rewrite the placeholder after the bundle
 // is written; a stale shell cache is what makes an upgraded app serve the old HTML.
-function versionServiceWorker() {
+export function versionServiceWorker(version = pkg.version) {
+  let outDir;
   return {
     name: 'version-service-worker',
     apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
     closeBundle() {
-      const swPath = new URL('./dist/sw.js', import.meta.url);
+      const swPath = join(outDir, 'sw.js');
       let source;
       try {
         source = readFileSync(swPath, 'utf-8');
@@ -22,9 +27,9 @@ function versionServiceWorker() {
         return;
       }
       if (!source.includes('__APP_VERSION__')) {
-        throw new Error('dist/sw.js has no __APP_VERSION__ placeholder to version the shell cache');
+        throw new Error(`${swPath} has no __APP_VERSION__ placeholder to version the shell cache`);
       }
-      writeFileSync(swPath, source.replaceAll('__APP_VERSION__', pkg.version));
+      writeFileSync(swPath, source.replaceAll('__APP_VERSION__', version));
     },
   };
 }
