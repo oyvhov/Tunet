@@ -220,6 +220,16 @@ describe('CameraFeed', () => {
     expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
     fireEvent.error(screen.getByRole('img'));
     expect(screen.getByText('Camera stream unavailable')).toBeInTheDocument();
+    rerender(<CameraFeed {...props} refreshKey={3} />);
+    await waitFor(() =>
+      expect(screen.getByRole('img')).toHaveAttribute(
+        'src',
+        '/api/camera_proxy/camera.front?_ts=3&authSig=signed'
+      )
+    );
+    fireEvent.load(screen.getByRole('img'));
+    expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
+    fireEvent.error(screen.getByRole('img'));
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     fireEvent.load(await screen.findByRole('img'));
     expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();

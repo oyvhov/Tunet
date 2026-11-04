@@ -146,6 +146,18 @@ for (const viewport of [
         await live.locator('img').evaluate((node, original) => node === original, liveImage)
       ).toBe(true);
       expect(snapshots.length).toBeGreaterThan(1);
+      await snapshot.locator('img').dispatchEvent('error');
+      await expect(snapshot.locator('[data-camera-source="unavailable"]')).toBeVisible();
+      await page.evaluate(() =>
+        window.__pushCameraClimateUpdate('binary_sensor.garden_motion', { s: 'off' })
+      );
+      await expect(live.getByText('Motion', { exact: true })).toHaveCount(0);
+      await page.evaluate(() =>
+        window.__pushCameraClimateUpdate('binary_sensor.garden_motion', { s: 'on' })
+      );
+      await expect(snapshot.locator('img')).toBeVisible();
+      await expect(snapshot.locator('.animate-spin')).toHaveCount(0);
+      await expect(live.locator('.animate-spin')).toHaveCount(0);
       await page.screenshot({
         path: join(tmpdir(), `tunet-289-290-${testInfo.project.name}-${viewport.width}.png`),
         fullPage: true,

@@ -547,17 +547,24 @@ const CameraFeed = memo(
       Promise.all([capabilitiesPromise, signedSnapshotPromise]).then(
         ([frontendStreamTypes, snapshotUrl]) => {
           if (cancelled) return;
+          const sources = getCameraSourcePlan({
+            engine,
+            frontendStreamTypes,
+            customPlayerUrl,
+            hasConnection: Boolean(canCallWs),
+            hasAccessToken: Boolean(accessToken),
+          });
           setFeedConfig({
             preparing: false,
             snapshotUrl,
-            sources: getCameraSourcePlan({
-              engine,
-              frontendStreamTypes,
-              customPlayerUrl,
-              hasConnection: Boolean(canCallWs),
-              hasAccessToken: Boolean(accessToken),
-            }),
+            sources,
           });
+          const nextPlanKey = JSON.stringify([entityId, engine, customPlayerUrl, sources]);
+          setSelection((current) =>
+            current.planKey === nextPlanKey && current.index >= sources.length
+              ? { planKey: nextPlanKey, index: 0 }
+              : current
+          );
         }
       );
 
