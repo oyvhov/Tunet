@@ -13,6 +13,7 @@ import {
 import M3Slider from '../components/ui/M3Slider';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { getClimateStatus } from '../utils/climateStatus';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
   formatKindValueForDisplay,
@@ -38,9 +39,7 @@ export default function GenericClimateModal({
 
   if (!entityId || !entity) return null;
 
-  const hvacAction = entity.attributes?.hvac_action || 'idle';
-  const isCooling = hvacAction === 'cooling';
-  const isHeating = hvacAction === 'heating';
+  const { isCooling, isHeating, translationKey } = getClimateStatus(entity);
   const clTheme = isCooling ? 'blue' : isHeating ? 'orange' : 'gray';
   const currentTemp = entity.attributes?.current_temperature;
   const targetTemp = entity.attributes?.temperature;
@@ -154,7 +153,7 @@ export default function GenericClimateModal({
                 }}
               >
                 <p className="text-[10px] font-bold tracking-widest uppercase italic">
-                  {t('climate.action.' + hvacAction)}
+                  {t(translationKey)}
                 </p>
               </div>
             </div>

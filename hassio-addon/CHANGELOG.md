@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.25.4
+
+### Fixed
+
+- Climate cards and controls show the selected mode when an integration does not report its current action, instead of incorrectly showing Idle (#289).
+- Camera feeds keep their loaded state and working fallback during background refreshes. Snapshot refresh parameters are now included before Home Assistant signs the URL, preventing authentication failures (#290).
+
 ## 1.25.3
 
 ### Fixed

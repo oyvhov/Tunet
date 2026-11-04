@@ -109,13 +109,132 @@ describe('camera stream source selection', () => {
       )
     ).toBe('https://go2rtc.local/stream.html?src=front&background=false');
     expect(getGo2rtcModeFromUrl('https://go2rtc.local/stream.html?src=front&mode=MSE')).toBe('mse');
-    expect(getGo2rtcModeFromUrl('https://go2rtc.local/stream.html?src=front&mode=%')).toBe(
-      'auto'
-    );
+    expect(getGo2rtcModeFromUrl('https://go2rtc.local/stream.html?src=front&mode=%')).toBe('auto');
   });
 });
 
 describe('CameraFeed', () => {
+  it('keeps a playing MJPEG feed ready when configuration is refreshed', async () => {
+    const sendMessagePromise = vi.fn(async ({ type, path }) =>
+      type === 'auth/sign_path' ? { path: `${path}&authSig=signed` } : { frontend_stream_types: [] }
+    );
+    const props = {
+      entityId: 'camera.front',
+      entity: { state: 'idle', attributes: { access_token: 'camera-token' } },
+      conn: { sendMessagePromise },
+      getEntityImageUrl: (url) => url,
+      alt: 'Front camera',
+    };
+    const { rerender } = render(<CameraFeed {...props} refreshKey={1} />);
+    const image = await screen.findByRole('img', { name: 'Front camera' });
+    fireEvent.load(image);
+    expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
+
+    rerender(
+      <CameraFeed
+        {...props}
+        conn={{ sendMessagePromise }}
+        getEntityImageUrl={(url) => url}
+        refreshKey={2}
+      />
+    );
+    await waitFor(() => expect(sendMessagePromise).toHaveBeenCalledTimes(4));
+    expect(screen.getByRole('img', { name: 'Front camera' })).toBe(image);
+    expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
+
+    rerender(
+      <CameraFeed
+        {...props}
+        entity={{ ...props.entity, attributes: { access_token: 'new-token' } }}
+      />
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('img')).toHaveAttribute('src', expect.stringContaining('new-token'))
+    );
+    expect(screen.getByText('Loading camera')).toBeInTheDocument();
+    fireEvent.load(screen.getByRole('img'));
+    expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
+  });
+
+  it('keeps the working fallback when only the snapshot refreshes', async () => {
+    const sendMessagePromise = vi.fn(async ({ type, path }) => {
+      if (type === 'camera/capabilities') return { frontend_stream_types: ['hls'] };
+      if (type === 'camera/stream') return { url: '/stream.m3u8' };
+      return { path: `${path}&authSig=signed` };
+    });
+    const props = {
+      entityId: 'camera.front',
+      entity: { state: 'idle', attributes: { access_token: 'camera-token' } },
+      conn: { sendMessagePromise },
+      getEntityImageUrl: (url) => url,
+      alt: 'Front camera',
+    };
+    const { rerender } = render(<CameraFeed {...props} refreshKey={1} />);
+    await waitFor(() =>
+      expect(screen.getByTestId('camera-feed')).toHaveAttribute('data-camera-source', 'mjpeg')
+    );
+    const image = screen.getByRole('img');
+    fireEvent.load(image);
+    rerender(<CameraFeed {...props} refreshKey={2} />);
+    await waitFor(() =>
+      expect(sendMessagePromise).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/api/camera_proxy/camera.front?_ts=2' })
+      )
+    );
+    expect(screen.getByRole('img')).toBe(image);
+    expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
+    expect(
+      sendMessagePromise.mock.calls.filter(([message]) => message.type === 'camera/stream')
+    ).toHaveLength(1);
+  });
+
+  it('signs the complete snapshot query and displays the signed URL unchanged on refresh', async () => {
+    const sendMessagePromise = vi.fn(async ({ type, path }) =>
+      type === 'auth/sign_path' ? { path: `${path}&authSig=signed` } : { frontend_stream_types: [] }
+    );
+    const props = {
+      entityId: 'camera.front',
+      entity: { state: 'idle', attributes: {} },
+      conn: { sendMessagePromise },
+      getEntityImageUrl: (url) => url,
+      settings: { cameraStreamEngine: 'snapshot' },
+      alt: 'Front camera',
+    };
+    const { rerender } = render(<CameraFeed {...props} refreshKey={1} />);
+    await waitFor(() =>
+      expect(screen.getByRole('img')).toHaveAttribute(
+        'src',
+        '/api/camera_proxy/camera.front?_ts=1&authSig=signed'
+      )
+    );
+    fireEvent.load(screen.getByRole('img'));
+    rerender(<CameraFeed {...props} refreshKey={2} />);
+    await waitFor(() =>
+      expect(screen.getByRole('img')).toHaveAttribute(
+        'src',
+        '/api/camera_proxy/camera.front?_ts=2&authSig=signed'
+      )
+    );
+    expect(screen.getByText('Loading camera')).toBeInTheDocument();
+    fireEvent.load(screen.getByRole('img'));
+    expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.getByText('Camera stream unavailable')).toBeInTheDocument();
+    rerender(<CameraFeed {...props} refreshKey={3} />);
+    await waitFor(() =>
+      expect(screen.getByRole('img')).toHaveAttribute(
+        'src',
+        '/api/camera_proxy/camera.front?_ts=3&authSig=signed'
+      )
+    );
+    fireEvent.load(screen.getByRole('img'));
+    expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
+    fireEvent.error(screen.getByRole('img'));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    fireEvent.load(await screen.findByRole('img'));
+    expect(screen.queryByText('Loading camera')).not.toBeInTheDocument();
+  });
+
   it('keeps a saved MSE player active and applies an explicit mode selection', async () => {
     const sendMessagePromise = vi.fn(async (message) => {
       if (message.type === 'camera/capabilities') {
@@ -256,7 +375,7 @@ describe('CameraFeed', () => {
     const snapshot = screen.getByRole('img', { name: 'Front camera' });
     expect(snapshot).toHaveAttribute(
       'src',
-      'http://ha.local/api/camera_proxy/camera.front?authSig=signed&_ts=123'
+      'http://ha.local/api/camera_proxy/camera.front?authSig=signed'
     );
     fireEvent.load(snapshot);
 
