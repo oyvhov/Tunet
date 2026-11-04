@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.25.4] — 2026-11-04
+
+### Fixed
+
+- Climate cards and controls show the selected mode when an integration does not report its current action, instead of incorrectly showing Idle (#289).
+- Camera feeds keep their loaded state and working fallback during background refreshes. Snapshot refresh parameters are now included before Home Assistant signs the URL, preventing authentication failures (#290).
+
 ## [1.25.3] — 2026-11-03
 
 ### Fixed
