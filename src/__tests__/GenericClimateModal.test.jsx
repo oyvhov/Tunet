@@ -54,6 +54,29 @@ const renderModal = (props = {}) => {
 };
 
 describe('GenericClimateModal mode shortcuts', () => {
+  it.each([
+    ['heat', 'heat', 'rgb(251, 146, 60)'],
+    ['cool', 'cool', 'rgb(59, 130, 246)'],
+    ['dry', 'dry', 'var(--text-secondary)'],
+    ['fan_only', 'fanOnly', 'var(--text-secondary)'],
+    ['auto', 'auto', 'var(--text-secondary)'],
+    ['heat_cool', 'heatCool', 'var(--text-secondary)'],
+  ])('shows the %s mode when no action is reported', (mode, label, color) => {
+    renderModal({ entity: { ...entity, state: mode } });
+    const badge = screen.getByText(`climate.hvac.${label}`);
+    expect(badge.parentElement.style.color).toBe(color);
+    expect(screen.queryByText('climate.action.idle')).not.toBeInTheDocument();
+  });
+
+  it('shows Idle only when reported by the integration', () => {
+    renderModal({
+      entity: { ...entity, attributes: { ...entity.attributes, hvac_action: 'idle' } },
+    });
+    expect(screen.getByText('climate.action.idle').parentElement.style.color).toBe(
+      'var(--text-secondary)'
+    );
+  });
+
   it('shows Off and Heat by default and sends the selected HVAC mode', () => {
     const callService = renderModal();
 

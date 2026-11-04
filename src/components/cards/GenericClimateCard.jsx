@@ -4,16 +4,7 @@ import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import { formatKindValueForDisplay, getEffectiveUnitMode } from '../../utils';
 import { usePowerToggle } from '../../hooks/usePowerToggle';
 import { resolveSensorCardActionCall } from '../../utils/sensorCardConfig';
-
-const isCoolingState = (entity) => {
-  const action = entity?.attributes?.hvac_action;
-  return action === 'cooling';
-};
-
-const isHeatingState = (entity) => {
-  const action = entity?.attributes?.hvac_action;
-  return action === 'heating';
-};
+import { getClimateStatus } from '../../utils/climateStatus';
 
 const normalizeFanModeToken = (value) => {
   if (typeof value !== 'string') return '';
@@ -116,10 +107,8 @@ const GenericClimateCard = memo(
     const Icon = climateIconName ? getIconComponent(climateIconName) : null;
 
     const translate = t || ((key) => key);
-    const isCooling = isCoolingState(entity);
-    const isHeating = isHeatingState(entity);
+    const { isCooling, isHeating, translationKey } = getClimateStatus(entity);
     const clTheme = isOn ? (isCooling ? 'blue' : isHeating ? 'orange' : 'gray') : 'gray';
-    const hvacAction = isOn ? entity.attributes?.hvac_action || 'idle' : 'off';
     const DisplayIcon = Icon || AirVent;
 
     const themeClasses = {
@@ -285,7 +274,7 @@ const GenericClimateCard = memo(
             <span
               className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
             >
-              {translate('climate.action.' + hvacAction)}
+              {translate(translationKey)}
             </span>
           </div>
         </div>

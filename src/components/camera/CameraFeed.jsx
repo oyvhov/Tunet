@@ -519,8 +519,8 @@ const CameraFeed = memo(
       sources: [],
       snapshotUrl: legacySnapshotUrl,
     });
-    const [sourceIndex, setSourceIndex] = useState(0);
-    const [ready, setReady] = useState(false);
+    const [selection, setSelection] = useState({ planKey: '', index: 0 });
+    const [readySource, setReadySource] = useState(null);
 
     useEffect(() => {
       let cancelled = false;
@@ -536,12 +536,10 @@ const CameraFeed = memo(
         ? conn
             .sendMessagePromise({
               type: 'auth/sign_path',
-              path: `/api/camera_proxy/${entityId}`,
+              path: appendCameraCacheBust(`/api/camera_proxy/${entityId}`, refreshKey),
             })
             .then((response) =>
-              response?.path
-                ? getEntityImageUrl(appendCameraCacheBust(response.path, refreshKey))
-                : legacySnapshotUrl
+              response?.path ? getEntityImageUrl(response.path) : legacySnapshotUrl
             )
             .catch(() => legacySnapshotUrl)
         : Promise.resolve(legacySnapshotUrl);
@@ -560,8 +558,6 @@ const CameraFeed = memo(
               hasAccessToken: Boolean(accessToken),
             }),
           });
-          setSourceIndex(0);
-          setReady(false);
         }
       );
 
@@ -579,23 +575,54 @@ const CameraFeed = memo(
       refreshKey,
     ]);
 
+    const planKey = JSON.stringify([entityId, engine, customPlayerUrl, feedConfig.sources]);
+    const sourceIndex = selection.planKey === planKey ? selection.index : 0;
     const currentSource = feedConfig.sources[sourceIndex];
+    const sourceUrl =
+      currentSource === 'custom'
+        ? customPlayerUrl
+        : currentSource === 'mjpeg'
+          ? mjpegUrl
+          : currentSource === 'snapshot'
+            ? feedConfig.snapshotUrl
+            : entityId;
+    const sourceConnection = ['webrtc', 'hls'].includes(currentSource) ? conn : null;
+    const sourceKey = JSON.stringify([currentSource, sourceUrl, sourceConnection ? planKey : null]);
+    const sourceResolver = currentSource === 'hls' ? resolveUrl : null;
+    const sourceMuted = currentSource === 'webrtc' ? muted : null;
+    const ready =
+      readySource?.key === sourceKey &&
+      readySource?.connection === sourceConnection &&
+      readySource?.resolver === sourceResolver &&
+      readySource?.muted === sourceMuted;
     const showLoading = feedConfig.preparing || (currentSource && !ready);
 
     useEffect(() => {
       onSourceChange?.(currentSource || (feedConfig.preparing ? 'loading' : 'unavailable'));
     }, [currentSource, feedConfig.preparing, onSourceChange]);
 
-    const handleReady = useCallback(() => setReady(true), []);
+    const handleReady = useCallback(
+      () =>
+        setReadySource({
+          key: sourceKey,
+          connection: sourceConnection,
+          resolver: sourceResolver,
+          muted: sourceMuted,
+        }),
+      [sourceKey, sourceConnection, sourceResolver, sourceMuted]
+    );
     const handleError = useCallback(() => {
-      setReady(false);
-      setSourceIndex((current) => current + 1);
-    }, []);
+      setReadySource(null);
+      setSelection((current) => ({
+        planKey,
+        index: (current.planKey === planKey ? current.index : 0) + 1,
+      }));
+    }, [planKey]);
 
     const retry = useCallback(() => {
-      setReady(false);
-      setSourceIndex(0);
-    }, []);
+      setReadySource(null);
+      setSelection({ planKey, index: 0 });
+    }, [planKey]);
 
     const media = (() => {
       if (feedConfig.preparing) return null;
