@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import LightModal from '../modals/LightModal';
 import { kelvinToRgb } from '../utils/lightColor';
 
-const renderLight = (attributes: Record<string, unknown>) => {
+const lightModal = (attributes: Record<string, unknown>) => {
   const entities = {
     'light.lamp': {
       entity_id: 'light.lamp',
@@ -20,7 +20,7 @@ const renderLight = (attributes: Record<string, unknown>) => {
   };
   const getA = (entityId: string, attribute: string, fallback: unknown = null) =>
     entities[entityId as 'light.lamp']?.attributes?.[attribute] ?? fallback;
-  const view = render(
+  return (
     <LightModal
       show
       onClose={vi.fn()}
@@ -34,9 +34,15 @@ const renderLight = (attributes: Record<string, unknown>) => {
       t={(key: string) => key}
     />
   );
+};
+
+const renderLight = (attributes: Record<string, unknown>) => {
+  const view = render(lightModal(attributes));
   const glow = () => view.container.querySelector('.blur-\\[100px\\]');
   return { ...view, glow };
 };
+
+const hueDot = () => screen.getByText('light.hue').nextElementSibling;
 
 describe('LightModal colours follow the light', () => {
   it('glows in the colour reported by HA when opened', () => {
@@ -90,25 +96,40 @@ describe('LightModal colours follow the light', () => {
   });
 
   it('shows pastel colours with their saturation', () => {
-    const { glow } = renderLight({
-      color_mode: 'hs',
-      hs_color: [240, 40],
-      rgb_color: [153, 153, 255],
-    });
+    renderLight({ color_mode: 'hs', hs_color: [240, 40], rgb_color: [153, 153, 255] });
     fireEvent.click(screen.getByRole('button', { name: 'light.color' }));
     // HA hs_color is HSV with full value: hsv(240, 40%, 100%) = hsl(240, 100%, 80%).
-    expect(glow()).toHaveStyle({ backgroundColor: 'hsl(240, 100%, 80%)' });
+    expect(hueDot()).toHaveStyle({ backgroundColor: 'hsl(240, 100%, 80%)' });
   });
 
-  it('glows in the actual white temperature on the warmth tab', () => {
+  it('keeps glow and header on the reported colour when another tab opens', () => {
     const { glow } = renderLight({
-      color_mode: 'color_temp',
-      color_temp_kelvin: 4000,
-      hs_color: [27, 20],
-      rgb_color: [255, 206, 166],
+      color_mode: 'hs',
+      hs_color: [240, 100],
+      rgb_color: [0, 0, 255],
+      color_temp_kelvin: null,
     });
     fireEvent.click(screen.getByRole('button', { name: 'light.warmth' }));
-    expect(glow()).toHaveStyle({ backgroundColor: kelvinToRgb(4000) });
+    expect(glow()).toHaveStyle({ backgroundColor: 'rgb(0, 0, 255)' });
+    expect(screen.getByTestId('light-modal-icon').getAttribute('style')).toContain(
+      'rgb(0, 0, 255)'
+    );
+  });
+
+  it('applies saturation updates that arrive while the warmth slider is held', () => {
+    const attributes = {
+      color_mode: 'color_temp',
+      color_temp_kelvin: 4000,
+      rgb_color: [255, 206, 166],
+    };
+    const { rerender } = renderLight({ ...attributes, hs_color: [27, 20] });
+    fireEvent.click(screen.getByRole('button', { name: 'light.warmth' }));
+    const warmth = screen.getByRole('slider', { name: 'light.colorTemperature' });
+    fireEvent.pointerDown(warmth);
+    rerender(lightModal({ ...attributes, hs_color: [27, 60] }));
+    fireEvent.pointerUp(warmth);
+    fireEvent.click(screen.getByRole('button', { name: 'light.color' }));
+    expect(hueDot()).toHaveStyle({ backgroundColor: 'hsl(27, 100%, 70%)' });
   });
 });
 

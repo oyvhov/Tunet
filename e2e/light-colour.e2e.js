@@ -155,7 +155,10 @@ for (const theme of ['dark', 'light']) {
     );
     await lightModal.getByRole('button', { name: 'Color', exact: true }).click();
     await expect(lightModal.getByRole('slider', { name: 'Hue' })).toHaveValue('217');
-    await expect(glow).toHaveCSS('background-color', 'rgb(69, 140, 255)');
+    await expect(glow).toHaveCSS('background-color', 'rgb(70, 140, 255)');
+    await lightModal.getByRole('button', { name: 'Warmth', exact: true }).click();
+    await expect(glow).toHaveCSS('background-color', 'rgb(70, 140, 255)');
+    await lightModal.getByRole('button', { name: 'Color', exact: true }).click();
     await page.screenshot({
       path: join(tmpdir(), `tunet-light-modal-colour-${testInfo.project.name}-${theme}.png`),
       animations: 'disabled',

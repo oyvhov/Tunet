@@ -102,7 +102,7 @@ export default function LightModal({
   }, [remoteHue]);
 
   useEffect(() => {
-    if (!isDraggingRef.current) setLocalSaturation(remoteSaturation);
+    setLocalSaturation(remoteSaturation);
   }, [remoteSaturation]);
 
   // --- Handlers ---
@@ -125,14 +125,8 @@ export default function LightModal({
     .map((p) => `${kelvinToRgb(minKelvin + ((maxKelvin - minKelvin) * p) / 100)} ${p}%`)
     .join(', ')})`;
 
-  // Determine glow color
-  const getGlowColor = () => {
-    if (!isOn) return 'transparent';
-    if (activeTab === 'color' && supportsColor) return hsToCss(localHue, localSaturation);
-    if (activeTab === 'warmth' && supportsColorTemp) return kelvinToRgb(localKelvin);
-    return getLightColor(entity) || '#fbbf24';
-  };
-  const iconColor = isOn && getLightColor(entity) ? getGlowColor() : null;
+  const iconColor = getLightColor(entity);
+  const getGlowColor = () => (isOn ? iconColor || '#fbbf24' : 'transparent');
 
   if (!show || !activeLightId) return null;
 
