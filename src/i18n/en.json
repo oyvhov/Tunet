@@ -508,6 +508,8 @@
   "leaf.tempInside": "Inside temp",
   "leaf.unplugged": "Unplugged",
   "leaf.update": "Update",
+  "light.useLightColor": "Use light color",
+  "light.useLightColorHint": "Match the bulb tile and brightness bar to the color reported by Home Assistant. Uses amber when no color is available.",
   "light.brightness": "Brightness",
   "light.color": "Color",
   "light.colorTemperature": "Temperature",

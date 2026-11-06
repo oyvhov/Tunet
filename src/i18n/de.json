@@ -503,6 +503,8 @@
   "leaf.tempInside": "Innentemp",
   "leaf.unplugged": "Abgesteckt",
   "leaf.update": "Update",
+  "light.useLightColor": "Lichtfarbe verwenden",
+  "light.useLightColorHint": "Lampensymbol und Helligkeitsregler zeigen die von Home Assistant gemeldete Farbe. Ohne Farbangabe wird Bernstein verwendet.",
   "light.brightness": "Helligkeit",
   "light.color": "Farbe",
   "light.colorTemperature": "Temperatur",

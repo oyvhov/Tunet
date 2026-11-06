@@ -2,7 +2,8 @@ import { useRef, useEffect, useCallback, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Lightbulb } from '../../icons';
 import M3Slider from '../ui/M3Slider';
-import type { Dispatch, KeyboardEvent, MouseEvent, SetStateAction } from 'react';
+import type { CSSProperties, Dispatch, KeyboardEvent, MouseEvent, SetStateAction } from 'react';
+import { getLightColor } from '../../utils/lightColor';
 import type { useEntityHelpers } from '../../hooks/useEntityHelpers';
 import type { CardBaseProps } from '../../types/dashboard';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
@@ -70,6 +71,25 @@ const LightCard = ({
   const sizeSetting = cardSettings[settingsKey]?.size || cardSettings[cardId]?.size;
   const isSmall = sizeSetting === 'small';
   const isDenseMobile = isMobile && !isSmall;
+  const useLightColor = (cardSettings[settingsKey] || cardSettings[cardId])?.useLightColor === true;
+  const lightColor = useLightColor ? getLightColor(entity) : null;
+  const lightCardStyle: CSSProperties = lightColor
+    ? {
+        ...cardStyle,
+        ...{
+          '--light-color': lightColor,
+          '--light-slider-color':
+            'color-mix(in srgb, var(--light-color) 45%, var(--text-secondary))',
+        },
+      }
+    : cardStyle;
+  const lightIconStyle: CSSProperties | undefined = lightColor
+    ? {
+        backgroundColor: 'color-mix(in srgb, var(--light-color) 12%, var(--glass-bg))',
+        color: 'color-mix(in srgb, var(--light-color) 50%, var(--text-primary))',
+      }
+    : undefined;
+  const sliderColorClass = lightColor ? 'bg-[var(--light-slider-color)]' : 'bg-amber-500';
 
   // Debounced brightness service call
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -119,18 +139,19 @@ const LightCard = ({
         role={editMode ? undefined : 'button'}
         tabIndex={editMode ? -1 : 0}
         className={`touch-feedback group relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
-        style={cardStyle}
+        style={lightCardStyle}
       >
         {controls}
 
         <button
           onClick={handleToggleLight}
+          style={lightIconStyle}
           className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`}
           disabled={isUnavailable}
           aria-label={`${name || t('common.light')}: ${isOn ? t('common.off') : t('common.on')}`}
         >
           <LightIcon
-            className={`h-6 w-6 stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110`}
+            className={`h-6 w-6 stroke-[1.5px] ${isOn && !lightColor ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110`}
           />
         </button>
 
@@ -159,7 +180,7 @@ const LightCard = ({
                 value={optimisticLightBrightness[cardId] ?? br}
                 disabled={isUnavailable}
                 onChange={handleBrightnessChange}
-                colorClass="bg-amber-500"
+                colorClass={sliderColorClass}
                 ariaLabel={t('light.brightness')}
               />
             )}
@@ -189,21 +210,31 @@ const LightCard = ({
       role={editMode ? undefined : 'button'}
       tabIndex={editMode ? -1 : 0}
       className={`touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
-      style={cardStyle}
+      style={lightCardStyle}
     >
       {controls}
       <div className="flex items-start justify-between">
         <button
           onClick={handleToggleLight}
+          style={lightIconStyle}
           className={`transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)]'} ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
           disabled={isUnavailable}
           aria-label={`${name || t('common.light')}: ${isOn ? t('common.off') : t('common.on')}`}
         >
           <LightIcon
-            className={`${isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px] ${isOn ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}
+            className={`${isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px] ${isOn && !lightColor ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6`}
           />
         </button>
         <div
+          style={
+            lightColor
+              ? {
+                  backgroundColor: 'color-mix(in srgb, var(--light-color) 5%, transparent)',
+                  borderColor: 'color-mix(in srgb, var(--light-color) 12%, var(--glass-border))',
+                  color: 'var(--text-secondary)',
+                }
+              : undefined
+          }
           className={`flex items-center rounded-full border transition-all ${isUnavailable ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'border-amber-500/20 bg-amber-500/10 text-amber-500' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1'}`}
         >
           <span
@@ -274,7 +305,7 @@ const LightCard = ({
               value={optimisticLightBrightness[cardId] ?? br}
               disabled={isUnavailable}
               onChange={handleBrightnessChange}
-              colorClass="bg-amber-500"
+              colorClass={sliderColorClass}
               ariaLabel={t('light.brightness')}
             />
           )}
