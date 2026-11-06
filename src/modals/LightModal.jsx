@@ -14,6 +14,7 @@ import {
 import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { getIconComponent } from '../icons';
+import { HUE_GRADIENT, getLightColor, hsToCss, kelvinToRgb } from '../utils/lightColor';
 
 export default function LightModal({
   show,
@@ -73,12 +74,14 @@ export default function LightModal({
       ? Math.round(1000000 / entity.attributes.color_temp)
       : Math.round((minKelvin + maxKelvin) / 2));
   const remoteHue = entity?.attributes?.hs_color?.[0] ?? 0;
+  const remoteSaturation = entity?.attributes?.hs_color?.[1] ?? 100;
 
   // --- Local State for Optimistic UI ---
   const [activeTab, setActiveTab] = useState('brightness');
   const [localKelvin, setLocalKelvin] = useState(remoteKelvin);
   const [localHue, setLocalHue] = useState(remoteHue);
   const isDraggingRef = useRef(false);
+  const [localSaturation, setLocalSaturation] = useState(remoteSaturation);
 
   // Reset tab on open
   useEffect(() => {
@@ -98,6 +101,10 @@ export default function LightModal({
     }
   }, [remoteHue]);
 
+  useEffect(() => {
+    setLocalSaturation(remoteSaturation);
+  }, [remoteSaturation]);
+
   // --- Handlers ---
   const handleTempChange = (e) => {
     if (!activeLightId) return;
@@ -110,22 +117,16 @@ export default function LightModal({
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalHue(val);
+    setLocalSaturation(100);
     callService('light', 'turn_on', { entity_id: activeLightId, hs_color: [val, 100] });
   };
 
-  // Determine glow color
-  const getGlowColor = () => {
-    if (!isOn) return 'transparent';
-    if (activeTab === 'color' && supportsColor) {
-      return `hsl(${localHue}, 100%, 50%)`;
-    }
-    if (activeTab === 'warmth' && supportsColorTemp) {
-      if (localKelvin < 3000) return '#f59e0b'; // Warm/Orange
-      if (localKelvin > 5000) return '#93c5fd'; // Cool/Blue
-      return '#fbbf24'; // Neutral
-    }
-    return '#fbbf24'; // Default amber
-  };
+  const kelvinGradient = `linear-gradient(90deg, ${[0, 25, 50, 75, 100]
+    .map((p) => `${kelvinToRgb(minKelvin + ((maxKelvin - minKelvin) * p) / 100)} ${p}%`)
+    .join(', ')})`;
+
+  const iconColor = getLightColor(entity);
+  const getGlowColor = () => (isOn ? iconColor || '#fbbf24' : 'transparent');
 
   if (!show || !activeLightId) return null;
 
@@ -166,7 +167,16 @@ export default function LightModal({
             {/* Header */}
             <div className="relative z-10 mb-4 flex shrink-0 items-center gap-3 pr-12 sm:mb-6 sm:gap-4 sm:pr-0">
               <div
-                className={`rounded-2xl p-3 transition-all duration-500 sm:p-4 ${isUnavailable ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'bg-amber-500/15 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+                data-testid="light-modal-icon"
+                style={
+                  iconColor
+                    ? {
+                        backgroundColor: `color-mix(in srgb, ${iconColor} 12%, var(--glass-bg))`,
+                        color: `color-mix(in srgb, ${iconColor} 50%, var(--text-primary))`,
+                      }
+                    : undefined
+                }
+                className={`rounded-2xl p-3 transition-all duration-500 sm:p-4 ${isUnavailable ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : iconColor ? '' : isOn ? 'bg-amber-500/15 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
               >
                 <LightIcon className="h-6 w-6 sm:h-8 sm:w-8" />
               </div>
@@ -223,7 +233,9 @@ export default function LightModal({
                 } border border-[var(--glass-border)]`}
                 style={{
                   // Dimmed glow behind icon (lower opacity on hex color or lower radius)
-                  boxShadow: isOn ? `0 0 60px -10px ${getGlowColor()}15` : 'none',
+                  boxShadow: isOn
+                    ? `0 0 60px -10px color-mix(in srgb, ${getGlowColor()} 8%, transparent)`
+                    : 'none',
                 }}
               >
                 {isUnavailable ? (
@@ -356,8 +368,7 @@ export default function LightModal({
                           <div
                             className="absolute inset-0"
                             style={{
-                              background:
-                                'linear-gradient(90deg, #ffb14e 0%, #fffbe6 50%, #9cb8ff 100%)',
+                              background: kelvinGradient,
                             }}
                           />
                           {/* Thumb Indicator */}
@@ -382,7 +393,7 @@ export default function LightModal({
                           {/* Color Preview Dot */}
                           <div
                             className="h-6 w-6 rounded-full border border-[var(--glass-border)] shadow-sm"
-                            style={{ backgroundColor: `hsl(${localHue}, 100%, 50%)` }}
+                            style={{ backgroundColor: hsToCss(localHue, localSaturation) }}
                           />
                         </div>
                         <div className="relative h-10 w-full touch-none overflow-hidden rounded-xl shadow-inner">
@@ -403,8 +414,7 @@ export default function LightModal({
                           <div
                             className="absolute inset-0"
                             style={{
-                              background:
-                                'linear-gradient(90deg, #ef4444 0%, #f59e0b 16%, #facc15 32%, #22c55e 48%, #06b6d4 64%, #6366f1 80%, #d946ef 100%)',
+                              background: HUE_GRADIENT,
                             }}
                           />
                           {/* Thumb Indicator */}

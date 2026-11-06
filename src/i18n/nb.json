@@ -1262,6 +1262,8 @@
   "room.climateSensor": "Klimaenhet",
   "room.refreshEntities": "Oppdater entiteter",
   "room.entityCount": "entiteter koblet",
+  "light.useLightColor": "Bruk lysets farge",
+  "light.useLightColorHint": "La pærefeltet og lysstyrkelinjen følge fargen fra Home Assistant. Bruker ravgul når farge mangler.",
   "light.brightness": "Lysstyrke",
   "light.warmth": "Varme",
   "light.degreeUnit": "grader",

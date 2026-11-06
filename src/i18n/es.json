@@ -508,6 +508,8 @@
   "leaf.tempInside": "Temp. interior",
   "leaf.unplugged": "Desenchufado",
   "leaf.update": "Actualizar",
+  "light.useLightColor": "Usar el color de la luz",
+  "light.useLightColorHint": "El icono de la bombilla y la barra de brillo muestran el color indicado por Home Assistant. Si no hay color disponible, se usa ámbar.",
   "light.brightness": "Brillo",
   "light.color": "Color",
   "light.colorTemperature": "Temperatura",

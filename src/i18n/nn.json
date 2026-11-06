@@ -514,6 +514,8 @@
   "leaf.tempInside": "Innetemp",
   "leaf.unplugged": "Fråkopla",
   "leaf.update": "Oppdater",
+  "light.useLightColor": "Bruk lysfargen",
+  "light.useLightColorHint": "La pærefeltet og lysstyrkelinja følgje fargen frå Home Assistant. Bruker ravgul når farge manglar.",
   "light.brightness": "Lysstyrke",
   "light.color": "Farge",
   "light.colorTemperature": "Temperatur",

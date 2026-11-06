@@ -479,6 +479,8 @@
   "leaf.tempInside": "内部温度",
   "leaf.unplugged": "拔掉插头",
   "leaf.update": "更新",
+  "light.useLightColor": "使用灯光颜色",
+  "light.useLightColorHint": "灯泡图标背景和亮度条显示 Home Assistant 报告的颜色。没有颜色信息时使用琥珀色。",
   "light.brightness": "亮度",
   "light.color": "颜色",
   "light.colorTemperature": "温度",

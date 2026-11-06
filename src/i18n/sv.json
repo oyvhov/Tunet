@@ -503,6 +503,8 @@
   "leaf.tempInside": "Innertemp",
   "leaf.unplugged": "Frånkopplad",
   "leaf.update": "Uppdatera",
+  "light.useLightColor": "Använd ljusets färg",
+  "light.useLightColorHint": "Låt lampans ikonruta och ljusstyrkefältet följa färgen från Home Assistant. Bärnstensgult används när färg saknas.",
   "light.brightness": "Ljusstyrka",
   "light.color": "Färg",
   "light.colorTemperature": "Temperatur",

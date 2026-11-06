@@ -8,6 +8,7 @@ import { getRelatedEntityIds } from '../services/haClient';
 import { CarMappingsSection, SearchableSelect } from './editCard/CarMappingsSection';
 import { buildCarAnchorOptions } from './editCard/carAnchorOptions';
 import { RoomSettingsSection } from './editCard/RoomSettingsSection';
+import { ToggleRow } from './editCard/settingsControls';
 import SensorCardSettings from './SensorCardSettings';
 import SensorCardPreview from './editCard/SensorCardPreview';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
@@ -745,6 +746,7 @@ export default function EditCardModal({
   canEditStatus,
   canEditMobileWidth,
   nameFallbackEntityId,
+  isEditLight,
   isEditSensor,
   isEditMedia,
   isEditCalendar,
@@ -1325,6 +1327,17 @@ export default function EditCardModal({
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {isEditLight && editSettingsKey && (
+                <div className="popup-surface rounded-2xl p-4">
+                  <ToggleRow
+                    label={t('light.useLightColor')}
+                    hint={t('light.useLightColorHint')}
+                    checked={editSettings.useLightColor === true}
+                    onChange={(value) => saveCardSetting(editSettingsKey, 'useLightColor', value)}
+                  />
                 </div>
               )}
 
