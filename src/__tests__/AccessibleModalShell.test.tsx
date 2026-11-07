@@ -109,6 +109,28 @@ describe('AccessibleModalShell', () => {
     expect(outerClose).not.toHaveBeenCalled();
   });
 
+  it('closes at once without motion or blur in still mode', () => {
+    const onClose = renderShell(vi.fn(), { still: true });
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveClass('modal-panel--still');
+    expect((dialog.parentElement as HTMLElement).style.backdropFilter).toBe('');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores Escape and the backdrop when not dismissible', () => {
+    const onClose = renderShell(vi.fn(), { dismissible: false });
+    const overlay = screen.getByRole('dialog').parentElement as HTMLElement;
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.pointerDown(overlay);
+    fireEvent.click(overlay);
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(overlay).toHaveAttribute('data-modal-state', 'open');
+  });
+
   it('keeps legacy class names when no size is given', () => {
     render(
       <AccessibleModalShell

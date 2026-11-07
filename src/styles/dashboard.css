@@ -84,7 +84,15 @@
   }
 }
 .popup-anim {
-  animation: popupIn 0.24s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+  animation: popupIn 0.15s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+}
+/* Heavy editors: no motion, no blur, solid surface (keeps tablets smooth). */
+.popup-anim.modal-panel--still {
+  animation: none;
+  background: var(--modal-bg);
+}
+.modal-panel--still .popup-surface {
+  backdrop-filter: none;
 }
 [data-modal-state='open'] {
   animation: modalScrimIn 0.2s ease-out;

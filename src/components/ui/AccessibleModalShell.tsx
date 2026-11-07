@@ -55,6 +55,10 @@ interface AccessibleModalShellProps {
   placement?: 'center' | 'top';
   /** Stack above another open popup (e.g. a PIN prompt over the alarm popup). */
   nested?: boolean;
+  /** No motion and no blur: a solid panel for heavy editors that must stay smooth on tablets. */
+  still?: boolean;
+  /** False while the popup must stay open (e.g. onboarding): Escape and the backdrop do nothing. */
+  dismissible?: boolean;
   overlayClassName?: string;
   overlayStyle?: CSSProperties | null;
   panelClassName?: string;
@@ -75,6 +79,8 @@ export default function AccessibleModalShell({
   size,
   placement = 'center',
   nested = false,
+  still = false,
+  dismissible = true,
   overlayClassName,
   overlayStyle,
   panelClassName,
@@ -95,9 +101,14 @@ export default function AccessibleModalShell({
     onCloseRef.current = onClose;
   }, [onClose]);
 
+  const dismissibleRef = useRef(dismissible);
+  useEffect(() => {
+    dismissibleRef.current = dismissible;
+  }, [dismissible]);
+
   const requestClose = useCallback(() => {
-    if (closeTimerRef.current) return;
-    if (prefersReducedMotion()) {
+    if (closeTimerRef.current || !dismissibleRef.current) return;
+    if (still || prefersReducedMotion()) {
       onCloseRef.current?.();
       return;
     }
@@ -107,7 +118,7 @@ export default function AccessibleModalShell({
       setClosing(false);
       onCloseRef.current?.();
     }, CLOSE_ANIMATION_MS);
-  }, []);
+  }, [still]);
 
   useEffect(
     () => () => {
@@ -196,8 +207,12 @@ export default function AccessibleModalShell({
   const resolvedOverlayStyle = size
     ? {
         backgroundColor: 'var(--modal-scrim)',
-        backdropFilter: 'blur(var(--modal-blur))',
-        WebkitBackdropFilter: 'blur(var(--modal-blur))',
+        ...(still
+          ? {}
+          : {
+              backdropFilter: 'blur(var(--modal-blur))',
+              WebkitBackdropFilter: 'blur(var(--modal-blur))',
+            }),
         ...(overlayStyle || {}),
       }
     : normalizeModalOverlayStyle(overlayStyle);
@@ -214,7 +229,13 @@ export default function AccessibleModalShell({
     : overlayClassName;
 
   const resolvedPanelClassName = size
-    ? ['modal-panel', `modal-panel--${size}`, 'popup-anim', panelClassName || '']
+    ? [
+        'modal-panel',
+        `modal-panel--${size}`,
+        'popup-anim',
+        still ? 'modal-panel--still' : '',
+        panelClassName || '',
+      ]
         .filter(Boolean)
         .join(' ')
     : panelClassName;
@@ -237,7 +258,7 @@ export default function AccessibleModalShell({
       <div
         className={resolvedOverlayClassName}
         style={resolvedOverlayStyle}
-        data-modal-state={closing ? 'closing' : 'open'}
+        data-modal-state={still ? 'still' : closing ? 'closing' : 'open'}
         onPointerDown={handleOverlayPointerDown}
         onClick={handleOverlayClick}
       >
