@@ -659,6 +659,26 @@ test.describe('Modal Interactions', () => {
     await expect(modal).toBeHidden();
   });
 
+  test('draws no focus ring around the popup panel itself', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    const radiusAtRest = await modal.evaluate((el) => getComputedStyle(el).borderTopLeftRadius);
+
+    await page.keyboard.press('Shift');
+    const focused = await modal.evaluate((el) => {
+      el.focus();
+      const style = getComputedStyle(el);
+      return {
+        focusVisible: el.matches(':focus-visible'),
+        outline: style.outlineStyle,
+        radius: style.borderTopLeftRadius,
+      };
+    });
+
+    expect(focused.focusVisible).toBe(true);
+    expect(focused.outline).toBe('none');
+    expect(focused.radius).toBe(radiusAtRest);
+  });
+
   test('should close modal when clicking outside (backdrop)', async ({ page }) => {
     const modal = await openSystemModal(page);
 
