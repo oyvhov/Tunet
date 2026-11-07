@@ -12,7 +12,7 @@ export interface SegmentedOption<V extends string | number> {
 interface SegmentedProps<V extends string | number> {
   options: SegmentedOption<V>[];
   value: V | null | undefined;
-  onChange: (value: V) => void;
+  onChange: (value: NoInfer<V>) => void;
   ariaLabel?: string;
   ariaLabelledBy?: string;
   block?: boolean;
