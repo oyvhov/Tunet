@@ -3,18 +3,78 @@ import { Calendar as CalendarIcon, Clock, MapPin, AlertCircle } from 'lucide-rea
 import { getIconComponent } from '../../icons';
 import { getCalendarEvents } from '../../services/haClient';
 import { createCardKeyHandler } from '../../utils/keyboard';
+import type {
+  CSSProperties,
+  ErrorInfo,
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+} from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
+import type { CardBaseProps } from '../../types/dashboard';
 
-class CalendarErrorBoundary extends React.Component {
-  constructor(props) {
+type CalendarEventDateObject = { dateTime?: string; date_time?: string; date?: string };
+type CalendarEventDateValue = string | number | CalendarEventDateObject;
+
+type CalendarCardEvent = {
+  start?: CalendarEventDateValue;
+  end?: CalendarEventDateValue;
+  summary?: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  uid?: string;
+  id?: string;
+};
+
+interface CalendarCardSettings {
+  calendars?: string[];
+  name?: string;
+  largeCalendar?: boolean;
+  [key: string]: unknown;
+}
+
+interface CalendarCardProps extends Pick<CardBaseProps, 'cardId' | 't'> {
+  settings?: CalendarCardSettings;
+  conn?: Connection | null;
+  locale?: string;
+  className?: string;
+  style?: CSSProperties;
+  dragProps?: Record<string, unknown>;
+  getControls?: (cardId: string) => ReactNode;
+  onClick?: (event: ReactMouseEvent<HTMLDivElement> | ReactKeyboardEvent<Element>) => void;
+  isEditMode?: boolean;
+  size?: string;
+  iconName?: string | null;
+  customName?: string | null;
+}
+
+interface CalendarErrorBoundaryProps {
+  children?: ReactNode;
+}
+
+interface CalendarErrorBoundaryState {
+  hasError: boolean;
+  message: string;
+}
+
+class CalendarErrorBoundary extends React.Component<
+  CalendarErrorBoundaryProps,
+  CalendarErrorBoundaryState
+> {
+  constructor(props: CalendarErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, message: '' };
   }
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true, message: error?.message || 'Calendar error' };
+  static getDerivedStateFromError(error: unknown) {
+    return {
+      hasError: true,
+      message: (error as Error | null | undefined)?.message || 'Calendar error',
+    };
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: unknown, info: ErrorInfo) {
     console.error('CalendarCard crashed:', error, info);
   }
 
@@ -35,7 +95,7 @@ class CalendarErrorBoundary extends React.Component {
 }
 
 const CalendarCard = memo(
-  /** @param {any} props */ function CalendarCard({
+  /** Upcoming events from one or more Home Assistant calendars. */ function CalendarCard({
     cardId,
     settings,
     conn,
@@ -50,14 +110,14 @@ const CalendarCard = memo(
     size,
     iconName,
     customName,
-  }) {
-    const [events, setEvents] = useState([]);
+  }: CalendarCardProps) {
+    const [events, setEvents] = useState<CalendarCardEvent[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [isVisible, setIsVisible] = useState(false);
     const [visibleDays, setVisibleDays] = useState(7);
-    const cardRef = useRef(null);
-    const gridScrollRef = useRef(null);
+    const cardRef = useRef<HTMLDivElement>(null);
+    const gridScrollRef = useRef<HTMLDivElement>(null);
 
     // Parse check status ("It should be checked when the card is selected")
     // So settings.calendars = ['calendar.personal', 'calendar.work']
@@ -98,11 +158,14 @@ const CalendarCard = memo(
       return () => ro.disconnect();
     }, []);
 
-    const getEventDate = (eventDate) => {
+    const getEventDate = (eventDate: CalendarEventDateValue | undefined) => {
       try {
         if (!eventDate) return new Date(0);
-        const value = eventDate.dateTime || eventDate.date || eventDate;
-        const date = new Date(value);
+        // Strings and numbers have no dateTime/date, so they fall through to eventDate itself.
+        const dateObject = eventDate as CalendarEventDateObject;
+        const value = dateObject.dateTime || dateObject.date || eventDate;
+        // A date object without dateTime/date gives an invalid Date, handled below.
+        const date = new Date(value as string | number);
         return Number.isNaN(date.getTime()) ? new Date(0) : date;
       } catch {
         return new Date(0);
@@ -138,10 +201,11 @@ const CalendarCard = memo(
           }
 
           // Merge all events from all calendars
-          let allEvents = [];
+          let allEvents: CalendarCardEvent[] = [];
           Object.values(result).forEach((calendarEvents) => {
             if (calendarEvents && Array.isArray(calendarEvents.events)) {
-              allEvents = [...allEvents, ...calendarEvents.events];
+              // HA calendar events carry start/end/summary/...; the client types them loosely.
+              allEvents = [...allEvents, ...(calendarEvents.events as CalendarCardEvent[])];
             }
           });
 
@@ -155,14 +219,14 @@ const CalendarCard = memo(
           setEvents(allEvents);
         } catch (err) {
           console.error('Failed to fetch calendar events', err);
-          setError(err.message || 'Failed to fetch events');
+          setError((err as Error).message || 'Failed to fetch events');
         } finally {
           setLoading(false);
         }
       };
 
-      let idleId;
-      let timerId;
+      let idleId: number | undefined;
+      let timerId: ReturnType<typeof setTimeout> | undefined;
 
       // Initial fetch with idle/stagger preference to avoid main thread blocking
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
@@ -183,7 +247,7 @@ const CalendarCard = memo(
 
     // Group events by day
     const groupedEvents = useMemo(() => {
-      const groups = {};
+      const groups: Record<string, CalendarCardEvent[]> = {};
       events.forEach((event) => {
         const date = getEventDate(event.start);
         // Format: YYYY-MM-DD for grouping
@@ -194,7 +258,7 @@ const CalendarCard = memo(
       return groups;
     }, [events]);
 
-    const formatDateHeader = (dateStr) => {
+    const formatDateHeader = (dateStr: string) => {
       // dateStr is YYYY-MM-DD from sv-SE locale (local time)
       // Create date as local time components to avoid UTC shift issues
       const [y, m, d] = dateStr.split('-').map(Number);
@@ -213,7 +277,7 @@ const CalendarCard = memo(
       return date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' });
     };
 
-    const formatEventTime = (date) => {
+    const formatEventTime = (date: Date | null) => {
       if (!date || Number.isNaN(date.getTime())) return '';
       return date.toLocaleTimeString(locale, {
         hour: '2-digit',
@@ -222,16 +286,18 @@ const CalendarCard = memo(
       });
     };
 
-    const getEventDateValue = (value) => {
+    const getEventDateValue = (value: CalendarEventDateValue | undefined) => {
       if (!value) return null;
       if (typeof value === 'string' || typeof value === 'number') return value;
       return value.dateTime || value.date_time || value.date || null;
     };
 
-    const isAllDayValue = (value) => {
+    const isAllDayValue = (value: CalendarEventDateValue | undefined) => {
       if (!value) return false;
       if (typeof value === 'string') return value.length === 10;
-      return !!value.date && !value.dateTime && !value.date_time;
+      // Numbers have no date fields, so they return false here.
+      const dateObject = value as CalendarEventDateObject;
+      return !!dateObject.date && !dateObject.dateTime && !dateObject.date_time;
     };
 
     const IconComp = iconName ? getIconComponent(iconName) || CalendarIcon : CalendarIcon;
@@ -252,7 +318,7 @@ const CalendarCard = memo(
     }, [isLarge, events.length]);
 
     const weekDays = useMemo(() => {
-      const days = [];
+      const days: string[] = [];
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       for (let i = 0; i < 7; i++) {
@@ -351,7 +417,7 @@ const CalendarCard = memo(
       const TOTAL_HOURS = END_HOUR - START_HOUR;
       const GUTTER_W = 'w-12';
 
-      const formatShortDay = (dateStr) => {
+      const formatShortDay = (dateStr: string) => {
         const [y, m, d] = dateStr.split('-').map(Number);
         const date = new Date(y, m - 1, d);
         const today = new Date();
@@ -363,12 +429,12 @@ const CalendarCard = memo(
         };
       };
 
-      const getTimePosition = (date) => {
+      const getTimePosition = (date: Date | null) => {
         if (!date) return 0;
         return (date.getHours() - START_HOUR + date.getMinutes() / 60) * HOUR_HEIGHT;
       };
 
-      const getEventBlock = (evt) => {
+      const getEventBlock = (evt: CalendarCardEvent) => {
         const startRaw = getEventDateValue(evt.start);
         const endRaw = getEventDateValue(evt.end);
         const start = startRaw ? new Date(startRaw) : null;
@@ -382,8 +448,8 @@ const CalendarCard = memo(
 
       const weekData = weekDays.slice(0, visibleDays).map((dateKey) => {
         const dayEvts = groupedEvents[dateKey] || [];
-        const allDay = [];
-        const timed = [];
+        const allDay: CalendarCardEvent[] = [];
+        const timed: CalendarCardEvent[] = [];
         dayEvts.forEach((evt) => {
           if (isAllDayValue(evt.start)) allDay.push(evt);
           else timed.push(evt);
@@ -397,7 +463,7 @@ const CalendarCard = memo(
       const nowDateKey = now.toLocaleDateString('sv-SE');
       const nowTop = getTimePosition(now);
 
-      const hours = [];
+      const hours: number[] = [];
       for (let h = START_HOUR; h < END_HOUR; h++) hours.push(h);
 
       return (
@@ -703,7 +769,7 @@ const CalendarCard = memo(
   }
 );
 
-export default function CalendarCardWithBoundary(props) {
+export default function CalendarCardWithBoundary(props: CalendarCardProps) {
   return (
     <CalendarErrorBoundary>
       <CalendarCard {...props} />
