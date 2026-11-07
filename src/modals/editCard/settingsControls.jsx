@@ -5,7 +5,7 @@ import { SearchableSelect } from './CarMappingsSection';
 
 export const FIELD_CLASS =
   'popup-surface w-full rounded-2xl px-4 py-3 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]';
-const LABEL_CLASS = 'ml-1 block text-xs font-bold text-[var(--text-muted)] uppercase';
+const LABEL_CLASS = 'modal-section-label block';
 const HINT_CLASS = 'mt-1 ml-1 block text-[11px] text-[var(--text-muted)]';
 
 /** @param {any} props */
@@ -22,14 +22,14 @@ export function SettingsSection({ title, description, resetLabel, onReset, child
             {title}
           </h4>
           {description ? (
-            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{description}</p>
+            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{description}</p>
           ) : null}
         </div>
         {onReset ? (
           <button
             type="button"
             onClick={onReset}
-            className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
+            className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
           >
             <RotateCcw className="h-3 w-3" aria-hidden="true" />
             {resetLabel}
@@ -166,7 +166,7 @@ export function DropdownField({
         buttonClassName="rounded-2xl px-4 py-3"
         valueClassName="text-[11px]"
         menuPortal
-        menuZIndex={130}
+        menuZIndex={220}
         t={t}
       />
     </Field>

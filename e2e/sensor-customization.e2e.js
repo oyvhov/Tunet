@@ -24,7 +24,7 @@ const openEditor = async (page, id) => {
 };
 
 const closeEditor = async (page, editor) => {
-  await editor.getByRole('button', { name: 'OK', exact: true }).click();
+  await editor.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(editor).not.toBeVisible();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
 };
@@ -469,6 +469,7 @@ test.describe('Flexible sensor cards', () => {
     await expect(air.getByRole('status')).toHaveText('Updated');
     await air.getByRole('button', { name: 'Details', exact: true }).click();
     const details = page.getByRole('dialog');
+    await details.locator('summary').click();
     await expect(details.getByText('sensor.temperature', { exact: true })).toBeVisible();
     await details.getByRole('button', { name: 'Close', exact: true }).click();
     const detailsEditor = await openEditor(page, AIR);
@@ -480,6 +481,7 @@ test.describe('Flexible sensor cards', () => {
     await closeEditor(page, detailsEditor);
     await air.focus();
     await page.keyboard.press('Space');
+    await details.locator('summary').click();
     await expect(details.getByText('climate.living_room', { exact: true })).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__sensorCalls.length)).toBe(2);
   });

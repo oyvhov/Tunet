@@ -10,6 +10,7 @@ vi.mock('../contexts', () => ({
 }));
 
 vi.mock('../components/ui/AccessibleModalShell', () => ({
+  useModalShell: () => null,
   default: ({ open, children }) => (open ? <div>{children()}</div> : null),
 }));
 
@@ -55,16 +56,16 @@ const renderModal = (props = {}) => {
 
 describe('GenericClimateModal mode shortcuts', () => {
   it.each([
-    ['heat', 'heat', 'rgb(251, 146, 60)'],
-    ['cool', 'cool', 'rgb(59, 130, 246)'],
-    ['dry', 'dry', 'var(--text-secondary)'],
-    ['fan_only', 'fanOnly', 'var(--text-secondary)'],
-    ['auto', 'auto', 'var(--text-secondary)'],
-    ['heat_cool', 'heatCool', 'var(--text-secondary)'],
-  ])('shows the %s mode when no action is reported', (mode, label, color) => {
+    ['heat', 'heat', 'status-chip--warn'],
+    ['cool', 'cool', 'status-chip--accent'],
+    ['dry', 'dry', 'status-chip--neutral'],
+    ['fan_only', 'fanOnly', 'status-chip--neutral'],
+    ['auto', 'auto', 'status-chip--neutral'],
+    ['heat_cool', 'heatCool', 'status-chip--neutral'],
+  ])('shows the %s mode when no action is reported', (mode, label, toneClass) => {
     renderModal({ entity: { ...entity, state: mode } });
     const badge = screen.getByText(`climate.hvac.${label}`);
-    expect(badge.parentElement.style.color).toBe(color);
+    expect(badge.parentElement).toHaveClass('status-chip', toneClass);
     expect(screen.queryByText('climate.action.idle')).not.toBeInTheDocument();
   });
 
@@ -72,9 +73,16 @@ describe('GenericClimateModal mode shortcuts', () => {
     renderModal({
       entity: { ...entity, attributes: { ...entity.attributes, hvac_action: 'idle' } },
     });
-    expect(screen.getByText('climate.action.idle').parentElement.style.color).toBe(
-      'var(--text-secondary)'
+    expect(screen.getByText('climate.action.idle').parentElement).toHaveClass(
+      'status-chip--neutral'
     );
+  });
+
+  it('labels the large number as the target and shows the indoor temperature', () => {
+    renderModal();
+    expect(screen.getByText('climate.target')).toBeInTheDocument();
+    expect(screen.getByText('21')).toBeInTheDocument();
+    expect(screen.getByText('20°C')).toBeInTheDocument();
   });
 
   it('shows Off and Heat by default and sends the selected HVAC mode', () => {

@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Activity, List } from 'lucide-react';
+import { Activity, ChevronDown, List } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { canUseHistoryRest, getHistory, getHistoryRest, getStatistics } from '../services/haClient';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import BinaryTimeline from '../components/charts/BinaryTimeline';
-import { formatRelativeTime } from '../utils';
+import { formatDateTime, formatRelativeTime } from '../utils';
 import { getIconComponent } from '../icons';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import Segmented from '../components/ui/Segmented';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import {
   convertValueByKind,
@@ -16,6 +18,27 @@ import {
   getEffectiveUnitMode,
   inferUnitKind,
 } from '../utils';
+
+const TECHNICAL_ATTRIBUTES = new Set([
+  'state_class',
+  'device_class',
+  'platform',
+  'integration',
+  'manufacturer',
+  'model',
+  'model_id',
+  'area_id',
+  'device_id',
+  'unique_id',
+  'config_entry_id',
+  'sw_version',
+  'hw_version',
+  'supported_features',
+  'attribution',
+]);
+
+const HISTORY_HOURS = [6, 12, 24, 48, 72];
+const ACTIVE_STATES = ['on', 'open', 'unlocked', 'playing', 'active', 'home'];
 
 function isEntityNumeric(domain, entityId, state) {
   return (
@@ -351,12 +374,15 @@ export default function SensorModal({
   // Determine if entity should show activity timeline and log
   const hasActivity = shouldShowEntityActivity(domain, state, isNumeric);
 
-  const lastChanged = entity.last_changed ? new Date(entity.last_changed).toLocaleString() : '--';
-  const lastUpdated = entity.last_updated ? new Date(entity.last_updated).toLocaleString() : '--';
-
   const attributeEntries = Object.entries(attrs).filter(
     ([key]) => !['friendly_name', 'unit_of_measurement', 'entity_picture', 'icon'].includes(key)
   );
+  const visibleAttributes = attributeEntries.filter(([key]) => !TECHNICAL_ATTRIBUTES.has(key));
+  const technicalAttributes = attributeEntries.filter(([key]) => TECHNICAL_ATTRIBUTES.has(key));
+  const timestamps = [
+    { key: 'changed', label: t('sensorInfo.lastChanged'), value: entity.last_changed },
+    { key: 'updated', label: t('sensorInfo.lastUpdated'), value: entity.last_updated },
+  ];
 
   const formatStateLabel = (value, dc = deviceClass) => {
     if (value === null || value === undefined) return '--';
@@ -367,7 +393,7 @@ export default function SensorModal({
       try {
         const d = new Date(value);
         if (!isNaN(d.getTime())) {
-          return d.toLocaleString();
+          return formatDateTime(d);
         }
       } catch (_e) {
         // Silently ignore parse errors for non-date values
@@ -455,75 +481,56 @@ export default function SensorModal({
   // Icon Logic
   const Icon = getIconComponent(attrs.icon) || Activity;
   const modalTitleId = `sensor-modal-title-${entityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const isUnavailable = entity.state === 'unavailable';
+  const statusLabel = `${String(displayState)} ${displayUnit || ''}`.trim();
+  const statusTone = isUnavailable
+    ? 'error'
+    : ACTIVE_STATES.includes(String(state).toLowerCase())
+      ? 'on'
+      : 'neutral';
+  const historyOptions = HISTORY_HOURS.map((hours) => ({
+    value: hours,
+    label: t(`sensor.graphRange${hours}h`),
+  }));
+
+  const renderGraph = () => (
+    <SensorHistoryGraph
+      data={history}
+      height={350}
+      noDataLabel={t('sensorInfo.noHistory')}
+      strokeColor="var(--text-primary)"
+      areaColor="var(--text-primary)"
+    />
+  );
+
+  const spinner = (
+    <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--text-primary)] opacity-20"></div>
+  );
 
   return (
     <AccessibleModalShell
       open={isOpen && !!entityId && !!entity}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-[150] flex items-center justify-center p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border shadow-2xl backdrop-blur-xl md:h-auto md:min-h-[550px] md:rounded-[3rem] lg:grid lg:grid-cols-5"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size="l"
     >
       {() => (
         <>
-          {/* Close Button */}
-          <div className="absolute top-6 right-6 z-50 md:top-10 md:right-10">
-            <button onClick={onClose} className="modal-close" aria-label={t('common.close')}>
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          <ModalHeader
+            title={name}
+            closeLabel={t('common.close')}
+            onClose={onClose}
+            icon={<Icon />}
+            iconStyle={{
+              backgroundColor: isUnavailable ? 'var(--status-error-bg)' : 'var(--status-info-bg)',
+              color: isUnavailable ? 'var(--status-error-fg)' : 'var(--status-info-fg)',
+            }}
+            status={<StatusChip tone={statusTone} label={statusLabel} />}
+          />
 
-          {/* LEFT PANEL: Visuals & Graph (3 cols) */}
-          <div
-            className="relative flex shrink-0 flex-col overflow-hidden border-b p-6 md:p-10 lg:col-span-3 lg:border-r lg:border-b-0"
-            style={{ borderColor: 'var(--glass-border)' }}
-          >
-            {/* Header */}
-            <div className="mb-6 flex shrink-0 items-center gap-4">
-              <div
-                className="rounded-2xl p-4 transition-all duration-500"
-                style={{
-                  backgroundColor:
-                    entity.state === 'unavailable'
-                      ? 'var(--status-error-bg)'
-                      : 'var(--status-info-bg)',
-                  color:
-                    entity.state === 'unavailable'
-                      ? 'var(--status-error-fg)'
-                      : 'var(--status-info-fg)',
-                }}
-              >
-                <Icon className="h-8 w-8" />
-              </div>
-              <div className="min-w-0">
-                <h2
-                  id={modalTitleId}
-                  className="truncate pr-1 text-lg leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic md:text-2xl"
-                >
-                  {name}
-                </h2>
-                <div
-                  className={`mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 ${entity.state === 'unavailable' ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
-                >
-                  <div
-                    className={`h-1.5 w-1.5 rounded-full ${entity.state === 'unavailable' ? 'bg-[var(--status-error-fg)]' : 'bg-[var(--status-success-fg)] shadow-[0_0_6px_var(--status-success-fg)]'}`}
-                  />
-                  <span className="pt-[1px] text-[10px] leading-none font-bold tracking-widest uppercase">
-                    {String(displayState)} {displayUnit}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Select option control */}
-            {(domain === 'select' || domain === 'input_select') && callService && (
-              <div className="mb-6 shrink-0">
+          <ModalBody className="grid gap-6 lg:grid-cols-5">
+            <div className="flex min-w-0 flex-col gap-6 lg:col-span-3">
+              {(domain === 'select' || domain === 'input_select') && callService && (
                 <ModernDropdown
                   label={t('sensor.select.label') || 'Select'}
                   icon={List}
@@ -537,42 +544,27 @@ export default function SensorModal({
                   }}
                   placeholder={t('sensor.select.label') || 'Select'}
                 />
-              </div>
-            )}
+              )}
 
-            {/* Main Content Area */}
-            <div className="relative flex min-h-0 flex-1 flex-col">
               {isNumeric && !hasActivity ? (
-                <div className="relative h-full min-h-[250px] w-full">
+                <div className="relative min-h-[250px] w-full">
                   {loading ? (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--text-primary)] opacity-20"></div>
+                      {spinner}
                     </div>
                   ) : (
-                    <div className="-mr-4 -ml-4 h-full md:mr-0">
-                      <SensorHistoryGraph
-                        data={history}
-                        height={350}
-                        noDataLabel={t('sensorInfo.noHistory')}
-                        strokeColor="var(--text-primary)"
-                        areaColor="var(--text-primary)"
-                      />
-                    </div>
+                    renderGraph()
                   )}
                 </div>
               ) : (
-                <div className="custom-scrollbar -mr-2 flex-1 overflow-y-auto pr-2">
+                <div className="flex flex-col">
                   {loading && (
-                    <div className="flex h-[100px] items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--text-primary)] opacity-20"></div>
-                    </div>
+                    <div className="flex h-[100px] items-center justify-center">{spinner}</div>
                   )}
 
                   {!loading && hasActivity && (
                     <>
-                      <h4 className="mb-4 bg-transparent text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-80">
-                        {t('history.activity')}
-                      </h4>
+                      <h3 className="modal-section-label mb-3">{t('history.activity')}</h3>
                       <div className="mb-6">
                         <BinaryTimeline
                           events={historyEvents}
@@ -583,18 +575,17 @@ export default function SensorModal({
                         />
                       </div>
 
-                      <h4 className="mb-4 border-b border-[var(--glass-border)] bg-transparent pb-2 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-80 shadow-sm">
+                      <h3 className="modal-section-label mb-2 border-b border-[var(--glass-border)] pb-2">
                         {t('history.log')}
-                      </h4>
-                      <div className="custom-scrollbar max-h-64 space-y-1 overflow-y-auto pr-2">
+                      </h3>
+                      <div className="space-y-1">
                         {recentEvents.length === 0 && (
-                          <div className="py-8 text-center text-sm text-[var(--text-secondary)] italic opacity-60">
+                          <div className="py-8 text-center text-sm text-[var(--text-secondary)] opacity-60">
                             {t('sensorInfo.noHistory')}
                           </div>
                         )}
                         {recentEvents.map((event, idx) => {
                           let stateLabel = formatStateLabel(event.state, deviceClass);
-                          const domain = entityId?.split('.')?.[0];
 
                           // Specific formatting for Scenes in log
                           if (
@@ -604,31 +595,22 @@ export default function SensorModal({
                             stateLabel = `${t('state.sceneSet')} ${formatRelativeTime(event.state, t)}`;
                           }
 
-                          const useStateOnly =
-                            (domain === 'binary_sensor' || domain === 'motion') &&
-                            (deviceClass === 'motion' ||
-                              deviceClass === 'occupancy' ||
-                              deviceClass === 'presence');
-                          const logLabel =
-                            useStateOnly || domain === 'scene'
-                              ? domain === 'scene'
-                                ? stateLabel
-                                : t('history.stateOnly').replace('{state}', stateLabel)
-                              : t('history.wasState').replace('{state}', stateLabel);
-
                           return (
                             <div
                               key={`${event.lastChanged || idx}`}
-                              className="group flex items-center gap-4 rounded-xl border border-transparent p-3 transition-colors hover:border-white/5 hover:bg-white/5"
+                              className="flex items-center gap-4 rounded-xl p-3 transition-colors hover:bg-[var(--glass-bg-hover)]"
                             >
                               <div
                                 className={`h-2 w-2 flex-shrink-0 rounded-full ${event.state === 'on' || event.state === 'true' || event.state === 'open' || event.state === 'unlocked' || event.state === 'playing' || event.state > 0 ? 'bg-[var(--status-success-fg)] opacity-80' : 'bg-[var(--text-secondary)] opacity-35'}`}
                               />
                               <div className="flex min-w-0 flex-1 items-baseline justify-between gap-4">
                                 <span className="truncate text-sm font-medium text-[var(--text-primary)]">
-                                  {logLabel}
+                                  {stateLabel}
                                 </span>
-                                <span className="font-mono text-xs whitespace-nowrap text-[var(--text-secondary)] opacity-70 transition-opacity group-hover:opacity-100">
+                                <span
+                                  className="text-xs whitespace-nowrap text-[var(--text-secondary)] tabular-nums"
+                                  title={formatDateTime(event.time)}
+                                >
                                   {formatRelativeTime(event.time, t)}
                                 </span>
                               </div>
@@ -639,93 +621,90 @@ export default function SensorModal({
                     </>
                   )}
 
-                  {!loading && !hasActivity && isNumeric && (
-                    <div className="-mr-4 -ml-4 h-full md:mr-0">
-                      <SensorHistoryGraph
-                        data={history}
-                        height={350}
-                        noDataLabel={t('sensorInfo.noHistory')}
-                        strokeColor="var(--text-primary)"
-                        areaColor="var(--text-primary)"
-                      />
-                    </div>
-                  )}
+                  {!loading && !hasActivity && isNumeric && renderGraph()}
                 </div>
               )}
             </div>
-          </div>
 
-          {/* RIGHT PANEL: Meta & Attributes (2 cols) */}
-          <div className="relative flex flex-col gap-10 overflow-y-auto bg-[var(--glass-bg)]/10 p-6 md:p-10 lg:col-span-2">
-            {/* Timestamps */}
-            <div>
-              <h4 className="mb-6 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-40">
-                {t('sensorInfo.timeline')}
-              </h4>
-              <div className="space-y-6">
-                <div className="relative border-l border-[var(--glass-border)] pl-4">
-                  <div className="absolute top-1.5 -left-[3px] h-1.5 w-1.5 rounded-full bg-[var(--accent-color)]"></div>
-                  <p className="mb-0.5 text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase opacity-50">
-                    {t('sensorInfo.lastChanged')}
-                  </p>
-                  <p className="text-sm font-medium text-[var(--text-primary)]">{lastChanged}</p>
-                </div>
-                <div className="relative border-l border-[var(--glass-border)] pl-4">
-                  <div className="absolute top-1.5 -left-[3px] h-1.5 w-1.5 rounded-full bg-purple-400"></div>
-                  <p className="mb-0.5 text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase opacity-50">
-                    {t('sensorInfo.lastUpdated')}
-                  </p>
-                  <p className="text-sm font-medium text-[var(--text-primary)]">{lastUpdated}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* History Range */}
-            <div>
-              <h4 className="mb-4 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-40">
-                {t('history.rangeHours')}
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {[6, 12, 24, 48, 72].map((hours) => (
-                  <button
-                    key={hours}
-                    onClick={() => setHistoryHours(hours)}
-                    className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${historyHours === hours ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                  >
-                    {hours}h
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Attributes */}
-            {attributeEntries.length > 0 && (
-              <div className="flex-1">
-                <div className="mb-6 flex items-center justify-between">
-                  <h4 className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-40">
-                    {t('sensorInfo.attributes')}
-                  </h4>
-                </div>
-
+            <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+              <section>
+                <h3 className="modal-section-label mb-3">{t('sensorInfo.timeline')}</h3>
                 <div className="space-y-4">
-                  {attributeEntries.map(([key, value]) => (
-                    <div key={key} className="flex flex-col gap-1">
-                      <span className="text-[10px] font-bold tracking-wider text-[var(--text-secondary)] capitalize uppercase opacity-40">
+                  {timestamps.map((item) => (
+                    <div
+                      key={item.key}
+                      className="relative border-l border-[var(--glass-border)] pl-4"
+                    >
+                      <div
+                        className={`absolute top-1.5 -left-[3px] h-1.5 w-1.5 rounded-full ${item.key === 'changed' ? 'bg-[var(--accent-color)]' : 'bg-[var(--text-secondary)]'}`}
+                      ></div>
+                      <p className="mb-0.5 text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase">
+                        {item.label}
+                      </p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {item.value ? formatRelativeTime(item.value, t) : '--'}
+                      </p>
+                      {item.value && (
+                        <p className="text-xs text-[var(--text-secondary)] tabular-nums">
+                          {formatDateTime(item.value)}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <h3 className="modal-section-label mb-3">{t('history.rangeHours')}</h3>
+                <Segmented
+                  ariaLabel={t('history.rangeHours')}
+                  value={historyHours}
+                  onChange={setHistoryHours}
+                  options={historyOptions}
+                />
+              </section>
+
+              {visibleAttributes.length > 0 && (
+                <section>
+                  <h3 className="modal-section-label mb-3">{t('sensorInfo.attributes')}</h3>
+                  <div className="space-y-3">
+                    {visibleAttributes.map(([key, value]) => (
+                      <div key={key} className="flex flex-col gap-0.5">
+                        <span className="text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase">
+                          {key.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-sm leading-snug font-medium break-words text-[var(--text-primary)]">
+                          {String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <details className="group popup-surface rounded-[var(--modal-surface-radius)] p-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                  <span className="modal-section-label">{t('sensor.technicalDetails')}</span>
+                  <ChevronDown className="h-4 w-4 text-[var(--text-muted)] transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="mt-4 space-y-3">
+                  {technicalAttributes.map(([key, value]) => (
+                    <div key={key} className="flex flex-col gap-0.5">
+                      <span className="text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase">
                         {key.replace(/_/g, ' ')}
                       </span>
-                      <span className="font-mono text-sm leading-snug font-medium break-words text-[var(--text-primary)] opacity-80">
+                      <span className="font-mono text-sm leading-snug break-words text-[var(--text-secondary)]">
                         {String(value)}
                       </span>
                     </div>
                   ))}
+                  <p className="font-mono text-xs break-all text-[var(--text-secondary)] select-all">
+                    {entityId}
+                  </p>
                 </div>
-              </div>
-            )}
-
-            <div className="mt-auto pt-10 opacity-30">
-              <p className="text-center font-mono text-[10px] select-all">{entityId}</p>
+              </details>
             </div>
-          </div>
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>

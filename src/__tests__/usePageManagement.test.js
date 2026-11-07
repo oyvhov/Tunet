@@ -155,10 +155,6 @@ describe('usePageManagement › createSonosPage', () => {
 // deletePage
 // ═════════════════════════════════════════════════════════════════════════
 describe('usePageManagement › deletePage', () => {
-  beforeEach(() => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-  });
-
   it('removes the page from config and settings', () => {
     const props = makeProps({
       pagesConfig: { pages: ['home', 'kitchen'], home: [], kitchen: ['c1'] },
@@ -185,8 +181,8 @@ describe('usePageManagement › deletePage', () => {
     expect(props.persistConfig).not.toHaveBeenCalled();
   });
 
-  it('does nothing when user cancels confirmation', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+  it('does not ask window.confirm itself', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
     const props = makeProps({
       pagesConfig: { pages: ['home', 'kitchen'], home: [], kitchen: [] },
     });
@@ -194,7 +190,9 @@ describe('usePageManagement › deletePage', () => {
 
     act(() => result.current.deletePage('kitchen'));
 
-    expect(props.persistConfig).not.toHaveBeenCalled();
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(props.persistConfig).toHaveBeenCalledWith(expect.objectContaining({ pages: ['home'] }));
+    confirmSpy.mockRestore();
   });
 
   it('does nothing for null/undefined pageId', () => {

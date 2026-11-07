@@ -1,10 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowUpDown, ChevronUp, ChevronDown, X } from '../icons';
+import { ArrowUpDown, ChevronUp, ChevronDown } from '../icons';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, ModalSection, StatusChip } from '../components/ui/ModalParts';
+import Button from '../components/ui/Button';
+import Segmented from '../components/ui/Segmented';
 import { getIconComponent } from '../icons';
 
 /* -- Interactive Visual Blind ---------------------------------------- */
-const InteractiveBlind = ({ position, onPositionChange, accent, disabled, slatCount = 12, translate }) => {
+const InteractiveBlind = ({
+  position,
+  onPositionChange,
+  accent,
+  disabled,
+  slatCount = 12,
+  translate,
+}) => {
   const containerRef = useRef(null);
   const isDragging = useRef(false);
   const closedAmount = 100 - (position ?? 0);
@@ -70,7 +80,10 @@ const InteractiveBlind = ({ position, onPositionChange, accent, disabled, slatCo
     <div
       ref={containerRef}
       className={`relative h-full w-full touch-none overflow-hidden rounded-2xl border-2 select-none ${disabled ? 'opacity-50' : 'cursor-ns-resize'}`}
-      style={{ borderColor: accent.border, backgroundColor: 'rgba(135,206,235,0.04)' }}
+      style={{
+        borderColor: accent.border,
+        backgroundColor: 'color-mix(in srgb, var(--accent-color) 4%, transparent)',
+      }}
       role="slider"
       aria-label={translate?.('cover.aria.position') || 'Cover position'}
       aria-orientation="vertical"
@@ -123,7 +136,7 @@ const InteractiveBlind = ({ position, onPositionChange, accent, disabled, slatCo
             style={{
               backgroundColor: accent.text,
               opacity: 0.7,
-              boxShadow: `0 0 12px ${accent.text}40`,
+              boxShadow: `0 0 12px color-mix(in srgb, ${accent.text} 25%, transparent)`,
             }}
           />
           {/* Grip dots */}
@@ -212,7 +225,10 @@ const TiltVisual = ({ tilt, onTiltChange, accent, disabled, translate }) => {
     <div
       ref={containerRef}
       className={`relative flex h-24 w-full touch-none flex-col justify-center gap-1 overflow-hidden rounded-xl border px-3 py-2 select-none ${disabled ? 'opacity-50' : 'cursor-ew-resize'}`}
-      style={{ borderColor: accent.border, backgroundColor: 'rgba(135,206,235,0.04)' }}
+      style={{
+        borderColor: accent.border,
+        backgroundColor: 'color-mix(in srgb, var(--accent-color) 4%, transparent)',
+      }}
       role="slider"
       aria-label={translate?.('cover.aria.tilt') || 'Cover tilt'}
       aria-valuemin={0}
@@ -298,36 +314,33 @@ export default function CoverModal({
   const translate = t || ((key) => key);
 
   const getAccent = () => {
+    const tone = (color, bg, border) => ({
+      color,
+      bg,
+      border,
+      slat: `color-mix(in srgb, ${color} 30%, transparent)`,
+      slatBorder: `color-mix(in srgb, ${color} 15%, transparent)`,
+    });
     if (isUnavailable)
-      return {
-        color: '#ef4444',
-        bg: 'rgba(239,68,68,0.1)',
-        border: 'rgba(239,68,68,0.2)',
-        slat: 'rgba(239,68,68,0.25)',
-        slatBorder: 'rgba(239,68,68,0.15)',
-      };
+      return tone('var(--status-error-fg)', 'var(--status-error-bg)', 'var(--status-error-border)');
     if (isMoving)
-      return {
-        color: '#60a5fa',
-        bg: 'rgba(59,130,246,0.1)',
-        border: 'rgba(59,130,246,0.2)',
-        slat: 'rgba(59,130,246,0.3)',
-        slatBorder: 'rgba(59,130,246,0.15)',
-      };
+      return tone(
+        'var(--accent-color)',
+        'var(--accent-bg)',
+        'color-mix(in srgb, var(--accent-color) 25%, transparent)'
+      );
     if (isOpen)
-      return {
-        color: '#34d399',
-        bg: 'rgba(16,185,129,0.1)',
-        border: 'rgba(16,185,129,0.2)',
-        slat: 'rgba(16,185,129,0.25)',
-        slatBorder: 'rgba(16,185,129,0.12)',
-      };
+      return tone(
+        'var(--status-success-fg)',
+        'var(--status-success-bg)',
+        'color-mix(in srgb, var(--status-success-fg) 25%, transparent)'
+      );
     return {
       color: 'var(--text-secondary)',
       bg: 'var(--glass-bg)',
       border: 'var(--glass-border)',
-      slat: 'rgba(148,163,184,0.35)',
-      slatBorder: 'rgba(148,163,184,0.15)',
+      slat: 'color-mix(in srgb, var(--text-muted) 35%, transparent)',
+      slatBorder: 'color-mix(in srgb, var(--text-muted) 15%, transparent)',
     };
   };
   const accent = getAccent();
@@ -389,201 +402,128 @@ export default function CoverModal({
       open={show && !!activeEntityId && !!entity}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border shadow-2xl backdrop-blur-xl md:h-auto md:min-h-[550px] md:rounded-[3rem] lg:grid lg:grid-cols-5"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size="l"
     >
       {() => (
         <>
-        {/* Close Button */}
-        <div className="absolute top-6 right-6 z-50 md:top-10 md:right-10">
-          <button onClick={onClose} className="modal-close" aria-label={translate('common.close')}>
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* LEFT PANEL: Visual blind & controls */}
-        <div
-          className="relative flex shrink-0 flex-col justify-between overflow-hidden border-b p-4 md:p-10 lg:col-span-3 lg:border-r lg:border-b-0"
-          style={{ borderColor: 'var(--glass-border)' }}
-        >
-          {/* Ambient Glow */}
-          <div
-            className="pointer-events-none absolute top-1/2 left-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-5 blur-[100px] transition-all duration-1000"
-            style={{ backgroundColor: accent.color }}
+          <ModalHeader
+            title={name}
+            closeLabel={translate('common.close')}
+            onClose={onClose}
+            icon={<Icon />}
+            iconStyle={{ backgroundColor: accent.bg, color: accent.color }}
+            status={
+              <StatusChip
+                tone={isUnavailable ? 'error' : isMoving ? 'accent' : isOpen ? 'on' : 'neutral'}
+                label={getStateLabel()}
+                detail={hasPosition ? `${localPosition}%` : null}
+              />
+            }
           />
 
-          {/* Header */}
-          <div className="relative z-10 mb-4 flex shrink-0 items-center gap-4">
-            <div
-              className="rounded-2xl p-4 transition-all duration-500"
-              style={{ backgroundColor: accent.bg, color: accent.color }}
-            >
-              <Icon className="h-8 w-8" />
-            </div>
-            <div className="min-w-0">
-              <h2
-                id={modalTitleId}
-                className="truncate pr-1 text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
-              >
-                {name}
-              </h2>
+          <ModalBody className="grid items-start gap-6 lg:grid-cols-5">
+            <div className="popup-surface relative flex flex-col justify-between gap-6 overflow-hidden rounded-[var(--modal-surface-radius)] p-4 sm:p-6 lg:col-span-3">
               <div
-                className="mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1"
-                style={{ backgroundColor: accent.bg, borderColor: accent.border }}
-              >
-                {isMoving && (
-                  <div
-                    className="h-1.5 w-1.5 animate-pulse rounded-full"
-                    style={{ backgroundColor: accent.color }}
-                  />
-                )}
-                {!isMoving && (
-                  <div
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{
-                      backgroundColor: isUnavailable ? '#ef4444' : isOpen ? '#34d399' : '#64748b',
-                      boxShadow: isOpen ? '0 0 6px rgba(52,211,153,0.5)' : 'none',
-                    }}
-                  />
-                )}
-                <span
-                  className="text-[10px] font-bold tracking-widest uppercase italic"
-                  style={{ color: accent.color }}
-                >
-                  {getStateLabel()}
-                </span>
-                {hasPosition && (
-                  <span
-                    className="border-l pl-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase italic"
-                    style={{ borderColor: 'var(--glass-border)' }}
-                  >
-                    {localPosition}%
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+                className="pointer-events-none absolute top-1/2 left-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-5 blur-[100px] transition-all duration-1000"
+                style={{ backgroundColor: accent.color }}
+              />
 
-          {/* Center: Interactive visual blind */}
-          <div className="relative z-10 my-2 flex min-h-[180px] flex-1 items-center justify-center md:my-4 md:min-h-[200px]">
-            <div className="flex h-52 w-40 flex-col items-center md:h-64 md:w-56">
-              <div className="w-full flex-1">
-                <InteractiveBlind
-                  position={localPosition}
-                  onPositionChange={supportsPosition ? handleSetPosition : undefined}
-                  accent={{ ...accent, text: accent.color }}
-                  disabled={isUnavailable || !supportsPosition}
-                  translate={translate}
-                />
-              </div>
-              <div className="mt-3 flex items-center gap-3">
-                <span
-                  className="text-[10px] font-bold tracking-widest uppercase opacity-50"
-                  style={{ color: accent.color }}
-                >
-                  {getDeviceTypeLabel()}
-                </span>
-                {supportsPosition && (
-                  <span className="font-mono text-sm font-bold" style={{ color: accent.color }}>
-                    {localPosition}%
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Quick action buttons */}
-          <div className="relative z-10 mx-auto w-full max-w-sm shrink-0">
-            <div className="flex w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1">
-              {supportsOpenClose && (
-                <button
-                  onClick={() =>
-                    !isUnavailable &&
-                    callService('cover', 'open_cover', { entity_id: activeEntityId })
-                  }
-                  disabled={isUnavailable}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold tracking-wider uppercase transition-all duration-300 ${isOpen ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                >
-                  <ChevronUp className="h-3.5 w-3.5" />
-                  <span>{translate('cover.open')}</span>
-                </button>
-              )}
-              {supportsStop && (
-                <button
-                  onClick={() =>
-                    !isUnavailable &&
-                    callService('cover', 'stop_cover', { entity_id: activeEntityId })
-                  }
-                  disabled={isUnavailable}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold tracking-wider text-[var(--text-secondary)] uppercase transition-all duration-300 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
-                >
-                  <div className="h-3 w-3 rounded-sm bg-current" />
-                  <span>{translate('cover.stop')}</span>
-                </button>
-              )}
-              {supportsOpenClose && (
-                <button
-                  onClick={() =>
-                    !isUnavailable &&
-                    callService('cover', 'close_cover', { entity_id: activeEntityId })
-                  }
-                  disabled={isUnavailable}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold tracking-wider uppercase transition-all duration-300 ${isClosed ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                >
-                  <ChevronDown className="h-3.5 w-3.5" />
-                  <span>{translate('cover.closed')}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT PANEL: Presets, Tilt, Info */}
-        <div className="flex h-full flex-col lg:col-span-2">
-          <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-4 md:space-y-8 md:p-8 lg:pt-16">
-            {/* Position Presets */}
-            {supportsPosition && (
-              <div className="space-y-2 md:space-y-3">
-                <label className="px-1 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                  {translate('cover.presets')}
-                </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {presets.map((preset) => (
-                    <button
-                      key={preset.value}
-                      onClick={() => !isUnavailable && handleSetPosition(preset.value)}
-                      disabled={isUnavailable}
-                      className={`rounded-xl border py-2.5 text-center text-[11px] font-bold tracking-wider uppercase transition-all duration-200 ${
-                        localPosition === preset.value
-                          ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm'
-                          : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
+              <div className="relative z-10 flex min-h-[180px] flex-1 items-center justify-center md:min-h-[200px]">
+                <div className="flex h-52 w-40 flex-col items-center md:h-64 md:w-56">
+                  <div className="w-full flex-1">
+                    <InteractiveBlind
+                      position={localPosition}
+                      onPositionChange={supportsPosition ? handleSetPosition : undefined}
+                      accent={{ ...accent, text: accent.color }}
+                      disabled={isUnavailable || !supportsPosition}
+                      translate={translate}
+                    />
+                  </div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <span className="modal-section-label">{getDeviceTypeLabel()}</span>
+                    {supportsPosition && (
+                      <span
+                        className="text-sm font-bold tabular-nums"
+                        style={{ color: accent.color }}
+                      >
+                        {localPosition}%
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Tilt Control */}
-            {(supportsTilt || supportsTiltPosition) && (
-              <div className="border-t border-[var(--glass-border)] pt-4 md:pt-6">
-                <div className="space-y-2 md:space-y-3">
-                  <div className="flex items-end justify-between px-1">
-                    <label className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                      {translate('cover.tilt')}
-                    </label>
-                    <span className="font-mono text-sm font-bold text-[var(--text-primary)]">
+              {(supportsOpenClose || supportsStop) && (
+                <div className="relative z-10 mx-auto flex w-full max-w-sm gap-2">
+                  {supportsOpenClose && (
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() =>
+                        !isUnavailable &&
+                        callService('cover', 'open_cover', { entity_id: activeEntityId })
+                      }
+                      disabled={isUnavailable}
+                      icon={<ChevronUp className="h-4 w-4" />}
+                    >
+                      {translate('cover.presetOpen')}
+                    </Button>
+                  )}
+                  {supportsStop && (
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() =>
+                        !isUnavailable &&
+                        callService('cover', 'stop_cover', { entity_id: activeEntityId })
+                      }
+                      disabled={isUnavailable}
+                      icon={<span className="h-3 w-3 rounded-sm bg-current" aria-hidden="true" />}
+                    >
+                      {translate('cover.stop')}
+                    </Button>
+                  )}
+                  {supportsOpenClose && (
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() =>
+                        !isUnavailable &&
+                        callService('cover', 'close_cover', { entity_id: activeEntityId })
+                      }
+                      disabled={isUnavailable}
+                      icon={<ChevronDown className="h-4 w-4" />}
+                    >
+                      {translate('cover.presetClosed')}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-6 lg:col-span-2">
+              {supportsPosition && (
+                <ModalSection label={translate('cover.position')}>
+                  <Segmented
+                    block
+                    ariaLabel={translate('cover.position')}
+                    value={localPosition}
+                    onChange={(value) => !isUnavailable && handleSetPosition(value)}
+                    options={presets.map((preset) => ({ ...preset, disabled: isUnavailable }))}
+                  />
+                </ModalSection>
+              )}
+
+              {(supportsTilt || supportsTiltPosition) && (
+                <ModalSection
+                  label={translate('cover.tilt')}
+                  action={
+                    <span className="text-sm font-bold text-[var(--text-primary)] tabular-nums">
                       {localTilt}%
                     </span>
-                  </div>
+                  }
+                  className={supportsPosition ? 'border-t border-[var(--glass-border)] pt-6' : ''}
+                >
                   <TiltVisual
                     tilt={localTilt}
                     onTiltChange={handleSetTilt}
@@ -591,76 +531,69 @@ export default function CoverModal({
                     disabled={isUnavailable}
                     translate={translate}
                   />
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {[
+                  <Segmented
+                    block
+                    ariaLabel={translate('cover.tilt')}
+                    value={localTilt}
+                    onChange={(value) => !isUnavailable && handleSetTilt(value)}
+                    options={[
                       { label: translate('cover.tiltClosed'), value: 0 },
                       { label: '50%', value: 50 },
                       { label: translate('cover.tiltOpen'), value: 100 },
-                    ].map((preset) => (
-                      <button
-                        key={preset.value}
-                        onClick={() => !isUnavailable && handleSetTilt(preset.value)}
-                        disabled={isUnavailable}
-                        className={`rounded-xl border py-2 text-center text-[11px] font-bold tracking-wider uppercase transition-all duration-200 ${
-                          localTilt === preset.value
-                            ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm'
-                            : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+                    ].map((preset) => ({ ...preset, disabled: isUnavailable }))}
+                  />
+                </ModalSection>
+              )}
 
-            {/* Entity Info */}
-            <div className="border-t border-[var(--glass-border)] pt-4 md:pt-6">
-              <h3 className="mb-2 pl-1 text-xs font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase md:mb-4">
-                {translate('cover.info')}
-              </h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-xs text-[var(--text-secondary)] opacity-70">
-                    {translate('cover.state')}
-                  </span>
-                  <span className="text-xs font-bold text-[var(--text-primary)]">
-                    {getStateLabel()}
-                  </span>
-                </div>
-                {hasPosition && (
+              <ModalSection
+                label={translate('cover.info')}
+                className={
+                  supportsPosition || supportsTilt || supportsTiltPosition
+                    ? 'border-t border-[var(--glass-border)] pt-6'
+                    : ''
+                }
+              >
+                <div className="space-y-2">
                   <div className="flex items-center justify-between px-1">
-                    <span className="text-xs text-[var(--text-secondary)] opacity-70">
-                      {translate('cover.position')}
+                    <span className="text-xs text-[var(--text-secondary)]">
+                      {translate('cover.state')}
                     </span>
                     <span className="text-xs font-bold text-[var(--text-primary)]">
-                      {position}%
+                      {getStateLabel()}
                     </span>
                   </div>
-                )}
-                {hasTilt && (
+                  {hasPosition && (
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs text-[var(--text-secondary)]">
+                        {translate('cover.position')}
+                      </span>
+                      <span className="text-xs font-bold text-[var(--text-primary)] tabular-nums">
+                        {position}%
+                      </span>
+                    </div>
+                  )}
+                  {hasTilt && (
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs text-[var(--text-secondary)]">
+                        {translate('cover.tilt')}
+                      </span>
+                      <span className="text-xs font-bold text-[var(--text-primary)] tabular-nums">
+                        {tiltPosition}%
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between px-1">
-                    <span className="text-xs text-[var(--text-secondary)] opacity-70">
-                      {translate('cover.tilt')}
+                    <span className="text-xs text-[var(--text-secondary)]">
+                      {translate('cover.deviceType')}
                     </span>
                     <span className="text-xs font-bold text-[var(--text-primary)]">
-                      {tiltPosition}%
+                      {getDeviceTypeLabel()}
                     </span>
                   </div>
-                )}
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-xs text-[var(--text-secondary)] opacity-70">
-                    {translate('cover.deviceType')}
-                  </span>
-                  <span className="text-xs font-bold text-[var(--text-primary)]">
-                    {getDeviceTypeLabel()}
-                  </span>
                 </div>
-              </div>
+              </ModalSection>
             </div>
-          </div>
-        </div>
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>

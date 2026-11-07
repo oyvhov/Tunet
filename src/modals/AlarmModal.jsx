@@ -10,11 +10,11 @@ import {
   Shield,
   Sun,
   Unlock,
-  X,
 } from '../icons';
 import { Icon as MdiIcon } from '@mdi/react';
 import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 
 const FEATURE_ARM_HOME = 1;
 const FEATURE_ARM_AWAY = 2;
@@ -97,57 +97,66 @@ function requiresCode(actionKey, entity) {
 }
 
 function getStateLabel(state, t) {
+  if (state === 'unavailable') return t('status.unavailable');
+  if (!state || state === 'unknown') return t('common.unknown');
   const key = `alarm.state.${state}`;
   const translated = t(key);
   if (translated !== key) return translated;
-  return state || t('common.unknown');
+  return state;
 }
 
+const BUSY_STATES = new Set(['arming', 'disarming', 'pending']);
+
+/** @returns {{ tone: import('../components/ui/ModalParts').StatusTone, [key: string]: any }} */
 function getStateVisual(state) {
   if (state === 'disarmed') {
     return {
       mdiPath: mdiShieldOff,
-      iconColor: '#3b82f6',
-      iconBgStyle: { backgroundColor: 'rgba(59, 130, 246, 0.2)' },
+      tone: 'neutral',
+      tileClassName: 'bg-[var(--accent-bg)] text-[var(--accent-color)]',
     };
   }
   if (state === 'armed_home') {
     return {
       mdiPath: mdiShieldHome,
-      iconColor: '#22c55e',
-      iconBgStyle: { backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+      tone: 'on',
+      tileClassName: 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]',
     };
   }
   if (state === 'armed_away') {
     return {
       mdiPath: mdiShieldLock,
-      iconColor: '#22c55e',
-      iconBgStyle: { backgroundColor: 'rgba(34, 197, 94, 0.2)' },
+      tone: 'on',
+      tileClassName: 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]',
+    };
+  }
+  if (typeof state === 'string' && state.startsWith('armed_')) {
+    return {
+      Icon: Lock,
+      tone: 'on',
+      tileClassName: 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]',
     };
   }
   if (state === 'triggered')
     return {
       Icon: AlertTriangle,
-      iconColor: 'var(--text-primary)',
-      iconBgStyle: { backgroundColor: 'var(--glass-bg)' },
+      tone: 'error',
+      tileClassName: 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]',
     };
-  if (state === 'arming' || state === 'disarming' || state === 'pending')
+  if (BUSY_STATES.has(state))
     return {
       Icon: RefreshCw,
-      iconColor: 'var(--text-primary)',
-      iconBgStyle: { backgroundColor: 'var(--glass-bg)' },
+      tone: 'warn',
+      tileClassName: 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]',
     };
-  if (state === 'unavailable' || state === 'unknown')
+  if (state === 'unavailable')
     return {
       Icon: AlertTriangle,
-      iconColor: 'var(--text-primary)',
-      iconBgStyle: { backgroundColor: 'var(--glass-bg)' },
+      tone: 'error',
+      tileClassName: 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]',
     };
-  return {
-    Icon: Lock,
-    iconColor: 'var(--text-primary)',
-    iconBgStyle: { backgroundColor: 'var(--glass-bg)' },
-  };
+  if (state === 'unknown') return { Icon: AlertTriangle, tone: 'neutral', tileClassName: '' };
+  return { Icon: Lock, tone: 'neutral', tileClassName: '' };
 }
 
 export default function AlarmModal({
@@ -193,6 +202,7 @@ export default function AlarmModal({
   const modalTitleId = `alarm-modal-title-${entityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
   const stateVisual = getStateVisual(state);
   const StateIcon = stateVisual.Icon || Lock;
+  const isBusyState = BUSY_STATES.has(state);
 
   useEffect(() => {
     if (!show) return;
@@ -254,198 +264,176 @@ export default function AlarmModal({
       open={show && !!entityId && !!entity}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size="l"
     >
       {() => (
         <>
-        <button
-          onClick={onClose}
-          className="modal-close absolute top-6 right-6 md:top-8 md:right-8"
-          aria-label={translate('common.close')}
-        >
-          <X className="h-4 w-4" />
-        </button>
+          <ModalHeader
+            title={name}
+            closeLabel={translate('common.close')}
+            onClose={onClose}
+            iconClassName={stateVisual.tileClassName}
+            icon={
+              stateVisual.mdiPath ? (
+                <MdiIcon
+                  path={stateVisual.mdiPath}
+                  size={1}
+                  color="currentColor"
+                  className={isBusyState ? 'animate-spin' : ''}
+                />
+              ) : (
+                <StateIcon className={isBusyState ? 'animate-spin' : ''} />
+              )
+            }
+            status={<StatusChip tone={stateVisual.tone} label={getStateLabel(state, translate)} />}
+          />
 
-        <div className="mb-6 flex items-center gap-4">
-          <div className="popup-surface rounded-2xl p-4" style={stateVisual.iconBgStyle}>
-            {stateVisual.mdiPath ? (
-              <MdiIcon
-                path={stateVisual.mdiPath}
-                size={1.2}
-                color={stateVisual.iconColor}
-                className={
-                  state === 'arming' || state === 'disarming' || state === 'pending'
-                    ? 'animate-spin'
-                    : ''
-                }
-              />
-            ) : (
-              <StateIcon
-                className={`h-7 w-7 ${state === 'arming' || state === 'disarming' || state === 'pending' ? 'animate-spin' : ''}`}
-                color={stateVisual.iconColor}
-                style={{ color: stateVisual.iconColor }}
-              />
-            )}
-          </div>
-          <div>
-            <h3 id={modalTitleId} className="text-2xl leading-none font-light tracking-tight uppercase italic">
-              {name}
-            </h3>
-            <p className="mt-2 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-              {translate('alarm.title')} · {getStateLabel(state, translate)}
-            </p>
-          </div>
-        </div>
+          <ModalBody>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+              <div className="popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 lg:col-span-3">
+                <h3 className="modal-section-label">{translate('alarm.modal.actions')}</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {actionButtons.map((action) => {
+                    const needsCode = requiresCode(action.key, entity);
+                    const disabled =
+                      !!busyAction || isUnavailable || (unsupportedCode && needsCode);
+                    const isBusy = busyAction === action.key;
+                    const isSelected = selectedAction === action.key;
+                    return (
+                      <button
+                        key={action.key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAction(action.key);
+                          setError('');
+                        }}
+                        disabled={disabled}
+                        aria-pressed={isSelected}
+                        className="w-full rounded-2xl border p-3 text-left transition-colors disabled:opacity-50"
+                        style={
+                          selectedAction === action.key
+                            ? {
+                                backgroundColor: 'var(--accent-bg)',
+                                borderColor: 'var(--accent-color)',
+                                color: 'var(--accent-color)',
+                              }
+                            : {
+                                backgroundColor: 'var(--glass-bg)',
+                                borderColor: 'var(--glass-border)',
+                                color: 'var(--text-primary)',
+                              }
+                        }
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
+                            <action.icon className="h-4 w-4" />
+                            {translate(action.labelKey)}
+                          </span>
+                          {isBusy ? (
+                            <span className="text-[11px] tracking-[0.12em] uppercase">
+                              {translate('common.loading')}
+                            </span>
+                          ) : isSelected ? (
+                            <Check className="h-5 w-5" />
+                          ) : null}
+                        </div>
+                        {needsCode && (
+                          <p className="mt-1 text-[11px] tracking-[0.08em] uppercase opacity-80">
+                            {translate('alarm.pin.required')}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {actionButtons.length === 0 && (
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    {translate('alarm.modal.noActions')}
+                  </p>
+                )}
+              </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="popup-surface space-y-4 rounded-3xl p-5 lg:col-span-3">
-            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-              {translate('alarm.modal.actions')}
-            </p>
-            <div className="grid grid-cols-1 gap-3">
-              {actionButtons.map((action) => {
-                const needsCode = requiresCode(action.key, entity);
-                const disabled = !!busyAction || isUnavailable || (unsupportedCode && needsCode);
-                const isBusy = busyAction === action.key;
-                const isSelected = selectedAction === action.key;
-                return (
-                  <button
-                    key={action.key}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAction(action.key);
-                      setError('');
-                    }}
-                    disabled={disabled}
-                    className="w-full rounded-2xl border p-3 text-left transition-colors disabled:opacity-50"
-                    style={
-                      selectedAction === action.key
-                        ? {
-                            backgroundColor: 'var(--accent-bg)',
-                            borderColor: 'var(--accent-color)',
-                            color: 'var(--accent-color)',
-                          }
-                        : {
-                            backgroundColor: 'var(--glass-bg)',
-                            borderColor: 'var(--glass-border)',
-                            color: 'var(--text-primary)',
-                          }
+              <div className="popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 lg:col-span-2">
+                <h3 className="modal-section-label">{translate('alarm.pin.title')}</h3>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={pin}
+                  onChange={(event) => {
+                    setPin(event.target.value.replace(/\D/g, '').slice(0, 12));
+                    if (error) setError('');
+                  }}
+                  placeholder={translate('alarm.pin.placeholder')}
+                  className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.12em] text-[var(--text-primary)] outline-none"
+                />
+
+                <div className="grid grid-cols-3 gap-3">
+                  {keypadDigits.map((digit, index) => {
+                    if (digit === '⌫') {
+                      return (
+                        <button
+                          key={`undo-${index}`}
+                          type="button"
+                          onClick={() => setPin((value) => value.slice(0, -1))}
+                          className="h-14 rounded-2xl bg-[var(--glass-bg)] text-xl font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
+                        >
+                          {digit}
+                        </button>
+                      );
                     }
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-2 text-sm font-semibold tracking-wide uppercase">
-                        <action.icon className="h-4 w-4" />
-                        {translate(action.labelKey)}
-                      </span>
-                      {isBusy ? (
-                        <span className="text-[10px] tracking-widest uppercase">
-                          {translate('common.loading')}
-                        </span>
-                      ) : isSelected ? (
-                        <Check className="h-5 w-5" />
-                      ) : null}
-                    </div>
-                    {needsCode && (
-                      <p className="mt-1 text-[10px] tracking-wider uppercase opacity-80">
-                        {translate('alarm.pin.required')}
-                      </p>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {actionButtons.length === 0 && (
-              <p className="text-sm text-[var(--text-secondary)]">
-                {translate('alarm.modal.noActions')}
-              </p>
-            )}
-          </div>
+                    if (digit === '✓') {
+                      return (
+                        <button
+                          key="ok"
+                          type="button"
+                          onClick={runSelectedAction}
+                          className="h-14 rounded-2xl bg-[var(--accent-bg)] text-2xl font-semibold text-[var(--accent-color)]"
+                        >
+                          {digit}
+                        </button>
+                      );
+                    }
+                    return (
+                      <button
+                        key={digit}
+                        type="button"
+                        onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
+                        className="h-14 rounded-2xl bg-[var(--glass-bg)] text-2xl font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
+                      >
+                        {digit}
+                      </button>
+                    );
+                  })}
+                </div>
 
-          <div className="popup-surface space-y-4 rounded-3xl p-5 lg:col-span-2">
-            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-              {translate('alarm.pin.title')}
-            </p>
-            <input
-              type="password"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={pin}
-              onChange={(event) => {
-                setPin(event.target.value.replace(/\D/g, '').slice(0, 12));
-                if (error) setError('');
-              }}
-              placeholder={translate('alarm.pin.placeholder')}
-              className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.35em] text-[var(--text-primary)] outline-none"
-            />
-
-            <div className="grid grid-cols-3 gap-3">
-              {keypadDigits.map((digit, index) => {
-                if (digit === '⌫') {
-                  return (
-                    <button
-                      key={`undo-${index}`}
-                      type="button"
-                      onClick={() => setPin((value) => value.slice(0, -1))}
-                      className="h-14 rounded-2xl bg-[var(--glass-bg)] text-xl font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
-                    >
-                      {digit}
-                    </button>
-                  );
-                }
-                if (digit === '✓') {
-                  return (
-                    <button
-                      key="ok"
-                      type="button"
-                      onClick={runSelectedAction}
-                      className="h-14 rounded-2xl bg-[var(--accent-bg)] text-2xl font-semibold text-[var(--accent-color)]"
-                    >
-                      {digit}
-                    </button>
-                  );
-                }
-                return (
-                  <button
-                    key={digit}
-                    type="button"
-                    onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
-                    className="h-14 rounded-2xl bg-[var(--glass-bg)] text-2xl font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
-                  >
-                    {digit}
-                  </button>
-                );
-              })}
+                {selectedActionMeta && (
+                  <p className="text-center text-[11px] font-bold tracking-[0.12em] text-[var(--text-secondary)] uppercase">
+                    {translate(selectedActionMeta.labelKey)}
+                  </p>
+                )}
+              </div>
             </div>
 
-            {selectedActionMeta && (
-              <p className="text-center text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                {translate(selectedActionMeta.labelKey)}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-2 text-sm text-[var(--text-secondary)]">
-          {entity.attributes?.changed_by && (
-            <p>
-              {translate('alarm.changedBy')}: {entity.attributes.changed_by}
-            </p>
-          )}
-          {unsupportedCode && (
-            <p className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              {translate('alarm.code.numberOnlyHint')}
-            </p>
-          )}
-          {error && <p className="text-[var(--text-primary)]">{error}</p>}
-        </div>
+            <div className="mt-5 space-y-2 text-sm text-[var(--text-secondary)]">
+              {entity.attributes?.changed_by && (
+                <p>
+                  {translate('alarm.changedBy')}: {entity.attributes.changed_by}
+                </p>
+              )}
+              {unsupportedCode && (
+                <p className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  {translate('alarm.code.numberOnlyHint')}
+                </p>
+              )}
+              {error && (
+                <p role="alert" className="text-[var(--status-error-fg)]">
+                  {error}
+                </p>
+              )}
+            </div>
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>

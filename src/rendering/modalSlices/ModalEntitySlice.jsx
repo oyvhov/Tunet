@@ -15,6 +15,7 @@ const CameraModal = lazy(() => import('../../modals/CameraModal'));
 const WeatherModal = lazy(() => import('../../modals/WeatherModal'));
 const LeafModal = lazy(() => import('../../modals/LeafModal'));
 const LightModal = lazy(() => import('../../modals/LightModal'));
+const LockModal = lazy(() => import('../../modals/LockModal'));
 const NordpoolModal = lazy(() => import('../../modals/NordpoolModal'));
 const PersonModal = lazy(() => import('../../modals/PersonModal'));
 const SensorModal = lazy(() => import('../../modals/SensorModal'));
@@ -496,6 +497,22 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
             typeof showSensorInfoModal === 'string'
               ? { entityId: showSensorInfoModal }
               : showSensorInfoModal;
+          if (String(target.entityId || '').startsWith('lock.')) {
+            return (
+              <ModalSuspense>
+                <LockModal
+                  onClose={() => setShowSensorInfoModal(null)}
+                  entityId={target.entityId}
+                  entity={entities[target.entityId]}
+                  customName={customNames[target.cardId || target.entityId]}
+                  customIcon={customIcons?.[target.entityId]}
+                  conn={conn}
+                  callService={callService}
+                  t={t}
+                />
+              </ModalSuspense>
+            );
+          }
           return (
             <ModalSuspense>
               <SensorModal

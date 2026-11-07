@@ -166,10 +166,9 @@ export function usePageManagement({
       defaultSlug: 'room_explorer',
     });
 
-  // ── Delete a page ──────────────────────────────────────────────────────
+  // ── Delete a page (the caller confirms first) ─────────────────────────
   const deletePage = (pageId: string) => {
     if (!pageId || pageId === 'home') return;
-    if (!window.confirm(t('confirm.deletePage'))) return;
 
     const newConfig = { ...pagesConfig };
     newConfig.pages = (newConfig.pages || []).filter((id) => id !== pageId);

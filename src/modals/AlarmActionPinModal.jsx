@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Home, LogOut, Moon, Shield, Sun, Unlock, X } from '../icons';
-import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { Home, LogOut, Moon, Shield, Sun, Unlock } from '../icons';
+import AccessibleModalShell, { hasCoarsePointerOnly } from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
 
 const ACTION_META = {
   arm_home: { labelKey: 'alarm.action.armHome', icon: Home, service: 'alarm_arm_home' },
@@ -101,7 +102,8 @@ export default function AlarmActionPinModal({
   }, [actionMeta, entityId, submitting, needsCode, pin, callService, onClose, translate]);
 
   useEffect(() => {
-    if (!show) return;
+    // Touch devices use the on-screen keypad, so skip the system keyboard.
+    if (!show || hasCoarsePointerOnly()) return;
     const timer = setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -123,94 +125,84 @@ export default function AlarmActionPinModal({
       open={show && !!actionMeta && !!entityId && !!entity}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative w-full max-w-md rounded-3xl border p-6 font-sans backdrop-blur-xl"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size="s"
+      nested
     >
       {() => (
         <>
-        <button onClick={onClose} className="modal-close absolute top-4 right-4" aria-label={translate('common.close')}>
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="mb-4 flex items-center gap-3">
-          <div className="popup-surface rounded-2xl border border-[var(--glass-border)] p-3">
-            <ActionIcon className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-              {translate('alarm.modal.actions')}
-            </p>
-            <p id={modalTitleId} className="text-sm font-semibold tracking-wide uppercase">
-              {translate(actionMeta.labelKey)}
-            </p>
-          </div>
-        </div>
-
-        <div className="popup-surface space-y-3 rounded-2xl p-4">
-          <input
-            ref={inputRef}
-            type="password"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={pin}
-            onChange={(event) => {
-              setPin(event.target.value.replace(/\D/g, '').slice(0, 12));
-              if (error) setError('');
-            }}
-            placeholder={translate('alarm.pin.placeholder')}
-            className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.35em] text-[var(--text-primary)] outline-none"
+          <ModalHeader
+            title={translate(actionMeta.labelKey)}
+            closeLabel={translate('common.close')}
+            onClose={onClose}
+            icon={<ActionIcon />}
+            subtitle={entity?.attributes?.friendly_name || translate('alarm.title')}
           />
 
-          <div className="grid grid-cols-3 gap-3">
-            {keypadDigits.map((digit, index) => {
-              if (digit === '⌫') {
-                return (
-                  <button
-                    key={`undo-${index}`}
-                    type="button"
-                    onClick={() => setPin((value) => value.slice(0, -1))}
-                    className="h-14 rounded-2xl bg-[var(--glass-bg)] text-xl font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
-                  >
-                    {digit}
-                  </button>
-                );
-              }
+          <ModalBody>
+            <div className="popup-surface space-y-3 rounded-[var(--modal-surface-radius)] p-4">
+              <input
+                ref={inputRef}
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={pin}
+                onChange={(event) => {
+                  setPin(event.target.value.replace(/\D/g, '').slice(0, 12));
+                  if (error) setError('');
+                }}
+                placeholder={translate('alarm.pin.placeholder')}
+                className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.12em] text-[var(--text-primary)] outline-none"
+              />
 
-              if (digit === '✓') {
-                return (
-                  <button
-                    key="ok"
-                    type="button"
-                    onClick={submit}
-                    disabled={submitting}
-                    className="h-14 rounded-2xl bg-[var(--accent-bg)] text-2xl font-semibold text-[var(--accent-color)] disabled:opacity-50"
-                  >
-                    {digit}
-                  </button>
-                );
-              }
+              <div className="grid grid-cols-3 gap-3">
+                {keypadDigits.map((digit, index) => {
+                  if (digit === '⌫') {
+                    return (
+                      <button
+                        key={`undo-${index}`}
+                        type="button"
+                        onClick={() => setPin((value) => value.slice(0, -1))}
+                        className="h-14 rounded-2xl bg-[var(--glass-bg)] text-xl font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
+                      >
+                        {digit}
+                      </button>
+                    );
+                  }
 
-              return (
-                <button
-                  key={digit}
-                  type="button"
-                  onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
-                  className="h-14 rounded-2xl bg-[var(--glass-bg)] text-2xl font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
-                >
-                  {digit}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                  if (digit === '✓') {
+                    return (
+                      <button
+                        key="ok"
+                        type="button"
+                        onClick={submit}
+                        disabled={submitting}
+                        className="h-14 rounded-2xl bg-[var(--accent-bg)] text-2xl font-semibold text-[var(--accent-color)] disabled:opacity-50"
+                      >
+                        {digit}
+                      </button>
+                    );
+                  }
 
-        {error && <p className="mt-3 text-sm text-[var(--text-primary)]">{error}</p>}
+                  return (
+                    <button
+                      key={digit}
+                      type="button"
+                      onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
+                      className="h-14 rounded-2xl bg-[var(--glass-bg)] text-2xl font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
+                    >
+                      {digit}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {error && (
+              <p role="alert" className="mt-3 text-sm text-[var(--status-error-fg)]">
+                {error}
+              </p>
+            )}
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>
