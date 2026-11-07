@@ -294,6 +294,37 @@ describe('useAddCard › picks per card type', () => {
     expect(result.current.selectedEntities).toEqual([]);
   });
 
+  it('adds room cards in the same save as the picked lights', () => {
+    const props = makeProps({ showAddCardModal: true });
+    handleAddSelected.mockImplementationOnce((ctx) =>
+      ctx.persistConfig({
+        ...ctx.pagesConfig,
+        home: [...ctx.pagesConfig.home, ...ctx.selectedEntities],
+      })
+    );
+    const { result } = renderHook(() => useAddCard(props));
+
+    act(() => result.current.setSelectedEntities(['light.hall']));
+    act(() => result.current.setAddCardType('room'));
+    act(() =>
+      result.current.onAddSelected({
+        addRooms: (config, settings) => ({
+          config: { ...config, home: [...config.home, 'room_card_kitchen'] },
+          settings,
+        }),
+      })
+    );
+
+    expect(handleAddSelected).toHaveBeenCalledWith(
+      expect.objectContaining({ addCardType: 'light', selectedEntities: ['light.hall'] })
+    );
+    expect(props.persistConfig).toHaveBeenCalledTimes(1);
+    expect(props.persistConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ home: ['light.hall', 'room_card_kitchen'] })
+    );
+    expect(props.setShowAddCardModal).toHaveBeenCalledWith(false);
+  });
+
   it('uses the mower label for the mower type', () => {
     const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
     act(() => result.current.setAddCardType('mower'));

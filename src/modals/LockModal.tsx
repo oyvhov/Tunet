@@ -121,6 +121,9 @@ export default function LockModal({
   const codeFormat = attributes.code_format;
   const requiresCode =
     typeof codeFormat === 'string' && !!codeFormat.trim() && codeFormat !== 'none';
+  // Only a digits-only format (e.g. ^\d{4}$) gets the number pad on touch devices.
+  const numericCode =
+    requiresCode && /^\^?(\\d|\[0-9\])(\{\d+(,\d*)?\}|[+*])?\$?$/.test(codeFormat.trim());
 
   const name =
     customName ||
@@ -209,7 +212,7 @@ export default function LockModal({
                   <span className="modal-section-label">{t('lock.code.prompt')}</span>
                   <input
                     type="password"
-                    inputMode="numeric"
+                    inputMode={numericCode ? 'numeric' : 'text'}
                     autoComplete="off"
                     value={code}
                     onChange={(event) => setCode(event.target.value)}
@@ -219,7 +222,7 @@ export default function LockModal({
               )}
 
               <div className="flex w-full max-w-xs flex-col gap-2">
-                {isUnlocked || isOpen || isJammed ? (
+                {(isUnlocked || isOpen || isJammed) && (
                   <Button
                     variant="primary"
                     block
@@ -229,7 +232,9 @@ export default function LockModal({
                   >
                     {t('lock.action.lock')}
                   </Button>
-                ) : (
+                )}
+                {/* A jam can happen either way, so a jammed lock offers both. */}
+                {!isUnlocked && !isOpen && (
                   <Button
                     variant={confirmUnlock ? 'destructive' : 'secondary'}
                     block

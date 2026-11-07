@@ -99,10 +99,12 @@
 }
 [data-modal-state='closing'] {
   animation: modalScrimOut 0.16s ease-in forwards;
-  pointer-events: none;
 }
+/* The scrim keeps catching clicks until it unmounts, so nothing underneath
+   is hit while the popup fades out; only the panel stops reacting. */
 [data-modal-state='closing'] .popup-anim {
   animation: popupOut 0.16s ease-in forwards;
+  pointer-events: none;
 }
 .fade-in-anim {
   animation: fadeIn 0.4s ease-out forwards;
@@ -331,7 +333,8 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-height: min(calc(100dvh - 1rem), 880px);
+    /* 100% is the overlay minus its padding (safe areas, top placement). */
+    max-height: min(100%, 880px);
     overflow: hidden;
     border-radius: var(--modal-radius);
     border: 1px solid var(--glass-border);
@@ -341,7 +344,7 @@
   }
   @media (min-width: 640px) {
     .modal-panel {
-      max-height: min(90dvh, 880px);
+      max-height: min(90dvh, 880px, 100%);
     }
   }
   .modal-panel--s {

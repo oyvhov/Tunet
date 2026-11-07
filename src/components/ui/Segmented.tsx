@@ -52,7 +52,7 @@ export default function Segmented<V extends string | number>({
     refs.current[target.index]?.focus();
   };
 
-  const selectedIndex = options.findIndex((option) => option.value === value);
+  const selectedIndex = options.findIndex((option) => option.value === value && !option.disabled);
   const focusIndex = selectedIndex >= 0 ? selectedIndex : (enabled[0]?.index ?? 0);
 
   return (

@@ -1,6 +1,7 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Segmented from '../components/ui/Segmented';
 import { formatRelativeTime } from '../utils/formatting';
@@ -131,6 +132,24 @@ describe('AccessibleModalShell', () => {
     expect(overlay).toHaveAttribute('data-modal-state', 'open');
   });
 
+  it('renders a nested popup outside the parent panel', () => {
+    render(
+      <AccessibleModalShell open onClose={vi.fn()} size="l">
+        {() => (
+          <>
+            <ModalHeader title="Alarm" closeLabel="Close alarm" />
+            <AccessibleModalShell open onClose={vi.fn()} size="s" nested>
+              {() => <ModalHeader title="PIN" closeLabel="Close PIN" />}
+            </AccessibleModalShell>
+          </>
+        )}
+      </AccessibleModalShell>
+    );
+    const [outer, inner] = screen.getAllByRole('dialog');
+    expect(outer.contains(inner)).toBe(false);
+    expect(inner.parentElement?.parentElement).toBe(document.body);
+  });
+
   it('keeps legacy class names when no size is given', () => {
     render(
       <AccessibleModalShell
@@ -177,6 +196,35 @@ describe('Segmented', () => {
     expect(screen.getByRole('radio', { name: '6 h' })).toHaveAttribute('aria-checked', 'false');
     fireEvent.keyDown(selected, { key: 'ArrowRight' });
     expect(onChange).toHaveBeenCalledWith('7d');
+  });
+
+  it('keeps an enabled option in the tab order when the selected one is disabled', () => {
+    render(
+      <Segmented
+        ariaLabel="Range"
+        value="6h"
+        onChange={vi.fn()}
+        options={[
+          { value: '6h', label: '6 h', disabled: true },
+          { value: '24h', label: '24 h' },
+        ]}
+      />
+    );
+    expect(screen.getByRole('radio', { name: '24 h' })).toHaveAttribute('tabindex', '0');
+  });
+});
+
+describe('useConfirmDialog', () => {
+  it('answers false when the host unmounts with a question open', async () => {
+    const { result, unmount } = renderHook(() =>
+      useConfirmDialog({ cancel: 'Cancel', close: 'Close' })
+    );
+    let answer: Promise<boolean> | undefined;
+    act(() => {
+      answer = result.current.confirm({ title: 'Delete?', confirmLabel: 'Delete' });
+    });
+    unmount();
+    await expect(answer).resolves.toBe(false);
   });
 });
 

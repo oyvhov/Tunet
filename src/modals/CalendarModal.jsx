@@ -156,10 +156,19 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
                   onClick={() => setShowCalendarPicker((current) => !current)}
                   aria-expanded={showCalendarPicker}
                   aria-controls="calendar-picker-panel"
+                  aria-label={
+                    showCalendarPicker
+                      ? translate('common.hide')
+                      : translate('calendar.selectCalendars')
+                  }
                 >
-                  {showCalendarPicker
-                    ? translate('common.hide')
-                    : translate('calendar.selectCalendars')}
+                  {/* Phones get the icon only, so a long label never pushes out the close button. */}
+                  <Calendar className="h-4 w-4 sm:hidden" aria-hidden="true" />
+                  <span className="hidden sm:inline">
+                    {showCalendarPicker
+                      ? translate('common.hide')
+                      : translate('calendar.selectCalendars')}
+                  </span>
                   {showCalendarPicker ? <ChevronUp /> : <ChevronDown />}
                 </Button>
               ) : null
