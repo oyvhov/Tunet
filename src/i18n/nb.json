@@ -1702,5 +1702,19 @@
   "remote.select": "Velg",
   "shield.menu": "Meny",
   "room.noClimateControl": "Kun temperatursensor",
-  "room.popupOtherIncluded": "Andre inkluderte enheter"
+  "room.popupOtherIncluded": "Andre inkluderte enheter",
+  "statusPills.typeAlarm": "Alarm",
+  "statusPills.previewFilteredOut": "Filtrert bort",
+  "statusPills.previewTotal": "Totalt",
+  "statusPills.previewSearchPlayer": "Finn spiller i forhåndsvisning",
+  "statusPills.previewShowList": "Vis liste",
+  "statusPills.previewHideList": "Skjul liste",
+  "statusPills.previewIn": "Med",
+  "statusPills.previewOut": "Ute",
+  "statusPills.previewNoPlayers": "Ingen spillere passer til søket.",
+  "statusPills.previewShowingFirst": "Viser de første {shown} av {total} spillere.",
+  "addCard.available.mowers": "Tilgjengelige gressklippere",
+  "addCard.item.mowers": "gressklippere",
+  "page.type": "Sidetype",
+  "page.typeStandard": "Standard"
 }

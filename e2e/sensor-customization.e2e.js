@@ -24,7 +24,7 @@ const openEditor = async (page, id) => {
 };
 
 const closeEditor = async (page, editor) => {
-  await editor.getByRole('button', { name: 'OK', exact: true }).click();
+  await editor.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(editor).not.toBeVisible();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
 };

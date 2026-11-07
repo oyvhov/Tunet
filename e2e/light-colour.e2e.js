@@ -133,7 +133,8 @@ for (const theme of ['dark', 'light']) {
     await expect(toggle).toHaveAttribute('aria-checked', 'false');
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-checked', 'true');
-    await modal.getByRole('button', { name: 'OK', exact: true }).click();
+    await modal.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(modal).toBeHidden();
     await page.getByRole('button', { name: 'Done', exact: true }).first().click();
     await expect(power).toHaveCSS('--light-color', 'rgb(70, 140, 255)');
     await page.reload();
@@ -202,7 +203,8 @@ for (const theme of ['dark', 'light']) {
     await enterEdit();
     await expect(toggle).toHaveAttribute('aria-checked', 'true');
     await toggle.click();
-    await modal.getByRole('button', { name: 'OK', exact: true }).click();
+    await modal.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(modal).toBeHidden();
     await page.getByRole('button', { name: 'Done', exact: true }).first().click();
     await page.reload();
     await expect(power).not.toHaveCSS('--light-color', 'rgb(70, 140, 255)');

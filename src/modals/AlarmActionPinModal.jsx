@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, LogOut, Moon, Shield, Sun, Unlock } from '../icons';
-import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import AccessibleModalShell, { hasCoarsePointerOnly } from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
 
 const ACTION_META = {
@@ -102,7 +102,8 @@ export default function AlarmActionPinModal({
   }, [actionMeta, entityId, submitting, needsCode, pin, callService, onClose, translate]);
 
   useEffect(() => {
-    if (!show) return;
+    // Touch devices use the on-screen keypad, so skip the system keyboard.
+    if (!show || hasCoarsePointerOnly()) return;
     const timer = setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();

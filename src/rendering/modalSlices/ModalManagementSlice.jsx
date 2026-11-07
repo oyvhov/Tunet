@@ -98,6 +98,7 @@ export function ModalManagementSlice({
     selectedSpacerVariant,
     setSelectedSpacerVariant,
     onAddSelected,
+    pendingAddCount,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
   } = addCard;
@@ -156,7 +157,32 @@ export function ModalManagementSlice({
             setNordpoolDecimals={setNordpoolDecimals}
             selectedSpacerVariant={selectedSpacerVariant}
             setSelectedSpacerVariant={setSelectedSpacerVariant}
-            onAddSelected={onAddSelected}
+            onAddSelected={(options) => {
+              const rooms = options?.rooms;
+              if (!rooms) {
+                onAddSelected(options);
+                return;
+              }
+              onAddSelected({
+                spacerVariant: options.spacerVariant,
+                addRooms: (config, settings) => {
+                  const payload = buildRoomCardsPayload({
+                    areas: rooms.areas,
+                    areaEntitiesById: rooms.areaEntitiesById,
+                    pagesConfig: config,
+                    addCardTargetPage,
+                    cardSettings: settings,
+                    getCardSettingsKey,
+                  });
+                  if (!payload) return null;
+                  payload.customNames.forEach(({ cardId, name }) => {
+                    saveCustomName(cardId, name);
+                  });
+                  return { config: payload.newConfig, settings: payload.newSettings };
+                },
+              });
+            }}
+            pendingAddCount={pendingAddCount}
             onAddRoom={(areas, areaEntitiesById) => {
               const payload = buildRoomCardsPayload({
                 areas,

@@ -53,7 +53,7 @@ export default function SensorCardPreview({
         </button>
       </div>
       <div id={bodyId} className={`${open ? 'block' : 'hidden'} lg:block`}>
-        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
           {t('sensor.custom.previewHint')}
         </p>
         <div

@@ -1702,5 +1702,19 @@
   "remote.select": "Auswählen",
   "shield.menu": "Menü",
   "room.noClimateControl": "Nur Temperatursensor",
-  "room.popupOtherIncluded": "Weitere enthaltene Entitäten"
+  "room.popupOtherIncluded": "Weitere enthaltene Entitäten",
+  "statusPills.typeAlarm": "Alarm",
+  "statusPills.previewFilteredOut": "Herausgefiltert",
+  "statusPills.previewTotal": "Gesamt",
+  "statusPills.previewSearchPlayer": "Player in der Vorschau suchen",
+  "statusPills.previewShowList": "Liste anzeigen",
+  "statusPills.previewHideList": "Liste ausblenden",
+  "statusPills.previewIn": "Drin",
+  "statusPills.previewOut": "Draußen",
+  "statusPills.previewNoPlayers": "Keine Player passen zur Suche.",
+  "statusPills.previewShowingFirst": "Zeige die ersten {shown} von {total} Playern.",
+  "addCard.available.mowers": "Verfügbare Mähroboter",
+  "addCard.item.mowers": "Mähroboter",
+  "page.type": "Seitentyp",
+  "page.typeStandard": "Standard"
 }

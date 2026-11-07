@@ -27,4 +27,33 @@ test.describe('Apple TV card creation', () => {
     await dialog.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(page.locator('[data-card-id^="appletv_card_"]')).toHaveCount(1);
   });
+
+  test('keeps picks per card type and adds them all at once', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.getByTestId('settings-dropdown-trigger').click();
+    await page.getByTestId('settings-menu-add-card').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('button', { name: 'OK', exact: true })).toHaveCount(0);
+
+    const kitchen = dialog.getByRole('button', { name: /Kitchen Light/ });
+    await kitchen.click();
+    await expect(kitchen).toHaveAttribute('aria-pressed', 'true');
+
+    await dialog.getByRole('button', { name: 'Apple TV', exact: true }).click();
+    await dialog.getByText('Gaute TV', { exact: false }).first().click();
+
+    const lightType = dialog.getByRole('button', { name: 'Light', exact: true });
+    await lightType.click();
+    await expect(lightType).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.getByRole('button', { name: 'Apple TV', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    await expect(kitchen).toHaveAttribute('aria-pressed', 'true');
+
+    await dialog.getByRole('button', { name: 'Add 2 cards', exact: true }).click();
+    await expect(page.locator('[data-card-id="light.kitchen"]')).toHaveCount(1);
+    await expect(page.locator('[data-card-id^="appletv_card_"]')).toHaveCount(1);
+  });
 });

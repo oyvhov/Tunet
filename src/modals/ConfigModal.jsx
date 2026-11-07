@@ -3,6 +3,9 @@ import PropTypes from 'prop-types';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import Button from '../components/ui/Button';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
+import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
 import { hasOAuthTokens } from '../services/oauthStorage';
 import MusicAssistantUrlField from './MusicAssistantUrlField';
@@ -252,9 +255,7 @@ export default function ConfigModal({
 
   const renderAuthMethodToggle = (showRecommended = false) => (
     <div className="space-y-2">
-      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-        {t('system.authMethod')}
-      </label>
+      <label className="modal-section-label ml-1">{t('system.authMethod')}</label>
       <div className="flex gap-2">
         <button
           type="button"
@@ -268,7 +269,7 @@ export default function ConfigModal({
           <LogIn className="h-3.5 w-3.5" />
           OAuth2
           {showRecommended && (
-            <span className="absolute -top-2 -right-1 rounded-full bg-[var(--status-success-bg)] px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-[var(--status-success-fg)] uppercase shadow-sm">
+            <span className="absolute -top-2 -right-1 rounded-full bg-[var(--status-success-bg)] px-1.5 py-0.5 text-[11px] font-bold tracking-wider text-[var(--status-success-fg)] uppercase shadow-sm">
               {t('onboarding.recommended')}
             </span>
           )}
@@ -314,27 +315,27 @@ export default function ConfigModal({
             <Check className="h-4 w-4" />
             <span className="text-sm font-bold">{t('system.oauth.authenticated')}</span>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="destructive"
+            block
             onClick={handleOAuthLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--status-error-border)] bg-[var(--status-error-bg)] py-2.5 text-sm font-bold tracking-widest text-[var(--status-error-fg)] uppercase transition-all hover:opacity-90"
+            icon={<LogOut className="h-4 w-4" />}
           >
-            <LogOut className="h-4 w-4" />
             {t('system.oauth.logoutButton')}
-          </button>
+          </Button>
         </div>
       );
     } else {
       oauthContent = (
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          block
           onClick={() => startOAuthLogin(oauthUrlDraft)}
           disabled={!cleanDraftUrl || !validateUrl(cleanDraftUrl)}
-          className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold tracking-widest uppercase shadow-lg transition-all ${!cleanDraftUrl || !validateUrl(cleanDraftUrl) ? 'cursor-not-allowed bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50' : 'bg-[var(--accent-color)] text-white hover:bg-[var(--accent-color)] '}`}
+          icon={<LogIn className="h-5 w-5" />}
         >
-          <LogIn className="h-5 w-5" />
           {t('system.oauth.loginButton')}
-        </button>
+        </Button>
       );
     }
 
@@ -371,17 +372,15 @@ export default function ConfigModal({
         <div className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3">
           <UserCircle2 className="h-5 w-5 text-[var(--accent-color)]" />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold text-[var(--text-muted)] uppercase">
-              {t('system.loggedInAs')}
-            </span>
+            <span className="modal-section-label">{t('system.loggedInAs')}</span>
             <span className="text-sm font-bold text-[var(--text-primary)]">{haUser.name}</span>
             {haUser.is_owner && (
-              <span className="rounded border border-purple-500/20 bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-purple-400 uppercase">
+              <span className="rounded border border-purple-500/20 bg-purple-500/15 px-2 py-0.5 text-[11px] font-bold tracking-wider text-purple-400 uppercase">
                 {t('system.userRole.owner')}
               </span>
             )}
             {haUser.is_admin && !haUser.is_owner && (
-              <span className="rounded border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-0.5 text-[10px] font-bold tracking-wider text-[var(--accent-color)] uppercase">
+              <span className="rounded border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-0.5 text-[11px] font-bold tracking-wider text-[var(--accent-color)] uppercase">
                 {t('system.userRole.admin')}
               </span>
             )}
@@ -391,12 +390,12 @@ export default function ConfigModal({
 
       {/* URL — always shown */}
       <div className="space-y-3">
-        <label className="ml-1 flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase">
+        <label className="modal-section-label ml-1 flex items-center gap-2">
           <Wifi className="h-4 w-4" />
           {t('system.haUrlPrimary')}
           {connected &&
             activeUrl === (isOAuth ? oauthUrlDraft.trim().replace(/\/$/, '') : config.url) && (
-              <span className="rounded bg-[var(--status-success-bg)] px-2 py-0.5 text-[10px] tracking-widest text-[var(--status-success-fg)]">
+              <span className="rounded bg-[var(--status-success-bg)] px-2 py-0.5 text-[11px] tracking-widest text-[var(--status-success-fg)]">
                 {t('system.connected')}
               </span>
             )}
@@ -433,11 +432,11 @@ export default function ConfigModal({
       {!isOAuth && (
         <>
           <div className="space-y-3">
-            <label className="ml-1 flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase">
+            <label className="modal-section-label ml-1 flex items-center gap-2">
               <Server className="h-4 w-4" />
               {t('system.haUrlFallback')}
               {connected && activeUrl === config.fallbackUrl && (
-                <span className="rounded bg-[var(--status-success-bg)] px-2 py-0.5 text-[10px] tracking-widest text-[var(--status-success-fg)]">
+                <span className="rounded bg-[var(--status-success-bg)] px-2 py-0.5 text-[11px] tracking-widest text-[var(--status-success-fg)]">
                   {t('system.connected')}
                 </span>
               )}
@@ -461,7 +460,7 @@ export default function ConfigModal({
           </div>
 
           <div className="space-y-3">
-            <label className="ml-1 flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase">
+            <label className="modal-section-label ml-1 flex items-center gap-2">
               <Lock className="h-4 w-4" />
               {t('system.token')}
             </label>
@@ -496,6 +495,10 @@ export default function ConfigModal({
   const [editName, setEditName] = useState('');
   const [editLabel, setEditLabel] = useState('');
   const importFileRef = useRef(null);
+  const { confirm: confirmAction, dialog: confirmDialog } = useConfirmDialog({
+    cancel: t('common.cancel'),
+    close: t('common.close'),
+  });
 
   const renderProfilesTab = () => {
     if (!profiles) return null;
@@ -676,11 +679,11 @@ export default function ConfigModal({
                         </span>
                         <div className="mt-0.5 flex items-center gap-2">
                           {profile.device_label && (
-                            <span className="rounded bg-[var(--glass-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                            <span className="rounded bg-[var(--glass-bg)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--text-muted)] uppercase">
                               {profile.device_label}
                             </span>
                           )}
-                          <span className="text-[10px] text-[var(--text-muted)]">
+                          <span className="text-[11px] text-[var(--text-muted)]">
                             {new Date(profile.updated_at).toLocaleDateString()}
                           </span>
                         </div>
@@ -703,9 +706,14 @@ export default function ConfigModal({
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (globalThis.confirm(t('profiles.confirmDelete')))
-                              removeProfile(profile.id);
+                          onClick={async () => {
+                            const ok = await confirmAction({
+                              title: profile.name,
+                              message: t('profiles.confirmDelete'),
+                              confirmLabel: t('common.delete'),
+                              destructive: true,
+                            });
+                            if (ok) removeProfile(profile.id);
                           }}
                           className="rounded-lg p-1.5 text-[var(--text-secondary)] transition-all hover:bg-[var(--status-error-bg)] hover:text-[var(--status-error-fg)]"
                         >
@@ -760,9 +768,7 @@ export default function ConfigModal({
       <div className="animate-in fade-in slide-in-from-right-4 space-y-8 duration-300">
         {haUser && backendAvailable && autoSync && (
           <div className="space-y-3">
-            <h3 className="ml-1 text-xs font-bold tracking-wider text-[var(--text-muted)] uppercase">
-              {t('profiles.autoSyncSection')}
-            </h3>
+            <h3 className="modal-section-label ml-1">{t('profiles.autoSyncSection')}</h3>
             <div className="popup-surface space-y-4 p-4">
               <div className="flex items-start justify-between gap-3">
                 <button
@@ -833,8 +839,14 @@ export default function ConfigModal({
                       <p>{t('profiles.autoSyncConflictHint')}</p>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm(t('profiles.autoSyncOverwriteConfirm'))) {
+                        onClick={async () => {
+                          const ok = await confirmAction({
+                            title: t('profiles.autoSyncOverwrite'),
+                            message: t('profiles.autoSyncOverwriteConfirm'),
+                            confirmLabel: t('profiles.overwrite'),
+                            destructive: true,
+                          });
+                          if (ok) {
                             autoSync.overwriteServerWithLocal?.().catch(() => {});
                           }
                         }}
@@ -887,14 +899,14 @@ export default function ConfigModal({
                   </div>
 
                   {selectedTargets.length === 0 && (
-                    <p className="text-[10px] text-[var(--text-muted)]">
+                    <p className="text-[11px] text-[var(--text-muted)]">
                       {t('profiles.autoSyncSelectTargetHint')}
                     </p>
                   )}
 
                   {historyEntries.length > 0 && (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                      <label className="modal-section-label">
                         {t('profiles.autoSyncRevision')}
                       </label>
                       <select
@@ -930,9 +942,7 @@ export default function ConfigModal({
 
                   {knownDevices.length > 0 && (
                     <div className="space-y-2 border-t border-[var(--glass-border)] pt-2">
-                      <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        {t('profiles.autoSyncKnownDevices')}
-                      </p>
+                      <p className="modal-section-label">{t('profiles.autoSyncKnownDevices')}</p>
                       <div className="space-y-1.5 pr-1">
                         {visibleKnownDevices.map((entry) => {
                           const isCurrentDevice = entry.device_id === autoSync.deviceId;
@@ -968,7 +978,7 @@ export default function ConfigModal({
                                   <div className="truncate font-bold text-[var(--text-secondary)]">
                                     {displayName}
                                   </div>
-                                  <div className="truncate text-[10px] text-[var(--text-muted)]">
+                                  <div className="truncate text-[11px] text-[var(--text-muted)]">
                                     ID: {entry.device_id}
                                   </div>
                                 </div>
@@ -1003,15 +1013,16 @@ export default function ConfigModal({
                                   <button
                                     type="button"
                                     disabled={isRemoving || isRenaming}
-                                    onClick={(event) => {
+                                    onClick={async (event) => {
                                       event.preventDefault();
                                       event.stopPropagation();
-                                      if (
-                                        !globalThis.confirm(
-                                          t('profiles.autoSyncRemoveDeviceConfirm')
-                                        )
-                                      )
-                                        return;
+                                      const ok = await confirmAction({
+                                        title: t('profiles.autoSyncRemoveDevice'),
+                                        message: t('profiles.autoSyncRemoveDeviceConfirm'),
+                                        confirmLabel: t('common.remove'),
+                                        destructive: true,
+                                      });
+                                      if (!ok) return;
                                       autoSync.removeKnownDevice(entry.device_id);
                                       setPublishTargets((prev) =>
                                         prev.filter((id) => id !== entry.device_id)
@@ -1032,7 +1043,7 @@ export default function ConfigModal({
                         <button
                           type="button"
                           onClick={() => setShowAllKnownDevices((prev) => !prev)}
-                          className="text-[10px] font-bold text-[var(--accent-color)] transition-opacity hover:opacity-80"
+                          className="text-[11px] font-bold text-[var(--accent-color)] transition-opacity hover:opacity-80"
                         >
                           {showAllKnownDevices
                             ? t('common.hide')
@@ -1060,22 +1071,20 @@ export default function ConfigModal({
         {/* Profiles Section (requires HA user) */}
         <div className="space-y-3">
           <div className="ml-1 flex items-center justify-between gap-2">
-            <h3 className="text-xs font-bold tracking-wider text-[var(--text-muted)] uppercase">
-              {t('profiles.sectionProfiles')}
-            </h3>
+            <h3 className="modal-section-label">{t('profiles.sectionProfiles')}</h3>
             {haUser && backendAvailable && (
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleExportDashboard}
-                  className="rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase transition-all hover:bg-[var(--glass-bg-hover)]"
+                  className="rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-1 text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase transition-all hover:bg-[var(--glass-bg-hover)]"
                 >
                   {t('profiles.export')}
                 </button>
                 <button
                   type="button"
                   onClick={() => importFileRef.current?.click()}
-                  className="rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase transition-all hover:bg-[var(--glass-bg-hover)]"
+                  className="rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-1 text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase transition-all hover:bg-[var(--glass-bg-hover)]"
                 >
                   {t('profiles.import')}
                 </button>
@@ -1094,13 +1103,17 @@ export default function ConfigModal({
 
         {/* Start blank */}
         <div className="space-y-3 border-t border-[var(--glass-border)] pt-4">
-          <h3 className="ml-1 text-xs font-bold tracking-wider text-[var(--text-muted)] uppercase">
-            {t('profiles.sectionReset')}
-          </h3>
+          <h3 className="modal-section-label ml-1">{t('profiles.sectionReset')}</h3>
           <div className="popup-surface p-4">
             <button
-              onClick={() => {
-                if (globalThis.confirm(t('profiles.confirmBlank'))) startBlank();
+              onClick={async () => {
+                const ok = await confirmAction({
+                  title: t('profiles.startBlank'),
+                  message: t('profiles.confirmBlank'),
+                  confirmLabel: t('common.confirm'),
+                  destructive: true,
+                });
+                if (ok) startBlank();
               }}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-2.5 text-sm font-bold text-[var(--text-secondary)] transition-all hover:border-[var(--status-error-border)] hover:bg-[var(--status-error-bg)] hover:text-[var(--status-error-fg)]"
             >
@@ -1167,13 +1180,11 @@ export default function ConfigModal({
         {/* Background */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="ml-1 text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-              {t('settings.background')}
-            </p>
+            <p className="modal-section-label ml-1">{t('settings.background')}</p>
             <button
               type="button"
               onClick={resetBackground}
-              className="rounded-lg px-2 py-1 text-[10px] font-bold tracking-wider text-[var(--accent-color)] uppercase transition-colors hover:bg-[var(--accent-bg)]"
+              className="rounded-lg px-2 py-1 text-[11px] font-bold tracking-wider text-[var(--accent-color)] uppercase transition-colors hover:bg-[var(--accent-bg)]"
             >
               Reset
             </button>
@@ -1195,7 +1206,7 @@ export default function ConfigModal({
                   }`}
                 >
                   <ModeIcon className="h-4 w-4" />
-                  <span className="text-[10px] leading-tight font-bold tracking-wider uppercase">
+                  <span className="text-[11px] leading-tight font-bold tracking-wider uppercase">
                     {mode.label}
                   </span>
                 </button>
@@ -1265,7 +1276,7 @@ export default function ConfigModal({
                       }}
                     />
                     <p
-                      className={`mt-1.5 text-center text-[9px] font-bold tracking-wider uppercase ${active ? 'text-[var(--accent-color)]' : 'text-[var(--text-muted)]'}`}
+                      className={`mt-1.5 text-center text-[11px] font-bold tracking-wider uppercase ${active ? 'text-[var(--accent-color)]' : 'text-[var(--text-muted)]'}`}
                     >
                       {preset.label}
                     </p>
@@ -1422,13 +1433,11 @@ export default function ConfigModal({
       <div className="animate-in fade-in slide-in-from-right-4 space-y-1 font-sans duration-300">
         {/* Header row: title + live preview */}
         <div className="flex items-center justify-between px-1 pb-3">
-          <p className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-            {t('settings.layout')}
-          </p>
+          <p className="modal-section-label">{t('settings.layout')}</p>
           <button
             type="button"
             onClick={() => setLayoutPreview((prev) => !prev)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-colors ${
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold tracking-widest uppercase transition-colors ${
               layoutPreview
                 ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
                 : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -1452,7 +1461,7 @@ export default function ConfigModal({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(false)}
-                  className={`rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-white'}`}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-white'}`}
                   style={dynamicGridColumns ? {} : { backgroundColor: 'var(--accent-color)' }}
                 >
                   {t('settings.manual')}
@@ -1460,7 +1469,7 @@ export default function ConfigModal({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(true)}
-                  className={`rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   style={dynamicGridColumns ? { backgroundColor: 'var(--accent-color)' } : {}}
                 >
                   {t('common.auto')}
@@ -1780,10 +1789,10 @@ export default function ConfigModal({
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         {installedVersion && (
                           <div className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-                            <span className="text-[10px] font-bold tracking-wider uppercase opacity-50">
+                            <span className="text-[11px] font-bold tracking-wider uppercase opacity-50">
                               {t('updates.from')}
                             </span>
-                            <span className="rounded border border-[var(--glass-border)] bg-[var(--glass-bg)] px-1.5 py-0.5 font-mono text-[10px] opacity-80">
+                            <span className="rounded border border-[var(--glass-border)] bg-[var(--glass-bg)] px-1.5 py-0.5 font-mono text-[11px] opacity-80">
                               {installedVersion}
                             </span>
                           </div>
@@ -1793,10 +1802,10 @@ export default function ConfigModal({
                         )}
                         {latestVersion && (
                           <div className="flex items-center gap-1.5 text-[var(--status-success-fg)]">
-                            <span className="text-[10px] font-bold tracking-wider uppercase opacity-50">
+                            <span className="text-[11px] font-bold tracking-wider uppercase opacity-50">
                               {t('updates.to')}
                             </span>
-                            <span className="rounded border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-1.5 py-0.5 font-mono text-[10px] font-bold">
+                            <span className="rounded border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-1.5 py-0.5 font-mono text-[11px] font-bold">
                               {latestVersion}
                             </span>
                           </div>
@@ -1806,24 +1815,23 @@ export default function ConfigModal({
                   </div>
 
                   <div className="flex flex-wrap items-center justify-end gap-2 lg:w-auto lg:flex-shrink-0">
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => handleSkipUpdate(update.entity_id)}
-                      className="rounded-xl bg-[var(--glass-bg-hover)] px-3 py-2 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-all hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]"
                     >
                       {t('updates.skip')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => handleInstallUpdate(update.entity_id)}
                       disabled={isInstalling}
-                      className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${
-                        isInstalling
-                          ? 'cursor-wait bg-[var(--accent-bg)] text-white/70'
-                          : 'bg-[var(--accent-color)] text-white shadow-lg hover:bg-[var(--accent-color)] active:scale-95'
-                      }`}
+                      className={isInstalling ? 'cursor-wait' : ''}
+                      icon={isInstalling ? <RefreshCw className="h-3 w-3 animate-spin" /> : null}
                     >
-                      {isInstalling && <RefreshCw className="h-3 w-3 animate-spin" />}
                       {isInstalling ? t('updates.installing') : t('updates.update')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1838,7 +1846,7 @@ export default function ConfigModal({
                         [update.entity_id]: !prev[update.entity_id],
                       }))
                     }
-                    className="flex items-center gap-1 text-[10px] font-bold tracking-wider text-[var(--accent-color)] uppercase transition-colors hover:text-[var(--text-primary)]"
+                    className="flex items-center gap-1 text-[11px] font-bold tracking-wider text-[var(--accent-color)] uppercase transition-colors hover:text-[var(--text-primary)]"
                   >
                     {isExpanded ? t('updates.showLess') : t('updates.showMore')}
                     {isExpanded ? (
@@ -1860,7 +1868,7 @@ export default function ConfigModal({
                           href={update.attributes.release_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold tracking-wider text-[var(--accent-color)] uppercase hover:underline"
+                          className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold tracking-wider text-[var(--accent-color)] uppercase hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {t('updates.readMore')} <ArrowRight className="h-3 w-3" />
@@ -1880,34 +1888,37 @@ export default function ConfigModal({
   // ─── Main Render ───
   if (!open) return null;
 
+  const activeTabLabel = availableTabs.find((tab) => tab.key === configTab)?.label;
+  const shellLayoutProps = isLayoutPreview
+    ? {
+        overlayClassName: 'fixed inset-0 z-50 flex items-stretch justify-end',
+        overlayStyle: { backdropFilter: 'none', backgroundColor: 'transparent' },
+        panelClassName:
+          'system-settings-modal popup-anim relative flex h-full w-full max-w-[18rem] flex-col overflow-hidden rounded-none border font-sans text-[var(--text-primary)] shadow-2xl sm:max-w-[21rem] md:max-w-[23rem] md:rounded-l-[2.5rem]',
+        panelStyle: {
+          backgroundColor: 'var(--modal-bg)',
+          backgroundImage: 'linear-gradient(160deg, var(--card-bg) 0%, var(--modal-bg) 70%)',
+          animation: 'none',
+          borderColor: 'var(--glass-border)',
+          color: 'var(--text-primary)',
+        },
+      }
+    : { panelClassName: 'system-settings-modal h-[min(75vh,700px)]' };
+
   return (
-    <AccessibleModalShell
-      open={open}
-      onClose={handleClose}
-      titleId="config-modal-title"
-      overlayClassName={`fixed inset-0 z-50 flex ${
-        isLayoutPreview ? 'items-stretch justify-end' : 'items-center justify-center p-4 md:p-8'
-      }`}
-      overlayStyle={{
-        backdropFilter: 'none',
-        backgroundColor: isLayoutPreview ? 'transparent' : 'var(--modal-backdrop)',
-      }}
-      panelClassName={`system-settings-modal popup-anim relative flex w-full flex-col overflow-hidden border font-sans text-[var(--text-primary)] ${
-        isLayoutPreview
-          ? 'h-full max-w-[18rem] rounded-none shadow-2xl sm:max-w-[21rem] md:max-w-[23rem] md:rounded-l-[2.5rem]'
-          : 'h-[75vh] max-h-[700px] max-w-5xl rounded-3xl shadow-2xl md:rounded-[3rem]'
-      }`}
-      panelStyle={{
-        backgroundColor: 'var(--modal-bg)',
-        backgroundImage: 'linear-gradient(160deg, var(--card-bg) 0%, var(--modal-bg) 70%)',
-        animation: 'none',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
-    >
-      {(resolvedTitleId) => (
-        <>
-          <style>{`
+    <>
+      <AccessibleModalShell
+        open={open}
+        onClose={handleClose}
+        titleId="config-modal-title"
+        size={isLayoutPreview ? undefined : 'l'}
+        still={!isLayoutPreview}
+        dismissible={!isOnboardingActive}
+        {...shellLayoutProps}
+      >
+        {(resolvedTitleId) => (
+          <>
+            <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
           height: 4px;
@@ -1923,415 +1934,371 @@ export default function ConfigModal({
           background: rgba(255, 255, 255, 0.2);
         }
       `}</style>
-          <div className="flex h-full min-h-0 flex-col">
-            {/* Invisible focus anchor — wins PRIORITY_FOCUS_SELECTOR race so keyboard stays closed on mobile */}
-            <div tabIndex={0} data-autofocus className="sr-only" />
-            <h2 id={resolvedTitleId} className="sr-only">
-              {isOnboardingActive ? t('onboarding.title') : t('system.title')}
-            </h2>
-            {isOnboardingActive ? (
-              <div className="flex h-full flex-col md:flex-row">
-                {/* Onboarding Sidebar */}
-                <div className="flex w-full flex-row gap-1 border-b border-[var(--glass-border)] p-3 md:w-64 md:flex-col md:border-r md:border-b-0">
-                  <div className="mb-2 hidden items-center gap-3 px-3 py-4 md:flex">
-                    <div className="rounded-lg bg-[var(--accent-bg)] p-2 text-[var(--accent-color)]">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                    <span className="text-lg font-bold tracking-wide">{t('onboarding.title')}</span>
-                  </div>
-
-                  {onboardingSteps.map((step, index) => {
-                    const isActive = onboardingStep === index;
-                    const isDone = onboardingStep > index;
-                    const StepIcon = step.icon;
-                    return (
-                      <div
-                        key={step.key}
-                        className={`flex flex-1 cursor-default items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all md:flex-none ${isActive ? 'bg-[var(--accent-color)] text-white shadow-lg ' : ''} ${isDone ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
-                      >
-                        {isDone ? <Check className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
-                        <span className="hidden md:inline">{step.label}</span>
+            <div className="flex h-full min-h-0 flex-col">
+              {/* Invisible focus anchor — wins PRIORITY_FOCUS_SELECTOR race so keyboard stays closed on mobile */}
+              <div tabIndex={0} data-autofocus className="sr-only" />
+              <h2 id={resolvedTitleId} className="sr-only">
+                {isOnboardingActive ? t('onboarding.title') : t('system.title')}
+              </h2>
+              {isOnboardingActive ? (
+                <div className="flex h-full flex-col md:flex-row">
+                  {/* Onboarding Sidebar */}
+                  <div className="flex w-full flex-row gap-1 border-b border-[var(--glass-border)] p-3 md:w-64 md:flex-col md:border-r md:border-b-0">
+                    <div className="mb-2 hidden items-center gap-3 px-3 py-4 md:flex">
+                      <div className="rounded-lg bg-[var(--accent-bg)] p-2 text-[var(--accent-color)]">
+                        <Sparkles className="h-5 w-5" />
                       </div>
-                    );
-                  })}
-                </div>
-
-                {/* Onboarding Content Area */}
-                <div className="flex min-h-0 flex-1 flex-col">
-                  <div className="flex items-center justify-between border-b border-[var(--glass-border)] p-6 md:hidden">
-                    <h3 className="text-lg font-bold tracking-wide uppercase">
-                      {onboardingSteps[onboardingStep].label}
-                    </h3>
-                  </div>
-
-                  <div className="custom-scrollbar flex-1 overflow-y-auto p-4 md:p-5">
-                    <div className="mb-4 hidden items-center justify-between md:flex">
-                      <h2 className="text-xl font-bold">{onboardingSteps[onboardingStep].label}</h2>
+                      <span className="text-lg font-normal tracking-[0.04em] uppercase">
+                        {t('onboarding.title')}
+                      </span>
                     </div>
 
-                    {onboardingStep === 0 && (
-                      <div className="animate-in fade-in slide-in-from-right-4 space-y-4 duration-300">
-                        {/* Auth Method Toggle — hidden in Ingress mode (always token) */}
-                        {!config.isIngress && renderAuthMethodToggle(true)}
+                    {onboardingSteps.map((step, index) => {
+                      const isActive = onboardingStep === index;
+                      const isDone = onboardingStep > index;
+                      const StepIcon = step.icon;
+                      return (
+                        <div
+                          key={step.key}
+                          className={`flex flex-1 cursor-default items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all md:flex-none ${isActive ? 'bg-[var(--accent-color)] text-white shadow-lg ' : ''} ${isDone ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
+                        >
+                          {isDone ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <StepIcon className="h-4 w-4" />
+                          )}
+                          <span className="hidden md:inline">{step.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                        {config.isIngress && (
-                          <div className="rounded-xl border border-[var(--accent-color)] bg-[var(--accent-bg)] p-3 text-xs leading-relaxed text-[var(--accent-color)]">
-                            <strong>Add-on Mode:</strong> URL is auto-detected. Just paste a
-                            Long-Lived Access Token from your HA Profile.
-                          </div>
-                        )}
+                  {/* Onboarding Content Area */}
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    <div className="flex items-center justify-between border-b border-[var(--glass-border)] p-6 md:hidden">
+                      <h3 className="modal-title">{onboardingSteps[onboardingStep].label}</h3>
+                    </div>
 
-                        <div className="space-y-3">
-                          {/* URL — hidden in Ingress (auto-detected), shown otherwise */}
-                          {!config.isIngress && (
-                            <div className="space-y-1.5">
-                              <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                                {t('system.haUrlPrimary')}
-                              </label>
-                              <input
-                                type="text"
-                                className={`w-full rounded-xl border-2 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] ${onboardingUrlError ? 'border-[var(--status-error-border)]' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
-                                value={isOAuth ? oauthUrlDraft : config.url}
-                                onChange={(e) => {
-                                  if (isOAuth) {
-                                    setOAuthUrlDraft(e.target.value);
-                                  } else {
-                                    setConfig({ ...config, url: e.target.value.trim() });
-                                  }
-                                  setOnboardingUrlError('');
-                                  setConnectionTestResult(null);
-                                }}
-                                placeholder={t('onboarding.haUrlPlaceholder')}
-                              />
-                              {onboardingUrlError && (
-                                <p className="ml-1 text-xs font-bold text-[var(--status-error-fg)]">
-                                  {onboardingUrlError}
-                                </p>
-                              )}
+                    <div className="custom-scrollbar flex-1 overflow-y-auto p-4 md:p-5">
+                      <div className="mb-4 hidden items-center justify-between md:flex">
+                        <h2 className="modal-title">{onboardingSteps[onboardingStep].label}</h2>
+                      </div>
+
+                      {onboardingStep === 0 && (
+                        <div className="animate-in fade-in slide-in-from-right-4 space-y-4 duration-300">
+                          {/* Auth Method Toggle — hidden in Ingress mode (always token) */}
+                          {!config.isIngress && renderAuthMethodToggle(true)}
+
+                          {config.isIngress && (
+                            <div className="rounded-xl border border-[var(--accent-color)] bg-[var(--accent-bg)] p-3 text-xs leading-relaxed text-[var(--accent-color)]">
+                              <strong>Add-on Mode:</strong> URL is auto-detected. Just paste a
+                              Long-Lived Access Token from your HA Profile.
                             </div>
                           )}
 
-                          {/* OAuth2 mode — show login button */}
-                          {!config.isIngress && isOAuth && (
-                            <div className="pt-2">{renderOAuthSection()}</div>
-                          )}
-
-                          {/* Token mode — show token + fallback */}
-                          {!isOAuth && (
-                            <>
+                          <div className="space-y-3">
+                            {/* URL — hidden in Ingress (auto-detected), shown otherwise */}
+                            {!config.isIngress && (
                               <div className="space-y-1.5">
-                                <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                                  {t('system.token')}
+                                <label className="modal-section-label ml-1">
+                                  {t('system.haUrlPrimary')}
                                 </label>
-                                <textarea
-                                  className={`h-24 w-full rounded-xl border-2 bg-[var(--glass-bg)] px-3 py-2 font-mono text-xs leading-tight text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] ${onboardingTokenError ? 'border-[var(--status-error-border)]' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
-                                  value={config.token}
+                                <input
+                                  type="text"
+                                  className={`w-full rounded-xl border-2 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] ${onboardingUrlError ? 'border-[var(--status-error-border)]' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
+                                  value={isOAuth ? oauthUrlDraft : config.url}
                                   onChange={(e) => {
-                                    setConfig({ ...config, token: e.target.value.trim() });
-                                    setOnboardingTokenError('');
+                                    if (isOAuth) {
+                                      setOAuthUrlDraft(e.target.value);
+                                    } else {
+                                      setConfig({ ...config, url: e.target.value.trim() });
+                                    }
+                                    setOnboardingUrlError('');
                                     setConnectionTestResult(null);
                                   }}
-                                  placeholder={t('onboarding.tokenPlaceholder')}
+                                  placeholder={t('onboarding.haUrlPlaceholder')}
                                 />
-                                {onboardingTokenError && (
+                                {onboardingUrlError && (
                                   <p className="ml-1 text-xs font-bold text-[var(--status-error-fg)]">
-                                    {onboardingTokenError}
+                                    {onboardingUrlError}
                                   </p>
                                 )}
                               </div>
+                            )}
 
-                              {!config.isIngress && (
+                            {/* OAuth2 mode — show login button */}
+                            {!config.isIngress && isOAuth && (
+                              <div className="pt-2">{renderOAuthSection()}</div>
+                            )}
+
+                            {/* Token mode — show token + fallback */}
+                            {!isOAuth && (
+                              <>
                                 <div className="space-y-1.5">
-                                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                                    {t('system.haUrlFallback')}
+                                  <label className="modal-section-label ml-1">
+                                    {t('system.token')}
                                   </label>
-                                  <input
-                                    type="text"
-                                    className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-color)]"
-                                    value={config.fallbackUrl}
-                                    onChange={(e) =>
-                                      setConfig({ ...config, fallbackUrl: e.target.value.trim() })
-                                    }
-                                    placeholder={t('common.optional')}
+                                  <textarea
+                                    className={`h-24 w-full rounded-xl border-2 bg-[var(--glass-bg)] px-3 py-2 font-mono text-xs leading-tight text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] ${onboardingTokenError ? 'border-[var(--status-error-border)]' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
+                                    value={config.token}
+                                    onChange={(e) => {
+                                      setConfig({ ...config, token: e.target.value.trim() });
+                                      setOnboardingTokenError('');
+                                      setConnectionTestResult(null);
+                                    }}
+                                    placeholder={t('onboarding.tokenPlaceholder')}
                                   />
-                                  <p className="ml-1 text-[10px] leading-tight text-[var(--text-muted)]">
-                                    {t('onboarding.fallbackHint')}
-                                  </p>
+                                  {onboardingTokenError && (
+                                    <p className="ml-1 text-xs font-bold text-[var(--status-error-fg)]">
+                                      {onboardingTokenError}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {!config.isIngress && (
+                                  <div className="space-y-1.5">
+                                    <label className="modal-section-label ml-1">
+                                      {t('system.haUrlFallback')}
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-color)]"
+                                      value={config.fallbackUrl}
+                                      onChange={(e) =>
+                                        setConfig({ ...config, fallbackUrl: e.target.value.trim() })
+                                      }
+                                      placeholder={t('common.optional')}
+                                    />
+                                    <p className="ml-1 text-[11px] leading-tight text-[var(--text-muted)]">
+                                      {t('onboarding.fallbackHint')}
+                                    </p>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+
+                          {/* Test Connection — token mode only */}
+                          {!isOAuth && (
+                            <>
+                              <Button
+                                variant="primary"
+                                block
+                                onClick={testConnection}
+                                disabled={
+                                  !config.url ||
+                                  !config.token ||
+                                  !validateUrl(config.url) ||
+                                  testingConnection
+                                }
+                                icon={
+                                  testingConnection ? (
+                                    <RefreshCw className="h-5 w-5 animate-spin" />
+                                  ) : (
+                                    <Wifi className="h-5 w-5" />
+                                  )
+                                }
+                              >
+                                {testingConnection
+                                  ? t('onboarding.testing')
+                                  : t('onboarding.testConnection')}
+                              </Button>
+
+                              {connectionTestResult && (
+                                <div
+                                  className={`animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 rounded-xl p-3 ${connectionTestResult.success ? 'border border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'}`}
+                                >
+                                  {connectionTestResult.success ? (
+                                    <Check className="h-4 w-4" />
+                                  ) : (
+                                    <X className="h-4 w-4" />
+                                  )}
+                                  <span className="text-sm font-bold">
+                                    {connectionTestResult.message}
+                                  </span>
                                 </div>
                               )}
                             </>
                           )}
                         </div>
+                      )}
 
-                        {/* Test Connection — token mode only */}
-                        {!isOAuth && (
-                          <>
-                            <button
-                              onClick={testConnection}
-                              disabled={
-                                !config.url ||
-                                !config.token ||
-                                !validateUrl(config.url) ||
-                                testingConnection
-                              }
-                              className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold tracking-widest uppercase shadow-lg transition-all ${!config.url || !config.token || !validateUrl(config.url) || testingConnection ? 'cursor-not-allowed bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50' : 'bg-[var(--accent-color)] text-white hover:bg-[var(--accent-color)] '}`}
-                            >
-                              {testingConnection ? (
-                                <RefreshCw className="h-5 w-5 animate-spin" />
-                              ) : (
-                                <Wifi className="h-5 w-5" />
-                              )}
-                              {testingConnection
-                                ? t('onboarding.testing')
-                                : t('onboarding.testConnection')}
-                            </button>
-
-                            {connectionTestResult && (
-                              <div
-                                className={`animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 rounded-xl p-3 ${connectionTestResult.success ? 'border border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'}`}
-                              >
-                                {connectionTestResult.success ? (
-                                  <Check className="h-4 w-4" />
-                                ) : (
-                                  <X className="h-4 w-4" />
-                                )}
-                                <span className="text-sm font-bold">
-                                  {connectionTestResult.message}
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    {onboardingStep === 1 && (
-                      <div className="animate-in fade-in slide-in-from-right-4 space-y-6 duration-300">
-                        <div className="space-y-4">
-                          <p className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                            {t('settings.language')}
-                          </p>
-                          <ModernDropdown
-                            label={t('settings.language')}
-                            icon={Globe}
-                            options={['en', 'nb', 'nn', 'sv', 'de', 'zh', 'fr', 'es']}
-                            current={language}
-                            onChange={setLanguage}
-                            map={{
-                              en: t('language.en'),
-                              nb: t('language.nb'),
-                              nn: t('language.nn'),
-                              sv: t('language.sv'),
-                              de: t('language.de'),
-                              zh: t('language.zh'),
-                              fr: t('language.fr'),
-                              es: t('language.es'),
-                            }}
-                            placeholder={t('dropdown.noneSelected')}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="ml-1 flex justify-between text-xs font-bold text-[var(--text-muted)] uppercase">
-                            {t('settings.inactivity')}
-                            <span className="text-[var(--text-primary)]">
-                              {inactivityTimeout === 0 ? t('common.off') : `${inactivityTimeout}s`}
-                            </span>
-                          </label>
-                          <div className="px-1 py-2">
-                            <M3Slider
-                              min={0}
-                              max={300}
-                              step={10}
-                              value={inactivityTimeout}
-                              onChange={(e) => {
-                                const val = Number.parseInt(e.target.value, 10);
-                                setInactivityTimeout(val);
-                                try {
-                                  localStorage.setItem('tunet_inactivity_timeout', String(val));
-                                } catch {}
+                      {onboardingStep === 1 && (
+                        <div className="animate-in fade-in slide-in-from-right-4 space-y-6 duration-300">
+                          <div className="space-y-4">
+                            <p className="modal-section-label ml-1">{t('settings.language')}</p>
+                            <ModernDropdown
+                              label={t('settings.language')}
+                              icon={Globe}
+                              options={['en', 'nb', 'nn', 'sv', 'de', 'zh', 'fr', 'es']}
+                              current={language}
+                              onChange={setLanguage}
+                              map={{
+                                en: t('language.en'),
+                                nb: t('language.nb'),
+                                nn: t('language.nn'),
+                                sv: t('language.sv'),
+                                de: t('language.de'),
+                                zh: t('language.zh'),
+                                fr: t('language.fr'),
+                                es: t('language.es'),
                               }}
-                              colorClass="bg-[var(--accent-color)]"
+                              placeholder={t('dropdown.noneSelected')}
                             />
                           </div>
+                          <div className="space-y-2">
+                            <label className="modal-section-label ml-1 flex justify-between">
+                              {t('settings.inactivity')}
+                              <span className="text-[var(--text-primary)]">
+                                {inactivityTimeout === 0
+                                  ? t('common.off')
+                                  : `${inactivityTimeout}s`}
+                              </span>
+                            </label>
+                            <div className="px-1 py-2">
+                              <M3Slider
+                                min={0}
+                                max={300}
+                                step={10}
+                                value={inactivityTimeout}
+                                onChange={(e) => {
+                                  const val = Number.parseInt(e.target.value, 10);
+                                  setInactivityTimeout(val);
+                                  try {
+                                    localStorage.setItem('tunet_inactivity_timeout', String(val));
+                                  } catch {}
+                                }}
+                                colorClass="bg-[var(--accent-color)]"
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {onboardingStep === 2 && (
-                      <div className="animate-in fade-in zoom-in flex h-full flex-col items-center justify-center space-y-6 p-4 text-center duration-500">
-                        <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] shadow-xl">
-                          <Check className="h-12 w-12" />
+                      {onboardingStep === 2 && (
+                        <div className="animate-in fade-in zoom-in flex h-full flex-col items-center justify-center space-y-6 p-4 text-center duration-500">
+                          <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] shadow-xl">
+                            <Check className="h-12 w-12" />
+                          </div>
+                          <h4 className="text-3xl font-bold text-[var(--text-primary)]">
+                            {t('onboarding.finishTitle')}
+                          </h4>
+                          <p className="mt-2 max-w-sm text-lg text-[var(--text-secondary)]">
+                            {t('onboarding.finishBody')}
+                          </p>
                         </div>
-                        <h4 className="text-3xl font-bold text-[var(--text-primary)]">
-                          {t('onboarding.finishTitle')}
-                        </h4>
-                        <p className="mt-2 max-w-sm text-lg text-[var(--text-secondary)]">
-                          {t('onboarding.finishBody')}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
 
-                  {/* Onboarding Footer */}
-                  <div className="flex gap-3 border-t border-[var(--glass-border)] p-4">
-                    <button
-                      onClick={() => setOnboardingStep((s) => Math.max(0, s - 1))}
-                      className="flex-1 rounded-xl border border-[var(--glass-border)] py-3 font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
-                      disabled={onboardingStep === 0}
-                      style={{
-                        opacity: onboardingStep === 0 ? 0 : 1,
-                        pointerEvents: onboardingStep === 0 ? 'none' : 'auto',
-                      }}
-                    >
-                      {t('onboarding.back')}
-                    </button>
-                    {onboardingStep < onboardingSteps.length - 1 ? (
-                      <button
-                        onClick={() =>
-                          setOnboardingStep((s) => Math.min(onboardingSteps.length - 1, s + 1))
-                        }
-                        disabled={!canAdvanceOnboarding}
-                        className={`flex-1 rounded-xl py-3 font-bold tracking-widest uppercase shadow-lg transition-all ${canAdvanceOnboarding ? 'bg-[var(--accent-color)] text-white hover:bg-[var(--accent-color)] ' : 'cursor-not-allowed border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] opacity-50'}`}
+                    {/* Onboarding Footer */}
+                    <ModalFooter>
+                      <Button
+                        variant="secondary"
+                        className="mr-auto"
+                        onClick={() => setOnboardingStep((s) => Math.max(0, s - 1))}
+                        disabled={onboardingStep === 0}
+                        style={{
+                          opacity: onboardingStep === 0 ? 0 : 1,
+                          pointerEvents: onboardingStep === 0 ? 'none' : 'auto',
+                        }}
                       >
-                        {t('onboarding.next')}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={onFinishOnboarding}
-                        className="flex-1 rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] py-3 font-bold tracking-widest text-[var(--status-success-fg)] uppercase shadow-lg transition-all hover:opacity-90"
-                      >
-                        {t('onboarding.finish')}
-                      </button>
-                    )}
+                        {t('onboarding.back')}
+                      </Button>
+                      {onboardingStep < onboardingSteps.length - 1 ? (
+                        <Button
+                          variant="primary"
+                          onClick={() =>
+                            setOnboardingStep((s) => Math.min(onboardingSteps.length - 1, s + 1))
+                          }
+                          disabled={!canAdvanceOnboarding}
+                        >
+                          {t('onboarding.next')}
+                        </Button>
+                      ) : (
+                        <Button variant="primary" onClick={onFinishOnboarding}>
+                          {t('onboarding.finish')}
+                        </Button>
+                      )}
+                    </ModalFooter>
                   </div>
                 </div>
-              </div>
-            ) : (
-              // ═══ SYSTEM SETTINGS LAYOUT ═══
-              <div
-                className={`flex h-full ${isLayoutPreview ? 'flex-col' : 'flex-col md:flex-row'}`}
-              >
-                {/* Sidebar — icons only on mobile, full labels on desktop */}
-                {!isLayoutPreview && (
-                  <div className="animate-in fade-in slide-in-from-left-4 flex w-full flex-shrink-0 flex-row gap-1 border-b border-[var(--glass-border)] bg-[linear-gradient(160deg,var(--glass-bg),transparent_70%)] p-2 duration-300 md:w-56 md:flex-col md:border-r md:border-b-0 md:p-3">
-                    <div className="mb-2 hidden items-center gap-3 px-3 py-4 md:flex">
-                      <div className="rounded-lg bg-[var(--accent-bg)] p-2 text-[var(--accent-color)]">
-                        <Settings className="h-5 w-5" />
-                      </div>
-                      <span className="text-lg font-bold tracking-wide">{t('system.title')}</span>
-                    </div>
-
-                    {availableTabs.map((tab) => {
-                      const active = configTab === tab.key;
-                      const TabIcon = tab.icon;
-                      return (
-                        <button
-                          key={tab.key}
-                          onClick={() => setConfigTab(tab.key)}
-                          className={`flex flex-1 items-center justify-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold tracking-wide uppercase transition-all md:flex-none md:justify-start md:px-4 md:py-3 ${
-                            active
-                              ? 'bg-[var(--accent-color)] text-white shadow-lg '
-                              : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                          }`}
-                        >
-                          <TabIcon className="h-4 w-4 flex-shrink-0" />
-                          <span className="hidden text-xs md:inline">{tab.label}</span>
-                        </button>
-                      );
-                    })}
-
-                    <div className="mt-auto hidden flex-col gap-2 border-t border-[var(--glass-border)] pt-4 md:flex">
-                      <button
-                        onClick={onClose}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] py-3 text-sm font-bold tracking-widest text-[var(--status-success-fg)] uppercase shadow-lg transition-all hover:opacity-90"
-                      >
-                        <Check className="h-4 w-4" />
-                        {t('system.save')}
-                      </button>
-                      <div className="pt-2 text-center">
-                        <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase opacity-50">
-                          Tunet Dashboard v{__APP_VERSION__}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Content Area */}
-                <div className="flex min-h-0 flex-1 flex-col">
-                  <div
-                    className={`flex items-center justify-between border-b border-[var(--glass-border)] p-4 ${isLayoutPreview ? 'relative overflow-hidden bg-[var(--glass-bg)]' : 'md:hidden'}`}
-                  >
-                    {isLayoutPreview && (
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-[var(--accent-bg)]/50 via-transparent to-transparent" />
-                    )}
-                    <div className="relative flex items-center gap-3">
-                      <div className="rounded-lg bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] shadow-inner">
-                        <LayoutGrid className="h-4 w-4" />
-                      </div>
-                      <h3 className="text-base font-bold tracking-wide uppercase">
-                        {availableTabs.find((tb) => tb.key === configTab)?.label}
-                      </h3>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="modal-close relative"
-                      aria-label={t('common.close') || 'Close'}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div
-                    className={`custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain ${isLayoutPreview ? 'p-5 md:p-6' : 'p-5 md:p-8'}`}
-                    style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
-                  >
-                    {/* Desktop Header */}
-                    {!isLayoutPreview && (
-                      <div className="mb-8 hidden items-center justify-between md:flex">
-                        <h2 className="text-2xl font-bold">
-                          {availableTabs.find((tab) => tab.key === configTab)?.label}
-                        </h2>
-                        <button
-                          type="button"
-                          onClick={handleClose}
-                          className="modal-close rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
-                          aria-label={t('common.close') || 'Close'}
-                        >
-                          <X className="h-5 w-5" />
-                        </button>
-                      </div>
-                    )}
-
-                    {configTab === 'connection' && renderConnectionTab()}
-                    {configTab === 'profiles' && renderProfilesTab()}
-                    {configTab === 'updates' && renderUpdatesTab()}
-                  </div>
-
-                  {/* Mobile Footer */}
+              ) : (
+                // ═══ SYSTEM SETTINGS LAYOUT ═══
+                <div
+                  className={`flex h-full min-h-0 ${isLayoutPreview ? 'flex-col' : 'flex-col md:flex-row'}`}
+                >
+                  {/* Sidebar — icons only on mobile, full labels on desktop */}
                   {!isLayoutPreview && (
-                    <div className="border-t border-[var(--glass-border)] p-3 md:hidden">
-                      <button
-                        onClick={onClose}
-                        className="w-full rounded-xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] py-2.5 text-sm font-bold tracking-widest text-[var(--status-success-fg)] uppercase shadow-lg transition-all hover:opacity-90"
-                      >
-                        {t('system.save')}
-                      </button>
-                      <div className="pt-2 text-center">
-                        <p className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase opacity-50">
-                          Tunet Dashboard v{__APP_VERSION__}
-                        </p>
+                    <div className="animate-in fade-in slide-in-from-left-4 flex w-full flex-shrink-0 flex-row gap-1 border-b border-[var(--glass-border)] p-2 duration-300 md:w-56 md:flex-col md:border-r md:border-b-0 md:p-3">
+                      <div className="mb-2 hidden items-center gap-3 px-3 py-4 md:flex">
+                        <div className="rounded-lg bg-[var(--accent-bg)] p-2 text-[var(--accent-color)]">
+                          <Settings className="h-5 w-5" />
+                        </div>
+                        <span className="text-lg font-normal tracking-[0.04em] uppercase">
+                          {t('system.title')}
+                        </span>
                       </div>
+
+                      {availableTabs.map((tab) => {
+                        const active = configTab === tab.key;
+                        const TabIcon = tab.icon;
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => setConfigTab(tab.key)}
+                            className={`flex flex-1 items-center justify-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold tracking-wide uppercase transition-all md:flex-none md:justify-start md:px-4 md:py-3 ${
+                              active
+                                ? 'bg-[var(--accent-color)] text-white shadow-lg '
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <TabIcon className="h-4 w-4 flex-shrink-0" />
+                            <span className="hidden text-xs md:inline">{tab.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
+
+                  {/* Content Area */}
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    <ModalHeader
+                      title={activeTabLabel}
+                      titleId={`${resolvedTitleId}-tab`}
+                      closeLabel={t('common.close') || 'Close'}
+                      onClose={handleClose}
+                      icon={isLayoutPreview ? <LayoutGrid /> : undefined}
+                      className={isLayoutPreview ? 'border-b border-[var(--glass-border)]' : ''}
+                    />
+
+                    <ModalBody
+                      className="overscroll-contain"
+                      style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+                    >
+                      {configTab === 'connection' && renderConnectionTab()}
+                      {configTab === 'profiles' && renderProfilesTab()}
+                      {configTab === 'updates' && renderUpdatesTab()}
+                    </ModalBody>
+
+                    {!isLayoutPreview && (
+                      <ModalFooter>
+                        <p className="modal-section-label mr-auto">
+                          Tunet Dashboard v{__APP_VERSION__}
+                        </p>
+                        <Button variant="primary" onClick={onClose}>
+                          {t('system.save')}
+                        </Button>
+                      </ModalFooter>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </AccessibleModalShell>
+              )}
+            </div>
+          </>
+        )}
+      </AccessibleModalShell>
+      {confirmDialog}
+    </>
   );
 }
 

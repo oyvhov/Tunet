@@ -1702,5 +1702,19 @@
   "remote.select": "Vel",
   "shield.menu": "Meny",
   "room.noClimateControl": "Berre temperatursensor",
-  "room.popupOtherIncluded": "Andre inkluderte einingar"
+  "room.popupOtherIncluded": "Andre inkluderte einingar",
+  "statusPills.typeAlarm": "Alarm",
+  "statusPills.previewFilteredOut": "Filtrert bort",
+  "statusPills.previewTotal": "Totalt",
+  "statusPills.previewSearchPlayer": "Finn spelar i førehandsvisinga",
+  "statusPills.previewShowList": "Vis liste",
+  "statusPills.previewHideList": "Gøym liste",
+  "statusPills.previewIn": "Med",
+  "statusPills.previewOut": "Ute",
+  "statusPills.previewNoPlayers": "Ingen spelarar passar til søket.",
+  "statusPills.previewShowingFirst": "Viser dei første {shown} av {total} spelarar.",
+  "addCard.available.mowers": "Tilgjengelege grasklipparar",
+  "addCard.item.mowers": "grasklipparar",
+  "page.type": "Sidetype",
+  "page.typeStandard": "Standard"
 }

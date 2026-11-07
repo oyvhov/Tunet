@@ -1702,5 +1702,19 @@
   "remote.select": "Sélectionner",
   "shield.menu": "Menu",
   "room.noClimateControl": "Capteur de température uniquement",
-  "room.popupOtherIncluded": "Autres entités incluses"
+  "room.popupOtherIncluded": "Autres entités incluses",
+  "statusPills.typeAlarm": "Alarme",
+  "statusPills.previewFilteredOut": "Filtré",
+  "statusPills.previewTotal": "Total",
+  "statusPills.previewSearchPlayer": "Trouver un lecteur dans l’aperçu",
+  "statusPills.previewShowList": "Afficher la liste",
+  "statusPills.previewHideList": "Masquer la liste",
+  "statusPills.previewIn": "Inclus",
+  "statusPills.previewOut": "Exclu",
+  "statusPills.previewNoPlayers": "Aucun lecteur ne correspond à cette recherche.",
+  "statusPills.previewShowingFirst": "Affichage des {shown} premiers lecteurs sur {total}.",
+  "addCard.available.mowers": "Tondeuses disponibles",
+  "addCard.item.mowers": "tondeuses",
+  "page.type": "Type de page",
+  "page.typeStandard": "Standard"
 }
