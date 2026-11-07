@@ -12,11 +12,47 @@ import {
   Tv,
 } from '../../icons';
 import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
+import type { MouseEvent } from 'react';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { CardCallService, GetEntityAttribute } from '../../types/cards';
+import type { CardSettingsEntry, CardSettingsMap } from '../../utils/cardSettingsKey';
+
+type MediaEntity = EntityMap[string];
+
+/** Props the media and TV cards share. */
+export interface MediaCardCommonProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 'isMobile' | 't'
+> {
+  entities: EntityMap;
+  editMode?: boolean;
+  customNames: Record<string, string>;
+  getA: GetEntityAttribute;
+  getEntityImageUrl: (url: string | null | undefined) => string | null;
+  callService: CardCallService;
+}
+
+interface MediaCardProps extends MediaCardCommonProps {
+  customIcons: Record<string, string>;
+  isMediaActive: (entity: MediaEntity | undefined) => boolean;
+  onOpen: (mpId: string, groupKey: string | null, groupIds: null) => void;
+  isFullWidthMobile?: boolean;
+  cardSettings: CardSettingsMap;
+  settingsKey: string;
+}
+
+interface MediaPlayerCardProps extends MediaCardProps {
+  mpId: string;
+}
+
+interface MediaGroupCardProps extends MediaCardProps {
+  saveCardSetting: (id: string, setting: string, value: unknown) => void;
+}
 
 /* ─── Single media player card ─── */
 
 export const MediaPlayerCard = memo(
-  /** @param {any} props */ ({
+  ({
     cardId,
     mpId,
     dragProps,
@@ -36,7 +72,7 @@ export const MediaPlayerCard = memo(
     t,
     cardSettings,
     settingsKey,
-  }) => {
+  }: MediaPlayerCardProps) => {
     const entity = entities[mpId];
     if (!entity) {
       if (editMode) {
@@ -86,7 +122,7 @@ export const MediaPlayerCard = memo(
     const isDenseMobile = Boolean(isMobile);
     const useWideMobileControls = Boolean(isMobile && isFullWidthMobile);
 
-    const settings =
+    const settings: CardSettingsEntry =
       cardSettings && settingsKey ? cardSettings[settingsKey] || cardSettings[cardId] || {} : {};
     const artworkMode = settings.artworkMode || 'default';
     const isCoverMode = artworkMode === 'cover';
@@ -135,7 +171,7 @@ export const MediaPlayerCard = memo(
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                callService('media_player', powerAction, { entity_id: mpId });
+                callService('media_player', powerAction!, { entity_id: mpId });
               }}
               className={`mt-4 rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
               title={isPowerOffAction ? t('status.off') : t('status.on')}
@@ -300,7 +336,7 @@ export const MediaPlayerCard = memo(
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                callService('media_player', powerAction, { entity_id: mpId });
+                callService('media_player', powerAction!, { entity_id: mpId });
               }}
               className={`${picture || isCoverMode ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
               title={isPowerOffAction ? t('status.off') : t('status.on')}
@@ -325,7 +361,7 @@ export const MediaPlayerCard = memo(
 /* ─── Media group card (multiple players) ─── */
 
 export const MediaGroupCard = memo(
-  /** @param {any} props */ ({
+  ({
     cardId,
     dragProps,
     controls,
@@ -345,10 +381,12 @@ export const MediaGroupCard = memo(
     isMobile,
     isFullWidthMobile,
     t,
-  }) => {
-    const groupSettings = cardSettings[settingsKey] || {};
+  }: MediaGroupCardProps) => {
+    const groupSettings: CardSettingsEntry = cardSettings[settingsKey] || {};
     const mediaIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
-    const mediaEntities = mediaIds.map((id) => entities[id]).filter(Boolean);
+    const mediaEntities = mediaIds
+      .map((id) => entities[id])
+      .filter((entity): entity is MediaEntity => Boolean(entity));
 
     if (mediaEntities.length === 0) return null;
 
@@ -366,7 +404,8 @@ export const MediaGroupCard = memo(
     if (!currentMp) currentMp = playingEntities[0] || pool[0];
     if (!currentMp) return null;
 
-    const mpId = currentMp.entity_id;
+    // entity_id is optional in EntityMap, but Home Assistant always sends it.
+    const mpId = currentMp.entity_id!;
     const mpState = currentMp.state;
     const isPlaying = mpState === 'playing';
     const isActive = activeEntities.length > 0;
@@ -398,7 +437,7 @@ export const MediaGroupCard = memo(
     const isDenseMobile = Boolean(isMobile);
     const useWideMobileControls = Boolean(isMobile && isFullWidthMobile);
 
-    const cyclePlayers = (e) => {
+    const cyclePlayers = (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       if (cyclePool.length < 2) return;
       const idx = cyclePool.findIndex((ent) => ent.entity_id === mpId);
@@ -442,7 +481,7 @@ export const MediaGroupCard = memo(
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                callService('media_player', powerAction, { entity_id: mpId });
+                callService('media_player', powerAction!, { entity_id: mpId });
               }}
               className={`mt-4 rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
               title={isPowerOffAction ? t('status.off') : t('status.on')}
@@ -646,7 +685,7 @@ export const MediaGroupCard = memo(
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                callService('media_player', powerAction, { entity_id: mpId });
+                callService('media_player', powerAction!, { entity_id: mpId });
               }}
               className={`${picture || isCoverMode ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
               title={isPowerOffAction ? t('status.off') : t('status.on')}
