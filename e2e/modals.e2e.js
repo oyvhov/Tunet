@@ -699,6 +699,38 @@ test.describe('Modal Interactions', () => {
     await expect(modal).toBeVisible();
   });
 
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`uses the shared popup header at ${viewport.width}px`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page
+        .locator('[data-card-id="light.bedroom"]')
+        .getByText('Bedroom Light', { exact: true })
+        .click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toHaveClass(/modal-panel/);
+      const title = dialog.getByRole('heading', { name: 'Bedroom Light' });
+      await expect(title).toHaveCSS('font-style', 'normal');
+      await expect(title).toHaveCSS('text-transform', 'uppercase');
+      await page.waitForFunction(() =>
+        document
+          .querySelector('[role="dialog"]')
+          ?.getAnimations()
+          .every((animation) => animation.playState !== 'running')
+      );
+      const close = dialog.getByRole('button', { name: 'Close' });
+      const box = await close.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      const panel = await dialog.boundingBox();
+      expect(panel?.width).toBeLessThanOrEqual(viewport.width);
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+    });
+  }
+
   test('should change theme in settings modal', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
 

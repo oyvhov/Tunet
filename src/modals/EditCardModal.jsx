@@ -543,7 +543,7 @@ function VisibilityConditionSection({
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
                   {t('visibility.title') || 'Conditional visibility'}
                 </p>
                 <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
@@ -625,7 +625,7 @@ function PopupTriggerSection({
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
                   {t('popupTrigger.title') || 'Popup trigger'}
                 </p>
                 <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
