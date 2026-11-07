@@ -41,10 +41,7 @@ function RangeBound({ label, prefix, settings, entityOptions, entities, save, t 
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <label
-          htmlFor={type === 'value' ? inputId : undefined}
-          className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase"
-        >
+        <label htmlFor={type === 'value' ? inputId : undefined} className="modal-section-label">
           {label}
         </label>
         <div role="group" aria-label={label} className="flex gap-1">
@@ -264,7 +261,7 @@ export default function SensorNumericStyle({
                   key={`sensor-threshold-${index}`}
                   className="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--modal-bg)] p-2"
                 >
-                  <span className="w-12 shrink-0 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                  <span className="w-12 shrink-0 text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
                     {`${t('sensor.step') || 'Step'} ${index + 1}`}
                   </span>
                   <input
@@ -285,7 +282,7 @@ export default function SensorNumericStyle({
                         type="button"
                         aria-pressed={threshold.color === option.key}
                         onClick={() => saveThreshold(index, { color: option.key })}
-                        className={`flex min-h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase transition-all ${threshold.color === option.key ? CHIP_ACTIVE : CHIP_IDLE}`}
+                        className={`flex min-h-7 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold tracking-widest uppercase transition-all ${threshold.color === option.key ? CHIP_ACTIVE : CHIP_IDLE}`}
                       >
                         <span
                           className="h-2.5 w-2.5 rounded-full"

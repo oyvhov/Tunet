@@ -98,6 +98,7 @@ export function ModalManagementSlice({
     selectedSpacerVariant,
     setSelectedSpacerVariant,
     onAddSelected,
+    pendingAddCount,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
   } = addCard;
@@ -157,6 +158,7 @@ export function ModalManagementSlice({
             selectedSpacerVariant={selectedSpacerVariant}
             setSelectedSpacerVariant={setSelectedSpacerVariant}
             onAddSelected={onAddSelected}
+            pendingAddCount={pendingAddCount}
             onAddRoom={(areas, areaEntitiesById) => {
               const payload = buildRoomCardsPayload({
                 areas,

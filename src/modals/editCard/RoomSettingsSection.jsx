@@ -1,6 +1,8 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { getEntitiesForArea } from '../../services/haClient';
+import { useConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 export function RoomSettingsSection({
   conn,
@@ -16,6 +18,10 @@ export function RoomSettingsSection({
   const [domainFilter, setDomainFilter] = React.useState('all');
   const [showEntityFilter, setShowEntityFilter] = React.useState(true);
   const [showCardFeatures, setShowCardFeatures] = React.useState(true);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog({
+    cancel: t('common.cancel') || 'Cancel',
+    close: t('common.close') || 'Close',
+  });
 
   React.useEffect(() => {
     const keys = [
@@ -55,13 +61,11 @@ export function RoomSettingsSection({
             if (dc !== 'motion' && dc !== 'occupancy' && dc !== 'presence') return false;
           } else if (domainFilter === '_temperature') {
             const e = entities[id];
-            if (
-              !(
-                e?.attributes?.device_class === 'temperature' ||
-                id.includes('temperature') ||
-                id.includes('temp')
-              )
-            )
+            if (!(
+              e?.attributes?.device_class === 'temperature' ||
+              id.includes('temperature') ||
+              id.includes('temp')
+            ))
               return false;
           } else if (domainFilter === '_door') {
             const e = entities[id];
@@ -112,11 +116,16 @@ export function RoomSettingsSection({
     roomEntityIds.length > 0 && roomEntityIds.every((id) => excludedEntityIds.includes(id));
   const hasExcludedDomainEntities = roomEntityIds.some((id) => excludedEntityIds.includes(id));
 
-  const handleExcludeAllEntities = () => {
+  const handleExcludeAllEntities = async () => {
     if (!roomEntityIds.length || areAllDomainEntitiesExcluded) return;
-    const confirmed = globalThis.confirm(
-      t('room.excludeAllConfirm') || 'Are you sure you want to exclude all entities in this room?'
-    );
+    const confirmed = await confirm({
+      title: t('room.excludeAll') || 'Exclude all',
+      message:
+        t('room.excludeAllConfirm') ||
+        'Are you sure you want to exclude all entities in this room?',
+      confirmLabel: t('room.excludeAll') || 'Exclude all',
+      destructive: true,
+    });
     if (!confirmed) return;
     const mergedExcluded = Array.from(
       new Set([
@@ -352,9 +361,7 @@ export function RoomSettingsSection({
           onClick={() => setShowEntityFilter((prev) => !prev)}
           className="flex w-full items-center justify-between gap-3 text-left"
         >
-          <div className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-            {t('room.entityFilter') || 'Entity filter'}
-          </div>
+          <div className="modal-section-label">{t('room.entityFilter') || 'Entity filter'}</div>
           <span className="text-[var(--text-secondary)] transition-transform">
             {showEntityFilter ? (
               <ChevronUp className="h-5 w-5" />
@@ -380,7 +387,7 @@ export function RoomSettingsSection({
                   type="button"
                   key={domain}
                   onClick={() => setDomainFilter(domain)}
-                  className={`rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-colors ${domainFilter === domain ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                  className={`rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-widest uppercase transition-colors ${domainFilter === domain ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                 >
                   {domainLabelMap[domain] || domain.replace('_', ' ')}
                 </button>
@@ -389,7 +396,7 @@ export function RoomSettingsSection({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                <div className="modal-section-label">
                   {t('room.filterAreaEntities') || 'Area entities'}
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -397,7 +404,7 @@ export function RoomSettingsSection({
                     type="button"
                     onClick={handleIncludeAllEntities}
                     disabled={!domainScopedEntityIds.length || !hasExcludedDomainEntities}
-                    className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2.5 py-1 text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2.5 py-1 text-[11px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {t('room.includeAll') || 'Include all'}
                   </button>
@@ -405,7 +412,7 @@ export function RoomSettingsSection({
                     type="button"
                     onClick={handleExcludeAllEntities}
                     disabled={!domainScopedEntityIds.length || areAllDomainEntitiesExcluded}
-                    className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-2.5 py-1 text-[10px] font-bold tracking-widest text-[var(--status-error-fg)] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-2.5 py-1 text-[11px] font-bold tracking-widest text-[var(--status-error-fg)] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {t('room.excludeAll') || 'Exclude all'}
                   </button>
@@ -448,7 +455,7 @@ export function RoomSettingsSection({
                         <div className="truncate text-xs font-bold text-[var(--text-primary)]">
                           {entities[id]?.attributes?.friendly_name || id}
                         </div>
-                        <div className="truncate text-[10px] text-[var(--text-muted)]">{id}</div>
+                        <div className="truncate text-[11px] text-[var(--text-muted)]">{id}</div>
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
                         {isLightEntity && (
@@ -461,7 +468,7 @@ export function RoomSettingsSection({
                                 isMainLight ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isMainLight ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainLight ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainLight && <span className="mr-0.5">★</span>}
                             {entityActionLabels.main}
@@ -477,7 +484,7 @@ export function RoomSettingsSection({
                                 isMainClimate ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isMainClimate ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainClimate ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainClimate && <span className="mr-0.5">★</span>}
                             {entityActionLabels.climate}
@@ -493,7 +500,7 @@ export function RoomSettingsSection({
                                 isMainVacuum ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isMainVacuum ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainVacuum ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainVacuum && <span className="mr-0.5">★</span>}
                             {entityActionLabels.vacuum}
@@ -509,7 +516,7 @@ export function RoomSettingsSection({
                                 isMainTemp ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isMainTemp ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainTemp ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainTemp && <span className="mr-0.5">★</span>}
                             {entityActionLabels.temp}
@@ -525,7 +532,7 @@ export function RoomSettingsSection({
                                 isMainMotion ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isMainMotion ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainMotion ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainMotion && <span className="mr-0.5">★</span>}
                             {entityActionLabels.motion}
@@ -541,7 +548,7 @@ export function RoomSettingsSection({
                                 isMainHumidity ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isMainHumidity ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainHumidity ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainHumidity && <span className="mr-0.5">★</span>}
                             {entityActionLabels.humidity}
@@ -557,7 +564,7 @@ export function RoomSettingsSection({
                                 isMainDoor ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isMainDoor ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainDoor ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainDoor && <span className="mr-0.5">★</span>}
                             {entityActionLabels.door}
@@ -566,7 +573,7 @@ export function RoomSettingsSection({
                         <button
                           type="button"
                           onClick={() => toggleEntityListMembership('excludedEntityIds', id)}
-                          className={`rounded-lg border px-2 py-1 text-[10px] font-bold tracking-widest uppercase transition-colors ${isExcluded ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                          className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isExcluded ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                         >
                           {isExcluded
                             ? t('room.excluded') || 'Excluded'
@@ -593,9 +600,7 @@ export function RoomSettingsSection({
           onClick={() => setShowCardFeatures((prev) => !prev)}
           className="flex w-full items-center justify-between gap-3 text-left"
         >
-          <div className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-            {t('room.cardFeatures') || 'Card features'}
-          </div>
+          <div className="modal-section-label">{t('room.cardFeatures') || 'Card features'}</div>
           <span className="text-[var(--text-secondary)] transition-transform">
             {showCardFeatures ? (
               <ChevronUp className="h-5 w-5" />
@@ -614,7 +619,7 @@ export function RoomSettingsSection({
                   key={opt.key}
                   className="flex items-center justify-between gap-2 rounded-xl bg-[var(--glass-bg)]/60 px-2.5 py-2"
                 >
-                  <span className="truncate pr-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                  <span className="truncate pr-2 text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
                     {opt.label}
                   </span>
                   <button
@@ -638,7 +643,7 @@ export function RoomSettingsSection({
             <p className="text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase">
               {t('room.navigateOnTap') || 'Navigate on tap'}
             </p>
-            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
               {t('room.navigateOnTapHint') ||
                 'Open a dashboard page instead of the room popup when tapping this card.'}
             </p>
@@ -656,7 +661,7 @@ export function RoomSettingsSection({
 
         {navigateOnTap && (
           <div className="space-y-2">
-            <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+            <label className="modal-section-label">
               {t('room.navigateToPage') || 'Target page'}
             </label>
             <select
@@ -686,6 +691,7 @@ export function RoomSettingsSection({
           </div>
         )}
       </div>
+      {typeof document !== 'undefined' && createPortal(confirmDialog, document.body)}
     </div>
   );
 }

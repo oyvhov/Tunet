@@ -23,7 +23,6 @@ import {
   Sparkles,
   Thermometer,
   Tv,
-  X,
   Zap,
 } from '../icons';
 
@@ -31,20 +30,28 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { isSonosMediaEntity, isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
+import Button from '../components/ui/Button';
+import Segmented from '../components/ui/Segmented';
 
 const SELECTED_CONTAINER = 'bg-[var(--accent-bg)] border-[var(--accent-color)]';
 const SELECTED_TEXT = 'text-[var(--accent-color)]';
 const SELECTED_SUBTEXT = 'text-[var(--text-secondary)]';
 const SELECTED_ICON =
   'bg-[var(--accent-bg)] border border-[var(--accent-color)] text-[var(--accent-color)]';
-const PRIMARY_ADD_BUTTON =
-  'w-full py-4 rounded-2xl border bg-[var(--accent-bg)] border-[var(--accent-color)] text-[var(--accent-color)] font-bold uppercase tracking-widest transition-colors hover:opacity-90 flex items-center justify-center gap-2';
+// One selected look (accent border + background). Focus only adds the global
+// :focus-visible ring, so a chip that merely had focus never looks selected.
+const CHIP_BASE =
+  'flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-semibold whitespace-nowrap transition-colors duration-150 ease-out';
+const CHIP_IDLE =
+  'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]';
 
 const TypeButton = ({ type, icon: Icon, label, isActive, onSelect }) => (
   <button
     type="button"
+    aria-pressed={isActive}
     onClick={() => onSelect(type)}
-    className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-bold tracking-widest whitespace-nowrap uppercase transition-colors duration-150 ease-out focus-visible:outline-none ${isActive ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+    className={`${CHIP_BASE} ${isActive ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : CHIP_IDLE}`}
   >
     <Icon className="h-4 w-4" /> {label}
   </button>
@@ -119,19 +126,15 @@ function RoomSection({
   });
 
   return (
-    <div className="space-y-6">
-      <p className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-        {t('addCard.selectArea')}
-      </p>
+    <div className="space-y-3">
+      <p className="modal-section-label">{t('addCard.selectArea')}</p>
       {loading && (
         <p className="py-4 text-center text-sm text-[var(--text-muted)]">
           {t('addCard.loadingAreas')}
         </p>
       )}
       {!loading && filteredAreas.length === 0 && (
-        <p className="py-4 text-center text-sm text-[var(--text-muted)] italic">
-          {t('addCard.noAreas')}
-        </p>
+        <p className="py-4 text-center text-sm text-[var(--text-muted)]">{t('addCard.noAreas')}</p>
       )}
       <div className="space-y-3">
         {filteredAreas.map((area) => {
@@ -142,6 +145,7 @@ function RoomSection({
             <button
               type="button"
               key={area.area_id}
+              aria-pressed={isSelected}
               onClick={() => {
                 void toggleAreaSelection(area);
               }}
@@ -215,6 +219,7 @@ function AddCardContent({
   selectedSpacerVariant,
   setSelectedSpacerVariant,
   onAddSelected,
+  pendingAddCount = 0,
   onAddRoom,
   conn,
   getAddCardAvailableLabel,
@@ -318,6 +323,7 @@ function AddCardContent({
     <button
       type="button"
       key={id}
+      aria-pressed={isSelected}
       onClick={onClick}
       className={`group entity-item flex w-full items-center justify-between rounded-2xl border p-3 text-left transition-colors ${isSelected ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}
     >
@@ -334,7 +340,7 @@ function AddCardContent({
         </span>
       </div>
       {badgeText ? (
-        <span className="rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-1 text-[9px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
+        <span className="rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-1 text-[11px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
           {badgeText}
         </span>
       ) : (
@@ -475,9 +481,7 @@ function AddCardContent({
     return (
       <div className="space-y-8">
         <div>
-          <p className="mb-4 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-            {t('addCard.weatherRequired')}
-          </p>
+          <p className="modal-section-label mb-3">{t('addCard.weatherRequired')}</p>
           <div className="space-y-3">
             {visibleWeatherOptions.map(({ id, name }) => (
               <EntityItem
@@ -489,7 +493,7 @@ function AddCardContent({
               />
             ))}
             {weatherOptionsSnapshot.length === 0 && (
-              <p className="py-4 text-center text-sm text-[var(--text-muted)] italic">
+              <p className="py-4 text-center text-sm text-[var(--text-muted)]">
                 {t('addCard.noWeatherSensors')}
               </p>
             )}
@@ -497,12 +501,11 @@ function AddCardContent({
         </div>
 
         <div>
-          <p className="mb-4 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-            {t('addCard.tempSensorOptional')}
-          </p>
+          <p className="modal-section-label mb-3">{t('addCard.tempSensorOptional')}</p>
           <div className="space-y-3">
             <button
               type="button"
+              aria-pressed={!selectedTempId}
               onClick={() => setSelectedTempId(null)}
               className={`group entity-item flex w-full items-center justify-between rounded-2xl border p-3 text-left transition-colors ${!selectedTempId ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}
             >
@@ -534,7 +537,7 @@ function AddCardContent({
               />
             ))}
             {tempOptionsSnapshot.length === 0 && (
-              <p className="py-4 text-center text-sm text-[var(--text-muted)] italic">
+              <p className="py-4 text-center text-sm text-[var(--text-muted)]">
                 {t('addCard.noTempSensors')}
               </p>
             )}
@@ -555,9 +558,7 @@ function AddCardContent({
     return (
       <div className="space-y-8">
         <div>
-          <p className="mb-4 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-            {t('addCard.mediaPlayerRequired')}
-          </p>
+          <p className="modal-section-label mb-3">{t('addCard.mediaPlayerRequired')}</p>
           <div className="space-y-3">
             {visibleAndroidTVMediaOptions.map(({ id, name }) => (
               <EntityItem
@@ -569,7 +570,7 @@ function AddCardContent({
               />
             ))}
             {androidTVMediaOptionsSnapshot.length === 0 && (
-              <p className="py-4 text-center text-sm text-[var(--text-muted)] italic">
+              <p className="py-4 text-center text-sm text-[var(--text-muted)]">
                 {t('addCard.noMediaPlayers')}
               </p>
             )}
@@ -577,12 +578,11 @@ function AddCardContent({
         </div>
 
         <div>
-          <p className="mb-4 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-            {t('addCard.remoteOptional')}
-          </p>
+          <p className="modal-section-label mb-3">{t('addCard.remoteOptional')}</p>
           <div className="space-y-3">
             <button
               type="button"
+              aria-pressed={!selectedRemoteId}
               onClick={() => setSelectedRemoteId(null)}
               className={`group entity-item flex w-full items-center justify-between rounded-2xl border p-3 text-left transition-colors ${!selectedRemoteId ? SELECTED_CONTAINER : 'popup-surface popup-surface-hover border-transparent'}`}
             >
@@ -619,18 +619,12 @@ function AddCardContent({
     );
   };
 
-  const renderSimpleAddSection = (Icon, description, buttonLabel) => (
+  const renderSimpleAddSection = (Icon, description) => (
     <div className="flex flex-col items-center justify-center space-y-4 py-10 text-center">
       <div className="popup-surface rounded-full border border-[var(--glass-border)] p-4 text-[var(--text-primary)]">
         <Icon className="h-8 w-8" />
       </div>
       <p className="max-w-xs text-sm text-[var(--text-secondary)]">{description}</p>
-      <button
-        onClick={() => onAddSelected()}
-        className="rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] px-6 py-3 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
-      >
-        {buttonLabel}
-      </button>
     </div>
   );
 
@@ -644,7 +638,7 @@ function AddCardContent({
 
     return (
       <div className="space-y-3">
-        <p className="mb-1 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+        <p className="modal-section-label mb-1">
           {t('calendar.selectCalendars') || 'Select Calendars'}
         </p>
         <div className="space-y-3">
@@ -654,6 +648,7 @@ function AddCardContent({
               <button
                 type="button"
                 key={id}
+                aria-pressed={isSelected}
                 onClick={() => {
                   if (isSelected) setSelectedEntities((prev) => prev.filter((x) => x !== id));
                   else setSelectedEntities((prev) => [...prev, id]);
@@ -681,12 +676,12 @@ function AddCardContent({
             );
           })}
           {calendarOptionsSnapshot.length === 0 && (
-            <p className="py-4 text-center text-sm text-[var(--text-muted)] italic">
+            <p className="py-4 text-center text-sm text-[var(--text-muted)]">
               {t('calendar.noCalendarsFound') || 'No calendars found'}
             </p>
           )}
           {calendarOptionsSnapshot.length > 0 && visibleCalendars.length === 0 && (
-            <p className="py-4 text-center text-sm text-[var(--text-muted)] italic">
+            <p className="py-4 text-center text-sm text-[var(--text-muted)]">
               {t('form.noResults') || 'No results'}
             </p>
           )}
@@ -705,43 +700,23 @@ function AddCardContent({
           'Add a spacer or divider card. You can switch between spacer and divider in the edit settings.'}
       </p>
       <div className="w-full max-w-sm space-y-2">
-        <p className="text-xs font-bold text-[var(--text-muted)] uppercase">
+        <p id="add-card-spacer-variant-label" className="modal-section-label">
           {t('addCard.spacer.selectVariant') || 'Select variant'}
         </p>
-        <div className="flex gap-2">
-          {[
-            { key: 'spacer', label: t('addCard.spacer.spacer') || 'Spacer' },
-            { key: 'divider', label: t('addCard.spacer.divider') || 'Divider' },
-          ].map((variant) => (
-            <button
-              key={variant.key}
-              type="button"
-              onClick={() => {
-                setLocalSpacerVariant(variant.key);
-                setSelectedSpacerVariant(variant.key);
-              }}
-              className={`flex-1 rounded-xl border px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${localSpacerVariant === variant.key ? 'popup-surface border-[var(--glass-border)] text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
-              style={
-                localSpacerVariant === variant.key
-                  ? {
-                      backgroundColor: 'var(--accent-bg)',
-                      borderColor: 'var(--accent-color)',
-                      color: 'var(--accent-color)',
-                    }
-                  : undefined
-              }
-            >
-              {variant.label}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          block
+          ariaLabelledBy="add-card-spacer-variant-label"
+          value={localSpacerVariant}
+          onChange={(variant) => {
+            setLocalSpacerVariant(variant);
+            setSelectedSpacerVariant(variant);
+          }}
+          options={[
+            { value: 'spacer', label: t('addCard.spacer.spacer') || 'Spacer' },
+            { value: 'divider', label: t('addCard.spacer.divider') || 'Divider' },
+          ]}
+        />
       </div>
-      <button
-        onClick={() => onAddSelected({ spacerVariant: localSpacerVariant })}
-        className="rounded-2xl border border-[var(--accent-color)] bg-[var(--accent-bg)] px-6 py-3 font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:opacity-90"
-      >
-        {t('addCard.add')}
-      </button>
     </div>
   );
 
@@ -749,9 +724,7 @@ function AddCardContent({
     return (
       <div className="space-y-8">
         <div>
-          <p className="mb-4 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-            {t('addCard.nordpoolSensorRequired')}
-          </p>
+          <p className="modal-section-label mb-3">{t('addCard.nordpoolSensorRequired')}</p>
           <div className="space-y-3">
             {visibleNordpoolOptions.map(({ id, name }) => (
               <EntityItem
@@ -763,36 +736,22 @@ function AddCardContent({
               />
             ))}
             {nordpoolOptionsSnapshot.length === 0 && (
-              <p className="py-4 text-center text-sm text-[var(--text-muted)] italic">
+              <p className="py-4 text-center text-sm text-[var(--text-muted)]">
                 {t('addCard.noNordpoolSensors')}
               </p>
             )}
           </div>
         </div>
         <div>
-          <p className="mb-2 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+          <p id="add-card-decimals-label" className="modal-section-label mb-2">
             {t('addCard.decimals')}
           </p>
-          <div className="flex gap-2 px-4">
-            {[0, 1, 2, 3].map((dec) => (
-              <button
-                key={dec}
-                onClick={() => setNordpoolDecimals(dec)}
-                className={`rounded-lg px-4 py-2 font-bold transition-colors ${nordpoolDecimals === dec ? 'popup-surface border' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                style={
-                  nordpoolDecimals === dec
-                    ? {
-                        backgroundColor: 'var(--accent-bg)',
-                        borderColor: 'var(--accent-color)',
-                        color: 'var(--accent-color)',
-                      }
-                    : undefined
-                }
-              >
-                {dec}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            ariaLabelledBy="add-card-decimals-label"
+            value={nordpoolDecimals}
+            onChange={setNordpoolDecimals}
+            options={[0, 1, 2, 3].map((dec) => ({ value: dec, label: String(dec) }))}
+          />
         </div>
       </div>
     );
@@ -803,24 +762,24 @@ function AddCardContent({
       <div>
         {addCardType === 'cost' && (
           <div className="mb-5">
-            <p className="mb-2 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-              {t('addCard.costPickTarget')}
-            </p>
+            <p className="modal-section-label mb-2">{t('addCard.costPickTarget')}</p>
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setCostSelectionTarget('today')}
-                className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-bold tracking-widest whitespace-nowrap uppercase transition-colors ${costSelectionTarget === 'today' ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-              >
-                <Coins className="h-4 w-4" /> {t('addCard.costToday')}
-              </button>
-              <button
-                onClick={() => setCostSelectionTarget('month')}
-                className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-bold tracking-widest whitespace-nowrap uppercase transition-colors ${costSelectionTarget === 'month' ? `${SELECTED_CONTAINER} ${SELECTED_TEXT}` : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-              >
-                <Coins className="h-4 w-4" /> {t('addCard.costMonth')}
-              </button>
+              <TypeButton
+                type="today"
+                icon={Coins}
+                label={t('addCard.costToday')}
+                isActive={costSelectionTarget === 'today'}
+                onSelect={setCostSelectionTarget}
+              />
+              <TypeButton
+                type="month"
+                icon={Coins}
+                label={t('addCard.costMonth')}
+                isActive={costSelectionTarget === 'month'}
+                onSelect={setCostSelectionTarget}
+              />
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               <span
                 className={`rounded-full border px-3 py-1 ${selectedCostTodayId ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'border-[var(--glass-border)] text-[var(--text-muted)]'}`}
               >
@@ -840,9 +799,7 @@ function AddCardContent({
             </div>
           </div>
         )}
-        <p className="mb-4 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-          {getAddCardAvailableLabel()}
-        </p>
+        <p className="modal-section-label mb-3">{getAddCardAvailableLabel()}</p>
         <div className="space-y-3">
           {visibleGenericEntityIds.map((id) => {
             const isSelected =
@@ -855,6 +812,7 @@ function AddCardContent({
               <button
                 type="button"
                 key={id}
+                aria-pressed={isSelected}
                 onClick={() => {
                   if (addCardType === 'cost') {
                     if (costSelectionTarget === 'today') {
@@ -885,12 +843,12 @@ function AddCardContent({
                 {addCardType === 'cost' ? (
                   <div className="flex flex-shrink-0 items-center gap-2">
                     {isSelectedToday && (
-                      <span className="rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-1 text-[9px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
+                      <span className="rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-1 text-[11px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
                         {t('addCard.costToday')}
                       </span>
                     )}
                     {isSelectedMonth && (
-                      <span className="rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-1 text-[9px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
+                      <span className="rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-2 py-1 text-[11px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
                         {t('addCard.costMonth')}
                       </span>
                     )}
@@ -911,7 +869,7 @@ function AddCardContent({
             );
           })}
           {filteredGenericEntityIds.length === 0 && (
-            <p className="py-4 text-center text-sm text-[var(--text-muted)] italic">
+            <p className="py-4 text-center text-sm text-[var(--text-muted)]">
               {getAddCardNoneLeftLabel()}
             </p>
           )}
@@ -920,55 +878,39 @@ function AddCardContent({
     );
   };
 
-  const usesEntityMultiSelect = [
-    'sensor',
-    'light',
-    'lock',
-    'vacuum',
-    'mower',
-    'fan',
-    'camera',
-    'climate',
-    'cover',
-    'alarm',
-    'media',
-    'sonos',
-    'toggle',
-    'entity',
-  ].includes(addCardType);
-  const usesMultiSelectWithCalendar = usesEntityMultiSelect || addCardType === 'calendar';
+  const isRoomType = addCardType === 'room';
+  const addCount = isRoomType ? selectedRoomAreas.length : pendingAddCount;
+  const addLabel =
+    addCount > 1 ? `${t('addCard.add')} ${addCount} ${t('addCard.cards')}` : t('addCard.add');
+  const handleAdd = () => {
+    if (isRoomType) {
+      if (onAddRoom) onAddRoom(selectedRoomAreas, selectedRoomEntitiesById);
+      return;
+    }
+    if (addCardType === 'spacer') {
+      onAddSelected({ spacerVariant: localSpacerVariant });
+      return;
+    }
+    onAddSelected();
+  };
 
   return (
     <AccessibleModalShell
       open
       onClose={onClose}
       titleId="add-card-modal-title"
-      overlayClassName="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-3xl border p-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[2.5rem] md:p-8 lg:max-w-4xl"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size="l"
+      placement="top"
     >
-      {(resolvedTitleId) => (
+      {() => (
         <>
-          <button
-            onClick={onClose}
-            className="modal-close absolute top-4 right-4 md:top-6 md:right-6"
-            aria-label={t('common.close') || 'Close'}
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <h3
-            id={resolvedTitleId}
-            className="mb-5 text-center text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
-          >
-            {t('modal.addCard.title')}
-          </h3>
+          <ModalHeader
+            title={t('modal.addCard.title')}
+            closeLabel={t('common.close') || 'Close'}
+            onClose={onClose}
+          />
 
-          <div className="custom-scrollbar flex-1 overflow-y-auto pr-2">
+          <ModalBody>
             {addCardTargetPage !== 'header' && (
               <div className="relative mb-4">
                 <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
@@ -976,7 +918,7 @@ function AddCardContent({
                   type="text"
                   data-autofocus
                   placeholder={t('addCard.search')}
-                  className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-2.5 pr-4 pl-11 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                  className="w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] py-2.5 pr-4 pl-11 text-sm text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -985,9 +927,7 @@ function AddCardContent({
 
             {addCardTargetPage !== 'header' && addCardTargetPage !== 'settings' && (
               <div className="mb-5">
-                <p className="mb-2 ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-                  {t('addCard.cardType')}
-                </p>
+                <p className="modal-section-label mb-2">{t('addCard.cardType')}</p>
                 <div className="flex flex-wrap gap-2">
                   <TypeButton
                     type="sensor"
@@ -1167,13 +1107,12 @@ function AddCardContent({
                 renderSimpleAddSection(
                   ListChecks,
                   t('addCard.todoDescription') ||
-                    'Add a to-do card. You can select which list to use after adding.',
-                  t('addCard.add')
+                    'Add a to-do card. You can select which list to use after adding.'
                 )
               ) : addCardType === 'spacer' ? (
                 renderSpacerSection()
               ) : addCardType === 'car' ? (
-                renderSimpleAddSection(Car, t('addCard.carDescription'), t('addCard.carCard'))
+                renderSimpleAddSection(Car, t('addCard.carDescription'))
               ) : addCardType === 'nordpool' ? (
                 renderNordpoolSection()
               ) : addCardType === 'room' ? (
@@ -1190,64 +1129,22 @@ function AddCardContent({
                 renderGenericEntityList()
               )}
             </div>
-          </div>
+          </ModalBody>
 
-          <div className="mt-6 flex flex-col gap-3 border-t border-[var(--glass-border)] pt-6">
-            {usesMultiSelectWithCalendar && selectedEntities.length > 0 && (
-              <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
-                <Plus className="h-5 w-5" />{' '}
-                {addCardType === 'media'
-                  ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
-                  : addCardType === 'sonos'
-                    ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.players')}`
-                    : addCardType === 'calendar'
-                      ? `${t('addCard.add')} ${t('addCard.type.calendar') || 'Calendar'} ${t('addCard.cards')}`
-                      : addCardType === 'camera'
-                        ? `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cameraCard') || 'camera cards'}`
-                        : `${t('addCard.add')} ${selectedEntities.length} ${t('addCard.cards')}`}
-              </button>
-            )}
-            {addCardType === 'cost' && selectedCostTodayId && selectedCostMonthId && (
-              <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
-                <Plus className="h-5 w-5" /> {t('addCard.costCard')}
-              </button>
-            )}
-            {addCardType === 'weather' && selectedWeatherId && (
-              <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
-                <Plus className="h-5 w-5" /> {t('addCard.weatherCard')}
-              </button>
-            )}
-            {addCardType === 'nordpool' && selectedNordpoolId && (
-              <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
-                <Plus className="h-5 w-5" /> {t('addCard.nordpoolCard')}
-              </button>
-            )}
-            {addCardType === 'androidtv' && selectedAndroidTVMediaId && (
-              <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
-                <Plus className="h-5 w-5" /> {t('addCard.add')}
-              </button>
-            )}
-            {addCardType === 'appletv' && selectedAppleTVMediaId && (
-              <button onClick={onAddSelected} className={PRIMARY_ADD_BUTTON}>
-                <Plus className="h-5 w-5" /> {t('addCard.add')}
-              </button>
-            )}
-            {addCardType === 'room' && selectedRoomAreas.length > 0 && (
-              <button
-                onClick={() => onAddRoom && onAddRoom(selectedRoomAreas, selectedRoomEntitiesById)}
-                className={PRIMARY_ADD_BUTTON}
-              >
-                <Plus className="h-5 w-5" />{' '}
-                {`${t('addCard.add')} ${selectedRoomAreas.length} ${t('addCard.cards')}`}
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="popup-surface popup-surface-hover w-full rounded-2xl py-3 font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors"
+          <ModalFooter>
+            <Button variant="secondary" onClick={onClose}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              icon={<Plus />}
+              disabled={addCount === 0}
+              onClick={handleAdd}
+              data-testid="add-card-submit"
             >
-              OK
-            </button>
-          </div>
+              {addLabel}
+            </Button>
+          </ModalFooter>
         </>
       )}
     </AccessibleModalShell>
@@ -1273,6 +1170,7 @@ function areAddCardPropsEqual(prev, next) {
     prev.selectedAppleTVRemoteId === next.selectedAppleTVRemoteId &&
     prev.selectedNordpoolId === next.selectedNordpoolId &&
     prev.nordpoolDecimals === next.nordpoolDecimals &&
+    prev.pendingAddCount === next.pendingAddCount &&
     prev.t === next.t
   );
 }

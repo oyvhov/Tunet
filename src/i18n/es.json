@@ -1702,5 +1702,19 @@
   "remote.select": "Seleccionar",
   "shield.menu": "Menú",
   "room.noClimateControl": "Solo sensor de temperatura",
-  "room.popupOtherIncluded": "Otras entidades incluidas"
+  "room.popupOtherIncluded": "Otras entidades incluidas",
+  "statusPills.typeAlarm": "Alarma",
+  "statusPills.previewFilteredOut": "Filtrado",
+  "statusPills.previewTotal": "Total",
+  "statusPills.previewSearchPlayer": "Buscar reproductor en la vista previa",
+  "statusPills.previewShowList": "Mostrar lista",
+  "statusPills.previewHideList": "Ocultar lista",
+  "statusPills.previewIn": "Dentro",
+  "statusPills.previewOut": "Fuera",
+  "statusPills.previewNoPlayers": "Ningún reproductor coincide con la búsqueda.",
+  "statusPills.previewShowingFirst": "Mostrando los primeros {shown} de {total} reproductores.",
+  "addCard.available.mowers": "Cortacéspedes disponibles",
+  "addCard.item.mowers": "cortacéspedes",
+  "page.type": "Tipo de página",
+  "page.typeStandard": "Estándar"
 }

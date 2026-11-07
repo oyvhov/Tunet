@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import EditCardModal from '../modals/EditCardModal';
 import en from '../i18n/en.json';
@@ -13,6 +13,7 @@ vi.mock('../contexts', () => ({
 }));
 vi.mock('../components/ui/AccessibleModalShell', () => ({
   default: ({ open, children }) => (open ? <div>{children('edit-modal-title')}</div> : null),
+  useModalShell: () => null,
 }));
 vi.mock('../components/cards/SensorCard', () => ({ default: () => <div /> }));
 vi.mock('../components/ui/IconPicker', () => ({ default: () => <div /> }));
@@ -129,5 +130,18 @@ describe('EditCardModal sensor display settings', () => {
     expect(
       screen.queryByRole('button', { name: en['sensor.variantGauge'] })
     ).not.toBeInTheDocument();
+  });
+  it('closes from the Done button in the footer', () => {
+    const onClose = vi.fn();
+    render(
+      <EditCardModal
+        {...props}
+        onClose={onClose}
+        editSettings={{ entityId: 'sensor.temperature' }}
+      />
+    );
+    expect(screen.getByRole('heading', { name: en['modal.editCard.title'] })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: en['nav.done'] }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

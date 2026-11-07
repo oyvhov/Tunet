@@ -22,6 +22,9 @@ import {
 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalFooter, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import Button from '../components/ui/Button';
+import Segmented from '../components/ui/Segmented';
 import { normalizeDecimalPlaces } from '../utils';
 import {
   DEFAULT_PILL_ANIMATION_PRESET,
@@ -673,115 +676,65 @@ export default function StatusPillsConfigModal({
       open={show}
       onClose={onClose}
       titleId="status-pills-config-title"
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative flex h-full max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl backdrop-blur-xl md:h-[820px] md:max-h-[92vh] md:rounded-[2rem]"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-      }}
+      size="xl"
     >
       {() => (
         <>
-          {/* Header */}
-          <div className="relative flex items-center justify-between gap-4 border-b border-[var(--glass-border)] px-4 py-4 md:px-6 md:py-5">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="hidden h-10 w-10 items-center justify-center rounded-2xl bg-[var(--accent-bg)] text-[var(--accent-color)] md:flex">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <h2
-                  id="status-pills-config-title"
-                  className="truncate text-xl font-bold tracking-wide text-[var(--text-primary)] md:text-2xl"
-                >
-                  {t('statusPills.title')}
-                </h2>
-                <div className="mt-1 flex items-center gap-2">
-                  <p className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                    {t('statusPills.yourPills')}
-                  </p>
-                  <span className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-secondary)]">
-                    {pills.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="modal-close shrink-0"
-              aria-label={t('common.close') || 'Close'}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          <ModalHeader
+            title={t('statusPills.title')}
+            closeLabel={t('common.close')}
+            onClose={onClose}
+            icon={<Sparkles />}
+            iconStyle={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}
+            status={
+              <StatusChip
+                dot={false}
+                label={t('statusPills.yourPills')}
+                detail={String(pills.length)}
+              />
+            }
+          />
 
-          {/* Content */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+          <ModalBody className="flex flex-col gap-3 md:flex-row md:gap-0">
             {isMobile && (
-              <div className="flex items-center gap-2 border-b border-[var(--glass-border)] bg-[var(--glass-bg)]/40 px-3 py-2">
-                <button
-                  onClick={() => setMobilePane('list')}
-                  className={`flex-1 rounded-xl py-2 text-xs font-bold tracking-wider uppercase transition-all ${mobilePane === 'list' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                  style={
-                    mobilePane === 'list'
-                      ? {
-                          backgroundColor:
-                            'color-mix(in srgb, var(--accent-color) 14%, transparent)',
-                          color: 'var(--accent-color)',
-                          border:
-                            '1px solid color-mix(in srgb, var(--accent-color) 28%, transparent)',
-                        }
-                      : undefined
-                  }
-                >
-                  {t('statusPills.yourPills')}
-                </button>
-                <button
-                  onClick={() => setMobilePane('editor')}
-                  className={`flex-1 rounded-xl py-2 text-xs font-bold tracking-wider uppercase transition-all ${mobilePane === 'editor' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                  style={
-                    mobilePane === 'editor'
-                      ? {
-                          backgroundColor:
-                            'color-mix(in srgb, var(--accent-color) 14%, transparent)',
-                          color: 'var(--accent-color)',
-                          border:
-                            '1px solid color-mix(in srgb, var(--accent-color) 28%, transparent)',
-                        }
-                      : undefined
-                  }
-                >
-                  {t('statusPills.editor') || 'Editor'}
-                </button>
-              </div>
+              <Segmented
+                block
+                className="shrink-0"
+                ariaLabel={t('statusPills.title')}
+                value={mobilePane}
+                onChange={setMobilePane}
+                options={[
+                  { value: 'list', label: t('statusPills.yourPills') },
+                  { value: 'editor', label: t('statusPills.editor') },
+                ]}
+              />
             )}
 
             {/* Pills List */}
             <div
-              className={`flex min-h-0 w-full shrink-0 flex-col overflow-hidden border-r-0 border-b border-[var(--glass-border)] bg-[var(--glass-bg)]/25 md:h-full md:w-[300px] md:border-r md:border-b-0 lg:w-[320px] ${isMobile && mobilePane !== 'list' ? 'hidden' : 'flex-1'}`}
+              className={`flex min-h-0 w-full shrink-0 flex-col overflow-hidden md:w-[300px] md:border-r md:border-[var(--glass-border)] md:pr-4 lg:w-[320px] ${isMobile && mobilePane !== 'list' ? 'hidden' : 'flex-1 md:flex-none'}`}
             >
-              <div className="z-20 shrink-0 space-y-3 border-b border-[var(--glass-border)] bg-[var(--modal-bg)]/90 p-3 backdrop-blur-xl">
+              <div className="relative z-20 shrink-0 space-y-3 pb-3">
                 <div className="relative flex items-center justify-between gap-2" ref={addMenuRef}>
                   <div className="min-w-0">
-                    <h3 className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                      {t('statusPills.yourPills')}
-                    </h3>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">
+                    <h3 className="modal-section-label">{t('statusPills.yourPills')}</h3>
+                    <p className="text-[11px] font-bold text-[var(--text-secondary)] tabular-nums">
                       {filteredPills.length} / {pills.length}
                     </p>
                   </div>
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={() => setShowAddMenu(!showAddMenu)}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-color)] text-white shadow-lg shadow-black/20 transition-all hover:scale-105 active:scale-95"
                     title={t('statusPills.addNewPill')}
                     aria-label={t('statusPills.addNewPill')}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
+                    aria-expanded={showAddMenu}
+                    icon={<Plus />}
+                  />
 
                   {showAddMenu && (
                     <div
-                      className="popup-surface absolute top-full right-0 z-50 mt-2 flex max-h-[70vh] w-56 flex-col gap-1 overflow-y-auto rounded-2xl border border-[var(--glass-border)] p-1.5 shadow-2xl"
+                      className="popup-surface absolute top-full right-0 z-50 mt-2 flex max-h-[70vh] w-56 flex-col gap-1 overflow-y-auto rounded-2xl p-1.5"
                       style={{ background: 'var(--modal-bg)', backdropFilter: 'none' }}
                     >
                       <div className="space-y-1">
@@ -815,13 +768,14 @@ export default function StatusPillsConfigModal({
                     type="text"
                     value={pillSearch}
                     onChange={(e) => setPillSearch(e.target.value)}
-                    placeholder={t('form.search') || 'Search'}
+                    placeholder={t('form.search')}
+                    aria-label={t('form.search')}
                     className="w-full bg-transparent text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
                   />
                 </div>
               </div>
 
-              <div className="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto p-3 pb-20">
+              <div className="custom-scrollbar -mx-1 min-h-0 flex-1 space-y-2 overflow-y-auto px-1 pb-1">
                 {filteredPills.map((pill) => {
                   const Icon = getIconComponent(pill.icon) || getIconComponent('Activity');
                   const isEditing = editingPill === pill.id;
@@ -878,7 +832,7 @@ export default function StatusPillsConfigModal({
                               />
                             </div>
                             <p
-                              className={`truncate text-[10px] font-semibold ${pillHasMissingEntity(pill) ? 'text-[var(--status-error-fg)]' : 'text-[var(--text-muted)]'}`}
+                              className={`truncate text-[11px] font-semibold ${pillHasMissingEntity(pill) ? 'text-[var(--status-error-fg)]' : 'text-[var(--text-muted)]'}`}
                               title={pill.entityId || entityLabel || summaryText}
                             >
                               {summaryText}
@@ -950,7 +904,7 @@ export default function StatusPillsConfigModal({
 
             {/* Editor */}
             <div
-              className={`custom-scrollbar min-h-0 w-full flex-1 overflow-x-visible overflow-y-auto p-4 md:p-6 ${isMobile && mobilePane !== 'editor' ? 'hidden' : ''}`}
+              className={`custom-scrollbar min-h-0 w-full flex-1 overflow-y-auto md:min-h-[min(36rem,55dvh)] md:pl-5 ${isMobile && mobilePane !== 'editor' ? 'hidden' : ''}`}
             >
               {editingPill ? (
                 (() => {
@@ -967,7 +921,7 @@ export default function StatusPillsConfigModal({
                   } = mediaPreviewData;
                   const Icon = getIconComponent(pill.icon) || getIconComponent('Activity');
                   const sectionShellClass =
-                    'popup-surface rounded-2xl border border-[var(--glass-border)]/35 bg-[var(--glass-bg)]/25 p-4 shadow-none backdrop-blur-none md:p-5';
+                    'popup-surface rounded-[var(--modal-surface-radius)] p-4 md:p-5';
                   const groupPreviewData =
                     pill.type === STATUS_GROUP_PILL_TYPE
                       ? resolveStatusGroupPill(pill, entities, t)
@@ -1035,11 +989,11 @@ export default function StatusPillsConfigModal({
                       >
                         <div className="min-w-0 flex-1">
                           <div className="mb-2.5 flex items-center gap-2">
-                            <span className="rounded-full bg-[var(--accent-bg)] px-2.5 py-1 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
+                            <span className="rounded-full bg-[var(--accent-bg)] px-2.5 py-1 text-[11px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
                               {getPillTypeLabel(pill.type)}
                             </span>
                             {(pill.type === 'conditional' || pill.type === 'alarm') && (
-                              <div className="h-1 w-1 rounded-full bg-gray-500"></div>
+                              <div className="h-1 w-1 rounded-full bg-[var(--text-muted)]"></div>
                             )}
                             {(pill.type === 'conditional' || pill.type === 'alarm') && (
                               <span className="text-xs text-[var(--text-muted)]">
@@ -1080,13 +1034,11 @@ export default function StatusPillsConfigModal({
                         {/* Visuals Group */}
                         {(pill.type === 'conditional' || pill.type === STATUS_GROUP_PILL_TYPE) && (
                           <section className={`${sectionShellClass} space-y-3`}>
-                            <h4 className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                              {t('statusPills.appearance')}
-                            </h4>
+                            <h4 className="modal-section-label">{t('statusPills.appearance')}</h4>
 
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                <label className="modal-section-label">
                                   {t('statusPills.heading')}
                                 </label>
                                 <input
@@ -1098,7 +1050,7 @@ export default function StatusPillsConfigModal({
                                 />
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                <label className="modal-section-label">
                                   {t('statusPills.subtitle')}
                                 </label>
                                 <input
@@ -1111,7 +1063,7 @@ export default function StatusPillsConfigModal({
                               </div>
                               {pill.type === 'conditional' && (
                                 <div className="space-y-1">
-                                  <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                  <label className="modal-section-label">
                                     {t('statusPills.unitSource')}
                                   </label>
                                   <select
@@ -1150,7 +1102,7 @@ export default function StatusPillsConfigModal({
 
                             {pill.type === 'conditional' && pill.unitSource === 'custom' && (
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                <label className="modal-section-label">
                                   {t('statusPills.unitOverrideLabel')}
                                 </label>
                                 <input
@@ -1167,7 +1119,7 @@ export default function StatusPillsConfigModal({
 
                             <div className="flex flex-col gap-3 sm:flex-row">
                               <div className="flex-1 space-y-1">
-                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                <label className="modal-section-label">
                                   {t('statusPills.icon')}
                                 </label>
                                 <div className="relative" ref={iconPickerRef}>
@@ -1217,7 +1169,7 @@ export default function StatusPillsConfigModal({
                             </div>
 
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                              <label className="modal-section-label">
                                 {t('statusPills.colorLabel')}
                               </label>
                               <div className="flex flex-wrap gap-2">
@@ -1260,7 +1212,7 @@ export default function StatusPillsConfigModal({
 
                         {/* Source Logic */}
                         <section className={`${sectionShellClass} space-y-3`}>
-                          <h4 className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                          <h4 className="modal-section-label">
                             {pill.type === STATUS_GROUP_PILL_TYPE
                               ? getTranslation('statusPills.groupPreset', 'Preset')
                               : pill.type === 'conditional' || pill.type === 'alarm'
@@ -1315,7 +1267,7 @@ export default function StatusPillsConfigModal({
                                 <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
                                   <label
                                     htmlFor={`group-threshold-${pill.id}`}
-                                    className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase"
+                                    className="modal-section-label"
                                   >
                                     {getTranslation(
                                       'statusPills.groupThreshold',
@@ -1346,13 +1298,13 @@ export default function StatusPillsConfigModal({
 
                               <div className="rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
                                 <div className="mb-2 flex items-center justify-between gap-3">
-                                  <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                                  <span className="modal-section-label">
                                     {getTranslation(
                                       'statusPills.groupMatchedEntities',
                                       'Matching entities'
                                     )}
                                   </span>
-                                  <span className="rounded-full bg-[var(--accent-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent-color)]">
+                                  <span className="rounded-full bg-[var(--accent-bg)] px-2 py-0.5 text-[11px] font-bold text-[var(--accent-color)]">
                                     {groupPreviewData.count}
                                   </span>
                                 </div>
@@ -1369,11 +1321,11 @@ export default function StatusPillsConfigModal({
                                             <p className="truncate font-bold text-[var(--text-primary)]">
                                               {entity.attributes?.friendly_name || id}
                                             </p>
-                                            <p className="truncate text-[10px] text-[var(--text-muted)]">
+                                            <p className="truncate text-[11px] text-[var(--text-muted)]">
                                               {id}
                                             </p>
                                           </div>
-                                          <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-secondary)] uppercase">
+                                          <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-secondary)] uppercase">
                                             {entity.state}
                                           </span>
                                         </div>
@@ -1388,59 +1340,52 @@ export default function StatusPillsConfigModal({
 
                               <div className="space-y-3 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
                                 <div className="flex items-center justify-between gap-3">
-                                  <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                                  <span className="modal-section-label">
                                     {getTranslation('statusPills.groupScope', 'Included entities')}
                                   </span>
                                   {groupSelectionMode !== STATUS_GROUP_SELECTION_ALL && (
-                                    <span className="rounded-full bg-[var(--glass-bg)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-secondary)]">
+                                    <span className="rounded-full bg-[var(--glass-bg)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-secondary)]">
                                       {groupSelectedIds.length}{' '}
                                       {getTranslation('statusPills.groupSelected', 'selected')}
                                     </span>
                                   )}
                                 </div>
 
-                                <div className="flex flex-wrap gap-2">
-                                  {[
+                                <Segmented
+                                  ariaLabel={getTranslation(
+                                    'statusPills.groupScope',
+                                    'Included entities'
+                                  )}
+                                  value={groupSelectionMode}
+                                  onChange={(mode) =>
+                                    updatePill(pill.id, {
+                                      groupSelectionMode: mode,
+                                      ...(mode === STATUS_GROUP_SELECTION_ALL
+                                        ? { groupEntityIds: [] }
+                                        : {}),
+                                    })
+                                  }
+                                  options={[
                                     {
-                                      id: STATUS_GROUP_SELECTION_ALL,
+                                      value: STATUS_GROUP_SELECTION_ALL,
                                       label: getTranslation('statusPills.groupScopeAll', 'All'),
                                     },
                                     {
-                                      id: STATUS_GROUP_SELECTION_INCLUDE,
+                                      value: STATUS_GROUP_SELECTION_INCLUDE,
                                       label: getTranslation(
                                         'statusPills.groupScopeInclude',
                                         'Selected only'
                                       ),
                                     },
                                     {
-                                      id: STATUS_GROUP_SELECTION_EXCLUDE,
+                                      value: STATUS_GROUP_SELECTION_EXCLUDE,
                                       label: getTranslation(
                                         'statusPills.groupScopeExclude',
                                         'All except selected'
                                       ),
                                     },
-                                  ].map((mode) => (
-                                    <button
-                                      key={mode.id}
-                                      type="button"
-                                      onClick={() =>
-                                        updatePill(pill.id, {
-                                          groupSelectionMode: mode.id,
-                                          ...(mode.id === STATUS_GROUP_SELECTION_ALL
-                                            ? { groupEntityIds: [] }
-                                            : {}),
-                                        })
-                                      }
-                                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                                        groupSelectionMode === mode.id
-                                          ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                          : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
-                                      }`}
-                                    >
-                                      {mode.label}
-                                    </button>
-                                  ))}
-                                </div>
+                                  ]}
+                                />
 
                                 {groupSelectionMode === STATUS_GROUP_SELECTION_ALL ? (
                                   <p className="rounded-lg bg-[var(--glass-bg)] px-3 py-2 text-xs text-[var(--text-muted)]">
@@ -1480,11 +1425,11 @@ export default function StatusPillsConfigModal({
                                               <span className="block truncate font-bold text-[var(--text-primary)]">
                                                 {entity.attributes?.friendly_name || id}
                                               </span>
-                                              <span className="block truncate text-[10px] opacity-75">
+                                              <span className="block truncate text-[11px] opacity-75">
                                                 {id}
                                               </span>
                                             </span>
-                                            <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-2 py-0.5 text-[10px] font-bold">
+                                            <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-2 py-0.5 text-[11px] font-bold">
                                               {selected
                                                 ? groupSelectionMode ===
                                                   STATUS_GROUP_SELECTION_EXCLUDE
@@ -1502,7 +1447,7 @@ export default function StatusPillsConfigModal({
                                         );
                                       })}
                                       {filteredGroupCandidateRows.length === 0 && (
-                                        <p className="px-2 py-2 text-xs text-[var(--text-muted)] italic">
+                                        <p className="px-2 py-2 text-xs text-[var(--text-muted)]">
                                           {getTranslation(
                                             'statusPills.groupNoCandidates',
                                             'No matching entities found.'
@@ -1519,40 +1464,33 @@ export default function StatusPillsConfigModal({
                           {/* Emby/Sonos Source Type Logic */}
                           {(pill.type === 'emby' || pill.type === 'sonos') && (
                             <div className="space-y-3">
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  onClick={() =>
-                                    updatePill(pill.id, {
-                                      mediaSelectionMode: 'select',
-                                      mediaFilter: '',
-                                      entityId: '',
-                                    })
-                                  }
-                                  className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                                    (pill.mediaSelectionMode || 'filter') === 'select'
-                                      ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                      : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
-                                  }`}
-                                >
-                                  {t('statusPills.selectSpecificPlayers')}
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    updatePill(pill.id, {
-                                      mediaSelectionMode: 'filter',
-                                      mediaEntityIds: [],
-                                      entityId: '',
-                                    })
-                                  }
-                                  className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
-                                    (pill.mediaSelectionMode || 'filter') === 'filter'
-                                      ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
-                                      : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
-                                  }`}
-                                >
-                                  {t('statusPills.useFilter')}
-                                </button>
-                              </div>
+                              <Segmented
+                                ariaLabel={t('statusPills.mediaPlayerSource')}
+                                value={pill.mediaSelectionMode || 'filter'}
+                                onChange={(mode) =>
+                                  updatePill(
+                                    pill.id,
+                                    mode === 'select'
+                                      ? {
+                                          mediaSelectionMode: 'select',
+                                          mediaFilter: '',
+                                          entityId: '',
+                                        }
+                                      : {
+                                          mediaSelectionMode: 'filter',
+                                          mediaEntityIds: [],
+                                          entityId: '',
+                                        }
+                                  )
+                                }
+                                options={[
+                                  {
+                                    value: 'select',
+                                    label: t('statusPills.selectSpecificPlayers'),
+                                  },
+                                  { value: 'filter', label: t('statusPills.useFilter') },
+                                ]}
+                              />
                             </div>
                           )}
 
@@ -1593,21 +1531,27 @@ export default function StatusPillsConfigModal({
                                   <option value="regex">{t('statusPills.filterRegex')}</option>
                                 </select>
                               </div>
-                              <p className="text-[10px] text-[var(--text-muted)]">
+                              <p className="text-[11px] text-[var(--text-muted)]">
                                 {t('statusPills.filterHint')}
                               </p>
 
                               {(pill.type === 'sonos' || pill.type === 'media_player') && (
                                 <div className="mt-2 space-y-2 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-2.5">
-                                  <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                                     <span className="rounded-full bg-[var(--status-success-bg)] px-2 py-0.5 font-bold text-[var(--status-success-fg)]">
-                                      Included {sonosMatchedIds.length}
+                                      {getTranslation('statusPills.groupIncluded', 'Included')}{' '}
+                                      {sonosMatchedIds.length}
                                     </span>
                                     <span className="rounded-full bg-[var(--glass-bg)] px-2 py-0.5 font-bold text-[var(--text-muted)]">
-                                      Filtered out {sonosFilteredIds.length}
+                                      {getTranslation(
+                                        'statusPills.previewFilteredOut',
+                                        'Filtered out'
+                                      )}{' '}
+                                      {sonosFilteredIds.length}
                                     </span>
                                     <span className="ml-auto font-semibold text-[var(--text-muted)]">
-                                      Total {mediaPlayerIds.length}
+                                      {getTranslation('statusPills.previewTotal', 'Total')}{' '}
+                                      {mediaPlayerIds.length}
                                     </span>
                                   </div>
 
@@ -1615,7 +1559,10 @@ export default function StatusPillsConfigModal({
                                     type="text"
                                     value={dataSourcePreviewSearch}
                                     onChange={(e) => setDataSourcePreviewSearch(e.target.value)}
-                                    placeholder="Find player in preview"
+                                    placeholder={getTranslation(
+                                      'statusPills.previewSearchPlayer',
+                                      'Find player in preview'
+                                    )}
                                     className="w-full rounded-lg border-0 bg-[var(--glass-bg)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none"
                                   />
 
@@ -1625,7 +1572,12 @@ export default function StatusPillsConfigModal({
                                     className="flex w-full items-center justify-between rounded-lg bg-[var(--glass-bg)] px-2.5 py-1.5 text-xs font-bold text-[var(--text-secondary)]"
                                   >
                                     <span>
-                                      {showMediaSourcePreviewList ? 'Hide list' : 'Show list'}
+                                      {showMediaSourcePreviewList
+                                        ? getTranslation('statusPills.previewHideList', 'Hide list')
+                                        : getTranslation(
+                                            'statusPills.previewShowList',
+                                            'Show list'
+                                          )}
                                     </span>
                                     {showMediaSourcePreviewList ? (
                                       <ChevronUp className="h-3.5 w-3.5" />
@@ -1638,8 +1590,11 @@ export default function StatusPillsConfigModal({
                                     <div className="custom-scrollbar max-h-48 space-y-1 overflow-y-auto rounded-lg bg-[var(--glass-bg)] p-1">
                                       {sonosIncludedPreviewRows.length > 0 && (
                                         <div className="px-2 py-1">
-                                          <div className="mb-1 text-[10px] font-bold tracking-wider text-[var(--status-success-fg)] uppercase">
-                                            Included
+                                          <div className="mb-1 text-[11px] font-bold tracking-wider text-[var(--status-success-fg)] uppercase">
+                                            {getTranslation(
+                                              'statusPills.groupIncluded',
+                                              'Included'
+                                            )}
                                           </div>
                                           <div className="space-y-1">
                                             {sonosIncludedPreviewRows.map((id) => {
@@ -1654,12 +1609,12 @@ export default function StatusPillsConfigModal({
                                                     <div className="truncate font-semibold">
                                                       {friendlyName}
                                                     </div>
-                                                    <div className="truncate text-[10px] opacity-80">
+                                                    <div className="truncate text-[11px] opacity-80">
                                                       {id}
                                                     </div>
                                                   </div>
-                                                  <span className="shrink-0 rounded-full bg-[var(--status-success-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--status-success-fg)]">
-                                                    In
+                                                  <span className="shrink-0 rounded-full bg-[var(--status-success-bg)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--status-success-fg)]">
+                                                    {getTranslation('statusPills.previewIn', 'In')}
                                                   </span>
                                                 </div>
                                               );
@@ -1670,8 +1625,11 @@ export default function StatusPillsConfigModal({
 
                                       {sonosExcludedPreviewRows.length > 0 && (
                                         <div className="px-2 py-1">
-                                          <div className="mb-1 text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
-                                            Filtered out
+                                          <div className="mb-1 text-[11px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
+                                            {getTranslation(
+                                              'statusPills.previewFilteredOut',
+                                              'Filtered out'
+                                            )}
                                           </div>
                                           <div className="space-y-1">
                                             {sonosExcludedPreviewRows.map((id) => {
@@ -1686,12 +1644,15 @@ export default function StatusPillsConfigModal({
                                                     <div className="truncate font-semibold">
                                                       {friendlyName}
                                                     </div>
-                                                    <div className="truncate text-[10px] opacity-80">
+                                                    <div className="truncate text-[11px] opacity-80">
                                                       {id}
                                                     </div>
                                                   </div>
-                                                  <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)]">
-                                                    Out
+                                                  <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--text-muted)]">
+                                                    {getTranslation(
+                                                      'statusPills.previewOut',
+                                                      'Out'
+                                                    )}
                                                   </span>
                                                 </div>
                                               );
@@ -1701,17 +1662,24 @@ export default function StatusPillsConfigModal({
                                       )}
 
                                       {sonosPreviewRows.length === 0 && (
-                                        <p className="px-2 py-2 text-[10px] text-[var(--text-muted)] italic">
-                                          No players match this search.
+                                        <p className="px-2 py-2 text-[11px] text-[var(--text-muted)]">
+                                          {getTranslation(
+                                            'statusPills.previewNoPlayers',
+                                            'No players match this search.'
+                                          )}
                                         </p>
                                       )}
                                     </div>
                                   )}
 
                                   {mediaPlayerIds.length > sonosPreviewRows.length && (
-                                    <p className="px-1 text-[10px] text-[var(--text-muted)]">
-                                      Showing first {sonosPreviewRows.length} of{' '}
-                                      {mediaPlayerIds.length} players.
+                                    <p className="px-1 text-[11px] text-[var(--text-muted)]">
+                                      {getTranslation(
+                                        'statusPills.previewShowingFirst',
+                                        'Showing first {shown} of {total} players.'
+                                      )
+                                        .replace('{shown}', String(sonosPreviewRows.length))
+                                        .replace('{total}', String(mediaPlayerIds.length))}
                                     </p>
                                   )}
                                 </div>
@@ -1820,10 +1788,10 @@ export default function StatusPillsConfigModal({
                                 </div>
                               )}
                               {pill.entityId && (
-                                <div className="mt-2 flex items-center justify-between px-1 text-[10px] text-[var(--text-muted)]">
+                                <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-[var(--text-muted)]">
                                   <span>{pill.entityId}</span>
                                   <span className="rounded bg-[var(--glass-bg)] px-1.5 py-0.5 font-mono text-[var(--text-primary)]">
-                                    {entities[pill.entityId]?.state || 'N/A'}
+                                    {entities[pill.entityId]?.state || t('common.unknown')}
                                   </span>
                                 </div>
                               )}
@@ -1842,7 +1810,7 @@ export default function StatusPillsConfigModal({
                           {pill.type === 'emby' && (
                             <div className="rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
                               <div className="mb-2 flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                <label className="modal-section-label">
                                   {t('statusPills.sessionSensors')}
                                 </label>
                               </div>
@@ -1870,7 +1838,7 @@ export default function StatusPillsConfigModal({
                                   );
                                 })}
                                 {sessionSensorOptions.length === 0 && (
-                                  <p className="text-center text-xs text-[var(--text-muted)] italic">
+                                  <p className="text-center text-xs text-[var(--text-muted)]">
                                     {t('statusPills.noSessionSensors')}
                                   </p>
                                 )}
@@ -1882,7 +1850,7 @@ export default function StatusPillsConfigModal({
                         {/* Condition Group */}
                         {pill.type !== STATUS_GROUP_PILL_TYPE && (
                           <section className={`${sectionShellClass} space-y-3`}>
-                            <h4 className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                            <h4 className="modal-section-label">
                               {t('statusPills.visibility')}{' '}
                               {pill.type !== 'conditional' && t('statusPills.visibilityOptional')}
                             </h4>
@@ -1959,14 +1927,14 @@ export default function StatusPillsConfigModal({
                                                   },
                                                 });
                                               }}
-                                              className="hover:text-white"
+                                              className="hover:text-[var(--text-primary)]"
                                             >
                                               <X className="h-3 w-3" />
                                             </button>
                                           </span>
                                         ))}
                                         {(pill.condition?.states || []).length === 0 && (
-                                          <span className="text-xs text-[var(--text-muted)] italic">
+                                          <span className="text-xs text-[var(--text-muted)]">
                                             {t('statusPills.noValuesSelected')}
                                           </span>
                                         )}
@@ -2074,14 +2042,12 @@ export default function StatusPillsConfigModal({
 
                         {/* Visual Options Group */}
                         <section className={`${sectionShellClass} space-y-3`}>
-                          <h4 className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                            {t('statusPills.options')}
-                          </h4>
+                          <h4 className="modal-section-label">{t('statusPills.options')}</h4>
                           {(pill.type === 'media_player' ||
                             pill.type === 'emby' ||
                             pill.type === 'sonos') && (
                             <div className="space-y-1 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
-                              <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                              <label className="modal-section-label">
                                 {t('statusPills.playerNameDisplayFilter')}
                               </label>
                               <input
@@ -2098,7 +2064,7 @@ export default function StatusPillsConfigModal({
                           {pill.type === 'sonos' && (
                             <div className="grid grid-cols-1 gap-2 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3 md:grid-cols-2">
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                <label className="modal-section-label">
                                   {t('statusPills.headingSource') || 'Heading content'}
                                 </label>
                                 <select
@@ -2135,7 +2101,7 @@ export default function StatusPillsConfigModal({
                                 </select>
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                                <label className="modal-section-label">
                                   {t('statusPills.subheadingSource') || 'Subheading content'}
                                 </label>
                                 <select
@@ -2175,7 +2141,7 @@ export default function StatusPillsConfigModal({
                           )}
                           <div className="grid grid-cols-1 gap-3 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3 md:grid-cols-2">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                              <label className="modal-section-label">
                                 {getTranslation('statusPills.animationLabel', 'Animation')}
                               </label>
                               <select
@@ -2200,7 +2166,7 @@ export default function StatusPillsConfigModal({
                               </select>
                             </div>
                             <div className="space-y-2">
-                              <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                              <label className="modal-section-label">
                                 {getTranslation('statusPills.textDisplay', 'Text display')}
                               </label>
                               <div className="flex flex-wrap gap-2">
@@ -2239,7 +2205,7 @@ export default function StatusPillsConfigModal({
                             <div className="space-y-1 rounded-xl border border-[var(--glass-border)]/35 bg-transparent p-3">
                               <label
                                 htmlFor={`status-pill-decimals-${pill.id}`}
-                                className="text-[10px] font-bold text-[var(--text-muted)] uppercase"
+                                className="modal-section-label"
                               >
                                 {getTranslation('statusPills.decimalPlaces', 'Decimal places')}
                               </label>
@@ -2352,40 +2318,24 @@ export default function StatusPillsConfigModal({
                       {getSafeTranslationText('statusPills.selectPillHint')}
                     </p>
                     {isMobile && (
-                      <button
-                        onClick={() => setMobilePane('list')}
-                        className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-2 text-xs font-bold tracking-wider text-[var(--text-secondary)] uppercase"
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => setMobilePane('list')}>
                         {t('statusPills.yourPills')}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
               )}
             </div>
-          </div>
+          </ModalBody>
 
-          {/* Footer */}
-          <div className="flex gap-3 border-t border-[var(--glass-border)] bg-[var(--glass-bg)]/30 p-3 md:p-4">
-            <button
-              onClick={onClose}
-              className="flex-1 rounded-2xl border border-[var(--glass-border)] py-3 font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)]"
-            >
+          <ModalFooter>
+            <Button variant="secondary" onClick={onClose}>
               {t('statusPills.cancel')}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={hasInvalidPills}
-              className={`flex-1 rounded-2xl border py-3 font-bold tracking-widest uppercase shadow-lg transition-colors ${
-                hasInvalidPills
-                  ? 'cursor-not-allowed border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-muted)] opacity-60'
-                  : 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'
-              }`}
-            >
-              <Check className="mr-2 inline h-5 w-5" />
+            </Button>
+            <Button variant="primary" onClick={handleSave} disabled={hasInvalidPills}>
               {t('statusPills.save')}
-            </button>
-          </div>
+            </Button>
+          </ModalFooter>
         </>
       )}
     </AccessibleModalShell>

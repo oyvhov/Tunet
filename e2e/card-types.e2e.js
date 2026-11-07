@@ -533,7 +533,7 @@ test.describe('Camera Card', () => {
       'aria-pressed',
       'true'
     );
-    await dialog.getByRole('button', { name: 'OK', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Done', exact: true }).click();
 
     await expect
       .poll(() =>

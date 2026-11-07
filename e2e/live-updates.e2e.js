@@ -425,7 +425,7 @@ for (const profile of [
           await expect(editor.getByTestId('sensor-card-preview')).toBeVisible();
           await page.screenshot({ path: testInfo.outputPath('edit-sensor-card.png') });
         }
-        await editor.getByRole('button', { name: 'OK', exact: true }).click();
+        await editor.getByRole('button', { name: 'Done', exact: true }).click();
         await expect(editor).not.toBeVisible();
       }
       await page.getByRole('button', { name: 'Add card', exact: true }).click();

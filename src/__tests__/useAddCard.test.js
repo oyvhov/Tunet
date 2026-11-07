@@ -246,3 +246,57 @@ describe('useAddCard › setters', () => {
     expect(result.current.costSelectionTarget).toBe('month');
   });
 });
+
+// ═════════════════════════════════════════════════════════════════════════
+// Picks per card type
+// ═════════════════════════════════════════════════════════════════════════
+describe('useAddCard › picks per card type', () => {
+  it('keeps picks for each type when switching type and back', () => {
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
+
+    act(() => result.current.setSelectedEntities(['light.hall']));
+    act(() => result.current.setAddCardType('lock'));
+    expect(result.current.selectedEntities).toEqual([]);
+
+    act(() => result.current.setSelectedEntities((prev) => [...prev, 'lock.front']));
+    act(() => result.current.setAddCardType('light'));
+    expect(result.current.selectedEntities).toEqual(['light.hall']);
+    expect(result.current.pendingAddCount).toBe(2);
+  });
+
+  it('adds the picks of every type and persists once', () => {
+    const props = makeProps({ showAddCardModal: true });
+    const appendPicks = (ctx) =>
+      ctx.persistConfig({
+        ...ctx.pagesConfig,
+        home: [...ctx.pagesConfig.home, ...ctx.selectedEntities],
+      });
+    handleAddSelected.mockImplementationOnce(appendPicks).mockImplementationOnce(appendPicks);
+    const { result } = renderHook(() => useAddCard(props));
+
+    act(() => result.current.setSelectedEntities(['light.hall']));
+    act(() => result.current.setAddCardType('lock'));
+    act(() => result.current.setSelectedEntities(['lock.front']));
+    act(() => result.current.onAddSelected());
+
+    expect(handleAddSelected).toHaveBeenCalledTimes(2);
+    expect(handleAddSelected).toHaveBeenCalledWith(
+      expect.objectContaining({ addCardType: 'light', selectedEntities: ['light.hall'] })
+    );
+    expect(handleAddSelected).toHaveBeenCalledWith(
+      expect.objectContaining({ addCardType: 'lock', selectedEntities: ['lock.front'] })
+    );
+    expect(props.persistConfig).toHaveBeenCalledTimes(1);
+    expect(props.persistConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ home: ['light.hall', 'lock.front'] })
+    );
+    expect(props.setShowAddCardModal).toHaveBeenCalledWith(false);
+    expect(result.current.selectedEntities).toEqual([]);
+  });
+
+  it('uses the mower label for the mower type', () => {
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
+    act(() => result.current.setAddCardType('mower'));
+    expect(result.current.getAddCardAvailableLabel()).toBe('addCard.available.mowers');
+  });
+});

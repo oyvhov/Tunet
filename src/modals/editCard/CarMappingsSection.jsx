@@ -86,7 +86,7 @@ export function SearchableSelect({
                 className={`w-full px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-all ${value === id ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
               >
                 {getLabel(id)}
-                <span className="block truncate text-[10px] font-normal tracking-normal text-[var(--text-muted)] normal-case">
+                <span className="block truncate text-[11px] font-normal tracking-normal text-[var(--text-muted)] normal-case">
                   {id}
                 </span>
               </button>
@@ -263,14 +263,12 @@ export function CarMappingsSection({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+      <div className="modal-section-label">
         {t('car.mappingTitle')}: {t('car.mappingHint')}
       </div>
 
       <div className="popup-surface space-y-2 rounded-2xl p-3">
-        <div className="ml-1 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-          {t('car.anchorEntity') || 'Anchor entity'}
-        </div>
+        <div className="modal-section-label">{t('car.anchorEntity') || 'Anchor entity'}</div>
         <select
           value={anchorEntityId || ''}
           onChange={(e) =>
@@ -290,7 +288,7 @@ export function CarMappingsSection({
             </option>
           ))}
         </select>
-        <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+        <p className="ml-1 text-[11px] text-[var(--text-muted)]">
           {t('car.anchorHint') ||
             'Pick one entity from your car integration, then auto-map the rest from related entities.'}
         </p>
@@ -332,7 +330,7 @@ export function CarMappingsSection({
                       {entityName}
                     </span>
                   </div>
-                  <span className="mt-0.5 block truncate font-mono text-[10px] text-[var(--text-muted)]">
+                  <span className="mt-0.5 block truncate font-mono text-[11px] text-[var(--text-muted)]">
                     {entityId}
                   </span>
                 </div>
@@ -362,9 +360,7 @@ export function CarMappingsSection({
       {showAddSensor && (
         <div className="popup-surface space-y-4 rounded-xl px-4 py-4 sm:px-5">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-              {t('car.addSensor')}
-            </span>
+            <span className="modal-section-label">{t('car.addSensor')}</span>
             <button
               onClick={() => {
                 setShowAddSensor(false);
@@ -378,7 +374,7 @@ export function CarMappingsSection({
           </div>
 
           <div>
-            <label className="mb-2 ml-4 block text-xs font-bold text-[var(--text-muted)] uppercase">
+            <label className="modal-section-label block pb-2">
               {t('car.sensorType') || 'Sensortype'}
             </label>
             <select
@@ -427,13 +423,13 @@ export function CarMappingsSection({
               return (
                 <div className="space-y-2">
                   {!anchorEntityId && (
-                    <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                       {t('car.anchorRequiredForList') ||
                         'Choose an anchor entity first to list entities from that integration.'}
                     </p>
                   )}
                   {anchorEntityId && options.length === 0 && (
-                    <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                       {t('car.noEntitiesForAnchorType') ||
                         'No matching entities found in the selected integration for this sensor type.'}
                     </p>

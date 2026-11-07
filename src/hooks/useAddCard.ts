@@ -1,8 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { handleAddSelected } from '../services';
-import type { UseAddCardDeps, UseAddCardResult } from '../types/dashboard';
+import type {
+  CardSettingsMap,
+  PagesConfig,
+  UseAddCardDeps,
+  UseAddCardResult,
+} from '../types/dashboard';
 
 const DEFAULT_ADD_CARD_TYPE = 'light';
+const EMPTY_SELECTION: string[] = [];
+// Types whose picks become one grouped card instead of one card per entity.
+const GROUPED_TYPES = new Set(['media', 'sonos', 'calendar']);
+// Types that add a single card without picking anything first.
+const NO_PICK_TYPES = new Set(['todo', 'car', 'spacer']);
+// Types that use the entity id itself as the card id.
+const ENTITY_ID_CARD_TYPES = new Set(['light', 'vacuum', 'mower', 'fan', 'toggle', 'entity']);
 
 /**
  * Manages all "Add Card" dialog state, selection resets, type inference and submission.
@@ -32,7 +44,22 @@ export function useAddCard({
   const [addCardTargetPage, setAddCardTargetPage] = useState('home');
   const [addCardType, setAddCardType] = useState(DEFAULT_ADD_CARD_TYPE);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEntities, setSelectedEntities] = useState<string[]>([]);
+  // Picks are kept per card type so switching type and back keeps them.
+  const [selectedEntitiesByType, setSelectedEntitiesByType] = useState<Record<string, string[]>>(
+    {}
+  );
+  const selectedEntities = selectedEntitiesByType[addCardType] || EMPTY_SELECTION;
+  const setSelectedEntities = useCallback(
+    (value: string[] | ((prev: string[]) => string[])) => {
+      setSelectedEntitiesByType((prev) => {
+        const current = prev[addCardType] || EMPTY_SELECTION;
+        const next = typeof value === 'function' ? value(current) : value;
+        return { ...prev, [addCardType]: next };
+      });
+    },
+    [addCardType]
+  );
+  const clearAllSelectedEntities = useCallback(() => setSelectedEntitiesByType({}), []);
   const [selectedWeatherId, setSelectedWeatherId] = useState<string | null>(null);
   const [selectedTempId, setSelectedTempId] = useState<string | null>(null);
   const [selectedAndroidTVMediaId, setSelectedAndroidTVMediaId] = useState<string | null>(null);
@@ -65,9 +92,13 @@ export function useAddCard({
   // ── Reset selections when modal opens ──────────────────────────────────
   useEffect(() => {
     if (showAddCardModal) {
-      setSelectedEntities([]);
+      setSelectedEntitiesByType({});
       setSelectedWeatherId(null);
       setSelectedTempId(null);
+      setSelectedAndroidTVMediaId(null);
+      setSelectedAndroidTVRemoteId(null);
+      setSelectedAppleTVMediaId(null);
+      setSelectedAppleTVRemoteId(null);
       setSelectedCostTodayId(null);
       setSelectedCostMonthId(null);
       setCostSelectionTarget('today');
@@ -97,29 +128,13 @@ export function useAddCard({
     setAddCardType(DEFAULT_ADD_CARD_TYPE);
   }, [showAddCardModal, addCardTargetPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Clear stale selections when card type changes ──────────────────────
-  useEffect(() => {
-    if (!showAddCardModal) return;
-    setSelectedEntities([]);
-    setSelectedWeatherId(null);
-    setSelectedTempId(null);
-    setSelectedAndroidTVMediaId(null);
-    setSelectedAndroidTVRemoteId(null);
-    setSelectedAppleTVMediaId(null);
-    setSelectedAppleTVRemoteId(null);
-    setSelectedCostTodayId(null);
-    setSelectedCostMonthId(null);
-    setCostSelectionTarget('today');
-    setSelectedNordpoolId(null);
-    setNordpoolDecimals(2);
-  }, [addCardType, showAddCardModal]);
-
   // ── Labels ─────────────────────────────────────────────────────────────
   const getAddCardAvailableLabel = () => {
     if (addCardTargetPage === 'header') return t('addCard.available.people');
     if (addCardTargetPage === 'settings') return t('addCard.available.allEntities');
     if (addCardType === 'lock') return t('addCard.available.locks');
     if (addCardType === 'vacuum') return t('addCard.available.vacuums');
+    if (addCardType === 'mower') return t('addCard.available.mowers');
     if (addCardType === 'fan') return t('addCard.available.fans');
     if (addCardType === 'camera') return t('addCard.available.cameras');
     if (addCardType === 'climate') return t('addCard.available.climates');
@@ -145,38 +160,65 @@ export function useAddCard({
             ? 'addCard.item.locks'
             : addCardType === 'vacuum'
               ? 'addCard.item.vacuums'
-              : addCardType === 'fan'
-                ? 'addCard.item.fans'
-                : addCardType === 'camera'
-                  ? 'addCard.item.cameras'
-                  : addCardType === 'climate'
-                    ? 'addCard.item.climates'
-                    : addCardType === 'cover'
-                      ? 'addCard.item.covers'
-                      : addCardType === 'alarm'
-                        ? 'addCard.item.alarms'
-                        : addCardType === 'cost'
-                          ? 'addCard.item.costs'
-                          : addCardType === 'media'
-                            ? 'addCard.item.players'
-                            : addCardType === 'sonos'
+              : addCardType === 'mower'
+                ? 'addCard.item.mowers'
+                : addCardType === 'fan'
+                  ? 'addCard.item.fans'
+                  : addCardType === 'camera'
+                    ? 'addCard.item.cameras'
+                    : addCardType === 'climate'
+                      ? 'addCard.item.climates'
+                      : addCardType === 'cover'
+                        ? 'addCard.item.covers'
+                        : addCardType === 'alarm'
+                          ? 'addCard.item.alarms'
+                          : addCardType === 'cost'
+                            ? 'addCard.item.costs'
+                            : addCardType === 'media'
                               ? 'addCard.item.players'
-                              : addCardType === 'car'
-                                ? 'addCard.item.cars'
-                                : addCardType === 'toggle'
-                                  ? 'addCard.item.toggles'
-                                  : addCardType === 'sensor'
-                                    ? 'addCard.item.sensors'
-                                    : addCardType === 'entity'
-                                      ? 'addCard.item.entities'
-                                      : 'addCard.item.lights';
+                              : addCardType === 'sonos'
+                                ? 'addCard.item.players'
+                                : addCardType === 'car'
+                                  ? 'addCard.item.cars'
+                                  : addCardType === 'toggle'
+                                    ? 'addCard.item.toggles'
+                                    : addCardType === 'sensor'
+                                      ? 'addCard.item.sensors'
+                                      : addCardType === 'entity'
+                                        ? 'addCard.item.entities'
+                                        : 'addCard.item.lights';
 
     return t('addCard.noneLeft').replace('{item}', t(itemKey));
   };
 
+  // ── Pending cards across all card types ────────────────────────────────
+  const isSpecialTarget = addCardTargetPage === 'header' || addCardTargetPage === 'settings';
+  const pendingAddTypes: string[] = isSpecialTarget
+    ? selectedEntities.length > 0
+      ? [addCardType]
+      : []
+    : [
+        ...Object.keys(selectedEntitiesByType).filter(
+          (type) => selectedEntitiesByType[type].length > 0
+        ),
+        ...(selectedWeatherId ? ['weather'] : []),
+        ...(selectedAndroidTVMediaId ? ['androidtv'] : []),
+        ...(selectedAppleTVMediaId ? ['appletv'] : []),
+        ...(selectedCostTodayId && selectedCostMonthId ? ['cost'] : []),
+        ...(selectedNordpoolId ? ['nordpool'] : []),
+        ...(NO_PICK_TYPES.has(addCardType) ? [addCardType] : []),
+      ];
+  const pendingAddCount = pendingAddTypes.reduce((count, type) => {
+    const picks = selectedEntitiesByType[type];
+    if (!picks || GROUPED_TYPES.has(type) || isSpecialTarget) {
+      return count + (isSpecialTarget ? selectedEntities.length : 1);
+    }
+    return count + picks.length;
+  }, 0);
+
   // ── Submit handler ─────────────────────────────────────────────────────
-  const onAddSelected = (options: { spacerVariant?: string } = {}) =>
-    handleAddSelected({
+  const onAddSelected = (options: { spacerVariant?: string } = {}) => {
+    const context = {
       pagesConfig,
       persistConfig,
       addCardTargetPage,
@@ -196,7 +238,7 @@ export function useAddCard({
       hiddenCards,
       persistHiddenCards,
       getCardSettingsKey,
-      setSelectedEntities,
+      setSelectedEntities: clearAllSelectedEntities,
       setShowAddCardModal,
       setSelectedWeatherId,
       setSelectedTempId,
@@ -214,7 +256,74 @@ export function useAddCard({
       saveCardSetting,
       setShowEditCardModal,
       setEditCardSettingsKey,
+    };
+
+    if (pendingAddTypes.length <= 1) {
+      const type = pendingAddTypes[0] ?? addCardType;
+      handleAddSelected({
+        ...context,
+        addCardType: type,
+        selectedEntities: isSpecialTarget
+          ? selectedEntities
+          : selectedEntitiesByType[type] || EMPTY_SELECTION,
+      });
+      return;
+    }
+
+    // Several card types picked: add them one after another on a working copy
+    // and persist once, so later types don't overwrite earlier ones.
+    let workingConfig: PagesConfig = pagesConfig;
+    let workingSettings: CardSettingsMap = cardSettings;
+    const initialHidden = Array.isArray(hiddenCards) ? hiddenCards : [];
+    let workingHidden = initialHidden;
+    let editCardId: string | null = null;
+    let editSettingsKey: string | null = null;
+
+    pendingAddTypes.forEach((type) => {
+      const onPage = new Set(
+        (workingConfig[addCardTargetPage] as string[] | undefined) || EMPTY_SELECTION
+      );
+      const picks = (selectedEntitiesByType[type] || EMPTY_SELECTION).filter(
+        (id) => !ENTITY_ID_CARD_TYPES.has(type) || !onPage.has(id)
+      );
+      handleAddSelected({
+        ...context,
+        addCardType: type,
+        selectedEntities: picks,
+        pagesConfig: workingConfig,
+        cardSettings: workingSettings,
+        hiddenCards: workingHidden,
+        persistConfig: (next) => {
+          workingConfig = next;
+        },
+        persistCardSettings: (next) => {
+          workingSettings = next;
+        },
+        persistHiddenCards: (next) => {
+          workingHidden = next;
+        },
+        setShowAddCardModal: () => {},
+        setShowEditCardModal: (cardId) => {
+          editCardId = cardId;
+        },
+        setEditCardSettingsKey: (key) => {
+          editSettingsKey = key;
+        },
+      });
     });
+
+    if (workingSettings !== cardSettings) persistCardSettings(workingSettings);
+    if (workingConfig !== pagesConfig) persistConfig(workingConfig);
+    if (workingHidden !== initialHidden && typeof persistHiddenCards === 'function') {
+      persistHiddenCards(workingHidden);
+    }
+    clearAllSelectedEntities();
+    setShowAddCardModal(false);
+    if (editCardId) {
+      setShowEditCardModal(editCardId);
+      setEditCardSettingsKey(editSettingsKey);
+    }
+  };
 
   return {
     addCardTargetPage,
@@ -250,6 +359,7 @@ export function useAddCard({
     selectedSpacerVariant,
     setSelectedSpacerVariant,
     onAddSelected,
+    pendingAddCount,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
   };

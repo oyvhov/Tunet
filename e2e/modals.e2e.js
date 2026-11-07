@@ -230,6 +230,13 @@ test.describe('Modal Interactions', () => {
     await expect(modal.getByText(`Running version: ${appVersion}`, { exact: true })).toBeVisible();
   });
 
+  test('closes system settings from the footer save button', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    await expect(modal.getByRole('heading', { name: 'Connection', exact: true })).toBeVisible();
+    await modal.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(modal).toBeHidden();
+  });
+
   test('should expose mobile add and edit actions from the floating settings menu', async ({
     page,
   }) => {

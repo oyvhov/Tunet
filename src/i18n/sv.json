@@ -1702,5 +1702,19 @@
   "remote.select": "Välj",
   "shield.menu": "Meny",
   "room.noClimateControl": "Endast temperatursensor",
-  "room.popupOtherIncluded": "Andra inkluderade enheter"
+  "room.popupOtherIncluded": "Andra inkluderade enheter",
+  "statusPills.typeAlarm": "Larm",
+  "statusPills.previewFilteredOut": "Bortfiltrerad",
+  "statusPills.previewTotal": "Totalt",
+  "statusPills.previewSearchPlayer": "Hitta spelare i förhandsvisningen",
+  "statusPills.previewShowList": "Visa lista",
+  "statusPills.previewHideList": "Dölj lista",
+  "statusPills.previewIn": "Med",
+  "statusPills.previewOut": "Ute",
+  "statusPills.previewNoPlayers": "Inga spelare matchar sökningen.",
+  "statusPills.previewShowingFirst": "Visar de första {shown} av {total} spelare.",
+  "addCard.available.mowers": "Tillgängliga gräsklippare",
+  "addCard.item.mowers": "gräsklippare",
+  "page.type": "Sidtyp",
+  "page.typeStandard": "Standard"
 }

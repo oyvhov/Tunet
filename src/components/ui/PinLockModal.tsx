@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X } from '../../icons';
 import AccessibleModalShell from './AccessibleModalShell';
+import Button from './Button';
+import { ModalBody, ModalHeader } from './ModalParts';
 import type { Translate } from '../../types/ha';
 
 interface PinLockModalProps {
@@ -9,9 +10,17 @@ interface PinLockModalProps {
   onSubmit: (pin: string) => void;
   t: Translate;
   error?: string | null;
+  title?: string;
 }
 
-export default function PinLockModal({ open, onClose, onSubmit, t, error }: PinLockModalProps) {
+export default function PinLockModal({
+  open,
+  onClose,
+  onSubmit,
+  t,
+  error,
+  title,
+}: PinLockModalProps) {
   const [pin, setPin] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,141 +52,100 @@ export default function PinLockModal({ open, onClose, onSubmit, t, error }: PinL
     setPin('');
   };
 
+  const handleClose = () => {
+    setPin('');
+    onClose();
+  };
+
+  const keyClassName =
+    'flex h-12 items-center justify-center rounded-[var(--modal-control-radius)] border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95';
+
   return (
-    <AccessibleModalShell
-      open={open}
-      onClose={() => {
-        setPin('');
-        onClose();
-      }}
-      overlayClassName="popup-anim fixed inset-0 z-[200] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
-      panelClassName="w-full max-w-[360px] rounded-2xl border p-4"
-      panelStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--glass-border)' }}
-    >
-      {(titleId) => (
+    <AccessibleModalShell open={open} onClose={handleClose} size="s" nested>
+      {() => (
         <>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 id={titleId} className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-              {t('settings.lock.pinPrompt')}
-            </h3>
-            <button
-              type="button"
-              onClick={() => {
-                setPin('');
-                onClose();
-              }}
-              className="rounded-lg border p-2"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                borderColor: 'var(--glass-border)',
-                color: 'var(--text-secondary)',
-              }}
-              aria-label={t('common.close')}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          <ModalHeader
+            title={title || t('settings.lock.pinPrompt')}
+            closeLabel={t('common.close')}
+            onClose={handleClose}
+            className="[&_.modal-title]:whitespace-normal"
+          />
 
-          <div className="popup-surface mb-3 rounded-xl p-3">
-            <div className="mb-2 flex justify-center gap-2">
-              {[0, 1, 2, 3].map((index) => (
-                <div
-                  key={index}
-                  className="h-3 w-3 rounded-full"
-                  style={{
-                    backgroundColor: pin[index] ? 'var(--text-primary)' : 'var(--glass-border)',
-                  }}
-                />
-              ))}
+          <ModalBody className="space-y-3">
+            <div className="popup-surface rounded-[var(--modal-surface-radius)] p-3">
+              <div className="mb-2 flex justify-center gap-2">
+                {[0, 1, 2, 3].map((index) => (
+                  <div
+                    key={index}
+                    className="h-3 w-3 rounded-full"
+                    style={{
+                      backgroundColor: pin[index] ? 'var(--text-primary)' : 'var(--glass-border)',
+                    }}
+                  />
+                ))}
+              </div>
+              <input
+                ref={inputRef}
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submit();
+                  }
+                }}
+                className="w-full rounded-[var(--modal-control-radius)] border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-center text-sm tracking-[0.35em] text-[var(--text-primary)] outline-none"
+                placeholder={t('settings.lock.pin')}
+                aria-label={t('settings.lock.pin')}
+              />
+              {error && (
+                <p role="alert" className="mt-2 text-center text-xs text-[var(--status-error-fg)]">
+                  {error}
+                </p>
+              )}
             </div>
-            <input
-              ref={inputRef}
-              type="password"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={4}
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  submit();
+
+            <div className="grid grid-cols-3 gap-2">
+              {digits.map((value, index) => {
+                if (value === '') {
+                  return <div key={`empty-${index}`} />;
                 }
-              }}
-              className="w-full rounded-lg border px-3 py-2 text-center text-sm tracking-[0.35em] outline-none"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                borderColor: 'var(--glass-border)',
-                color: 'var(--text-primary)',
-              }}
-              placeholder={t('settings.lock.pin')}
-              aria-label={t('settings.lock.pin')}
-            />
-            {error && (
-              <p className="text-center text-xs" style={{ color: 'var(--text-secondary)' }}>
-                {error}
-              </p>
-            )}
-          </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {digits.map((value, index) => {
-              if (value === '') {
-                return <div key={`empty-${index}`} />;
-              }
+                if (value === '⌫') {
+                  return (
+                    <button
+                      key="backspace"
+                      type="button"
+                      onClick={backspace}
+                      className={keyClassName}
+                      aria-label={t('settings.lock.backspace')}
+                    >
+                      <span className="text-sm font-semibold">⌫</span>
+                    </button>
+                  );
+                }
 
-              if (value === '⌫') {
                 return (
                   <button
-                    key="backspace"
+                    key={value}
                     type="button"
-                    onClick={backspace}
-                    className="flex h-12 items-center justify-center rounded-xl border"
-                    style={{
-                      backgroundColor: 'var(--glass-bg)',
-                      borderColor: 'var(--glass-border)',
-                      color: 'var(--text-primary)',
-                    }}
-                    aria-label={t('settings.lock.backspace')}
+                    onClick={() => addDigit(value)}
+                    className={`${keyClassName} text-base font-semibold`}
                   >
-                    <span className="text-sm font-semibold">⌫</span>
+                    {value}
                   </button>
                 );
-              }
+              })}
+            </div>
 
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => addDigit(value)}
-                  className="h-12 rounded-xl border text-base font-semibold"
-                  style={{
-                    backgroundColor: 'var(--glass-bg)',
-                    borderColor: 'var(--glass-border)',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {value}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 space-y-2">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={pin.length !== 4}
-              className="h-11 w-full rounded-xl border text-sm font-semibold disabled:opacity-50"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                borderColor: 'var(--glass-border)',
-                color: 'var(--text-primary)',
-              }}
-            >
+            <Button variant="primary" block onClick={submit} disabled={pin.length !== 4}>
               {t('settings.lock.unlock')}
-            </button>
-          </div>
+            </Button>
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>

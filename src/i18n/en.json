@@ -1702,5 +1702,19 @@
   "remote.select": "Select",
   "shield.menu": "Menu",
   "room.noClimateControl": "Temperature sensor only",
-  "room.popupOtherIncluded": "Other included entities"
+  "room.popupOtherIncluded": "Other included entities",
+  "statusPills.typeAlarm": "Alarm",
+  "statusPills.previewFilteredOut": "Filtered out",
+  "statusPills.previewTotal": "Total",
+  "statusPills.previewSearchPlayer": "Find player in preview",
+  "statusPills.previewShowList": "Show list",
+  "statusPills.previewHideList": "Hide list",
+  "statusPills.previewIn": "In",
+  "statusPills.previewOut": "Out",
+  "statusPills.previewNoPlayers": "No players match this search.",
+  "statusPills.previewShowingFirst": "Showing first {shown} of {total} players.",
+  "addCard.available.mowers": "Available mowers",
+  "addCard.item.mowers": "mowers",
+  "page.type": "Page type",
+  "page.typeStandard": "Standard"
 }
