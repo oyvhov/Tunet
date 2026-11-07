@@ -1641,5 +1641,7 @@
   "profiles.autoSyncOverwrite": "Overwrite with this device",
   "profiles.autoSyncOverwriteConfirm": "Overwrite the shared setup with this device’s configuration?",
   "profiles.autoSyncPublishConflicts": "Some devices were skipped because they changed in the meantime.",
-  "tooltip.duplicateCard": "Duplicate card"
+  "tooltip.duplicateCard": "Duplicate card",
+  "time.todayAt": "today {time}",
+  "time.yesterdayAt": "yesterday {time}"
 }

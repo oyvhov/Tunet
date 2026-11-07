@@ -1641,5 +1641,7 @@
   "profiles.autoSyncOverwrite": "Skriv över med den här enheten",
   "profiles.autoSyncOverwriteConfirm": "Skriv över den delade inställningen med den här enhetens konfiguration?",
   "profiles.autoSyncPublishConflicts": "Vissa enheter hoppades över eftersom de ändrades under tiden.",
-  "tooltip.duplicateCard": "Duplicera kort"
+  "tooltip.duplicateCard": "Duplicera kort",
+  "time.todayAt": "i dag {time}",
+  "time.yesterdayAt": "i går {time}"
 }

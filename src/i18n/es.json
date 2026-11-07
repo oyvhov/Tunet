@@ -1641,5 +1641,7 @@
   "profiles.autoSyncOverwrite": "Sobrescribir con este dispositivo",
   "profiles.autoSyncOverwriteConfirm": "¿Sobrescribir la configuración compartida con la configuración de este dispositivo?",
   "profiles.autoSyncPublishConflicts": "Se omitieron algunos dispositivos porque cambiaron mientras tanto.",
-  "tooltip.duplicateCard": "Duplicar tarjeta"
+  "tooltip.duplicateCard": "Duplicar tarjeta",
+  "time.todayAt": "hoy {time}",
+  "time.yesterdayAt": "ayer {time}"
 }

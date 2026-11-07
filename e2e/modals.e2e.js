@@ -677,6 +677,21 @@ test.describe('Modal Interactions', () => {
     }
   });
 
+  test('should stay open when a drag inside the modal ends on the backdrop', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    const box = await modal.boundingBox();
+    const viewport = page.viewportSize();
+    if (!box || !viewport) return;
+
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(10, viewport.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+
+    await expect(modal).toBeVisible();
+  });
+
   test('should change theme in settings modal', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
 

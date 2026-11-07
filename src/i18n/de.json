@@ -1641,5 +1641,7 @@
   "profiles.autoSyncOverwrite": "Mit diesem Gerät überschreiben",
   "profiles.autoSyncOverwriteConfirm": "Die gemeinsame Konfiguration mit der Konfiguration dieses Geräts überschreiben?",
   "profiles.autoSyncPublishConflicts": "Einige Geräte wurden übersprungen, weil sie zwischenzeitlich geändert wurden.",
-  "tooltip.duplicateCard": "Karte duplizieren"
+  "tooltip.duplicateCard": "Karte duplizieren",
+  "time.todayAt": "heute {time}",
+  "time.yesterdayAt": "gestern {time}"
 }

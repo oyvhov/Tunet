@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
 import { en, getLoadedTranslations, loadTranslations, normalizeLanguage } from '../i18n';
+import { getLocaleForLanguage } from '../i18n/languageUtils';
 import type { TranslationTable } from '../i18n';
 
 /** The table for `language`, or English until that language has finished loading. */
 export function useTranslationTable(language: unknown): TranslationTable {
   const selected = normalizeLanguage(language);
   const [, setLoadedCount] = useState(0);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = getLocaleForLanguage(selected);
+    }
+  }, [selected]);
 
   useEffect(() => {
     if (getLoadedTranslations(selected)) return undefined;

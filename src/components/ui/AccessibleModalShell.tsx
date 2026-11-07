@@ -1,11 +1,48 @@
-import { useEffect, useId, useRef } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
+import type { CSSProperties, MouseEvent, PointerEvent, ReactNode } from 'react';
 import { normalizeModalOverlayStyle } from './modalStyles';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const PRIORITY_FOCUS_SELECTOR =
   '[data-autofocus], [autofocus], input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]';
+const TEXT_ENTRY_SELECTOR =
+  'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]), textarea, [contenteditable="true"]';
+const CLOSE_ANIMATION_MS = 160;
+
+export type ModalSize = 's' | 'm' | 'l' | 'xl';
+
+interface ModalShellContextValue {
+  titleId: string;
+  requestClose: () => void;
+}
+
+const ModalShellContext = createContext<ModalShellContextValue | null>(null);
+
+/** Access the surrounding modal shell (title id and animated close), if any. */
+export function useModalShell(): ModalShellContextValue | null {
+  return useContext(ModalShellContext);
+}
+
+// Open modals in opening order; only the top one reacts to Escape.
+const openModalStack: symbol[] = [];
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+function hasCoarsePointerOnly(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches &&
+    !window.matchMedia('(any-pointer: fine)').matches
+  );
+}
 
 interface AccessibleModalShellProps {
   open: boolean;
@@ -13,6 +50,11 @@ interface AccessibleModalShellProps {
   onClose?: (event?: unknown) => void;
   titleId?: string;
   describedBy?: string;
+  /** Use the shared popup layout. Without it the overlay/panel classes are used as given. */
+  size?: ModalSize;
+  placement?: 'center' | 'top';
+  /** Stack above another open popup (e.g. a PIN prompt over the alarm popup). */
+  nested?: boolean;
   overlayClassName?: string;
   overlayStyle?: CSSProperties | null;
   panelClassName?: string;
@@ -21,14 +63,18 @@ interface AccessibleModalShellProps {
 }
 
 /**
- * Shared accessible modal shell with dialog semantics and focus management.
- * Keep visual styling in each modal by passing overlay/panel classes and styles.
+ * Shared accessible modal shell with dialog semantics, focus management and the
+ * popup system's layout (pass `size`). Closing through Escape, the backdrop or
+ * `useModalShell().requestClose` plays the exit animation before `onClose` runs.
  */
 export default function AccessibleModalShell({
   open,
   onClose,
   titleId,
   describedBy,
+  size,
+  placement = 'center',
+  nested = false,
   overlayClassName,
   overlayStyle,
   panelClassName,
@@ -41,14 +87,43 @@ export default function AccessibleModalShell({
   const previousActiveRef = useRef<Element | null>(null);
   const wasOpenRef = useRef(false);
   const onCloseRef = useRef(onClose);
+  const pointerStartedOnOverlayRef = useRef(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
+  const requestClose = useCallback(() => {
+    if (closeTimerRef.current) return;
+    if (prefersReducedMotion()) {
+      onCloseRef.current?.();
+      return;
+    }
+    setClosing(true);
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
+      setClosing(false);
+      onCloseRef.current?.();
+    }, CLOSE_ANIMATION_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    },
+    []
+  );
+
   useEffect(() => {
     if (!open) {
       wasOpenRef.current = false;
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      setClosing(false);
       return undefined;
     }
 
@@ -58,23 +133,28 @@ export default function AccessibleModalShell({
       previousActiveRef.current = document.activeElement;
     }
 
+    const stackToken = Symbol('modal');
+    openModalStack.push(stackToken);
+
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     const panel = panelRef.current;
     if (openedNow && panel) {
-      const focusables = Array.from(panel.querySelectorAll(FOCUSABLE_SELECTOR));
-      const priorityTarget = panel.querySelector(PRIORITY_FOCUS_SELECTOR);
-      const nonCloseTarget = focusables.find((el) => !el.classList.contains('modal-close'));
-      const target = priorityTarget || nonCloseTarget || focusables[0] || panel;
-      if (target instanceof HTMLElement) target.focus();
+      const avoidKeyboard = hasCoarsePointerOnly();
+      const candidates = Array.from(panel.querySelectorAll(PRIORITY_FOCUS_SELECTOR)).filter(
+        (el) => !(avoidKeyboard && el.matches(TEXT_ENTRY_SELECTOR))
+      );
+      const target = candidates[0] || panel;
+      if (target instanceof HTMLElement) target.focus({ preventScroll: true });
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!panelRef.current) return;
+      if (openModalStack[openModalStack.length - 1] !== stackToken) return;
       if (event.key === 'Escape') {
         event.preventDefault();
-        onCloseRef.current?.();
+        requestClose();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -90,7 +170,7 @@ export default function AccessibleModalShell({
       const last = focusables[focusables.length - 1];
       const active = document.activeElement;
 
-      if (event.shiftKey && active === first) {
+      if (event.shiftKey && (active === first || active === panelRef.current)) {
         event.preventDefault();
         if (last instanceof HTMLElement) last.focus();
       } else if (!event.shiftKey && active === last) {
@@ -103,31 +183,78 @@ export default function AccessibleModalShell({
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      const index = openModalStack.indexOf(stackToken);
+      if (index >= 0) openModalStack.splice(index, 1);
       document.body.style.overflow = prevOverflow;
       const previous = previousActiveRef.current;
-      if (previous instanceof HTMLElement) previous.focus();
+      if (previous instanceof HTMLElement) previous.focus({ preventScroll: true });
     };
-  }, [open]);
+  }, [open, requestClose]);
 
   if (!open) return null;
 
-  const resolvedOverlayStyle = normalizeModalOverlayStyle(overlayStyle);
+  const resolvedOverlayStyle = size
+    ? {
+        backgroundColor: 'var(--modal-scrim)',
+        backdropFilter: 'blur(var(--modal-blur))',
+        WebkitBackdropFilter: 'blur(var(--modal-blur))',
+        ...(overlayStyle || {}),
+      }
+    : normalizeModalOverlayStyle(overlayStyle);
+
+  const resolvedOverlayClassName = size
+    ? [
+        'modal-overlay',
+        placement === 'top' ? 'modal-overlay--top' : '',
+        nested ? 'modal-overlay--nested' : '',
+        overlayClassName || '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+    : overlayClassName;
+
+  const resolvedPanelClassName = size
+    ? ['modal-panel', `modal-panel--${size}`, 'popup-anim', panelClassName || '']
+        .filter(Boolean)
+        .join(' ')
+    : panelClassName;
+
+  // Close on a backdrop click only when the press also started on the backdrop,
+  // so dragging a slider out of the panel never closes the popup.
+  const handleOverlayPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    pointerStartedOnOverlayRef.current = event.target === event.currentTarget;
+  };
+  const handleOverlayClick = (event: MouseEvent<HTMLDivElement>) => {
+    const startedOnOverlay = pointerStartedOnOverlayRef.current;
+    pointerStartedOnOverlayRef.current = false;
+    if (event.target !== event.currentTarget) return;
+    if (!startedOnOverlay && event.detail !== 0) return;
+    requestClose();
+  };
 
   return (
-    <div className={overlayClassName} style={resolvedOverlayStyle} onClick={onClose}>
+    <ModalShellContext.Provider value={{ titleId: resolvedTitleId, requestClose }}>
       <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={resolvedTitleId}
-        aria-describedby={describedBy}
-        className={panelClassName}
-        style={panelStyle}
-        onClick={(e) => e.stopPropagation()}
-        tabIndex={-1}
+        className={resolvedOverlayClassName}
+        style={resolvedOverlayStyle}
+        data-modal-state={closing ? 'closing' : 'open'}
+        onPointerDown={handleOverlayPointerDown}
+        onClick={handleOverlayClick}
       >
-        {children(resolvedTitleId)}
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={resolvedTitleId}
+          aria-describedby={describedBy}
+          className={resolvedPanelClassName}
+          style={panelStyle}
+          onClick={(event) => event.stopPropagation()}
+          tabIndex={-1}
+        >
+          {children(resolvedTitleId)}
+        </div>
       </div>
-    </div>
+    </ModalShellContext.Provider>
   );
 }

@@ -1,5 +1,5 @@
 // Utility barrel — re-exports from all utility modules
-export { formatRelativeTime, formatDuration, isToggleEntity } from './formatting';
+export { formatRelativeTime, formatDateTime, formatDuration, isToggleEntity } from './formatting';
 export { logger } from './logger';
 export { isCardRemovable, isCardHiddenByLogic, isMediaPage } from './cardUtils';
 export {

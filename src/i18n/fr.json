@@ -1641,5 +1641,7 @@
   "profiles.autoSyncOverwrite": "Remplacer par cet appareil",
   "profiles.autoSyncOverwriteConfirm": "Remplacer la configuration partagée par la configuration de cet appareil ?",
   "profiles.autoSyncPublishConflicts": "Certains appareils ont été ignorés car ils ont été modifiés entre-temps.",
-  "tooltip.duplicateCard": "Dupliquer la carte"
+  "tooltip.duplicateCard": "Dupliquer la carte",
+  "time.todayAt": "aujourd’hui {time}",
+  "time.yesterdayAt": "hier {time}"
 }
