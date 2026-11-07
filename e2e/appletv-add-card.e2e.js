@@ -29,6 +29,8 @@ test.describe('Apple TV card creation', () => {
   });
 
   test('keeps picks per card type and adds them all at once', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByTestId('settings-dropdown-trigger').click();
     await page.getByTestId('settings-menu-add-card').click();
     const dialog = page.getByRole('dialog');
