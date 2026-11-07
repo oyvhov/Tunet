@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
 import {
   Minus,
   Plus,
@@ -37,8 +39,15 @@ import {
   SENSOR_GRAPH_RANGES,
   SENSOR_GRAPH_STATS,
 } from '../../utils';
+import type { IconComponent } from '../../icons/iconMap';
+import type { CardCallService } from '../../types/cards';
+import type { EntityMap } from '../../types/dashboard';
+import type { Translate } from '../../types/ha';
+import type { SensorCardSettings } from '../../utils/sensorCardConfig';
+import type { SensorGraphWindow, TimeSeriesPoint } from '../../utils/sensorHistory';
+import type { HistoryEntry, StatisticsEntry } from '../../services/haClient';
 
-const SENSOR_THRESHOLD_COLOR_MAP = {
+const SENSOR_THRESHOLD_COLOR_MAP: Record<string, string> = {
   red: 'var(--color-red-500)',
   amber: 'var(--color-amber-400)',
   green: 'var(--color-green-400)',
@@ -50,8 +59,49 @@ const DEFAULT_SENSOR_COLOR_THRESHOLDS = [
   { limit: 100, color: 'green' },
 ];
 
+type SensorCardViewSettings = SensorCardSettings & {
+  showControls?: boolean;
+  showName?: boolean;
+  showIcon?: boolean;
+  showGraph?: boolean;
+  size?: string;
+  sensorVariant?: string;
+  sensorLayout?: string;
+  graphRange?: unknown;
+  graphStyle?: string;
+  graphStat?: string;
+  sensorMinType?: string;
+  sensorMaxType?: string;
+  sensorMin?: unknown;
+  sensorMax?: unknown;
+  sensorMinEntity?: string;
+  sensorMaxEntity?: string;
+  sensorValueMode?: string;
+  sensorUseColorThresholds?: boolean;
+  sensorColorThresholds?: { limit?: unknown; color?: string }[];
+};
+
+interface SensorCardProps {
+  entity: EntityMap[string] | null | undefined;
+  entities?: EntityMap;
+  conn?: Connection | null;
+  callService?: CardCallService;
+  settings: SensorCardViewSettings;
+  dragProps?: Record<string, unknown>;
+  cardStyle?: CSSProperties;
+  Icon?: IconComponent | null;
+  name: ReactNode;
+  editMode?: boolean;
+  preview?: boolean;
+  controls?: ReactNode;
+  onControl?: (action: string, value?: string) => unknown;
+  onOpen?: (target?: unknown) => void;
+  isMobile?: boolean;
+  t?: Translate;
+}
+
 const SensorCard = memo(
-  /** @param {any} props */ function SensorCard({
+  /** Sensor value with history graph, gauges and an optional action. */ function SensorCard({
     entity,
     entities = {},
     conn,
@@ -68,8 +118,8 @@ const SensorCard = memo(
     onOpen,
     isMobile = false,
     t,
-  }) {
-    const translate = t || ((key) => key);
+  }: SensorCardProps) {
+    const translate: Translate = t || ((key: string) => key);
     const { unitsMode } = useConfig();
     const { haConfig } = useHomeAssistantMeta();
     const config = resolveSensorCardConfig(settings, entity, entities);
@@ -156,7 +206,8 @@ const SensorCard = memo(
     const binaryDisplayState =
       domain === 'binary_sensor' && isOnOffState
         ? translate(
-            binaryStateKeys[deviceClass]?.[state] || (state === 'on' ? 'status.on' : 'status.off')
+            binaryStateKeys[deviceClass as keyof typeof binaryStateKeys]?.[state as 'on' | 'off'] ||
+              (state === 'on' ? 'status.on' : 'status.off')
           )
         : null;
     const toggleDisplayState =
@@ -197,13 +248,13 @@ const SensorCard = memo(
       callService,
       action: config.action,
       entities:
-        entities[entity?.entity_id] === entity
+        entities[entity?.entity_id as string] === entity
           ? entities
-          : { ...entities, ...(entity ? { [entity.entity_id]: entity } : {}) },
+          : { ...entities, ...(entity ? { [entity.entity_id as string]: entity } : {}) },
       onOpen,
       disabled: editMode || preview,
     });
-    const [armedAction, setArmedAction] = useState(null);
+    const [armedAction, setArmedAction] = useState<string | null>(null);
     useEffect(() => {
       if (armedAction === null) return undefined;
       const timer = setTimeout(() => setArmedAction(null), 3000);
@@ -237,7 +288,7 @@ const SensorCard = memo(
     const graphRange = resolveSensorGraphRange(settings?.graphRange);
     const graphStyle = settings?.graphStyle === 'bar' ? 'bar' : 'line';
     const graphStat =
-      graphStyle === 'bar' && SENSOR_GRAPH_STATS.includes(settings?.graphStat)
+      graphStyle === 'bar' && SENSOR_GRAPH_STATS.includes(settings?.graphStat as string)
         ? settings.graphStat
         : 'mean';
 
@@ -247,10 +298,10 @@ const SensorCard = memo(
       const needsRange = isRangeVariant;
       if (!needsRange) return { chartMin: 0, chartMax: 100 };
 
-      const resolveVal = (type, val, entityId) => {
+      const resolveVal = (type: string, val: unknown, entityId: string | undefined) => {
         if (type === 'entity' && entityId && entities[entityId]) {
           const entityState = entities[entityId]?.state;
-          const parsed = parseFloat(entityState);
+          const parsed = parseFloat(entityState as string);
           if (isNaN(parsed)) return null;
           const sourceUnit = entities[entityId]?.attributes?.unit_of_measurement || '';
           const sourceDeviceClass = entities[entityId]?.attributes?.device_class;
@@ -301,7 +352,8 @@ const SensorCard = memo(
               0,
               Math.min(
                 100,
-                ((normalizedNumericState - chartMin) / (safeChartMax - chartMin || 1)) * 100
+                (((normalizedNumericState as number) - chartMin) / (safeChartMax - chartMin || 1)) *
+                  100
               )
             )
           : normalizedNumericState
@@ -322,7 +374,7 @@ const SensorCard = memo(
 
       return source
         .map((item, index) => {
-          const parsedLimit = parseFloat(item?.limit);
+          const parsedLimit = parseFloat(item?.limit as string);
           const fallbackLimit = DEFAULT_SENSOR_COLOR_THRESHOLDS[index]?.limit ?? 100;
           return {
             limit: Number.isFinite(parsedLimit) ? parsedLimit : fallbackLimit,
@@ -380,10 +432,10 @@ const SensorCard = memo(
     const largeVariantBarHeight = useDenseMobileLargeLayout ? 14 : 20;
     const useCompactMobileRangeLayout = useDenseMobileLargeLayout && showVariantPanel;
 
-    const [history, setHistory] = useState([]);
+    const [history, setHistory] = useState<TimeSeriesPoint[]>([]);
     const [isVisible, setIsVisible] = useState(false);
-    const cardRef = useRef(null);
-    const historyWindowRef = useRef(null);
+    const cardRef = useRef<HTMLDivElement>(null);
+    const historyWindowRef = useRef<SensorGraphWindow | null>(null);
 
     useEffect(() => {
       if (typeof IntersectionObserver === 'undefined') {
@@ -427,7 +479,7 @@ const SensorCard = memo(
       }
 
       let cancelled = false;
-      const parseStatistics = (stats) =>
+      const parseStatistics = (stats: StatisticsEntry[] | null | undefined): TimeSeriesPoint[] =>
         (stats && Array.isArray(stats) ? stats : [])
           .map((d) => ({
             value:
@@ -452,7 +504,7 @@ const SensorCard = memo(
           const loadStatistics = async () =>
             parseStatistics(
               await getStatistics(conn, {
-                statisticId: displayEntity.entity_id,
+                statisticId: displayEntity.entity_id as string,
                 start,
                 end,
                 period: graphWindow.period,
@@ -478,7 +530,7 @@ const SensorCard = memo(
           const data =
             !preferStatistics || rangeHours <= 168
               ? await getHistory(conn, {
-                  entityId: displayEntity.entity_id,
+                  entityId: displayEntity.entity_id as string,
                   start,
                   end,
                   minimal_response: true,
@@ -487,11 +539,11 @@ const SensorCard = memo(
           if (cancelled) return;
 
           const processed = (data && Array.isArray(data) ? data : [])
-            .map((d) => {
+            .map((d: HistoryEntry) => {
               // Handle both standard format (state/last_changed ISO string) and
               // HA compressed format (s/lc as Unix timestamp in seconds).
               const rawState = d.state !== undefined ? d.state : d.s;
-              const val = parseFloat(rawState);
+              const val = parseFloat(rawState as string);
               if (isNaN(val)) return null;
               let time;
               if (d.last_changed) {
@@ -505,7 +557,7 @@ const SensorCard = memo(
               }
               return { value: val, time };
             })
-            .filter(Boolean);
+            .filter((point): point is TimeSeriesPoint => Boolean(point));
 
           if (processed.length === 1) {
             const onlyPoint = processed[0];
@@ -563,8 +615,8 @@ const SensorCard = memo(
         }
       };
 
-      let idleId;
-      let timerId;
+      let idleId: number | undefined;
+      let timerId: ReturnType<typeof setTimeout> | undefined;
 
       if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
         idleId = window.requestIdleCallback(() => fetchHistory(), { timeout: 4000 });
@@ -584,7 +636,7 @@ const SensorCard = memo(
       const bars = aggregateTimeSeries(history, {
         ...historyWindowRef.current,
         stat: graphStat,
-        stateClass: displayEntity?.attributes?.state_class,
+        stateClass: displayEntity?.attributes?.state_class as string | undefined,
       });
       return bars.length > 0 ? bars : history;
     }, [history, graphStyle, graphStat, displayEntity?.attributes?.state_class]);
@@ -623,7 +675,7 @@ const SensorCard = memo(
       </span>
     );
 
-    const control = (action, value) => {
+    const control = (action: string, value?: string) => {
       if (editMode || preview) return;
       Promise.resolve(onControl?.(action, value)).catch(() => {});
     };
@@ -659,14 +711,15 @@ const SensorCard = memo(
       />
     );
 
-    const actionUnavailable =
+    const actionUnavailable = Boolean(
       config.action.type !== 'service' &&
       config.action.entityId &&
       (!config.action.targetEntity ||
         !config.action.targetSupported ||
         config.action.targetEntity.state === 'unavailable' ||
         (config.action.targetEntity.state === 'unknown' &&
-          ['toggle', 'turn_on', 'turn_off'].includes(config.action.type)));
+          ['toggle', 'turn_on', 'turn_off'].includes(config.action.type)))
+    );
     const actionDisabled =
       editMode ||
       preview ||
@@ -704,8 +757,8 @@ const SensorCard = memo(
             ? ExternalLink
             : Play);
     const confirmText = config.action.confirmLabel || translate('sensor.action.confirmPrompt');
-    const isArmed = (override) => armedAction === (override || 'default');
-    const executeAction = (event, override) => {
+    const isArmed = (override?: string) => armedAction === (override || 'default');
+    const executeAction = (event?: { stopPropagation(): void }, override?: string) => {
       event?.stopPropagation();
       if (actionDisabled) return;
       const key = typeof override === 'string' ? override : 'default';
@@ -718,12 +771,12 @@ const SensorCard = memo(
     };
     const armedTone =
       'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] ring-1 ring-[var(--status-warning-border)]';
-    const handleCardClick = (event) => {
+    const handleCardClick = (event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => {
       if (editMode || preview) return;
       if (config.action.trigger === 'card' && config.action.type !== 'none') executeAction(event);
       else onOpen?.(event);
     };
-    const handleCardKeyDown = (event) => {
+    const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>) => {
       if (event.target !== event.currentTarget || !['Enter', ' '].includes(event.key)) return;
       event.preventDefault();
       handleCardClick(event);
@@ -800,7 +853,7 @@ const SensorCard = memo(
       if (primaryDomain === 'input_number') {
         const min = entity.attributes?.min || 0;
         const max = entity.attributes?.max || 100;
-        const val = parseFloat(primaryState);
+        const val = parseFloat(primaryState as string);
         const inputUnit = entity.attributes?.unit_of_measurement || '';
         const inputKind = inferUnitKind(entity.attributes?.device_class, inputUnit);
         const inputDisplayValue = inputKind

@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react';
+import type { ComponentProps, PointerEvent, ReactNode, MouseEvent } from 'react';
 import WeatherGraph from '../charts/WeatherGraph';
 import WeatherEffects from '../effects/WeatherEffects';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
@@ -9,9 +10,64 @@ import {
   getDisplayUnitForKind,
   getEffectiveUnitMode,
 } from '../../utils';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { Translate } from '../../types/ha';
+import type { ForecastEntry } from '../../services/haClient';
+import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 
-const getWeatherInfo = (condition, t) => {
-  const map = {
+type ForecastView = 'hourly' | 'daily';
+type CardView = 'current' | 'forecast';
+type HistoryPoint = { state?: unknown; last_updated?: unknown };
+type WeatherForecast = { hourly?: ForecastEntry[]; daily?: ForecastEntry[] };
+type WeatherGraphHistory = ComponentProps<typeof WeatherGraph>['history'];
+
+interface WeatherInfo {
+  label: string;
+  icon: string;
+}
+
+interface WeatherTempSettings {
+  size?: string;
+  weatherId?: string;
+  tempId?: string;
+  showEffects?: boolean;
+  subtitle?: string;
+  graphHistoryHours?: number;
+  graphLimit1?: number;
+  graphLimit2?: number;
+  graphLimit3?: number;
+  graphLimit4?: number;
+}
+
+interface ForecastTypeToggleProps {
+  forecastView: ForecastView;
+  setForecastView: (view: ForecastView) => void;
+  t?: Translate;
+  compact?: boolean;
+}
+
+interface WeatherTempCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'cardStyle' | 'isMobile'
+> {
+  getControls: (cardId: string) => ReactNode;
+  settingsKey: string;
+  cardSettings: CardSettingsMap;
+  entities: EntityMap;
+  tempHistory: HistoryPoint[];
+  tempHistoryById: Record<string, HistoryPoint[] | undefined>;
+  forecastsById?: Record<string, WeatherForecast | ForecastEntry[] | undefined>;
+  outsideTempId?: string | null;
+  weatherEntityId?: string | null;
+  editMode?: boolean;
+  isFullWidthMobile?: boolean;
+  language?: string;
+  onOpen?: () => void;
+  t?: Translate;
+}
+
+const getWeatherInfo = (condition: string | undefined, t: Translate | undefined): WeatherInfo => {
+  const map: Record<string, WeatherInfo> = {
     'clear-night': { label: t?.('weather.condition.clearNight') || 'Clear', icon: 'clear-night' },
     cloudy: { label: t?.('weather.condition.cloudy') || 'Cloudy', icon: 'overcast' },
     fog: { label: t?.('weather.condition.fog') || 'Fog', icon: 'fog' },
@@ -34,13 +90,16 @@ const getWeatherInfo = (condition, t) => {
     'windy-variant': { label: t?.('weather.condition.windy') || 'Wind', icon: 'wind' },
     exceptional: { label: t?.('weather.condition.exceptional') || 'Extreme', icon: 'extreme' },
   };
-  return map[condition] || { label: condition || 'Unknown', icon: 'not-available' };
+  return (condition && map[condition]) || { label: condition || 'Unknown', icon: 'not-available' };
 };
 
-const getForecastDate = (entry) =>
-  new Date(entry?.datetime || entry?.datetime_local || entry?.time || entry?.start || '');
+const getForecastDate = (entry: ForecastEntry | undefined) =>
+  new Date(
+    (entry?.datetime || entry?.datetime_local || entry?.time || entry?.start || '') as
+      string | number
+  );
 
-const inferForecastType = (forecast) => {
+const inferForecastType = (forecast: ForecastEntry[] | null) => {
   if (!Array.isArray(forecast) || forecast.length < 2) return null;
   const first = getForecastDate(forecast[0]);
   const second = getForecastDate(forecast[1]);
@@ -49,19 +108,20 @@ const inferForecastType = (forecast) => {
 };
 
 const ForecastTypeToggle = memo(
-  /** @param {{ forecastView: string, setForecastView: (view: string) => void, t?: (key: string) => string, compact?: boolean }} props */ function ForecastTypeToggle({
+  /** Hourly/daily switch for the forecast view. */
+  function ForecastTypeToggle({
     forecastView,
     setForecastView,
     t,
     compact = false,
-  }) {
+  }: ForecastTypeToggleProps) {
     return (
       <div
         className={`flex rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-0.5 ${compact ? 'flex-col' : ''}`}
         role="group"
         aria-label={t?.('weather.view.forecast') || 'Forecast'}
       >
-        {['hourly', 'daily'].map((view) => {
+        {(['hourly', 'daily'] as const).map((view) => {
           const active = forecastView === view;
           return (
             <button
@@ -90,7 +150,8 @@ const ForecastTypeToggle = memo(
 );
 
 const WeatherTempCard = memo(
-  /** @param {any} props */ function WeatherTempCard({
+  /** Current weather and temperature graph; swipe to switch to the forecast view. */
+  function WeatherTempCard({
     cardId,
     dragProps,
     getControls,
@@ -109,11 +170,11 @@ const WeatherTempCard = memo(
     language,
     onOpen,
     t,
-  }) {
+  }: WeatherTempCardProps) {
     const { unitsMode } = useConfig();
     const { haConfig } = useHomeAssistantMeta();
 
-    const settings = cardSettings[settingsKey] || {};
+    const settings = (cardSettings[settingsKey] || {}) as WeatherTempSettings;
     const isSmall = settings.size === 'small';
     const weatherId = settings.weatherId;
     const tempId = settings.tempId;
@@ -121,13 +182,20 @@ const WeatherTempCard = memo(
     const tempEntity = tempId ? entities[tempId] : null;
     const showEffects = settings.showEffects !== false;
     const subtitle = settings.subtitle || null;
-    const [cardView, setCardView] = useState('current');
-    const [forecastView, setForecastView] = useState('hourly');
+    const [cardView, setCardView] = useState<CardView>('current');
+    const [forecastView, setForecastView] = useState<ForecastView>('hourly');
     const [swipeAnimation, setSwipeAnimation] = useState('');
-    const swipeContentRef = useRef(null);
-    const pendingViewRef = useRef(null);
+    const swipeContentRef = useRef<HTMLDivElement>(null);
+    const pendingViewRef = useRef<CardView | null>(null);
     const suppressCardClickRef = useRef(false);
-    const swipeGestureRef = useRef({
+    const swipeGestureRef = useRef<{
+      active: boolean;
+      dragging: boolean;
+      pointerId: number | null;
+      startX: number;
+      startY: number;
+      currentX: number;
+    }>({
       active: false,
       dragging: false,
       pointerId: null,
@@ -177,7 +245,7 @@ const WeatherTempCard = memo(
     const sourceTempUnit =
       tempEntity?.attributes?.unit_of_measurement ||
       weatherEntity.attributes?.temperature_unit ||
-      /** @type {any} */ (haConfig?.unit_system)?.temperature ||
+      haConfig?.unit_system?.temperature ||
       '°C';
     const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
     const displayTempValue = convertValueByKind(currentTemp, {
@@ -201,27 +269,29 @@ const WeatherTempCard = memo(
           unitMode: effectiveUnitMode,
         })
       )
-      .filter((limit) => Number.isFinite(limit))
+      .filter((limit): limit is number => Number.isFinite(limit))
       .sort((a, b) => a - b);
 
-    let history = [];
+    let history: HistoryPoint[] = [];
     if (tempId) {
       history = tempId === outsideTempId ? tempHistory : tempHistoryById[tempId] || [];
     } else if (weatherId === weatherEntityId) {
       history = tempHistory;
     }
 
-    const forecastEntry = forecastsById?.[weatherId];
+    const forecastEntry = weatherId ? forecastsById?.[weatherId] : undefined;
     const legacyForecast = Array.isArray(forecastEntry) ? forecastEntry : null;
-    const attributeForecast = Array.isArray(weatherEntity.attributes?.forecast)
+    const attributeForecast: ForecastEntry[] | null = Array.isArray(
+      weatherEntity.attributes?.forecast
+    )
       ? weatherEntity.attributes.forecast
       : null;
-    const hourlyForecast =
+    const hourlyForecast: ForecastEntry[] =
       (!Array.isArray(forecastEntry) && forecastEntry?.hourly) ||
       (inferForecastType(legacyForecast) === 'hourly' ? legacyForecast : null) ||
       (inferForecastType(attributeForecast) === 'hourly' ? attributeForecast : null) ||
       [];
-    const dailyForecast =
+    const dailyForecast: ForecastEntry[] =
       (!Array.isArray(forecastEntry) && forecastEntry?.daily) ||
       (inferForecastType(legacyForecast) === 'daily' ? legacyForecast : null) ||
       (inferForecastType(attributeForecast) === 'daily' ? attributeForecast : null) ||
@@ -237,7 +307,7 @@ const WeatherTempCard = memo(
 
     const historyForDisplay = Array.isArray(history)
       ? history.map((entry) => {
-          const raw = parseFloat(entry?.state);
+          const raw = parseFloat(entry?.state as string);
           if (!Number.isFinite(raw)) return entry;
           const converted = convertValueByKind(raw, {
             kind: 'temperature',
@@ -259,14 +329,14 @@ const WeatherTempCard = memo(
     const forecastItems = (forecastView === 'hourly' ? hourlyForecast : dailyForecast)
       .map((entry, index) => {
         const date = getForecastDate(entry);
-        const rawTemperature = parseFloat(entry?.temperature);
+        const rawTemperature = parseFloat(entry?.temperature as string);
         if (Number.isNaN(date.getTime()) || !Number.isFinite(rawTemperature)) return null;
         const temperature = convertValueByKind(rawTemperature, {
           kind: 'temperature',
           fromUnit: sourceTempUnit,
           unitMode: effectiveUnitMode,
         });
-        const itemInfo = getWeatherInfo(entry.condition || state, t);
+        const itemInfo = getWeatherInfo((entry.condition as string | undefined) || state, t);
         return {
           key: `${date.toISOString()}-${index}`,
           label:
@@ -278,10 +348,10 @@ const WeatherTempCard = memo(
           iconUrl: `https://cdn.jsdelivr.net/gh/basmilius/meteocons@v2.0.0/production/fill/all/${itemInfo.icon}.svg`,
         };
       })
-      .filter(Boolean)
+      .filter((item) => item !== null)
       .slice(0, forecastLimit);
 
-    const handleCardClick = (event) => {
+    const handleCardClick = (event: MouseEvent<HTMLDivElement>) => {
       event.stopPropagation();
       if (suppressCardClickRef.current) {
         suppressCardClickRef.current = false;
@@ -295,12 +365,12 @@ const WeatherTempCard = memo(
       content.removeAttribute('data-dragging');
       content.style.setProperty('--weather-swipe-x', '0px');
     };
-    const handlePointerDown = (event) => {
+    const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
       if (
         editMode ||
         swipeAnimation ||
         event.button > 0 ||
-        event.target.closest?.('button, input, select, textarea, a')
+        (event.target as Element).closest?.('button, input, select, textarea, a')
       ) {
         return;
       }
@@ -315,7 +385,7 @@ const WeatherTempCard = memo(
       };
       event.currentTarget.setPointerCapture?.(event.pointerId);
     };
-    const handlePointerMove = (event) => {
+    const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
       const gesture = swipeGestureRef.current;
       if (!gesture.active || gesture.pointerId !== event.pointerId) return;
 
@@ -341,7 +411,7 @@ const WeatherTempCard = memo(
       content.dataset.dragging = 'true';
       content.style.setProperty('--weather-swipe-x', `${displayedDelta}px`);
     };
-    const finishPointerGesture = (event, cancelled = false) => {
+    const finishPointerGesture = (event: PointerEvent<HTMLDivElement>, cancelled = false) => {
       const gesture = swipeGestureRef.current;
       if (!gesture.active || gesture.pointerId !== event.pointerId) return;
 
@@ -403,7 +473,7 @@ const WeatherTempCard = memo(
               <>
                 <div className="absolute inset-0 z-0 opacity-30">
                   <WeatherGraph
-                    history={historyForDisplay}
+                    history={historyForDisplay as WeatherGraphHistory}
                     currentTemp={displayTempValue}
                     historyHours={graphHistoryHours}
                     colorLimits={graphColorLimits}
@@ -568,7 +638,7 @@ const WeatherTempCard = memo(
                 className={`relative z-0 mt-auto h-32 overflow-hidden rounded-b-3xl opacity-80 ${graphMargins}`}
               >
                 <WeatherGraph
-                  history={historyForDisplay}
+                  history={historyForDisplay as WeatherGraphHistory}
                   currentTemp={displayTempValue}
                   historyHours={graphHistoryHours}
                   colorLimits={graphColorLimits}
