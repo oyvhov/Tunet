@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import AccessibleModalShell from './AccessibleModalShell';
 import Button from './Button';
@@ -79,6 +79,15 @@ interface ConfirmRequest {
 export function useConfirmDialog(labels: { cancel: string; close: string }) {
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
   const resolverRef = useRef<((value: boolean) => void) | null>(null);
+
+  // A caller awaiting confirm() must not hang when its component unmounts.
+  useEffect(
+    () => () => {
+      resolverRef.current?.(false);
+      resolverRef.current = null;
+    },
+    []
+  );
 
   const confirm = useCallback((next: ConfirmRequest) => {
     resolverRef.current?.(false);

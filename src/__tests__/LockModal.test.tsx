@@ -63,11 +63,41 @@ describe('LockModal', () => {
     );
     const lockButton = screen.getByRole('button', { name: 'Lock' });
     expect(lockButton).toBeDisabled();
+    expect(screen.getByLabelText('Enter code')).toHaveAttribute('inputmode', 'numeric');
     fireEvent.change(screen.getByLabelText('Enter code'), { target: { value: '1234' } });
     fireEvent.click(lockButton);
     expect(callService).toHaveBeenCalledWith('lock', 'lock', {
       entity_id: 'lock.front_door',
       code: '1234',
     });
+  });
+
+  it('uses a text keyboard for codes that may contain letters', () => {
+    render(
+      <LockModal
+        entityId="lock.front_door"
+        entity={{ state: 'locked', attributes: { code_format: '.+' } }}
+        conn={conn}
+        callService={vi.fn()}
+        onClose={vi.fn()}
+        t={t}
+      />
+    );
+    expect(screen.getByLabelText('Enter code')).toHaveAttribute('inputmode', 'text');
+  });
+
+  it('offers both lock and unlock when the lock is jammed', () => {
+    render(
+      <LockModal
+        entityId="lock.front_door"
+        entity={{ state: 'jammed', attributes: {} }}
+        conn={conn}
+        callService={vi.fn()}
+        onClose={vi.fn()}
+        t={t}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Lock' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Unlock' })).toBeEnabled();
   });
 });
