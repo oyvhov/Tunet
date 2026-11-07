@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { CSSProperties, MouseEvent, PointerEvent, ReactNode } from 'react';
 import { normalizeModalOverlayStyle } from './modalStyles';
 
@@ -253,7 +254,7 @@ export default function AccessibleModalShell({
     requestClose();
   };
 
-  return (
+  const tree = (
     <ModalShellContext.Provider value={{ titleId: resolvedTitleId, requestClose }}>
       <div
         className={resolvedOverlayClassName}
@@ -278,4 +279,8 @@ export default function AccessibleModalShell({
       </div>
     </ModalShellContext.Provider>
   );
+
+  // A nested popup is usually rendered inside its parent's animated panel, which
+  // would confine and clip a fixed overlay, so it goes straight to <body>.
+  return nested && typeof document !== 'undefined' ? createPortal(tree, document.body) : tree;
 }
