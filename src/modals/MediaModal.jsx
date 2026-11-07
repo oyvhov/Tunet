@@ -1026,7 +1026,7 @@ export default function MediaModal({
           step={1}
           value={volume * 100}
           onChange={setVolume}
-          colorClass="bg-white"
+          colorClass="bg-[var(--text-primary)]"
         />
       </div>
       <button
@@ -1171,7 +1171,7 @@ export default function MediaModal({
                     value={effectivePosition || 0}
                     disabled={!duration}
                     onChange={seekTo}
-                    colorClass="bg-white"
+                    colorClass="bg-[var(--text-primary)]"
                   />
 
                   {isSonos ? (

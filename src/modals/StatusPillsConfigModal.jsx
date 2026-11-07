@@ -686,13 +686,6 @@ export default function StatusPillsConfigModal({
             onClose={onClose}
             icon={<Sparkles />}
             iconStyle={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}
-            status={
-              <StatusChip
-                dot={false}
-                label={t('statusPills.yourPills')}
-                detail={String(pills.length)}
-              />
-            }
           />
 
           <ModalBody className="flex flex-col gap-3 md:flex-row md:gap-0">
