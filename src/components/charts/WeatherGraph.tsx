@@ -15,7 +15,7 @@ interface TempPoint {
 
 interface WeatherGraphProps {
   history?: HistoryEntry[] | null;
-  currentTemp?: number | string;
+  currentTemp?: number | string | null;
   historyHours?: number;
   colorLimits?: unknown[];
 }

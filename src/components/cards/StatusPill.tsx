@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import type { CSSProperties } from 'react';
 import { getIconComponent } from '../../icons';
 import { Activity, AlertTriangle, Clapperboard, Lock, RefreshCw } from '../../icons';
 import { Icon as MdiIcon } from '@mdi/react';
@@ -19,22 +20,44 @@ import {
   normalizeDecimalPlaces,
 } from '../../utils';
 import { getPillAnimationConfig } from '../../utils/statusPillPresentation';
+import type { VisibilityConditionInput } from '../../utils/conditionUtils';
+import type { EntityMap, StatusPillConfig } from '../../types/dashboard';
+import type { HassEntity, Translate } from '../../types/ha';
+import type { GetEntityAttribute } from '../../types/cards';
 
-/**
- * Generic configurable status pill
- * @param {Object} props
- * @param {Object} props.pill - Pill configuration
- * @param {Object} props.entity - HA entity (or array for media_player type)
- * @param {Function} props.onClick - Click handler (optional)
- * @param {Function} props.t - Translation function
- * @param {Function} props.getA - Get attribute helper
- * @param {Function} props.getEntityImageUrl - Get entity image URL
- * @param {Function} props.isMediaActive - Check if media is active
- */
+type PillEntity = EntityMap[string];
+
+interface StatusPillDisplayConfig extends StatusPillConfig {
+  label?: string;
+  name?: string;
+  sublabel?: string;
+  unitSource?: string;
+  customUnit?: string;
+  condition?: VisibilityConditionInput | null;
+  bgColor?: string;
+  labelColor?: string;
+  sublabelColor?: string;
+  animationPreset?: string;
+}
+
+interface StatusPillProps {
+  pill: StatusPillDisplayConfig | null | undefined;
+  /** One entity, or an array of media players for the media pill types. */
+  entity?: PillEntity | PillEntity[] | null;
+  onClick?: () => void;
+  t: Translate;
+  getA: GetEntityAttribute;
+  getEntityImageUrl?: (url: string) => string | null;
+  isMediaActive?: (entity: HassEntity) => boolean;
+  badge?: number;
+  isMobile?: boolean;
+}
+
 const StatusPill = memo(
-  /** @param {any} props */ function StatusPill({
+  /** Generic configurable status pill */
+  function StatusPill({
     pill,
-    entity,
+    entity: entityProp,
     onClick,
     t,
     getA,
@@ -42,7 +65,11 @@ const StatusPill = memo(
     isMediaActive,
     badge,
     isMobile,
-  }) {
+  }: StatusPillProps) {
+    // Callers pass entity-map entries; the shared condition/media helpers take HassEntity
+    // but read none of the fields entity-map entries lack. Only the media pill types get
+    // an array, and they read entityProp directly.
+    const entity = entityProp as HassEntity | null | undefined;
     const { unitsMode } = useConfig();
     const { haConfig } = useHomeAssistantMeta();
     if (!pill) return null;
@@ -52,17 +79,20 @@ const StatusPill = memo(
     const showLabel = pill.showLabel !== false;
     const showSublabel = pill.showSublabel !== false;
 
-    const mergeStyle = (baseStyle, extraStyle) => {
+    const mergeStyle = (
+      baseStyle: CSSProperties | undefined,
+      extraStyle: CSSProperties | undefined
+    ) => {
       if (!extraStyle) return baseStyle;
       return { ...(baseStyle || {}), ...extraStyle };
     };
 
-    const capitalizeFirst = (value) => {
+    const capitalizeFirst = (value: string) => {
       if (!value) return value;
       return value.charAt(0).toUpperCase() + value.slice(1);
     };
 
-    const resolveHeadingColorClass = (value) => {
+    const resolveHeadingColorClass = (value: unknown) => {
       if (typeof value !== 'string' || !value.trim()) return 'text-[var(--text-primary)]';
       return value === 'text-[var(--text-secondary)]' ? 'text-[var(--text-primary)]' : value;
     };
@@ -124,7 +154,7 @@ const StatusPill = memo(
       return alreadyContainsUnit ? normalizedState : `${formatNumericState()} ${selectedUnit}`;
     };
 
-    const getAlarmStateLabel = (state) => {
+    const getAlarmStateLabel = (state: unknown) => {
       const stateText = String(state || 'unknown');
       const key = `alarm.state.${stateText}`;
       const translated = t ? t(key) : key;
@@ -132,7 +162,7 @@ const StatusPill = memo(
       return stateText;
     };
 
-    const getAlarmVisual = (state) => {
+    const getAlarmVisual = (state: string) => {
       if (state === 'disarmed') {
         return {
           mdiPath: mdiShieldOff,
@@ -339,7 +369,7 @@ const StatusPill = memo(
               )}
             </div>
           )}
-          {badge > 0 && (
+          {(badge ?? 0) > 0 && (
             <div
               data-status-pill-badge
               className={`absolute -top-2 -right-2 ${isMobile ? 'h-[18px] min-w-[18px] text-[10px]' : 'h-[22px] min-w-[22px] text-xs'} z-10 flex items-center justify-center rounded-full bg-gray-600 px-1 font-bold text-white shadow-sm`}
@@ -354,7 +384,9 @@ const StatusPill = memo(
     // Handle media_player / emby / sonos type differently
     if (pill.type === 'media_player' || pill.type === 'emby' || pill.type === 'sonos') {
       // entity should be an array of media player entities
-      const mediaEntities = Array.isArray(entity) ? entity : entity ? [entity] : [];
+      const mediaEntities = (
+        Array.isArray(entityProp) ? entityProp : entityProp ? [entityProp] : []
+      ) as HassEntity[];
       const activeEntities = mediaEntities.filter((e) => isMediaActive && isMediaActive(e));
 
       // Check condition if specified
@@ -389,15 +421,19 @@ const StatusPill = memo(
       );
 
       // Get display info from first active player
-      const title = firstActive
-        ? getA(firstActive.entity_id, 'media_title') ||
-          getA(firstActive.entity_id, 'media_channel') ||
-          getA(firstActive.entity_id, 'media_album_name')
-        : null;
-      const artist = firstActive
-        ? getA(firstActive.entity_id, 'media_artist') ||
-          getA(firstActive.entity_id, 'media_album_name')
-        : null;
+      const title = (
+        firstActive
+          ? getA(firstActive.entity_id, 'media_title') ||
+            getA(firstActive.entity_id, 'media_channel') ||
+            getA(firstActive.entity_id, 'media_album_name')
+          : null
+      ) as string | null;
+      const artist = (
+        firstActive
+          ? getA(firstActive.entity_id, 'media_artist') ||
+            getA(firstActive.entity_id, 'media_album_name')
+          : null
+      ) as string | null;
       const rawPicture = firstActive
         ? firstActive.attributes?.entity_picture || firstActive.attributes?.media_image_url
         : null;
@@ -405,7 +441,8 @@ const StatusPill = memo(
       const hasMediaMetadata = hasCandidateMediaMetadata(firstActive);
       const picture =
         pill.showCover !== false && rawPicture && (isPlaying || hasMediaMetadata)
-          ? getEntityImageUrl(rawPicture)
+          ? // Every caller that renders a media pill passes getEntityImageUrl.
+            getEntityImageUrl!(rawPicture)
           : null;
 
       // Use pill.label if set, otherwise auto-generated
@@ -433,8 +470,9 @@ const StatusPill = memo(
 
       const sonosSubheadingSource = pill.sonosSubheadingSource || 'artist_player';
 
-      const composeDual = (first, second) => [first, second].filter(Boolean).join(' - ');
-      const resolveSonosText = (source) => {
+      const composeDual = (first: string | null, second: string | null) =>
+        [first, second].filter(Boolean).join(' - ');
+      const resolveSonosText = (source: string) => {
         switch (source) {
           case 'song':
             return title || null;
@@ -547,7 +585,7 @@ const StatusPill = memo(
               )}
             </div>
           )}
-          {badge > 0 && (
+          {(badge ?? 0) > 0 && (
             <div
               data-status-pill-badge
               className={`absolute -top-2 -right-2 ${isMobile ? 'h-[18px] min-w-[18px] text-[10px]' : 'h-[22px] min-w-[22px] text-xs'} z-10 flex items-center justify-center rounded-full bg-gray-600 px-1 font-bold text-white shadow-sm`}

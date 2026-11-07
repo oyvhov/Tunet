@@ -1,6 +1,8 @@
-import { X, Car, Clock, RefreshCw, Zap, MapPin, Thermometer } from '../icons';
+import { Car, RefreshCw, Zap, MapPin, Thermometer } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import Button from '../components/ui/Button';
 import { formatRelativeTime } from '../utils';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
@@ -120,11 +122,15 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
     entities[climateId]?.state &&
     !['off', 'unknown', 'unavailable'].includes(entities[climateId]?.state);
 
-  const statusColor = isCharging ? '#4ade80' : isHeating ? '#fb923c' : 'var(--text-secondary)';
-  const statusBg = isCharging
-    ? 'rgba(74, 222, 128, 0.1)'
+  const statusColor = isCharging
+    ? 'var(--status-success-fg)'
     : isHeating
-      ? 'rgba(251, 146, 60, 0.1)'
+      ? 'var(--status-warning-fg)'
+      : 'var(--text-secondary)';
+  const statusBg = isCharging
+    ? 'var(--status-success-bg)'
+    : isHeating
+      ? 'var(--status-warning-bg)'
       : 'var(--glass-bg)';
 
   const lat =
@@ -213,80 +219,42 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
   };
 
   return (
-    <AccessibleModalShell
-      open={show}
-      onClose={onClose}
-      titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-3xl border p-4 font-sans backdrop-blur-xl sm:max-h-[80vh] sm:p-6 md:rounded-[3rem] md:p-12"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
-    >
+    <AccessibleModalShell open={show} onClose={onClose} titleId={modalTitleId} size="l">
       {() => (
         <>
-          <div className="absolute top-4 right-4 z-20 flex gap-2 sm:top-6 sm:right-6 sm:gap-3 md:top-10 md:right-10">
-            {updateButtonId && (
-              <button
-                onClick={() => callService('button', 'press', { entity_id: updateButtonId })}
-                className="flex h-9 items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 text-[var(--text-secondary)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                <span className="hidden text-[10px] font-bold tracking-widest uppercase sm:inline">
-                  {t('car.update')}
-                </span>
-              </button>
-            )}
-            <button onClick={onClose} className="modal-close" aria-label={t('common.close')}>
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Header Section */}
-          <div className="mb-4 flex items-center gap-3 pr-24 font-sans sm:mb-6 sm:gap-4 sm:pr-0">
-            <div
-              className="rounded-2xl p-3 transition-all duration-500 sm:p-4"
-              style={{ backgroundColor: statusBg, color: statusColor }}
-            >
-              <Car className="h-6 w-6 sm:h-8 sm:w-8" />
-            </div>
-            <div>
-              <h3
-                id={modalTitleId}
-                className="text-xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic sm:text-2xl"
-              >
-                {name || t('car.defaultName')}
-              </h3>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <div
-                  className="inline-block rounded-full px-3 py-1 transition-all duration-500"
-                  style={{ backgroundColor: statusBg, color: statusColor }}
+          <ModalHeader
+            title={name || t('car.defaultName')}
+            closeLabel={t('common.close')}
+            onClose={onClose}
+            icon={<Car />}
+            iconStyle={{ backgroundColor: statusBg, color: statusColor }}
+            status={
+              <StatusChip
+                tone={isCharging ? 'on' : isHeating ? 'warn' : 'neutral'}
+                label={
+                  isCharging ? t('car.charging') : isHeating ? t('car.heating') : t('status.idle')
+                }
+                detail={
+                  lastUpdatedId ? formatRelativeTime(entities[lastUpdatedId]?.state, t) : null
+                }
+              />
+            }
+            actions={
+              updateButtonId && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  aria-label={t('car.update')}
+                  icon={<RefreshCw className="h-3.5 w-3.5" />}
+                  onClick={() => callService('button', 'press', { entity_id: updateButtonId })}
                 >
-                  <p className="text-[10px] font-bold tracking-widest uppercase italic">
-                    {t('status.statusLabel')}:{' '}
-                    {isCharging
-                      ? t('car.charging')
-                      : isHeating
-                        ? t('car.heating')
-                        : t('status.idle')}
-                  </p>
-                </div>
-                {lastUpdatedId && (
-                  <div className="inline-flex items-center gap-2 rounded-full bg-[var(--glass-bg)] px-3 py-1.5 text-[var(--text-muted)]">
-                    <Clock className="h-3 w-3" />
-                    <span className="text-[10px] font-bold tracking-widest uppercase opacity-80">
-                      {formatRelativeTime(entities[lastUpdatedId]?.state, t)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+                  <span className="hidden sm:inline">{t('car.update')}</span>
+                </Button>
+              )
+            }
+          />
 
-          <div className="grid grid-cols-1 items-start gap-3 font-sans sm:gap-6 lg:grid-cols-5">
+          <ModalBody className="grid grid-cols-1 items-start gap-4 sm:gap-6 lg:grid-cols-5">
             {/* Left Column - Map (Span 3) */}
             <div className="lg:col-span-3">
               <div className="group relative h-36 w-full overflow-hidden rounded-2xl bg-[var(--glass-bg)]/50 sm:h-[clamp(12rem,24vw,20rem)] md:h-[clamp(14rem,22vw,24rem)]">
@@ -313,9 +281,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-muted)]">
                     <MapPin className="mb-4 h-24 w-24 opacity-20" />
-                    <span className="text-xs font-bold tracking-widest uppercase opacity-50">
-                      {t('common.missing')} Map
-                    </span>
+                    <span className="modal-section-label">{t('map.locationUnknown')}</span>
                   </div>
                 )}
               </div>
@@ -331,10 +297,10 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                         <Thermometer className="h-3.5 w-3.5" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase">
+                        <p className="text-xs font-bold tracking-[0.12em] text-[var(--text-primary)] uppercase">
                           {t('car.climate')}
                         </p>
-                        <p className="text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
+                        <p className="text-[11px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
                           {isHeating ? t('common.on') : t('common.off')}
                         </p>
                       </div>
@@ -345,6 +311,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                           entity_id: climateId,
                         })
                       }
+                      aria-label={t('car.climate')}
+                      aria-pressed={Boolean(isHeating)}
                       className={`relative h-7 w-12 rounded-full transition-all ${isHeating ? 'bg-orange-500' : 'bg-[var(--glass-border)]'}`}
                     >
                       <div
@@ -355,9 +323,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
 
                   <div className="space-y-2.5 border-t border-[var(--glass-border)]/50 pt-2">
                     <div className="flex items-end justify-between">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        {t('car.target')}
-                      </span>
+                      <span className="modal-section-label">{t('car.target')}</span>
                       <span className="rounded-full bg-[var(--glass-bg)] px-2.5 py-0.5 text-sm font-semibold text-[var(--text-primary)]">
                         {formatUnitValue(displayTargetTempValue, {
                           kind: 'temperature',
@@ -369,8 +335,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateClimateTarget(currentClimateTarget - 0.5)}
-                        className="popup-surface popup-surface-hover h-8 w-8 rounded-full text-base leading-none"
-                        aria-label={t('common.decrease') || 'Decrease'}
+                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none"
+                        aria-label={t('common.decrease')}
                       >
                         -
                       </button>
@@ -386,8 +352,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                       </div>
                       <button
                         onClick={() => updateClimateTarget(currentClimateTarget + 0.5)}
-                        className="popup-surface popup-surface-hover h-8 w-8 rounded-full text-base leading-none"
-                        aria-label={t('common.increase') || 'Increase'}
+                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none"
+                        aria-label={t('common.increase')}
                       >
                         +
                       </button>
@@ -409,10 +375,10 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                         <Thermometer className="h-3.5 w-3.5" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase">
+                        <p className="text-xs font-bold tracking-[0.12em] text-[var(--text-primary)] uppercase">
                           {t('car.climate')}
                         </p>
-                        <p className="text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
+                        <p className="text-[11px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
                           {isHeating ? t('common.on') : t('common.off')}
                         </p>
                       </div>
@@ -423,6 +389,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                           entity_id: climateId,
                         })
                       }
+                      aria-label={t('car.climate')}
+                      aria-pressed={Boolean(isHeating)}
                       className={`relative h-7 w-12 rounded-full transition-all ${isHeating ? 'bg-orange-500' : 'bg-[var(--glass-border)]'}`}
                     >
                       <div
@@ -433,9 +401,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
 
                   <div className="space-y-2.5 border-t border-[var(--glass-border)]/50 pt-2">
                     <div className="flex items-end justify-between">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        {t('car.target')}
-                      </span>
+                      <span className="modal-section-label">{t('car.target')}</span>
                       <span className="rounded-full bg-[var(--glass-bg)] px-2.5 py-0.5 text-sm font-semibold text-[var(--text-primary)]">
                         {formatUnitValue(displayTargetTempValue, {
                           kind: 'temperature',
@@ -447,8 +413,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateClimateTarget(currentClimateTarget - 0.5)}
-                        className="popup-surface popup-surface-hover h-8 w-8 rounded-full text-base leading-none"
-                        aria-label={t('common.decrease') || 'Decrease'}
+                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none"
+                        aria-label={t('common.decrease')}
                       >
                         -
                       </button>
@@ -464,8 +430,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                       </div>
                       <button
                         onClick={() => updateClimateTarget(currentClimateTarget + 0.5)}
-                        className="popup-surface popup-surface-hover h-8 w-8 rounded-full text-base leading-none"
-                        aria-label={t('common.increase') || 'Increase'}
+                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none"
+                        aria-label={t('common.increase')}
                       >
                         +
                       </button>
@@ -478,7 +444,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
               <div className="grid grid-cols-2 gap-3">
                 {batteryId && (
                   <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-3.5">
-                    <span className="mb-1 flex items-center gap-1 text-[10px] font-bold tracking-[0.2em] text-[var(--text-muted)] uppercase">
+                    <span className="modal-section-label mb-1 flex items-center gap-1">
                       {isCharging && (
                         <Zap className="h-3.5 w-3.5 animate-pulse text-[var(--status-success-fg)]" />
                       )}
@@ -494,7 +460,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     </div>
                     {pluggedId && (
                       <span
-                        className={`mt-1 text-[10px] font-bold tracking-widest uppercase ${entities[pluggedId]?.state === 'on' ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-muted)]'}`}
+                        className={`mt-1 text-[11px] font-bold tracking-[0.12em] uppercase ${entities[pluggedId]?.state === 'on' ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-muted)]'}`}
                       >
                         {entities[pluggedId]?.state === 'on'
                           ? t('car.pluggedIn')
@@ -506,9 +472,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
 
                 {rangeId && (
                   <div className="popup-surface flex flex-col items-center justify-center gap-1 rounded-2xl p-3.5">
-                    <span className="mb-1 text-[10px] font-bold tracking-[0.2em] text-[var(--text-muted)] uppercase">
-                      {t('car.range')}
-                    </span>
+                    <span className="modal-section-label mb-1">{t('car.range')}</span>
                     <div className="flex items-baseline gap-1">
                       <span className="text-2xl font-light text-[var(--text-primary)]">
                         {formatUnitValue(displayRangeValue, { kind: 'length', fallback: '--' })}
@@ -532,9 +496,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                 <div className="popup-surface space-y-2 rounded-2xl p-3">
                   {(tempValue !== null || tempId) && (
                     <div className="flex items-center justify-between px-1 py-1.5">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        {t('car.tempInside') || 'Temp'}
-                      </span>
+                      <span className="modal-section-label">{t('car.tempInside')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {formatUnitValue(displayTempValue, { kind: 'temperature', fallback: '--' })}
                         {displayTempUnit}
@@ -543,9 +505,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                   )}
                   {odometerId && (
                     <div className="flex items-center justify-between px-1 py-1.5">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        Odo
-                      </span>
+                      <span className="modal-section-label">{t('car.odometer')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {formatValue(odometerValue)}{' '}
                         {entities[odometerId]?.attributes?.unit_of_measurement || displayRangeUnit}
@@ -554,9 +514,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                   )}
                   {fuelLevelId && (
                     <div className="flex items-center justify-between px-1 py-1.5">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        Fuel
-                      </span>
+                      <span className="modal-section-label">{t('car.fuel')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {formatValue(fuelLevelValue)}%
                       </span>
@@ -564,9 +522,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                   )}
                   {chargingPowerId && (
                     <div className="flex items-center justify-between px-1 py-1.5">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        Power
-                      </span>
+                      <span className="modal-section-label">{t('car.chargingPower')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {chargingPowerValue ?? '--'}
                       </span>
@@ -574,9 +530,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                   )}
                   {chargeRateId && (
                     <div className="flex items-center justify-between px-1 py-1.5">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        Rate
-                      </span>
+                      <span className="modal-section-label">{t('car.chargeRate')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {chargeRateValue ?? '--'}
                       </span>
@@ -584,9 +538,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                   )}
                   {timeToFullId && (
                     <div className="flex items-center justify-between px-1 py-1.5">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        Full in
-                      </span>
+                      <span className="modal-section-label">{t('car.timeToFull')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {timeToFullValue ?? '--'}
                       </span>
@@ -594,9 +546,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                   )}
                   {chargeEndTimeId && (
                     <div className="flex items-center justify-between px-1 py-1.5">
-                      <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        End time
-                      </span>
+                      <span className="modal-section-label">{t('car.chargeEndTime')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {chargeEndTimeValue ?? '--'}
                       </span>
@@ -607,26 +557,26 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
 
               {(controlIds.length > 0 || chargeLimitNumberId || chargeLimitSelectId) && (
                 <div className="popup-surface space-y-3 rounded-2xl p-4">
-                  <div className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                    Charge Control
-                  </div>
+                  <div className="modal-section-label">{t('car.chargeControl')}</div>
                   {controlIds.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {controlIds.map((entityId) => (
-                        <button
+                        <Button
                           key={entityId}
+                          size="sm"
+                          variant="secondary"
                           onClick={() => handleChargeControl(entityId)}
-                          className="popup-surface popup-surface-hover rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-primary)] uppercase"
                         >
                           {entities[entityId]?.attributes?.friendly_name || entityId}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   )}
                   {chargeLimitNumberId && (
                     <div className="space-y-2">
-                      <div className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                        {entities[chargeLimitNumberId]?.attributes?.friendly_name || 'Charge limit'}
+                      <div className="modal-section-label">
+                        {entities[chargeLimitNumberId]?.attributes?.friendly_name ||
+                          t('car.chargeLimit')}
                       </div>
                       <M3Slider
                         min={entities[chargeLimitNumberId]?.attributes?.min ?? 50}
@@ -666,41 +616,31 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
 
               {(lockId || ignitionSwitchId) && (
                 <div className="popup-surface space-y-3 rounded-2xl p-4">
-                  <div className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                    {t('car.controls') || 'Vehicle controls'}
-                  </div>
+                  <div className="modal-section-label">{t('car.controls')}</div>
                   <div className="flex flex-wrap gap-2">
                     {lockId && (
-                      <button
-                        onClick={handleLockControl}
-                        className="popup-surface popup-surface-hover rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-primary)] uppercase"
-                      >
+                      <Button size="sm" variant="secondary" onClick={handleLockControl}>
                         {lockState === 'locked' || lockState === 'locking'
-                          ? t('car.unlock') || 'Unlock'
-                          : t('car.lock') || 'Lock'}
-                      </button>
+                          ? t('car.unlock')
+                          : t('car.lock')}
+                      </Button>
                     )}
                     {ignitionSwitchId && (
-                      <button
-                        onClick={handleIgnitionControl}
-                        className="popup-surface popup-surface-hover rounded-full px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-primary)] uppercase"
-                      >
-                        {ignitionState === 'on'
-                          ? t('car.engineStop') || 'Engine stop'
-                          : t('car.engineStart') || 'Engine start'}
-                      </button>
+                      <Button size="sm" variant="secondary" onClick={handleIgnitionControl}>
+                        {ignitionState === 'on' ? t('car.engineStop') : t('car.engineStart')}
+                      </Button>
                     )}
                   </div>
                 </div>
               )}
 
               {apiStatusId && apiStatusValue && (
-                <div className="px-1 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                  API: {apiStatusValue}
+                <div className="modal-section-label px-1">
+                  {t('car.apiStatus')}: {apiStatusValue}
                 </div>
               )}
             </div>
-          </div>
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>

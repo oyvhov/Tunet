@@ -41,6 +41,30 @@ const baseProps = (entityOverrides = {}) => ({
 });
 
 describe('GenericClimateCard', () => {
+  it.each([
+    ['heat', 'heat', 'text-orange-400'],
+    ['cool', 'cool', 'text-blue-400'],
+    ['dry', 'dry', 'text-[var(--text-secondary)]'],
+    ['fan_only', 'fanOnly', 'text-[var(--text-secondary)]'],
+    ['auto', 'auto', 'text-[var(--text-secondary)]'],
+    ['heat_cool', 'heatCool', 'text-[var(--text-secondary)]'],
+  ])('shows the %s mode when the integration does not report an action', (mode, label, color) => {
+    const props = baseProps({ hvac_action: undefined });
+    props.entity.state = mode;
+    render(<GenericClimateCard {...props} />);
+    expect(screen.getByText(`climate.hvac.${label}`).parentElement).toHaveClass(color);
+    expect(screen.queryByText('climate.action.idle')).not.toBeInTheDocument();
+  });
+
+  it('keeps an explicitly reported idle action neutral even in heat mode', () => {
+    const props = baseProps({ hvac_action: 'idle' });
+    props.entity.state = 'heat';
+    render(<GenericClimateCard {...props} />);
+    expect(screen.getByText('climate.action.idle').parentElement).toHaveClass(
+      'text-[var(--text-secondary)]'
+    );
+  });
+
   it('shows AUTO text when fan mode is auto', () => {
     render(<GenericClimateCard {...baseProps({ fan_mode: 'auto' })} />);
 

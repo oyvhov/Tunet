@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  X,
   AlertTriangle,
   Lightbulb,
   Utensils,
@@ -13,7 +12,10 @@ import {
 } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import Segmented from '../components/ui/Segmented';
 import { getIconComponent } from '../icons';
+import { HUE_GRADIENT, getLightColor, hsToCss, kelvinToRgb } from '../utils/lightColor';
 
 export default function LightModal({
   show,
@@ -73,12 +75,14 @@ export default function LightModal({
       ? Math.round(1000000 / entity.attributes.color_temp)
       : Math.round((minKelvin + maxKelvin) / 2));
   const remoteHue = entity?.attributes?.hs_color?.[0] ?? 0;
+  const remoteSaturation = entity?.attributes?.hs_color?.[1] ?? 100;
 
   // --- Local State for Optimistic UI ---
   const [activeTab, setActiveTab] = useState('brightness');
   const [localKelvin, setLocalKelvin] = useState(remoteKelvin);
   const [localHue, setLocalHue] = useState(remoteHue);
   const isDraggingRef = useRef(false);
+  const [localSaturation, setLocalSaturation] = useState(remoteSaturation);
 
   // Reset tab on open
   useEffect(() => {
@@ -98,6 +102,10 @@ export default function LightModal({
     }
   }, [remoteHue]);
 
+  useEffect(() => {
+    setLocalSaturation(remoteSaturation);
+  }, [remoteSaturation]);
+
   // --- Handlers ---
   const handleTempChange = (e) => {
     if (!activeLightId) return;
@@ -110,184 +118,129 @@ export default function LightModal({
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalHue(val);
+    setLocalSaturation(100);
     callService('light', 'turn_on', { entity_id: activeLightId, hs_color: [val, 100] });
   };
 
-  // Determine glow color
-  const getGlowColor = () => {
-    if (!isOn) return 'transparent';
-    if (activeTab === 'color' && supportsColor) {
-      return `hsl(${localHue}, 100%, 50%)`;
-    }
-    if (activeTab === 'warmth' && supportsColorTemp) {
-      if (localKelvin < 3000) return '#f59e0b'; // Warm/Orange
-      if (localKelvin > 5000) return '#93c5fd'; // Cool/Blue
-      return '#fbbf24'; // Neutral
-    }
-    return '#fbbf24'; // Default amber
-  };
+  const kelvinGradient = `linear-gradient(90deg, ${[0, 25, 50, 75, 100]
+    .map((p) => `${kelvinToRgb(minKelvin + ((maxKelvin - minKelvin) * p) / 100)} ${p}%`)
+    .join(', ')})`;
+
+  const iconColor = getLightColor(entity);
+  const getGlowColor = () => (isOn ? iconColor || '#fbbf24' : 'transparent');
 
   if (!show || !activeLightId) return null;
+
+  const brightnessPercent = Math.round(
+    ((optimisticLightBrightness[activeLightId] ?? (getA(activeLightId, 'brightness') || 0)) / 255) *
+      100
+  );
+  const tabOptions = [
+    { value: 'brightness', label: t('light.brightness'), icon: <Sun /> },
+    ...(supportsColorTemp
+      ? [{ value: 'warmth', label: t('light.warmth'), icon: <Thermometer /> }]
+      : []),
+    ...(supportsColor ? [{ value: 'color', label: t('light.color'), icon: <Palette /> }] : []),
+  ];
 
   return (
     <AccessibleModalShell
       open={show && !!activeLightId}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName={`w-full border ${showRightPanel ? 'max-w-5xl' : 'max-w-xl'} flex flex-col overflow-hidden rounded-3xl md:rounded-[3rem] ${showRightPanel ? 'lg:grid lg:grid-cols-5' : ''} popup-anim relative max-h-[calc(100dvh-1rem)] shadow-2xl sm:max-h-[90vh] backdrop-blur-xl md:min-h-[550px]`}
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size={showRightPanel ? 'l' : 'm'}
     >
       {() => (
         <>
-          {/* Close Button Row (Mobile & Desktop) */}
-          <div className="absolute top-4 right-4 z-50 sm:top-6 sm:right-6 md:top-10 md:right-10">
-            <button onClick={onClose} className="modal-close" aria-label={t('common.close')}>
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* LEFT PANEL: Visuals & Ambient (3 cols) */}
-          <div
-            className={`${showRightPanel ? 'border-b lg:col-span-3 lg:border-r lg:border-b-0' : 'h-full w-full flex-1'} relative flex shrink-0 flex-col justify-between overflow-hidden p-4 md:p-10`}
-            style={{ borderColor: 'var(--glass-border)' }}
-          >
-            {/* Dynamic Ambient Glow - Subtler */}
-            <div
-              className="pointer-events-none absolute top-1/2 left-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-5 blur-[100px] transition-all duration-1000"
-              style={{ backgroundColor: getGlowColor() }}
-            />
-
-            {/* Header */}
-            <div className="relative z-10 mb-4 flex shrink-0 items-center gap-3 pr-12 sm:mb-6 sm:gap-4 sm:pr-0">
-              <div
-                className={`rounded-2xl p-3 transition-all duration-500 sm:p-4 ${isUnavailable ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'bg-amber-500/15 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
-              >
-                <LightIcon className="h-6 w-6 sm:h-8 sm:w-8" />
-              </div>
-              <div className="min-w-0">
-                <h2
-                  id={modalTitleId}
-                  className="truncate pr-1 text-xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic sm:text-2xl"
-                >
-                  {getA(activeLightId, 'friendly_name', t('common.light'))}
-                </h2>
-                <div
-                  className={`mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 ${isUnavailable ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
-                >
-                  <div
-                    className={`h-1.5 w-1.5 rounded-full ${isUnavailable ? 'bg-[var(--status-error-fg)]' : isOn ? 'bg-[var(--status-success-fg)] shadow-[0_0_6px_var(--status-success-fg)]' : 'bg-slate-600'}`}
-                  />
-                  <span className="text-[10px] font-bold tracking-widest uppercase italic">
-                    {isUnavailable
-                      ? t('status.unavailable')
-                      : isOn
-                        ? t('common.on')
-                        : t('common.off')}
-                  </span>
-                  {isOn && (
-                    <span className="border-l border-[var(--glass-border)] pl-2 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase italic">
-                      {Math.round(
-                        ((optimisticLightBrightness[activeLightId] ??
-                          (getA(activeLightId, 'brightness') || 0)) /
-                          255) *
-                          100
-                      )}
-                      %
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Centerpiece Icon - Toggle Button */}
-            <div className="relative z-10 my-4 flex min-h-[100px] flex-1 items-center justify-center md:my-0 md:min-h-0">
-              <button
-                type="button"
-                onClick={() =>
-                  !isUnavailable && callService('light', 'toggle', { entity_id: activeLightId })
+          <ModalHeader
+            title={getA(activeLightId, 'friendly_name', t('common.light'))}
+            closeLabel={t('common.close')}
+            onClose={onClose}
+            iconTestId="light-modal-icon"
+            icon={<LightIcon />}
+            iconStyle={
+              iconColor
+                ? {
+                    backgroundColor: `color-mix(in srgb, ${iconColor} 12%, var(--glass-bg))`,
+                    color: `color-mix(in srgb, ${iconColor} 50%, var(--text-primary))`,
+                  }
+                : undefined
+            }
+            iconClassName={
+              isUnavailable
+                ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'
+                : iconColor
+                  ? ''
+                  : isOn
+                    ? 'bg-amber-500/15 text-amber-400'
+                    : ''
+            }
+            status={
+              <StatusChip
+                tone={isUnavailable ? 'error' : isOn ? 'on' : 'neutral'}
+                label={
+                  isUnavailable ? t('status.unavailable') : isOn ? t('common.on') : t('common.off')
                 }
-                aria-label={t('light.toggle') || t('common.toggle')}
-                disabled={isUnavailable}
-                className={`relative flex h-24 w-24 items-center justify-center rounded-full transition-all duration-700 md:h-36 md:w-36 ${
-                  isUnavailable
-                    ? 'cursor-not-allowed bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'
-                    : isOn
-                      ? 'cursor-pointer bg-[var(--glass-bg)] text-[var(--text-primary)] shadow-2xl active:scale-95'
-                      : 'cursor-pointer bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] active:scale-95'
-                } border border-[var(--glass-border)]`}
-                style={{
-                  // Dimmed glow behind icon (lower opacity on hex color or lower radius)
-                  boxShadow: isOn ? `0 0 60px -10px ${getGlowColor()}15` : 'none',
-                }}
-              >
-                {isUnavailable ? (
-                  <AlertTriangle className="h-8 w-8 md:h-10 md:w-10" />
-                ) : (
-                  <Power className="h-10 w-10 stroke-[1.5px] md:h-16 md:w-16" />
-                )}
+                detail={isOn && isDimmable ? `${brightnessPercent}%` : null}
+              />
+            }
+          />
 
-                {/* Subtle inner ring */}
-                {isOn && (
-                  <div className="absolute inset-0 rounded-full border border-white/10 opacity-30" />
-                )}
-              </button>
-            </div>
+          <ModalBody className={showRightPanel ? 'grid gap-6 lg:grid-cols-5' : ''}>
+            {/* Visual: power button and mode switcher */}
+            <div
+              className={`popup-surface relative flex min-h-[240px] flex-col items-center justify-between gap-6 overflow-hidden rounded-[var(--modal-surface-radius)] p-6 ${showRightPanel ? 'lg:col-span-3 lg:min-h-[360px]' : ''}`}
+            >
+              <div
+                className="pointer-events-none absolute top-1/2 left-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-5 blur-[100px] transition-all duration-1000"
+                style={{ backgroundColor: getGlowColor() }}
+              />
 
-            {/* Tabs / Mode Switcher - Sleek Segmented Control */}
-            <div className="relative z-10 mx-auto w-full max-w-sm shrink-0">
+              <div className="relative z-10 flex flex-1 items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() =>
+                    !isUnavailable && callService('light', 'toggle', { entity_id: activeLightId })
+                  }
+                  aria-label={t('light.toggle') || t('common.toggle')}
+                  disabled={isUnavailable}
+                  className={`relative flex h-24 w-24 items-center justify-center rounded-full border border-[var(--glass-border)] transition-all duration-500 md:h-32 md:w-32 ${
+                    isUnavailable
+                      ? 'cursor-not-allowed bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'
+                      : isOn
+                        ? 'cursor-pointer bg-[var(--glass-bg-hover)] text-[var(--text-primary)] active:scale-95'
+                        : 'cursor-pointer bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] active:scale-95'
+                  }`}
+                >
+                  {isUnavailable ? (
+                    <AlertTriangle className="h-8 w-8 md:h-10 md:w-10" />
+                  ) : (
+                    <Power className="h-10 w-10 stroke-[1.5px] md:h-14 md:w-14" />
+                  )}
+                </button>
+              </div>
+
               {showPills && (
-                <div className="flex w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-1">
-                  <button
-                    onClick={() => setActiveTab('brightness')}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold tracking-wider uppercase transition-all duration-300 ${activeTab === 'brightness' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                  >
-                    <Sun className="h-3.5 w-3.5" />
-                    <span>{t('light.brightness')}</span>
-                  </button>
-                  {supportsColorTemp && (
-                    <button
-                      onClick={() => setActiveTab('warmth')}
-                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold tracking-wider uppercase transition-all duration-300 ${activeTab === 'warmth' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                    >
-                      <Thermometer className="h-3.5 w-3.5" />
-                      <span>{t('light.warmth')}</span>
-                    </button>
-                  )}
-                  {supportsColor && (
-                    <button
-                      onClick={() => setActiveTab('color')}
-                      className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold tracking-wider uppercase transition-all duration-300 ${activeTab === 'color' ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                    >
-                      <Palette className="h-3.5 w-3.5" />
-                      <span>{t('light.color')}</span>
-                    </button>
-                  )}
-                </div>
+                <Segmented
+                  className="relative z-10"
+                  ariaLabel={t('light.brightness')}
+                  value={activeTab}
+                  onChange={setActiveTab}
+                  options={tabOptions}
+                />
               )}
             </div>
-          </div>
 
-          {/* RIGHT PANEL: Controls (2 cols) */}
-          {showRightPanel && (
-            <div className="flex h-full flex-col lg:col-span-2">
-              <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-4 md:space-y-8 md:p-8 lg:pt-16">
-                {/* Dynamic Control Area - Simplified */}
+            {showRightPanel && (
+              <div className="flex flex-col gap-6 lg:col-span-2">
                 {isDimmable && (
-                  <div className="flex min-h-[100px] flex-col justify-center md:min-h-[140px]">
+                  <div className="flex flex-col justify-center">
                     {/* Brightness Slider */}
                     {activeTab === 'brightness' && (
                       <div className="space-y-2 md:space-y-4">
                         <div className="flex items-end justify-between px-1">
-                          <label className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                            {t('light.brightness')}
-                          </label>
-                          <span className="font-mono text-lg font-medium text-[var(--text-primary)]">
+                          <label className="modal-section-label">{t('light.brightness')}</label>
+                          <span className="text-lg font-medium text-[var(--text-primary)] tabular-nums">
                             {Math.round(
                               ((optimisticLightBrightness[activeLightId] ??
                                 (getA(activeLightId, 'brightness') || 0)) /
@@ -330,10 +283,10 @@ export default function LightModal({
                     {activeTab === 'warmth' && (
                       <div className="space-y-2 md:space-y-4">
                         <div className="flex items-end justify-between px-1">
-                          <label className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                          <label className="modal-section-label">
                             {t('light.colorTemperature')}
                           </label>
-                          <span className="font-mono text-lg font-medium text-[var(--text-primary)]">
+                          <span className="text-lg font-medium text-[var(--text-primary)] tabular-nums">
                             {localKelvin}K
                           </span>
                         </div>
@@ -356,8 +309,7 @@ export default function LightModal({
                           <div
                             className="absolute inset-0"
                             style={{
-                              background:
-                                'linear-gradient(90deg, #ffb14e 0%, #fffbe6 50%, #9cb8ff 100%)',
+                              background: kelvinGradient,
                             }}
                           />
                           {/* Thumb Indicator */}
@@ -376,13 +328,11 @@ export default function LightModal({
                     {activeTab === 'color' && (
                       <div className="space-y-2 md:space-y-4">
                         <div className="flex items-end justify-between px-1">
-                          <label className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                            {t('light.hue')}
-                          </label>
+                          <label className="modal-section-label">{t('light.hue')}</label>
                           {/* Color Preview Dot */}
                           <div
                             className="h-6 w-6 rounded-full border border-[var(--glass-border)] shadow-sm"
-                            style={{ backgroundColor: `hsl(${localHue}, 100%, 50%)` }}
+                            style={{ backgroundColor: hsToCss(localHue, localSaturation) }}
                           />
                         </div>
                         <div className="relative h-10 w-full touch-none overflow-hidden rounded-xl shadow-inner">
@@ -403,8 +353,7 @@ export default function LightModal({
                           <div
                             className="absolute inset-0"
                             style={{
-                              background:
-                                'linear-gradient(90deg, #ef4444 0%, #f59e0b 16%, #facc15 32%, #22c55e 48%, #06b6d4 64%, #6366f1 80%, #d946ef 100%)',
+                              background: HUE_GRADIENT,
                             }}
                           />
                           {/* Thumb Indicator */}
@@ -423,10 +372,8 @@ export default function LightModal({
 
                 {/* Sub Entities - Cleaner list */}
                 {groupedEntityIds.length > 0 && (
-                  <div className="border-t border-[var(--glass-border)] pt-4 md:pt-6">
-                    <h3 className="mb-2 pl-1 text-xs font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase md:mb-4">
-                      {t('light.roomLights')}
-                    </h3>
+                  <div className={isDimmable ? 'border-t border-[var(--glass-border)] pt-6' : ''}>
+                    <h3 className="modal-section-label mb-3">{t('light.roomLights')}</h3>
                     <div className="space-y-2 md:space-y-3">
                       {groupedEntityIds.map((cid) => {
                         const subEnt = entities[cid];
@@ -441,7 +388,7 @@ export default function LightModal({
                           <div key={cid} className="flex items-end gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-end justify-between px-1">
-                                <span className="truncate text-xs font-bold text-[var(--text-secondary)] opacity-90">
+                                <span className="truncate text-sm font-medium text-[var(--text-primary)]">
                                   {subName}
                                 </span>
                               </div>
@@ -451,6 +398,11 @@ export default function LightModal({
                                   className={`absolute top-0 left-0 h-full transition-all duration-300 ${subIsOn ? 'bg-amber-500 opacity-80' : 'bg-black/20 opacity-30'}`}
                                   style={{ width: `${(subBrightness / 255) * 100}%` }}
                                 />
+                                {!subIsOn && (
+                                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase">
+                                    {subUnavail ? t('status.unavailable') : t('common.off')}
+                                  </span>
+                                )}
                                 {/* Invisible Slider overlay */}
                                 <input
                                   type="range"
@@ -498,10 +450,8 @@ export default function LightModal({
                   </div>
                 )}
               </div>
-
-              {/* Quick Actions Footer (Right Column) - Removed redundant toggle */}
-            </div>
-          )}
+            )}
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>

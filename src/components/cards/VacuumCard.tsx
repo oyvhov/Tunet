@@ -1,8 +1,29 @@
 import { useEffect, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { AlertTriangle, Battery, Bot, Home, MapPin, Pause, Play } from '../../icons';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { Translate } from '../../types/ha';
+import type { CardCallService, GetEntityAttribute } from '../../types/cards';
+import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 
-function getVacuumStateLabel(state, battery, t) {
+interface VacuumCardProps extends Pick<
+  CardBaseProps,
+  'dragProps' | 'controls' | 'cardStyle' | 'isMobile' | 't'
+> {
+  vacuumId: string;
+  entityId?: string | null;
+  entities: EntityMap;
+  editMode?: boolean;
+  cardSettings: CardSettingsMap;
+  settingsKey: string;
+  customNames: Record<string, string>;
+  customIcons: Record<string, string>;
+  getA: GetEntityAttribute;
+  callService: CardCallService;
+  onOpen: () => void;
+}
+
+function getVacuumStateLabel(state: string | undefined, battery: unknown, t: Translate) {
   const normalized = String(state || '').toLowerCase();
   if (!normalized) return t('vacuum.unknown');
 
@@ -43,15 +64,15 @@ const VacuumCard = ({
   onOpen,
   isMobile,
   t,
-}) => {
-  const cardRef = useRef(null);
+}: VacuumCardProps) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isNarrowSmallCard, setIsNarrowSmallCard] = useState(false);
 
   useEffect(() => {
     const element = cardRef.current;
     if (!element || typeof ResizeObserver === 'undefined') return;
 
-    const updateWidth = (width) => {
+    const updateWidth = (width: number) => {
       setIsNarrowSmallCard((prev) => {
         if (prev) return width < 296;
         return width < 276;

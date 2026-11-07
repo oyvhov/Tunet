@@ -52,3 +52,37 @@ describe('sensor card entity picker', () => {
     expect(screen.queryByRole('button', { name: /Night lights/ })).not.toBeInTheDocument();
   });
 });
+
+describe('add card footer', () => {
+  it('has Cancel and a disabled Add when nothing is picked, and no OK button', () => {
+    render(<AddCardContent {...makeProps()} />);
+    expect(screen.getByRole('button', { name: 'common.cancel' })).toBeInTheDocument();
+    expect(screen.getByTestId('add-card-submit')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'OK' })).not.toBeInTheDocument();
+  });
+
+  it('shows the number of cards picked across types', () => {
+    render(<AddCardContent {...makeProps({ pendingAddCount: 3 })} />);
+    const submit = screen.getByTestId('add-card-submit');
+    expect(submit).toBeEnabled();
+    expect(submit).toHaveTextContent('addCard.add 3 addCard.cards');
+  });
+
+  it('marks the active card type and picked rows as pressed', () => {
+    render(
+      <AddCardContent {...makeProps({ addCardType: 'light', selectedEntities: ['light.hall'] })} />
+    );
+    expect(screen.getByRole('button', { name: /addCard.type.light/ })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.getByRole('button', { name: /addCard.type.sensor/ })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    expect(screen.getByRole('button', { name: /Hall light/ })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+});

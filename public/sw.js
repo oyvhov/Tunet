@@ -1,7 +1,11 @@
 // Minimal service worker for PWA installability
 // Serves cached shell offline and caches immutable build assets at runtime.
 
-const SHELL_CACHE_NAME = 'tunet-shell-v3';
+// Replaced with the app version at build time (vite plugin `version-service-worker`).
+// The shell cache must change on every release: otherwise a failed navigation right
+// after an upgrade serves the previous index.html and the app keeps the old bundle.
+const CACHE_VERSION = '__APP_VERSION__';
+const SHELL_CACHE_NAME = `tunet-shell-${CACHE_VERSION}`;
 const ASSET_CACHE_NAME = 'tunet-assets-v2';
 const SHELL_ASSETS = ['./', './index.html'];
 
@@ -25,21 +29,21 @@ async function cacheFirst(request, cacheName) {
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
-  );
+  event.waitUntil(caches.open(SHELL_CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => ![SHELL_CACHE_NAME, ASSET_CACHE_NAME].includes(key))
-          .map((key) => caches.delete(key))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => ![SHELL_CACHE_NAME, ASSET_CACHE_NAME].includes(key))
+            .map((key) => caches.delete(key))
+        )
       )
-    )
   );
   self.clients.claim();
 });
@@ -47,9 +51,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only handle navigation requests with cache fallback
   if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match('./index.html'))
-    );
+    event.respondWith(fetch(event.request).catch(() => caches.match('./index.html')));
     return;
   }
 

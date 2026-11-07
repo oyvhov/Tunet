@@ -3,13 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import GenericAndroidTVModal from '../modals/GenericAndroidTVModal';
 
 vi.mock('../components/ui/AccessibleModalShell', () => ({
-  default: ({ open, children, overlayClassName, panelClassName }) =>
+  useModalShell: () => null,
+  default: ({ open, children, size }) =>
     open ? (
-      <div
-        data-testid="tv-modal-shell"
-        data-overlay-class={overlayClassName}
-        data-panel-class={panelClassName}
-      >
+      <div data-testid="tv-modal-shell" data-size={size}>
         {children()}
       </div>
     ) : null,
@@ -42,19 +39,20 @@ const props = {
       'shield.home': 'Home',
       'shield.turnOff': 'Turn off',
       'shield.turnOn': 'Turn on',
+      'state.playing': 'Playing',
+      'remote.up': 'Up',
+      'remote.select': 'Select',
     })[key] || key,
 };
 
 describe('GenericAndroidTVModal mobile layout', () => {
-  it('uses compact mobile sizing and keeps the previous sm and desktop dimensions', () => {
+  it('uses the shared two-column popup and keeps compact remote sizing', () => {
     render(<GenericAndroidTVModal {...props} />);
 
-    const shell = screen.getByTestId('tv-modal-shell');
-    expect(shell.dataset.overlayClass).toContain('p-2 sm:p-4 md:p-6');
-    expect(shell.dataset.panelClass).toContain('max-h-[calc(100dvh-1rem)]');
-    expect(shell.dataset.panelClass).toContain('p-4');
-    expect(shell.dataset.panelClass).toContain('sm:max-h-[80vh] sm:p-6');
-    expect(shell.dataset.panelClass).toContain('md:p-12');
+    expect(screen.getByTestId('tv-modal-shell').dataset.size).toBe('l');
+    expect(screen.getByRole('heading', { name: 'Living room TV' })).toBeInTheDocument();
+    expect(screen.getByText('Playing')).toBeInTheDocument();
+    expect(screen.queryByText(/Status:/)).not.toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Up' })).toHaveClass(
       'h-11',

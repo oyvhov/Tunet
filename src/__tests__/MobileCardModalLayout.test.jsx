@@ -11,10 +11,12 @@ vi.mock('../contexts', () => ({
 }));
 
 vi.mock('../components/ui/AccessibleModalShell', () => ({
-  default: ({ open, children, panelClassName, overlayClassName }) =>
+  useModalShell: () => null,
+  default: ({ open, children, size, panelClassName, overlayClassName }) =>
     open ? (
       <div
         data-testid="modal-shell"
+        data-size={size}
         data-panel-class={panelClassName}
         data-overlay-class={overlayClassName}
       >
@@ -59,9 +61,9 @@ describe('mobile card modal layout', () => {
     );
 
     const shell = screen.getByTestId('modal-shell');
-    expect(shell.dataset.panelClass).toContain('max-h-[calc(100dvh-1rem)]');
-    expect(shell.dataset.panelClass).toContain('sm:max-h-[90vh]');
-    expect(shell.dataset.overlayClass).toContain('p-2 sm:p-4');
+    expect(shell.dataset.size).toBe('m');
+    expect(shell.dataset.panelClass).toBeUndefined();
+    expect(shell.dataset.overlayClass).toBeUndefined();
   });
 
   it('packs Nordpool statistics into the compact mobile layout', () => {
@@ -82,9 +84,7 @@ describe('mobile card modal layout', () => {
       />
     );
 
-    expect(screen.getByTestId('modal-shell').dataset.panelClass).toContain(
-      'max-h-[calc(100dvh-1rem)]'
-    );
+    expect(screen.getByTestId('modal-shell').dataset.size).toBe('l');
     expect(screen.getByText('power.avg').parentElement?.parentElement).toHaveClass(
       'grid-cols-3',
       'lg:grid-cols-2'

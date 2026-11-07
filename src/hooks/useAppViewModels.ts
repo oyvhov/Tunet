@@ -171,6 +171,7 @@ export type UseAppViewModelsParams = Pick<
     | 'selectedSpacerVariant'
     | 'setSelectedSpacerVariant'
     | 'onAddSelected'
+    | 'pendingAddCount'
     | 'getAddCardAvailableLabel'
     | 'getAddCardNoneLeftLabel'
   > &
@@ -385,6 +386,7 @@ export function useAppViewModels(params: UseAppViewModelsParams) {
     selectedSpacerVariant,
     setSelectedSpacerVariant,
     onAddSelected,
+    pendingAddCount,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
     saveCardSetting,
@@ -755,6 +757,7 @@ export function useAppViewModels(params: UseAppViewModelsParams) {
       selectedSpacerVariant,
       setSelectedSpacerVariant,
       onAddSelected,
+      pendingAddCount,
       getAddCardAvailableLabel,
       getAddCardNoneLeftLabel,
     }),
@@ -791,6 +794,7 @@ export function useAppViewModels(params: UseAppViewModelsParams) {
       selectedSpacerVariant,
       setSelectedSpacerVariant,
       onAddSelected,
+      pendingAddCount,
       getAddCardAvailableLabel,
       getAddCardNoneLeftLabel,
     ]

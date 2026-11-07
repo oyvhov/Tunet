@@ -353,7 +353,7 @@ export interface UseAddCardResult {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
   selectedEntities: string[];
-  setSelectedEntities: (value: string[]) => void;
+  setSelectedEntities: (value: string[] | ((prev: string[]) => string[])) => void;
   selectedWeatherId: string | null;
   setSelectedWeatherId: (value: string | null) => void;
   selectedTempId: string | null;
@@ -379,6 +379,7 @@ export interface UseAddCardResult {
   selectedSpacerVariant: string;
   setSelectedSpacerVariant: (value: string) => void;
   onAddSelected: (options?: { spacerVariant?: string }) => void;
+  pendingAddCount: number;
   getAddCardAvailableLabel: () => string;
   getAddCardNoneLeftLabel: () => string;
 }

@@ -26,6 +26,7 @@ vi.mock('../components/ui/AccessibleModalShell', () => ({
         {children()}
       </div>
     ) : null,
+  useModalShell: () => null,
 }));
 
 vi.mock('../icons', () => {

@@ -1,7 +1,7 @@
 {
   "name": "tunet-dashboard",
   "private": true,
-  "version": "1.25.2",
+  "version": "1.26.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/oyvhov/tunet.git"
@@ -43,17 +43,17 @@
     "@mdi/react": "^1.6.1",
     "better-sqlite3": "^13.0.3",
     "express": "^5.3.0",
-    "express-rate-limit": "^8.7.1",
-    "hls.js": "^1.7.3",
-    "home-assistant-js-websocket": "^9.7.1",
+    "express-rate-limit": "^8.7.2",
+    "hls.js": "^1.7.4",
+    "home-assistant-js-websocket": "^9.8.1",
     "leaflet": "^1.9.4",
-    "lucide-react": "^1.59.0",
+    "lucide-react": "^1.66.0",
     "prop-types": "^15.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-icons": "^5.7.0",
-    "react-router-dom": "^7.18.4",
-    "ws": "^8.22.0"
+    "react-router-dom": "^7.18.5",
+    "ws": "^8.22.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  X,
   ChevronUp,
   ChevronDown,
   ChevronLeft,
@@ -15,6 +14,9 @@ import {
   VolumeX,
 } from '../icons';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import Button from '../components/ui/Button';
+import { getMediaPlayerStateLabel, getMediaPlayerStateTone } from '../utils/mediaPlayerState';
 
 function AppleLogoIcon({ className = 'h-5 w-5' }) {
   return (
@@ -101,20 +103,13 @@ export default function GenericAppleTVModal({
     entity?.attributes?.friendly_name ||
     'Apple TV';
 
-  const statusColor = isPlaying
-    ? '#60a5fa'
+  const iconClassName = isPlaying
+    ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
     : isPaused
-      ? '#fbbf24'
+      ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]'
       : isOn
-        ? '#34d399'
-        : 'var(--text-secondary)';
-  const statusBg = isPlaying
-    ? 'rgba(59, 130, 246, 0.1)'
-    : isPaused
-      ? 'rgba(251, 191, 36, 0.1)'
-      : isOn
-        ? 'rgba(52, 211, 153, 0.1)'
-        : 'var(--glass-bg)';
+        ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]'
+        : '';
 
   const sendRemoteCommand = (command) => {
     if (remoteId) {
@@ -142,56 +137,24 @@ export default function GenericAppleTVModal({
     : [];
 
   return (
-    <AccessibleModalShell
-      open={show && !!entity}
-      onClose={onClose}
-      titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.4)' }}
-      panelClassName="popup-anim relative max-h-[calc(100dvh-1rem)] w-full max-w-4xl overflow-y-auto rounded-3xl border p-4 shadow-2xl backdrop-blur-xl sm:max-h-[85vh] sm:p-6 md:rounded-[3rem] md:p-10"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
-    >
+    <AccessibleModalShell open={show && !!entity} onClose={onClose} titleId={modalTitleId} size="l">
       {() => (
         <>
-          <button
-            onClick={onClose}
-            className="modal-close absolute top-4 right-4 z-20 sm:top-6 sm:right-6 md:top-8 md:right-8"
-            aria-label={t('common.close')}
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <ModalHeader
+            title={deviceName}
+            closeLabel={t('common.close')}
+            onClose={onClose}
+            icon={<AppleLogoIcon />}
+            iconClassName={iconClassName}
+            status={
+              <StatusChip
+                tone={getMediaPlayerStateTone(state)}
+                label={getMediaPlayerStateLabel(state, t)}
+              />
+            }
+          />
 
-          {/* Header */}
-          <div className="mb-4 flex items-center gap-3 pr-12 font-sans sm:mb-6 sm:gap-4">
-            <div
-              className="rounded-2xl p-3 transition-all duration-500 sm:p-4"
-              style={{ backgroundColor: statusBg, color: statusColor }}
-            >
-              <AppleLogoIcon className="h-6 w-6 sm:h-8 sm:w-8" />
-            </div>
-            <div>
-              <h3
-                id={modalTitleId}
-                className="text-xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase sm:text-2xl"
-              >
-                {deviceName}
-              </h3>
-              <div
-                className="mt-2 inline-block rounded-full px-3 py-1 transition-all duration-500"
-                style={{ backgroundColor: statusBg, color: statusColor }}
-              >
-                <p className="text-[10px] font-bold tracking-widest uppercase">
-                  {t('status.statusLabel')}: {state}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 items-start gap-4 font-sans sm:gap-6 lg:grid-cols-12">
+          <ModalBody className="grid grid-cols-1 items-start gap-4 sm:gap-6 lg:grid-cols-12">
             {/* Left Column (Span 7) - Media Info, Playback & Sources */}
             <div className="space-y-4 sm:space-y-6 lg:col-span-7">
               <div className="popup-surface flex flex-col gap-3 rounded-2xl p-4 sm:gap-4 sm:p-5">
@@ -207,7 +170,7 @@ export default function GenericAppleTVModal({
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
                       <div className="absolute right-3 bottom-3 left-3 sm:right-6 sm:bottom-6 sm:left-6">
-                        <p className="mb-1 text-xs font-bold tracking-widest text-[var(--accent-color)] uppercase">
+                        <p className="mb-1 text-xs font-bold tracking-[0.12em] text-[var(--accent-color)] uppercase">
                           {appName || t('media.homeScreen')}
                         </p>
                         <h2 className="line-clamp-2 text-lg leading-tight font-bold text-white sm:text-2xl">
@@ -216,9 +179,9 @@ export default function GenericAppleTVModal({
                       </div>
                     </>
                   ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-[var(--text-muted)]">
-                      <Tv className="mb-2 h-10 w-10 opacity-25 sm:mb-3 sm:h-14 sm:w-14" />
-                      <span className="text-xs font-bold tracking-widest uppercase opacity-60">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[var(--text-muted)]">
+                      <Tv className="h-10 w-10 opacity-40 sm:h-12 sm:w-12" />
+                      <span className="text-sm text-[var(--text-secondary)]">
                         {isOn ? appName || t('media.homeScreen') : t('status.off')}
                       </span>
                     </div>
@@ -230,7 +193,7 @@ export default function GenericAppleTVModal({
                   <button
                     onClick={() => controlMedia('media_previous_track')}
                     className="rounded-full bg-[var(--glass-bg)] p-3 text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                    aria-label="Previous track"
+                    aria-label={t('media.previousTrack')}
                   >
                     <SkipBack className="h-5 w-5" />
                   </button>
@@ -248,7 +211,7 @@ export default function GenericAppleTVModal({
                   <button
                     onClick={() => controlMedia('media_next_track')}
                     className="rounded-full bg-[var(--glass-bg)] p-3 text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                    aria-label="Next track"
+                    aria-label={t('media.nextTrack')}
                   >
                     <SkipForward className="h-5 w-5" />
                   </button>
@@ -258,9 +221,7 @@ export default function GenericAppleTVModal({
               {/* Quick Launch Sources / Apps */}
               {sourceList.length > 0 && (
                 <div className="popup-surface rounded-2xl p-4">
-                  <span className="mb-3 block text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                    {t('appletv.apps')}
-                  </span>
+                  <span className="modal-section-label mb-3 block">{t('appletv.apps')}</span>
                   <div className="flex flex-wrap gap-2">
                     {sourceList.map((source) => {
                       const isActiveApp = appName?.toLowerCase() === source.toLowerCase();
@@ -293,22 +254,19 @@ export default function GenericAppleTVModal({
               <div className="popup-surface flex w-full max-w-[280px] flex-col items-center gap-4 rounded-[2.5rem] p-5 shadow-xl sm:gap-5 sm:p-6">
                 {/* Remote Top: Power */}
                 <div className="flex w-full items-center justify-end px-2">
-                  <button
+                  <Button
+                    size="sm"
+                    variant={isOn ? 'destructive' : 'primary'}
                     onClick={() =>
                       isOn
                         ? callService('media_player', 'turn_off', { entity_id: mediaPlayerId })
                         : callService('media_player', 'turn_on', { entity_id: mediaPlayerId })
                     }
-                    className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-90 ${
-                      isOn
-                        ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90'
-                        : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'
-                    }`}
                     title={isOn ? t('shield.turnOff') : t('shield.turnOn')}
-                    aria-label={isOn ? t('shield.turnOff') : t('shield.turnOn')}
+                    icon={<Power className="h-4 w-4" />}
                   >
-                    <Power className="h-4 w-4" />
-                  </button>
+                    {isOn ? t('shield.turnOff') : t('shield.turnOn')}
+                  </Button>
                 </div>
 
                 {remoteId && (
@@ -319,7 +277,7 @@ export default function GenericAppleTVModal({
                       <button
                         onClick={() => sendRemoteCommand('up')}
                         className="absolute top-0.5 flex h-11 w-14 items-center justify-center text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90"
-                        aria-label="Up"
+                        aria-label={t('remote.up')}
                       >
                         <ChevronUp className="h-5 w-5" />
                       </button>
@@ -328,7 +286,7 @@ export default function GenericAppleTVModal({
                       <button
                         onClick={() => sendRemoteCommand('down')}
                         className="absolute bottom-0.5 flex h-11 w-14 items-center justify-center text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90"
-                        aria-label="Down"
+                        aria-label={t('remote.down')}
                       >
                         <ChevronDown className="h-5 w-5" />
                       </button>
@@ -337,7 +295,7 @@ export default function GenericAppleTVModal({
                       <button
                         onClick={() => sendRemoteCommand('left')}
                         className="absolute left-0.5 flex h-14 w-11 items-center justify-center text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90"
-                        aria-label="Left"
+                        aria-label={t('remote.left')}
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </button>
@@ -346,7 +304,7 @@ export default function GenericAppleTVModal({
                       <button
                         onClick={() => sendRemoteCommand('right')}
                         className="absolute right-0.5 flex h-14 w-11 items-center justify-center text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90"
-                        aria-label="Right"
+                        aria-label={t('remote.right')}
                       >
                         <ChevronRight className="h-5 w-5" />
                       </button>
@@ -355,9 +313,9 @@ export default function GenericAppleTVModal({
                       <button
                         onClick={() => sendRemoteCommand('select')}
                         className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--glass-bg-hover)] text-xs font-bold tracking-wider text-[var(--text-primary)] uppercase shadow-md transition-all hover:bg-[var(--glass-border)] active:scale-95"
-                        aria-label="Select"
+                        aria-label={t('remote.select')}
                       >
-                        OK
+                        {t('common.ok')}
                       </button>
                     </div>
 
@@ -369,7 +327,7 @@ export default function GenericAppleTVModal({
                         aria-label={t('appletv.menu') || 'Menu'}
                       >
                         <span className="text-sm font-bold">&lt;</span>
-                        <span className="text-[9px] font-bold tracking-widest uppercase opacity-70">
+                        <span className="text-[11px] font-bold tracking-[0.08em] uppercase opacity-70">
                           {t('appletv.menu') || 'Back'}
                         </span>
                       </button>
@@ -380,7 +338,7 @@ export default function GenericAppleTVModal({
                         aria-label={t('appletv.tvHome') || 'TV / Home'}
                       >
                         <Home className="h-4 w-4" />
-                        <span className="text-[9px] font-bold tracking-widest uppercase opacity-70">
+                        <span className="text-[11px] font-bold tracking-[0.08em] uppercase opacity-70">
                           TV
                         </span>
                       </button>
@@ -400,7 +358,7 @@ export default function GenericAppleTVModal({
                     ) : (
                       <Play className="ml-0.5 h-5 w-5" />
                     )}
-                    <span className="text-[9px] font-bold tracking-widest uppercase opacity-70">
+                    <span className="text-[11px] font-bold tracking-[0.08em] uppercase opacity-70">
                       {t('shield.playPause')}
                     </span>
                   </button>
@@ -410,7 +368,7 @@ export default function GenericAppleTVModal({
                     <button
                       onClick={() => controlMedia('volume_up')}
                       className="flex w-full flex-1 items-center justify-center text-sm font-bold text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90"
-                      aria-label="Volume up"
+                      aria-label={t('media.volume.up')}
                     >
                       +
                     </button>
@@ -418,7 +376,7 @@ export default function GenericAppleTVModal({
                     <button
                       onClick={() => controlMedia('volume_down')}
                       className="flex w-full flex-1 items-center justify-center text-sm font-bold text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90"
-                      aria-label="Volume down"
+                      aria-label={t('media.volume.down')}
                     >
                       −
                     </button>
@@ -433,14 +391,14 @@ export default function GenericAppleTVModal({
                     className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--glass-bg)] text-xs font-semibold text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
                   >
                     <VolumeX className="h-4 w-4 opacity-70" />
-                    <span className="text-[10px] font-bold tracking-widest uppercase">
+                    <span className="text-[11px] font-bold tracking-[0.08em] uppercase">
                       {isMuted ? t('media.volume.unmute') : t('media.volume.mute')}
                     </span>
                   </button>
                 </div>
               </div>
             </div>
-          </div>
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>
