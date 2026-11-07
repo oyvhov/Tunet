@@ -2,18 +2,61 @@ import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from '
 import { Circle, CheckCircle2, Plus, AlertCircle, ListChecks, Trash2 } from 'lucide-react';
 import { getIconComponent } from '../../icons';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../../services/haClient';
+import type {
+  CSSProperties,
+  ErrorInfo,
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+} from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
+import type { CardBaseProps } from '../../types/dashboard';
+import type { Translate } from '../../types/ha';
+import type { TodoItem } from '../../services/haClient';
 
-class TodoErrorBoundary extends React.Component {
-  constructor(props) {
+type TodoCardItem = TodoItem & { due?: string };
+
+interface TodoCardSettings {
+  todoEntityId?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface TodoCardProps extends Pick<CardBaseProps, 'cardId' | 't'> {
+  settings?: TodoCardSettings;
+  conn?: Connection | null;
+  className?: string;
+  style?: CSSProperties;
+  dragProps?: Record<string, unknown>;
+  getControls?: (cardId: string) => ReactNode;
+  onClick?: (event: ReactMouseEvent<HTMLDivElement>) => void;
+  isEditMode?: boolean;
+  size?: string;
+  iconName?: string | null;
+  customName?: string | null;
+}
+
+interface TodoErrorBoundaryProps {
+  t?: Translate;
+  children?: ReactNode;
+}
+
+interface TodoErrorBoundaryState {
+  hasError: boolean;
+  message: string;
+}
+
+class TodoErrorBoundary extends React.Component<TodoErrorBoundaryProps, TodoErrorBoundaryState> {
+  constructor(props: TodoErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, message: '' };
   }
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true, message: error?.message || '' };
+  static getDerivedStateFromError(error: unknown) {
+    return { hasError: true, message: (error as Error | null | undefined)?.message || '' };
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: unknown, info: ErrorInfo) {
     console.error('TodoCard crashed:', error, info);
   }
 
@@ -34,7 +77,7 @@ class TodoErrorBoundary extends React.Component {
   }
 }
 
-const TodoCard = memo(/** @param {any} props */ function TodoCard({
+const TodoCard = memo(function TodoCard({
   cardId,
   settings,
   conn,
@@ -48,12 +91,12 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
   size,
   iconName,
   customName,
-}) {
-  const [items, setItems] = useState([]);
+}: TodoCardProps) {
+  const [items, setItems] = useState<TodoCardItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const cardRef = useRef(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Large card interactive state
   const [newItemText, setNewItemText] = useState('');
@@ -86,7 +129,7 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
       setItems(result || []);
     } catch (err) {
       console.error('[TodoCard] Failed to fetch todo items:', err);
-      setError(err.message || 'Failed to fetch items');
+      setError((err as Error).message || 'Failed to fetch items');
     } finally {
       setLoading(false);
     }
@@ -111,7 +154,7 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
     return () => clearInterval(interval);
   }, [conn, todoEntityId, isVisible, fetchItems]);
 
-  const handleToggle = async (e, item) => {
+  const handleToggle = async (e: ReactMouseEvent, item: TodoCardItem) => {
     e.stopPropagation();
     if (!conn || !todoEntityId) return;
     const newStatus = item.status === 'completed' ? 'needs_action' : 'completed';
@@ -127,7 +170,7 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
     }
   };
 
-  const handleDelete = async (e, item) => {
+  const handleDelete = async (e: ReactMouseEvent, item: TodoCardItem) => {
     e.stopPropagation();
     if (!conn || !todoEntityId) return;
     try {
@@ -140,7 +183,7 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
     }
   };
 
-  const handleAdd = async (e) => {
+  const handleAdd = async (e: ReactKeyboardEvent<HTMLInputElement>) => {
     e.stopPropagation();
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -261,7 +304,7 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
       )}
 
       {/* Content */}
-      <div className="hide-scrollbar flex-1 space-y-1 overflow-y-auto p-5 pt-1 [-ms-overflow-style:'none'] [scrollbar-width:'none'] [&::-webkit-scrollbar]:hidden">
+      <div className="hide-scrollbar flex-1 [scrollbar-width:'none'] space-y-1 overflow-y-auto p-5 pt-1 [-ms-overflow-style:'none'] [&::-webkit-scrollbar]:hidden">
         {!todoEntityId ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
             <IconComp className="mb-2 h-8 w-8" />
@@ -381,7 +424,7 @@ const TodoCard = memo(/** @param {any} props */ function TodoCard({
   );
 });
 
-function formatDueDate(due, t) {
+function formatDueDate(due: string, t: Translate) {
   if (!due) return '';
   const date = new Date(due);
   if (Number.isNaN(date.getTime())) return due;
@@ -398,7 +441,7 @@ function formatDueDate(due, t) {
   return isPast ? `⚠ ${label}` : label;
 }
 
-export default function TodoCardWithBoundary(props) {
+export default function TodoCardWithBoundary(props: TodoCardProps) {
   return (
     <TodoErrorBoundary t={props.t}>
       <TodoCard {...props} />

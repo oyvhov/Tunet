@@ -27,13 +27,59 @@ import {
   getEffectiveRoomEntityIds,
   getEffectiveUnitMode,
 } from '../../utils';
+import type { MouseEvent } from 'react';
+import type { Connection } from 'home-assistant-js-websocket';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { CardCallService } from '../../types/cards';
+import type { RoomEntitySettings } from '../../utils/roomEntities';
+
+interface RoomCardSettings extends RoomEntitySettings {
+  areaName?: string;
+  icon?: string;
+  areaIcon?: string;
+  showLights?: boolean;
+  showTemp?: boolean;
+  showMotion?: boolean;
+  showLightChip?: boolean;
+  showMediaChip?: boolean;
+  showActiveChip?: boolean;
+  showVacuumChip?: boolean;
+  showCoverChip?: boolean;
+  showDoorChip?: boolean;
+  showOccupiedIndicator?: boolean;
+  showIconWatermark?: boolean;
+  doorEntityId?: string;
+  mainLightEntityId?: string;
+  climateEntityId?: string;
+  tempEntityId?: string;
+  motionEntityId?: string;
+}
+
+interface RoomCardProps extends Pick<
+  CardBaseProps,
+  | 'cardId'
+  | 'dragProps'
+  | 'controls'
+  | 'cardStyle'
+  | 'editMode'
+  | 'customNames'
+  | 'customIcons'
+  | 'isMobile'
+  | 't'
+> {
+  settings?: RoomCardSettings;
+  entities: EntityMap;
+  conn?: Connection | null;
+  callService: CardCallService;
+  onOpen?: () => void;
+}
 
 /**
  * RoomCard – shows a summary of a Home Assistant area (room).
  * Redesigned with elegant glass styling and animated control switching.
  */
 const RoomCard = memo(
-  /** @param {any} props */ function RoomCard({
+  /** Room summary: temperature, active lights, covers and devices. */ function RoomCard({
     cardId,
     settings,
     entities,
@@ -48,7 +94,7 @@ const RoomCard = memo(
     isMobile,
     onOpen,
     t,
-  }) {
+  }: RoomCardProps) {
     const { unitsMode } = useConfig();
     const { haConfig } = useHomeAssistantMeta();
     const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
@@ -73,8 +119,8 @@ const RoomCard = memo(
     const showDoorChip = settings?.showDoorChip !== false;
     const showOccupiedIndicator = settings?.showOccupiedIndicator !== false;
     const showIconWatermark = settings?.showIconWatermark !== false;
-    const cardRef = useRef(null);
-    const chipContainerRef = useRef(null);
+    const cardRef = useRef<HTMLDivElement>(null);
+    const chipContainerRef = useRef<HTMLDivElement>(null);
     const [cardWidth, setCardWidth] = useState(0);
     const [isSpacious, setIsSpacious] = useState(false);
     const [iconOnlyStatusPills, setIconOnlyStatusPills] = useState(false);
@@ -84,7 +130,7 @@ const RoomCard = memo(
       const element = cardRef.current;
       if (!element || typeof ResizeObserver === 'undefined') return;
 
-      const updateByWidth = (width) => {
+      const updateByWidth = (width: number) => {
         setCardWidth(width);
         setIsSpacious((prev) => {
           if (prev) return width >= 372;
@@ -217,7 +263,7 @@ const RoomCard = memo(
         coverIds
           .map((id) => entities[id])
           .find(
-            (entity) => entity && !['closed', 'unavailable', 'unknown'].includes(entity.state)
+            (entity) => entity && !['closed', 'unavailable', 'unknown'].includes(entity.state ?? '')
           ) || null,
       [coverIds, entities]
     );
@@ -232,13 +278,13 @@ const RoomCard = memo(
       tempEntity?.attributes?.unit_of_measurement ||
       climateEntity?.attributes?.temperature_unit ||
       climateEntity?.attributes?.unit_of_measurement ||
-      /** @type {any} */ (haConfig?.unit_system)?.temperature ||
+      haConfig?.unit_system?.temperature ||
       haConfig?.temperature_unit ||
       '°C';
     const displayTempUnit = getDisplayUnitForKind('temperature', effectiveUnitMode);
     const currentTemp = useMemo(() => {
       if (tempEntity) {
-        const parsed = Number.parseFloat(tempEntity.state);
+        const parsed = Number.parseFloat(tempEntity.state ?? '');
         if (Number.isFinite(parsed)) return parsed;
       }
 
@@ -349,7 +395,7 @@ const RoomCard = memo(
         if (domain === 'media_player') return entity.state === 'playing';
         if (domain === 'climate')
           return entity.state && !['off', 'unavailable', 'unknown'].includes(entity.state);
-        if (domain === 'cover') return ['opening', 'open'].includes(entity.state);
+        if (domain === 'cover') return ['opening', 'open'].includes(entity.state ?? '');
         return entity.state === 'on';
       }).length;
     }, [roomEntityIds, entities]);
@@ -372,9 +418,9 @@ const RoomCard = memo(
     useLayoutEffect(() => {
       const container = chipContainerRef.current;
       if (!container) return;
-      const children = Array.from(container.children);
+      const children = Array.from(container.children) as HTMLElement[];
       if (children.length <= 2) return;
-      const rowTops = [];
+      const rowTops: number[] = [];
       children.forEach((child) => {
         const top = child.offsetTop;
         if (!rowTops.some((value) => Math.abs(value - top) <= 1)) {
@@ -401,7 +447,7 @@ const RoomCard = memo(
     ]);
 
     const handleMainLightToggle = useCallback(
-      (e) => {
+      (e: MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         if (!conn || !mainLightId) return;
         const isOn = entities[mainLightId]?.state === 'on';
