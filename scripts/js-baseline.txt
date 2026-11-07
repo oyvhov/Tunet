@@ -1,9 +1,5 @@
 src/App.jsx
 src/components/camera/CameraFeed.jsx
-src/components/cards/AlarmCard.jsx
-src/components/cards/GenericClimateCard.jsx
-src/components/cards/MowerCard.jsx
-src/components/cards/VacuumCard.jsx
 src/components/index.js
 src/components/pages/BatteryPage.jsx
 src/components/pages/LightsPage.jsx
