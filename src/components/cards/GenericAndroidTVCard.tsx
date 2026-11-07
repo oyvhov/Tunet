@@ -1,9 +1,19 @@
 import { memo, useEffect, useState } from 'react';
 import { Tv, Play, Pause, Power, RefreshCw } from '../../icons';
 import { getMediaLogoUrl } from '../../utils/mediaLogos';
+import type { MouseEvent } from 'react';
+import type { MediaCardCommonProps } from './MediaCards';
+
+interface GenericAndroidTVCardProps extends MediaCardCommonProps {
+  mediaPlayerId: string;
+  remoteId?: string;
+  linkedMediaPlayers?: unknown;
+  size?: string;
+  onOpen?: () => void;
+}
 
 const GenericAndroidTVCard = memo(
-  /** @param {any} props */ function GenericAndroidTVCard({
+  /** Android TV card: what is playing, app logo, play/pause and power. */ function GenericAndroidTVCard({
     cardId,
     dragProps,
     controls,
@@ -21,7 +31,7 @@ const GenericAndroidTVCard = memo(
     isMobile,
     t,
     callService,
-  }) {
+  }: GenericAndroidTVCardProps) {
     const [waking, setWaking] = useState(false);
     const powerState = entities[mediaPlayerId]?.state;
     useEffect(() => {
@@ -73,7 +83,7 @@ const GenericAndroidTVCard = memo(
     // Small Subtitle: Series Title if Series, or empty. NO app name.
 
     let appName = getA(displayEntityId, 'app_name');
-    let title = getA(displayEntityId, 'media_title');
+    const title = getA(displayEntityId, 'media_title');
 
     if (linkedActive) {
       const seriesTitle = getA(displayEntityId, 'media_series_title');
@@ -103,7 +113,7 @@ const GenericAndroidTVCard = memo(
     const isSmall = size === 'small';
     const isDenseMobile = isMobile && !isSmall;
 
-    const getAppLogo = (app) => {
+    const getAppLogo = (app: string | null | undefined) => {
       // Detect linked player app from display entity attributes
       if (linkedActive) {
         const appId = displayEntity?.attributes?.app_id?.toLowerCase() || '';
@@ -120,7 +130,7 @@ const GenericAndroidTVCard = memo(
 
     if (!isOn && !linkedActive && !isSmall) {
       const canTurnOn = !isUnavailable && typeof callService === 'function';
-      const turnOn = (e) => {
+      const turnOn = (e: MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         if (editMode || !canTurnOn || waking) return;
         setWaking(true);
@@ -355,7 +365,7 @@ const GenericAndroidTVCard = memo(
                 className={`flex h-full w-full items-center justify-center ${!linkedActive ? 'p-0' : isDenseMobile ? 'p-8' : 'p-12'}`}
               >
                 <img
-                  src={appLogo}
+                  src={appLogo ?? undefined}
                   alt={appName}
                   className={`h-full w-full ${!linkedActive ? 'object-cover opacity-60' : 'object-contain opacity-50'}`}
                 />
