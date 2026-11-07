@@ -1,8 +1,29 @@
 import { useEffect, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { AlertTriangle, Battery, Sprout, Home, MapPin, Pause, Play } from '../../icons';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { Translate } from '../../types/ha';
+import type { CardCallService, GetEntityAttribute } from '../../types/cards';
+import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 
-function getMowerStateLabel(state, battery, t) {
+interface MowerCardProps extends Pick<
+  CardBaseProps,
+  'dragProps' | 'controls' | 'cardStyle' | 'isMobile' | 't'
+> {
+  mowerId: string;
+  entityId?: string | null;
+  entities: EntityMap;
+  editMode?: boolean;
+  cardSettings: CardSettingsMap;
+  settingsKey: string;
+  customNames: Record<string, string>;
+  customIcons: Record<string, string>;
+  getA: GetEntityAttribute;
+  callService: CardCallService;
+  onOpen?: () => void;
+}
+
+function getMowerStateLabel(state: string | undefined, battery: unknown, t: Translate) {
   const normalized = String(state || '').toLowerCase();
   if (!normalized) return t('mower.unknown');
 
@@ -45,15 +66,15 @@ const MowerCard = ({
   onOpen,
   isMobile,
   t,
-}) => {
-  const cardRef = useRef(null);
+}: MowerCardProps) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isNarrowSmallCard, setIsNarrowSmallCard] = useState(false);
 
   useEffect(() => {
     const element = cardRef.current;
     if (!element || typeof ResizeObserver === 'undefined') return;
 
-    const updateWidth = (width) => {
+    const updateWidth = (width: number) => {
       setIsNarrowSmallCard((prev) => {
         if (prev) return width < 296;
         return width < 276;

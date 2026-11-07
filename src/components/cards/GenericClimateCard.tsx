@@ -1,12 +1,39 @@
 import { memo } from 'react';
+import type { MouseEvent } from 'react';
 import { Minus, Plus, AirVent, Fan, RefreshCw, getIconComponent } from '../../icons';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import { formatKindValueForDisplay, getEffectiveUnitMode } from '../../utils';
 import { usePowerToggle } from '../../hooks/usePowerToggle';
 import { resolveSensorCardActionCall } from '../../utils/sensorCardConfig';
 import { getClimateStatus } from '../../utils/climateStatus';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { Translate } from '../../types/ha';
+import type { CardCallService } from '../../types/cards';
+import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 
-const normalizeFanModeToken = (value) => {
+// getClimateStatus needs a string state and a non-weak attributes type.
+type ClimateEntity = EntityMap[string] & {
+  state: string;
+  attributes?: { hvac_action?: unknown };
+};
+
+interface GenericClimateCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 'isMobile'
+> {
+  entityId?: string | null;
+  entity?: ClimateEntity | null;
+  editMode?: boolean;
+  customNames: Record<string, string>;
+  customIcons: Record<string, string>;
+  onOpen?: () => void;
+  onSetTemperature: (temperature: number) => unknown;
+  settings?: CardSettingsEntry | null;
+  t?: Translate;
+  callService?: CardCallService;
+}
+
+const normalizeFanModeToken = (value: unknown) => {
   if (typeof value !== 'string') return '';
   return value
     .trim()
@@ -14,12 +41,12 @@ const normalizeFanModeToken = (value) => {
     .replace(/[^a-z0-9]/g, '');
 };
 
-const isAutoFanMode = (value) => {
+const isAutoFanMode = (value: unknown) => {
   const normalized = normalizeFanModeToken(value);
   return normalized === 'auto' || normalized === 'automatic';
 };
 
-const getFanSpeedLevel = (fanMode, fanModes) => {
+const getFanSpeedLevel = (fanMode: unknown, fanModes: unknown) => {
   if (!Array.isArray(fanModes) || fanModes.length === 0) return 0;
   if (isAutoFanMode(fanMode)) return 0;
 
@@ -37,7 +64,7 @@ const getFanSpeedLevel = (fanMode, fanModes) => {
 };
 
 const GenericClimateCard = memo(
-  /** @param {any} props */ function GenericClimateCard({
+  /** Climate entity with current and target temperature and step controls. */ function GenericClimateCard({
     cardId,
     entityId,
     entity,
@@ -53,7 +80,7 @@ const GenericClimateCard = memo(
     settings,
     t,
     callService,
-  }) {
+  }: GenericClimateCardProps) {
     const { unitsMode } = useConfig();
     const { haConfig } = useHomeAssistantMeta();
     const isUnavailable = !entity || ['unavailable', 'unknown'].includes(entity.state);
@@ -65,10 +92,11 @@ const GenericClimateCard = memo(
       callService,
       buildCall: () => {
         try {
+          // resolveSensorCardActionCall throws unless entityId (and so domain) is non-empty.
           return resolveSensorCardActionCall(
             { type: isOn ? 'turn_off' : 'turn_on', entityId },
             entity
-          );
+          ) as { domain: string; service: string; data: Record<string, unknown> } | null;
         } catch {
           return null;
         }
@@ -81,9 +109,7 @@ const GenericClimateCard = memo(
     const currentTemp = entity.attributes?.current_temperature ?? '--';
     const targetTemp = entity.attributes?.temperature ?? '--';
     const sourceTempUnit =
-      /** @type {any} */ (haConfig?.unit_system)?.temperature ||
-      entity.attributes?.temperature_unit ||
-      '°C';
+      haConfig?.unit_system?.temperature || entity.attributes?.temperature_unit || '°C';
     const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
     const displayCurrentTemp = formatKindValueForDisplay(currentTemp, {
       kind: 'temperature',
@@ -106,7 +132,7 @@ const GenericClimateCard = memo(
     const climateIconName = customIcons[cardId] || entity?.attributes?.icon;
     const Icon = climateIconName ? getIconComponent(climateIconName) : null;
 
-    const translate = t || ((key) => key);
+    const translate: Translate = t || ((key) => key);
     const { isCooling, isHeating, translationKey } = getClimateStatus(entity);
     const clTheme = isOn ? (isCooling ? 'blue' : isHeating ? 'orange' : 'gray') : 'gray';
     const DisplayIcon = Icon || AirVent;
@@ -138,13 +164,13 @@ const GenericClimateCard = memo(
           : 'bg-[var(--glass-bg)] text-[var(--text-muted)]';
     const isTapToggle = settings?.tapAction === 'toggle';
 
-    const handleTogglePower = (e) => {
+    const handleTogglePower = (e?: MouseEvent) => {
       if (e) e.stopPropagation();
       if (editMode || isUnavailable) return;
       togglePower();
     };
 
-    const stepTemp = (delta) => onSetTemperature((targetTemp || 21) + delta);
+    const stepTemp = (delta: number) => onSetTemperature((targetTemp || 21) + delta);
 
     if (isSmall) {
       return (

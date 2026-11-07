@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import type { CSSProperties, MouseEvent } from 'react';
 import {
   AlertTriangle,
   Home,
@@ -12,6 +13,40 @@ import {
 } from '../../icons';
 import { Icon as MdiIcon } from '@mdi/react';
 import { mdiShieldHome, mdiShieldLock, mdiShieldOff } from '@mdi/js';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import type { Translate } from '../../types/ha';
+import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
+import type { IconComponent } from '../../icons/iconMap';
+
+type AlarmEntity = EntityMap[string];
+
+interface AlarmAction {
+  key: string;
+  feature?: number;
+  labelKey: string;
+  icon: IconComponent;
+}
+
+interface AlarmStateVisual {
+  mdiPath?: string;
+  Icon?: IconComponent;
+  iconColor: string;
+  iconBgStyle: CSSProperties;
+}
+
+interface AlarmCardProps extends Pick<
+  CardBaseProps,
+  'cardId' | 'dragProps' | 'controls' | 'cardStyle' | 'isMobile' | 'customNames' | 'customIcons'
+> {
+  entityId?: string | null;
+  entity?: AlarmEntity | null;
+  settings?: CardSettingsEntry | null;
+  editMode?: boolean;
+  onOpen?: () => void;
+  onOpenAction?: (actionKey: string) => void;
+  onAction: (actionKey: string) => unknown;
+  t?: Translate;
+}
 
 const FEATURE_ARM_HOME = 1;
 const FEATURE_ARM_AWAY = 2;
@@ -19,9 +54,9 @@ const FEATURE_ARM_NIGHT = 4;
 const FEATURE_ARM_CUSTOM_BYPASS = 16;
 const FEATURE_ARM_VACATION = 32;
 
-const TRANSITION_STATES = new Set(['arming', 'pending', 'disarming']);
+const TRANSITION_STATES = new Set<string | undefined>(['arming', 'pending', 'disarming']);
 
-const ACTIONS = [
+const ACTIONS: AlarmAction[] = [
   { key: 'arm_home', feature: FEATURE_ARM_HOME, labelKey: 'alarm.action.armHome', icon: Home },
   { key: 'arm_away', feature: FEATURE_ARM_AWAY, labelKey: 'alarm.action.armAway', icon: LogOut },
   { key: 'arm_night', feature: FEATURE_ARM_NIGHT, labelKey: 'alarm.action.armNight', icon: Moon },
@@ -39,26 +74,26 @@ const ACTIONS = [
   },
 ];
 
-const DISARM_ACTION = { key: 'disarm', labelKey: 'alarm.action.disarm', icon: Unlock };
+const DISARM_ACTION: AlarmAction = { key: 'disarm', labelKey: 'alarm.action.disarm', icon: Unlock };
 
-function getStateLabel(state, t) {
+function getStateLabel(state: string | undefined, t: Translate) {
   const key = `alarm.state.${state}`;
   const translated = t(key);
   if (translated !== key) return translated;
   return state || t('common.unknown');
 }
 
-function getAvailableArmActions(entity) {
+function getAvailableArmActions(entity: AlarmEntity) {
   const supportedFeatures = Number(entity?.attributes?.supported_features || 0);
-  return ACTIONS.filter((action) => (supportedFeatures & action.feature) !== 0);
+  return ACTIONS.filter((action) => (supportedFeatures & (action.feature ?? 0)) !== 0);
 }
 
-function requiresCode(actionKey, entity) {
+function requiresCode(actionKey: string, entity: AlarmEntity) {
   const codeFormat = entity?.attributes?.code_format || 'none';
   const hasCode = codeFormat !== 'none';
   if (!hasCode) return false;
 
-  const parseBooleanLike = (value) => {
+  const parseBooleanLike = (value: unknown) => {
     if (typeof value === 'boolean') return value;
     if (typeof value === 'number') return value !== 0;
     if (typeof value === 'string') {
@@ -93,12 +128,12 @@ function requiresCode(actionKey, entity) {
   return false;
 }
 
-function isUnsupportedCodeFormat(entity) {
+function isUnsupportedCodeFormat(entity: AlarmEntity) {
   const codeFormat = entity?.attributes?.code_format || 'none';
   return codeFormat !== 'none' && codeFormat !== 'number';
 }
 
-function getStateVisual(state) {
+function getStateVisual(state: string | undefined): AlarmStateVisual {
   if (state === 'disarmed') {
     return {
       mdiPath: mdiShieldOff,
@@ -145,7 +180,7 @@ function getStateVisual(state) {
   };
 }
 
-const AlarmCard = memo(/** @param {any} props */ function AlarmCard({
+const AlarmCard = memo(function AlarmCard({
   cardId,
   entityId,
   entity,
@@ -160,10 +195,10 @@ const AlarmCard = memo(/** @param {any} props */ function AlarmCard({
   onOpenAction,
   onAction,
   t,
-}) {
+}: AlarmCardProps) {
   if (!entity || !entityId) return null;
 
-  const translate = t || ((key) => key);
+  const translate: Translate = t || ((key) => key);
   const state = entity.state;
   const isUnavailable = state === 'unavailable' || state === 'unknown';
   const isTriggered = state === 'triggered';
@@ -178,7 +213,7 @@ const AlarmCard = memo(/** @param {any} props */ function AlarmCard({
 
   const name = customNames?.[cardId] || entity.attributes?.friendly_name || entityId;
 
-  const quickActions = [];
+  const quickActions: AlarmAction[] = [];
   if (!inTransition && !isUnavailable) {
     if (isDisarmed) {
       quickActions.push(...availableArmActions.slice(0, isSmall ? 1 : 2));
@@ -189,7 +224,7 @@ const AlarmCard = memo(/** @param {any} props */ function AlarmCard({
 
   const primaryAction = quickActions[0] || null;
 
-  const runQuickAction = async (event, actionKey) => {
+  const runQuickAction = async (event: MouseEvent, actionKey: string) => {
     event.stopPropagation();
     if (editMode || isUnavailable || inTransition) return;
     const mustOpenModal = unsupportedCode || requiresCode(actionKey, entity);
@@ -305,32 +340,44 @@ const AlarmCard = memo(/** @param {any} props */ function AlarmCard({
           </div>
         </div>
 
-        <div className={`rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] font-bold tracking-widest text-[var(--text-secondary)] uppercase ${isDenseMobile ? 'px-2 py-1 text-[9px]' : 'px-2 py-1 text-[10px]'}`}>
+        <div
+          className={`rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] font-bold tracking-widest text-[var(--text-secondary)] uppercase ${isDenseMobile ? 'px-2 py-1 text-[9px]' : 'px-2 py-1 text-[10px]'}`}
+        >
           {translate('alarm.title')}
         </div>
       </div>
 
       <div className={isDenseMobile ? 'space-y-1.5' : 'space-y-2'}>
         <div className="flex items-baseline gap-1 leading-none">
-          <span className={`truncate leading-none font-thin text-[var(--text-primary)] ${isDenseMobile ? 'text-[1.55rem]' : 'text-3xl'}`}>
+          <span
+            className={`truncate leading-none font-thin text-[var(--text-primary)] ${isDenseMobile ? 'text-[1.55rem]' : 'text-3xl'}`}
+          >
             {getStateLabel(state, translate)}
           </span>
         </div>
-        <p className={`truncate leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60 ${isDenseMobile ? 'text-[9px]' : 'text-[10px]'}`}>
+        <p
+          className={`truncate leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60 ${isDenseMobile ? 'text-[9px]' : 'text-[10px]'}`}
+        >
           {name}
         </p>
         {entity.attributes?.changed_by && (
-          <p className={`truncate text-[var(--text-secondary)] ${isDenseMobile ? 'text-[10px]' : 'text-[11px]'}`}>
+          <p
+            className={`truncate text-[var(--text-secondary)] ${isDenseMobile ? 'text-[10px]' : 'text-[11px]'}`}
+          >
             {translate('alarm.changedBy')}: {entity.attributes.changed_by}
           </p>
         )}
         {unsupportedCode && (
-          <p className={`${isDenseMobile ? 'text-[10px]' : 'text-[11px]'} text-[var(--text-secondary)]`}>
+          <p
+            className={`${isDenseMobile ? 'text-[10px]' : 'text-[11px]'} text-[var(--text-secondary)]`}
+          >
             {translate('alarm.code.numberOnlyHint')}
           </p>
         )}
         {isTriggered && (
-          <div className={`flex items-center text-[var(--text-primary)] ${isDenseMobile ? 'gap-1.5 text-[10px]' : 'gap-2 text-[11px]'}`}>
+          <div
+            className={`flex items-center text-[var(--text-primary)] ${isDenseMobile ? 'gap-1.5 text-[10px]' : 'gap-2 text-[11px]'}`}
+          >
             <AlertTriangle className={isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
             <span className="font-bold tracking-wider uppercase">{translate('status.alert')}</span>
           </div>
@@ -346,7 +393,9 @@ const AlarmCard = memo(/** @param {any} props */ function AlarmCard({
             className={`flex-1 bg-[var(--glass-bg)] font-bold tracking-wider text-[var(--text-primary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] disabled:opacity-50 ${isDenseMobile ? 'h-10 rounded-xl px-2 text-[10px]' : 'h-12 rounded-2xl px-3 text-[11px]'}`}
             disabled={isUnavailable || inTransition}
           >
-            <span className={`flex items-center justify-center ${isDenseMobile ? 'gap-1' : 'gap-1.5'}`}>
+            <span
+              className={`flex items-center justify-center ${isDenseMobile ? 'gap-1' : 'gap-1.5'}`}
+            >
               <action.icon className={isDenseMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
               {translate(action.labelKey)}
             </span>
