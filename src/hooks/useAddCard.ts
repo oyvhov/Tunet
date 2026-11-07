@@ -217,7 +217,16 @@ export function useAddCard({
   }, 0);
 
   // ── Submit handler ─────────────────────────────────────────────────────
-  const onAddSelected = (options: { spacerVariant?: string } = {}) => {
+  const onAddSelected = (
+    options: {
+      spacerVariant?: string;
+      // Room cards picked alongside other types, added to the same working copy.
+      addRooms?: (
+        config: PagesConfig,
+        settings: CardSettingsMap
+      ) => { config: PagesConfig; settings: CardSettingsMap } | null;
+    } = {}
+  ) => {
     const context = {
       pagesConfig,
       persistConfig,
@@ -258,7 +267,7 @@ export function useAddCard({
       setEditCardSettingsKey,
     };
 
-    if (pendingAddTypes.length <= 1) {
+    if (pendingAddTypes.length <= 1 && !options.addRooms) {
       const type = pendingAddTypes[0] ?? addCardType;
       handleAddSelected({
         ...context,
@@ -311,6 +320,12 @@ export function useAddCard({
         },
       });
     });
+
+    const rooms = options.addRooms?.(workingConfig, workingSettings);
+    if (rooms) {
+      workingConfig = rooms.config;
+      workingSettings = rooms.settings;
+    }
 
     if (workingSettings !== cardSettings) persistCardSettings(workingSettings);
     if (workingConfig !== pagesConfig) persistConfig(workingConfig);

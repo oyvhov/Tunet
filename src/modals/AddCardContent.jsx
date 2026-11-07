@@ -878,20 +878,21 @@ function AddCardContent({
     );
   };
 
-  const isRoomType = addCardType === 'room';
-  const addCount = isRoomType ? selectedRoomAreas.length : pendingAddCount;
+  const addCount = selectedRoomAreas.length + pendingAddCount;
   const addLabel =
     addCount > 1 ? `${t('addCard.add')} ${addCount} ${t('addCard.cards')}` : t('addCard.add');
   const handleAdd = () => {
-    if (isRoomType) {
+    const hasRooms = selectedRoomAreas.length > 0;
+    if (hasRooms && pendingAddCount === 0) {
       if (onAddRoom) onAddRoom(selectedRoomAreas, selectedRoomEntitiesById);
       return;
     }
-    if (addCardType === 'spacer') {
-      onAddSelected({ spacerVariant: localSpacerVariant });
-      return;
-    }
-    onAddSelected();
+    onAddSelected({
+      ...(addCardType === 'spacer' ? { spacerVariant: localSpacerVariant } : {}),
+      ...(hasRooms
+        ? { rooms: { areas: selectedRoomAreas, areaEntitiesById: selectedRoomEntitiesById } }
+        : {}),
+    });
   };
 
   return (
