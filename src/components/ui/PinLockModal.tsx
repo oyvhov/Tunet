@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import AccessibleModalShell from './AccessibleModalShell';
+import AccessibleModalShell, { hasCoarsePointerOnly } from './AccessibleModalShell';
 import Button from './Button';
 import { ModalBody, ModalHeader } from './ModalParts';
 import type { Translate } from '../../types/ha';
@@ -27,7 +27,8 @@ export default function PinLockModal({
   const digits = useMemo(() => ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'], []);
 
   useEffect(() => {
-    if (!open) return;
+    // Touch devices use the on-screen keypad, so skip the system keyboard.
+    if (!open || hasCoarsePointerOnly()) return;
     const timer = setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();

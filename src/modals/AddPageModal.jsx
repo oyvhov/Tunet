@@ -128,7 +128,6 @@ export default function AddPageModal({
                     value={newPageLabel}
                     onChange={(e) => setNewPageLabel(e.target.value)}
                     placeholder={t('form.exampleName')}
-                    autoFocus
                   />
                 </div>
 

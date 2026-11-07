@@ -36,7 +36,8 @@ function prefersReducedMotion(): boolean {
   );
 }
 
-function hasCoarsePointerOnly(): boolean {
+/** True on touch-only devices, where focusing a text field pops up the keyboard. */
+export function hasCoarsePointerOnly(): boolean {
   return (
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&

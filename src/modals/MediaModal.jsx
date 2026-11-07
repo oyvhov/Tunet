@@ -1580,7 +1580,7 @@ export default function MediaModal({
                         value={effectivePosition || 0}
                         disabled={!duration}
                         onChange={seekTo}
-                        colorClass="bg-[var(--text-primary)]"
+                        colorClass="bg-white"
                       />
                     </div>
                     <span className="w-10 text-[11px] font-medium text-white/80 tabular-nums drop-shadow-md sm:w-12 sm:text-xs">
@@ -1616,7 +1616,7 @@ export default function MediaModal({
                           step={1}
                           value={volume * 100}
                           onChange={setVolume}
-                          colorClass="bg-[var(--text-primary)]"
+                          colorClass="bg-white"
                         />
                       </div>
                     </div>
