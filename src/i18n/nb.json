@@ -97,6 +97,8 @@
   "profiles.updated": "Oppdatert",
   "profiles.autoSyncSection": "Auto-sync (per enhet)",
   "profiles.autoSyncTitle": "Lagre nåværende oppsett automatisk",
+  "profiles.accountLayoutTitle": "Samme oppsett på alle enhetene mine",
+  "profiles.accountLayoutHint": "Bruker ett oppsett for Home Assistant-kontoen din i stedet for ett per nettleser. Når det slås på, lastes kontooppsettet og siden lastes inn på nytt.",
   "profiles.autoSyncDeviceId": "Enhets-ID",
   "profiles.autoSyncStatusLabel": "Status",
   "profiles.autoSyncLastSynced": "Sist synket",

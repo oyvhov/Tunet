@@ -80,6 +80,42 @@ const getOrCreateDeviceId = () => {
   }
 };
 
+// One synced layout per Home Assistant account instead of one per browser.
+export const ACCOUNT_LAYOUT_DEVICE_ID = 'account';
+const ACCOUNT_LAYOUT_KEY = 'tunet_account_layout';
+const ACCOUNT_LAYOUT_ADOPT_KEY = 'tunet_account_layout_adopt';
+// Builds can make the account layout the default with VITE_ACCOUNT_LAYOUT_DEFAULT=true.
+const ACCOUNT_LAYOUT_DEFAULT =
+  (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env
+    ?.VITE_ACCOUNT_LAYOUT_DEFAULT === 'true';
+
+export const readAccountLayoutPreference = () => {
+  try {
+    const raw = localStorage.getItem(ACCOUNT_LAYOUT_KEY);
+    if (raw == null) return ACCOUNT_LAYOUT_DEFAULT;
+    return raw === '1';
+  } catch {
+    return ACCOUNT_LAYOUT_DEFAULT;
+  }
+};
+
+/**
+ * A browser that just switched to the account layout (or uses it by default
+ * without having chosen) takes the server copy once instead of uploading its own.
+ */
+const consumeAccountLayoutAdoption = () => {
+  try {
+    const pending =
+      localStorage.getItem(ACCOUNT_LAYOUT_ADOPT_KEY) === '1' ||
+      localStorage.getItem(ACCOUNT_LAYOUT_KEY) == null;
+    localStorage.removeItem(ACCOUNT_LAYOUT_ADOPT_KEY);
+    localStorage.setItem(ACCOUNT_LAYOUT_KEY, '1');
+    return pending;
+  } catch {
+    return false;
+  }
+};
+
 const clampHistoryKeepLimit = (value: unknown) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 50;
@@ -126,7 +162,8 @@ export function useSettingsSync({
   contextSettersRef,
   autoBootstrap = true,
 }: UseSettingsSyncOptions) {
-  const deviceIdRef = useRef(getOrCreateDeviceId());
+  const [accountLayout] = useState(readAccountLayoutPreference);
+  const deviceIdRef = useRef(accountLayout ? ACCOUNT_LAYOUT_DEVICE_ID : getOrCreateDeviceId());
   const deviceLabelRef = useRef(getStoredDeviceLabel());
   const [enabled, setEnabled] = useState(() => {
     try {
@@ -613,6 +650,8 @@ export function useSettingsSync({
     let disposed = false;
 
     const bootstrap = async () => {
+      const adoptAccountLayout =
+        deviceIdRef.current === ACCOUNT_LAYOUT_DEVICE_ID && consumeAccountLayoutAdoption();
       const row = await readCurrentFromServer();
       if (disposed || conflictRef.current) return;
 
@@ -649,7 +688,7 @@ export function useSettingsSync({
         if (
           localSnapshot &&
           isValidSnapshot(localSnapshot) &&
-          hasDefaultDashboardLayout(localSnapshot)
+          (adoptAccountLayout || hasDefaultDashboardLayout(localSnapshot))
         ) {
           applySnapshot(row.data, contextSettersRef?.current || {});
         }
@@ -886,9 +925,23 @@ export function useSettingsSync({
     [haUserId, refreshKnownDevices]
   );
 
+  const setAccountLayout = useCallback((next: boolean) => {
+    try {
+      localStorage.setItem(ACCOUNT_LAYOUT_KEY, next ? '1' : '0');
+      if (next) localStorage.setItem(ACCOUNT_LAYOUT_ADOPT_KEY, '1');
+      else localStorage.removeItem(ACCOUNT_LAYOUT_ADOPT_KEY);
+    } catch {
+      return;
+    }
+    // The sync identity is fixed for the session, so start over with the new one.
+    globalThis.location?.reload();
+  }, []);
+
   return {
     enabled,
     setEnabled,
+    accountLayout,
+    setAccountLayout,
     status,
     error,
     backgroundSyncSuspended,
