@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.26.0] — 2026-11-07
+
+### Added
+
+- Every popup now shares one design: the same header with icon, title and status, a close button that stays in view, one scrolling area, and segmented controls for choices. Text is no longer italic, and missing translations are filled in for all eight languages (#293–#296).
+- Locks get their own popup with Lock and a confirmed Unlock, a code field and a readable history (#294).
+- Add card can add cards of several types in one go and remembers what you picked for each type (#295).
+- Tunet's own dialogs replace the browser's confirm prompts, for example when deleting a page or overwriting a profile (#295).
+- Light cards can follow the colour of the light (**Use light color** in the card settings), and the light popup now shows the light's true colour, saturation and white temperature (#292).
+
+### Changed
+
+- Popups fade out when closed. Escape closes only the top popup, a drag that ends on the backdrop no longer closes it, and text fields no longer open the on-screen keyboard on touch devices (#293).
+- Times read as "today 14:31" or "yesterday 23:02" instead of "34h 1m ago" (#293).
+- The dashboard cards are now written in TypeScript (#297–#302).
+- Dependency updates, including home-assistant-js-websocket 9.8.1 and lucide-react 1.66 (#284).
+
 ## [1.25.4] — 2026-11-04
 
 ### Fixed
