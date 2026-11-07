@@ -172,10 +172,7 @@ for (const viewport of [
       );
       await expect(climate.getByText('Cool', { exact: true })).toBeVisible();
       await expect(modal.getByText('Cool', { exact: true }).first()).toBeVisible();
-      await expect(modal.getByText('Cool', { exact: true }).first()).toHaveCSS(
-        'color',
-        'rgb(59, 130, 246)'
-      );
+      await expect(modal.locator('.status-chip--accent', { hasText: 'Cool' })).toBeVisible();
       await page.screenshot({
         path: join(tmpdir(), `tunet-289-modal-${testInfo.project.name}-${viewport.width}.png`),
         fullPage: true,

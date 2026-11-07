@@ -73,7 +73,7 @@ describe('LightModal colours follow the light', () => {
 
   it('places hues on the slider track where the colour really is', () => {
     renderLight({ color_mode: 'hs', hs_color: [240, 100], rgb_color: [0, 0, 255] });
-    fireEvent.click(screen.getByRole('button', { name: 'light.color' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'light.color' }));
     const track = screen.getByRole('slider', { name: 'light.hue' })
       .nextElementSibling as HTMLElement;
     const stops = [...track.style.background.matchAll(/rgb\((\d+), (\d+), (\d+)\) ([\d.]+)%/g)];
@@ -97,7 +97,7 @@ describe('LightModal colours follow the light', () => {
 
   it('shows pastel colours with their saturation', () => {
     renderLight({ color_mode: 'hs', hs_color: [240, 40], rgb_color: [153, 153, 255] });
-    fireEvent.click(screen.getByRole('button', { name: 'light.color' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'light.color' }));
     // HA hs_color is HSV with full value: hsv(240, 40%, 100%) = hsl(240, 100%, 80%).
     expect(hueDot()).toHaveStyle({ backgroundColor: 'hsl(240, 100%, 80%)' });
   });
@@ -109,7 +109,7 @@ describe('LightModal colours follow the light', () => {
       rgb_color: [0, 0, 255],
       color_temp_kelvin: null,
     });
-    fireEvent.click(screen.getByRole('button', { name: 'light.warmth' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'light.warmth' }));
     expect(glow()).toHaveStyle({ backgroundColor: 'rgb(0, 0, 255)' });
     expect(screen.getByTestId('light-modal-icon').getAttribute('style')).toContain(
       'rgb(0, 0, 255)'
@@ -123,12 +123,12 @@ describe('LightModal colours follow the light', () => {
       rgb_color: [255, 206, 166],
     };
     const { rerender } = renderLight({ ...attributes, hs_color: [27, 20] });
-    fireEvent.click(screen.getByRole('button', { name: 'light.warmth' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'light.warmth' }));
     const warmth = screen.getByRole('slider', { name: 'light.colorTemperature' });
     fireEvent.pointerDown(warmth);
     rerender(lightModal({ ...attributes, hs_color: [27, 60] }));
     fireEvent.pointerUp(warmth);
-    fireEvent.click(screen.getByRole('button', { name: 'light.color' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'light.color' }));
     expect(hueDot()).toHaveStyle({ backgroundColor: 'hsl(27, 100%, 70%)' });
   });
 });

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Plus, Circle, CheckCircle2, Trash2, ListChecks, AlertCircle } from 'lucide-react';
+import { Plus, Circle, CheckCircle2, Trash2, ListChecks, AlertCircle } from 'lucide-react';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../services/haClient';
 import { logger } from '../utils/logger';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
+import Button from '../components/ui/Button';
 
 /**
  * TodoModal - Full-screen modal for managing a todo list from Home Assistant.
@@ -126,204 +128,195 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
       open={show}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-start justify-center p-6 pt-12 md:pt-16"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-3xl border p-5 font-sans shadow-2xl backdrop-blur-xl md:rounded-[2.5rem] md:p-8"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size="m"
+      placement="top"
     >
       {() => (
         <>
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="modal-close absolute top-4 right-4 md:top-6 md:right-6"
-          aria-label={translate('common.close')}
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        {error && (
-          <div className="absolute top-4 left-1/2 z-50 -translate-x-1/2 rounded-full border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-4 py-2 text-xs font-bold text-[var(--status-error-fg)] shadow-lg">
-            {error}
-          </div>
-        )}
-
-        {/* Header */}
-        <div className="mb-2 flex items-center gap-3">
-          <div className="rounded-xl bg-[var(--status-success-bg)] p-2 text-[var(--status-success-fg)]">
-            <ListChecks className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3
-              id={modalTitleId}
-              className="truncate pr-1 text-xl font-light tracking-widest text-[var(--text-primary)] uppercase italic"
-            >
-              {entityName || translate('todo.title') || 'To-do'}
-            </h3>
-          </div>
-        </div>
-
-        {/* Progress */}
-        {totalCount > 0 && (
-          <div className="mb-4">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                {completedCount}/{totalCount} {translate('todo.completed') || 'completed'}
-              </span>
-              <span className="text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase">
-                {totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0}%
-              </span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--glass-bg)]">
-              <div
-                className="h-full rounded-full bg-[var(--status-success-fg)]/70 transition-all duration-500"
-                style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Add item */}
-        <div className="mb-4 flex gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={newItemText}
-            onChange={(e) => setNewItemText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={translate('todo.addPlaceholder') || 'Add a new item...'}
-            disabled={!todoEntityId || adding}
-            className="flex-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--status-success-border)] disabled:opacity-50"
+          <ModalHeader
+            title={entityName || translate('todo.title') || 'To-do'}
+            closeLabel={translate('common.close')}
+            onClose={onClose}
+            icon={<ListChecks />}
+            iconClassName="bg-[var(--status-success-bg)] text-[var(--status-success-fg)]"
           />
-          <button
-            onClick={handleAdd}
-            disabled={!newItemText.trim() || adding}
-            className="flex-shrink-0 rounded-2xl border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3 font-bold text-[var(--status-success-fg)] transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-        </div>
 
-        {/* Item list */}
-        <div className="custom-scrollbar flex-1 space-y-1 overflow-y-auto pr-1">
-          {!todoEntityId ? (
-            <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)] opacity-60">
-              <AlertCircle className="mb-2 h-8 w-8" />
-              <p className="text-xs font-bold tracking-widest uppercase">
-                {translate('todo.noListSelected') || 'No list selected'}
-              </p>
-            </div>
-          ) : loading && items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)]">
-              <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--status-success-fg)]" />
-              <p className="text-xs font-bold tracking-widest uppercase">
-                {translate('common.loading') || 'Loading...'}
-              </p>
-            </div>
-          ) : pendingItems.length === 0 && completedItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)] opacity-60">
-              <CheckCircle2 className="mb-3 h-10 w-10 text-[var(--status-success-fg)]" />
-              <p className="text-sm font-medium">{translate('todo.allDone') || 'All done!'}</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                {translate('todo.addHint') || 'Add a new item above'}
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Pending items */}
-              {pendingItems.map((item, idx) => (
-                <div
-                  key={item.uid || `pending-${idx}`}
-                  className="group flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-[var(--glass-bg)]"
-                >
-                  <button
-                    onClick={() => handleToggle(item)}
-                    className="mt-0.5 flex-shrink-0 text-[var(--text-secondary)] opacity-40 transition-colors hover:text-[var(--status-success-fg)] hover:opacity-100"
-                    title={translate('todo.markDone') || 'Mark as done'}
-                  >
-                    <Circle className="h-5 w-5" />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-snug text-[var(--text-primary)]">
-                      {item.summary}
-                    </p>
-                    {item.description && (
-                      <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-muted)]">
-                        {item.description}
-                      </p>
-                    )}
-                    {item.due && (
-                      <p className="mt-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-                        {formatDueDate(item.due, translate)}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleDelete(item)}
-                    className="mt-0.5 flex-shrink-0 text-transparent transition-colors group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)]"
-                    title={translate('todo.delete') || 'Delete'}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
+          <ModalBody className="flex flex-col gap-4">
+            {error && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-4 py-2 text-xs font-bold text-[var(--status-error-fg)]"
+              >
+                {error}
+              </div>
+            )}
 
-              {/* Completed section */}
-              {completedItems.length > 0 && (
-                <div className="mt-2 border-t border-[var(--glass-border)] pt-3">
-                  <button
-                    onClick={() => setShowCompleted((prev) => !prev)}
-                    className="flex w-full items-center justify-between px-3 py-2 text-[10px] font-bold tracking-widest text-[var(--status-success-fg)]/60 uppercase transition-colors hover:text-[var(--status-success-fg)]"
-                  >
-                    <span>
-                      {translate('todo.completed') || 'Completed'} ({completedCount})
-                    </span>
-                    <span>{showCompleted ? '▾' : '▸'}</span>
-                  </button>
-                  {showCompleted &&
-                    completedItems.map((item, idx) => (
+            {!todoEntityId ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+                <AlertCircle className="h-8 w-8 text-[var(--text-muted)]" />
+                <p className="text-base font-medium text-[var(--text-primary)]">
+                  {translate('todo.noListSelected') || 'No list selected'}
+                </p>
+                <p className="max-w-xs text-sm text-[var(--text-secondary)]">
+                  {translate('todo.noListSelectedHint')}
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Progress */}
+                {totalCount > 0 && (
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="modal-section-label">
+                        {completedCount}/{totalCount} {translate('todo.completed') || 'completed'}
+                      </span>
+                      <span className="text-[11px] font-bold tracking-[0.12em] text-[var(--status-success-fg)] uppercase tabular-nums">
+                        {totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--glass-bg)]">
                       <div
-                        key={item.uid || `completed-${idx}`}
-                        className="group flex items-start gap-3 rounded-xl px-3 py-2.5 opacity-50 transition-colors hover:bg-[var(--glass-bg)] hover:opacity-70"
-                      >
-                        <button
-                          onClick={() => handleToggle(item)}
-                          className="mt-0.5 flex-shrink-0 text-[var(--status-success-fg)] transition-colors"
-                          title={translate('todo.markUndone') || 'Mark as not done'}
-                        >
-                          <CheckCircle2 className="h-5 w-5" />
-                        </button>
-                        <p className="line-clamp-1 min-w-0 flex-1 text-sm leading-snug text-[var(--text-primary)] line-through">
-                          {item.summary}
-                        </p>
-                        <button
-                          onClick={() => handleDelete(item)}
-                          className="mt-0.5 flex-shrink-0 text-transparent transition-colors group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)]"
-                          title={translate('todo.delete') || 'Delete'}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                        className="h-full rounded-full bg-[var(--status-success-fg)]/70 transition-all duration-500"
+                        style={{
+                          width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
 
-        {/* Footer */}
-        <div className="mt-4 border-t border-[var(--glass-border)] pt-4">
-          <button
-            onClick={onClose}
-            className="popup-surface popup-surface-hover w-full rounded-2xl py-3 font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors"
-          >
-            {translate('common.ok') || 'OK'}
-          </button>
-        </div>
+                {/* Add item */}
+                <div className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={newItemText}
+                    onChange={(e) => setNewItemText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={translate('todo.addPlaceholder') || 'Add a new item...'}
+                    aria-label={translate('todo.addPlaceholder') || 'Add a new item...'}
+                    disabled={adding}
+                    className="min-w-0 flex-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-3 text-sm text-[var(--text-primary)] transition-colors outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-color)] disabled:opacity-50"
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={handleAdd}
+                    disabled={!newItemText.trim() || adding}
+                    aria-label={translate('common.add')}
+                    icon={<Plus />}
+                    className="flex-shrink-0"
+                  />
+                </div>
+
+                {/* Item list */}
+                <div className="space-y-1">
+                  {loading && items.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)]">
+                      <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--status-success-fg)]" />
+                      <p className="text-xs font-bold tracking-widest uppercase">
+                        {translate('common.loading') || 'Loading...'}
+                      </p>
+                    </div>
+                  ) : pendingItems.length === 0 && completedItems.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-[var(--text-secondary)] opacity-60">
+                      <CheckCircle2 className="mb-3 h-10 w-10 text-[var(--status-success-fg)]" />
+                      <p className="text-sm font-medium">
+                        {translate('todo.allDone') || 'All done!'}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">
+                        {translate('todo.addHint') || 'Add a new item above'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Pending items */}
+                      {pendingItems.map((item, idx) => (
+                        <div
+                          key={item.uid || `pending-${idx}`}
+                          className="group flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-[var(--glass-bg)]"
+                        >
+                          <button
+                            onClick={() => handleToggle(item)}
+                            className="mt-0.5 flex-shrink-0 text-[var(--text-secondary)] opacity-40 transition-colors hover:text-[var(--status-success-fg)] hover:opacity-100"
+                            title={translate('todo.markDone') || 'Mark as done'}
+                            aria-label={translate('todo.markDone') || 'Mark as done'}
+                          >
+                            <Circle className="h-5 w-5" />
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm leading-snug text-[var(--text-primary)]">
+                              {item.summary}
+                            </p>
+                            {item.description && (
+                              <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-muted)]">
+                                {item.description}
+                              </p>
+                            )}
+                            {item.due && (
+                              <p className="mt-1 text-[11px] font-bold tracking-[0.08em] text-[var(--text-secondary)] uppercase opacity-60">
+                                {formatDueDate(item.due, translate)}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="mt-0.5 flex-shrink-0 text-transparent transition-colors group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)] focus-visible:text-[var(--status-error-fg)]"
+                            title={translate('todo.delete') || 'Delete'}
+                            aria-label={translate('todo.delete') || 'Delete'}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Completed section */}
+                      {completedItems.length > 0 && (
+                        <div className="mt-2 border-t border-[var(--glass-border)] pt-3">
+                          <button
+                            onClick={() => setShowCompleted((prev) => !prev)}
+                            aria-expanded={showCompleted}
+                            className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-bold tracking-[0.12em] text-[var(--text-muted)] uppercase transition-colors hover:text-[var(--text-primary)]"
+                          >
+                            <span>
+                              {translate('todo.completed') || 'Completed'} ({completedCount})
+                            </span>
+                            <span aria-hidden="true">{showCompleted ? '▾' : '▸'}</span>
+                          </button>
+                          {showCompleted &&
+                            completedItems.map((item, idx) => (
+                              <div
+                                key={item.uid || `completed-${idx}`}
+                                className="group flex items-start gap-3 rounded-xl px-3 py-2.5 opacity-50 transition-colors hover:bg-[var(--glass-bg)] hover:opacity-70"
+                              >
+                                <button
+                                  onClick={() => handleToggle(item)}
+                                  className="mt-0.5 flex-shrink-0 text-[var(--status-success-fg)] transition-colors"
+                                  title={translate('todo.markUndone') || 'Mark as not done'}
+                                  aria-label={translate('todo.markUndone') || 'Mark as not done'}
+                                >
+                                  <CheckCircle2 className="h-5 w-5" />
+                                </button>
+                                <p className="line-clamp-1 min-w-0 flex-1 text-sm leading-snug text-[var(--text-primary)] line-through">
+                                  {item.summary}
+                                </p>
+                                <button
+                                  onClick={() => handleDelete(item)}
+                                  className="mt-0.5 flex-shrink-0 text-transparent transition-colors group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)] focus-visible:text-[var(--status-error-fg)]"
+                                  title={translate('todo.delete') || 'Delete'}
+                                  aria-label={translate('todo.delete') || 'Delete'}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>

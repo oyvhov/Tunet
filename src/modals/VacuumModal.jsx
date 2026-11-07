@@ -1,7 +1,6 @@
 import { useMemo, useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  X,
   Bot,
   MapPin,
   Battery,
@@ -32,6 +31,9 @@ import {
 import ModernDropdown from '../components/ui/ModernDropdown';
 import { getRelatedEntityIds } from '../services/haClient';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import Button from '../components/ui/Button';
+import Segmented from '../components/ui/Segmented';
 
 const getRoomIcon = (roomName) => {
   const name = String(roomName || '').toLowerCase();
@@ -210,6 +212,45 @@ function getVacuumStateLabel(state, battery, t) {
   if (normalized === 'error') return t('room.vacuumStatus.error') || 'Error';
   if (normalized === 'stopped') return t('room.vacuumStatus.stopped') || 'Stopped';
   return state;
+}
+
+const TRANSLATED_LEVELS = new Set([
+  'off',
+  'quiet',
+  'silent',
+  'low',
+  'gentle',
+  'mild',
+  'balanced',
+  'standard',
+  'normal',
+  'medium',
+  'moderate',
+  'high',
+  'strong',
+  'turbo',
+  'max',
+  'max_plus',
+  'intense',
+  'deep',
+  'auto',
+  'custom',
+]);
+
+function getLevelLabelMap(options, t) {
+  const map = {};
+  (options || []).forEach((option) => {
+    const normalized = String(option || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\+/g, '_plus')
+      .replace(/[\s-]+/g, '_');
+    if (!TRANSLATED_LEVELS.has(normalized)) return;
+    const key = `vacuum.level.${normalized}`;
+    const label = t(key);
+    if (label && label !== key) map[option] = label;
+  });
+  return map;
 }
 
 function formatDiagnosticState(state, type, t) {
@@ -1464,7 +1505,7 @@ export default function VacuumModal({
             <span>{t('vacuum.advancedTelemetry') || 'Advanced Telemetry'}</span>
           </div>
           <span
-            className={`transform text-[10px] transition-transform duration-300 ${isAdvancedOpen ? 'rotate-180' : ''}`}
+            className={`transform text-[11px] transition-transform duration-300 ${isAdvancedOpen ? 'rotate-180' : ''}`}
           >
             ▼
           </span>
@@ -1585,21 +1626,21 @@ export default function VacuumModal({
       : t('vacuum.stop') || 'Stop'
     : t('vacuum.start');
 
-  const statusColor = isCleaning
-    ? '#60a5fa'
-    : isReturning
-      ? '#c084fc'
+  const statusColor =
+    isCleaning || isReturning
+      ? 'var(--accent-color)'
       : isError
-        ? '#ef4444'
+        ? 'var(--status-error-fg)'
         : 'var(--text-secondary)';
 
-  const statusBg = isCleaning
-    ? 'rgba(59, 130, 246, 0.1)'
-    : isReturning
-      ? 'rgba(192, 132, 252, 0.1)'
+  const statusBg =
+    isCleaning || isReturning
+      ? 'var(--accent-bg)'
       : isError
-        ? 'rgba(239, 68, 68, 0.1)'
+        ? 'var(--status-error-bg)'
         : 'var(--glass-bg)';
+  const fanSpeedLabelMap = getLevelLabelMap(fanSpeedList, t);
+  const mopLabelMap = getLevelLabelMap(effectiveMopOptions, t);
 
   const stateLabel = getVacuumStateLabel(state, battery, t);
 
@@ -1705,29 +1746,23 @@ export default function VacuumModal({
           <div className="popup-surface flex h-full flex-1 flex-col items-center justify-stretch gap-4 rounded-3xl p-4 sm:gap-6 sm:p-8">
             {/* Primary Actions */}
             <div className="flex w-full gap-2 sm:gap-4">
-              <button
+              <Button
+                variant={isCleaning ? 'secondary' : 'primary'}
+                block
                 onClick={handlePrimaryAction}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold tracking-widest uppercase transition-all active:scale-[0.98] sm:gap-3 sm:py-5 sm:text-sm ${
-                  isCleaning ? 'hover:bg-[var(--glass-bg-hover)]' : 'hover:opacity-90'
-                }`}
-                style={
-                  isCleaning
-                    ? { backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }
-                    : { backgroundColor: 'var(--accent-color)', color: '#fff' }
-                }
+                icon={isCleaning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               >
-                {isCleaning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                 {primaryActionLabel}
-              </button>
+              </Button>
               {canReturnToBase && (
-                <button
+                <Button
+                  variant="secondary"
+                  block
                   onClick={() => callService('vacuum', 'return_to_base', { entity_id: vacuumId })}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-xs font-bold tracking-widest uppercase transition-all hover:bg-[var(--glass-bg-hover)] active:scale-[0.98] sm:gap-3 sm:py-5 sm:text-sm"
-                  style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}
+                  icon={<Home className="h-5 w-5" />}
                 >
-                  <Home className="h-5 w-5" />
                   {t('vacuum.home')}
-                </button>
+                </Button>
               )}
             </div>
 
@@ -1757,13 +1792,14 @@ export default function VacuumModal({
 
               {/* Locate Button */}
               {canLocate && (
-                <button
+                <Button
+                  size="sm"
+                  variant="secondary"
                   onClick={() => callService('vacuum', 'locate', { entity_id: vacuumId })}
-                  className="flex items-center gap-1.5 rounded-lg border-0 bg-purple-500/10 px-2.5 py-1.5 text-[10px] font-bold tracking-widest text-purple-400 uppercase transition-all hover:bg-purple-500/20 active:scale-95"
+                  icon={<Bot className="h-3.5 w-3.5" />}
                 >
-                  <Bot className="h-3.5 w-3.5" />
-                  <span>{t('vacuum.find') || 'Find'}</span>
-                </button>
+                  {t('vacuum.find')}
+                </Button>
               )}
             </div>
 
@@ -1782,7 +1818,7 @@ export default function VacuumModal({
                     })
                   }
                   placeholder={t('vacuum.suction')}
-                  map={{}}
+                  map={fanSpeedLabelMap}
                 />
               )}
 
@@ -1794,17 +1830,14 @@ export default function VacuumModal({
                   current={effectiveMopCurrent}
                   onChange={setMopIntensity}
                   placeholder={t('vacuum.mopIntensity')}
-                  map={{}}
+                  map={mopLabelMap}
                 />
               )}
             </div>
 
             {/* Current Session Stats */}
             <div className="w-full space-y-2.5">
-              <p
-                className="text-[10px] font-bold tracking-widest uppercase"
-                style={{ color: 'var(--text-muted)' }}
-              >
+              <p className="modal-section-label">
                 {t('vacuum.statsCurrentSession') || 'Current session'}
               </p>
               <div className="grid w-full grid-cols-2 gap-3">
@@ -1815,8 +1848,8 @@ export default function VacuumModal({
                   <div
                     className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
                     style={{
-                      backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.15)' : 'var(--glass-bg)',
-                      color: isCleaning ? '#60a5fa' : 'var(--text-secondary)',
+                      backgroundColor: isCleaning ? 'var(--accent-bg)' : 'var(--glass-bg)',
+                      color: isCleaning ? 'var(--accent-color)' : 'var(--text-secondary)',
                     }}
                   >
                     <Clock className="h-5 w-5" />
@@ -1825,12 +1858,7 @@ export default function VacuumModal({
                     <p className="truncate text-lg leading-tight font-light">
                       {formatRawValueWithUnit(cleaningTime, cleaningTimeUnit)}
                     </p>
-                    <p
-                      className="text-[10px] font-bold tracking-widest uppercase"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {t('vacuum.statsTime') || 'Time'}
-                    </p>
+                    <p className="modal-section-label">{t('vacuum.statsTime') || 'Time'}</p>
                   </div>
                 </div>
                 <div
@@ -1840,8 +1868,8 @@ export default function VacuumModal({
                   <div
                     className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
                     style={{
-                      backgroundColor: isCleaning ? 'rgba(59, 130, 246, 0.15)' : 'var(--glass-bg)',
-                      color: isCleaning ? '#60a5fa' : 'var(--text-secondary)',
+                      backgroundColor: isCleaning ? 'var(--accent-bg)' : 'var(--glass-bg)',
+                      color: isCleaning ? 'var(--accent-color)' : 'var(--text-secondary)',
                     }}
                   >
                     <Maximize2 className="h-5 w-5" />
@@ -1850,12 +1878,7 @@ export default function VacuumModal({
                     <p className="truncate text-lg leading-tight font-light">
                       {formatRawValueWithUnit(cleanedArea, cleanedAreaUnit)}
                     </p>
-                    <p
-                      className="text-[10px] font-bold tracking-widest uppercase"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {t('vacuum.statsArea') || 'Area'}
-                    </p>
+                    <p className="modal-section-label">{t('vacuum.statsArea') || 'Area'}</p>
                   </div>
                 </div>
               </div>
@@ -1864,12 +1887,7 @@ export default function VacuumModal({
             {/* Room Scripts */}
             {roomScripts.length > 0 && (
               <div className="w-full space-y-3 pt-2">
-                <p
-                  className="text-[10px] font-bold tracking-widest uppercase"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {t('vacuum.cleanRooms') || 'Clean rooms'}
-                </p>
+                <p className="modal-section-label">{t('vacuum.cleanRooms') || 'Clean rooms'}</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {roomScripts.map((script, index) => (
                     <button
@@ -1934,7 +1952,7 @@ export default function VacuumModal({
                   }}
                 >
                   {/* Pulsing Live Badge */}
-                  <div className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase italic shadow-md backdrop-blur-md">
+                  <div className="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-[11px] font-bold tracking-[0.12em] text-[var(--status-success-fg)] uppercase shadow-md backdrop-blur-md">
                     <span className="relative flex h-2 w-2">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--status-success-fg)] opacity-75"></span>
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--status-success-fg)]"></span>
@@ -2072,16 +2090,13 @@ export default function VacuumModal({
       const hasConsumables = consumables.length > 0;
       return (
         <div
-          className={`animate-in fade-in font-sans not-italic duration-300 ${hasConsumables ? 'grid grid-cols-1 gap-8 lg:grid-cols-5' : ''}`}
+          className={`animate-in fade-in duration-300 ${hasConsumables ? 'grid grid-cols-1 gap-8 lg:grid-cols-5' : ''}`}
         >
           {/* Left Column: Stats & Diagnostics */}
           <div className={`space-y-6 ${hasConsumables ? 'lg:col-span-3' : 'w-full'}`}>
             {/* Statistics Grid */}
             <div>
-              <p
-                className="mb-4 ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
-                style={{ color: 'var(--text-muted)' }}
-              >
+              <p className="modal-section-label mb-4 ml-1">
                 {t('vacuum.statsHistory') || 'Historikk'}
               </p>
               <div className="grid grid-cols-2 gap-x-8 gap-y-4 p-1 sm:grid-cols-3">
@@ -2090,9 +2105,7 @@ export default function VacuumModal({
                     key={key}
                     className="flex min-w-0 flex-col transition-all duration-300 hover:translate-y-[-2px]"
                   >
-                    <p className="mb-1 text-[10px] leading-tight font-bold tracking-[0.15em] text-[var(--text-muted)] uppercase">
-                      {label}
-                    </p>
+                    <p className="modal-section-label mb-1 leading-tight">{label}</p>
                     <p className="text-xl leading-none font-extralight tracking-tight text-[var(--text-primary)] sm:text-2xl">
                       {value}
                     </p>
@@ -2106,16 +2119,13 @@ export default function VacuumModal({
               <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
                 {diagnostics.length > 0 && (
                   <div className="space-y-3">
-                    <p
-                      className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
+                    <p className="modal-section-label ml-1">
                       {t('vacuum.statsDiagnostics') || 'Diagnostikk'}
                     </p>
                     <div className="space-y-4 rounded-2xl border border-white/[0.03] bg-[var(--glass-bg)] p-5 shadow-sm">
                       <div className="flex items-center gap-2.5 border-b border-white/5 pb-2">
                         <Activity className="h-4 w-4 text-[var(--accent-color)]" />
-                        <span className="text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase">
+                        <span className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase">
                           {t('vacuum.systemHealth') || 'Systemstatus'}
                         </span>
                       </div>
@@ -2164,10 +2174,7 @@ export default function VacuumModal({
 
                 {advancedSensors.length > 0 && (
                   <div className="space-y-3">
-                    <p
-                      className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
+                    <p className="modal-section-label ml-1">
                       {t('vacuum.advancedTelemetry') || 'Avansert Telemetri'}
                     </p>
                     {renderAdvancedTelemetryAccordion()}
@@ -2180,12 +2187,7 @@ export default function VacuumModal({
           {/* Right Column: Consumables & Maintenance */}
           {hasConsumables && (
             <div className="space-y-3 lg:col-span-2">
-              <p
-                className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                {t('vacuum.maintenance') || 'Vedlikehald'}
-              </p>
+              <p className="modal-section-label ml-1">{t('vacuum.maintenance') || 'Vedlikehald'}</p>
               <div className="space-y-4 rounded-2xl border border-white/[0.03] bg-[var(--glass-bg)] p-4 shadow-sm sm:p-5">
                 {consumables.map(({ key, label, pct, buttonId, icon: Icon }) => {
                   const color = getConsumableColor(pct);
@@ -2244,7 +2246,7 @@ export default function VacuumModal({
                               setResetConfirmKey(key);
                             }
                           }}
-                          className={`rounded-lg border-0 px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-all duration-200 active:scale-95 ${
+                          className={`rounded-lg border-0 px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all duration-200 active:scale-95 ${
                             isConfirming
                               ? 'animate-pulse border border-[var(--status-error-border)] bg-[var(--status-error-bg)] font-extrabold text-[var(--status-error-fg)] hover:opacity-90'
                               : 'bg-white/5 text-[var(--text-secondary)] hover:bg-white/10 hover:text-[var(--text-primary)]'
@@ -2266,24 +2268,17 @@ export default function VacuumModal({
     }
 
     return (
-      <div className="animate-in fade-in space-y-8 font-sans not-italic duration-300">
+      <div className="animate-in fade-in space-y-8 duration-300">
         {/* Statistics Grid */}
         <div>
-          <p
-            className="mb-4 ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {t('vacuum.statsHistory') || 'Historikk'}
-          </p>
+          <p className="modal-section-label mb-4 ml-1">{t('vacuum.statsHistory') || 'Historikk'}</p>
           <div className="grid grid-cols-2 gap-x-8 gap-y-6 p-1 sm:grid-cols-3">
             {stats.map(({ key, label, value }) => (
               <div
                 key={key}
                 className="flex min-w-0 flex-col transition-all duration-300 hover:translate-y-[-2px]"
               >
-                <p className="mb-1.5 text-[10px] leading-tight font-bold tracking-[0.15em] text-[var(--text-muted)] uppercase">
-                  {label}
-                </p>
+                <p className="modal-section-label mb-1.5 leading-tight">{label}</p>
                 <p className="text-2xl leading-none font-extralight tracking-tight text-[var(--text-primary)] sm:text-3xl">
                   {value}
                 </p>
@@ -2295,12 +2290,7 @@ export default function VacuumModal({
         {/* Consumables (Vedlikehald) */}
         {consumables.length > 0 && (
           <div className="space-y-3">
-            <p
-              className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              {t('vacuum.maintenance') || 'Vedlikehald'}
-            </p>
+            <p className="modal-section-label ml-1">{t('vacuum.maintenance') || 'Vedlikehald'}</p>
             <div className="space-y-5 rounded-2xl border border-white/[0.03] bg-[var(--glass-bg)] p-6 shadow-sm">
               {consumables.map(({ key, label, pct, buttonId, icon: Icon }) => {
                 const color = getConsumableColor(pct);
@@ -2359,7 +2349,7 @@ export default function VacuumModal({
                             setResetConfirmKey(key);
                           }
                         }}
-                        className={`rounded-lg border-0 px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-all duration-200 active:scale-95 ${
+                        className={`rounded-lg border-0 px-3 py-1.5 text-[11px] font-bold tracking-wider uppercase transition-all duration-200 active:scale-95 ${
                           isConfirming
                             ? 'animate-pulse border border-[var(--status-error-border)] bg-[var(--status-error-bg)] font-extrabold text-[var(--status-error-fg)] hover:opacity-90'
                             : 'bg-white/5 text-[var(--text-secondary)] hover:bg-white/10 hover:text-[var(--text-primary)]'
@@ -2381,16 +2371,13 @@ export default function VacuumModal({
         <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
           {diagnostics.length > 0 && (
             <div className="space-y-3">
-              <p
-                className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
-                style={{ color: 'var(--text-muted)' }}
-              >
+              <p className="modal-section-label ml-1">
                 {t('vacuum.statsDiagnostics') || 'Diagnostikk'}
               </p>
               <div className="space-y-4 rounded-2xl border border-white/[0.03] bg-[var(--glass-bg)] p-5 shadow-sm">
                 <div className="flex items-center gap-2.5 border-b border-white/5 pb-2">
                   <Activity className="h-4 w-4 text-[var(--accent-color)]" />
-                  <span className="text-[10px] font-bold tracking-wider text-[var(--text-secondary)] uppercase">
+                  <span className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase">
                     {t('vacuum.systemHealth') || 'Systemstatus'}
                   </span>
                 </div>
@@ -2439,10 +2426,7 @@ export default function VacuumModal({
 
           {advancedSensors.length > 0 && (
             <div className="space-y-3">
-              <p
-                className="ml-1 text-[10px] font-bold tracking-[0.2em] uppercase"
-                style={{ color: 'var(--text-muted)' }}
-              >
+              <p className="modal-section-label ml-1">
                 {t('vacuum.advancedTelemetry') || 'Avansert Telemetri'}
               </p>
               {renderAdvancedTelemetryAccordion()}
@@ -2458,118 +2442,75 @@ export default function VacuumModal({
       open={show && !!vacuumId && !!entities?.[vacuumId]}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-3xl border p-4 font-sans backdrop-blur-xl sm:max-h-[90vh] sm:p-6 md:rounded-[3rem] md:p-12"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size={hasMap ? 'xl' : 'l'}
     >
       {() => (
         <>
-          <button
-            onClick={onClose}
-            className="modal-close absolute top-4 right-4 sm:top-6 sm:right-6 md:top-10 md:right-10"
-            aria-label={t('common.close')}
-          >
-            <X className="h-4 w-4" />
-          </button>
-
-          {/* Header Section */}
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 pr-12 font-sans sm:mb-6 sm:gap-4">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div
-                className="rounded-2xl p-3 transition-all duration-500 sm:p-4"
-                style={{ backgroundColor: statusBg, color: statusColor }}
-              >
-                <Bot className={`h-6 w-6 sm:h-8 sm:w-8${isCleaning ? ' animate-pulse' : ''}`} />
-              </div>
-              <div>
-                <h3
-                  id={modalTitleId}
-                  className="text-xl leading-none font-light tracking-tight uppercase italic sm:text-2xl"
-                  style={{ color: 'var(--text-primary)' }}
+          <ModalHeader
+            title={getDisplayName(entity, vacuumId)}
+            closeLabel={t('common.close')}
+            onClose={onClose}
+            icon={<Bot className={isCleaning ? 'animate-pulse' : undefined} />}
+            iconStyle={{ backgroundColor: statusBg, color: statusColor }}
+            status={
+              <StatusChip
+                tone={isError ? 'error' : isCleaning ? 'on' : isReturning ? 'accent' : 'neutral'}
+                label={stateLabel}
+              />
+            }
+            actions={
+              !!activeMapEntityId && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleToggleMap}
+                  aria-label={showMapToggle ? t('vacuum.hideMap') : t('vacuum.showMap')}
+                  icon={
+                    <MapPin
+                      className={`h-4 w-4 ${showMapToggle ? 'text-[var(--accent-color)]' : 'text-[var(--text-muted)]'}`}
+                    />
+                  }
                 >
-                  {getDisplayName(entity, vacuumId)}
-                </h3>
-                <div
-                  className="mt-2 inline-block rounded-full px-3 py-1 transition-all duration-500"
-                  style={{ backgroundColor: statusBg, color: statusColor }}
-                >
-                  <p className="text-[10px] font-bold tracking-widest uppercase italic">
-                    {t('status.statusLabel')}: {stateLabel}
-                  </p>
-                </div>
-              </div>
-            </div>
+                  <span className="hidden sm:inline">
+                    {showMapToggle ? t('vacuum.hideMap') : t('vacuum.showMap')}
+                  </span>
+                </Button>
+              )
+            }
+          />
 
-            {!!activeMapEntityId && (
-              <button
-                onClick={handleToggleMap}
-                className="flex items-center gap-2 rounded-xl border-0 bg-[var(--glass-bg)] px-3.5 py-2 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-all duration-300 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
-              >
-                <MapPin
-                  className={`h-4 w-4 ${showMapToggle ? 'text-[var(--accent-color)]' : 'text-[var(--text-muted)]'}`}
-                />
-                <span>
-                  {showMapToggle
-                    ? t('vacuum.hideMap') || 'Skjul kart'
-                    : t('vacuum.showMap') || 'Vis kart'}
-                </span>
-              </button>
-            )}
-          </div>
-
-          {/* Premium Tab Bar for Map / Area Cleaning / Maintenance */}
           {showTabbedLayout && (
-            <div className="scrollbar-hide mb-4 flex w-full flex-nowrap gap-1.5 overflow-x-auto rounded-2xl bg-[var(--glass-bg)] p-1 sm:mb-8 sm:w-fit sm:flex-wrap sm:gap-2 sm:p-1.5">
-              <button
-                onClick={() => setActiveTab('controls')}
-                className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all duration-300 active:scale-[0.98] sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs ${
-                  activeTab === 'controls'
-                    ? 'bg-[var(--accent-color)] text-white shadow-lg shadow-[rgba(var(--accent-color-rgb),0.25)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <Bot className="h-4 w-4" />
-                {t('vacuum.controls') || 'Controls'}
-              </button>
-
-              {(hasAreas || isAreasLoading) && (
-                <button
-                  onClick={() => setActiveTab('areas')}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all duration-300 active:scale-[0.98] sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs ${
-                    activeTab === 'areas'
-                      ? 'bg-[var(--accent-color)] text-white shadow-lg shadow-[rgba(var(--accent-color-rgb),0.25)]'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  <MapPin className="h-4 w-4" />
-                  {t('vacuum.roomCleaning') || t('vacuum.cleanRooms') || 'Room Cleaning'}
-                </button>
-              )}
-
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all duration-300 active:scale-[0.98] sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs ${
-                  activeTab === 'history'
-                    ? 'bg-[var(--accent-color)] text-white shadow-lg shadow-[rgba(var(--accent-color-rgb),0.25)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <Activity className="h-4 w-4" />
-                {t('vacuum.statsHistory') || 'History'}
-              </button>
+            <div className="flex-none px-[var(--modal-pad)] pb-4">
+              <Segmented
+                ariaLabel={t('vacuum.controls')}
+                value={activeTab}
+                onChange={setActiveTab}
+                options={[
+                  {
+                    value: 'controls',
+                    label: t('vacuum.controls'),
+                    icon: <Bot className="h-4 w-4" />,
+                  },
+                  ...(hasAreas || isAreasLoading
+                    ? [
+                        {
+                          value: 'areas',
+                          label: t('vacuum.roomCleaning'),
+                          icon: <MapPin className="h-4 w-4" />,
+                        },
+                      ]
+                    : []),
+                  {
+                    value: 'history',
+                    label: t('vacuum.statsHistory'),
+                    icon: <Activity className="h-4 w-4" />,
+                  },
+                ]}
+              />
             </div>
           )}
 
-          {/* Render Tab Contents */}
-          <div
-            data-testid="vacuum-tab-content"
-            className="h-[calc(100dvh-11rem)] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent overflow-y-auto pr-1 sm:h-[60vh] md:h-[480px] md:pr-2"
-          >
+          <ModalBody data-testid="vacuum-tab-content" className="md:min-h-[min(480px,55dvh)]">
             {(!showTabbedLayout || activeTab === 'controls') && renderControlsPane(hasMap)}
 
             {showTabbedLayout && activeTab === 'areas' && (
@@ -2686,11 +2627,9 @@ export default function VacuumModal({
             )}
 
             {showTabbedLayout && activeTab === 'history' && (
-              <div className="animate-in fade-in py-4 font-sans duration-300">
-                {renderHistoryCard()}
-              </div>
+              <div className="animate-in fade-in py-4 duration-300">{renderHistoryCard()}</div>
             )}
-          </div>
+          </ModalBody>
 
           {/* Full Screen Live Map Zoom Modal Overlay */}
           {isMapZoomed &&

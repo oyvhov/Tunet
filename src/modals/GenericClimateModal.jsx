@@ -8,11 +8,11 @@ import {
   Plus,
   Power,
   Snowflake,
-  X,
 } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import { getClimateStatus } from '../utils/climateStatus';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
@@ -40,7 +40,6 @@ export default function GenericClimateModal({
   if (!entityId || !entity) return null;
 
   const { isCooling, isHeating, translationKey } = getClimateStatus(entity);
-  const clTheme = isCooling ? 'blue' : isHeating ? 'orange' : 'gray';
   const currentTemp = entity.attributes?.current_temperature;
   const targetTemp = entity.attributes?.temperature;
   const sourceTempUnit =
@@ -70,137 +69,68 @@ export default function GenericClimateModal({
   const showHvac = Array.isArray(hvacModes) && hvacModes.length > 0;
   const showFan = Array.isArray(fanModes) && fanModes.length > 0;
   const showSwing = Array.isArray(swingModes) && swingModes.length > 0;
+  const showControls = showHvac || showFan || showSwing;
   const favoriteModes = resolveClimateFavoriteModes(settings?.climateFavoriteModes, hvacModes);
   const modalTitleId = `climate-modal-title-${entityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   const tempValue = typeof targetTemp === 'number' ? targetTemp : 21;
+  const twoColumns = showTemp && showControls;
 
   return (
     <AccessibleModalShell
       open={!!entityId && !!entity}
       onClose={onClose}
       titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-3xl border p-4 font-sans backdrop-blur-xl sm:max-h-[90vh] sm:p-6 md:rounded-[3rem] md:p-12"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size={twoColumns ? 'l' : 'm'}
     >
       {() => (
         <>
-          <button
-            onClick={onClose}
-            className="modal-close absolute top-4 right-4 sm:top-6 sm:right-6 md:top-10 md:right-10"
-            aria-label={t('common.close')}
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="mb-4 flex items-center gap-3 pr-12 font-sans sm:mb-6 sm:gap-4 sm:pr-0">
-            <div
-              className="rounded-2xl p-3 transition-all duration-500 sm:p-4"
-              style={{
-                backgroundColor:
-                  clTheme === 'blue'
-                    ? 'rgba(59, 130, 246, 0.1)'
-                    : clTheme === 'orange'
-                      ? 'rgba(249, 115, 22, 0.1)'
-                      : 'var(--glass-bg)',
-                color:
-                  clTheme === 'blue'
-                    ? '#60a5fa'
-                    : clTheme === 'orange'
-                      ? '#fb923c'
-                      : 'var(--text-secondary)',
-              }}
-            >
-              {isCooling ? (
-                <Snowflake className="h-6 w-6 sm:h-8 sm:w-8" />
-              ) : (
-                <AirVent className="h-6 w-6 sm:h-8 sm:w-8" />
-              )}
-            </div>
-            <div>
-              <h3
-                id={modalTitleId}
-                className="text-xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic sm:text-2xl"
-              >
-                {getDisplayName(entity, t('climate.title'))}
-              </h3>
-              <div
-                className="mt-2 inline-block rounded-full border px-3 py-1 transition-all duration-500"
-                style={{
-                  backgroundColor:
-                    clTheme === 'blue'
-                      ? 'rgba(59, 130, 246, 0.2)'
-                      : clTheme === 'orange'
-                        ? 'rgba(249, 115, 22, 0.1)'
-                        : 'rgba(255, 255, 255, 0.05)',
-                  borderColor:
-                    clTheme === 'blue'
-                      ? 'rgba(59, 130, 246, 0.3)'
-                      : clTheme === 'orange'
-                        ? 'rgba(249, 115, 22, 0.2)'
-                        : 'rgba(255, 255, 255, 0.1)',
-                  color:
-                    clTheme === 'blue'
-                      ? '#3b82f6'
-                      : clTheme === 'orange'
-                        ? '#fb923c'
-                        : 'var(--text-secondary)',
-                }}
-              >
-                <p className="text-[10px] font-bold tracking-widest uppercase italic">
-                  {t(translationKey)}
-                </p>
-              </div>
-            </div>
-          </div>
+          <ModalHeader
+            title={getDisplayName(entity, t('climate.title'))}
+            closeLabel={t('common.close')}
+            onClose={onClose}
+            icon={isCooling ? <Snowflake /> : <AirVent />}
+            iconClassName={
+              isCooling
+                ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                : isHeating
+                  ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]'
+                  : ''
+            }
+            status={
+              <StatusChip
+                tone={isCooling ? 'accent' : isHeating ? 'warn' : 'neutral'}
+                label={t(translationKey)}
+              />
+            }
+          />
 
-          <div className="grid grid-cols-1 items-start gap-4 font-sans sm:gap-12 lg:grid-cols-5">
+          <ModalBody className={twoColumns ? 'grid items-start gap-6 lg:grid-cols-5' : ''}>
             {showTemp && (
-              <div className="popup-surface space-y-4 rounded-3xl p-4 sm:space-y-10 sm:p-6 md:p-10 lg:col-span-3">
-                <div className="text-center font-sans">
-                  <div className="mb-3 flex items-center justify-between italic sm:mb-6 sm:px-4">
-                    <p
-                      className="text-xs font-bold text-[var(--text-muted)] uppercase"
-                      style={{ letterSpacing: '0.5em' }}
-                    >
-                      {t('climate.indoorTemp')}
-                    </p>
-                    <span
-                      className="text-xs font-bold uppercase"
-                      style={{
-                        letterSpacing: '0.3em',
-                        color: isCooling ? '#60a5fa' : isHeating ? '#fb923c' : '#9ca3af',
-                      }}
-                    >
+              <div
+                className={`popup-surface space-y-6 rounded-[var(--modal-surface-radius)] p-4 sm:p-6 ${twoColumns ? 'lg:col-span-3' : ''}`}
+              >
+                <div className="text-center">
+                  <p className="modal-section-label mb-3 text-left sm:mb-6">
+                    {t('climate.target')}
+                  </p>
+                  <div className="flex items-center justify-center gap-2 sm:gap-4">
+                    <span className="text-5xl leading-none font-light tracking-tighter text-[var(--text-primary)] tabular-nums select-none sm:text-6xl md:text-8xl">
+                      {displayTargetTemp.value}
+                    </span>
+                    <span className="mt-6 text-3xl leading-none font-medium text-[var(--text-muted)] sm:mt-10 sm:text-4xl">
+                      {displayTempUnit}
+                    </span>
+                  </div>
+                  <p className="mt-3 mb-4 text-sm text-[var(--text-secondary)] sm:mb-8">
+                    {t('climate.indoorTemp')}{' '}
+                    <span className="font-medium text-[var(--text-primary)] tabular-nums">
                       {displayCurrentTemp.value === '--'
                         ? '--'
                         : `${displayCurrentTemp.value}${displayTempUnit}`}
                     </span>
-                  </div>
-                  <div className="mb-4 flex items-center justify-center gap-2 sm:mb-10 sm:gap-4">
-                    <span
-                      className="text-5xl leading-none font-light tracking-tighter text-[var(--text-primary)] italic select-none sm:text-6xl md:text-9xl"
-                      style={{
-                        textShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                        color: isHeating
-                          ? '#fef2f2'
-                          : isCooling
-                            ? '#f0f9ff'
-                            : 'var(--text-primary)',
-                      }}
-                    >
-                      {displayTargetTemp.value}
-                    </span>
-                    <span className="mt-6 text-3xl leading-none font-medium text-[var(--text-muted)] italic sm:mt-10 sm:text-5xl">
-                      {displayTempUnit}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 sm:gap-8 sm:px-4">
+                  </p>
+                  <div className="flex items-center gap-3 sm:gap-6">
                     <button
                       onClick={() =>
                         callService('climate', 'set_temperature', {
@@ -208,15 +138,11 @@ export default function GenericClimateModal({
                           temperature: tempValue - 0.5,
                         })
                       }
-                      className="rounded-full border p-3 shadow-lg transition-all active:scale-90 sm:p-6"
-                      style={{
-                        backgroundColor: 'var(--glass-bg)',
-                        borderColor: 'var(--glass-border)',
-                      }}
+                      className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90 sm:p-5"
                     >
-                      <Minus className="h-5 w-5 sm:h-8 sm:w-8" style={{ strokeWidth: 3 }} />
+                      <Minus className="h-5 w-5 sm:h-7 sm:w-7" style={{ strokeWidth: 3 }} />
                     </button>
-                    <div className="flex-grow font-sans">
+                    <div className="flex-grow">
                       <M3Slider
                         min={minTemp}
                         max={maxTemp}
@@ -232,7 +158,7 @@ export default function GenericClimateModal({
                           isCooling
                             ? 'bg-[var(--accent-color)]'
                             : isHeating
-                              ? 'bg-orange-500'
+                              ? 'bg-[var(--status-warning-fg)]'
                               : 'bg-white/20'
                         }
                       />
@@ -244,31 +170,22 @@ export default function GenericClimateModal({
                           temperature: tempValue + 0.5,
                         })
                       }
-                      className="rounded-full border p-3 shadow-lg transition-all active:scale-90 sm:p-6"
-                      style={{
-                        backgroundColor: 'var(--glass-bg)',
-                        borderColor: 'var(--glass-border)',
-                      }}
+                      className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90 sm:p-5"
                     >
-                      <Plus className="h-5 w-5 sm:h-8 sm:w-8" style={{ strokeWidth: 3 }} />
+                      <Plus className="h-5 w-5 sm:h-7 sm:w-7" style={{ strokeWidth: 3 }} />
                     </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {(showHvac || showFan || showSwing) && (
-              <div className="space-y-4 font-sans italic sm:space-y-10 sm:py-4 lg:col-span-2">
+            {showControls && (
+              <div className={`space-y-6 ${twoColumns ? 'lg:col-span-2' : 'mt-6'}`}>
                 {showHvac && (
                   <div className="space-y-4">
                     {favoriteModes.length > 0 && (
                       <div className="space-y-3">
-                        <p
-                          className="ml-1 text-xs font-bold uppercase"
-                          style={{ color: 'var(--text-muted)', letterSpacing: '0.2em' }}
-                        >
-                          {t('climate.shortcuts')}
-                        </p>
+                        <p className="modal-section-label ml-1">{t('climate.shortcuts')}</p>
                         <div className="popup-surface grid grid-cols-2 gap-1.5 rounded-2xl p-1.5">
                           {favoriteModes.map((mode) => {
                             const active = entity.state === mode;
@@ -361,7 +278,7 @@ export default function GenericClimateModal({
                 )}
               </div>
             )}
-          </div>
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>

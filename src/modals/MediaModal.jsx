@@ -25,10 +25,14 @@ import {
 import M3Slider from '../components/ui/M3Slider';
 import SafeImage from '../components/ui/SafeImage';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import Button from '../components/ui/Button';
+import Segmented from '../components/ui/Segmented';
 import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../utils';
 import MusicAssistantLink from '../components/media/MusicAssistantLink';
 import { useMusicAssistantChoices } from '../hooks/useMusicAssistantChoices';
 import { getMediaPlayerPowerAction } from '../utils/mediaPlayerFeatures';
+import { getMediaPlayerStateLabel, getMediaPlayerStateTone } from '../utils/mediaPlayerState';
 
 const readJSON = (key, fallback) => {
   try {
@@ -560,15 +564,16 @@ export default function MediaModal({
   const position = mpId ? getA(mpId, 'media_position') : null;
   const positionUpdatedAt = mpId ? getA(mpId, 'media_position_updated_at') : null;
   const serverInfo = mpId ? getServerInfo(mpId) : {};
-  const serverLabel = isGenericMedia ? serverInfo.name || t('addCard.type.media') : 'SONOS';
   const groupCardId =
     activeMediaGroupKey && activeMediaGroupKey.includes('::')
       ? activeMediaGroupKey.split('::').slice(1).join('::')
       : null;
-  const popupHeading =
-    isGenericMedia && groupCardId && customNames[groupCardId]
-      ? customNames[groupCardId]
-      : serverLabel;
+  const serverName = serverInfo?.name && serverInfo.name !== 'Media' ? serverInfo.name : null;
+  const statusDetail = isCurrentSonos
+    ? t('media.sonosLabel')
+    : isGenericMedia
+      ? (groupCardId && customNames[groupCardId]) || serverName
+      : null;
 
   const basePosition = typeof position === 'number' ? position : 0;
   const updatedAtMs = positionUpdatedAt ? new Date(positionUpdatedAt).getTime() : null;
@@ -908,7 +913,7 @@ export default function MediaModal({
         <p className="mt-2 line-clamp-2 min-h-8 text-[11px] leading-4 font-bold tracking-wide text-[var(--text-primary)] uppercase">
           {choice.label}
         </p>
-        <p className="mt-0.5 truncate text-[9px] tracking-wide text-[var(--text-muted)] uppercase">
+        <p className="mt-0.5 truncate text-[11px] tracking-wide text-[var(--text-muted)] uppercase">
           {choice.source ||
             (choice.musicAssistant ? t(`media.choose.type.${choice.type}`) : choice.type) ||
             t('media.choose.unknownSource')}
@@ -917,26 +922,12 @@ export default function MediaModal({
     );
   };
 
-  const renderChooseTabButton = (id, label) => (
-    <button
-      key={id}
-      type="button"
-      onClick={() => setChooseTab(id)}
-      aria-pressed={chooseTab === id}
-      className={`min-w-0 rounded-xl border px-2 py-2 text-[9px] font-bold tracking-wider uppercase transition-colors ${chooseTab === id ? 'text-white' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-      style={
-        chooseTab === id
-          ? {
-              backgroundColor: 'color-mix(in srgb, var(--accent-color) 18%, transparent)',
-              color: 'var(--accent-color)',
-              border: '1px solid color-mix(in srgb, var(--accent-color) 30%, transparent)',
-            }
-          : { backgroundColor: 'var(--glass-bg)' }
-      }
-    >
-      {label}
-    </button>
-  );
+  const chooseTabOptions = [
+    { value: 'favorites', label: t('media.choose.tab.favorites') },
+    { value: 'playlists', label: t('media.choose.tab.playlists') },
+    { value: 'library', label: t('media.choose.tab.library') },
+    { value: 'search', label: t('media.choose.tab.search') },
+  ];
 
   if (!show) return null;
 
@@ -946,707 +937,399 @@ export default function MediaModal({
         open={show}
         onClose={handleModalClose}
         titleId="media-modal-title"
-        overlayClassName="fixed inset-0 z-[100] flex items-center justify-center p-4 font-sans md:p-6"
-        overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-        panelClassName="popup-anim relative w-full max-w-2xl rounded-3xl border p-6 shadow-2xl backdrop-blur-xl md:rounded-[4rem] md:p-12"
-        panelStyle={{
-          background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-          borderColor: 'var(--glass-border)',
-        }}
+        size="m"
       >
-        {(resolvedTitleId) => (
+        {() => (
           <>
-            <h2 id={resolvedTitleId} className="sr-only">
-              {t('addCard.type.media')}
-            </h2>
-            <button
-              onClick={handleModalClose}
-              className="modal-close absolute top-6 right-6 z-20 md:top-10 md:right-10"
-              aria-label={t('common.close') || 'Close'}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="text-center text-[var(--text-primary)]">{t('media.noPlayerFound')}</div>
+            <ModalHeader
+              title={t('addCard.type.media')}
+              closeLabel={t('common.close') || 'Close'}
+              onClose={handleModalClose}
+              icon={<Music />}
+            />
+            <ModalBody>
+              <p className="py-6 text-center text-sm text-[var(--text-secondary)]">
+                {t('media.noPlayerFound')}
+              </p>
+            </ModalBody>
           </>
         )}
       </AccessibleModalShell>
     );
   }
 
+  const playerDisplayName = applyPlayerNameDisplayFilter(
+    currentMp.attributes?.friendly_name || mpId
+  );
+  const playerTitle = activeUser ? `${activeUser} - ${playerDisplayName}` : playerDisplayName;
+  const hasArtwork = isImageAvailable(safeCurrentArtworkUrl);
+  const powerLabel = isPowerOffAction ? t('shield.turnOff') : t('shield.turnOn');
+  const playPauseLabel = isPlaying ? t('media.pause') : t('media.play');
+  const muteLabel = isMuted ? t('media.volume.unmute') : t('media.volume.mute');
+  const sidebarToggleLabel = showPlayersSidebar
+    ? t('common.hide') || 'Hide'
+    : t('common.show') || 'Show';
+  const PlaceholderIcon = isChannel ? Tv : isSonos ? Speaker : Music;
+  const cycleRepeat = () => {
+    const modes = ['off', 'one', 'all'];
+    const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length];
+    callService('media_player', 'repeat_set', {
+      entity_id: mpId,
+      repeat: nextMode,
+    });
+  };
+  const toggleMute = () =>
+    callService('media_player', 'volume_mute', {
+      entity_id: mpId,
+      is_volume_muted: !isMuted,
+    });
+  const seekTo = (e) =>
+    callService('media_player', 'media_seek', {
+      entity_id: mpId,
+      seek_position: parseFloat(e.target.value),
+    });
+  const setVolume = (e) =>
+    callService('media_player', 'volume_set', {
+      entity_id: mpId,
+      volume_level: parseFloat(e.target.value) / 100,
+    });
+
+  const volumeRow = (
+    <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-3">
+      <button
+        onClick={() => changeVolumeByStep(-VOLUME_STEP)}
+        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+        aria-label={t('media.volume.down')}
+        title={t('media.volume.down')}
+      >
+        <Minus className="h-4 w-4" />
+      </button>
+      <button
+        onClick={toggleMute}
+        aria-label={muteLabel}
+        title={muteLabel}
+        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+      >
+        {isMuted ? (
+          <VolumeX className="h-4 w-4" />
+        ) : volume < 0.5 ? (
+          <Volume1 className="h-4 w-4" />
+        ) : (
+          <Volume2 className="h-4 w-4" />
+        )}
+      </button>
+      <div className="flex-1 px-1">
+        <M3Slider
+          variant="volume"
+          min={0}
+          max={100}
+          step={1}
+          value={volume * 100}
+          onChange={setVolume}
+          colorClass="bg-white"
+        />
+      </div>
+      <button
+        onClick={() => changeVolumeByStep(VOLUME_STEP)}
+        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+        aria-label={t('media.volume.up')}
+        title={t('media.volume.up')}
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
   return (
     <AccessibleModalShell
       open={show}
       onClose={handleModalClose}
       titleId="media-modal-title"
-      overlayClassName="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-2 font-sans md:items-center md:p-6"
-      overlayStyle={{
-        backdropFilter: showPlayersSidebar ? 'blur(20px)' : 'none',
-        backgroundColor: showPlayersSidebar ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.15)',
-      }}
-      panelClassName={`popup-anim relative flex w-full flex-col overflow-hidden shadow-2xl md:flex-row ${showPlayersSidebar ? 'max-w-5xl gap-4 rounded-3xl border p-4 backdrop-blur-xl md:gap-10 md:rounded-[4rem] md:p-10' : 'max-w-[calc(100vw-1rem)] rounded-2xl border-0 p-0 md:max-w-[95vw] md:rounded-[3rem]'}`}
-      panelStyle={{
-        background: showPlayersSidebar
-          ? 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)'
-          : 'black',
-        borderColor: 'var(--glass-border)',
-        height: showPlayersSidebar ? 'min(80dvh, 800px)' : 'min(90dvh, 1200px)',
-        maxHeight: 'calc(100dvh - 2rem)',
-      }}
+      size={showPlayersSidebar ? 'xl' : 'l'}
     >
-      {(resolvedTitleId) => (
+      {() => (
         <>
-          <h2 id={resolvedTitleId} className="sr-only">
-            {t('addCard.type.media')}
-          </h2>
-          {!showChoosePanel && (
-            <button
-              onClick={handleModalClose}
-              className={`modal-close absolute z-50 ${showPlayersSidebar ? 'top-6 right-6 md:top-10 md:right-10' : 'top-4 right-4 md:top-10 md:right-10'}`}
-              aria-label={t('common.close') || 'Close'}
-            >
-              <X
-                className={`h-6 w-6 drop-shadow-md ${showPlayersSidebar ? 'text-[var(--text-primary)]' : 'text-[var(--accent-color)]'}`}
+          <ModalHeader
+            title={playerTitle}
+            closeLabel={t('common.close') || 'Close'}
+            onClose={handleModalClose}
+            hideClose={showChoosePanel}
+            icon={isChannel ? <Tv /> : isCurrentSonos ? <Speaker /> : <Music />}
+            iconClassName={isPlaying ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : ''}
+            status={
+              <StatusChip
+                tone={getMediaPlayerStateTone(mpState)}
+                label={getMediaPlayerStateLabel(mpState, t)}
+                detail={statusDetail}
               />
-            </button>
-          )}
-
-          <div
-            className={`custom-scrollbar relative z-10 flex min-h-0 flex-col justify-start ${showPlayersSidebar ? 'flex-1 overflow-hidden pr-1 md:pr-2' : 'h-full w-full overflow-hidden'}`}
-          >
-            <div
-              className={`flex flex-shrink-0 items-center gap-2 md:gap-4 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-4 right-28 left-4 z-50 md:top-10 md:right-32 md:left-10'}`}
-            >
-              <div
-                className="rounded-xl p-2 transition-all duration-500 md:rounded-2xl md:p-4"
-                style={{
-                  backgroundColor: showPlayersSidebar ? 'var(--glass-bg)' : 'rgba(255,255,255,0.1)',
-                  color: showPlayersSidebar ? 'var(--text-secondary)' : 'white',
-                }}
-              >
-                {isChannel ? (
-                  <Tv className="h-5 w-5 md:h-8 md:w-8" />
-                ) : isCurrentSonos ? (
-                  <Speaker className="h-5 w-5 md:h-8 md:w-8" />
-                ) : (
-                  <Music className="h-5 w-5 md:h-8 md:w-8" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <h3
-                  className={`max-w-full leading-tight font-light tracking-tight break-words uppercase italic md:leading-tight ${showPlayersSidebar ? 'pr-10 text-lg text-[var(--text-primary)] md:pr-1 md:text-2xl' : 'line-clamp-2 text-sm text-white drop-shadow-md sm:text-base md:text-2xl'}`}
-                >
-                  {activeUser
-                    ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}`
-                    : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
-                </h3>
-                <div
-                  className="mt-1 inline-flex items-center gap-2 rounded-full border px-2 py-0.5 md:mt-2 md:px-3 md:py-1"
-                  style={{
-                    backgroundColor: showPlayersSidebar ? 'var(--glass-bg)' : 'rgba(0,0,0,0.3)',
-                    borderColor: showPlayersSidebar
-                      ? 'var(--glass-border)'
-                      : 'rgba(255,255,255,0.1)',
-                    color: showPlayersSidebar ? 'var(--text-secondary)' : 'rgba(255,255,255,0.7)',
-                  }}
-                >
-                  <div
-                    className={`h-1.5 w-1.5 rounded-full ${mpState === 'playing' ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]' : mpState === 'paused' ? 'bg-amber-400' : 'bg-slate-600'}`}
+            }
+            actions={
+              <>
+                {canTogglePower && (
+                  <Button
+                    size="sm"
+                    variant={isPowerOffAction ? 'destructive' : 'secondary'}
+                    onClick={() => callService('media_player', powerAction, { entity_id: mpId })}
+                    aria-label={powerLabel}
+                    title={powerLabel}
+                    icon={<Power className="h-4 w-4" />}
                   />
-                  <span className="hidden text-[10px] font-bold tracking-widest uppercase italic sm:inline">
-                    {isCurrentSonos ? t('media.sonosLabel') : popupHeading || mpState}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div
-              className={`flex flex-shrink-0 flex-col gap-2 ${showPlayersSidebar ? 'mb-2 md:mb-4' : 'absolute top-4 right-14 z-50 md:top-10 md:right-24'}`}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                {showPlayersSidebar && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={openChoosePanel}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="text-xs font-bold tracking-wider uppercase">
-                        {t('media.chooseMedia')}
-                      </span>
-                    </button>
-                    {lastChoice?.id && (
-                      <button
-                        type="button"
-                        onClick={() => playChoice(lastChoice)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 transition-colors hover:bg-[var(--glass-bg-hover)]"
-                      >
-                        <Music className="h-4 w-4 text-[var(--text-secondary)]" />
-                        <span className="max-w-[220px] truncate text-[11px] font-semibold text-[var(--text-secondary)]">
-                          {t('media.choose.lastChoice')}: {lastChoice.label}
-                        </span>
-                      </button>
-                    )}
-                    {isMusicAssistantMediaEntity(currentMp) && (
-                      <MusicAssistantLink title={t('media.openMusicAssistant')} />
-                    )}
-                  </>
                 )}
-                <button
-                  type="button"
+                <Button
+                  size="sm"
+                  variant="secondary"
                   onClick={() => setShowPlayersSidebar((prev) => !prev)}
-                  className={`ml-auto rounded-xl border transition-colors hover:scale-105 active:scale-95 ${
-                    showPlayersSidebar
-                      ? 'border-[var(--glass-border)] bg-[var(--glass-bg)] p-2 text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
-                      : 'rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] hover:opacity-90'
-                  }`}
-                  aria-label={
-                    showPlayersSidebar ? t('common.hide') || 'Hide' : t('common.show') || 'Show'
-                  }
-                  title={
-                    showPlayersSidebar ? t('common.hide') || 'Hide' : t('common.show') || 'Show'
-                  }
-                >
-                  {showPlayersSidebar ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <ChevronLeft className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div
-              className={`flex min-h-0 flex-1 flex-col justify-evenly gap-2 md:gap-4 ${showPlayersSidebar ? '' : 'hidden'}`}
-            >
-              <div
-                className={`group relative flex-shrink overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] shadow-2xl md:rounded-3xl ${showPlayersSidebar ? 'mx-auto aspect-square max-h-[40vh] w-full object-contain' : 'h-44 w-full sm:h-52 md:aspect-square md:h-auto md:w-[clamp(14rem,30vw,20rem)] md:flex-shrink-0'}`}
-              >
-                {isImageAvailable(safeCurrentArtworkUrl) ? (
-                  <SafeImage
-                    imageUrl={safeCurrentArtworkUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    onError={() => markImageFailed(safeCurrentArtworkUrl)}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    {isChannel ? (
-                      <Tv className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
-                    ) : isSonos ? (
-                      <Speaker className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
+                  aria-label={sidebarToggleLabel}
+                  title={sidebarToggleLabel}
+                  icon={
+                    showPlayersSidebar ? (
+                      <ChevronRight className="h-4 w-4" />
                     ) : (
-                      <Music className="h-14 w-14 text-[var(--text-muted)] md:h-20 md:w-20" />
-                    )}
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
-                <div className="absolute bottom-0 left-0 w-full p-4 md:p-8">
-                  <p className="mb-1 text-[11px] font-bold tracking-widest text-[var(--accent-color)] uppercase md:mb-2 md:text-sm">
-                    {activeUser
-                      ? `${activeUser} - ${applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}`
-                      : applyPlayerNameDisplayFilter(currentMp.attributes?.friendly_name || mpId)}
-                  </p>
-                  <h2 className="mb-1 line-clamp-2 text-lg leading-tight font-bold text-white md:mb-2 md:text-3xl">
-                    {mpTitle || t('common.unknown')}
-                  </h2>
-                  <p className="line-clamp-1 text-sm font-medium text-white/80 md:text-xl">
-                    {mpSeries}
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className={`flex flex-shrink-0 flex-col gap-2 ${showPlayersSidebar ? 'mt-2 space-y-2' : 'mt-4 space-y-4 md:mt-0 md:flex-1'}`}
-              >
-                <div className="flex flex-shrink-0 items-center justify-between px-1 text-xs font-bold tracking-widest text-[var(--text-muted)]">
-                  <span>{formatDuration(effectivePosition)}</span>
-                  <span>{formatDuration(duration)}</span>
-                </div>
-                <M3Slider
-                  variant="thin"
-                  min={0}
-                  max={duration || 100}
-                  step={1}
-                  value={effectivePosition || 0}
-                  disabled={!duration}
-                  onChange={(e) =>
-                    callService('media_player', 'media_seek', {
-                      entity_id: mpId,
-                      seek_position: parseFloat(e.target.value),
-                    })
+                      <ChevronLeft className="h-4 w-4" />
+                    )
                   }
-                  colorClass="bg-white"
                 />
+              </>
+            }
+          />
 
-                {isSonos ? (
-                  <div className="flex flex-col gap-4 pt-2">
-                    <div className="flex items-center justify-center gap-[clamp(0.25rem,1.6vw,1.5rem)]">
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'shuffle_set', {
-                            entity_id: mpId,
-                            shuffle: !shuffle,
-                          })
-                        }
-                        className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${shuffle ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                      >
-                        <Shuffle className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_previous_track', { entity_id: mpId })
-                        }
-                        className="rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
-                      >
-                        <SkipBack className="h-[clamp(1.1rem,2.6vw,1.25rem)] w-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_play_pause', { entity_id: mpId })
-                        }
-                        className="rounded-full bg-[var(--text-primary)] p-[clamp(0.35rem,1.2vw,0.75rem)] shadow-lg transition-colors active:scale-95"
-                      >
-                        {isPlaying ? (
-                          <Pause
-                            className="h-[clamp(1.25rem,3vw,1.5rem)] w-[clamp(1.25rem,3vw,1.5rem)]"
-                            color="var(--bg-primary)"
-                            fill="var(--bg-primary)"
-                          />
-                        ) : (
-                          <Play
-                            className="ml-0.5 h-[clamp(1.25rem,3vw,1.5rem)] w-[clamp(1.25rem,3vw,1.5rem)]"
-                            color="var(--bg-primary)"
-                            fill="var(--bg-primary)"
-                          />
-                        )}
-                      </button>
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_next_track', { entity_id: mpId })
-                        }
-                        className="rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
-                      >
-                        <SkipForward className="h-[clamp(1.1rem,2.6vw,1.25rem)] w-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" />
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          const modes = ['off', 'one', 'all'];
-                          const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length];
-                          callService('media_player', 'repeat_set', {
-                            entity_id: mpId,
-                            repeat: nextMode,
-                          });
-                        }}
-                        className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${repeat !== 'off' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-                      >
-                        {repeat === 'one' ? (
-                          <Repeat1 className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
-                        ) : (
-                          <Repeat className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
-                        )}
-                      </button>
-                      {canTogglePower && (
-                        <button
-                          onClick={() =>
-                            callService('media_player', powerAction, { entity_id: mpId })
-                          }
-                          className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
-                          title={isPowerOffAction ? t('status.off') : t('status.on')}
-                        >
-                          <Power className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-2">
-                      <button
-                        onClick={() => changeVolumeByStep(-VOLUME_STEP)}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                        aria-label="Volume down"
-                        title="Volume down"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'volume_mute', {
-                            entity_id: mpId,
-                            is_volume_muted: !isMuted,
-                          })
-                        }
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                      >
-                        {isMuted ? (
-                          <VolumeX className="h-4 w-4" />
-                        ) : volume < 0.5 ? (
-                          <Volume1 className="h-4 w-4" />
-                        ) : (
-                          <Volume2 className="h-4 w-4" />
-                        )}
-                      </button>
-                      <div className="flex-1 px-1">
-                        <M3Slider
-                          variant="volume"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={volume * 100}
-                          onChange={(e) =>
-                            callService('media_player', 'volume_set', {
-                              entity_id: mpId,
-                              volume_level: parseFloat(e.target.value) / 100,
-                            })
-                          }
-                          colorClass="bg-white"
-                        />
-                      </div>
-                      <button
-                        onClick={() => changeVolumeByStep(VOLUME_STEP)}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                        aria-label="Volume up"
-                        title="Volume up"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-4 pt-2">
-                    <div className="flex items-center justify-center gap-[clamp(0.25rem,1.8vw,1.5rem)]">
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_previous_track', { entity_id: mpId })
-                        }
-                        className="rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
-                      >
-                        <SkipBack className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_play_pause', { entity_id: mpId })
-                        }
-                        className="rounded-full bg-[var(--text-primary)] p-[clamp(0.65rem,2vw,1.5rem)] shadow-lg transition-colors active:scale-95"
-                      >
-                        {isPlaying ? (
-                          <Pause
-                            className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]"
-                            color="var(--bg-primary)"
-                            fill="var(--bg-primary)"
-                          />
-                        ) : (
-                          <Play
-                            className="ml-1 h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]"
-                            color="var(--bg-primary)"
-                            fill="var(--bg-primary)"
-                          />
-                        )}
-                      </button>
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_next_track', { entity_id: mpId })
-                        }
-                        className="rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
-                      >
-                        <SkipForward className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" />
-                      </button>
-                      {canTogglePower && (
-                        <button
-                          onClick={() =>
-                            callService('media_player', powerAction, { entity_id: mpId })
-                          }
-                          className={`rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
-                          title={isPowerOffAction ? t('status.off') : t('status.on')}
-                        >
-                          <Power className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]" />
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-2">
-                      <button
-                        onClick={() => changeVolumeByStep(-VOLUME_STEP)}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                        aria-label="Volume down"
-                        title="Volume down"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'volume_mute', {
-                            entity_id: mpId,
-                            is_volume_muted: !isMuted,
-                          })
-                        }
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                      >
-                        {isMuted ? (
-                          <VolumeX className="h-4 w-4" />
-                        ) : volume < 0.5 ? (
-                          <Volume1 className="h-4 w-4" />
-                        ) : (
-                          <Volume2 className="h-4 w-4" />
-                        )}
-                      </button>
-                      <div className="flex-1 px-1">
-                        <M3Slider
-                          variant="volume"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={volume * 100}
-                          onChange={(e) =>
-                            callService('media_player', 'volume_set', {
-                              entity_id: mpId,
-                              volume_level: parseFloat(e.target.value) / 100,
-                            })
-                          }
-                          colorClass="bg-white"
-                        />
-                      </div>
-                      <button
-                        onClick={() => changeVolumeByStep(VOLUME_STEP)}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                        aria-label="Volume up"
-                        title="Volume up"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {!showPlayersSidebar && (
-              <div className="flex h-full w-full flex-col justify-end overflow-y-auto pt-24 pb-4 sm:pb-6 md:overflow-hidden md:pt-0 md:pb-12">
-                {/* Background Artwork - Full Screen */}
-                <div className="absolute inset-0 z-0">
-                  {isImageAvailable(safeCurrentArtworkUrl) ? (
-                    <>
-                      <SafeImage
-                        imageUrl={safeCurrentArtworkUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                        onError={() => markImageFailed(safeCurrentArtworkUrl)}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
-                    </>
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gray-900">
-                      <Music className="h-32 w-32 text-[var(--text-muted)]" />
-                    </div>
+          {showPlayersSidebar ? (
+            <ModalBody className="grid gap-6 md:grid-cols-[minmax(0,1fr)_20rem] lg:grid-cols-[minmax(0,1fr)_22rem]">
+              <div className="flex min-w-0 flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={openChoosePanel}
+                    icon={<Plus className="h-4 w-4" />}
+                  >
+                    {t('media.chooseMedia')}
+                  </Button>
+                  {lastChoice?.id && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => playChoice(lastChoice)}
+                      icon={<Music className="h-4 w-4" />}
+                    >
+                      <span className="max-w-[220px] truncate">
+                        {t('media.choose.lastChoice')}: {lastChoice.label}
+                      </span>
+                    </Button>
+                  )}
+                  {isMusicAssistantMediaEntity(currentMp) && (
+                    <MusicAssistantLink title={t('media.openMusicAssistant')} />
                   )}
                 </div>
 
-                {/* Main Content Overlay - Bottom Aligned Controls */}
-                <div
-                  data-testid="media-immersive-content"
-                  className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-4 sm:gap-4 sm:px-6 md:gap-6 md:px-16"
-                >
-                  {/* Intro / Metadata */}
-                  <div className="w-full text-center">
-                    <h2 className="mb-1 line-clamp-2 text-xl leading-tight font-bold text-white drop-shadow-lg sm:mb-2 sm:text-2xl md:text-5xl">
-                      {mpTitle || t('common.unknown')}
-                    </h2>
-                    <p className="line-clamp-1 text-sm font-medium text-white/80 drop-shadow-md sm:text-base md:text-2xl">
-                      {mpSeries || mpArtist}
-                    </p>
-                  </div>
-
-                  {/* Progress Bar & Times */}
-                  <div className="flex w-full items-center gap-2 sm:gap-3 md:gap-4">
-                    <span className="w-10 text-right text-[10px] font-medium text-white/80 drop-shadow-md sm:w-12 sm:text-xs">
-                      {formatDuration(effectivePosition)}
-                    </span>
-                    <div className="flex-1">
-                      <M3Slider
-                        variant="thin"
-                        min={0}
-                        max={duration || 100}
-                        step={1}
-                        value={effectivePosition || 0}
-                        disabled={!duration}
-                        onChange={(e) =>
-                          callService('media_player', 'media_seek', {
-                            entity_id: mpId,
-                            seek_position: parseFloat(e.target.value),
-                          })
-                        }
-                        colorClass="bg-white"
-                      />
+                {hasArtwork ? (
+                  <div className="group relative mx-auto aspect-square max-h-[40vh] w-full overflow-hidden rounded-[var(--modal-surface-radius)] border border-[var(--glass-border)] bg-[var(--glass-bg)]">
+                    <SafeImage
+                      imageUrl={safeCurrentArtworkUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      onError={() => markImageFailed(safeCurrentArtworkUrl)}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                    <div className="absolute bottom-0 left-0 w-full p-4 md:p-6">
+                      <h3 className="mb-1 line-clamp-2 text-lg leading-tight font-bold text-white md:text-3xl">
+                        {mpTitle || t('common.unknown')}
+                      </h3>
+                      <p className="line-clamp-1 text-sm font-medium text-white/80 md:text-xl">
+                        {mpSeries}
+                      </p>
                     </div>
-                    <span className="w-10 text-[10px] font-medium text-white/80 drop-shadow-md sm:w-12 sm:text-xs">
-                      {formatDuration(duration)}
-                    </span>
                   </div>
+                ) : (
+                  <div className="popup-surface flex items-center gap-4 rounded-[var(--modal-surface-radius)] p-4 md:p-6">
+                    <div className="flex h-16 w-16 flex-none items-center justify-center rounded-2xl bg-[var(--glass-bg-hover)] md:h-20 md:w-20">
+                      <PlaceholderIcon className="h-8 w-8 text-[var(--text-muted)] md:h-10 md:w-10" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="line-clamp-2 text-lg leading-tight font-bold text-[var(--text-primary)] md:text-2xl">
+                        {mpTitle || t('common.unknown')}
+                      </h3>
+                      {mpSeries && (
+                        <p className="mt-1 line-clamp-1 text-sm font-medium text-[var(--text-secondary)] md:text-base">
+                          {mpSeries}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                  {/* Main Controls Row */}
-                  <div
-                    data-testid="media-immersive-controls"
-                    className="flex w-full flex-col items-center justify-between gap-3 md:flex-row md:gap-8"
-                  >
-                    {/* Volume Group */}
-                    <div
-                      data-testid="media-immersive-volume"
-                      className="flex w-full max-w-sm items-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-md md:w-auto md:max-w-none"
-                    >
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'volume_mute', {
-                            entity_id: mpId,
-                            is_volume_muted: !isMuted,
-                          })
-                        }
-                        className="text-white/80 transition-colors hover:text-white"
-                      >
-                        {isMuted ? (
-                          <VolumeX className="h-5 w-5" />
-                        ) : (
-                          <Volume2 className="h-5 w-5" />
-                        )}
-                      </button>
-                      <div className="min-w-0 flex-1 md:w-48 md:flex-none lg:w-64">
-                        <M3Slider
-                          variant="volume"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={volume * 100}
-                          onChange={(e) =>
-                            callService('media_player', 'volume_set', {
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between px-1 text-xs font-bold text-[var(--text-muted)] tabular-nums">
+                    <span>{formatDuration(effectivePosition)}</span>
+                    <span>{formatDuration(duration)}</span>
+                  </div>
+                  <M3Slider
+                    variant="thin"
+                    min={0}
+                    max={duration || 100}
+                    step={1}
+                    value={effectivePosition || 0}
+                    disabled={!duration}
+                    onChange={seekTo}
+                    colorClass="bg-white"
+                  />
+
+                  {isSonos ? (
+                    <div className="flex flex-col gap-4 pt-2">
+                      <div className="flex items-center justify-center gap-[clamp(0.25rem,1.6vw,1.5rem)]">
+                        <button
+                          onClick={() =>
+                            callService('media_player', 'shuffle_set', {
                               entity_id: mpId,
-                              volume_level: parseFloat(e.target.value) / 100,
+                              shuffle: !shuffle,
                             })
                           }
-                          colorClass="bg-white"
-                        />
+                          aria-label={t('media.shuffle')}
+                          aria-pressed={!!shuffle}
+                          className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${shuffle ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          <Shuffle className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            callService('media_player', 'media_previous_track', { entity_id: mpId })
+                          }
+                          aria-label={t('media.previousTrack')}
+                          className="rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                        >
+                          <SkipBack className="h-[clamp(1.1rem,2.6vw,1.25rem)] w-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            callService('media_player', 'media_play_pause', { entity_id: mpId })
+                          }
+                          aria-label={playPauseLabel}
+                          className="rounded-full bg-[var(--text-primary)] p-[clamp(0.35rem,1.2vw,0.75rem)] shadow-lg transition-colors active:scale-95"
+                        >
+                          {isPlaying ? (
+                            <Pause
+                              className="h-[clamp(1.25rem,3vw,1.5rem)] w-[clamp(1.25rem,3vw,1.5rem)]"
+                              color="var(--bg-primary)"
+                              fill="var(--bg-primary)"
+                            />
+                          ) : (
+                            <Play
+                              className="ml-0.5 h-[clamp(1.25rem,3vw,1.5rem)] w-[clamp(1.25rem,3vw,1.5rem)]"
+                              color="var(--bg-primary)"
+                              fill="var(--bg-primary)"
+                            />
+                          )}
+                        </button>
+                        <button
+                          onClick={() =>
+                            callService('media_player', 'media_next_track', { entity_id: mpId })
+                          }
+                          aria-label={t('media.nextTrack')}
+                          className="rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                        >
+                          <SkipForward className="h-[clamp(1.1rem,2.6vw,1.25rem)] w-[clamp(1.1rem,2.6vw,1.25rem)] text-[var(--text-secondary)]" />
+                        </button>
+
+                        <button
+                          onClick={cycleRepeat}
+                          aria-label={t('media.repeat')}
+                          className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-colors ${repeat !== 'off' ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {repeat === 'one' ? (
+                            <Repeat1 className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
+                          ) : (
+                            <Repeat className="h-[clamp(0.9rem,2vw,1rem)] w-[clamp(0.9rem,2vw,1rem)]" />
+                          )}
+                        </button>
                       </div>
+                      {volumeRow}
                     </div>
-
-                    {/* Playback Buttons */}
-                    <div
-                      data-testid="media-immersive-playback"
-                      className="flex items-center justify-center gap-3 sm:gap-4 md:gap-8"
-                    >
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'shuffle_set', {
-                            entity_id: mpId,
-                            shuffle: !shuffle,
-                          })
-                        }
-                        className={`text-white/60 transition-colors hover:text-white ${shuffle ? 'text-[var(--status-success-fg)]' : ''}`}
-                      >
-                        <Shuffle className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_previous_track', { entity_id: mpId })
-                        }
-                        className="text-white transition-transform hover:text-white/80 active:scale-90"
-                      >
-                        <SkipBack
-                          className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
-                          fill="currentColor"
-                        />
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_play_pause', { entity_id: mpId })
-                        }
-                        className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-xl transition-all hover:scale-105 active:scale-95 sm:h-16 sm:w-16 md:h-20 md:w-20"
-                      >
-                        {isPlaying ? (
-                          <Pause className="h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
-                        ) : (
-                          <Play className="ml-1 h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          callService('media_player', 'media_next_track', { entity_id: mpId })
-                        }
-                        className="text-white transition-transform hover:text-white/80 active:scale-90"
-                      >
-                        <SkipForward
-                          className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
-                          fill="currentColor"
-                        />
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          const modes = ['off', 'one', 'all'];
-                          const nextMode = modes[(modes.indexOf(repeat) + 1) % modes.length];
-                          callService('media_player', 'repeat_set', {
-                            entity_id: mpId,
-                            repeat: nextMode,
-                          });
-                        }}
-                        className={`text-white/60 transition-colors hover:text-white ${repeat !== 'off' ? 'text-[var(--status-success-fg)]' : ''}`}
-                      >
-                        {repeat === 'one' ? (
-                          <Repeat1 className="h-4 w-4 sm:h-5 sm:w-5" />
-                        ) : (
-                          <Repeat className="h-4 w-4 sm:h-5 sm:w-5" />
-                        )}
-                      </button>
+                  ) : (
+                    <div className="flex flex-col gap-4 pt-2">
+                      <div className="flex items-center justify-center gap-[clamp(0.25rem,1.8vw,1.5rem)]">
+                        <button
+                          onClick={() =>
+                            callService('media_player', 'media_previous_track', { entity_id: mpId })
+                          }
+                          aria-label={t('media.previousTrack')}
+                          className="rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                        >
+                          <SkipBack className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            callService('media_player', 'media_play_pause', { entity_id: mpId })
+                          }
+                          aria-label={playPauseLabel}
+                          className="rounded-full bg-[var(--text-primary)] p-[clamp(0.65rem,2vw,1.5rem)] shadow-lg transition-colors active:scale-95"
+                        >
+                          {isPlaying ? (
+                            <Pause
+                              className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]"
+                              color="var(--bg-primary)"
+                              fill="var(--bg-primary)"
+                            />
+                          ) : (
+                            <Play
+                              className="ml-1 h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)]"
+                              color="var(--bg-primary)"
+                              fill="var(--bg-primary)"
+                            />
+                          )}
+                        </button>
+                        <button
+                          onClick={() =>
+                            callService('media_player', 'media_next_track', { entity_id: mpId })
+                          }
+                          aria-label={t('media.nextTrack')}
+                          className="rounded-full p-[clamp(0.45rem,1.4vw,1rem)] transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                        >
+                          <SkipForward className="h-[clamp(1.25rem,3vw,2rem)] w-[clamp(1.25rem,3vw,2rem)] text-[var(--text-secondary)]" />
+                        </button>
+                      </div>
+                      {volumeRow}
                     </div>
-
-                    {/* Empty spacer to balance layout or auxiliary controls */}
-                    <div className="hidden w-[140px] md:block" />
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
 
-          {showPlayersSidebar && (
-            <div className="relative min-h-0 w-full overflow-hidden border-t border-[var(--glass-border)] transition-all duration-300 ease-out md:w-80 md:border-t-0 md:border-l lg:w-[22rem]">
-              <div className="custom-scrollbar absolute inset-0 flex min-h-0 flex-col gap-6 overflow-y-auto pt-4 pl-0 md:pt-10 md:pl-8 lg:pt-16 lg:pl-12">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold tracking-[0.2em] text-[var(--text-muted)] uppercase">
+              <div className="flex min-w-0 flex-col gap-6 border-t border-[var(--glass-border)] pt-6 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="modal-section-label">
                     {isSonos || isAllSonos
                       ? t('media.group.sonosPlayers')
                       : t('media.group.selectedPlayers')}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    {canGroup && listPlayers.length > 1 && (
-                      <button
-                        onClick={() => {
-                          const allIds = listPlayers.map((p) => p.entity_id);
-                          const unjoined = allIds.filter((id) => !groupMembers.includes(id));
-                          if (unjoined.length > 0) {
-                            callService('media_player', 'join', {
-                              entity_id: mpId,
-                              group_members: unjoined,
-                            });
-                          } else {
-                            const others = groupMembers.filter((id) => id !== mpId);
-                            others.forEach((id) =>
-                              callService('media_player', 'unjoin', { entity_id: id })
-                            );
-                          }
-                        }}
-                        className="text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase transition-colors hover:text-white"
-                      >
-                        {listPlayers.every((p) => groupMembers.includes(p.entity_id))
-                          ? t('sonos.ungroupAll')
-                          : t('sonos.groupAll')}
-                      </button>
-                    )}
-                  </div>
+                  {canGroup && listPlayers.length > 1 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const allIds = listPlayers.map((p) => p.entity_id);
+                        const unjoined = allIds.filter((id) => !groupMembers.includes(id));
+                        if (unjoined.length > 0) {
+                          callService('media_player', 'join', {
+                            entity_id: mpId,
+                            group_members: unjoined,
+                          });
+                        } else {
+                          const others = groupMembers.filter((id) => id !== mpId);
+                          others.forEach((id) =>
+                            callService('media_player', 'unjoin', { entity_id: id })
+                          );
+                        }
+                      }}
+                    >
+                      {listPlayers.every((p) => groupMembers.includes(p.entity_id))
+                        ? t('sonos.ungroupAll')
+                        : t('sonos.groupAll')}
+                    </Button>
+                  )}
                 </div>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
                   {listPlayers.length === 0 && (
-                    <p className="text-sm text-[var(--text-muted)] italic">
-                      {t('media.noPlayersFound')}
-                    </p>
+                    <p className="text-sm text-[var(--text-muted)]">{t('media.noPlayersFound')}</p>
                   )}
                   {listPlayers.map((p, idx) => {
                     const isSelected = p.entity_id === mpId;
@@ -1698,7 +1381,7 @@ export default function MediaModal({
                           </div>
                           <div className="overflow-hidden">
                             <p
-                              className={`truncate text-xs font-bold tracking-wider uppercase ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}
+                              className={`truncate text-xs font-bold tracking-[0.08em] uppercase ${isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}
                             >
                               {applyPlayerNameDisplayFilter(
                                 p.attributes?.friendly_name || p.entity_id
@@ -1708,7 +1391,7 @@ export default function MediaModal({
                               {pTitle}
                             </p>
                             {pUser && (
-                              <p className="truncate text-[10px] text-[var(--text-muted)]">
+                              <p className="truncate text-[11px] text-[var(--text-muted)]">
                                 {pUser}
                               </p>
                             )}
@@ -1717,8 +1400,8 @@ export default function MediaModal({
                         {p.state === 'playing' && (
                           <div
                             className="ml-1 flex h-7 items-end gap-0.5 px-1"
-                            title={t('status.playing') || 'Playing'}
-                            aria-label={t('status.playing') || 'Playing'}
+                            title={t('state.playing')}
+                            aria-label={t('state.playing')}
                           >
                             <span
                               className="media-eq-bar h-2.5 w-0.5 rounded-full bg-[var(--accent-color)]"
@@ -1751,8 +1434,11 @@ export default function MediaModal({
                                 });
                               }
                             }}
-                            className={`rounded-full p-2.5 transition-all ${isMember ? 'border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)] shadow-lg ' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                            className={`rounded-full p-2.5 transition-all ${isMember ? 'border border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                             title={
+                              isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')
+                            }
+                            aria-label={
                               isMember ? t('tooltip.removeFromGroup') : t('tooltip.addToGroup')
                             }
                           >
@@ -1772,19 +1458,21 @@ export default function MediaModal({
                   })}
                 </div>
                 {canGroup && (
-                  <div className="space-y-2 border-t border-[var(--glass-border)] pt-2">
-                    <button
-                      type="button"
+                  <div className="space-y-2 border-t border-[var(--glass-border)] pt-3">
+                    <Button
+                      size="sm"
+                      variant="secondary"
                       onClick={() => setShowAddSonosPicker((prev) => !prev)}
-                      className="text-[10px] font-bold tracking-widest text-[var(--status-success-fg)] uppercase transition-colors hover:opacity-80"
+                      aria-expanded={showAddSonosPicker}
+                      icon={<Plus className="h-4 w-4" />}
                     >
-                      + {t('media.addSonosPlayer')}
-                    </button>
+                      {t('media.addSonosPlayer')}
+                    </Button>
                     {showAddSonosPicker && (
                       <div className="popup-surface space-y-2 rounded-2xl border border-[var(--glass-border)] p-3">
                         {extraSelectedPlayerIds.length > 0 && (
                           <div className="space-y-2 border-b border-[var(--glass-border)] pb-2">
-                            <p className="text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase">
+                            <p className="modal-section-label">
                               {t('media.group.selectedPlayers')}
                             </p>
                             {effectiveExtras
@@ -1800,23 +1488,23 @@ export default function MediaModal({
                                       player.attributes?.friendly_name || player.entity_id
                                     )}
                                   </span>
-                                  <button
-                                    type="button"
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
                                     onClick={() =>
                                       setExtraSelectedPlayerIds((prev) =>
                                         prev.filter((id) => id !== player.entity_id)
                                       )
                                     }
-                                    className="text-[10px] font-bold tracking-widest text-rose-400 uppercase transition-colors hover:text-rose-300"
                                   >
                                     {t('media.clearSelection')}
-                                  </button>
+                                  </Button>
                                 </div>
                               ))}
                           </div>
                         )}
                         {availableSonosToAdd.length === 0 && (
-                          <p className="text-xs text-[var(--text-muted)] italic">
+                          <p className="text-xs text-[var(--text-muted)]">
                             {t('media.noAvailableSonosPlayers')}
                           </p>
                         )}
@@ -1842,7 +1530,173 @@ export default function MediaModal({
                   </div>
                 )}
               </div>
-            </div>
+            </ModalBody>
+          ) : (
+            <ModalBody>
+              <div className="relative flex min-h-[min(68dvh,40rem)] flex-col justify-end overflow-hidden rounded-[var(--modal-surface-radius)] bg-black pt-10 pb-4 sm:pb-6 md:pb-10">
+                {/* Background Artwork */}
+                <div className="absolute inset-0 z-0">
+                  {hasArtwork ? (
+                    <>
+                      <SafeImage
+                        imageUrl={safeCurrentArtworkUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={() => markImageFailed(safeCurrentArtworkUrl)}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30" />
+                    </>
+                  ) : (
+                    <div className="flex h-full w-full items-start justify-center bg-gray-900 pt-[8%]">
+                      <PlaceholderIcon className="h-16 w-16 text-white/20 md:h-24 md:w-24" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Main Content Overlay - Bottom Aligned Controls */}
+                <div
+                  data-testid="media-immersive-content"
+                  className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-4 sm:gap-4 sm:px-6 md:gap-6 md:px-12"
+                >
+                  <div className="w-full text-center">
+                    <h3 className="mb-1 line-clamp-2 text-xl leading-tight font-bold text-white drop-shadow-lg sm:mb-2 sm:text-2xl md:text-4xl">
+                      {mpTitle || t('common.unknown')}
+                    </h3>
+                    <p className="line-clamp-1 text-sm font-medium text-white/80 drop-shadow-md sm:text-base md:text-xl">
+                      {mpSeries || mpArtist}
+                    </p>
+                  </div>
+
+                  <div className="flex w-full items-center gap-2 sm:gap-3 md:gap-4">
+                    <span className="w-10 text-right text-[11px] font-medium text-white/80 tabular-nums drop-shadow-md sm:w-12 sm:text-xs">
+                      {formatDuration(effectivePosition)}
+                    </span>
+                    <div className="flex-1">
+                      <M3Slider
+                        variant="thin"
+                        min={0}
+                        max={duration || 100}
+                        step={1}
+                        value={effectivePosition || 0}
+                        disabled={!duration}
+                        onChange={seekTo}
+                        colorClass="bg-white"
+                      />
+                    </div>
+                    <span className="w-10 text-[11px] font-medium text-white/80 tabular-nums drop-shadow-md sm:w-12 sm:text-xs">
+                      {formatDuration(duration)}
+                    </span>
+                  </div>
+
+                  <div
+                    data-testid="media-immersive-controls"
+                    className="flex w-full flex-col items-center justify-between gap-3 md:flex-row md:gap-8"
+                  >
+                    <div
+                      data-testid="media-immersive-volume"
+                      className="flex w-full max-w-sm items-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-md md:w-auto md:max-w-none"
+                    >
+                      <button
+                        onClick={toggleMute}
+                        aria-label={muteLabel}
+                        title={muteLabel}
+                        className="text-white/80 transition-colors hover:text-white"
+                      >
+                        {isMuted ? (
+                          <VolumeX className="h-5 w-5" />
+                        ) : (
+                          <Volume2 className="h-5 w-5" />
+                        )}
+                      </button>
+                      <div className="min-w-0 flex-1 md:w-48 md:flex-none lg:w-56">
+                        <M3Slider
+                          variant="volume"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={volume * 100}
+                          onChange={setVolume}
+                          colorClass="bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div
+                      data-testid="media-immersive-playback"
+                      className="flex items-center justify-center gap-3 sm:gap-4 md:gap-8"
+                    >
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'shuffle_set', {
+                            entity_id: mpId,
+                            shuffle: !shuffle,
+                          })
+                        }
+                        aria-label={t('media.shuffle')}
+                        aria-pressed={!!shuffle}
+                        className={`transition-colors hover:text-white ${shuffle ? 'text-[var(--accent-color)]' : 'text-white/60'}`}
+                      >
+                        <Shuffle className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_previous_track', { entity_id: mpId })
+                        }
+                        aria-label={t('media.previousTrack')}
+                        className="text-white transition-transform hover:text-white/80 active:scale-90"
+                      >
+                        <SkipBack
+                          className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+                          fill="currentColor"
+                        />
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_play_pause', { entity_id: mpId })
+                        }
+                        aria-label={playPauseLabel}
+                        className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-black shadow-xl transition-all hover:scale-105 active:scale-95 sm:h-16 sm:w-16 md:h-20 md:w-20"
+                      >
+                        {isPlaying ? (
+                          <Pause className="h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
+                        ) : (
+                          <Play className="ml-1 h-6 w-6 md:h-8 md:w-8" fill="currentColor" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          callService('media_player', 'media_next_track', { entity_id: mpId })
+                        }
+                        aria-label={t('media.nextTrack')}
+                        className="text-white transition-transform hover:text-white/80 active:scale-90"
+                      >
+                        <SkipForward
+                          className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+                          fill="currentColor"
+                        />
+                      </button>
+
+                      <button
+                        onClick={cycleRepeat}
+                        aria-label={t('media.repeat')}
+                        className={`transition-colors hover:text-white ${repeat !== 'off' ? 'text-[var(--accent-color)]' : 'text-white/60'}`}
+                      >
+                        {repeat === 'one' ? (
+                          <Repeat1 className="h-4 w-4 sm:h-5 sm:w-5" />
+                        ) : (
+                          <Repeat className="h-4 w-4 sm:h-5 sm:w-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="hidden w-[140px] md:block" />
+                  </div>
+                </div>
+              </div>
+            </ModalBody>
           )}
 
           {showChoosePanel && (
@@ -1863,10 +1717,10 @@ export default function MediaModal({
               <header className="flex-shrink-0 border-b border-[var(--glass-border)] px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 pt-0.5">
-                    <h4 className="text-sm font-bold tracking-[0.2em] text-[var(--text-primary)] uppercase">
+                    <h4 className="text-sm font-bold tracking-[0.12em] text-[var(--text-primary)] uppercase">
                       {t('media.chooseMedia')}
                     </h4>
-                    <p className="mt-1 truncate text-[11px] text-[var(--text-muted)]">
+                    <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
                       {t('media.chooseMediaHint')}
                     </p>
                   </div>
@@ -1881,12 +1735,14 @@ export default function MediaModal({
                   </button>
                 </div>
 
-                <div className="mt-4 grid grid-cols-4 gap-1.5" role="group">
-                  {renderChooseTabButton('favorites', t('media.choose.tab.favorites'))}
-                  {renderChooseTabButton('playlists', t('media.choose.tab.playlists'))}
-                  {renderChooseTabButton('library', t('media.choose.tab.library'))}
-                  {renderChooseTabButton('search', t('media.choose.tab.search'))}
-                </div>
+                <Segmented
+                  block
+                  className="mt-4"
+                  ariaLabel={t('media.chooseMedia')}
+                  value={chooseTab}
+                  onChange={setChooseTab}
+                  options={chooseTabOptions}
+                />
 
                 {chooseTab === 'search' && (
                   <input
@@ -1908,11 +1764,11 @@ export default function MediaModal({
               >
                 <div className="flex h-9 items-center" aria-live="polite">
                   {chooseLoading ? (
-                    <span className="text-[11px] font-medium text-[var(--text-muted)] italic">
+                    <span className="text-[11px] font-medium text-[var(--text-muted)]">
                       {t('media.choose.loading')}
                     </span>
                   ) : chooseError ? (
-                    <span className="text-[11px] font-medium text-amber-400 italic">
+                    <span className="text-[11px] font-medium text-[var(--status-warning-fg)]">
                       {t('media.choose.loadError')}
                     </span>
                   ) : null}
@@ -1946,7 +1802,7 @@ export default function MediaModal({
                         <Music className="h-5 w-5" />
                       )}
                     </div>
-                    <p className="mt-3 text-sm font-medium text-[var(--text-secondary)] italic">
+                    <p className="mt-3 text-sm font-medium text-[var(--text-secondary)]">
                       {activeChooseEmptyMessage}
                     </p>
                   </div>

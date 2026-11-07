@@ -422,10 +422,10 @@ test.describe('Modal Interactions', () => {
     expect(chooserBefore).not.toBeNull();
     expect(resultsBefore).not.toBeNull();
 
-    await expect(chooser.getByRole('button', { name: 'Favorites' })).toBeVisible();
-    await expect(chooser.getByRole('button', { name: 'Playlists' })).toBeVisible();
-    await expect(chooser.getByRole('button', { name: 'Library' })).toBeVisible();
-    await expect(chooser.getByRole('button', { name: 'Search' })).toBeVisible();
+    await expect(chooser.getByRole('radio', { name: 'Favorites' })).toBeVisible();
+    await expect(chooser.getByRole('radio', { name: 'Playlists' })).toBeVisible();
+    await expect(chooser.getByRole('radio', { name: 'Library' })).toBeVisible();
+    await expect(chooser.getByRole('radio', { name: 'Search' })).toBeVisible();
     await expect(chooser.getByText('Born to Be Alive')).toBeVisible();
 
     const chooserAfter = await chooser.boundingBox();
@@ -435,10 +435,10 @@ test.describe('Modal Interactions', () => {
     expect(await modal.locator('.modal-close:visible').count()).toBe(1);
     await expect(modal.getByTestId('media-chooser-close')).toBeVisible();
 
-    await chooser.getByRole('button', { name: 'Library' }).click();
+    await chooser.getByRole('radio', { name: 'Library' }).click();
     await expect(chooser.getByText('90-talet')).toBeVisible();
 
-    await chooser.getByRole('button', { name: 'Search' }).click();
+    await chooser.getByRole('radio', { name: 'Search' }).click();
     await chooser.getByRole('searchbox').fill('90');
     await expect(chooser.getByText('90-talet')).toBeVisible();
 
@@ -448,8 +448,8 @@ test.describe('Modal Interactions', () => {
     expect(mobileChooserBounds.x + mobileChooserBounds.width).toBeLessThanOrEqual(390);
 
     const mobileTabBounds = await chooser
-      .getByRole('group')
-      .getByRole('button')
+      .getByRole('radiogroup')
+      .getByRole('radio')
       .evaluateAll((buttons) =>
         buttons.map((button) => {
           const bounds = button.getBoundingClientRect();
@@ -460,7 +460,7 @@ test.describe('Modal Interactions', () => {
       expect(left).toBeGreaterThanOrEqual(mobileChooserBounds.x);
       expect(right).toBeLessThanOrEqual(mobileChooserBounds.x + mobileChooserBounds.width);
     });
-    await chooser.getByRole('button', { name: 'Favorites' }).click();
+    await chooser.getByRole('radio', { name: 'Favorites' }).click();
   });
 
   test('should browse, search and play Music Assistant media through its own actions', async ({
@@ -591,13 +591,13 @@ test.describe('Modal Interactions', () => {
 
     const chooser = modal.getByTestId('media-chooser');
     await expect(chooser.getByText('Born To Die')).toBeVisible();
-    await chooser.getByRole('button', { name: 'Playlists' }).click();
+    await chooser.getByRole('radio', { name: 'Playlists' }).click();
     await expect(chooser.getByText('Fredagsmiks')).toBeVisible();
-    await chooser.getByRole('button', { name: 'Library' }).click();
+    await chooser.getByRole('radio', { name: 'Library' }).click();
     await expect(chooser.getByText('Lust For Life')).toBeVisible();
     await expect(chooser.getByText('Lana Del Rey')).toBeVisible();
 
-    await chooser.getByRole('button', { name: 'Search' }).click();
+    await chooser.getByRole('radio', { name: 'Search' }).click();
     await expect(chooser.getByText('Type to search Music Assistant')).toBeVisible();
     await chooser.getByRole('searchbox').fill('lana');
     await chooser.getByText('13 Beaches').click();

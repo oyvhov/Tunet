@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Coins, X, TrendingUp, BarChart3 } from '../icons';
+import { Coins, TrendingUp, BarChart3 } from '../icons';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import { getHistory, getStatistics } from '../services/haClient';
 import { getIconComponent } from '../icons';
 import { useHomeAssistantMeta } from '../contexts';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import Segmented from '../components/ui/Segmented';
 
 const parseNumeric = (value) => {
   const num = parseFloat(value);
@@ -45,7 +47,11 @@ const buildBuckets = (points, rangeHours) => {
     if (!Number.isFinite(time)) return;
     if (time < startMs) return;
     const bucketStart = Math.floor((time - startMs) / bucketMs) * bucketMs + startMs;
-    const entry = buckets.get(bucketStart) || { last: p.value, lastTime: time, time: new Date(bucketStart) };
+    const entry = buckets.get(bucketStart) || {
+      last: p.value,
+      lastTime: time,
+      time: new Date(bucketStart),
+    };
     // Keep the latest value in each bucket (energy cost accumulates)
     if (time >= entry.lastTime) {
       entry.last = p.value;
@@ -88,7 +94,7 @@ const ensureRangeCoverage = (data, start, end) => {
   return normalized;
 };
 
-const BarChart = ({ data, height = 200, color = '#34d399', rangeHours = 24 }) => {
+const BarChart = ({ data, height = 200, color = 'var(--status-success-fg)', rangeHours = 24 }) => {
   if (!data.length) return null;
   const width = 600;
   const padding = { top: 16, right: 16, bottom: 32, left: 48 };
@@ -276,9 +282,7 @@ export default function CostModal({
               d.last_changed || d.last_updated || d.last_reported || d.timestamp || d.lc || d.lu
             ),
           }))
-          .filter(
-            (d) => d.value !== null && d.time instanceof Date
-          );
+          .filter((d) => d.value !== null && d.time instanceof Date);
 
         if (points.length < 2) {
           const stats = await getStatistics(conn, {
@@ -359,193 +363,163 @@ export default function CostModal({
   const displayName = name || translate('energyCost.title');
   const CustomIcon = iconName ? getIconComponent(iconName) : null;
   const HeaderIcon = CustomIcon || Coins;
-  const modalTitleId =
-    `cost-modal-title-${activeEntity?.entity_id?.replace(/[^a-zA-Z0-9_-]/g, '-') || 'cost'}`;
+  const modalTitleId = `cost-modal-title-${activeEntity?.entity_id?.replace(/[^a-zA-Z0-9_-]/g, '-') || 'cost'}`;
 
   if (!show) return null;
 
+  const sourceOptions = [
+    { value: 'today', label: translate('energyCost.today') },
+    { value: 'month', label: translate('energyCost.thisMonth') },
+  ].filter((item) => (item.value === 'today' ? todayEntityId : monthEntityId));
+  const rangeOptions = [24, 48, 72, 168].map((hours) => ({
+    value: hours,
+    label: translate(hours >= 168 ? 'sensor.graphRange7d' : `sensor.graphRange${hours}h`),
+  }));
+  const formatStat = (value) => (value === '--' ? '--' : `${value} ${currency}`);
+  const renderStat = (value, className) =>
+    loading ? (
+      <span
+        className="mt-1 block h-6 w-24 animate-pulse rounded-md bg-[var(--glass-bg-hover)]"
+        aria-hidden="true"
+      />
+    ) : (
+      <p className={`${className} font-semibold text-[var(--text-primary)] tabular-nums`}>
+        {formatStat(value)}
+      </p>
+    );
+
   return (
-    <AccessibleModalShell
-      open={show}
-      onClose={onClose}
-      titleId={modalTitleId}
-      overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
-      overlayStyle={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(0,0,0,0.3)' }}
-      panelClassName="popup-anim relative max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl border p-6 font-sans backdrop-blur-xl md:rounded-[3rem] md:p-10"
-      panelStyle={{
-        background: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
-    >
+    <AccessibleModalShell open={show} onClose={onClose} titleId={modalTitleId} size="l">
       {() => (
         <>
-        <button
-          onClick={onClose}
-          className="modal-close absolute top-6 right-6 md:top-10 md:right-10"
-          aria-label={translate('common.close')}
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="mb-6 flex items-center gap-4 font-sans">
-          <div
-            className="rounded-2xl p-4 transition-all duration-500"
-            style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}
-          >
-            <HeaderIcon className="h-8 w-8" />
-          </div>
-          <div>
-            <h3
-              id={modalTitleId}
-              className="text-2xl leading-none font-light tracking-tight text-[var(--text-primary)] uppercase italic"
-            >
-              {displayName}
-            </h3>
-            <div
-              className="mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1"
-              style={{
-                backgroundColor: 'var(--glass-bg)',
-                borderColor: 'var(--glass-border)',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <span className="text-[10px] font-bold tracking-widest uppercase italic">
-                {source === 'month'
-                  ? translate('energyCost.thisMonth')
-                  : translate('energyCost.today')}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            {[
-              { key: 'today', label: translate('energyCost.today') },
-              { key: 'month', label: translate('energyCost.thisMonth') },
-            ]
-              .filter((item) => (item.key === 'today' ? todayEntityId : monthEntityId))
-              .map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => setSource(item.key)}
-                  className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${source === item.key ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-                >
-                  {item.label}
-                </button>
-              ))}
-          </div>
-          <div className="flex items-center gap-2">
-            {[24, 48, 72, 168].map((hours) => (
-              <button
-                key={hours}
-                onClick={() => setRangeHours(hours)}
-                className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${rangeHours === hours ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-              >
-                {hours >= 168 ? '7d' : `${hours}h`}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setChartType('line')}
-              className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${chartType === 'line' ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-            >
-              {translate('cost.view.line')}
-            </button>
-            <button
-              onClick={() => setChartType('bars')}
-              className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${chartType === 'bars' ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-            >
-              {translate('cost.view.bars')}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMetric('value')}
-              className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${metric === 'value' ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-            >
-              {translate('cost.metric.value')}
-            </button>
-            <button
-              onClick={() => setMetric('delta')}
-              className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${metric === 'delta' ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
-            >
-              {translate('cost.metric.delta')}
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
-          <div className="popup-surface rounded-2xl p-4 lg:col-span-3">
-            {loading ? (
-              <div className="flex h-[320px] items-center justify-center text-sm text-[var(--text-secondary)]">
-                {translate('common.loading')}
-              </div>
-            ) : series.length === 0 ? (
-              <div className="flex h-[320px] items-center justify-center text-sm text-[var(--text-secondary)]">
-                {translate('cost.noData')}
-              </div>
-            ) : chartType === 'bars' || metric === 'delta' ? (
-              <BarChart data={series} height={220} color="var(--status-success-fg)" rangeHours={rangeHours} />
-            ) : (
-              <SensorHistoryGraph
-                data={series}
-                height={320}
-                color="var(--status-success-fg)"
-                noDataLabel={translate('cost.noData')}
-                formatXLabel={(d) => {
-                  if (rangeHours >= 168) return d.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
-                  if (rangeHours >= 48) return d.toLocaleDateString([], { weekday: 'short', hour: '2-digit' });
-                  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }}
+          <ModalHeader
+            title={displayName}
+            closeLabel={translate('common.close')}
+            onClose={onClose}
+            icon={<HeaderIcon />}
+            iconClassName="bg-[var(--status-success-bg)] text-[var(--status-success-fg)]"
+            status={
+              <StatusChip
+                label={
+                  source === 'month'
+                    ? translate('energyCost.thisMonth')
+                    : translate('energyCost.today')
+                }
               />
-            )}
-          </div>
-          <div className="space-y-4 lg:col-span-2">
-            <div className="popup-surface flex items-center gap-3 rounded-2xl p-4">
-              <TrendingUp className="h-5 w-5 text-[var(--status-success-fg)]" />
-              <div>
-                <p className="text-[10px] tracking-widest text-[var(--text-secondary)] uppercase">
-                  {translate('cost.stats.last')}
-                </p>
-                <p className="text-lg font-semibold text-[var(--text-primary)]">
-                  {stats.last} {currency}
-                </p>
+            }
+          />
+
+          <ModalBody>
+            <div className="mb-6 flex flex-wrap items-end gap-x-6 gap-y-4">
+              {sourceOptions.length > 1 && (
+                <div className="flex flex-col gap-2">
+                  <span className="modal-section-label">{translate('cost.period')}</span>
+                  <Segmented
+                    ariaLabel={translate('cost.period')}
+                    value={source}
+                    onChange={setSource}
+                    options={sourceOptions}
+                  />
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <span className="modal-section-label">{translate('sensor.graphRange')}</span>
+                <Segmented
+                  ariaLabel={translate('sensor.graphRange')}
+                  value={rangeHours}
+                  onChange={setRangeHours}
+                  options={rangeOptions}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="modal-section-label">{translate('cost.display')}</span>
+                <div className="flex flex-wrap gap-2">
+                  <Segmented
+                    ariaLabel={translate('cost.display')}
+                    value={chartType}
+                    onChange={setChartType}
+                    options={[
+                      { value: 'line', label: translate('cost.view.line') },
+                      { value: 'bars', label: translate('cost.view.bars') },
+                    ]}
+                  />
+                  <Segmented
+                    ariaLabel={`${translate('cost.metric.value')} / ${translate('cost.metric.delta')}`}
+                    value={metric}
+                    onChange={setMetric}
+                    options={[
+                      { value: 'value', label: translate('cost.metric.value') },
+                      { value: 'delta', label: translate('cost.metric.delta') },
+                    ]}
+                  />
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="popup-surface rounded-2xl p-4">
-                <p className="text-[10px] tracking-widest text-[var(--text-secondary)] uppercase">
-                  {translate('cost.stats.min')}
-                </p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">
-                  {stats.min} {currency}
-                </p>
+
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
+              <div className="popup-surface rounded-2xl p-4 lg:col-span-3">
+                {loading ? (
+                  <div
+                    className="flex h-[320px] items-center justify-center text-sm text-[var(--text-secondary)]"
+                    aria-busy="true"
+                  >
+                    {translate('common.loading')}
+                  </div>
+                ) : series.length === 0 ? (
+                  <div className="flex h-[320px] items-center justify-center text-sm text-[var(--text-secondary)]">
+                    {translate('cost.noData')}
+                  </div>
+                ) : chartType === 'bars' || metric === 'delta' ? (
+                  <BarChart
+                    data={series}
+                    height={220}
+                    color="var(--status-success-fg)"
+                    rangeHours={rangeHours}
+                  />
+                ) : (
+                  <SensorHistoryGraph
+                    data={series}
+                    height={320}
+                    color="var(--status-success-fg)"
+                    noDataLabel={translate('cost.noData')}
+                    formatXLabel={(d) => {
+                      if (rangeHours >= 168)
+                        return d.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+                      if (rangeHours >= 48)
+                        return d.toLocaleDateString([], { weekday: 'short', hour: '2-digit' });
+                      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }}
+                  />
+                )}
               </div>
-              <div className="popup-surface rounded-2xl p-4">
-                <p className="text-[10px] tracking-widest text-[var(--text-secondary)] uppercase">
-                  {translate('cost.stats.max')}
-                </p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">
-                  {stats.max} {currency}
-                </p>
+              <div className="space-y-4 lg:col-span-2">
+                <div className="popup-surface flex items-center gap-3 rounded-2xl p-4">
+                  <TrendingUp className="h-5 w-5 text-[var(--status-success-fg)]" />
+                  <div>
+                    <p className="modal-section-label">{translate('cost.stats.last')}</p>
+                    {renderStat(stats.last, 'text-lg')}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="popup-surface rounded-2xl p-4">
+                    <p className="modal-section-label">{translate('cost.stats.min')}</p>
+                    {renderStat(stats.min, 'text-base')}
+                  </div>
+                  <div className="popup-surface rounded-2xl p-4">
+                    <p className="modal-section-label">{translate('cost.stats.max')}</p>
+                    {renderStat(stats.max, 'text-base')}
+                  </div>
+                </div>
+                <div className="popup-surface flex items-center gap-3 rounded-2xl p-4">
+                  <BarChart3 className="h-5 w-5 text-[var(--status-success-fg)]" />
+                  <div>
+                    <p className="modal-section-label">{translate('cost.stats.avg')}</p>
+                    {renderStat(stats.avg, 'text-base')}
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="popup-surface flex items-center gap-3 rounded-2xl p-4">
-              <BarChart3 className="h-5 w-5 text-[var(--status-success-fg)]" />
-              <div>
-                <p className="text-[10px] tracking-widest text-[var(--text-secondary)] uppercase">
-                  {translate('cost.stats.avg')}
-                </p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">
-                  {stats.avg} {currency}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+          </ModalBody>
         </>
       )}
     </AccessibleModalShell>
