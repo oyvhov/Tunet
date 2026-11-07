@@ -230,6 +230,13 @@ test.describe('Modal Interactions', () => {
     await expect(modal.getByText(`Running version: ${appVersion}`, { exact: true })).toBeVisible();
   });
 
+  test('closes system settings from the footer save button', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    await expect(modal.getByRole('heading', { name: 'Connection', exact: true })).toBeVisible();
+    await modal.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(modal).toBeHidden();
+  });
+
   test('should expose mobile add and edit actions from the floating settings menu', async ({
     page,
   }) => {
@@ -422,10 +429,10 @@ test.describe('Modal Interactions', () => {
     expect(chooserBefore).not.toBeNull();
     expect(resultsBefore).not.toBeNull();
 
-    await expect(chooser.getByRole('button', { name: 'Favorites' })).toBeVisible();
-    await expect(chooser.getByRole('button', { name: 'Playlists' })).toBeVisible();
-    await expect(chooser.getByRole('button', { name: 'Library' })).toBeVisible();
-    await expect(chooser.getByRole('button', { name: 'Search' })).toBeVisible();
+    await expect(chooser.getByRole('radio', { name: 'Favorites' })).toBeVisible();
+    await expect(chooser.getByRole('radio', { name: 'Playlists' })).toBeVisible();
+    await expect(chooser.getByRole('radio', { name: 'Library' })).toBeVisible();
+    await expect(chooser.getByRole('radio', { name: 'Search' })).toBeVisible();
     await expect(chooser.getByText('Born to Be Alive')).toBeVisible();
 
     const chooserAfter = await chooser.boundingBox();
@@ -435,10 +442,10 @@ test.describe('Modal Interactions', () => {
     expect(await modal.locator('.modal-close:visible').count()).toBe(1);
     await expect(modal.getByTestId('media-chooser-close')).toBeVisible();
 
-    await chooser.getByRole('button', { name: 'Library' }).click();
+    await chooser.getByRole('radio', { name: 'Library' }).click();
     await expect(chooser.getByText('90-talet')).toBeVisible();
 
-    await chooser.getByRole('button', { name: 'Search' }).click();
+    await chooser.getByRole('radio', { name: 'Search' }).click();
     await chooser.getByRole('searchbox').fill('90');
     await expect(chooser.getByText('90-talet')).toBeVisible();
 
@@ -448,8 +455,8 @@ test.describe('Modal Interactions', () => {
     expect(mobileChooserBounds.x + mobileChooserBounds.width).toBeLessThanOrEqual(390);
 
     const mobileTabBounds = await chooser
-      .getByRole('group')
-      .getByRole('button')
+      .getByRole('radiogroup')
+      .getByRole('radio')
       .evaluateAll((buttons) =>
         buttons.map((button) => {
           const bounds = button.getBoundingClientRect();
@@ -460,7 +467,7 @@ test.describe('Modal Interactions', () => {
       expect(left).toBeGreaterThanOrEqual(mobileChooserBounds.x);
       expect(right).toBeLessThanOrEqual(mobileChooserBounds.x + mobileChooserBounds.width);
     });
-    await chooser.getByRole('button', { name: 'Favorites' }).click();
+    await chooser.getByRole('radio', { name: 'Favorites' }).click();
   });
 
   test('should browse, search and play Music Assistant media through its own actions', async ({
@@ -591,13 +598,13 @@ test.describe('Modal Interactions', () => {
 
     const chooser = modal.getByTestId('media-chooser');
     await expect(chooser.getByText('Born To Die')).toBeVisible();
-    await chooser.getByRole('button', { name: 'Playlists' }).click();
+    await chooser.getByRole('radio', { name: 'Playlists' }).click();
     await expect(chooser.getByText('Fredagsmiks')).toBeVisible();
-    await chooser.getByRole('button', { name: 'Library' }).click();
+    await chooser.getByRole('radio', { name: 'Library' }).click();
     await expect(chooser.getByText('Lust For Life')).toBeVisible();
     await expect(chooser.getByText('Lana Del Rey')).toBeVisible();
 
-    await chooser.getByRole('button', { name: 'Search' }).click();
+    await chooser.getByRole('radio', { name: 'Search' }).click();
     await expect(chooser.getByText('Type to search Music Assistant')).toBeVisible();
     await chooser.getByRole('searchbox').fill('lana');
     await chooser.getByText('13 Beaches').click();
@@ -659,6 +666,26 @@ test.describe('Modal Interactions', () => {
     await expect(modal).toBeHidden();
   });
 
+  test('draws no focus ring around the popup panel itself', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    const radiusAtRest = await modal.evaluate((el) => getComputedStyle(el).borderTopLeftRadius);
+
+    await page.keyboard.press('Shift');
+    const focused = await modal.evaluate((el) => {
+      el.focus();
+      const style = getComputedStyle(el);
+      return {
+        focusVisible: el.matches(':focus-visible'),
+        outline: style.outlineStyle,
+        radius: style.borderTopLeftRadius,
+      };
+    });
+
+    expect(focused.focusVisible).toBe(true);
+    expect(focused.outline).toBe('none');
+    expect(focused.radius).toBe(radiusAtRest);
+  });
+
   test('should close modal when clicking outside (backdrop)', async ({ page }) => {
     const modal = await openSystemModal(page);
 
@@ -676,6 +703,53 @@ test.describe('Modal Interactions', () => {
       await expect(modal).toBeHidden();
     }
   });
+
+  test('should stay open when a drag inside the modal ends on the backdrop', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    const box = await modal.boundingBox();
+    const viewport = page.viewportSize();
+    if (!box || !viewport) return;
+
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(10, viewport.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+
+    await expect(modal).toBeVisible();
+  });
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`uses the shared popup header at ${viewport.width}px`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page
+        .locator('[data-card-id="light.bedroom"]')
+        .getByText('Bedroom Light', { exact: true })
+        .click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toHaveClass(/modal-panel/);
+      const title = dialog.getByRole('heading', { name: 'Bedroom Light' });
+      await expect(title).toHaveCSS('font-style', 'normal');
+      await expect(title).toHaveCSS('text-transform', 'uppercase');
+      await page.waitForFunction(() =>
+        document
+          .querySelector('[role="dialog"]')
+          ?.getAnimations()
+          .every((animation) => animation.playState !== 'running')
+      );
+      const close = dialog.getByRole('button', { name: 'Close' });
+      const box = await close.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      const panel = await dialog.boundingBox();
+      expect(panel?.width).toBeLessThanOrEqual(viewport.width);
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+    });
+  }
 
   test('should change theme in settings modal', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);

@@ -23,9 +23,11 @@ vi.mock('../components/charts/BinaryTimeline', () => ({
 vi.mock('../components/ui/AccessibleModalShell', () => ({
   default: ({ open, children }) =>
     open ? <div data-testid="sensor-modal-shell">{children('sensor-modal-title')}</div> : null,
+  useModalShell: () => null,
 }));
 
 vi.mock('../icons', () => ({
+  X: () => <svg aria-hidden="true" />,
   getIconComponent: () => null,
 }));
 

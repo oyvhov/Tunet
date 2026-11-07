@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import ModernDropdown from '../components/ui/ModernDropdown';
@@ -40,7 +40,7 @@ describe('Modal dropdown interaction', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
-  it('closes the action menu before closing its editor with Escape', () => {
+  it('closes the action menu before closing its editor with Escape', async () => {
     render(<Editor />);
     const trigger = screen.getByRole('button', { name: 'Action: Scene' });
     fireEvent.click(trigger);
@@ -50,9 +50,9 @@ describe('Modal dropdown interaction', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(trigger).toHaveFocus();
     fireEvent.keyDown(trigger, { key: 'Escape' });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
-  it('closes an open menu before the editor even when focus has left the dropdown', () => {
+  it('closes an open menu before the editor even when focus has left the dropdown', async () => {
     render(<Editor />);
     fireEvent.click(screen.getByRole('button', { name: 'Action: Scene' }));
     expect(screen.getByRole('listbox')).toBeInTheDocument();
@@ -60,6 +60,6 @@ describe('Modal dropdown interaction', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: 'Escape' });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });

@@ -3,13 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 import VacuumModal from '../modals/VacuumModal';
 
 vi.mock('../components/ui/AccessibleModalShell', () => ({
-  default: ({ open, children, overlayClassName, panelClassName }) =>
+  useModalShell: () => null,
+  default: ({ open, children, size }) =>
     open ? (
-      <div
-        data-testid="vacuum-modal-shell"
-        data-overlay-class={overlayClassName}
-        data-panel-class={panelClassName}
-      >
+      <div data-testid="vacuum-modal-shell" data-size={size}>
         {children()}
       </div>
     ) : null,
@@ -31,6 +28,7 @@ const t = (key) =>
     'vacuum.controls': 'Controls',
     'vacuum.roomCleaning': 'Room cleaning',
     'vacuum.statsHistory': 'History',
+    'vacuum.level.turbo': 'Turbo (translated)',
   })[key] || key;
 
 const vacuum = {
@@ -77,23 +75,20 @@ const baseProps = (entities, overrides = {}) => ({
   ...overrides,
 });
 
-const openMaintenance = () => fireEvent.click(screen.getByRole('button', { name: 'History' }));
+const openMaintenance = () => fireEvent.click(screen.getByRole('radio', { name: 'History' }));
 
 describe('VacuumModal consumables', () => {
-  it('uses compact mobile sizing while restoring the existing layout from sm upwards', () => {
+  it('uses the shared popup layout with a scrolling body and a fixed header', () => {
     render(<VacuumModal {...baseProps(vacuum)} />);
 
-    const shell = screen.getByTestId('vacuum-modal-shell');
-    expect(shell.dataset.overlayClass).toContain('p-2 sm:p-4 md:p-6');
-    expect(shell.dataset.panelClass).toContain('max-h-[calc(100dvh-1rem)]');
-    expect(shell.dataset.panelClass).toContain('p-4');
-    expect(shell.dataset.panelClass).toContain('sm:max-h-[90vh] sm:p-6');
-
+    expect(screen.getByTestId('vacuum-modal-shell').dataset.size).toBe('l');
     expect(screen.getByTestId('vacuum-tab-content')).toHaveClass(
-      'h-[calc(100dvh-11rem)]',
-      'sm:h-[60vh]',
-      'md:h-[480px]'
+      'modal-body',
+      'md:min-h-[min(480px,55dvh)]'
     );
+    expect(screen.getByRole('heading', { name: 'Roborock S7' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    expect(screen.queryByText(/Status:/)).not.toBeInTheDocument();
   });
 
   it('presses the matched Home Assistant reset button for the sensors consumable', async () => {
@@ -170,5 +165,22 @@ describe('VacuumModal consumables', () => {
 
     const row = screen.getByText('Sensors').closest('div').parentElement;
     expect(within(row).getByText('--')).toBeInTheDocument();
+  });
+
+  it('shows translated fan speed levels and keeps unknown levels as reported', () => {
+    const entities = {
+      'vacuum.roborock_s7': {
+        ...vacuum['vacuum.roborock_s7'],
+        attributes: {
+          friendly_name: 'Roborock S7',
+          fan_speed: 'turbo',
+          fan_speed_list: ['turbo', 'custom_mode_9'],
+        },
+      },
+    };
+    render(<VacuumModal {...baseProps(entities)} />);
+
+    expect(screen.getByText('Turbo (translated)')).toBeInTheDocument();
+    expect(screen.queryByText('turbo')).not.toBeInTheDocument();
   });
 });

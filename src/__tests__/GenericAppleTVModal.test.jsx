@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import GenericAppleTVModal from '../modals/GenericAppleTVModal';
 
 vi.mock('../components/ui/AccessibleModalShell', () => ({
+  useModalShell: () => null,
   default: ({ open, children, overlayClassName, panelClassName }) =>
     open ? (
       <div
@@ -55,6 +56,14 @@ const baseProps = (overrides = {}) => ({
       'shield.playPause': 'Play/Pause',
       'media.volume.mute': 'Mute',
       'media.volume.unmute': 'Unmute',
+      'media.volume.up': 'Volume up',
+      'media.volume.down': 'Volume down',
+      'state.playing': 'Playing',
+      'remote.up': 'Up',
+      'remote.down': 'Down',
+      'remote.left': 'Left',
+      'remote.right': 'Right',
+      'remote.select': 'Select',
     })[key] || key,
   ...overrides,
 });
@@ -65,7 +74,8 @@ describe('GenericAppleTVModal', () => {
 
     expect(screen.getByTestId('tv-modal-shell')).toBeInTheDocument();
     expect(screen.getByText('Living Room Apple TV')).toBeInTheDocument();
-    expect(screen.getByText('Status: playing')).toBeInTheDocument();
+    expect(screen.getByText('Playing')).toBeInTheDocument();
+    expect(screen.queryByText(/Status:/)).not.toBeInTheDocument();
   });
 
   it('sends remote D-pad commands up, down, left, right, select', () => {

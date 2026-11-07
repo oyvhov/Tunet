@@ -3,6 +3,8 @@ import { X, Check, Plus, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import Button from '../components/ui/Button';
+import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
 import { getGo2rtcModeFromUrl } from '../components/camera/CameraFeed';
 import { getRelatedEntityIds } from '../services/haClient';
 import { CarMappingsSection, SearchableSelect } from './editCard/CarMappingsSection';
@@ -157,7 +159,7 @@ function GraphLimitsSlider({ values, onChange, min = -15, max = 35 }) {
           return (
             <React.Fragment key={`thumb-${index}`}>
               <div
-                className="absolute top-0 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide text-[var(--text-primary)]"
+                className="absolute top-0 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[11px] font-bold tracking-wide text-[var(--text-primary)]"
                 style={{
                   left,
                   backgroundColor: 'var(--glass-bg)',
@@ -185,7 +187,7 @@ function GraphLimitsSlider({ values, onChange, min = -15, max = 35 }) {
           );
         })}
       </div>
-      <div className="mt-2 flex items-center justify-between px-1 text-[10px] tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
+      <div className="mt-2 flex items-center justify-between px-1 text-[11px] tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
         <span>{min}°</span>
         <span>{max}°</span>
       </div>
@@ -541,10 +543,10 @@ function VisibilityConditionSection({
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
                   {t('visibility.title') || 'Conditional visibility'}
                 </p>
-                <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
                   {t('visibility.description') || 'Show this card only when the rule matches.'}
                 </p>
               </div>
@@ -561,11 +563,15 @@ function VisibilityConditionSection({
           </button>
           <button
             type="button"
+            role="switch"
+            aria-checked={visibilityEnabled}
+            aria-label={t('visibility.title') || 'Conditional visibility'}
             onClick={toggleVisibilityCondition}
-            className={`relative h-6 w-12 rounded-full transition-colors ${visibilityEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
+            className={`relative h-6 w-12 shrink-0 rounded-full border transition-colors ${visibilityEnabled ? 'border-transparent bg-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]'}`}
           >
             <span
-              className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${visibilityEnabled ? 'translate-x-6' : 'translate-x-0'}`}
+              aria-hidden="true"
+              className={`absolute top-0.5 left-0.5 h-4.5 w-4.5 rounded-full bg-[var(--text-primary)] transition-transform ${visibilityEnabled ? 'translate-x-6' : 'translate-x-0'}`}
             />
           </button>
         </div>
@@ -619,10 +625,10 @@ function PopupTriggerSection({
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold tracking-widest text-[var(--text-primary)] uppercase">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
                   {t('popupTrigger.title') || 'Popup trigger'}
                 </p>
-                <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
                   {t('popupTrigger.description') ||
                     'Open this card popup automatically when the rule transitions from false to true.'}
                 </p>
@@ -640,6 +646,9 @@ function PopupTriggerSection({
           </button>
           <button
             type="button"
+            role="switch"
+            aria-checked={popupTriggerEnabled}
+            aria-label={t('popupTrigger.title') || 'Popup trigger'}
             onClick={() => {
               const nextEnabled = !popupTriggerEnabled;
               savePopupTrigger(
@@ -650,17 +659,18 @@ function PopupTriggerSection({
               );
               setShowPopupLogic(nextEnabled);
             }}
-            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${popupTriggerEnabled ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+            className={`relative h-6 w-12 shrink-0 rounded-full border transition-colors ${popupTriggerEnabled ? 'border-transparent bg-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]'}`}
           >
-            {popupTriggerEnabled
-              ? `✓ ${t('popupTrigger.enabled') || 'Enabled'}`
-              : t('popupTrigger.enable') || 'Enable'}
+            <span
+              aria-hidden="true"
+              className={`absolute top-0.5 left-0.5 h-4.5 w-4.5 rounded-full bg-[var(--text-primary)] transition-transform ${popupTriggerEnabled ? 'translate-x-6' : 'translate-x-0'}`}
+            />
           </button>
         </div>
 
         {popupTriggerEnabled && (
           <div className="mt-3 space-y-1">
-            <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <label className="modal-section-label">
               {t('popupTrigger.cooldownSeconds') || 'Cooldown (seconds)'}
             </label>
             <input
@@ -678,12 +688,12 @@ function PopupTriggerSection({
               }
               className="w-full rounded-xl border-0 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
             />
-            <p className="text-[10px] text-[var(--text-muted)]">
+            <p className="text-[11px] text-[var(--text-muted)]">
               {t('popupTrigger.cooldownHint') ||
                 'Minimum 10 seconds between automatic popup opens for this trigger.'}
             </p>
 
-            <label className="pt-1 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+            <label className="modal-section-label block pt-1">
               {t('popupTrigger.autoCloseSeconds') || 'Auto-close (seconds)'}
             </label>
             <input
@@ -701,7 +711,7 @@ function PopupTriggerSection({
               }
               className="w-full rounded-xl border-0 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
             />
-            <p className="text-[10px] text-[var(--text-muted)]">
+            <p className="text-[11px] text-[var(--text-muted)]">
               {t('popupTrigger.autoCloseHint') ||
                 'Optional: auto-close popup after X seconds when opened by trigger. Set 0 to disable.'}
             </p>
@@ -1159,52 +1169,22 @@ export default function EditCardModal({
       open={isOpen}
       onClose={onClose}
       titleId="edit-card-modal-title"
-      overlayClassName="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4"
-      overlayStyle={{
-        backdropFilter: 'none',
-        backgroundColor: 'var(--modal-backdrop)',
-      }}
-      panelClassName={`edit-card-modal w-full border ${isEditRoom ? 'max-w-2xl' : showSensorPreview ? 'max-w-lg lg:max-w-4xl' : 'max-w-lg'} popup-anim relative mt-3 flex max-h-[92vh] flex-col ${showSensorPreview ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-x-6' : ''} rounded-2xl p-4 font-sans shadow-2xl sm:mt-0 sm:max-h-[85vh] sm:rounded-3xl sm:p-6 md:rounded-[2.5rem] md:p-8`}
-      panelStyle={{
-        backgroundColor: 'var(--modal-bg)',
-        backgroundImage: 'linear-gradient(135deg, var(--card-bg) 0%, var(--modal-bg) 100%)',
-        animation: 'none',
-        borderColor: 'var(--glass-border)',
-        color: 'var(--text-primary)',
-      }}
+      size={showSensorPreview ? 'l' : 'm'}
+      still
+      panelClassName="edit-card-modal"
     >
       {(resolvedTitleId) => (
         <>
-          <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.02);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.25);
-        }
-      `}</style>
-          <>
-            <button
-              onClick={onClose}
-              className="modal-close absolute top-5 right-5 z-10 md:top-7 md:right-7"
-              aria-label={t('common.close') || 'Close'}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <h3
-              id={resolvedTitleId}
-              className={`mb-4 shrink-0 text-center text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase italic ${showSensorPreview ? 'lg:col-span-2' : ''}`}
-            >
-              {t('modal.editCard.title')}
-            </h3>
+          <ModalHeader
+            title={t('modal.editCard.title')}
+            titleId={resolvedTitleId}
+            closeLabel={t('common.close') || 'Close'}
+            onClose={onClose}
+          />
 
+          <div
+            className={`flex min-h-0 flex-1 flex-col ${showSensorPreview ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[minmax(0,1fr)]' : ''}`}
+          >
             {showSensorPreview && (
               <SensorCardPreview
                 entityId={nameFallbackEntityId || entityId}
@@ -1212,13 +1192,13 @@ export default function EditCardModal({
                 entities={entities}
                 name={customNames[entityId] || ''}
                 iconName={customIcons[entityId] || null}
-                className="mb-4 lg:col-start-2 lg:row-start-2 lg:mb-0 lg:max-h-full lg:self-start lg:overflow-y-auto"
+                className="mx-[var(--modal-pad)] mb-4 lg:col-start-2 lg:row-start-1 lg:mx-0 lg:mr-[var(--modal-pad)] lg:mb-[var(--modal-pad)] lg:max-h-full lg:self-start lg:overflow-y-auto"
                 t={t}
               />
             )}
 
-            <div
-              className={`custom-scrollbar min-h-0 flex-1 space-y-6 overflow-y-auto pr-2 ${showSensorPreview ? 'lg:col-start-1 lg:row-start-2' : ''}`}
+            <ModalBody
+              className={`space-y-6 ${showSensorPreview ? 'lg:col-start-1 lg:row-start-1' : ''}`}
             >
               {showSensorPreview && (
                 <SensorCardSettings
@@ -1243,9 +1223,7 @@ export default function EditCardModal({
                 >
                   {canEditName && !isEditSensor && (
                     <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {t('form.name')}
-                      </label>
+                      <label className="modal-section-label">{t('form.name')}</label>
                       <input
                         type="text"
                         className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
@@ -1262,9 +1240,7 @@ export default function EditCardModal({
 
                   {editSettingsKey && (
                     <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                        {t('form.heading')}
-                      </label>
+                      <label className="modal-section-label">{t('form.heading')}</label>
                       <input
                         type="text"
                         className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
@@ -1281,9 +1257,7 @@ export default function EditCardModal({
 
               {canEditIcon && !isEditSensor && (
                 <div className="space-y-2">
-                  <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-                    {t('form.chooseIcon')}
-                  </label>
+                  <label className="modal-section-label">{t('form.chooseIcon')}</label>
                   <IconPicker
                     value={customIcons[entityId] || null}
                     onSelect={(iconName) => saveCustomIcon(entityId, iconName)}
@@ -1297,7 +1271,7 @@ export default function EditCardModal({
               {canEditMobileWidth && editSettingsKey && (
                 <div className="space-y-2">
                   <div className="ml-1">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('editCard.mobileWidth') || 'Mobile width'}
                     </label>
                     <p className="mt-1 text-[11px] text-[var(--text-muted)]">
@@ -1320,7 +1294,7 @@ export default function EditCardModal({
                           onClick={() =>
                             saveCardSetting(editSettingsKey, 'mobileWidth', option.key)
                           }
-                          className={`min-h-11 rounded-xl border px-2 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                          className={`min-h-11 rounded-xl border px-2 py-2 text-[11px] font-bold tracking-wider uppercase transition-colors ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                         >
                           {option.label}
                         </button>
@@ -1344,7 +1318,7 @@ export default function EditCardModal({
               {(isEditClimate || isEditAppleTV) && editSettingsKey && (
                 <div className="space-y-2">
                   <div className="ml-1">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('editCard.tapAction') || 'Tap Action'}
                     </label>
                     <p className="mt-1 text-[11px] text-[var(--text-muted)]">
@@ -1363,7 +1337,7 @@ export default function EditCardModal({
                           type="button"
                           aria-pressed={active}
                           onClick={() => saveCardSetting(editSettingsKey, 'tapAction', option.key)}
-                          className={`min-h-11 rounded-xl border px-2 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                          className={`min-h-11 rounded-xl border px-2 py-2 text-[11px] font-bold tracking-wider uppercase transition-colors ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                         >
                           {option.label}
                         </button>
@@ -1376,9 +1350,7 @@ export default function EditCardModal({
               {isEditClimate && editSettingsKey && climateModeOptions.length > 0 && (
                 <div className="space-y-2">
                   <div className="ml-1">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase">
-                      {t('climate.favoriteModes')}
-                    </label>
+                    <label className="modal-section-label">{t('climate.favoriteModes')}</label>
                     <p className="mt-1 text-[11px] text-[var(--text-muted)]">
                       {t('climate.favoriteModesHint')}
                     </p>
@@ -1421,7 +1393,7 @@ export default function EditCardModal({
                               )
                             )
                           }
-                          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] disabled:cursor-not-allowed disabled:opacity-35'}`}
+                          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-bold tracking-widest uppercase transition-all ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] disabled:cursor-not-allowed disabled:opacity-35'}`}
                         >
                           <Star
                             className={`h-3.5 w-3.5 ${selected ? 'fill-current opacity-75' : 'opacity-50'}`}
@@ -1469,7 +1441,7 @@ export default function EditCardModal({
               {isEditWeatherTemp && editSettingsKey && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('weatherTemp.subtitle') || 'Subtitle'}
                     </label>
                     <input
@@ -1484,7 +1456,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('weatherTemp.graphHistory') || 'Graph history'}
                     </label>
                     <div className="popup-surface flex flex-wrap items-center gap-2 rounded-2xl p-3">
@@ -1497,7 +1469,7 @@ export default function EditCardModal({
                             onClick={() =>
                               saveCardSetting(editSettingsKey, 'graphHistoryHours', hours)
                             }
-                            className={`rounded-full border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                            className={`rounded-full border px-3 py-2 text-[11px] font-bold tracking-widest uppercase transition-all ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                           >
                             {hours}h
                           </button>
@@ -1507,7 +1479,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('weatherTemp.graphLimits') || 'Graph color limits'} ({tempDisplayUnit})
                     </label>
                     <GraphLimitsSlider
@@ -1542,7 +1514,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label block pb-1">
                       {t('weatherTemp.effects')}
                     </label>
                     <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
@@ -1570,7 +1542,7 @@ export default function EditCardModal({
 
               {isEditCalendar && editSettingsKey && (
                 <div className="space-y-3">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="modal-section-label">
                     {t('calendar.selectCalendars') || 'Select Calendars'}
                   </label>
                   <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
@@ -1601,7 +1573,7 @@ export default function EditCardModal({
                           <div className="truncate text-sm font-bold">
                             {entities[id]?.attributes?.friendly_name || id}
                           </div>
-                          <div className="truncate text-[10px] text-[var(--text-muted)]">{id}</div>
+                          <div className="truncate text-[11px] text-[var(--text-muted)]">{id}</div>
                         </button>
                       );
                     })}
@@ -1614,7 +1586,7 @@ export default function EditCardModal({
                         <label className="text-sm font-bold text-[var(--text-primary)]">
                           {t('calendar.largeCalendar') || 'Week View'}
                         </label>
-                        <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
                           {t('calendar.largeCalendarHint') ||
                             'Show Outlook-style week time-grid view'}
                         </p>
@@ -1638,7 +1610,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2 pt-2">
-                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('editCard.columnWidth') || 'Column Width'}
                     </label>
                     <div className="flex items-center gap-3">
@@ -1698,7 +1670,7 @@ export default function EditCardModal({
                     return (
                       <>
                         <div className="space-y-2">
-                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                          <label className="modal-section-label">
                             {t('spacer.variant') || 'Variant'}
                           </label>
                           <div className="flex gap-2">
@@ -1732,9 +1704,7 @@ export default function EditCardModal({
                         </div>
 
                         <div className="space-y-2">
-                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                            {'Heading alignment'}
-                          </label>
+                          <label className="modal-section-label">{'Heading alignment'}</label>
                           <div className="flex gap-2">
                             {[
                               { key: 'left', label: 'Venstre' },
@@ -1764,9 +1734,7 @@ export default function EditCardModal({
                         </div>
 
                         <div className="space-y-2">
-                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                            {'Column Width'}
-                          </label>
+                          <label className="modal-section-label">{'Column Width'}</label>
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -1846,9 +1814,7 @@ export default function EditCardModal({
                         </div>
 
                         <div className="space-y-2">
-                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
-                            {'Height'}
-                          </label>
+                          <label className="modal-section-label">{'Height'}</label>
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
@@ -1916,7 +1882,7 @@ export default function EditCardModal({
                     <div className="space-y-4">
                       {/* Stream engine */}
                       <div className="space-y-2">
-                        <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                        <label className="modal-section-label">
                           {t('camera.streamEngine') || 'Stream Engine'}
                         </label>
                         <div className="grid grid-cols-2 gap-2">
@@ -1960,7 +1926,7 @@ export default function EditCardModal({
                       {/* Optional go2rtc player */}
                       {(streamEngine === 'go2rtc' || streamEngine === 'auto') && (
                         <div className="space-y-2">
-                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                          <label className="modal-section-label">
                             {t('camera.webrtcUrlOptional') || 'go2rtc player URL'}
                           </label>
                           <input
@@ -1983,7 +1949,7 @@ export default function EditCardModal({
                           </p>
 
                           <div className="space-y-2 pt-1">
-                            <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                            <label className="modal-section-label">
                               {t('camera.go2rtcMode') || 'go2rtc mode'}
                             </label>
                             <div className="grid grid-cols-3 gap-2">
@@ -2008,7 +1974,7 @@ export default function EditCardModal({
                                   onClick={() =>
                                     saveCardSetting(editSettingsKey, 'cameraGo2rtcMode', option.key)
                                   }
-                                  className={`rounded-xl border px-3 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors ${go2rtcMode === option.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
+                                  className={`rounded-xl border px-3 py-2 text-[11px] font-bold tracking-widest uppercase transition-colors ${go2rtcMode === option.key ? 'popup-surface text-[var(--text-primary)]' : 'popup-surface popup-surface-hover text-[var(--text-secondary)]'}`}
                                   style={
                                     go2rtcMode === option.key
                                       ? {
@@ -2028,7 +1994,7 @@ export default function EditCardModal({
 
                       {/* Refresh mode */}
                       <div className="space-y-2">
-                        <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                        <label className="modal-section-label">
                           {t('camera.refreshMode') || 'Refresh Mode'}
                         </label>
                         <div className="flex gap-2">
@@ -2060,7 +2026,7 @@ export default function EditCardModal({
                       {/* Interval seconds */}
                       {refreshMode === 'interval' && (
                         <div className="space-y-2">
-                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                          <label className="modal-section-label">
                             {t('camera.intervalSeconds') || 'Refresh every (seconds)'}
                           </label>
                           <div className="flex items-center gap-3">
@@ -2103,7 +2069,7 @@ export default function EditCardModal({
                       {/* Motion sensor entity */}
                       {refreshMode === 'motion' && (
                         <div className="space-y-2">
-                          <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                          <label className="modal-section-label">
                             {t('camera.motionSensor') || 'Motion Sensor'}
                           </label>
                           <div className="popup-surface custom-scrollbar max-h-44 space-y-2 overflow-y-auto rounded-2xl p-4">
@@ -2138,7 +2104,7 @@ export default function EditCardModal({
                                   <div className="truncate text-sm font-bold">
                                     {entities[id]?.attributes?.friendly_name || id}
                                   </div>
-                                  <div className="truncate text-[10px] text-[var(--text-muted)]">
+                                  <div className="truncate text-[11px] text-[var(--text-muted)]">
                                     {id}
                                   </div>
                                 </button>
@@ -2153,7 +2119,7 @@ export default function EditCardModal({
 
               {isEditTodo && editSettingsKey && (
                 <div className="space-y-3">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="modal-section-label">
                     {t('todo.selectList') || 'Select Todo List'}
                   </label>
                   <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
@@ -2176,7 +2142,7 @@ export default function EditCardModal({
                           <div className="truncate text-sm font-bold">
                             {entities[id]?.attributes?.friendly_name || id}
                           </div>
-                          <div className="truncate text-[10px] text-[var(--text-muted)]">{id}</div>
+                          <div className="truncate text-[11px] text-[var(--text-muted)]">{id}</div>
                         </button>
                       );
                     })}
@@ -2187,9 +2153,7 @@ export default function EditCardModal({
               {isPerson && (
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
-                      {t('person.display')}
-                    </label>
+                    <label className="modal-section-label">{t('person.display')}</label>
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
@@ -2230,7 +2194,7 @@ export default function EditCardModal({
 
                   <div className="space-y-3">
                     <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
-                      <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                      <span className="modal-section-label">
                         {t('form.showName') || 'Show Name'}
                       </span>
                       <button
@@ -2251,7 +2215,7 @@ export default function EditCardModal({
                     </div>
 
                     <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
-                      <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                      <span className="modal-section-label">
                         {t('person.showState') || 'Show State'}
                       </span>
                       <button
@@ -2272,7 +2236,7 @@ export default function EditCardModal({
                     </div>
 
                     <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
-                      <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
+                      <span className="modal-section-label">
                         {t('person.showZoneBadgeIcon') || 'Show Zone Icon in Badge'}
                       </span>
                       <button
@@ -2376,7 +2340,7 @@ export default function EditCardModal({
 
               {(isEditAndroidTV || isEditAppleTV) && editSettingsKey && (
                 <div className="space-y-3">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="modal-section-label">
                     {t(isEditAppleTV ? 'appletv.linkedSpeakers' : 'androidtv.linkedSpeakers') ||
                       'Linked Speakers'}
                   </label>
@@ -2467,7 +2431,7 @@ export default function EditCardModal({
                             <div className="truncate text-sm font-bold">
                               {entities[id]?.attributes?.friendly_name || id}
                             </div>
-                            <div className="truncate text-[10px] text-[var(--text-muted)]">
+                            <div className="truncate text-[11px] text-[var(--text-muted)]">
                               {id}
                             </div>
                           </button>
@@ -2479,7 +2443,7 @@ export default function EditCardModal({
 
               {isEditCar && editSettingsKey && (
                 <div className="space-y-2">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="modal-section-label">
                     {t('car.imageUrl') || 'Car Image URL'}
                   </label>
                   <input
@@ -2491,7 +2455,7 @@ export default function EditCardModal({
                     }
                     placeholder="/local/car.png"
                   />
-                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                  <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                     {t('car.imageHint') ||
                       'Place images in HA config/www/ folder, use /local/filename.png'}
                   </p>
@@ -2538,9 +2502,7 @@ export default function EditCardModal({
               {canEditStatus && !isEditSensor && (
                 <div className="popup-surface space-y-4 rounded-2xl p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                      {t('form.showStatus')}
-                    </span>
+                    <span className="modal-section-label">{t('form.showStatus')}</span>
                     <button
                       onClick={() =>
                         editSettingsKey &&
@@ -2559,9 +2521,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold tracking-widest text-[var(--text-muted)] uppercase">
-                      {t('form.showLastChanged')}
-                    </span>
+                    <span className="modal-section-label">{t('form.showLastChanged')}</span>
                     <button
                       onClick={() =>
                         editSettingsKey &&
@@ -2588,7 +2548,7 @@ export default function EditCardModal({
                       <label className="text-sm font-bold text-[var(--text-primary)]">
                         {t('fan.disableAnimation') || 'Disable Animation'}
                       </label>
-                      <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                      <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
                         {t('fan.disableAnimationHint') ||
                           'Stop the icon from spinning when the fan is on'}
                       </p>
@@ -2614,10 +2574,10 @@ export default function EditCardModal({
 
               {isEditVacuum && editSettingsKey && (
                 <div className="space-y-3">
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="modal-section-label">
                     {t('vacuum.sensorMapping') || 'Sensor mapping'}
                   </label>
-                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                  <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                     {t('vacuum.sensorMappingHint') ||
                       'Optional: manually map sensor entities if auto-detection does not find your vacuum stats.'}
                   </p>
@@ -2662,9 +2622,7 @@ export default function EditCardModal({
                       },
                     ].map((field) => (
                       <div key={field.key} className="popup-surface rounded-2xl p-3">
-                        <label className="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                          {field.label}
-                        </label>
+                        <label className="modal-section-label block pb-1">{field.label}</label>
                         <select
                           value={editSettings?.[field.key] || ''}
                           onChange={(e) =>
@@ -2688,16 +2646,16 @@ export default function EditCardModal({
                     ))}
                   </div>
 
-                  <label className="mt-4 ml-1 block text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="modal-section-label block pt-4">
                     {t('vacuum.liveMap') || 'Live Map'}
                   </label>
-                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                  <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                     {t('vacuum.mapImageOverrideHint') ||
                       'Optional: select a specific map image entity (image.*) to override auto-detection.'}
                   </p>
 
                   <div className="popup-surface rounded-2xl p-3">
-                    <label className="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                    <label className="modal-section-label block pb-1">
                       {t('vacuum.mapImage') || 'Map Image Entity'}
                     </label>
                     <select
@@ -2721,16 +2679,16 @@ export default function EditCardModal({
                     </select>
                   </div>
 
-                  <label className="mt-4 ml-1 block text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="modal-section-label block pt-4">
                     {t('vacuum.roomCleaning') || 'Room Cleaning'}
                   </label>
-                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                  <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                     {t('vacuum.roomSelectOverrideHint') ||
                       'Optional: select the select/input_select entity containing the vacuum rooms.'}
                   </p>
 
                   <div className="popup-surface rounded-2xl p-3">
-                    <label className="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                    <label className="modal-section-label block pb-1">
                       {t('vacuum.roomSelect') || 'Room Select Entity'}
                     </label>
                     <select
@@ -2758,10 +2716,10 @@ export default function EditCardModal({
                     </select>
                   </div>
 
-                  <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                  <label className="modal-section-label">
                     {t('vacuum.roomScripts') || 'Room Scripts'}
                   </label>
-                  <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                  <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                     {t('vacuum.roomScriptsHint') ||
                       'Add HA scripts to clean specific rooms. These buttons appear in the vacuum popup.'}
                   </p>
@@ -2771,7 +2729,7 @@ export default function EditCardModal({
                       (entry, index) => (
                         <div key={`room-script-${index}`} className="popup-surface rounded-2xl p-3">
                           <div className="mb-2 flex items-center justify-between">
-                            <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                            <span className="modal-section-label">
                               {t('vacuum.addRoom') || 'Add room'} #{index + 1}
                             </span>
                             <button
@@ -2783,7 +2741,7 @@ export default function EditCardModal({
                                 const next = current.filter((_, i) => i !== index);
                                 saveCardSetting(editSettingsKey, 'roomScripts', next);
                               }}
-                              className="rounded-lg px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
+                              className="rounded-lg px-2 py-1 text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
                             >
                               {t('common.delete') || 'Delete'}
                             </button>
@@ -2870,7 +2828,7 @@ export default function EditCardModal({
               {isEditMedia && editSettingsKey && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('media.artworkMode') || 'Artwork Mode'}
                     </label>
                     <div className="flex gap-2">
@@ -2899,7 +2857,7 @@ export default function EditCardModal({
                         {t('media.artwork.cover') || 'Cover'}
                       </button>
                     </div>
-                    <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                       {editSettings.artworkMode === 'cover'
                         ? t('media.artwork.coverHint') || 'Full card artwork cover'
                         : t('media.artwork.defaultHint') || 'Standard icon & background'}
@@ -2907,7 +2865,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('media.playingBgMotion') || 'Playing Background Motion'}
                     </label>
                     <div className="flex gap-2">
@@ -2941,7 +2899,7 @@ export default function EditCardModal({
                         {t('media.motion.subtle') || 'Subtle'}
                       </button>
                     </div>
-                    <p className="ml-1 text-[10px] text-[var(--text-muted)]">
+                    <p className="ml-1 text-[11px] text-[var(--text-muted)]">
                       {editSettings.playingBackgroundMotion === 'subtle'
                         ? t('media.motion.subtleHint') || 'Gently drifts artwork while playing'
                         : t('media.motion.offHint') || 'No extra background motion'}
@@ -2966,7 +2924,7 @@ export default function EditCardModal({
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      <label className="modal-section-label">
                         {t('cost.currency') || 'Currency'}
                       </label>
                       <input
@@ -2986,7 +2944,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label block pb-1">
                       {t('nordpool.graphStyle') || 'Graph style'}
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -3012,7 +2970,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="ml-4 block pb-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label block pb-1">
                       {t('nordpool.withSupport') || 'Electricity Support'}
                     </label>
                     <div className="popup-surface flex items-center justify-between rounded-2xl p-4">
@@ -3037,7 +2995,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('addCard.nordpoolDecimals') || 'Decimals'}
                     </label>
                     <div className="flex items-center gap-4">
@@ -3064,7 +3022,7 @@ export default function EditCardModal({
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      <label className="modal-section-label">
                         {t('energyCost.todayLabel') || 'Today label'}
                       </label>
                       <input
@@ -3082,7 +3040,7 @@ export default function EditCardModal({
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      <label className="modal-section-label">
                         {t('energyCost.monthLabel') || 'Month label'}
                       </label>
                       <input
@@ -3100,7 +3058,7 @@ export default function EditCardModal({
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="ml-1 text-xs font-bold text-[var(--text-muted)] uppercase">
+                      <label className="modal-section-label">
                         {t('cost.currency') || 'Currency'}
                       </label>
                       <input
@@ -3120,7 +3078,7 @@ export default function EditCardModal({
                   </div>
 
                   <div>
-                    <label className="ml-4 block pb-2 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label block pb-2">
                       {t('energyCost.today') || 'Today'}
                     </label>
                     <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
@@ -3154,7 +3112,7 @@ export default function EditCardModal({
                                 <span className="text-sm font-medium text-[var(--text-primary)]">
                                   {entities[sensorId].attributes?.friendly_name || sensorId}
                                 </span>
-                                <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                                <span className="font-mono text-[11px] text-[var(--text-muted)]">
                                   {sensorId}
                                 </span>
                               </div>
@@ -3166,7 +3124,7 @@ export default function EditCardModal({
                   </div>
 
                   <div>
-                    <label className="ml-4 block pb-2 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label block pb-2">
                       {t('energyCost.thisMonth') || 'This Month'}
                     </label>
                     <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
@@ -3200,7 +3158,7 @@ export default function EditCardModal({
                                 <span className="text-sm font-medium text-[var(--text-primary)]">
                                   {entities[sensorId].attributes?.friendly_name || sensorId}
                                 </span>
-                                <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                                <span className="font-mono text-[11px] text-[var(--text-muted)]">
                                   {sensorId}
                                 </span>
                               </div>
@@ -3212,7 +3170,7 @@ export default function EditCardModal({
                   </div>
 
                   <div className="space-y-2">
-                    <label className="ml-4 text-xs font-bold text-[var(--text-muted)] uppercase">
+                    <label className="modal-section-label">
                       {t('cost.decimals') || 'Decimals (Today)'}
                     </label>
                     <div className="flex items-center gap-4">
@@ -3234,19 +3192,14 @@ export default function EditCardModal({
                   </div>
                 </div>
               )}
-            </div>
+            </ModalBody>
+          </div>
 
-            <div
-              className={`mt-5 flex justify-end border-t border-[var(--glass-border)] pt-5 ${showSensorPreview ? 'lg:col-span-2' : ''}`}
-            >
-              <button
-                onClick={onClose}
-                className="popup-surface popup-surface-hover rounded-2xl px-6 py-2.5 text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors"
-              >
-                OK
-              </button>
-            </div>
-          </>
+          <ModalFooter>
+            <Button variant="primary" onClick={onClose}>
+              {t('nav.done') || 'Done'}
+            </Button>
+          </ModalFooter>
         </>
       )}
     </AccessibleModalShell>

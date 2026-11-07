@@ -487,7 +487,7 @@ test.describe('Camera Card', () => {
       )
       .toBeGreaterThan(0);
 
-    await dialog.getByRole('button', { name: /snapshot|stillbilde/i }).click();
+    await dialog.getByRole('radio', { name: /snapshot|stillbilde/i }).click();
     await expect(dialog.getByTestId('camera-feed')).toHaveAttribute(
       'data-camera-source',
       'snapshot'
@@ -505,7 +505,7 @@ test.describe('Camera Card', () => {
     expect(bounds.y).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
-    await expect(dialog.getByRole('button', { name: /stream|straum|strøm/i })).toBeVisible();
+    await expect(dialog.getByRole('radio', { name: /stream|straum|strøm/i })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /refresh|oppdater/i })).toBeVisible();
   });
 
@@ -533,7 +533,7 @@ test.describe('Camera Card', () => {
       'aria-pressed',
       'true'
     );
-    await dialog.getByRole('button', { name: 'OK', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Done', exact: true }).click();
 
     await expect
       .poll(() =>

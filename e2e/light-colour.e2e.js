@@ -133,7 +133,8 @@ for (const theme of ['dark', 'light']) {
     await expect(toggle).toHaveAttribute('aria-checked', 'false');
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-checked', 'true');
-    await modal.getByRole('button', { name: 'OK', exact: true }).click();
+    await modal.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(modal).toBeHidden();
     await page.getByRole('button', { name: 'Done', exact: true }).first().click();
     await expect(power).toHaveCSS('--light-color', 'rgb(70, 140, 255)');
     await page.reload();
@@ -153,12 +154,12 @@ for (const theme of ['dark', 'light']) {
       'color',
       'rgb(251, 191, 36)'
     );
-    await lightModal.getByRole('button', { name: 'Color', exact: true }).click();
+    await lightModal.getByRole('radio', { name: 'Color', exact: true }).click();
     await expect(lightModal.getByRole('slider', { name: 'Hue' })).toHaveValue('217');
     await expect(glow).toHaveCSS('background-color', 'rgb(70, 140, 255)');
-    await lightModal.getByRole('button', { name: 'Warmth', exact: true }).click();
+    await lightModal.getByRole('radio', { name: 'Warmth', exact: true }).click();
     await expect(glow).toHaveCSS('background-color', 'rgb(70, 140, 255)');
-    await lightModal.getByRole('button', { name: 'Color', exact: true }).click();
+    await lightModal.getByRole('radio', { name: 'Color', exact: true }).click();
     await page.screenshot({
       path: join(tmpdir(), `tunet-light-modal-colour-${testInfo.project.name}-${theme}.png`),
       animations: 'disabled',
@@ -202,7 +203,8 @@ for (const theme of ['dark', 'light']) {
     await enterEdit();
     await expect(toggle).toHaveAttribute('aria-checked', 'true');
     await toggle.click();
-    await modal.getByRole('button', { name: 'OK', exact: true }).click();
+    await modal.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(modal).toBeHidden();
     await page.getByRole('button', { name: 'Done', exact: true }).first().click();
     await page.reload();
     await expect(power).not.toHaveCSS('--light-color', 'rgb(70, 140, 255)');

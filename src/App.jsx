@@ -469,6 +469,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     selectedSpacerVariant,
     setSelectedSpacerVariant,
     onAddSelected,
+    pendingAddCount,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
   } = useAddCard({
@@ -744,6 +745,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     selectedSpacerVariant,
     setSelectedSpacerVariant,
     onAddSelected,
+    pendingAddCount,
     getAddCardAvailableLabel,
     getAddCardNoneLeftLabel,
     saveCardSetting,
