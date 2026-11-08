@@ -14,6 +14,15 @@ describe('snapshot service', () => {
     expect(snapshot.layout.cardBorderRadius).toBe(28);
   });
 
+  it('applySnapshot moves a retired Flat theme to Dark', () => {
+    const setCurrentTheme = vi.fn();
+
+    applySnapshot({ version: 1, layout: {}, appearance: { theme: 'flat' } }, { setCurrentTheme });
+
+    expect(localStorage.getItem('tunet_theme')).toBe('dark');
+    expect(setCurrentTheme).toHaveBeenCalledWith('dark');
+  });
+
   it('applySnapshot persists and applies cardBorderRadius', () => {
     const setCardBorderRadius = vi.fn();
 

@@ -26,7 +26,7 @@ describe('ThemeGallery', () => {
       'theme.light',
       'theme.graphite',
       'theme.amethyst',
-      'theme.flat',
+      'theme.aluminium',
     ]);
   });
 

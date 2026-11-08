@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { themes } from '../config/themes';
+import { initialCardMaterial, themes } from '../config/themes';
 import { isLightColor } from '../utils/colorUtils';
 import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 import { hashPin, verifyPin } from '../utils';
@@ -180,7 +180,10 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
 
   const [cardMaterial, setCardMaterial] = useState(() => {
     try {
-      return localStorage.getItem('tunet_card_material') || 'glass';
+      return initialCardMaterial(
+        localStorage.getItem('tunet_theme'),
+        localStorage.getItem('tunet_card_material')
+      );
     } catch {
       return 'glass';
     }

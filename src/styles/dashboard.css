@@ -766,16 +766,6 @@
   background: var(--selection-bg, rgba(59, 130, 246, 0.3));
   color: var(--selection-text, #fff);
 }
-html[data-theme='flat'] * {
-  box-shadow: none !important;
-  border-color: transparent !important;
-}
-html[data-theme='flat'] .modal-close,
-html[data-theme='flat'] .modal-close-dark,
-html[data-theme='flat'] .popup-surface,
-html[data-theme='flat'] .popup-surface-hover {
-  box-shadow: none !important;
-}
 
 /* ── Battery Bar (header topbar variant) ── */
 .battery-bar {
@@ -860,18 +850,6 @@ html[data-theme='flat'] .popup-surface-hover {
 }
 .battery-bar--mobile .battery-bar__nub {
   display: none;
-}
-
-/* Flat theme override */
-html[data-theme='flat'] .battery-bar {
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-}
-html[data-theme='flat'] .battery-bar__nub {
-  background: var(--card-border);
 }
 
 /* ── Card Material Variants ── */

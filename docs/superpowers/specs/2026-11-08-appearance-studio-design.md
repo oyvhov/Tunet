@@ -24,7 +24,7 @@ Steg 1 endrar korleis du **vel** utsjånad, ikkje korleis Tunet ser ut. Einaste 
 
 ## Ikkje med i dette steget
 
-Nye tema (Fjord, Skifer, Morgon), aksentveljar, temamotor, automatisk lys/mørk, himmel-bakgrunn, nattmodus, biletopplasting, blur og mørkleggings-slider for bilete, kontrastvakt og «Looks». Dei høyrer til steg 2–4. Smart-temaet oppfører seg som før.
+Fleire nye tema (Skifer, Morgon), aksentveljar, temamotor, automatisk lys/mørk, himmel-bakgrunn, nattmodus, biletopplasting, blur og mørkleggings-slider for bilete, kontrastvakt og «Looks». Dei høyrer til steg 2–4. Smart-temaet oppfører seg som før.
 
 ## Det som ikkje må skje
 
@@ -64,11 +64,12 @@ Ingenting endrar seg for fokus og tilgjenge: `aria-modal`, fokusfella og Esc er 
 ### 2. Temagalleri
 
 - Erstattar temamenyen, øvst i Utsjånad.
-- Seks ruter i tre kolonner, i rekkjefølgja til `Object.keys(themes)`: Smart, Mørk, Lys, Grafitt, Ametyst, Flat.
+- Seks ruter i tre kolonner, i rekkjefølgja til `Object.keys(themes)`: Smart, Mørk, Lys, Grafitt, Ametyst, Aluminium.
 - Kvar rute er ei lita teikning laga berre av tokens frå `themes[key].colors`: bakgrunnsgradient (`--bg-gradient-from/to`), to småkort (`--card-bg`, `--card-border`), tekststrekar (`--text-primary/secondary`) og eit aksentmerke (`--accent-color`). Ingen harde fargar.
 - Smart-ruta har eit lite auto-merke, slik at ho skil seg frå dei faste.
 - Vald rute og knappeoppførsel er som bakgrunnsrutene: `<button aria-pressed>` med `is-active`-stil. Temanamnet er det tilgjengelege namnet.
-- Alle namn går gjennom `t()`. I dag vantar `graphite`, `amethyst` og `flat` omsetjing, og Smart er hardkoda.
+- Alle namn går gjennom `t()`. I dag vantar `graphite` og `amethyst` omsetjing, og Smart er hardkoda.
+- Temaet Flat blir bytt ut med Aluminium, eit mørkt tema i Apple-stil: heilt svart botn, grå kort i lag, kvit tekst og klar blå aksent. Den som har Flat lagra, får Mørk med kortmaterialet Flat. Ein profil lagra med Flat får Mørk. CSS-reglane for `data-theme="flat"` blir fjerna.
 
 ### 3. Bakgrunn
 
@@ -107,7 +108,7 @@ Skriftmenyen blir erstatta av ruter med «Aa» i skrifta og namnet under. Sju va
 - Nye filer i `src/` er `.ts`/`.tsx`. Dei store `.jsx`-filene blir ikkje konverterte i dette arbeidet.
 - Ingen ny state i `App.jsx`.
 - Fargar kjem frå tema-tokens. `npm run lint:theme-colors` skal vere grønn.
-- Alle åtte språkfilene (de, en, es, fr, nb, nn, sv, zh) får ekte omsetjingar av nye nøklar: `theme.contextual`, `theme.graphite`, `theme.amethyst`, `theme.flat`, `system.tabGeneral`, og tekstane til «Sjå»-knappen og lenkjeraden.
+- Alle åtte språkfilene (de, en, es, fr, nb, nn, sv, zh) får ekte omsetjingar av nye nøklar: `theme.contextual`, `theme.graphite`, `theme.amethyst`, `theme.aluminium`, `system.tabGeneral`, og tekstane til «Sjå»-knappen og lenkjeraden.
 - Ingen urelaterte refaktoreringar.
 
 ## Testing
@@ -131,11 +132,11 @@ Skriftmenyen blir erstatta av ruter med «Aa» i skrifta og namnet under. Sju va
 
 ## Kven bestemte kva
 
-**Eigaren:** Steg 1 er «Studio og galleri». Førehandsvisinga skal vere at dashbordet krympar. «Eige bilete» skal verke alt i dette steget.
+**Eigaren:** Steg 1 er «Studio og galleri». Førehandsvisinga skal vere at dashbordet krympar. «Eige bilete» skal verke alt i dette steget. Temaet Flat skal bytast ut med noko stilig i Apple-stil.
 
 **Claude si vurdering, kan endrast:**
 
-- Galleriet har berre dei seks tema som finst i dag.
+- Galleriet har seks ruter. Det nye temaet heiter Aluminium og ikkje Apple, sidan Apple er eit varemerke og koden er open.
 - Språk, Eining, Lås og Åtferd får den nye fana «Generelt», sidan System ikkje har «Innstillingar».
 - Bilete blir vist med mørk tone på 35 % og utan fargeglødar.
 - Grensa for krymping er 900 px. Nettbrett på høgkant får «Sjå»-knappen.

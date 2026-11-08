@@ -6,6 +6,7 @@
  * OAuth tokens) are intentionally excluded for security.
  */
 
+import { replaceRetiredTheme } from '../config/themes';
 import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 
 const SNAPSHOT_VERSION = 1;
@@ -257,7 +258,7 @@ export function applySnapshot(
     localStorage.removeItem('tunet_music_assistant_url');
 
   // ── Appearance → localStorage ──
-  if (appearance.theme) localStorage.setItem('tunet_theme', appearance.theme);
+  if (appearance.theme) localStorage.setItem('tunet_theme', replaceRetiredTheme(appearance.theme));
   if (appearance.language)
     localStorage.setItem('tunet_language', normalizeSnapshotLanguage(appearance.language));
   if (appearance.appFont) localStorage.setItem('tunet_app_font', appearance.appFont);
@@ -311,7 +312,9 @@ export function applySnapshot(
     s.saveStatusPillsConfig(layout.statusPillsConfig);
 
   // ConfigContext setters
-  if (s.setCurrentTheme && appearance.theme) s.setCurrentTheme(appearance.theme);
+  if (s.setCurrentTheme && appearance.theme) {
+    s.setCurrentTheme(replaceRetiredTheme(appearance.theme));
+  }
   if (s.setLanguage && appearance.language)
     s.setLanguage(normalizeSnapshotLanguage(appearance.language));
   if (s.setAppFont && appearance.appFont) s.setAppFont(appearance.appFont);
