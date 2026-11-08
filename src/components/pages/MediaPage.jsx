@@ -665,6 +665,7 @@ function MediaPage({
   );
 
   const currentCanGroup = controls.grouping;
+  const currentPlatform = currentMp?.attributes?.platform;
   const groupableOtherIds = useMemo(() => {
     if (!currentCanGroup) return [];
     return listPlayers
@@ -672,10 +673,10 @@ function MediaPage({
         (player) =>
           player.entity_id !== mpId &&
           getMediaPlayerControls(player).grouping &&
-          isMusicAssistantMediaEntity(player) === isMusicAssistantPlayer
+          player.attributes?.platform === currentPlatform
       )
       .map((player) => player.entity_id);
-  }, [currentCanGroup, listPlayers, mpId, isMusicAssistantPlayer]);
+  }, [currentCanGroup, listPlayers, mpId, currentPlatform]);
   const canGroupPlayers = groupableOtherIds.length > 0;
 
   const toggleGroupAll = useCallback(() => {

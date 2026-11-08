@@ -229,12 +229,12 @@ describe('MediaPage grouping feature', () => {
     expect(screen.queryByTitle('tooltip.addToGroup')).not.toBeInTheDocument();
   });
 
-  it('does not offer to group Music Assistant players with other integrations', () => {
+  it('does not offer to group players from different integrations', () => {
     render(
       <MediaPage
         {...pageProps({
-          'media_player.ma': player('ma', GROUPING, { mass_player_type: 'player' }),
-          'media_player.cast': player('cast', GROUPING),
+          'media_player.squeeze': player('squeeze', GROUPING, { platform: 'squeezebox' }),
+          'media_player.cast': player('cast', GROUPING, { platform: 'cast' }),
         })}
       />
     );
