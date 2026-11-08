@@ -882,6 +882,23 @@ test.describe('Modal Interactions', () => {
     );
   });
 
+  for (const [material, overflow] of [
+    ['elevated', 'visible'],
+    ['neumorphic', 'visible'],
+    ['glass', 'hidden'],
+  ]) {
+    test(`card slot overflow is ${overflow} for ${material} cards`, async ({ page }) => {
+      await page.addInitScript(
+        (value) => localStorage.setItem('tunet_card_material', value),
+        material
+      );
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      const slot = page.locator('[data-card-id]').first().locator('xpath=..');
+
+      await expect.poll(() => slot.evaluate((el) => getComputedStyle(el).overflow)).toBe(overflow);
+    });
+  }
+
   test('keeps card style in appearance only', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
 

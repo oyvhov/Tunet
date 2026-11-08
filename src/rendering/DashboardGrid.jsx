@@ -11,7 +11,17 @@ const RoomExplorerPage = lazy(() => import('../components/pages/RoomExplorerPage
 const pageFallback = <div className="page-transition min-h-[40vh]" aria-hidden="true" />;
 
 export default function DashboardGrid({ page, media, grid, cards, actions, t }) {
-  const { activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage, isLightsPage, isBatteryPage, isRoomExplorerPage } = page;
+  const {
+    activePage,
+    pagesConfig,
+    pageSettings,
+    editMode,
+    isMediaPage,
+    isSonosPage,
+    isLightsPage,
+    isBatteryPage,
+    isRoomExplorerPage,
+  } = page;
   const {
     entities,
     conn,
@@ -23,7 +33,8 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
     callService,
     savePageSetting,
   } = media;
-  const { gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards, cardScale } = grid;
+  const { gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards, cardScale } =
+    grid;
   const { cardSettings, getCardSettingsKey, hiddenCards, isCardHiddenByLogic, renderCard } = cards;
   const { setShowAddCardModal, setConfigTab, setShowConfigModal } = actions;
 
@@ -263,10 +274,14 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
                 </div>
               )}
               <div
-                className="h-full overflow-hidden"
-                style={needsScale ? {
-                  fontSize: `${scaleFactor}em`,
-                } : undefined}
+                className="dashboard-card-slot h-full overflow-hidden"
+                style={
+                  needsScale
+                    ? {
+                        fontSize: `${scaleFactor}em`,
+                      }
+                    : undefined
+                }
               >
                 <CardErrorBoundary cardId={id} t={t}>
                   {cardContent}

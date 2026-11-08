@@ -854,6 +854,12 @@
 
 /* ── Card Material Variants ── */
 
+/* Materials with an outer shadow must not be clipped by the square grid slot */
+html[data-card-material='elevated'] .dashboard-card-slot,
+html[data-card-material='neumorphic'] .dashboard-card-slot {
+  overflow: visible;
+}
+
 /* Neumorphic: soft 3D embossed look — opaque bg required to avoid corner artifacts */
 html[data-card-material='neumorphic'] .touch-feedback,
 html[data-card-material='neumorphic'] [style*='--card-bg'] {
