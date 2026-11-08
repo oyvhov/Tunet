@@ -70,6 +70,7 @@ describe('statusGroupPills', () => {
       'binary.door.closed': 'Door closed',
       'binary.window.open': 'Window open',
       'binary.garageDoor.open': 'Garage open',
+      'binary.motion.detected': 'Motion seen',
       'state.open': 'Open',
       'state.closed': 'Closed',
       'cover.open': 'Cover open',
@@ -92,7 +93,7 @@ describe('statusGroupPills', () => {
     });
 
     it('uses the wording of other binary sensor classes too', () => {
-      expect(label('binary_sensor.hall', 'on', 'motion')).toBe('binary.motion.detected');
+      expect(label('binary_sensor.hall', 'on', 'motion')).toBe('Motion seen');
     });
 
     it('ignores device_class outside binary sensors', () => {
