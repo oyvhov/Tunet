@@ -15,6 +15,8 @@ import { getAreas } from '../../services/haClient';
 import PageHeader from '../ui/PageHeader';
 
 const SLIDER_DEBOUNCE_MS = 200;
+const OPTIMISTIC_HOLD_MS = 3000;
+const SORT_HOLD_MS = 5000;
 
 const SORT_OPTIONS = [
   { key: 'status', icon: '●' },
@@ -88,7 +90,7 @@ function hsToRgbString(h, s) {
 // ── Individual Light Tile ────────────────────────────────────────────────
 
 const LightTile = memo(
-  /** @param {{ entity: any, areaName?: string, onToggle: (entityId: string) => void, onBrightness: (entityId: string, value: number) => void, optimisticBrightness?: number, t: (key: string) => string }} props */
+  /** @param {{ entity: any, areaName?: string, onToggle: (entityId: string) => void, onBrightness: (entityId: string, value: number, liveBrightness: number) => void, optimisticBrightness?: number, t: (key: string) => string }} props */
   function LightTile({ entity, areaName, onToggle, onBrightness, optimisticBrightness, t }) {
     const { entity_id, state, attributes } = entity;
     const isOn = state === 'on';
@@ -194,7 +196,7 @@ const LightTile = memo(
               step={1}
               value={optimisticBrightness ?? brightness}
               disabled={isUnavailable}
-              onChange={(e) => onBrightness(entity_id, parseInt(e.target.value))}
+              onChange={(e) => onBrightness(entity_id, parseInt(e.target.value), brightness)}
               colorClass={isOn ? 'bg-amber-400' : 'bg-[var(--text-muted)]'}
               ariaLabel={t('light.brightness') || 'Brightness'}
             />
@@ -349,6 +351,10 @@ function LightsPage({ entities, callService, conn, pageSettings, pageId, savePag
     () => pageSettings?.[pageId]?.lightsHideUnavailable === true
   );
   const [areas, setAreas] = useState([]);
+  // Tiles stay put for a moment after a tap or drag instead of jumping away under the finger
+  const [heldOrder, setHeldOrder] = useState(null);
+  const sortHoldTimerRef = useRef(null);
+  const sortedIdsRef = useRef([]);
 
   // Fetch areas for grouping
   useEffect(() => {
@@ -375,6 +381,7 @@ function LightsPage({ entities, callService, conn, pageSettings, pageId, savePag
   const handleSortChange = useCallback(
     (mode) => {
       setSortMode(mode);
+      setHeldOrder(null);
       if (savePageSetting && pageId) {
         savePageSetting(pageId, 'lightsSort', mode);
       }
@@ -417,7 +424,11 @@ function LightsPage({ entities, callService, conn, pageSettings, pageId, savePag
   // All light entities
   const allLights = useMemo(() => {
     return Object.values(entities).filter(
-      (e) => e.entity_id.startsWith('light.') && e.state !== undefined
+      (e) =>
+        e.entity_id.startsWith('light.') &&
+        e.state !== undefined &&
+        !e.attributes?.hidden_by &&
+        !e.attributes?.entity_category
     );
   }, [entities]);
 
@@ -512,8 +523,24 @@ function LightsPage({ entities, callService, conn, pageSettings, pageId, savePag
       },
     };
     list.sort(sorters[sortMode] || sorters['status']);
+    if (heldOrder) {
+      const position = (e) => heldOrder.get(e.entity_id) ?? heldOrder.size;
+      list.sort((a, b) => position(a) - position(b));
+    }
     return list;
-  }, [filteredLights, sortMode, getAreaName]);
+  }, [filteredLights, sortMode, getAreaName, heldOrder]);
+
+  useEffect(() => {
+    sortedIdsRef.current = sortedLights.map((e) => e.entity_id);
+  }, [sortedLights]);
+
+  const holdSortOrder = useCallback(() => {
+    setHeldOrder(
+      (current) => current ?? new Map(sortedIdsRef.current.map((id, index) => [id, index]))
+    );
+    clearTimeout(sortHoldTimerRef.current);
+    sortHoldTimerRef.current = setTimeout(() => setHeldOrder(null), SORT_HOLD_MS);
+  }, []);
 
   // Group by area when sort mode is 'area'
   const areaGroups = useMemo(() => {
@@ -533,23 +560,42 @@ function LightsPage({ entities, callService, conn, pageSettings, pageId, savePag
   // Debounce state for brightness
   const [optimistic, setOptimistic] = useState({});
   const debounceRefs = useRef({});
+  const optimisticTimersRef = useRef({});
+
+  useEffect(() => {
+    const optimisticTimers = optimisticTimersRef.current;
+    return () => {
+      clearTimeout(sortHoldTimerRef.current);
+      Object.values(optimisticTimers).forEach(clearTimeout);
+    };
+  }, []);
 
   const handleToggle = useCallback(
     (entityId) => {
+      holdSortOrder();
       callService('light', 'toggle', { entity_id: entityId });
     },
-    [callService]
+    [callService, holdSortOrder]
   );
 
   const handleBrightness = useCallback(
-    (entityId, val) => {
-      setOptimistic((prev) => ({ ...prev, [entityId]: val }));
+    (entityId, val, liveBrightness) => {
+      holdSortOrder();
+      setOptimistic((prev) => ({ ...prev, [entityId]: { value: val, liveBrightness } }));
       clearTimeout(debounceRefs.current[entityId]);
       debounceRefs.current[entityId] = setTimeout(() => {
         callService('light', 'turn_on', { entity_id: entityId, brightness: val });
       }, SLIDER_DEBOUNCE_MS);
+      clearTimeout(optimisticTimersRef.current[entityId]);
+      optimisticTimersRef.current[entityId] = setTimeout(() => {
+        setOptimistic((prev) => {
+          const next = { ...prev };
+          delete next[entityId];
+          return next;
+        });
+      }, OPTIMISTIC_HOLD_MS);
     },
-    [callService]
+    [callService, holdSortOrder]
   );
 
   const handleAllOff = useCallback(() => {
@@ -564,17 +610,22 @@ function LightsPage({ entities, callService, conn, pageSettings, pageId, savePag
       .forEach((e) => callService('light', 'turn_on', { entity_id: e.entity_id }));
   }, [filteredLights, callService]);
 
-  const renderTile = (entity) => (
-    <LightTile
-      key={entity.entity_id}
-      entity={entity}
-      areaName={getAreaName(entity)}
-      onToggle={handleToggle}
-      onBrightness={handleBrightness}
-      optimisticBrightness={optimistic[entity.entity_id]}
-      t={t}
-    />
-  );
+  const renderTile = (entity) => {
+    const pending = optimistic[entity.entity_id];
+    // Once Home Assistant reports a new brightness, its value wins over the local one
+    const hasNoNewReport = pending?.liveBrightness === (entity.attributes?.brightness || 0);
+    return (
+      <LightTile
+        key={entity.entity_id}
+        entity={entity}
+        areaName={getAreaName(entity)}
+        onToggle={handleToggle}
+        onBrightness={handleBrightness}
+        optimisticBrightness={hasNoNewReport ? pending.value : undefined}
+        t={t}
+      />
+    );
+  };
 
   const renderGrid = (lights) => (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
