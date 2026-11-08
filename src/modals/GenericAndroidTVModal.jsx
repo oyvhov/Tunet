@@ -58,6 +58,10 @@ export default function GenericAndroidTVModal({
 
   const state = entity?.state;
   const isUnavailable = isUnavailableState(state);
+  // Commands go to the remote entity, which can be fine while the media player is not.
+  const remoteDisabled = isUnavailableState(entities[remoteId]?.state ?? state);
+  const canWakeViaRemote = Boolean(remoteId) && !remoteDisabled;
+  const powerDisabled = isUnavailable && !canWakeViaRemote;
   const isOn = state !== 'off' && state !== 'standby' && !isUnavailable;
   // Playback goes to the linked player while one is active, so it still works without the TV.
   const playbackDisabled = isUnavailable && !linkedActive;
@@ -128,7 +132,7 @@ export default function GenericAndroidTVModal({
   // Same wake route as the card: the remote when there is one, as it can reach a sleeping TV.
   const togglePower = () => {
     if (isOn) controlMedia('turn_off');
-    else if (remoteId) callService('remote', 'turn_on', { entity_id: remoteId });
+    else if (canWakeViaRemote) callService('remote', 'turn_on', { entity_id: remoteId });
     else controlMedia('turn_on');
   };
 
@@ -270,7 +274,7 @@ export default function GenericAndroidTVModal({
                   <div className="relative h-32 w-32 sm:h-44 sm:w-44">
                     {/* Up */}
                     <button
-                      disabled={isUnavailable}
+                      disabled={remoteDisabled}
                       onClick={() => sendCommand('DPAD_UP')}
                       className="absolute top-0 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50 sm:h-14 sm:w-14"
                       aria-label={t('remote.up')}
@@ -279,7 +283,7 @@ export default function GenericAndroidTVModal({
                     </button>
                     {/* Left */}
                     <button
-                      disabled={isUnavailable}
+                      disabled={remoteDisabled}
                       onClick={() => sendCommand('DPAD_LEFT')}
                       className="absolute top-1/2 left-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50 sm:h-14 sm:w-14"
                       aria-label={t('remote.left')}
@@ -288,7 +292,7 @@ export default function GenericAndroidTVModal({
                     </button>
                     {/* Right */}
                     <button
-                      disabled={isUnavailable}
+                      disabled={remoteDisabled}
                       onClick={() => sendCommand('DPAD_RIGHT')}
                       className="absolute top-1/2 right-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50 sm:h-14 sm:w-14"
                       aria-label={t('remote.right')}
@@ -297,7 +301,7 @@ export default function GenericAndroidTVModal({
                     </button>
                     {/* Down */}
                     <button
-                      disabled={isUnavailable}
+                      disabled={remoteDisabled}
                       onClick={() => sendCommand('DPAD_DOWN')}
                       className="absolute bottom-0 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50 sm:h-14 sm:w-14"
                       aria-label={t('remote.down')}
@@ -306,7 +310,7 @@ export default function GenericAndroidTVModal({
                     </button>
                     {/* Center */}
                     <button
-                      disabled={isUnavailable}
+                      disabled={remoteDisabled}
                       onClick={() => sendCommand('DPAD_CENTER')}
                       className="absolute top-1/2 left-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent-color)] text-[11px] font-bold text-[var(--accent-contrast)] shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-90 disabled:opacity-50 sm:h-12 sm:w-12"
                       aria-label={t('remote.select')}
@@ -318,7 +322,7 @@ export default function GenericAndroidTVModal({
                   {/* Nav Buttons */}
                   <div className="grid w-full grid-cols-3 gap-2 sm:gap-4">
                     <button
-                      disabled={isUnavailable}
+                      disabled={remoteDisabled}
                       onClick={() => sendCommand('BACK')}
                       className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-50 sm:gap-2 sm:p-3"
                     >
@@ -328,7 +332,7 @@ export default function GenericAndroidTVModal({
                       </span>
                     </button>
                     <button
-                      disabled={isUnavailable}
+                      disabled={remoteDisabled}
                       onClick={() => sendCommand('HOME')}
                       className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-50 sm:gap-2 sm:p-3"
                     >
@@ -338,7 +342,7 @@ export default function GenericAndroidTVModal({
                       </span>
                     </button>
                     <button
-                      disabled={isUnavailable}
+                      disabled={remoteDisabled}
                       onClick={() => sendCommand('MENU')}
                       className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-50 sm:gap-2 sm:p-3"
                     >
@@ -386,12 +390,12 @@ export default function GenericAndroidTVModal({
                 </button>
                 <Button
                   block
-                  variant={isOn ? 'destructive' : isUnavailable ? 'secondary' : 'primary'}
-                  disabled={isUnavailable}
+                  variant={isOn ? 'destructive' : powerDisabled ? 'secondary' : 'primary'}
+                  disabled={powerDisabled}
                   onClick={togglePower}
                   icon={<Power className="h-5 w-5" />}
                 >
-                  {isUnavailable
+                  {powerDisabled
                     ? getUnavailableLabel(state, t)
                     : isOn
                       ? t('shield.turnOff')

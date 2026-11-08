@@ -102,6 +102,53 @@ describe('GenericAndroidTVCard controls', () => {
     expect(screen.queryByRole('button', { name: 'shield.turnOn' })).toBeNull();
   });
 
+  const withRemote = (mediaState, remoteState) => ({
+    remoteId: 'remote.shield',
+    entities: {
+      'media_player.shield': {
+        entity_id: 'media_player.shield',
+        state: mediaState,
+        attributes: { friendly_name: 'Shield TV' },
+      },
+      'remote.shield': { entity_id: 'remote.shield', state: remoteState, attributes: {} },
+    },
+  });
+
+  it('wakes through the remote while the media player is unavailable (large)', () => {
+    const { callService } = renderCard('unavailable', withRemote('unavailable', 'on'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'shield.turnOn: Shield TV' }));
+
+    expect(callService).toHaveBeenCalledWith('remote', 'turn_on', { entity_id: 'remote.shield' });
+  });
+
+  it('wakes through the remote while the media player is unavailable (small)', () => {
+    const { callService } = renderCard('unavailable', {
+      ...withRemote('unavailable', 'on'),
+      size: 'small',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'shield.turnOn' }));
+
+    expect(callService).toHaveBeenCalledWith('remote', 'turn_on', { entity_id: 'remote.shield' });
+  });
+
+  it('offers no power button when the remote is unavailable too', () => {
+    renderCard('unavailable', withRemote('unavailable', 'unavailable'));
+
+    expect(screen.queryByRole('button', { name: /shield.turnOn/ })).toBeNull();
+  });
+
+  it('wakes the media player when only the remote is unavailable', () => {
+    const { callService } = renderCard('off', withRemote('off', 'unavailable'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'shield.turnOn: Shield TV' }));
+
+    expect(callService).toHaveBeenCalledWith('media_player', 'turn_on', {
+      entity_id: 'media_player.shield',
+    });
+  });
+
   it('resumes a paused linked player from the card', () => {
     const entities = {
       'media_player.shield': {
