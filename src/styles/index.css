@@ -65,14 +65,11 @@ input[type='range']:focus-visible {
   outline-offset: 4px;
 }
 
-/* When custom bg image is active, add overlay for readability */
-html.custom-bg-active body::before {
-  content: '';
-  position: fixed;
+/* Dark tone over a custom background image, for readability */
+.background-custom-tone {
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
-  pointer-events: none;
-  z-index: 0;
 }
 
 @layer utilities {

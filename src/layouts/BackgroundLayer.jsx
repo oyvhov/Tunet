@@ -4,12 +4,16 @@ import SilkBackground from '../components/effects/SilkBackground';
 import { useConfig } from '../contexts';
 import { themes } from '../config/themes';
 import { isLightColor } from '../utils/colorUtils';
+import { backgroundImageUrl } from '../utils/studioPreview';
+
+const BASE_GRADIENT =
+  'radial-gradient(circle at 50% 0%, var(--bg-gradient-from), var(--bg-primary) 70%, var(--bg-gradient-to))';
 
 /**
  * BackgroundLayer — renders the animated aurora or static gradient background.
  */
 export default function BackgroundLayer() {
-  const { bgMode, currentTheme } = useConfig();
+  const { bgMode, bgImage, currentTheme } = useConfig();
   const baseColor = themes[currentTheme]?.colors?.['--bg-primary'] || '#0f172a';
   const isLight = isLightColor(baseColor);
   const glowBlend = isLight ? 'normal' : 'screen';
@@ -27,16 +31,24 @@ export default function BackgroundLayer() {
     return <SilkBackground baseColor={baseColor} />;
   }
 
+  if (bgMode === 'custom' && bgImage) {
+    return (
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0" style={{ background: BASE_GRADIENT }} />
+        <div
+          data-testid="custom-background-image"
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: backgroundImageUrl(bgImage) }}
+        />
+        <div data-testid="custom-background-tone" className="background-custom-tone" />
+      </div>
+    );
+  }
+
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       {/* Deep static gradient base */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(circle at 50% 0%, var(--bg-gradient-from), var(--bg-primary) 70%, var(--bg-gradient-to))',
-        }}
-      />
+      <div className="absolute inset-0" style={{ background: BASE_GRADIENT }} />
 
       {/* Static ambient glows. Motion is opt-in through explicit animated modes.
           Colours follow the active theme so they never fight the palette. */}

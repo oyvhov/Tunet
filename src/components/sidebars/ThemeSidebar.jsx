@@ -5,6 +5,7 @@ import M3Slider from '../ui/M3Slider';
 import { GRADIENT_PRESETS } from '../../contexts/ConfigContext';
 import { useConfig } from '../../contexts';
 import { isValidPin } from '../../utils';
+import { backgroundImageUrl } from '../../utils/studioPreview';
 import {
   Sparkles,
   Sun,
@@ -74,6 +75,7 @@ export default function ThemeSidebar({
     { key: 'theme', icon: Sparkles, label: t('settings.bgFollowTheme') },
     { key: 'solid', icon: Sun, label: t('settings.bgSolid') },
     { key: 'gradient', icon: Moon, label: t('settings.bgGradient') },
+    { key: 'custom', icon: Link, label: t('settings.bgCustom') },
     { key: 'animated', icon: Sparkles, label: t('settings.bgAurora') },
     { key: 'lavaLamp', icon: Flame, label: t('settings.bgLavaLamp') },
     { key: 'silk', icon: Feather, label: t('settings.bgSilk') },
@@ -252,7 +254,13 @@ export default function ThemeSidebar({
                       ? {
                           background: `linear-gradient(135deg, ${GRADIENT_PRESETS[bgGradient]?.from || '#0f172a'}, ${GRADIENT_PRESETS[bgGradient]?.to || '#020617'})`,
                         }
-                      : undefined;
+                      : mode.key === 'custom' && bgImage
+                        ? {
+                            backgroundImage: backgroundImageUrl(bgImage),
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          }
+                        : undefined;
                 return (
                   <button
                     key={mode.key}

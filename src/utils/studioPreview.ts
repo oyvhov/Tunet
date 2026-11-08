@@ -18,3 +18,7 @@ export function getStudioPreviewGeometry(viewportWidth: number): StudioPreviewGe
     shift: -STUDIO_PANEL_WIDTH / 2,
   };
 }
+
+export function backgroundImageUrl(url: string): string {
+  return `url(${JSON.stringify(url)})`;
+}

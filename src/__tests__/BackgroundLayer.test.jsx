@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BackgroundLayer from '../layouts/BackgroundLayer';
+import { backgroundImageUrl } from '../utils/studioPreview';
 
-const configState = vi.hoisted(() => ({ bgMode: 'theme' }));
+const configState = vi.hoisted(() => ({ bgMode: 'theme', bgImage: '' }));
 
 vi.mock('../contexts', () => ({
-  useConfig: () => ({ bgMode: configState.bgMode }),
+  useConfig: () => ({ bgMode: configState.bgMode, bgImage: configState.bgImage }),
 }));
 
 vi.mock('../components/effects/AuroraBackground', () => ({
@@ -23,6 +24,7 @@ vi.mock('../components/effects/SilkBackground', () => ({
 describe('BackgroundLayer', () => {
   beforeEach(() => {
     configState.bgMode = 'theme';
+    configState.bgImage = '';
   });
 
   it('keeps theme mode static by default', () => {
@@ -44,5 +46,32 @@ describe('BackgroundLayer', () => {
     render(<BackgroundLayer />);
 
     expect(screen.getByTestId(testId)).toBeInTheDocument();
+  });
+
+  it('shows a custom image under a dark tone and without glows', () => {
+    configState.bgMode = 'custom';
+    configState.bgImage = 'https://x/a.jpg';
+
+    const { container } = render(<BackgroundLayer />);
+
+    expect(screen.getByTestId('custom-background-image').style.backgroundImage).toContain(
+      'https://x/a.jpg'
+    );
+    expect(screen.getByTestId('custom-background-tone')).toBeInTheDocument();
+    expect(container.querySelector('.rounded-full')).toBeNull();
+  });
+
+  it('falls back to the theme background when no image is set', () => {
+    configState.bgMode = 'custom';
+    configState.bgImage = '';
+
+    const { container } = render(<BackgroundLayer />);
+
+    expect(screen.queryByTestId('custom-background-image')).not.toBeInTheDocument();
+    expect(container.querySelector('.rounded-full')).not.toBeNull();
+  });
+
+  it('keeps a URL with quotes and backslashes inside one CSS string', () => {
+    expect(backgroundImageUrl('a"b\\c')).toBe('url("a\\"b\\\\c")');
   });
 });
