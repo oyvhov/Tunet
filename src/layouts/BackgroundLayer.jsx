@@ -81,7 +81,7 @@ export default function BackgroundLayer() {
       />
       <div
         className="pointer-events-none absolute top-[40%] left-[30%] h-[50vw] w-[50vw] rounded-full"
-        style={{ background: softGlow('--accent-color', 15), opacity: glowOpacity * 0.7 }}
+        style={{ background: softGlow('--accent-color', 15), opacity: glowOpacity * 0.35 }}
       />
 
       {/* Fine grain keeps the very dim glows from showing as rings of flat colour. */}

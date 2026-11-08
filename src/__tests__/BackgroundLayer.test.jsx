@@ -48,6 +48,14 @@ describe('BackgroundLayer', () => {
     expect(screen.getByTestId(testId)).toBeInTheDocument();
   });
 
+  it('keeps the glow behind the cards much fainter than the corner glows', () => {
+    const { container } = render(<BackgroundLayer />);
+
+    const [corner, , centre] = container.querySelectorAll('.rounded-full');
+
+    expect(Number(centre.style.opacity)).toBeLessThan(Number(corner.style.opacity) * 0.45);
+  });
+
   it('draws the glows without blur or blending, which break into blocks on graphics cards', () => {
     const { container } = render(<BackgroundLayer />);
 
