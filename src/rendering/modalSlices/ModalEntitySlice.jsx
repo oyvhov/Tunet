@@ -343,10 +343,16 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
       {showCalendarModal && (
         <ModalSuspense>
           <CalendarModal
-            show={showCalendarModal}
+            show={Boolean(showCalendarModal)}
             onClose={() => setShowCalendarModal(false)}
             conn={conn}
             entities={entities}
+            cardCalendars={
+              (
+                cardSettings[getCardSettingsKey(showCalendarModal)] ||
+                cardSettings[showCalendarModal]
+              )?.calendars
+            }
             language={language}
             t={t}
           />
