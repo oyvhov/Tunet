@@ -6,6 +6,7 @@ const t = (key) =>
   ({
     'common.missing': 'Missing',
     'common.unknown': 'Unknown',
+    'lock.action.confirmOpen': 'Confirm open',
     'lock.action.confirmUnlock': 'Confirm unlock',
     'lock.action.lock': 'Lock',
     'lock.action.open': 'Open',
@@ -140,12 +141,14 @@ describe('LockCard', () => {
     render(<LockCard {...props} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    expect(callService).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm open' }));
     expect(callService).toHaveBeenCalledWith('lock', 'open', { entity_id: 'lock.front_door' });
   });
 
-  it('includes a user code when Home Assistant advertises a lock code format', () => {
-    vi.spyOn(window, 'prompt').mockReturnValue('2468');
-    const { props, callService } = baseProps({
+  it('opens the popup for the code when Home Assistant advertises a lock code format', () => {
+    const prompt = vi.spyOn(window, 'prompt');
+    const { props, callService, onOpen } = baseProps({
       entities: {
         'lock.front_door': {
           entity_id: 'lock.front_door',
@@ -161,12 +164,9 @@ describe('LockCard', () => {
     render(<LockCard {...props} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Unlock' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm unlock' }));
-    expect(window.prompt).toHaveBeenCalledWith('Enter lock code');
-    expect(callService).toHaveBeenCalledWith('lock', 'unlock', {
-      entity_id: 'lock.front_door',
-      code: '2468',
-    });
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(prompt).not.toHaveBeenCalled();
+    expect(callService).not.toHaveBeenCalled();
   });
 
   it('does not call services without a Home Assistant connection', () => {
