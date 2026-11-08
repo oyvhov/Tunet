@@ -1,3 +1,17 @@
+#main-content {
+  transform-origin: top center;
+}
+
+@media (prefers-reduced-motion: no-preference) and (update: fast) {
+  #main-content {
+    transition: transform 250ms ease;
+  }
+}
+
+html[data-studio-preview] #main-content {
+  transform: translateX(var(--studio-shift)) scale(var(--studio-scale));
+}
+
 .tunet-sidebar-backdrop {
   background: var(--modal-backdrop, rgba(0, 0, 0, 0.72));
 }

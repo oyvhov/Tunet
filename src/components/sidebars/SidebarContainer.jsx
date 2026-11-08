@@ -131,7 +131,7 @@ export default function SidebarContainer({
           open ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
         style={{
-          opacity: open ? 0.62 : 0,
+          opacity: open ? 'var(--studio-backdrop-opacity, 0.62)' : 0,
         }}
         onClick={handleBackdropClick}
       />

@@ -2,6 +2,7 @@ import { lazyModal as lazy } from '../../components/ui/lazyModal';
 import { ModalSuspense } from '../../components';
 import { themes } from '../../config/themes';
 import { validateUrl } from '../../config/onboarding';
+import { useStudioPreview } from '../../hooks/useStudioPreview';
 
 const ConfigModal = lazy(() => import('../../modals/ConfigModal'));
 const ThemeSidebar = lazy(() => import('../../components/sidebars/ThemeSidebar'));
@@ -31,6 +32,7 @@ export function ModalSettingsSlice({
     configTab,
     setConfigTab,
   } = modals;
+  useStudioPreview(showThemeSidebar || showLayoutSidebar || showHeaderEditModal);
   const {
     currentTheme,
     setCurrentTheme,

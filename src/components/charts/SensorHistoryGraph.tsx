@@ -79,7 +79,7 @@ export default function SensorHistoryGraph({
     const updateWidth = (width: number) => {
       if (Number.isFinite(width) && width > 0) setContainerWidth(width);
     };
-    updateWidth(element.getBoundingClientRect().width);
+    updateWidth(element.clientWidth);
 
     if (typeof ResizeObserver === 'undefined') return undefined;
     const observer = new ResizeObserver(([entry]) => updateWidth(entry.contentRect.width));
