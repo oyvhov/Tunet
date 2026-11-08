@@ -111,6 +111,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 language={language}
                 saveCardSetting={saveCardSetting}
                 cardId={showNordpoolModal}
+                settingsKey={getCardSettingsKey(showNordpoolModal)}
                 settings={data.settings}
               />
             </ModalSuspense>

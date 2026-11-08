@@ -3,7 +3,13 @@ import SparkLine from '../charts/SparkLine';
 import { Zap } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useHomeAssistantMeta } from '../../contexts';
-import { getCurrentPriceIndex } from '../../services/nordpoolUtils';
+import {
+  applyNordpoolSupport,
+  getCurrentPriceIndex,
+  getNordpoolOrePerUnit,
+  getNordpoolPriceStats,
+} from '../../services/nordpoolUtils';
+import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 
 interface NordpoolSettings {
@@ -11,6 +17,7 @@ interface NordpoolSettings {
   decimals?: number;
   size?: string;
   graphStyle?: string;
+  showWithSupport?: boolean;
 }
 
 interface GenericNordpoolCardProps extends Pick<
@@ -60,10 +67,14 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
   const tomorrowValid = entity.attributes?.tomorrow_valid === true;
 
   // Combine prices for sparkline (format as { start, end, value } objects for SparkLine)
-  const allPrices = [
+  const rawPrices = [
     ...todayPrices,
     ...(tomorrowValid && Array.isArray(tomorrowPrices) ? tomorrowPrices : []),
   ];
+  const orePerUnit = getNordpoolOrePerUnit(entity);
+  const allPrices = settings.showWithSupport
+    ? rawPrices.map((price) => applyNordpoolSupport(price, orePerUnit))
+    : rawPrices;
 
   // Get current hour (0-23)
   const now = new Date();
@@ -95,28 +106,25 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
     };
   });
 
-  const currentPrice =
-    currentPriceIndex >= 0 && currentPriceIndex < allPrices.length
-      ? allPrices[currentPriceIndex]
-      : 0;
+  const currentPrice = allPrices[currentPriceIndex];
+  const hasPrice =
+    !isUnavailableState(entity.state) &&
+    typeof currentPrice === 'number' &&
+    Number.isFinite(currentPrice);
 
   // Calculate stats
-  const numericalPrices = allPrices.filter((p) => typeof p === 'number' && !Number.isNaN(p));
-  const priceStats =
-    numericalPrices.length > 0
-      ? {
-          min: Math.min(...numericalPrices),
-          max: Math.max(...numericalPrices),
-          avg: numericalPrices.reduce((a, b) => a + b, 0) / numericalPrices.length,
-        }
-      : { min: 0, max: 0, avg: 0 };
+  const priceStats = getNordpoolPriceStats(allPrices);
 
   // Determine price level
   let levelText = translate('power.level.normal');
   let levelTone = 'normal';
   let levelColor = 'text-[var(--accent-color)]';
 
-  if (!Number.isNaN(currentPrice) && priceStats.avg > 0) {
+  if (!hasPrice) {
+    levelText = getUnavailableLabel(entity.state, translate);
+    levelTone = 'unavailable';
+    levelColor = 'text-[var(--text-secondary)]';
+  } else if (priceStats.avg > 0) {
     if (currentPrice >= priceStats.avg * 1.4) {
       levelText = translate('power.level.veryHigh');
       levelTone = 'high';
@@ -133,7 +141,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
   }
 
   // Format price display
-  const priceDisplay = currentPrice > 0 ? currentPrice.toFixed(decimals) : '0';
+  const priceDisplay = hasPrice ? currentPrice.toFixed(decimals) : '--';
 
   if (settings.size === 'small') {
     let indicatorClass = 'bg-[var(--accent-color)] ring-[var(--accent-color)]';
@@ -145,6 +153,8 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
     } else if (levelTone === 'low') {
       indicatorClass =
         'bg-[var(--status-success-fg)] ring-[var(--status-success-fg)]/30 shadow-[0_0_0_0.375rem_var(--status-success-bg)]';
+    } else if (levelTone === 'unavailable') {
+      indicatorClass = 'bg-[var(--text-secondary)] ring-[var(--text-secondary)]/30';
     }
 
     return (
@@ -179,7 +189,9 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
             </div>
             <div className="flex items-baseline gap-1 leading-none">
               <span className="text-xl font-bold text-[var(--text-primary)]">{priceDisplay}</span>
-              <span className="text-xs font-medium text-[var(--text-muted)]">{currency}</span>
+              <span className="text-xs font-medium text-[var(--text-muted)]">
+                {hasPrice ? currency : levelText}
+              </span>
             </div>
           </div>
         </div>

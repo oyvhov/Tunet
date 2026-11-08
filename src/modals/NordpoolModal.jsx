@@ -5,6 +5,11 @@ import { useHomeAssistantMeta } from '../contexts';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
+import {
+  applyNordpoolSupport,
+  getNordpoolOrePerUnit,
+  getNordpoolPriceStats,
+} from '../services/nordpoolUtils';
 
 /**
  * NordpoolModal - Modal for displaying Nordpool price information and graph
@@ -21,12 +26,13 @@ import Button from '../components/ui/Button';
  * @param {string} props.language - Current language code
  * @param {Function} props.saveCardSetting - Function to save settings
  * @param {string} props.cardId - ID of the card
+ * @param {string} [props.settingsKey] - Page-scoped key the card reads its settings from
  * @param {Object} props.settings - Card settings
  */
 export default function NordpoolModal({
   show,
   onClose,
-  entity: _entity,
+  entity,
   fullPriceData,
   currentPriceIndex,
   priceStats,
@@ -35,6 +41,7 @@ export default function NordpoolModal({
   language,
   saveCardSetting,
   cardId,
+  settingsKey,
   settings,
 }) {
   const { haConfig } = useHomeAssistantMeta();
@@ -51,40 +58,27 @@ export default function NordpoolModal({
 
   if (!show) return null;
 
-  // Norwegian electricity price support 2025/2026:
-  // Threshold: 75 øre/kWh (excl. VAT) = 93.75 øre/kWh (incl. VAT)
-  // Subsidy: (price excl. VAT - 75) × 0.90 × 1.25
-  // Input prices include VAT
-  const applyElStøtte = (priceInclMva) => {
-    const threshold = 93.75; // 75 øre excl. VAT × 1.25
-    if (priceInclMva <= threshold) {
-      return priceInclMva;
-    }
-    const priceExMva = priceInclMva / 1.25;
-    const support = (priceExMva - 75) * 0.9 * 1.25;
-    return priceInclMva - support;
-  };
+  const orePerUnit = getNordpoolOrePerUnit(entity);
 
   // Recalculate data with support if enabled
   const displayPriceData = fullPriceData.map((d) => ({
     ...d,
-    value: showWithSupport ? applyElStøtte(d.value) : d.value,
+    value: showWithSupport ? applyNordpoolSupport(d.value, orePerUnit) : d.value,
   }));
 
-  // Recalculate stats with support if enabled
-  const displayPriceStats = {
-    min: showWithSupport ? applyElStøtte(priceStats.min) : priceStats.min,
-    avg: showWithSupport ? applyElStøtte(priceStats.avg) : priceStats.avg,
-    max: showWithSupport ? applyElStøtte(priceStats.max) : priceStats.max,
-  };
+  // Support applies per hour, so the stats come from the supported hours.
+  const displayPriceStats = showWithSupport
+    ? getNordpoolPriceStats(displayPriceData.map((d) => d.value))
+    : priceStats;
 
   const currentPrice = displayPriceData[currentPriceIndex]?.value;
   const toggleSupport = (e) => {
     e.stopPropagation();
     const newValue = !showWithSupport;
     setShowWithSupport(newValue);
-    if (saveCardSetting && cardId) {
-      saveCardSetting(cardId, 'showWithSupport', newValue);
+    const saveKey = settingsKey || cardId;
+    if (saveCardSetting && saveKey) {
+      saveCardSetting(saveKey, 'showWithSupport', newValue);
     }
   };
   const supportLabel = showWithSupport
