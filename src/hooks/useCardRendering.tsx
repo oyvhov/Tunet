@@ -106,6 +106,8 @@ export interface UseCardRenderingParams
   setShowAlarmActionModal: EntityModalActions['setShowAlarmActionModal'];
   setShowEditCardModal: (value: string | null) => void;
   setEditCardSettingsKey: (key: string | null) => void;
+  removeCard: (cardId: string) => void;
+  isCardRemovable: (cardId: string) => boolean;
 }
 
 export function useCardRendering({
@@ -165,6 +167,8 @@ export function useCardRendering({
   setShowAlarmActionModal,
   setShowEditCardModal,
   setEditCardSettingsKey,
+  removeCard,
+  isCardRemovable,
   setShowCameraModal: legacySetShowCameraModal,
   setActiveMediaId: legacySetActiveMediaId,
   setActiveMediaGroupKey: legacySetActiveMediaGroupKey,
@@ -347,10 +351,12 @@ export function useCardRendering({
           <EditOverlay
             editId={editId}
             settings={settings}
+            canRemove={isCardRemovable(cardId)}
             onEdit={() => {
               setShowEditCardModal(editId);
               setEditCardSettingsKey(settingsKey);
             }}
+            onRemove={() => removeCard(cardId)}
             dragHandleProps={{
               onContextMenu: (e: ReactMouseEvent) => e.preventDefault(),
               onKeyDown: (e: ReactKeyboardEvent) => {
@@ -495,6 +501,8 @@ export function useCardRendering({
       moveCardInArray,
       setShowEditCardModal,
       setEditCardSettingsKey,
+      removeCard,
+      isCardRemovable,
       saveCardSetting,
       t,
       touchPath,

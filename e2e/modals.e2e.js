@@ -1224,6 +1224,28 @@ test.describe('Modal Interactions', () => {
     await expect(page.locator('[role="dialog"]:visible').first()).toContainText('Bedroom Light');
   });
 
+  test('removes a card with the trash button on the card', async ({ page }) => {
+    await enableEditMode(page);
+    await page
+      .locator('[data-card-id="light.bedroom"]')
+      .getByRole('button', { name: 'Remove card' })
+      .click();
+    await expect(page.locator('[data-card-id="light.bedroom"]')).toHaveCount(0);
+    const pages = await page.evaluate(() => JSON.parse(localStorage.getItem('tunet_pages_config')));
+    expect(pages.home).not.toContain('light.bedroom');
+  });
+
+  test('offers remove but not move in the edit card popup', async ({ page }) => {
+    await enableEditMode(page);
+    await page
+      .locator('[data-card-id="light.bedroom"]')
+      .getByRole('button', { name: 'Edit card' })
+      .press('Enter');
+    const actions = page.getByRole('dialog').getByTestId('card-actions');
+    await expect(actions.getByRole('button', { name: 'Remove card' })).toBeVisible();
+    await expect(actions.getByRole('button', { name: /^Move/ })).toHaveCount(0);
+  });
+
   test('supports keyboard theme selection and keeps focus inside the sidebar', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
     const done = sidebar.getByTestId('sidebar-done');

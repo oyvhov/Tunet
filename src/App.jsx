@@ -547,6 +547,8 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     setShowAlarmActionModal,
     setShowEditCardModal: guardedSetShowEditCardModal,
     setEditCardSettingsKey,
+    removeCard: guardedRemoveCard,
+    isCardRemovable,
   });
 
   const {

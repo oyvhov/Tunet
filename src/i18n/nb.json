@@ -878,8 +878,6 @@
   "tooltip.removeCard": "Fjern kort",
   "tooltip.smallSize": "Gjør lite",
   "tooltip.largeSize": "Gjør stort",
-  "tooltip.moveLeft": "Flytt til venstre",
-  "tooltip.moveRight": "Flytt til høyre",
   "tooltip.removeFromGroup": "Fjern fra gruppe",
   "tooltip.addToGroup": "Legg til i gruppe",
   "page.create": "Opprett side",

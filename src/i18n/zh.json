@@ -1263,8 +1263,6 @@
   "tooltip.hideCard": "隐藏卡片",
   "tooltip.largeSize": "做大",
   "tooltip.linked": "链接",
-  "tooltip.moveLeft": "向左移动",
-  "tooltip.moveRight": "向右移动",
   "tooltip.removeCard": "取出卡",
   "tooltip.removeFromGroup": "从组中删除",
   "tooltip.showCard": "出示卡片",

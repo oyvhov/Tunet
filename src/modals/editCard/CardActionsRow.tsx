@@ -1,27 +1,16 @@
 import { memo } from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Eye,
-  EyeOff,
-  Maximize2,
-  Minimize2,
-  Trash2,
-} from '../../icons';
+import { Copy, Eye, EyeOff, Maximize2, Minimize2, Trash2 } from '../../icons';
 import Button from '../../components/ui/Button';
 import {
   canResizeCard,
   getNextCardSize,
   isTripleSizeCard,
   type CardEditSettings,
-  type CardMoveDirection,
 } from '../../utils/cardEditActions';
 
 export interface CardActions {
   isHidden: boolean;
   canRemove: boolean;
-  onMove: (direction: CardMoveDirection) => void;
   onToggleVisibility: () => void;
   onDuplicate?: () => void;
   onRemove: () => void;
@@ -35,7 +24,7 @@ interface CardActionsRowProps {
   t: (key: string) => string;
 }
 
-/** Move, hide, resize, copy and remove for the card being edited. */
+/** Hide, resize, copy and remove for the card being edited. */
 function CardActionsRow({ editId, settings, actions, onSaveSize, t }: CardActionsRowProps) {
   const currentSize = settings?.size || 'large';
   const isSmall = currentSize === 'small';
@@ -48,12 +37,6 @@ function CardActionsRow({ editId, settings, actions, onSaveSize, t }: CardAction
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" data-testid="card-actions">
-      <Button size="sm" icon={<ChevronLeft />} onClick={() => actions.onMove('left')}>
-        {t('tooltip.moveLeft')}
-      </Button>
-      <Button size="sm" icon={<ChevronRight />} onClick={() => actions.onMove('right')}>
-        {t('tooltip.moveRight')}
-      </Button>
       <Button
         size="sm"
         icon={actions.isHidden ? <EyeOff /> : <Eye />}

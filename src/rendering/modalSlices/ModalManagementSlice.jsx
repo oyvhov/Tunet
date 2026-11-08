@@ -1,7 +1,6 @@
 import { lazyModal as lazy } from '../../components/ui/lazyModal';
 import { ModalSuspense, getServerInfo } from '../../components';
 import { formatDuration } from '../../utils';
-import { moveCardInPage } from '../../utils/cardEditActions';
 import { buildRoomCardsPayload } from './roomCardUtils';
 
 const AddPageModal = lazy(() => import('../../modals/AddPageModal'));
@@ -282,15 +281,6 @@ export function ModalManagementSlice({
             cardActions={{
               isHidden: hiddenCards.includes(showEditCardModal),
               canRemove: isCardRemovable(showEditCardModal),
-              onMove: (direction) => {
-                const nextConfig = moveCardInPage(
-                  pagesConfig,
-                  activePage,
-                  showEditCardModal,
-                  direction
-                );
-                if (nextConfig) persistConfig(nextConfig);
-              },
               onToggleVisibility: () => toggleCardVisibility(showEditCardModal),
               onDuplicate:
                 showEditCardModal !== 'media_player' &&
