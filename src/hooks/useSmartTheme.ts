@@ -36,7 +36,10 @@ export function useSmartTheme({ currentTheme, bgMode, entities, now }: UseSmartT
     }
 
     const weatherState = weatherEntity?.state;
-    const sunEntity = entities['sun.sun'];
+    // An unavailable sun says nothing about the time of day, so the clock decides instead.
+    const sunState = entities['sun.sun']?.state;
+    const sunEntity =
+      sunState === 'above_horizon' || sunState === 'below_horizon' ? entities['sun.sun'] : null;
     const hour = now.getHours();
 
     let bgGradientFrom, bgGradientTo, bgPrimary;
@@ -90,7 +93,10 @@ export function useSmartTheme({ currentTheme, bgMode, entities, now }: UseSmartT
       weatherState === 'rainy' ||
       weatherState === 'pouring' ||
       weatherState === 'snowy' ||
-      weatherState === 'hail'
+      weatherState === 'snowy-rainy' ||
+      weatherState === 'hail' ||
+      weatherState === 'lightning' ||
+      weatherState === 'lightning-rainy'
     ) {
       bgGradientFrom = '#334155';
       bgGradientTo = '#1e293b';

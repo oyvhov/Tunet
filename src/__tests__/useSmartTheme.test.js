@@ -55,4 +55,32 @@ describe('useSmartTheme', () => {
 
     expect(setPropertySpy).toHaveBeenCalledTimes(3);
   });
+
+  const gradientFrom = () => document.documentElement.style.getPropertyValue('--bg-gradient-from');
+
+  it('follows the clock instead of showing night when the sun entity is unavailable', () => {
+    renderHook((props) => useSmartTheme(props), {
+      initialProps: makeProps({
+        entities: {
+          'sun.sun': { entity_id: 'sun.sun', state: 'unavailable', attributes: {} },
+        },
+        now: new Date(2026, 4, 7, 12, 0),
+      }),
+    });
+
+    expect(gradientFrom()).toBe('#38bdf8');
+  });
+
+  it.each(['lightning', 'lightning-rainy', 'snowy-rainy'])('darkens the sky for %s', (state) => {
+    renderHook((props) => useSmartTheme(props), {
+      initialProps: makeProps({
+        entities: {
+          ...baseEntities,
+          'weather.home': { entity_id: 'weather.home', state, attributes: {} },
+        },
+      }),
+    });
+
+    expect(gradientFrom()).toBe('#334155');
+  });
 });
