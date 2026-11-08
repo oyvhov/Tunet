@@ -423,6 +423,7 @@ test.describe('Modal Interactions', () => {
     const results = modal.getByTestId('media-chooser-results');
     await expect(chooser).toBeVisible();
     await expect(modal.getByTestId('media-chooser-loading')).toBeVisible();
+    await modal.evaluate((el) => Promise.all(el.getAnimations().map((run) => run.finished)));
 
     const chooserBefore = await chooser.boundingBox();
     const resultsBefore = await results.boundingBox();

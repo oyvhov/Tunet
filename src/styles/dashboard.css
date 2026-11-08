@@ -86,7 +86,7 @@
 .popup-anim {
   /* The short delay lets the heavy first paint finish before the motion starts,
      so the opening is not already half done when it first appears. */
-  animation: popupIn 0.18s cubic-bezier(0.2, 0.9, 0.25, 1) 40ms both;
+  animation: popupIn 0.15s cubic-bezier(0.2, 0.9, 0.25, 1) 40ms both;
 }
 /* Heavy editors: no motion, no blur, solid surface (keeps tablets smooth). */
 .popup-anim.modal-panel--still {
