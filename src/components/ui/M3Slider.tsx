@@ -7,6 +7,8 @@ interface M3SliderProps {
   step?: number;
   value: number;
   onChange: (event: { target: { value: string } }) => void;
+  /** Called once with the final value when the finger lifts or an arrow key is released. */
+  onCommit?: (value: number) => void;
   colorClass?: string;
   disabled?: boolean;
   variant?: 'default' | 'thin' | 'thinLg' | 'volume' | (string & {});
@@ -25,6 +27,7 @@ export default function M3Slider({
   step,
   value,
   onChange,
+  onCommit = undefined,
   colorClass: propColorClass = 'bg-[var(--accent-color)]',
   disabled = false,
   variant = 'default',
@@ -46,6 +49,7 @@ export default function M3Slider({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frameRef = useRef<number | null>(null);
   const pendingValueRef = useRef(value);
+  const uncommittedRef = useRef(false);
 
   useEffect(() => {
     if (!isInteracting) setInternalValue(value);
@@ -71,7 +75,14 @@ export default function M3Slider({
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   };
 
+  const commitValue = () => {
+    if (!uncommittedRef.current) return;
+    uncommittedRef.current = false;
+    onCommit?.(pendingValueRef.current);
+  };
+
   const endInteraction = () => {
+    commitValue();
     timeoutRef.current = setTimeout(() => setIsInteracting(false), 120);
   };
 
@@ -79,6 +90,7 @@ export default function M3Slider({
     const nextValue = parseFloat((e.target as HTMLInputElement).value);
     setInternalValue(nextValue);
     pendingValueRef.current = nextValue;
+    uncommittedRef.current = true;
 
     if (frameRef.current) return;
 
@@ -110,6 +122,7 @@ export default function M3Slider({
     onMouseUp: endInteraction,
     onTouchStart: beginInteraction,
     onTouchEnd: endInteraction,
+    onKeyUp: commitValue,
     onInput: handleInputChange,
     onChange: handleInputChange,
     className: 'absolute w-full h-full opacity-0 cursor-pointer z-20 select-none',

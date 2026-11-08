@@ -2,6 +2,9 @@
 @import './animations.css';
 @import './sidebar.css';
 
+/* Touch screens have no hover, so hover-revealed controls need `touch:` to be visible. */
+@custom-variant touch (@media (hover: none));
+
 @theme {
   --color-primary: var(--bg-primary);
 

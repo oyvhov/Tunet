@@ -48,6 +48,7 @@ export {
   SENSOR_GRAPH_RANGES,
   SENSOR_GRAPH_STATS,
 } from './sensorHistory';
+export { getUnavailableLabel, isUnavailableState } from './entityState';
 export { isMusicAssistantMediaEntity, isSonosMediaEntity } from './mediaEntityClassification';
 export {
   buildRegistryLookupMap,
