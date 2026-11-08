@@ -79,4 +79,22 @@ describe('accessible names in source', () => {
     }
     expect(unnamed).toEqual([]);
   });
+
+  it('exposes hand-rolled toggles as switches', () => {
+    const notSwitches: string[] = [];
+    for (const name of ['modals/EditCardModal.jsx', 'modals/ConfigModal.jsx']) {
+      const source = fs.readFileSync(path.join(SRC, name), 'utf8');
+      for (const match of source.matchAll(/<button\b/g)) {
+        const end = openingTagEnd(source, match.index);
+        const body = source.slice(end + 1, source.indexOf('</button>', end));
+        const isToggle = /rounded-full/.test(body) && /(left-|translate-x)/.test(body);
+        if (!isToggle) continue;
+        const attrs = source.slice(match.index, end);
+        if (!/role="switch"/.test(attrs) || !/aria-checked=/.test(attrs)) {
+          notSwitches.push(`${name}:${source.slice(0, match.index).split('\n').length}`);
+        }
+      }
+    }
+    expect(notSwitches).toEqual([]);
+  });
 });

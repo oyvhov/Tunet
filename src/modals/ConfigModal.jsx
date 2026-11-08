@@ -826,6 +826,8 @@ export default function ConfigModal({
                   </p>
                 </button>
                 <button
+                  role="switch"
+                  aria-checked={!!autoSync.enabled}
                   type="button"
                   onClick={() => autoSync.setEnabled(!autoSync.enabled)}
                   className={`relative h-6 w-10 rounded-full p-1 transition-colors ${autoSync.enabled ? 'bg-[var(--accent-color)]' : 'bg-gray-500/30'}`}
@@ -1391,6 +1393,9 @@ export default function ConfigModal({
                 </label>
                 <div className="flex items-center gap-3">
                   <button
+                    role="switch"
+                    aria-checked={inactivityTimeout > 0}
+                    aria-label={t('settings.inactivity')}
                     onClick={() => {
                       const newVal = inactivityTimeout > 0 ? 0 : 60;
                       setInactivityTimeout(newVal);
