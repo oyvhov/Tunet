@@ -62,6 +62,29 @@ export const safeVibrate = (ms: VibratePattern) => {
   }
 };
 
+const EDGE_SCROLL_ZONE_PX = 80;
+const EDGE_SCROLL_MAX_PX_PER_FRAME = 14;
+
+/** Pixels to scroll this frame for a finger at `y`: negative near the top, positive near the bottom. */
+export const getEdgeScrollDelta = (y: number, viewportHeight: number): number => {
+  const depthIntoBottom = EDGE_SCROLL_ZONE_PX - (viewportHeight - y);
+  const depth = y < EDGE_SCROLL_ZONE_PX ? y - EDGE_SCROLL_ZONE_PX : Math.max(depthIntoBottom, 0);
+  return Math.round((depth / EDGE_SCROLL_ZONE_PX) * EDGE_SCROLL_MAX_PX_PER_FRAME);
+};
+
+// Lives outside the factory: the handlers are recreated on every finger move.
+const edgeAutoScroll = {
+  frame: null as number | null,
+  x: 0,
+  y: 0,
+  recheck: (_x: number, _y: number): void => {},
+};
+
+const stopEdgeAutoScroll = () => {
+  if (edgeAutoScroll.frame !== null) cancelAnimationFrame(edgeAutoScroll.frame);
+  edgeAutoScroll.frame = null;
+};
+
 export const createDragAndDropHandlers = ({
   editMode,
   pagesConfig,
@@ -94,7 +117,24 @@ export const createDragAndDropHandlers = ({
     }
   };
 
+  const scheduleEdgeAutoScroll = () => {
+    edgeAutoScroll.frame = requestAnimationFrame(() => {
+      if (!dragSourceRef.current) {
+        edgeAutoScroll.frame = null;
+        return;
+      }
+      const delta = getEdgeScrollDelta(edgeAutoScroll.y, window.innerHeight);
+      if (delta !== 0) {
+        window.scrollBy(0, delta);
+        // Cards moved under a resting finger, so the target may have changed.
+        edgeAutoScroll.recheck(edgeAutoScroll.x, edgeAutoScroll.y);
+      }
+      scheduleEdgeAutoScroll();
+    });
+  };
+
   const resetDragState = () => {
+    stopEdgeAutoScroll();
     setDraggingId(null);
     dragSourceRef.current = null;
     touchTargetRef.current = null;
@@ -123,6 +163,9 @@ export const createDragAndDropHandlers = ({
     setTouchPath({ startX: x, startY: y, x, y });
     setTouchTargetId(null);
     setDraggingId(cardId);
+    stopEdgeAutoScroll();
+    Object.assign(edgeAutoScroll, { x, y, recheck: updateTouchDrag });
+    scheduleEdgeAutoScroll();
   };
 
   const moveCard = ({ source, targetIndex }: { source: DragSource; targetIndex: number }) => {
@@ -140,6 +183,7 @@ export const createDragAndDropHandlers = ({
 
   const updateTouchDrag = (x: number, y: number) => {
     if (!editMode || !dragSourceRef.current) return;
+    Object.assign(edgeAutoScroll, { x, y, recheck: updateTouchDrag });
     setTouchPath((prev) => (prev ? { ...prev, x, y } : { startX: x, startY: y, x, y }));
     const el = document.elementFromPoint(x, y);
     const cardEl = el?.closest?.('[data-card-id]');

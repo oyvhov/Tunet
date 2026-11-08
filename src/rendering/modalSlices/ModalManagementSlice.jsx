@@ -1,6 +1,7 @@
 import { lazyModal as lazy } from '../../components/ui/lazyModal';
 import { ModalSuspense, getServerInfo } from '../../components';
 import { formatDuration } from '../../utils';
+import { canDuplicateCard } from '../../utils/cardUtils';
 import { buildRoomCardsPayload } from './roomCardUtils';
 
 const AddPageModal = lazy(() => import('../../modals/AddPageModal'));
@@ -282,14 +283,12 @@ export function ModalManagementSlice({
               isHidden: hiddenCards.includes(showEditCardModal),
               canRemove: isCardRemovable(showEditCardModal),
               onToggleVisibility: () => toggleCardVisibility(showEditCardModal),
-              onDuplicate:
-                showEditCardModal !== 'media_player' &&
-                !showEditCardModal.startsWith('spacer_card_')
-                  ? () => {
-                      duplicateCard(showEditCardModal, activePage);
-                      closeEditCardModal();
-                    }
-                  : undefined,
+              onDuplicate: canDuplicateCard(showEditCardModal)
+                ? () => {
+                    duplicateCard(showEditCardModal, activePage);
+                    closeEditCardModal();
+                  }
+                : undefined,
               onRemove: () => {
                 removeCard(showEditCardModal);
                 closeEditCardModal();

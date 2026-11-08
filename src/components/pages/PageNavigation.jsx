@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
-import { Plus, Edit2, ChevronDown } from '../../icons';
+import { Plus, Edit2, ChevronDown, ChevronUp } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useModalActions, usePages } from '../../contexts';
 
@@ -48,7 +48,7 @@ function PageManagerPopover({
   return (
     <div
       ref={ref}
-      className={`absolute top-full left-0 z-50 mt-2 w-52 origin-top-left translate-y-0 scale-100 transform rounded-2xl border border-white/10 p-1.5 opacity-100 shadow-2xl transition-all duration-200`}
+      className={`touch:right-0 touch:left-auto touch:w-72 absolute top-full left-0 z-50 mt-2 w-52 origin-top-left translate-y-0 scale-100 transform rounded-2xl border border-white/10 p-1.5 opacity-100 shadow-2xl transition-all duration-200`}
       style={{ backgroundColor: 'var(--card-bg)', backdropFilter: 'blur(20px)' }}
     >
       <div className="max-h-72 space-y-0.5 overflow-y-auto">
@@ -123,11 +123,34 @@ function PageManagerPopover({
                   setEditingPage(page.id);
                   onClose();
                 }}
-                className="shrink-0 rounded-md p-1 text-[var(--accent-color)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
+                className="touch:opacity-100 shrink-0 rounded-md p-1 text-[var(--accent-color)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
                 title={t('nav.editPage') || 'Edit page'}
               >
                 <Edit2 className="h-3 w-3" />
               </button>
+              {/* Dragging a row is HTML5 only and never fires on a touch screen. */}
+              <div className="touch:flex hidden shrink-0 items-center">
+                <button
+                  type="button"
+                  disabled={idx === 0}
+                  onClick={() => movePage(idx, idx - 1)}
+                  className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--text-secondary)] disabled:opacity-20"
+                  title={t('nav.movePageUp')}
+                  aria-label={t('nav.movePageUp')}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  disabled={idx === pages.length - 1}
+                  onClick={() => movePage(idx, idx + 1)}
+                  className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--text-secondary)] disabled:opacity-20"
+                  title={t('nav.movePageDown')}
+                  aria-label={t('nav.movePageDown')}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           );
         })}

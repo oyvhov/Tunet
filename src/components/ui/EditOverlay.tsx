@@ -64,7 +64,8 @@ function EditOverlay({
           data-drag-handle
           {...dragHandleProps}
           style={{ touchAction: 'none' }}
-          className={buttonClass}
+          // On a compact spacer the extra area grows away from the pencil beside it.
+          className={`${buttonClass} ${isCompactSpacer ? 'relative before:absolute before:-inset-y-2.75 before:right-0 before:-left-5.5' : ''}`}
           aria-label={t('tooltip.reorderCard') || 'Reorder card'}
           title={t('tooltip.reorderCard') || 'Reorder card'}
         >

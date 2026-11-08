@@ -69,6 +69,25 @@ describe('AccessibleModalShell', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('stays open, without the exit animation, when beforeClose declines', async () => {
+    const onClose = vi.fn();
+    render(
+      <AccessibleModalShell open onClose={onClose} beforeClose={() => false} size="s">
+        {() => <p>Body</p>}
+      </AccessibleModalShell>
+    );
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+
+    expect(screen.getByRole('dialog').parentElement).toHaveAttribute('data-modal-state', 'open');
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('closes through the header close button', () => {
     const onClose = renderShell();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));

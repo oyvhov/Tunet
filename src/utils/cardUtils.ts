@@ -69,6 +69,13 @@ const SPECIAL_CARD_PREFIXES = [
   'spacer_card_',
 ];
 
+/** Whether the edit popup offers Duplicate; a copy of these would have no renderer or use. */
+export function canDuplicateCard(cardId: string): boolean {
+  return (
+    cardId !== 'media_player' && !cardId.startsWith('spacer_card_') && !cardId.startsWith('person.')
+  );
+}
+
 /**
  * Determine whether a card can be removed from a given page.
  */
@@ -112,8 +119,9 @@ export function isCardHiddenByLogic(
 ): boolean {
   const settingsKey = getCardSettingsKey(cardId);
   const cardConfig: CardSettingsEntry = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  // A direct-id card's copy ("fan.x__dup_...") is not an entity id itself; its settings hold it.
   const entityId =
-    cardId.startsWith('entity_card_') || cardConfig.type === 'sensor'
+    cardId.startsWith('entity_card_') || cardConfig.type === 'sensor' || cardId.includes('.')
       ? cardConfig.entityId || cardId
       : cardId;
   let hiddenByBaseLogic = false;
@@ -145,10 +153,12 @@ export function isCardHiddenByLogic(
   }
 
   if (!isSpecialCard && !entities[entityId]) {
-    if (cardId.startsWith('light_') || cardId.startsWith('light.') || cardId.startsWith('lock.')) {
-      return false;
-    }
-    hiddenByBaseLogic = true;
+    // Lights and locks stay on the grid without an entity; visibility rules still apply below.
+    hiddenByBaseLogic = !(
+      cardId.startsWith('light_') ||
+      cardId.startsWith('light.') ||
+      cardId.startsWith('lock.')
+    );
   }
 
   if (hiddenByBaseLogic) {
@@ -201,6 +211,15 @@ export function isSonosPage(
   return settings?.type === 'sonos' || pageId.startsWith('sonos');
 }
 
+/** Pages the user creates always get a label, so a labelled page is never special by its id. */
+function isUnlabelledPageWithPrefix(
+  pageId: string,
+  settings: PageSettingsEntry | undefined,
+  prefix: string
+): boolean {
+  return !settings?.label && pageId.startsWith(prefix);
+}
+
 /**
  * Check if a page is a Lights page.
  */
@@ -210,7 +229,7 @@ export function isLightsPage(
 ): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
-  return settings?.type === 'lights' || pageId.startsWith('lights');
+  return settings?.type === 'lights' || isUnlabelledPageWithPrefix(pageId, settings, 'lights');
 }
 
 /**
@@ -222,7 +241,7 @@ export function isBatteryPage(
 ): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
-  return settings?.type === 'battery' || pageId.startsWith('battery');
+  return settings?.type === 'battery' || isUnlabelledPageWithPrefix(pageId, settings, 'battery');
 }
 
 /**
@@ -234,5 +253,8 @@ export function isRoomExplorerPage(
 ): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
-  return settings?.type === 'room_explorer' || pageId.startsWith('room_explorer');
+  return (
+    settings?.type === 'room_explorer' ||
+    isUnlabelledPageWithPrefix(pageId, settings, 'room_explorer')
+  );
 }

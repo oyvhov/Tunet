@@ -119,6 +119,8 @@ interface AccessibleModalShellProps {
   open: boolean;
   // Also runs as the overlay click handler, so it can receive a mouse event.
   onClose?: (event?: unknown) => void;
+  /** Runs first on Escape, the backdrop and the X; resolve false to keep the popup open. */
+  beforeClose?: () => boolean | Promise<boolean>;
   titleId?: string;
   describedBy?: string;
   /** Use the shared popup layout. Without it the overlay/panel classes are used as given. */
@@ -145,6 +147,7 @@ interface AccessibleModalShellProps {
 export default function AccessibleModalShell({
   open,
   onClose,
+  beforeClose,
   titleId,
   describedBy,
   size,
@@ -178,8 +181,14 @@ export default function AccessibleModalShell({
     queueModalHistorySync();
   }, [dismissible]);
 
-  const requestClose = useCallback(() => {
+  const beforeCloseRef = useRef(beforeClose);
+  useEffect(() => {
+    beforeCloseRef.current = beforeClose;
+  }, [beforeClose]);
+
+  const requestClose = useCallback(async () => {
     if (closeTimerRef.current || !dismissibleRef.current) return;
+    if (beforeCloseRef.current && !(await beforeCloseRef.current())) return;
     if (still || prefersReducedMotion()) {
       onCloseRef.current?.();
       return;
