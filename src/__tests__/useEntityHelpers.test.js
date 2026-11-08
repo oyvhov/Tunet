@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { createElement } from 'react';
+import { ERR_CONNECTION_LOST } from 'home-assistant-js-websocket';
 import { useEntityHelpers } from '../hooks/useEntityHelpers';
-import { ToastProvider } from '../contexts/ToastContext';
+import { ToastProvider, useToast } from '../contexts/ToastContext';
 
 // Mock the service module
 vi.mock('../services', () => ({
@@ -184,6 +185,110 @@ describe('useEntityHelpers › callService', () => {
     haCallService.mockRejectedValueOnce(new Error('timeout'));
     const { result } = renderHook(() => useEntityHelpers(baseProps()), { wrapper });
     await expect(result.current.callService('switch', 'turn_off', {})).rejects.toThrow('timeout');
+  });
+});
+
+describe('useEntityHelpers › callService feedback', () => {
+  const NO_CONTACT = 'toast.noHaConnection';
+  const kitchen = { state: 'on', attributes: { friendly_name: 'Kitchen light' } };
+
+  const renderWithToasts = (props) =>
+    renderHook((current) => ({ helpers: useEntityHelpers(current), toasts: useToast().toasts }), {
+      wrapper,
+      initialProps: props,
+    });
+
+  const failCall = async (result, data, rejection) => {
+    haCallService.mockRejectedValueOnce(rejection);
+    let caught;
+    await act(async () => {
+      caught = await result.current.helpers
+        .callService('light', 'turn_on', data)
+        .catch((error) => error);
+    });
+    return caught;
+  };
+
+  const toastMessages = (result) => result.current.toasts.map((toast) => toast.message);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('tells the user when there is no connection object at all', async () => {
+    const props = baseProps();
+    props.conn = null;
+    const { result } = renderWithToasts(props);
+    let caught;
+    await act(async () => {
+      caught = await result.current.helpers.callService('light', 'toggle', {}).catch((e) => e);
+    });
+    expect(caught.message).toBe('No connection');
+    expect(toastMessages(result)).toEqual([NO_CONTACT]);
+    expect(result.current.toasts[0].type).toBe('error');
+  });
+
+  it('shows the same text when the socket is already down', async () => {
+    const { result } = renderWithToasts(baseProps());
+    const caught = await failCall(result, { entity_id: 'light.kitchen' }, ERR_CONNECTION_LOST);
+    expect(caught).toBe(ERR_CONNECTION_LOST);
+    expect(toastMessages(result)).toEqual([NO_CONTACT]);
+  });
+
+  it('shows the same text when the socket drops during the call', async () => {
+    const dropped = {
+      type: 'result',
+      success: false,
+      error: { code: ERR_CONNECTION_LOST, message: 'Connection lost' },
+    };
+    const { result } = renderWithToasts(baseProps());
+    const caught = await failCall(result, { entity_id: 'light.kitchen' }, dropped);
+    expect(caught).toBe(dropped);
+    expect(toastMessages(result)).toEqual([NO_CONTACT]);
+  });
+
+  it('names the entity when one known entity failed', async () => {
+    const props = baseProps();
+    props.entities = { 'light.kitchen': kitchen };
+    const { result } = renderWithToasts(props);
+    await failCall(result, { entity_id: 'light.kitchen' }, new Error('boom'));
+    expect(toastMessages(result)).toEqual(['toast.serviceFailed: Kitchen light']);
+  });
+
+  it('names the entity when a one-item list failed', async () => {
+    const props = baseProps();
+    props.entities = { 'light.kitchen': kitchen };
+    const { result } = renderWithToasts(props);
+    await failCall(result, { entity_id: ['light.kitchen'] }, new Error('boom'));
+    expect(toastMessages(result)).toEqual(['toast.serviceFailed: Kitchen light']);
+  });
+
+  it.each([
+    ['several entities', { entity_id: ['light.kitchen', 'light.hall'] }],
+    ['an unknown entity', { entity_id: 'light.gone' }],
+    ['no entity', {}],
+  ])('shows only the plain message for %s', async (_label, data) => {
+    const props = baseProps();
+    props.entities = { 'light.kitchen': kitchen };
+    const { result } = renderWithToasts(props);
+    await failCall(result, data, new Error('boom'));
+    expect(toastMessages(result)).toEqual(['toast.serviceFailed']);
+  });
+
+  it('never shows the raw service name', async () => {
+    const { result } = renderWithToasts(baseProps());
+    await failCall(result, { entity_id: 'light.gone' }, new Error('boom'));
+    expect(toastMessages(result).join()).not.toContain('turn_on');
+  });
+
+  it('keeps callService stable when entities change, and still uses the newest names', async () => {
+    const props = baseProps();
+    const { result, rerender } = renderWithToasts(props);
+    const first = result.current.helpers.callService;
+    rerender({ ...props, entities: { 'light.kitchen': kitchen } });
+    expect(result.current.helpers.callService).toBe(first);
+    await failCall(result, { entity_id: 'light.kitchen' }, new Error('boom'));
+    expect(toastMessages(result)).toEqual(['toast.serviceFailed: Kitchen light']);
   });
 });
 

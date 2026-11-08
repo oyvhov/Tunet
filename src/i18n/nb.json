@@ -1145,6 +1145,7 @@
   "calendar.removeAll": "Fjern alle",
   "calendar.selectAll": "Velg alle",
   "todo.title": "Gjøremål",
+  "toast.noHaConnection": "Ingen kontakt med Home Assistant",
   "toast.serviceFailed": "Handling mislyktes",
   "todo.selectList": "Velg gjøremålsliste",
   "todo.noListSelected": "Ingen liste valgt",
