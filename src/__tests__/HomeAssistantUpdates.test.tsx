@@ -8,6 +8,8 @@ import {
 } from '../contexts/HomeAssistantContext';
 import type { HomeAssistantMetaValue } from '../contexts/HomeAssistantContext';
 import type { EntityMap } from '../types/dashboard';
+import { createConnection } from 'home-assistant-js-websocket';
+import { getDeviceRegistry, getEntityRegistry } from '../services/haClient';
 
 const haws = vi.hoisted(() => ({
   emit: (_entities: unknown): void => {},
@@ -195,6 +197,26 @@ describe('Home Assistant entity updates', () => {
     flushFrames();
 
     expect(latestEntities['light.a'].attributes.device_name).toBe('Lamp');
+  });
+
+  it('refetches the registries when the connection comes back', async () => {
+    await connect();
+    const conn = await vi.mocked(createConnection).mock.results.at(-1)?.value;
+    const onReady = vi
+      .mocked(conn.addEventListener)
+      .mock.calls.find(([name]: unknown[]) => name === 'ready')?.[1] as () => void;
+    vi.mocked(getEntityRegistry).mockResolvedValueOnce([
+      { entity_id: 'light.a', device_id: 'd2' },
+    ] as never);
+    vi.mocked(getDeviceRegistry).mockResolvedValueOnce([{ id: 'd2', name: 'New lamp' }] as never);
+
+    await act(async () => {
+      onReady();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    flushFrames();
+
+    expect(latestEntities['light.a'].attributes.device_name).toBe('New lamp');
   });
 
   describe('session snapshot', () => {

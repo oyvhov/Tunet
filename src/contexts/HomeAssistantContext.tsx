@@ -173,6 +173,7 @@ export const HomeAssistantProvider = ({
 }: HomeAssistantProviderProps): ReactElement => {
   const entityRegistryByIdRef = useRef(new Map<string, EntityRegistryEntry>());
   const deviceRegistryByIdRef = useRef(new Map<string, DeviceRegistryEntry>());
+  const fetchRegistryMetadataRef = useRef<((connInstance: Connection) => void) | null>(null);
   const applyRegistryMetadata = useCallback(
     (nextEntities: EntityMap): EntityMap =>
       enrichEntitiesWithRegistryMetadata(
@@ -258,10 +259,6 @@ export const HomeAssistantProvider = ({
     entityRegistryByIdRef.current = new Map();
     deviceRegistryByIdRef.current = new Map();
   }, []);
-
-  useEffect(() => {
-    rawEntitiesRef.current = entities;
-  }, [entities]);
 
   // Connect to Home Assistant
   useEffect(() => {
@@ -420,6 +417,8 @@ export const HomeAssistantProvider = ({
         }
       }
     }
+
+    fetchRegistryMetadataRef.current = fetchRegistryMetadata;
 
     const persistConfig = (urlUsed: string) => {
       try {
@@ -603,7 +602,10 @@ export const HomeAssistantProvider = ({
     let cancelled = false;
 
     const handleReady = () => {
-      if (!cancelled) markConnectionHealthy();
+      if (cancelled) return;
+      markConnectionHealthy();
+      // A wall tablet is never reloaded, so new devices can only arrive here.
+      fetchRegistryMetadataRef.current?.(conn);
     };
     const handleDisconnected = () => {
       if (!cancelled) markConnectionRecovering();
