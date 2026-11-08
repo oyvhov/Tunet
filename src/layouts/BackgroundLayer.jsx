@@ -88,7 +88,7 @@ export default function BackgroundLayer() {
       <div
         data-testid="background-dither"
         className="pointer-events-none absolute inset-0 opacity-[0.03]"
-        style={{ backgroundImage: BACKGROUND_NOISE }}
+        style={{ backgroundImage: BACKGROUND_NOISE, backgroundSize: '400px' }}
       />
     </div>
   );
