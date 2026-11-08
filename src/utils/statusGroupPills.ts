@@ -93,13 +93,14 @@ const getGroupEntityIdSet = (pill: StatusGroupPill | null | undefined) =>
       : []
   );
 
-const isAllowedBySelection = (pill: StatusGroupPill | null | undefined, id: string) => {
+const createSelectionFilter = (pill: StatusGroupPill | null | undefined) => {
   const mode = normalizeGroupSelectionMode(pill?.groupSelectionMode);
-  if (mode === STATUS_GROUP_SELECTION_ALL) return true;
+  if (mode === STATUS_GROUP_SELECTION_ALL) return () => true;
 
   const selectedIds = getGroupEntityIdSet(pill);
-  if (mode === STATUS_GROUP_SELECTION_INCLUDE) return selectedIds.has(id);
-  return !selectedIds.has(id);
+  return mode === STATUS_GROUP_SELECTION_INCLUDE
+    ? (id: string) => selectedIds.has(id)
+    : (id: string) => !selectedIds.has(id);
 };
 
 export const STATUS_GROUP_PRESETS: StatusGroupPreset[] = [
@@ -239,16 +240,36 @@ export function resolveStatusGroupCandidates(
   return candidates;
 }
 
+export function buildStatusGroupEntity(
+  presetId: string,
+  count: number,
+  label: string,
+  sublabel: string
+) {
+  return {
+    entity_id: `status_group.${presetId}`,
+    state: String(count),
+    attributes: {
+      friendly_name: label,
+      statusPillSublabel: sublabel,
+      statusPillCount: count,
+      statusPillPreset: presetId,
+    },
+  };
+}
+
 export function resolveStatusGroupPill(
   pill: StatusGroupPill | null | undefined,
   entities: StatusGroupEntities | null | undefined,
-  t: Translate | null | undefined
+  t: Translate | null | undefined,
+  { sortMatches = true }: { sortMatches?: boolean } = {}
 ) {
   const preset = getStatusGroupPreset(pill?.groupPreset);
+  const isSelected = createSelectionFilter(pill);
   const matchedEntities = toEntityRows(entities).filter(
-    ({ id, entity }) => preset.matches(id, entity, pill) && isAllowedBySelection(pill, id)
+    ({ id, entity }) => preset.matches(id, entity, pill) && isSelected(id)
   );
-  matchedEntities.sort(sortByFriendlyName);
+  if (sortMatches) matchedEntities.sort(sortByFriendlyName);
 
   const count = matchedEntities.length;
   const customLabel = typeof pill?.label === 'string' ? pill.label.trim() : '';
@@ -262,15 +283,11 @@ export function resolveStatusGroupPill(
     count,
     matchedEntities,
     shouldRender: pill?.hideWhenEmpty === false || count > 0,
-    syntheticEntity: {
-      entity_id: `status_group.${preset.id}`,
-      state: String(count),
-      attributes: {
-        friendly_name: label,
-        statusPillSublabel: customSublabel || (count > 0 ? String(count) : emptyLabel),
-        statusPillCount: count,
-        statusPillPreset: preset.id,
-      },
-    },
+    syntheticEntity: buildStatusGroupEntity(
+      preset.id,
+      count,
+      label,
+      customSublabel || (count > 0 ? String(count) : emptyLabel)
+    ),
   };
 }

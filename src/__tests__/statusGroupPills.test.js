@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getStatusGroupThreshold,
   resolveStatusGroupCandidates,
@@ -62,6 +62,46 @@ describe('statusGroupPills', () => {
       attributes: { friendly_name: 'Smoke alarm battery', device_class: 'battery' },
     },
   };
+
+  describe('resolving cost', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('skips sorting for callers that only need the count', () => {
+      const compare = vi.spyOn(String.prototype, 'localeCompare');
+
+      const result = resolveStatusGroupPill({ groupPreset: 'lights_on' }, entities, t, {
+        sortMatches: false,
+      });
+
+      expect(result.count).toBe(2);
+      expect(compare).not.toHaveBeenCalled();
+    });
+
+    it('sorts the list by friendly name by default', () => {
+      const unsorted = {
+        'light.b': { state: 'on', attributes: { friendly_name: 'Zebra' } },
+        'light.a': { state: 'on', attributes: { friendly_name: 'Alpha' } },
+      };
+
+      const result = resolveStatusGroupPill({ groupPreset: 'lights_on' }, unsorted, t);
+
+      expect(result.matchedEntities.map(({ id }) => id)).toEqual(['light.a', 'light.b']);
+    });
+
+    it('reads the selected ids once per pill, not once per match', () => {
+      const groupEntityIds = ['light.kitchen', 'light.porch'];
+      const readIds = vi.spyOn(groupEntityIds, 'filter');
+
+      const result = resolveStatusGroupPill(
+        { groupPreset: 'lights_on', groupSelectionMode: 'include', groupEntityIds },
+        entities,
+        t
+      );
+
+      expect(result.count).toBe(2);
+      expect(readIds).toHaveBeenCalledTimes(1);
+    });
+  });
 
   it('matches only lights that are currently on', () => {
     const result = resolveStatusGroupPill({ groupPreset: 'lights_on' }, entities, t);

@@ -1,7 +1,55 @@
+import { useCallback, useMemo } from 'react';
 import { Edit2 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
 import { useHomeAssistant, useModalActions, usePages } from '../contexts';
 import { isSonosMediaEntity, resolveStatusGroupPill, STATUS_GROUP_PILL_TYPE } from '../utils';
+import { buildStatusGroupEntity } from '../utils/statusGroupPills';
+
+// Group pills render from their synthetic entity and never read attributes. A constant keeps
+// StatusPill's memo effective, since the real getA changes on every entity update.
+const groupPillGetA = () => null;
+
+/** Keeps every StatusPill prop stable while the group's count and text are unchanged. */
+function GroupStatusPill({ pill, entities, t, isMobile, setShowStatusGroupModal }) {
+  const { preset, count, shouldRender, syntheticEntity } = resolveStatusGroupPill(
+    pill,
+    entities,
+    t,
+    { sortMatches: false }
+  );
+  const { friendly_name: label, statusPillSublabel: sublabel } = syntheticEntity.attributes;
+  const entity = useMemo(
+    () => buildStatusGroupEntity(preset.id, count, label, sublabel),
+    [preset.id, count, label, sublabel]
+  );
+  const displayPill = useMemo(
+    () => ({
+      ...pill,
+      icon: pill.icon || preset.icon,
+      iconBgColor: pill.iconBgColor || preset.iconBgColor,
+      iconColor: pill.iconColor || preset.iconColor,
+    }),
+    [pill, preset]
+  );
+  const openGroup = useCallback(
+    () => setShowStatusGroupModal({ pill, presetId: preset.id }),
+    [pill, preset.id, setShowStatusGroupModal]
+  );
+
+  if (!shouldRender) return null;
+
+  return (
+    <StatusPill
+      entity={entity}
+      pill={displayPill}
+      getA={groupPillGetA}
+      t={t}
+      isMobile={isMobile}
+      badge={pill.showCount && count > 0 ? count : undefined}
+      onClick={pill.clickable !== false ? openGroup : undefined}
+    />
+  );
+}
 
 /**
  * StatusBar component showing various status indicators
@@ -285,32 +333,14 @@ export default function StatusBar({
             }
 
             if (pill.type === STATUS_GROUP_PILL_TYPE) {
-              const groupData = resolveStatusGroupPill(pill, entities, t);
-              if (!groupData.shouldRender) return null;
-
               return (
-                <StatusPill
+                <GroupStatusPill
                   key={pill.id}
-                  entity={groupData.syntheticEntity}
-                  pill={{
-                    ...pill,
-                    icon: pill.icon || groupData.preset.icon,
-                    iconBgColor: pill.iconBgColor || groupData.preset.iconBgColor,
-                    iconColor: pill.iconColor || groupData.preset.iconColor,
-                  }}
-                  getA={getA}
+                  pill={pill}
+                  entities={entities}
                   t={t}
                   isMobile={isMobile}
-                  badge={pill.showCount && groupData.count > 0 ? groupData.count : undefined}
-                  onClick={
-                    pill.clickable !== false
-                      ? () =>
-                          setShowStatusGroupModal({
-                            pill,
-                            presetId: groupData.preset.id,
-                          })
-                      : undefined
-                  }
+                  setShowStatusGroupModal={setShowStatusGroupModal}
                 />
               );
             }
