@@ -14,6 +14,61 @@ describe('snapshot service', () => {
     expect(snapshot.layout.cardBorderRadius).toBe(28);
   });
 
+  it('collectSnapshot includes card material, density and card scale', () => {
+    localStorage.setItem('tunet_card_material', 'solid');
+    localStorage.setItem('tunet_density', 'compact');
+    localStorage.setItem('tunet_card_scale', '110');
+
+    const { appearance } = collectSnapshot();
+
+    expect(appearance.cardMaterial).toBe('solid');
+    expect(appearance.density).toBe('compact');
+    expect(appearance.cardScale).toBe(110);
+  });
+
+  it('applySnapshot persists and applies card material, density and card scale', () => {
+    const setCardMaterial = vi.fn();
+    const setDensity = vi.fn();
+    const setCardScale = vi.fn();
+
+    applySnapshot(
+      {
+        version: 1,
+        layout: {},
+        appearance: { cardMaterial: 'solid', density: 'compact', cardScale: 90 },
+      },
+      { setCardMaterial, setDensity, setCardScale }
+    );
+
+    expect(localStorage.getItem('tunet_card_material')).toBe('solid');
+    expect(localStorage.getItem('tunet_density')).toBe('compact');
+    expect(localStorage.getItem('tunet_card_scale')).toBe('90');
+    expect(setCardMaterial).toHaveBeenCalledWith('solid');
+    expect(setDensity).toHaveBeenCalledWith('compact');
+    expect(setCardScale).toHaveBeenCalledWith(90);
+  });
+
+  it('applySnapshot leaves card style alone for snapshots from before it was saved', () => {
+    localStorage.setItem('tunet_card_material', 'solid');
+    localStorage.setItem('tunet_density', 'compact');
+    localStorage.setItem('tunet_card_scale', '110');
+    const setCardMaterial = vi.fn();
+    const setDensity = vi.fn();
+    const setCardScale = vi.fn();
+
+    applySnapshot(
+      { version: 1, layout: {}, appearance: { theme: 'dark' } },
+      { setCardMaterial, setDensity, setCardScale }
+    );
+
+    expect(localStorage.getItem('tunet_card_material')).toBe('solid');
+    expect(localStorage.getItem('tunet_density')).toBe('compact');
+    expect(localStorage.getItem('tunet_card_scale')).toBe('110');
+    expect(setCardMaterial).not.toHaveBeenCalled();
+    expect(setDensity).not.toHaveBeenCalled();
+    expect(setCardScale).not.toHaveBeenCalled();
+  });
+
   it('applySnapshot moves a retired Flat theme to Dark', () => {
     const setCurrentTheme = vi.fn();
 
