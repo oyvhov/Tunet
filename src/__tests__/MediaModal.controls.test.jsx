@@ -144,6 +144,7 @@ describe('MediaModal', () => {
         repeat: 'one',
       });
       fireEvent.click(screen.getByRole('button', { name: 'media.volume.up' }));
+      act(() => vi.advanceTimersByTime(350));
       expect(callService).toHaveBeenLastCalledWith(
         'media_player',
         'volume_set',
@@ -152,6 +153,39 @@ describe('MediaModal', () => {
       expect(screen.getByRole('button', { name: 'media.volume.down' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'media.volume.mute' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'media.chooseMedia' })).toBeInTheDocument();
+    });
+
+    it('adds up rapid volume taps and sends the total once', () => {
+      const { callService } = renderModal(player('playing'));
+      prepare();
+      const up = screen.getByRole('button', { name: 'media.volume.up' });
+
+      fireEvent.click(up);
+      fireEvent.click(up);
+      fireEvent.click(up);
+      expect(callService).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(350));
+
+      expect(callService).toHaveBeenCalledTimes(1);
+      expect(callService).toHaveBeenCalledWith('media_player', 'volume_set', {
+        entity_id: 'media_player.stue',
+        volume_level: 0.29,
+      });
+    });
+
+    it('steps down from the pending volume and stays above zero', () => {
+      const { callService } = renderModal(player('playing', { volume_level: 0.04 }));
+      prepare();
+      const down = screen.getByRole('button', { name: 'media.volume.down' });
+
+      fireEvent.click(down);
+      fireEvent.click(down);
+      act(() => vi.advanceTimersByTime(350));
+
+      expect(callService).toHaveBeenCalledWith('media_player', 'volume_set', {
+        entity_id: 'media_player.stue',
+        volume_level: 0,
+      });
     });
 
     it('hides what the player cannot do', () => {

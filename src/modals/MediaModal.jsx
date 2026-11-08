@@ -638,8 +638,10 @@ export default function MediaModal({
   const repeat = mpId ? getA(mpId, 'repeat', 'off') : 'off';
   const VOLUME_STEP = 0.03;
   const changeVolumeByStep = (delta) => {
-    const nextVolume = Math.min(1, Math.max(0, (Number(volume) || 0) + delta));
-    callService('media_player', 'volume_set', { entity_id: mpId, volume_level: nextVolume });
+    const stepped = Math.min(1, Math.max(0, (Number(volume) || 0) + delta));
+    const nextVolume = Number(stepped.toFixed(3));
+    setPendingVolume(nextVolume);
+    commitVolume({ entity_id: mpId, volume_level: nextVolume });
   };
   const rawMembers = mpId ? getA(mpId, 'group_members') : [];
   const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];

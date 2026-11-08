@@ -45,7 +45,7 @@ export const getMediaPlayerPowerAction = (
   const canTurnOn = canTurnMediaPlayerOn(entity);
   const canTurnOff = canTurnMediaPlayerOff(entity);
 
-  if (state === 'off') {
+  if (state === 'off' || state === 'standby') {
     return canTurnOn ? 'turn_on' : null;
   }
 
