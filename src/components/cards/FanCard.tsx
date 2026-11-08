@@ -207,7 +207,7 @@ const FanCard = memo(function FanCard({
         <>
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
-              aria-label={isOn ? t('shield.turnOff') : t('shield.turnOn')}
+              aria-label={isOn ? t('fan.turnOff') : t('fan.turnOn')}
               onClick={canTogglePower ? togglePower : undefined}
               className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl transition-all group-hover:scale-110 ${
                 isOn
@@ -245,7 +245,7 @@ const FanCard = memo(function FanCard({
             className={`flex items-start justify-between ${isDenseMobile ? 'mb-3 gap-3' : 'mb-4 gap-4'}`}
           >
             <button
-              aria-label={isOn ? t('shield.turnOff') : t('shield.turnOn')}
+              aria-label={isOn ? t('fan.turnOff') : t('fan.turnOn')}
               onClick={togglePower}
               disabled={!canTogglePower || isUnavailable}
               className={`flex-shrink-0 transition-all group-hover:scale-110 group-hover:rotate-3 ${isOn ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'} ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
