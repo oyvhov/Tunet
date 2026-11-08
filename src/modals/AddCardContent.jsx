@@ -912,8 +912,9 @@ function AddCardContent({
     });
   };
 
+  // One half of a cost pair is not counted yet, but it is still a pick to lose.
   const canDiscardPicks = () =>
-    addCount === 0 ||
+    (addCount === 0 && !selectedCostTodayId && !selectedCostMonthId) ||
     confirmDiscard({
       title: t('confirm.discardPicks.title'),
       message: t('confirm.discardPicks'),
