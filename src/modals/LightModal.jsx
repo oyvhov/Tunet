@@ -111,8 +111,10 @@ export default function LightModal({
       : Math.round((minKelvin + maxKelvin) / 2));
   const remoteHue = entity?.attributes?.hs_color?.[0] ?? 0;
   const remoteSaturation = entity?.attributes?.hs_color?.[1] ?? 100;
-  // A white light (saturation 0) would ignore the hue slider, so it starts from full colour.
-  const hueSaturation = remoteSaturation > 0 ? remoteSaturation : 100;
+  // In white modes hs_color is only derived from the colour temperature, and a white light
+  // (saturation 0) would ignore the hue slider, so those start from full colour.
+  const isInColorMode = COLOR_MODES.includes(entity?.attributes?.color_mode);
+  const hueSaturation = isInColorMode && remoteSaturation > 0 ? remoteSaturation : 100;
 
   // --- Local State for Optimistic UI ---
   const [activeTab, setActiveTab] = useState('brightness');

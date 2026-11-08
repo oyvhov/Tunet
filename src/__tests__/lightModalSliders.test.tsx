@@ -83,7 +83,7 @@ describe('LightModal sliders', () => {
   });
 
   it('keeps the current saturation and sends hue after a pause', async () => {
-    const { callService } = renderLight({ hs_color: [240, 40] });
+    const { callService } = renderLight({ hs_color: [240, 40], color_mode: 'hs' });
     fireEvent.click(screen.getByRole('radio', { name: 'light.color' }));
     const hue = screen.getByRole('slider', { name: 'light.hue' });
     await drag(hue, ['100', '120']);
@@ -113,6 +113,38 @@ describe('LightModal sliders', () => {
       hs_color: [120, 100],
     });
   });
+
+  it.each([
+    ['cold white', [240, 2]],
+    ['warm white', [30, 66]],
+  ])('sends full saturation when in colour temperature mode at %s', async (_name, hsColor) => {
+    const { callService } = renderLight({ hs_color: hsColor, color_mode: 'color_temp' });
+    fireEvent.click(screen.getByRole('radio', { name: 'light.color' }));
+    await drag(screen.getByRole('slider', { name: 'light.hue' }), ['120']);
+    await tick(350);
+    expect(callService).toHaveBeenCalledWith('light', 'turn_on', {
+      entity_id: 'light.lamp',
+      hs_color: [120, 100],
+    });
+  });
+
+  it.each(['hs', 'rgb', 'rgbw', 'rgbww', 'xy'])(
+    'keeps the current saturation in %s mode',
+    async (mode) => {
+      const { callService } = renderLight({
+        hs_color: [240, 40],
+        color_mode: mode,
+        supported_color_modes: [mode],
+      });
+      fireEvent.click(screen.getByRole('radio', { name: 'light.color' }));
+      await drag(screen.getByRole('slider', { name: 'light.hue' }), ['120']);
+      await tick(350);
+      expect(callService).toHaveBeenCalledWith('light', 'turn_on', {
+        entity_id: 'light.lamp',
+        hs_color: [120, 40],
+      });
+    }
+  );
 
   it.each(['rgbw', 'rgbww'])('offers colour for %s lights', (mode) => {
     renderLight({ supported_color_modes: [mode] });
