@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { getIconComponent } from '../../icons';
 import { Edit2, Trash2, User } from '../../icons';
 import { createCardKeyHandler } from '../../utils/keyboard';
@@ -36,13 +36,15 @@ const PersonStatus = ({
   onRemoveCard,
   t,
 }: PersonStatusProps) => {
+  const [failedPicture, setFailedPicture] = useState<string | null>(null);
   const entity = entities[id];
   if (!entity && !editMode) return null;
 
   const isHome = entity?.state === 'home';
   const statusText = getS(id);
   const name = customNames[id] || entity?.attributes?.friendly_name || id;
-  const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
+  const imageUrl = getEntityImageUrl(entity?.attributes?.entity_picture);
+  const picture = imageUrl !== failedPicture ? imageUrl : null;
   const headerSettingsKey = getCardSettingsKey(id, 'header');
   const headerSettings = cardSettings[headerSettingsKey] || {};
   const personDisplay = headerSettings.personDisplay || 'photo';
@@ -141,7 +143,12 @@ const PersonStatus = ({
               <PersonIcon className="h-5 w-5" />
             </div>
           ) : picture ? (
-            <img src={picture} alt={name} className="h-full w-full object-cover" />
+            <img
+              src={picture}
+              alt={name}
+              className="h-full w-full object-cover"
+              onError={() => setFailedPicture(picture)}
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[var(--text-muted)]">
               {name.substring(0, 1)}
