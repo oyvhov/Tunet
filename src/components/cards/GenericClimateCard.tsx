@@ -103,7 +103,7 @@ const GenericClimateCard = memo(
         }
       },
     });
-    const { target, canAdjust, nudge } = useClimateTarget(entity, onSetTemperature);
+    const { target, targetRange, canAdjust, nudge } = useClimateTarget(entity, onSetTemperature);
 
     if (!entity || !entityId) return null;
 
@@ -118,11 +118,15 @@ const GenericClimateCard = memo(
       fromUnit: sourceTempUnit,
       unitMode: effectiveUnitMode,
     });
-    const displayTargetTemp = formatKindValueForDisplay(targetTemp, {
-      kind: 'temperature',
-      fromUnit: sourceTempUnit,
-      unitMode: effectiveUnitMode,
-    });
+    const formatTarget = (value: unknown) =>
+      formatKindValueForDisplay(value, {
+        kind: 'temperature',
+        fromUnit: sourceTempUnit,
+        unitMode: effectiveUnitMode,
+      });
+    const displayTargetTemp = targetRange
+      ? `${formatTarget(targetRange.low).value}–${formatTarget(targetRange.high).text}`
+      : formatTarget(targetTemp).text;
     const fanMode = entity.attributes?.fan_mode ?? 'Auto';
     const fanModes = entity.attributes?.fan_modes || [];
     const showFan = Array.isArray(fanModes) && fanModes.length > 0;
@@ -230,9 +234,7 @@ const GenericClimateCard = memo(
                 <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
                   {displayCurrentTemp.text}
                 </span>
-                <span className="text-xs text-[var(--text-secondary)]">
-                  → {displayTargetTemp.text}
-                </span>
+                <span className="text-xs text-[var(--text-secondary)]">→ {displayTargetTemp}</span>
               </div>
             </div>
           </div>
@@ -351,7 +353,7 @@ const GenericClimateCard = memo(
                 <span
                   className={`${isDenseMobile ? 'text-lg' : 'text-xl'} leading-none font-medium text-[var(--text-primary)]`}
                 >
-                  {displayTargetTemp.text}
+                  {displayTargetTemp}
                 </span>
               </div>
               <button

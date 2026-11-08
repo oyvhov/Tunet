@@ -113,8 +113,33 @@ describe('useClimateTarget', () => {
     expect(result.current.target).toBe(20);
   });
 
+  it('drops the pending value about 2 seconds after the call if HA did not change it', async () => {
+    const { result } = setup(heat({ temperature: 21 }));
+    act(() => result.current.nudge(1));
+    await tick(350);
+    expect(result.current.target).toBe(21.5);
+    await tick(1500);
+    expect(result.current.target).toBe(21.5);
+    await tick(1000);
+    expect(result.current.target).toBe(21);
+  });
+
+  it('keeps a value the user changed after the last call', async () => {
+    const { result } = setup(heat({ temperature: 21 }));
+    act(() => result.current.nudge(1));
+    await tick(350);
+    await tick(1500);
+    act(() => result.current.nudge(1));
+    await tick(350);
+    await tick(1000);
+    expect(result.current.target).toBe(22);
+  });
+
   it('gives up on the pending value after 10 seconds', async () => {
-    const { result } = setup(heat());
+    const { result } = setup(
+      heat(),
+      vi.fn(() => new Promise(() => {}))
+    );
     act(() => result.current.nudge(1));
     await tick(9000);
     expect(result.current.target).toBe(20.5);
@@ -132,6 +157,31 @@ describe('useClimateTarget', () => {
     act(() => result.current.nudge(1));
     await tick(350);
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+describe('heat_cool range', () => {
+  const range = (state = 'heat_cool') =>
+    heat({ temperature: null, target_temp_low: 20, target_temp_high: 24 }, state);
+
+  it('reports the range and stays read-only', async () => {
+    const send = vi.fn();
+    const { result } = renderHook(() => useClimateTarget(range(), send));
+    expect(result.current.targetRange).toEqual({ low: 20, high: 24 });
+    expect(result.current.target).toBeNull();
+    expect(result.current.canAdjust).toBe(false);
+    act(() => result.current.nudge(1));
+    await tick(350);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('has no range while unavailable or with a single target', () => {
+    const none = renderHook(() => useClimateTarget(range('unavailable'), vi.fn()));
+    expect(none.result.current.targetRange).toBeNull();
+    const single = renderHook(() =>
+      useClimateTarget(heat({ target_temp_low: 20, target_temp_high: 24 }), vi.fn())
+    );
+    expect(single.result.current.targetRange).toBeNull();
   });
 });
 
@@ -156,6 +206,15 @@ describe('GenericClimateCard target controls', () => {
   it.each(['small', 'large'] as const)('disables plus and minus without a target (%s)', (size) => {
     const props = cardProps(heat({ temperature: null }), size);
     const { container } = render(<GenericClimateCard {...props} />);
+    expect(buttonWith(container, 'plus')).toBeDisabled();
+    expect(buttonWith(container, 'minus')).toBeDisabled();
+  });
+
+  it.each(['small', 'large'] as const)('shows a heat_cool range read-only (%s)', (size) => {
+    const entity = heat({ temperature: null, target_temp_low: 20, target_temp_high: 24 });
+    const { container } = render(<GenericClimateCard {...cardProps(entity, size)} />);
+    expect(container).toHaveTextContent('20–24');
+    expect(container).not.toHaveTextContent('--');
     expect(buttonWith(container, 'plus')).toBeDisabled();
     expect(buttonWith(container, 'minus')).toBeDisabled();
   });
@@ -213,6 +272,21 @@ describe('GenericClimateModal target controls', () => {
     expect(buttonWith(container, 'minus')).toBeDisabled();
     expect(screen.getByRole('slider')).toBeDisabled();
     expect(container).not.toHaveTextContent('21');
+  });
+
+  it('shows a heat_cool range read-only', () => {
+    const { container } = renderModal(
+      heat({
+        temperature: null,
+        current_temperature: null,
+        target_temp_low: 20,
+        target_temp_high: 24,
+      })
+    );
+    expect(container.querySelector('.tabular-nums')).toHaveTextContent('20–24');
+    expect(buttonWith(container, 'plus')).toBeDisabled();
+    expect(buttonWith(container, 'minus')).toBeDisabled();
+    expect(screen.getByRole('slider')).toBeDisabled();
   });
 
   it('follows the pending value in the big number and sends once', async () => {
