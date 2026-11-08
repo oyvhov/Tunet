@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
 import CoverCard from '../components/cards/CoverCard';
 
@@ -95,5 +95,64 @@ describe('CoverCard', () => {
       position: 20,
     });
     expect(container).toHaveTextContent('50%');
+  });
+
+  const horizontalSlider = (container: HTMLElement) => {
+    const slider = container.querySelector('.cursor-ew-resize') as HTMLElement;
+    slider.setPointerCapture = () => {};
+    slider.getBoundingClientRect = () =>
+      ({ left: 0, width: 100, top: 0, height: 40 }) as unknown as DOMRect;
+    return slider;
+  };
+
+  it('does not move the cover when the drag is cancelled', async () => {
+    const props = cardProps(cover(WITH_POSITION, { current_position: 50 }));
+    const { container } = render(<CoverCard {...props} />);
+    const slider = horizontalSlider(container);
+    await act(async () => {
+      fireEvent.pointerDown(slider, { clientX: 80, pointerId: 1 });
+      fireEvent.pointerCancel(slider, { clientX: 0, pointerId: 1 });
+    });
+    expect(props.callService).not.toHaveBeenCalled();
+    expect(container).toHaveTextContent('50%');
+  });
+
+  it('does not move the cover when a vertical drag is cancelled', async () => {
+    const props = cardProps(cover(WITH_POSITION, { current_position: 50 }), 'large');
+    const { container } = render(<CoverCard {...props} />);
+    const slider = container.querySelector('.cursor-ns-resize') as HTMLElement;
+    slider.setPointerCapture = () => {};
+    slider.getBoundingClientRect = () =>
+      ({ left: 0, width: 40, top: 0, height: 100 }) as unknown as DOMRect;
+    await act(async () => {
+      fireEvent.pointerDown(slider, { clientY: 80, pointerId: 1 });
+      fireEvent.pointerCancel(slider, { clientY: 0, pointerId: 1 });
+    });
+    expect(props.callService).not.toHaveBeenCalled();
+    expect(container).toHaveTextContent('50%');
+  });
+
+  describe('draft position', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('returns to the reported position after 10 seconds if the motor never moves', async () => {
+      const props = cardProps(cover(WITH_POSITION, { current_position: 50 }));
+      const { container } = render(<CoverCard {...props} />);
+      const slider = horizontalSlider(container);
+      await act(async () => {
+        fireEvent.pointerDown(slider, { clientX: 80, pointerId: 1 });
+        fireEvent.pointerUp(slider, { clientX: 80, pointerId: 1 });
+      });
+      expect(container).toHaveTextContent('20%');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(9000);
+      });
+      expect(container).toHaveTextContent('20%');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1500);
+      });
+      expect(container).toHaveTextContent('50%');
+    });
   });
 });
