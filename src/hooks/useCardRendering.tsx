@@ -286,23 +286,26 @@ export function useCardRendering({
     [pagesConfig, activePage, persistConfig]
   );
 
-  const gridLayout = useMemo(() => {
+  // isCardHiddenByLogic changes with every entity update; the layout only cares which cards show.
+  const visibleIdsKey = useMemo(() => {
     // Page entries in PagesConfig are card-id arrays; its index signature is untyped.
     const ids = (pagesConfig[activePage] as string[] | undefined) || [];
     const visibleIds = editMode
       ? ids
       : ids.filter((id) => !(hiddenCards.includes(id) || isCardHiddenByLogic(id)));
-    return _buildGridLayout(visibleIds, gridColCount, getCardGridSpan, getCardColSpan);
-  }, [
-    pagesConfig,
-    activePage,
-    gridColCount,
-    hiddenCards,
-    editMode,
-    isCardHiddenByLogic,
-    getCardGridSpan,
-    getCardColSpan,
-  ]);
+    return visibleIds.join('\n');
+  }, [pagesConfig, activePage, hiddenCards, editMode, isCardHiddenByLogic]);
+
+  const gridLayout = useMemo(
+    () =>
+      _buildGridLayout(
+        visibleIdsKey ? visibleIdsKey.split('\n') : [],
+        gridColCount,
+        getCardGridSpan,
+        getCardColSpan
+      ),
+    [visibleIdsKey, gridColCount, getCardGridSpan, getCardColSpan]
+  );
 
   const dragAndDrop = useMemo(
     () =>

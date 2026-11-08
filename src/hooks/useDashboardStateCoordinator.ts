@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { LayoutGrid } from '../icons';
 import {
   isCardRemovable as _isCardRemovable,
@@ -224,9 +224,14 @@ export function useDashboardStateCoordinator(deps: DashboardStateCoordinatorDeps
   );
 
   // EntityMap holds HA state objects, which always carry entity_id and attributes.
-  const updateCount = Object.values(entities as HassEntities).filter(
-    (e) => e.entity_id.startsWith('update.') && e.state === 'on' && !e.attributes.skipped_version
-  ).length;
+  const updateCount = useMemo(
+    () =>
+      Object.values(entities as HassEntities).filter(
+        (e) =>
+          e.entity_id.startsWith('update.') && e.state === 'on' && !e.attributes.skipped_version
+      ).length,
+    [entities]
+  );
 
   const resetToHome = () => {
     const isHome = activePage === 'home';
@@ -254,33 +259,63 @@ export function useDashboardStateCoordinator(deps: DashboardStateCoordinatorDeps
     }
   }, [pagesConfig.pages]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pageDefaults: Record<string, { label: string; icon: IconComponent }> = {
-    home: { label: t('page.home'), icon: LayoutGrid },
-  };
-  const pages = (pagesConfig.pages || []).map((id) => ({
-    id,
-    label: pageDefaults[id]?.label || id,
-    icon: pageDefaults[id]?.icon || LayoutGrid,
-  }));
+  const pageDefaults = useMemo<Record<string, { label: string; icon: IconComponent }>>(
+    () => ({
+      home: { label: t('page.home'), icon: LayoutGrid },
+    }),
+    [t]
+  );
+  const pages = useMemo(
+    () =>
+      (pagesConfig.pages || []).map((id) => ({
+        id,
+        label: pageDefaults[id]?.label || id,
+        icon: pageDefaults[id]?.icon || LayoutGrid,
+      })),
+    [pagesConfig.pages, pageDefaults]
+  );
 
-  const getCardSettingsKey = (cardId: string, pageId: string = activePage) =>
-    buildCardSettingsKey(cardId, pageId);
+  const getCardSettingsKey = useCallback(
+    (cardId: string, pageId: string = activePage) => buildCardSettingsKey(cardId, pageId),
+    [activePage]
+  );
 
+  const isCardRemovable = useCallback(
+    (cardId: string, pageId: string = activePage) =>
+      _isCardRemovable(cardId, pageId, { getCardSettingsKey, cardSettings }),
+    [activePage, getCardSettingsKey, cardSettings]
+  );
   // EntityMap holds HA state objects; the card utils take the full HassEntity shape.
-  const cardUtilCtx = {
-    getCardSettingsKey,
-    cardSettings,
-    entities: entities as HassEntities,
-    activePage,
-  };
-  const isCardRemovable = (cardId: string, pageId: string = activePage) =>
-    _isCardRemovable(cardId, pageId, cardUtilCtx);
-  const isCardHiddenByLogic = (cardId: string) => _isCardHiddenByLogic(cardId, cardUtilCtx);
-  const isMediaPage = (pageId: string) => _isMediaPage(pageId, pageSettings);
-  const isSonosPage = (pageId: string) => _isSonosPage(pageId, pageSettings);
-  const isLightsPage = (pageId: string) => _isLightsPage(pageId, pageSettings);
-  const isBatteryPage = (pageId: string) => _isBatteryPage(pageId, pageSettings);
-  const isRoomExplorerPage = (pageId: string) => _isRoomExplorerPage(pageId, pageSettings);
+  const isCardHiddenByLogic = useCallback(
+    (cardId: string) =>
+      _isCardHiddenByLogic(cardId, {
+        getCardSettingsKey,
+        cardSettings,
+        entities: entities as HassEntities,
+        activePage,
+      }),
+    [getCardSettingsKey, cardSettings, entities, activePage]
+  );
+  const isMediaPage = useCallback(
+    (pageId: string) => _isMediaPage(pageId, pageSettings),
+    [pageSettings]
+  );
+  const isSonosPage = useCallback(
+    (pageId: string) => _isSonosPage(pageId, pageSettings),
+    [pageSettings]
+  );
+  const isLightsPage = useCallback(
+    (pageId: string) => _isLightsPage(pageId, pageSettings),
+    [pageSettings]
+  );
+  const isBatteryPage = useCallback(
+    (pageId: string) => _isBatteryPage(pageId, pageSettings),
+    [pageSettings]
+  );
+  const isRoomExplorerPage = useCallback(
+    (pageId: string) => _isRoomExplorerPage(pageId, pageSettings),
+    [pageSettings]
+  );
   const hasEnabledPopupTriggers = useMemo(
     () =>
       Object.values(cardSettings || {}).some(
