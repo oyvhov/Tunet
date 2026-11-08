@@ -8,12 +8,7 @@ const DEFAULT_STEP = 0.5;
 
 interface ClimateTargetEntity {
   state?: string | null;
-  attributes?: {
-    temperature?: unknown;
-    min_temp?: unknown;
-    max_temp?: unknown;
-    target_temp_step?: unknown;
-  } | null;
+  attributes?: Record<string, unknown> | null;
 }
 
 const finiteNumber = (value: unknown) =>
