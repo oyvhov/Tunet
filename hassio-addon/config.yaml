@@ -15,6 +15,7 @@ homeassistant_api: true
 auth_api: true
 ingress: true
 ingress_port: 3002
+watchdog: 'http://[HOST]:[PORT:3002]/api/health'
 panel_icon: 'mdi:view-dashboard-variant'
 panel_title: 'Tunet'
 ports:
