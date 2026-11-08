@@ -92,6 +92,7 @@ interface SensorCardProps {
   entities?: EntityMap;
   conn?: Connection | null;
   callService?: CardCallService;
+  connected?: boolean;
   settings: SensorCardViewSettings;
   dragProps?: Record<string, unknown>;
   cardStyle?: CSSProperties;
@@ -111,6 +112,7 @@ const SensorCard = memo(
     entity,
     entities = {},
     conn,
+    connected,
     callService,
     settings,
     dragProps,
@@ -251,6 +253,7 @@ const SensorCard = memo(
     const actionActive = isSensorEntityActive(config.action.targetEntity);
     const actionFeedback = useSensorCardAction({
       conn,
+      connected,
       callService,
       action: config.action,
       entities:

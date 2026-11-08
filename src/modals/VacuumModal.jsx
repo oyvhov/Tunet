@@ -88,6 +88,9 @@ const isValidStateValue = (value) =>
   value != null && value !== '' && value !== 'unavailable' && value !== 'unknown';
 
 const VACUUM_FEATURE_FAN_SPEED = 32;
+const VACUUM_FEATURE_PAUSE = 4;
+const VACUUM_FEATURE_STOP = 8;
+const VACUUM_FEATURE_RETURN_HOME = 16;
 const VACUUM_FEATURE_LOCATE = 512;
 
 const toFiniteNumber = (value) => {
@@ -1255,9 +1258,9 @@ export default function VacuumModal({
     ? mopControlEntity.attributes.options
     : [];
   const mopControlCurrent = mopControlEntity?.state;
-  const canPause = hasAnyFeature([2, 4]) || !hasSupportedFeatures;
-  const canStop = hasAnyFeature([4, 8]) || !hasSupportedFeatures;
-  const canReturnToBase = hasAnyFeature([8, 16]) || !hasSupportedFeatures;
+  const canPause = hasAnyFeature([VACUUM_FEATURE_PAUSE]) || !hasSupportedFeatures;
+  const canStop = hasAnyFeature([VACUUM_FEATURE_STOP]) || !hasSupportedFeatures;
+  const canReturnToBase = hasAnyFeature([VACUUM_FEATURE_RETURN_HOME]) || !hasSupportedFeatures;
   const canLocate = hasAnyFeature([VACUUM_FEATURE_LOCATE]) || !hasSupportedFeatures;
   const fanSpeedList = Array.isArray(attrs.fan_speed_list) ? attrs.fan_speed_list : [];
   const canSetFanSpeed =

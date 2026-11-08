@@ -76,6 +76,7 @@ export function renderSensorCard(cardId, dragProps, getControls, cardStyle, sett
       entities={entities}
       conn={conn}
       callService={callService}
+      connected={ctx.connected}
       settings={settings}
       dragProps={dragProps}
       cardStyle={cardStyle}

@@ -293,6 +293,19 @@ describe('vacuum popup', () => {
     expect(conn.sendMessagePromise).not.toHaveBeenCalled();
   });
 
+  it('offers return to base only with the RETURN_HOME feature', async () => {
+    await renderPopup(entity(VACUUM, 'docked', { supported_features: 8 }));
+    expect(screen.queryByRole('button', { name: 'vacuum.home' })).toBeNull();
+  });
+
+  it('stops instead of pausing when only STOP is supported', async () => {
+    const { callService } = await renderPopup(
+      entity(VACUUM, 'cleaning', { supported_features: 2 | 8 })
+    );
+    fireEvent.click(screen.getByRole('button', { name: /vacuum\.stop/ }));
+    expect(callService).toHaveBeenCalledWith('vacuum', 'stop', { entity_id: VACUUM });
+  });
+
   it('offers find only with the LOCATE feature', async () => {
     await renderPopup(docked({ supported_features: 16 | 64 | 256 | 1024 }));
     expect(screen.queryByText('vacuum.find')).toBeNull();
