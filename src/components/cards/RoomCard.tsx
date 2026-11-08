@@ -26,6 +26,7 @@ import {
   getDisplayUnitForKind,
   getEffectiveRoomEntityIds,
   getEffectiveUnitMode,
+  isUnavailableState,
 } from '../../utils';
 import type { MouseEvent } from 'react';
 import type { Connection } from 'home-assistant-js-websocket';
@@ -209,9 +210,12 @@ const RoomCard = memo(
     }, [roomEntityIds, entities, settings]);
 
     const mainLightId = useMemo(() => {
-      if (settings?.mainLightEntityId && entities[settings.mainLightEntityId])
-        return settings.mainLightEntityId;
-      return lightIds[0] || null;
+      const candidates = settings?.mainLightEntityId
+        ? [settings.mainLightEntityId, ...lightIds]
+        : lightIds;
+      return (
+        candidates.find((id) => entities[id] && !isUnavailableState(entities[id]?.state)) || null
+      );
     }, [settings?.mainLightEntityId, entities, lightIds]);
 
     const climateId = useMemo(
@@ -294,14 +298,18 @@ const RoomCard = memo(
       return null;
     }, [tempEntity, climateEntity]);
     const [stableTemp, setStableTemp] = useState(currentTemp);
+    const isTempUnknown =
+      currentTemp === null && isUnavailableState((tempEntity ?? climateEntity)?.state);
 
     useEffect(() => {
       if (currentTemp !== null) {
         setStableTemp(currentTemp);
+      } else if (isTempUnknown) {
+        setStableTemp(null);
       }
-    }, [currentTemp]);
+    }, [currentTemp, isTempUnknown]);
 
-    const displayTemp = stableTemp ?? currentTemp;
+    const displayTemp = isTempUnknown ? null : (stableTemp ?? currentTemp);
     const displayTempValue = useMemo(() => {
       if (!Number.isFinite(displayTemp)) return null;
       const converted = convertValueByKind(displayTemp, {
@@ -402,7 +410,7 @@ const RoomCard = memo(
 
     const visiblePillCount =
       (showMotion && showOccupiedIndicator && isOccupied ? 1 : 0) +
-      (showTemp && Boolean(displayTempValue) ? 1 : 0) +
+      (showTemp && (Boolean(displayTempValue) || isTempUnknown) ? 1 : 0) +
       (showLightChip && showLights && lightsOnCount > 0 ? 1 : 0) +
       (showMediaChip && mediaPlayingCount > 0 ? 1 : 0) +
       (showActiveChip && activeDeviceCount > 0 ? 1 : 0) +
@@ -528,15 +536,14 @@ const RoomCard = memo(
           </div>
 
           <div ref={chipContainerRef} className={chipContainerClass}>
-            {showTemp && displayTempValue && (
+            {showTemp && (displayTempValue || isTempUnknown) && (
               <div
                 className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
               >
                 <Thermometer className={`${chipIconClass} fill-current stroke-[1.75px]`} />
                 {!iconOnlyAllPills && (
                   <span className={chipTextClass}>
-                    {displayTempValue}
-                    {displayTempUnit}
+                    {displayTempValue ? `${displayTempValue}${displayTempUnit}` : '--'}
                   </span>
                 )}
               </div>
