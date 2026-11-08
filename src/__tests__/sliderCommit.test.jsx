@@ -37,6 +37,24 @@ describe('M3Slider onCommit', () => {
   });
 });
 
+describe('M3Slider touch area', () => {
+  it.each([
+    ['thin', 'h-4'],
+    ['thinLg', 'h-6'],
+  ])('gives %s a 44 px hit area and keeps its layout height', (variant, layoutHeight) => {
+    render(<M3Slider min={0} max={100} value={10} onChange={vi.fn()} variant={variant} />);
+    const slider = screen.getByRole('slider');
+    expect(slider).toHaveClass('h-11', 'top-1/2', '-translate-y-1/2');
+    expect(slider).not.toHaveClass('h-full');
+    expect(slider.parentElement).toHaveClass(layoutHeight);
+  });
+
+  it('leaves the other variants alone', () => {
+    render(<M3Slider min={0} max={100} value={10} onChange={vi.fn()} variant="volume" />);
+    expect(screen.getByRole('slider')).toHaveClass('h-full');
+  });
+});
+
 describe('useDebouncedCommit', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());

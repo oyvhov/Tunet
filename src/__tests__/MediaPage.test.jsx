@@ -272,6 +272,43 @@ describe('MediaPage player state', () => {
   });
 });
 
+describe('MediaPage touch targets', () => {
+  it('gives every transport button and tab a 44 px hit area', () => {
+    render(
+      <MediaPage
+        {...makeBaseProps({
+          entities: {
+            'media_player.kitchen': {
+              entity_id: 'media_player.kitchen',
+              state: 'playing',
+              attributes: {
+                friendly_name: 'Kitchen',
+                integration: 'sonos',
+                supported_features: 128 + 256,
+              },
+            },
+          },
+        })}
+      />
+    );
+
+    ['media.shuffle', /^media\.repeat/, 'media.previous', 'media.next', 'media.pause'].forEach(
+      (name) => expect(screen.getByRole('button', { name })).toHaveClass('min-h-11', 'min-w-11')
+    );
+    expect(screen.getByTitle('status.off')).toHaveClass('min-h-11', 'min-w-11');
+    ['media.tab.players', 'media.tab.media', 'sonos.managePlayers'].forEach((name) =>
+      expect(screen.getByRole('button', { name })).toHaveClass('min-h-11')
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'media.tab.media' }));
+    ['favorites', 'playlists', 'library', 'search'].forEach((tab) =>
+      expect(screen.getByRole('button', { name: `media.choose.tab.${tab}` })).toHaveClass(
+        'min-h-11'
+      )
+    );
+  });
+});
+
 describe('MediaPage slider commands', () => {
   const playingEntities = {
     'media_player.den': {

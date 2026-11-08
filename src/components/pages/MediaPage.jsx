@@ -856,7 +856,7 @@ function MediaPage({
       {mediaEntities.length > 0 && (
         <div className="grid w-full grid-cols-1 items-stretch gap-8 lg:grid-cols-[1.35fr_0.85fr]">
           <div
-            className={`popup-surface relative flex min-h-[480px] w-full min-w-0 flex-col overflow-hidden rounded-3xl border p-8 ${
+            className={`popup-surface relative flex min-h-[480px] w-full min-w-0 flex-col overflow-hidden rounded-3xl border p-5 sm:p-8 ${
               isSonosMode
                 ? 'border-[var(--status-info-fg)]/35 shadow-[0_0_0_1px_rgba(125,211,252,0.08),0_20px_60px_rgba(59,130,246,0.15)]'
                 : 'border-[var(--glass-border)]'
@@ -964,7 +964,7 @@ function MediaPage({
                         })
                       }
                       disabled={!controls.shuffle}
-                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-30 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                      className={`flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-30 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                       style={
                         shuffle
                           ? {
@@ -987,7 +987,7 @@ function MediaPage({
                         }
                         disabled={!controls.previous}
                         aria-label={t('media.previous')}
-                        className="rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         <SkipBack className="h-[clamp(1.1rem,2.6vw,1.5rem)] w-[clamp(1.1rem,2.6vw,1.5rem)] text-[var(--text-secondary)]" />
                       </button>
@@ -997,7 +997,7 @@ function MediaPage({
                         }
                         disabled={!controls.playPause}
                         aria-label={isPlaying ? t('media.pause') : t('media.play')}
-                        className="rounded-full bg-[var(--text-primary)] p-[clamp(0.3rem,1.2vw,0.75rem)] shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 disabled:pointer-events-none disabled:opacity-30"
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-[var(--text-primary)] p-[clamp(0.3rem,1.2vw,0.75rem)] shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         {isPlaying ? (
                           <Pause
@@ -1019,7 +1019,7 @@ function MediaPage({
                         }
                         disabled={!controls.next}
                         aria-label={t('media.next')}
-                        className="rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         <SkipForward className="h-[clamp(1.1rem,2.6vw,1.5rem)] w-[clamp(1.1rem,2.6vw,1.5rem)] text-[var(--text-secondary)]" />
                       </button>
@@ -1028,7 +1028,7 @@ function MediaPage({
                           onClick={() =>
                             callService('media_player', powerAction, { entity_id: mpId })
                           }
-                          className={`rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all active:scale-95 ${isPowerOffAction ? 'text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)]' : 'text-[var(--status-success-fg)] hover:bg-[var(--status-success-bg)]'}`}
+                          className={`flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all active:scale-95 ${isPowerOffAction ? 'text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)]' : 'text-[var(--status-success-fg)] hover:bg-[var(--status-success-bg)]'}`}
                           title={isPowerOffAction ? t('status.off') : t('status.on')}
                         >
                           <Power className="h-[clamp(1.1rem,2.6vw,1.5rem)] w-[clamp(1.1rem,2.6vw,1.5rem)]" />
@@ -1045,7 +1045,7 @@ function MediaPage({
                         });
                       }}
                       disabled={!controls.repeat}
-                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-30 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                      className={`flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-30 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                       style={
                         repeat !== 'off'
                           ? {
@@ -1151,7 +1151,7 @@ function MediaPage({
                   <button
                     type="button"
                     onClick={() => setRightPanelView('players')}
-                    className={`rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'players' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`min-h-11 rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'players' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     style={
                       rightPanelView === 'players'
                         ? {
@@ -1168,7 +1168,7 @@ function MediaPage({
                     type="button"
                     data-testid="media-page-choose-tab"
                     onClick={() => setRightPanelView('choose')}
-                    className={`rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'choose' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`min-h-11 rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'choose' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     style={
                       rightPanelView === 'choose'
                         ? {
@@ -1185,7 +1185,7 @@ function MediaPage({
                     <button
                       type="button"
                       onClick={() => setRightPanelView('manage')}
-                      className={`rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'manage' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`min-h-11 rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'manage' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                       style={
                         rightPanelView === 'manage'
                           ? {
@@ -1355,7 +1355,7 @@ function MediaPage({
                         key={tab}
                         type="button"
                         onClick={() => setChooseTab(tab)}
-                        className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${chooseTab === tab ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        className={`min-h-11 rounded-lg px-2.5 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${chooseTab === tab ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                         style={
                           chooseTab === tab
                             ? {
