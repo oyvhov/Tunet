@@ -2191,6 +2191,16 @@ export default function ConfigModal({
                                   : t('onboarding.testConnection')}
                               </Button>
 
+                              {!connectionTestResult &&
+                                !testingConnection &&
+                                config.url &&
+                                config.token &&
+                                validateUrl(config.url) && (
+                                  <p className="ml-1 text-xs text-[var(--text-muted)]">
+                                    {t('onboarding.testRequired')}
+                                  </p>
+                                )}
+
                               {connectionTestResult && (
                                 <div
                                   className={`animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 rounded-xl p-3 ${connectionTestResult.success ? 'border border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'}`}

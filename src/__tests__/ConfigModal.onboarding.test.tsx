@@ -5,7 +5,7 @@ import { validateUrl } from '../config/onboarding';
 
 const t = (key: string) => key;
 
-function renderFirstRun(config: Record<string, unknown>) {
+function renderFirstRun(config: Record<string, unknown>, props: Record<string, unknown> = {}) {
   return render(
     <ConfigModal
       open
@@ -31,6 +31,7 @@ function renderFirstRun(config: Record<string, unknown>) {
       setConnectionTestResult={vi.fn()}
       testConnection={vi.fn()}
       validateUrl={validateUrl}
+      {...props}
     />
   );
 }
@@ -59,6 +60,27 @@ describe('first-run connection step', () => {
     renderFirstRun({ url: 'https://homeassistant.local:8123/' });
 
     expect(screen.getByText('onboarding.urlTrailingSlash')).toBeInTheDocument();
+  });
+
+  it('says the connection must be tested while Next is still disabled', () => {
+    renderFirstRun({ url: 'https://homeassistant.local:8123' });
+
+    expect(screen.getByText('onboarding.testRequired')).toBeInTheDocument();
+  });
+
+  it('drops the test reminder once a result is showing', () => {
+    renderFirstRun(
+      { url: 'https://homeassistant.local:8123' },
+      { connectionTestResult: { success: true, message: 'OK' } }
+    );
+
+    expect(screen.queryByText('onboarding.testRequired')).not.toBeInTheDocument();
+  });
+
+  it('holds back the test reminder until URL and token are filled in', () => {
+    renderFirstRun({ url: 'https://homeassistant.local:8123', token: '' });
+
+    expect(screen.queryByText('onboarding.testRequired')).not.toBeInTheDocument();
   });
 
   it('translates the add-on mode explanation', () => {
