@@ -656,6 +656,20 @@ test.describe('Modal Interactions', () => {
     }
   });
 
+  test('adds fine grain over the blurred page behind a popup', async ({ page }) => {
+    await page.locator('[data-card-id="calendar_card_e2e"]').click();
+    const dialog = page.locator('[role="dialog"]').first();
+    await expect(dialog).toBeVisible();
+
+    const grain = await dialog.evaluate((el) => {
+      const overlay = el.closest('[data-modal-state]');
+      const style = getComputedStyle(overlay, '::before');
+      return { image: style.backgroundImage.includes('feTurbulence'), opacity: style.opacity };
+    });
+
+    expect(grain).toEqual({ image: true, opacity: '0.03' });
+  });
+
   test('lets a popup finish its first paint before the motion starts', async ({ page }) => {
     await page.locator('[data-card-id="calendar_card_e2e"]').click();
     const dialog = page.locator('[role="dialog"]').first();
