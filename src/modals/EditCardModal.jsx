@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Check, Plus, ChevronDown, ChevronUp, Star } from 'lucide-react';
+import { X, Plus, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import IconPicker from '../components/ui/IconPicker';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
@@ -1177,7 +1177,14 @@ export default function EditCardModal({
     [entityEntries, sortByName]
   );
 
+  const serviceDraftFlushRef = React.useRef(null);
+
   if (!isOpen) return null;
+
+  const handleDone = () => {
+    if (serviceDraftFlushRef.current?.() === false) return;
+    onClose();
+  };
 
   const showSensorPreview = isEditSensor && !!editSettingsKey;
   const cardEntityFields = getCardEntityFields(entityId, editSettings);
@@ -1272,6 +1279,7 @@ export default function EditCardModal({
                   onNameChange={(value) => saveCustomName(entityId, value)}
                   onIconChange={(value) => saveCustomIcon(entityId, value)}
                   numericEntityOptions={numericEntityOptions}
+                  serviceDraftFlushRef={serviceDraftFlushRef}
                   t={t}
                 />
               )}
@@ -1532,97 +1540,23 @@ export default function EditCardModal({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="modal-section-label block pb-2">
-                      {t('energyCost.today') || 'Today'}
-                    </label>
-                    <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
-                      {numericEntityOptions.length === 0 ? (
-                        <p className="py-4 text-center text-sm text-[var(--text-muted)]">
-                          {t('addCard.noSensors') || 'No sensors found'}
-                        </p>
-                      ) : (
-                        numericEntityOptions.map((sensorId) => {
-                          const isSelected = editSettings.todayId === sensorId;
-                          return (
-                            <div
-                              key={sensorId}
-                              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
-                              onClick={() => {
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'todayId',
-                                  isSelected ? null : sensorId
-                                );
-                              }}
-                            >
-                              <div
-                                className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
-                              >
-                                {isSelected && (
-                                  <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />
-                                )}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-[var(--text-primary)]">
-                                  {entities[sensorId].attributes?.friendly_name || sensorId}
-                                </span>
-                                <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                                  {sensorId}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
+                  <EntityField
+                    label={`${t('energyCost.today') || 'Today'} *`}
+                    value={editSettings.todayId}
+                    options={numericEntityOptions}
+                    entities={entities}
+                    onChange={(id) => saveCardSetting(editSettingsKey, 'todayId', id)}
+                    t={t}
+                  />
 
-                  <div>
-                    <label className="modal-section-label block pb-2">
-                      {t('energyCost.thisMonth') || 'This Month'}
-                    </label>
-                    <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
-                      {numericEntityOptions.length === 0 ? (
-                        <p className="py-4 text-center text-sm text-[var(--text-muted)]">
-                          {t('addCard.noSensors') || 'No sensors found'}
-                        </p>
-                      ) : (
-                        numericEntityOptions.map((sensorId) => {
-                          const isSelected = editSettings.monthId === sensorId;
-                          return (
-                            <div
-                              key={sensorId}
-                              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
-                              onClick={() => {
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'monthId',
-                                  isSelected ? null : sensorId
-                                );
-                              }}
-                            >
-                              <div
-                                className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
-                              >
-                                {isSelected && (
-                                  <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />
-                                )}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-[var(--text-primary)]">
-                                  {entities[sensorId].attributes?.friendly_name || sensorId}
-                                </span>
-                                <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                                  {sensorId}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
+                  <EntityField
+                    label={`${t('energyCost.thisMonth') || 'This Month'} *`}
+                    value={editSettings.monthId}
+                    options={numericEntityOptions}
+                    entities={entities}
+                    onChange={(id) => saveCardSetting(editSettingsKey, 'monthId', id)}
+                    t={t}
+                  />
 
                   <div className="space-y-2">
                     <label className="modal-section-label">
@@ -1988,12 +1922,14 @@ export default function EditCardModal({
                         </div>
 
                         <div className="space-y-2">
-                          <label className="modal-section-label">{'Heading alignment'}</label>
+                          <label className="modal-section-label">
+                            {t('spacer.headingAlignment')}
+                          </label>
                           <div className="flex gap-2">
                             {[
-                              { key: 'left', label: 'Venstre' },
-                              { key: 'center', label: 'Midt' },
-                              { key: 'right', label: 'Høgre' },
+                              { key: 'left', label: t('header.alignmentLeft') },
+                              { key: 'center', label: t('header.alignmentCenter') },
+                              { key: 'right', label: t('header.alignmentRight') },
                             ].map((opt) => (
                               <button
                                 key={opt.key}
@@ -2157,6 +2093,8 @@ export default function EditCardModal({
                   const go2rtcMode = editSettings.cameraGo2rtcMode
                     ? String(editSettings.cameraGo2rtcMode).toLowerCase()
                     : getGo2rtcModeFromUrl(webrtcTemplate);
+                  // The refresh timer only runs on snapshots; a live stream never uses it.
+                  const usesSnapshots = streamEngine === 'snapshot';
                   const refreshMode = editSettings.cameraRefreshMode || 'interval';
                   const refreshInterval = editSettings.cameraRefreshInterval || 10;
                   const motionSensorId = editSettings.cameraMotionSensor || '';
@@ -2283,7 +2221,9 @@ export default function EditCardModal({
                         </label>
                         <div className="flex gap-2">
                           {[
-                            { key: 'interval', label: t('camera.refreshInterval') || 'Timer' },
+                            ...(usesSnapshots
+                              ? [{ key: 'interval', label: t('camera.refreshInterval') || 'Timer' }]
+                              : []),
                             { key: 'motion', label: t('camera.refreshMotion') || 'Motion' },
                           ].map((v) => (
                             <button
@@ -2308,7 +2248,7 @@ export default function EditCardModal({
                       </div>
 
                       {/* Interval seconds */}
-                      {refreshMode === 'interval' && (
+                      {usesSnapshots && refreshMode === 'interval' && (
                         <div className="space-y-2">
                           <label className="modal-section-label">
                             {t('camera.intervalSeconds') || 'Refresh every (seconds)'}
@@ -3267,7 +3207,7 @@ export default function EditCardModal({
           </div>
 
           <ModalFooter>
-            <Button variant="primary" onClick={onClose}>
+            <Button variant="primary" onClick={handleDone}>
               {t('nav.done') || 'Done'}
             </Button>
           </ModalFooter>

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import EditCardModal from '../modals/EditCardModal';
 import ConditionBuilder from '../components/ui/ConditionBuilder';
@@ -37,6 +37,17 @@ const entities = {
   },
   'light.desk': { entity_id: 'light.desk', state: 'on', attributes: { friendly_name: 'Desk' } },
   'todo.shop': { entity_id: 'todo.shop', state: '1', attributes: { friendly_name: 'Shopping' } },
+  'sensor.cost_today': {
+    entity_id: 'sensor.cost_today',
+    state: '4',
+    attributes: { friendly_name: 'Cost today' },
+  },
+  'sensor.cost_month': {
+    entity_id: 'sensor.cost_month',
+    state: '90',
+    attributes: { friendly_name: 'Cost month' },
+  },
+  'camera.yard': { entity_id: 'camera.yard', state: 'idle', attributes: { friendly_name: 'Yard' } },
 };
 
 const saveCardSetting = vi.fn();
@@ -219,6 +230,61 @@ describe('required setup', () => {
     expect(
       followsIn(screen.getByText(en['editCard.entityRequired']), screen.getByText(en['form.name']))
     ).toBe(true);
+  }, 20_000);
+});
+
+describe('cost sensors', () => {
+  it('picks a sensor through a search field and marks both as required', () => {
+    renderModal({ entityId: 'cost_card_1', isEditCost: true, editSettings: {} });
+    expect(screen.getByText(`${en['energyCost.thisMonth']} *`)).toBeInTheDocument();
+    const todayField = screen.getByText(`${en['energyCost.today']} *`).parentElement as HTMLElement;
+    fireEvent.click(within(todayField).getByRole('button', { name: en['dropdown.noneSelected'] }));
+    fireEvent.change(within(todayField).getByPlaceholderText(en['form.search']), {
+      target: { value: 'month' },
+    });
+    expect(within(todayField).queryByText('sensor.cost_today')).not.toBeInTheDocument();
+    fireEvent.change(within(todayField).getByPlaceholderText(en['form.search']), {
+      target: { value: 'today' },
+    });
+    fireEvent.click(within(todayField).getByRole('button', { name: /Cost today/ }));
+    expect(saveCardSetting).toHaveBeenCalledWith('key', 'todayId', 'sensor.cost_today');
+  }, 20_000);
+});
+
+describe('camera refresh', () => {
+  const cameraProps = (cameraStreamEngine: string) => ({
+    entityId: 'camera_card_1',
+    isEditCamera: true,
+    editSettings: { cameraId: 'camera.yard', cameraStreamEngine },
+  });
+
+  it.each(['auto', 'go2rtc', 'ha'])(
+    'hides the interval while streaming with %s',
+    (engine) => {
+      renderModal(cameraProps(engine));
+      expect(screen.queryByText(en['camera.intervalSeconds'])).not.toBeInTheDocument();
+      expect(screen.queryByText(en['camera.refreshInterval'])).not.toBeInTheDocument();
+    },
+    20_000
+  );
+
+  it('shows the interval for snapshots', () => {
+    renderModal(cameraProps('snapshot'));
+    expect(screen.getByText(en['camera.intervalSeconds'])).toBeInTheDocument();
+    expect(screen.getByText(en['camera.refreshInterval'])).toBeInTheDocument();
+  }, 20_000);
+});
+
+describe('spacer alignment labels', () => {
+  it('uses translated labels', () => {
+    renderModal({
+      entityId: 'spacer_card_1',
+      isEditSpacer: true,
+      editSettings: { heading: 'A heading' },
+    });
+    expect(screen.getByText(en['spacer.headingAlignment'])).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: en['header.alignmentLeft'] })).toBeInTheDocument();
+    expect(screen.queryByText('Venstre')).not.toBeInTheDocument();
   }, 20_000);
 });
 
