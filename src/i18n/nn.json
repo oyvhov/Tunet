@@ -1350,6 +1350,7 @@
   "time.justNow": "akkurat no",
   "time.minutesAgo": "{minutes} min sidan",
   "time.unknown": "ukjend tid",
+  "toast.noHaConnection": "Ingen kontakt med Home Assistant",
   "toast.serviceFailed": "Handling mislukkast",
   "todo.addHint": "Legg til nytt punkt over",
   "todo.addPlaceholder": "Legg til nytt punkt...",

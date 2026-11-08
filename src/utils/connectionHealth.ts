@@ -1,7 +1,9 @@
 import { MOBILE_BREAKPOINT } from '../config/constants';
 
+export const CONNECTION_PING_INTERVAL_MS = 60_000;
 export const ENTITY_STALE_DISCONNECT_GRACE_MS = 15_000;
-export const ENTITY_STALE_NO_UPDATE_MS = 60_000;
+// Longer than the ping interval plus its timeout, so a quiet house never counts as stale.
+export const ENTITY_STALE_NO_UPDATE_MS = 90_000;
 export const CONNECTION_WARNING_DELAY_MS = 5_000;
 export const MOBILE_CONNECTION_WARNING_DELAY_MS = 15_000;
 

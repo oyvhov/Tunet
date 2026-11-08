@@ -1339,6 +1339,7 @@
   "time.justNow": "à l'instant",
   "time.minutesAgo": "il y a {minutes} min",
   "time.unknown": "heure inconnue",
+  "toast.noHaConnection": "Pas de connexion à Home Assistant",
   "toast.serviceFailed": "Action échouée",
   "todo.addHint": "Ajouter un nouvel élément ci-dessus",
   "todo.addPlaceholder": "Ajouter un nouvel élément...",

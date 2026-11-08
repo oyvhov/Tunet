@@ -1352,6 +1352,7 @@
   "todo.pending": "pendientes",
   "todo.selectList": "Seleccionar lista de tareas",
   "todo.title": "Tareas",
+  "toast.noHaConnection": "Sin conexión con Home Assistant",
   "toast.serviceFailed": "La acción ha fallado",
   "tooltip.addToGroup": "Añadir al grupo",
   "tooltip.cycleSize": "Cambiar tamaño",

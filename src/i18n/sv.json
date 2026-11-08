@@ -1339,6 +1339,7 @@
   "time.justNow": "precis nu",
   "time.minutesAgo": "{minutes} min sedan",
   "time.unknown": "okänd tid",
+  "toast.noHaConnection": "Ingen kontakt med Home Assistant",
   "toast.serviceFailed": "Åtgärden misslyckades",
   "todo.addHint": "Lägg till nytt objekt ovan",
   "todo.addPlaceholder": "Lägg till nytt objekt...",

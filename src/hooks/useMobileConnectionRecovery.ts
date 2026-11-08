@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Connection } from 'home-assistant-js-websocket';
-import { MOBILE_BREAKPOINT } from '../config/constants';
+import { CONNECTION_PING_INTERVAL_MS } from '../utils/connectionHealth';
 
 export const CONNECTION_PROBE_TIMEOUT_MS = 3000;
 
@@ -16,12 +16,6 @@ export interface UseMobileConnectionRecoveryDeps {
   conn: Connection | null | undefined;
   onHealthy?: () => void;
   onRecovering?: () => void;
-}
-
-export function isMobileViewport() {
-  return (
-    typeof globalThis.window !== 'undefined' && globalThis.window.innerWidth < MOBILE_BREAKPOINT
-  );
 }
 
 export async function probeAndRecoverConnection(
@@ -79,11 +73,7 @@ export function useMobileConnectionRecovery({
     }
 
     const recoverIfNeeded = () => {
-      if (
-        !isMobileViewport() ||
-        globalThis.document.visibilityState !== 'visible' ||
-        recoveryPromiseRef.current
-      ) {
+      if (globalThis.document.visibilityState !== 'visible' || recoveryPromiseRef.current) {
         return;
       }
 
@@ -102,8 +92,11 @@ export function useMobileConnectionRecovery({
     globalThis.document.addEventListener('visibilitychange', recoverIfNeeded);
     globalThis.window.addEventListener('pageshow', recoverIfNeeded);
     globalThis.window.addEventListener('online', recoverIfNeeded);
+    // A half-open socket looks connected and fires no event; only a ping can find it.
+    const pingTimer = globalThis.setInterval(recoverIfNeeded, CONNECTION_PING_INTERVAL_MS);
 
     return () => {
+      globalThis.clearInterval(pingTimer);
       globalThis.document.removeEventListener('visibilitychange', recoverIfNeeded);
       globalThis.window.removeEventListener('pageshow', recoverIfNeeded);
       globalThis.window.removeEventListener('online', recoverIfNeeded);

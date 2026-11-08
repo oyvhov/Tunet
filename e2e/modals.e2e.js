@@ -694,6 +694,17 @@ test.describe('Modal Interactions', () => {
     await expect(modal).toBeHidden();
   });
 
+  test('closes the popup with the Back button and stays on the dashboard', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    const dashboardUrl = page.url();
+
+    await page.goBack();
+
+    await expect(modal).toBeHidden();
+    expect(page.url()).toBe(dashboardUrl);
+    await expect(page.getByTestId('settings-dropdown-trigger')).toBeVisible();
+  });
+
   test('draws no focus ring around the popup panel itself', async ({ page }) => {
     const modal = await openSystemModal(page);
     const radiusAtRest = await modal.evaluate((el) => getComputedStyle(el).borderTopLeftRadius);

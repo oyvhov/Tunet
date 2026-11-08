@@ -525,6 +525,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     entities,
     entitiesLoaded,
     conn,
+    connected,
     customNames,
     customIcons,
     getA,
