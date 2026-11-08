@@ -206,7 +206,7 @@ export const HomeAssistantProvider = ({
     setHaUnavailable(false);
     setDisconnectedSince(null);
     // An answered ping proves the data is current, even in a house where nothing has changed.
-    setLastEntityUpdateAt((current) => (current ? Date.now() : current));
+    if (lastEntityUpdateAtRef.current) lastEntityUpdateAtRef.current = Date.now();
   }, []);
 
   const markConnectionRecovering = useCallback(() => {
