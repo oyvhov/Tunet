@@ -29,6 +29,9 @@ describe('buildProfilesContextSetters', () => {
       setCardTransparency: vi.fn(),
       setCardBorderOpacity: vi.fn(),
       setCardBgColor: vi.fn(),
+      setCardMaterial: vi.fn(),
+      setDensity: vi.fn(),
+      setCardScale: vi.fn(),
       setInactivityTimeout: vi.fn(),
     };
 
@@ -62,6 +65,9 @@ describe('buildProfilesContextSetters', () => {
         setCardTransparency: refs.setCardTransparency,
         setCardBorderOpacity: refs.setCardBorderOpacity,
         setCardBgColor: refs.setCardBgColor,
+        setCardMaterial: refs.setCardMaterial,
+        setDensity: refs.setDensity,
+        setCardScale: refs.setCardScale,
         setInactivityTimeout: refs.setInactivityTimeout,
       },
       setLanguage: refs.setLanguage,
@@ -72,6 +78,9 @@ describe('buildProfilesContextSetters', () => {
     expect(result.setCurrentTheme).toBe(refs.setCurrentTheme);
     expect(result.setLanguage).toBe(refs.setLanguage);
     expect(result.setInactivityTimeout).toBe(refs.setInactivityTimeout);
+    expect(result.setCardMaterial).toBe(refs.setCardMaterial);
+    expect(result.setDensity).toBe(refs.setDensity);
+    expect(result.setCardScale).toBe(refs.setCardScale);
     expect(result.updateCardsOnlyMode).toBe(refs.updateCardsOnlyMode);
   });
 });
