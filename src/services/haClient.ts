@@ -364,8 +364,8 @@ export async function getTodoItems(conn: HaConnection, entityId: string): Promis
   });
 
   // HA can wrap the response in several layers
-  const extract = (obj: ResponseTree | null | undefined): TodoItem[] => {
-    if (!obj || typeof obj !== 'object') return [];
+  const extract = (obj: ResponseTree | null | undefined): TodoItem[] | null => {
+    if (!obj || typeof obj !== 'object') return null;
     if (Array.isArray(obj.items)) return obj.items;
     const inner = obj[entityId] || obj.response?.[entityId] || obj.service_response?.[entityId];
     if (inner && Array.isArray(inner.items)) return inner.items;
@@ -373,7 +373,7 @@ export async function getTodoItems(conn: HaConnection, entityId: string): Promis
     for (const val of Object.values(obj)) {
       if (val && Array.isArray(val.items)) return val.items;
     }
-    return [];
+    return null;
   };
 
   return (
