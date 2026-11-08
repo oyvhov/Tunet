@@ -56,6 +56,46 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+describe('StatusBar entity pills', () => {
+  const entityPill = {
+    id: 'door',
+    type: 'conditional',
+    entityId: 'binary_sensor.front_door',
+    clickable: true,
+  };
+
+  beforeEach(() => {
+    mocks.statusPillsConfig = [entityPill];
+    mocks.entities = {
+      'binary_sensor.front_door': { state: 'on', attributes: { device_class: 'door' } },
+    };
+  });
+
+  it('opens the entity popup when tapped', () => {
+    renderBar();
+
+    fireEvent.click(screen.getByText('door'));
+
+    expect(mocks.actions.setShowSensorInfoModal).toHaveBeenCalledWith('binary_sensor.front_door');
+  });
+
+  it('is not tappable when clickable is off', () => {
+    mocks.statusPillsConfig = [{ ...entityPill, clickable: false }];
+
+    renderBar();
+
+    expect(lastPillProps().onClick).toBeUndefined();
+  });
+
+  it('is not tappable when no entity is chosen', () => {
+    mocks.statusPillsConfig = [{ ...entityPill, entityId: undefined }];
+
+    renderBar();
+
+    expect(lastPillProps().onClick).toBeUndefined();
+  });
+});
+
 describe('StatusBar group pills', () => {
   const groupPill = {
     id: 'lights',

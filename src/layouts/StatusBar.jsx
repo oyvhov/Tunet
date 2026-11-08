@@ -80,6 +80,7 @@ export default function StatusBar({
     setActiveMediaSessionSensorIds,
     setActiveMediaModal,
     setShowAlarmModal,
+    setShowSensorInfoModal,
     setShowStatusGroupModal,
     setShowStatusPillsConfig,
   } = useModalActions();
@@ -354,6 +355,11 @@ export default function StatusBar({
                 getA={getA}
                 t={t}
                 isMobile={isMobile}
+                onClick={
+                  pill.clickable && pill.entityId
+                    ? () => setShowSensorInfoModal(pill.entityId)
+                    : undefined
+                }
               />
             );
           })}
