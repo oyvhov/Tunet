@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Circle, CheckCircle2, Trash2, ListChecks, AlertCircle } from 'lucide-react';
+import { Plus, Circle, CheckCircle2, ListChecks, AlertCircle } from 'lucide-react';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../services/haClient';
 import { logger } from '../utils/logger';
+import { useRefreshTick } from '../hooks/useRefreshTick';
+import { getUnavailableLabel, isUnavailableState } from '../utils/entityState';
+import { TodoDeleteButton } from '../components/cards/TodoCard';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
@@ -29,6 +32,10 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
   const [showCompleted, setShowCompleted] = useState(true);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
+  const listEntity = todoEntityId ? entities?.[todoEntityId] : null;
+  const listUnavailable =
+    !!todoEntityId && (listEntity ? isUnavailableState(listEntity.state) : !!entities);
+  const refreshTick = useRefreshTick(conn, { enabled: Boolean(show) });
 
   const fetchItems = useCallback(async () => {
     if (!conn || !todoEntityId) {
@@ -50,9 +57,9 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
   }, [conn, todoEntityId]);
 
   useEffect(() => {
-    if (!show) return;
+    if (!show || listUnavailable) return;
     fetchItems();
-  }, [show, fetchItems]);
+  }, [show, listUnavailable, fetchItems, refreshTick]);
 
   // Refresh every 30 seconds while open
   useEffect(() => {
@@ -161,6 +168,13 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
                   {translate('todo.noListSelectedHint')}
                 </p>
               </div>
+            ) : listUnavailable ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+                <AlertCircle className="h-8 w-8 text-[var(--text-muted)]" />
+                <p className="text-base font-medium text-[var(--text-primary)]">
+                  {getUnavailableLabel(listEntity?.state, translate)}
+                </p>
+              </div>
             ) : (
               <>
                 {/* Progress */}
@@ -258,14 +272,12 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
                               </p>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleDelete(item)}
-                            className="mt-0.5 flex-shrink-0 text-transparent transition-colors group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)] focus-visible:text-[var(--status-error-fg)]"
-                            title={translate('todo.delete') || 'Delete'}
-                            aria-label={translate('todo.delete') || 'Delete'}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <TodoDeleteButton
+                            label={translate('todo.delete')}
+                            confirmLabel={translate('todo.deleteConfirm')}
+                            iconClassName="h-4 w-4"
+                            onConfirm={() => handleDelete(item)}
+                          />
                         </div>
                       ))}
 
@@ -299,14 +311,12 @@ export default function TodoModal({ show, onClose, conn, entities, settings, t }
                                 <p className="line-clamp-1 min-w-0 flex-1 text-sm leading-snug text-[var(--text-primary)] line-through">
                                   {item.summary}
                                 </p>
-                                <button
-                                  onClick={() => handleDelete(item)}
-                                  className="mt-0.5 flex-shrink-0 text-transparent transition-colors group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)] focus-visible:text-[var(--status-error-fg)]"
-                                  title={translate('todo.delete') || 'Delete'}
-                                  aria-label={translate('todo.delete') || 'Delete'}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                                <TodoDeleteButton
+                                  label={translate('todo.delete')}
+                                  confirmLabel={translate('todo.deleteConfirm')}
+                                  iconClassName="h-4 w-4"
+                                  onConfirm={() => handleDelete(item)}
+                                />
                               </div>
                             ))}
                         </div>

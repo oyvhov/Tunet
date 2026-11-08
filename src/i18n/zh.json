@@ -1245,7 +1245,6 @@
   "toast.serviceFailed": "操作失败",
   "todo.addHint": "在上面添加一个新项目",
   "todo.addPlaceholder": "添加新项目...",
-  "todo.add": "添加事项",
   "todo.allDone": "全部完成！",
   "todo.completed": "已完成",
   "todo.delete": "删除",

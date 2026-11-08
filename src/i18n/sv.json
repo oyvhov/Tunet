@@ -1344,7 +1344,6 @@
   "toast.serviceFailed": "Åtgärden misslyckades",
   "todo.addHint": "Lägg till nytt objekt ovan",
   "todo.addPlaceholder": "Lägg till nytt objekt...",
-  "todo.add": "Lägg till post",
   "todo.allDone": "Allt klart!",
   "todo.completed": "Slutförda",
   "todo.delete": "Ta bort",
