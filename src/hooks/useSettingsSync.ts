@@ -731,7 +731,8 @@ export function useSettingsSync({
 
   const loadCurrentFromServer = useCallback(
     async (revision?: unknown) => {
-      const row = Number.isFinite(Number(revision))
+      const isRevisionRequest = Number.isFinite(Number(revision));
+      const row = isRevisionRequest
         ? // Cast: unguarded as before; a missing user id is sent as 'undefined'.
           await apiFetchCurrentSettings(haUserId as string, deviceIdRef.current, Number(revision))
         : await readCurrentFromServer();
@@ -740,7 +741,7 @@ export function useSettingsSync({
       if (!row || !isValidSnapshot(row.data)) return;
 
       const latestRevision = currentRevisionRef.current;
-      if (latestRevision !== null && Number(row.revision) < latestRevision) {
+      if (isRevisionRequest && latestRevision !== null && Number(row.revision) < latestRevision) {
         adoptSnapshotAsLocalChange(row.data);
         return;
       }
