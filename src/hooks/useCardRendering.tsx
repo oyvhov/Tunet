@@ -110,6 +110,9 @@ export interface UseCardRenderingParams
   isCardRemovable: (cardId: string) => boolean;
 }
 
+// Cards being edited are rearranged, never operated.
+const ignoreServiceCall: EntityHelpers['callService'] = () => Promise.resolve();
+
 export function useCardRendering({
   editMode,
   pagesConfig,
@@ -424,7 +427,7 @@ export function useCardRendering({
         getA,
         getS,
         getEntityImageUrl,
-        callService,
+        callService: editMode ? ignoreServiceCall : callService,
         isMediaActive,
         saveCardSetting,
         language,

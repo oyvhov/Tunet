@@ -46,6 +46,7 @@ function EditOverlay({
         // corner badge, small enough to clear the icons. The pseudo-element keeps it tappable.
         <button
           type="button"
+          data-edit-control
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
@@ -57,7 +58,7 @@ function EditOverlay({
           <Trash2 className="h-3 w-3" />
         </button>
       )}
-      <div className={`absolute z-50 flex ${groupClass}`}>
+      <div data-edit-control className={`absolute z-50 flex ${groupClass}`}>
         <button
           type="button"
           data-drag-handle

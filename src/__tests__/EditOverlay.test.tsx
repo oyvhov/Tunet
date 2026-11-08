@@ -30,6 +30,13 @@ describe('EditOverlay', () => {
     expect(onCardClick).not.toHaveBeenCalled();
   });
 
+  it('marks its buttons as the only controls that work while editing', () => {
+    renderOverlay();
+    for (const name of ['tooltip.removeCard', 'tooltip.editCard', 'tooltip.reorderCard']) {
+      expect(screen.getByRole('button', { name }).closest('[data-edit-control]')).not.toBeNull();
+    }
+  });
+
   it('has no trash button on a card that cannot be removed', () => {
     renderOverlay({ canRemove: false });
     expect(screen.queryByRole('button', { name: 'tooltip.removeCard' })).not.toBeInTheDocument();

@@ -72,6 +72,14 @@
 .edit-mode-card {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+/* While editing, only the overlay and the card itself answer. No control underneath may fire. */
+.dashboard-card-slot[data-card-editing] > * * {
+  pointer-events: none;
+}
+.dashboard-card-slot[data-card-editing] [data-edit-control],
+.dashboard-card-slot[data-card-editing] [data-edit-control] * {
+  pointer-events: auto;
+}
 @keyframes editJiggle {
   0% {
     transform: rotate(-0.15deg) scale(0.99);
