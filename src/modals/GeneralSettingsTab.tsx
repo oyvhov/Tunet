@@ -129,7 +129,7 @@ export default function GeneralSettingsTab({
     <div className="animate-in fade-in slide-in-from-right-4 space-y-6 font-sans duration-300">
       <div className="space-y-3">
         <p className="modal-section-label ml-1">{t('settings.basics')}</p>
-        <div className="popup-surface space-y-4 p-4">
+        <div className="space-y-4">
           <ModernDropdown
             label={t('settings.language')}
             icon={Globe}

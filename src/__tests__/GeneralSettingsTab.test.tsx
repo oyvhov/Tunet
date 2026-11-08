@@ -59,6 +59,12 @@ describe('GeneralSettingsTab', () => {
     }
   );
 
+  it('does not draw a box inside a box', () => {
+    const { container } = render(<GeneralSettingsTab {...makeProps()} />);
+
+    expect(container.querySelector('.popup-surface .popup-surface')).toBeNull();
+  });
+
   it('turns on the return-home timer and remembers it', () => {
     const props = makeProps();
     render(<GeneralSettingsTab {...props} />);

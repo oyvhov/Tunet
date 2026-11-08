@@ -809,9 +809,77 @@ test.describe('Modal Interactions', () => {
     await sidebar.getByTestId('sidebar-peek').hover();
     await page.mouse.down();
     await expect(sidebar).toHaveAttribute('data-peeking', 'true');
+    await expect(sidebar.getByTestId('sidebar-done')).toBeHidden();
 
     await page.mouse.up();
     await expect(sidebar).not.toHaveAttribute('data-peeking', 'true');
+    await expect(sidebar.getByTestId('sidebar-done')).toBeVisible();
+  });
+
+  test('swaps shrink and peek when the window crosses the limit', async ({ page }) => {
+    await page.setViewportSize({ width: 1138, height: 712 });
+    const sidebar = await openThemeSidebar(page);
+    const peek = sidebar.getByTestId('sidebar-peek');
+    const transform = () =>
+      page.evaluate(() => getComputedStyle(document.getElementById('main-content')).transform);
+    const backdropOpacity = () =>
+      page.evaluate(
+        () => getComputedStyle(document.querySelector('.tunet-sidebar-backdrop')).opacity
+      );
+    await expect.poll(transform).not.toBe('none');
+    await expect(peek).toBeHidden();
+
+    await page.setViewportSize({ width: 712, height: 1138 });
+
+    await expect.poll(transform).toBe('none');
+    await expect.poll(backdropOpacity).toBe('0.62');
+    await expect(peek).toBeVisible();
+
+    await page.setViewportSize({ width: 1138, height: 712 });
+
+    await expect.poll(transform).not.toBe('none');
+    await expect.poll(backdropOpacity).toBe('0');
+    await expect(peek).toBeHidden();
+  });
+
+  test('keeps the dashboard shrunk between panel tabs', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const sidebar = await openThemeSidebar(page);
+    await page.evaluate(() => {
+      window.__studioPreviewDrops = 0;
+      new MutationObserver(() => {
+        if (!document.documentElement.hasAttribute('data-studio-preview')) {
+          window.__studioPreviewDrops += 1;
+        }
+      }).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-studio-preview'],
+      });
+    });
+
+    await sidebar.getByTestId('sidebar-nav-layout').click();
+    const layoutSidebar = page.getByTestId('layout-sidebar');
+    await expect(layoutSidebar).toBeVisible();
+    await layoutSidebar.getByTestId('sidebar-nav-header').click();
+    await expect(page.getByTestId('header-sidebar')).toBeVisible();
+
+    expect(await page.evaluate(() => window.__studioPreviewDrops)).toBe(0);
+  });
+
+  test('moves a saved Flat theme to Dark with flat cards', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('tunet_theme', 'flat'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('tunet_theme'))).toBe('dark');
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('tunet_card_material')))
+      .toBe('flat');
+
+    const sidebar = await openThemeSidebar(page);
+    await expect(sidebar.getByRole('button', { name: 'Dark', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
   });
 
   test('keeps card style in appearance only', async ({ page }) => {
