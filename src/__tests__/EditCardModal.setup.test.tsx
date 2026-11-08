@@ -221,3 +221,42 @@ describe('required setup', () => {
     ).toBe(true);
   }, 20_000);
 });
+
+describe('popup trigger number fields', () => {
+  const editSettings = {
+    coverId: 'cover.garage',
+    popupTrigger: {
+      enabled: true,
+      condition: { enabled: true, rules: [{ type: 'state', states: ['open'] }] },
+      cooldownSeconds: 30,
+      autoCloseSeconds: 5,
+    },
+  };
+
+  it('keeps a typed cooldown and clamps it when the field is left', () => {
+    renderModal({ editSettings });
+    const [cooldown] = screen.getAllByRole('spinbutton');
+    fireEvent.change(cooldown, { target: { value: '6' } });
+    expect(cooldown).toHaveValue(6);
+    expect(saveCardSetting).not.toHaveBeenCalled();
+    fireEvent.change(cooldown, { target: { value: '60' } });
+    fireEvent.blur(cooldown);
+    expect(saveCardSetting).toHaveBeenCalledWith(
+      'key',
+      'popupTrigger',
+      expect.objectContaining({ cooldownSeconds: 60, autoCloseSeconds: 5 })
+    );
+  }, 20_000);
+
+  it('turns auto-close off when the field is emptied', () => {
+    renderModal({ editSettings });
+    const autoClose = screen.getAllByRole('spinbutton')[1];
+    fireEvent.change(autoClose, { target: { value: '' } });
+    fireEvent.blur(autoClose);
+    expect(saveCardSetting).toHaveBeenCalledWith(
+      'key',
+      'popupTrigger',
+      expect.objectContaining({ cooldownSeconds: 30, autoCloseSeconds: 0 })
+    );
+  }, 20_000);
+});

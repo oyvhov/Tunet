@@ -43,6 +43,7 @@ const EditPageModal = ({
     close: t('common.close'),
   });
   const isSinglePage = (pagesConfig?.pages || []).length === 1;
+  const [nameDraft, setNameDraft] = React.useState(null);
   if (!isOpen) return null;
 
   const pageGridColumns = pageSettings[editingPage]?.gridColumns;
@@ -78,13 +79,16 @@ const EditPageModal = ({
                   type="text"
                   className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
                   value={
-                    pageSettings[editingPage]?.label ||
-                    pageDefaults[editingPage]?.label ||
-                    editingPage
+                    nameDraft ??
+                    (pageSettings[editingPage]?.label ||
+                      pageDefaults[editingPage]?.label ||
+                      editingPage)
                   }
                   onChange={(e) => {
+                    setNameDraft(e.target.value);
                     savePageSetting(editingPage, 'label', e.target.value);
                   }}
+                  onBlur={() => setNameDraft(null)}
                 />
               </div>
 

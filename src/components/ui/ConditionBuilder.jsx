@@ -7,6 +7,7 @@ import {
   resolveConditionEntityId,
 } from '../../utils/conditionUtils';
 import { Check, Plus, Search } from '../../icons';
+import DraftNumberInput from '../../modals/editCard/DraftNumberInput';
 
 const NUMERIC_OPERATORS = ['>', '<', '>=', '<=', '=='];
 
@@ -402,13 +403,11 @@ export default function ConditionBuilder({
             {t('visibility.secondsLabel') || 'I (Sekund)'}
           </div>
 
-          <input
-            type="number"
+          <DraftNumberInput
+            commitEmpty
             min="0"
             value={Number.isFinite(Number(rule.forSeconds)) ? Number(rule.forSeconds) : 0}
-            onChange={(e) =>
-              updateRule(index, { forSeconds: Math.max(0, Number(e.target.value || 0)) })
-            }
+            onCommit={(value) => updateRule(index, { forSeconds: Math.max(0, Number(value || 0)) })}
             className="popup-surface col-span-2 w-full rounded-xl border border-transparent px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             title={t('visibility.forSeconds') || 'for sec'}
           />

@@ -11,6 +11,7 @@ import { CarMappingsSection, SearchableSelect } from './editCard/CarMappingsSect
 import { buildCarAnchorOptions } from './editCard/carAnchorOptions';
 import { RoomSettingsSection } from './editCard/RoomSettingsSection';
 import { getCardEntityFields, getCardEntityValue } from './editCard/cardEntityFields';
+import DraftNumberInput from './editCard/DraftNumberInput';
 import { EntityField, ToggleRow } from './editCard/settingsControls';
 import SensorCardSettings from './SensorCardSettings';
 import SensorCardPreview from './editCard/SensorCardPreview';
@@ -680,16 +681,15 @@ function PopupTriggerSection({
             <label className="modal-section-label">
               {t('popupTrigger.cooldownSeconds') || 'Cooldown (seconds)'}
             </label>
-            <input
-              type="number"
+            <DraftNumberInput
               min={MIN_POPUP_TRIGGER_COOLDOWN_SECONDS}
               max={MAX_POPUP_TRIGGER_COOLDOWN_SECONDS}
               value={popupTriggerCooldownSeconds}
-              onChange={(e) =>
+              onCommit={(value) =>
                 savePopupTrigger(
                   popupTriggerEnabled,
                   popupTriggerCondition,
-                  e.target.value,
+                  value,
                   popupTriggerAutoCloseSeconds
                 )
               }
@@ -703,17 +703,17 @@ function PopupTriggerSection({
             <label className="modal-section-label block pt-1">
               {t('popupTrigger.autoCloseSeconds') || 'Auto-close (seconds)'}
             </label>
-            <input
-              type="number"
+            <DraftNumberInput
+              commitEmpty
               min={MIN_POPUP_TRIGGER_AUTO_CLOSE_SECONDS}
               max={MAX_POPUP_TRIGGER_AUTO_CLOSE_SECONDS}
               value={popupTriggerAutoCloseSeconds}
-              onChange={(e) =>
+              onCommit={(value) =>
                 savePopupTrigger(
                   popupTriggerEnabled,
                   popupTriggerCondition,
                   popupTriggerCooldownSeconds,
-                  e.target.value
+                  value
                 )
               }
               className="w-full rounded-xl border-0 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
