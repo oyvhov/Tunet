@@ -109,32 +109,38 @@ export const useHomeAssistant = (): HomeAssistantValue => {
 /**
  * Throttled state setter — batches rapid HA entity updates into a single
  * React render per animation frame, preventing full-tree re-renders on
- * every WebSocket message.
+ * every WebSocket message. Snapshots are prepared inside the frame, so
+ * messages that are coalesced away (or arrive while hidden) allocate nothing.
  */
-function useThrottledEntities(): [EntityMap, (updatedEntities: EntityMap) => void] {
+function useThrottledEntities(
+  prepareEntities: (rawEntities: EntityMap) => EntityMap
+): [EntityMap, (rawEntities: EntityMap) => void] {
   const [entities, setEntities] = useState<EntityMap>(loadCachedEntities);
   const pendingRef = useRef<EntityMap | null>(null);
   const rafRef = useRef<number | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const setEntitiesThrottled = useCallback((updatedEntities: EntityMap) => {
-    pendingRef.current = updatedEntities;
-    if (rafRef.current == null) {
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        if (pendingRef.current) {
-          setEntities(pendingRef.current);
-          // Debounce sessionStorage writes to once per 10 s
-          if (saveTimerRef.current == null) {
-            saveTimerRef.current = setTimeout(() => {
-              saveTimerRef.current = null;
-              if (pendingRef.current) saveCachedEntities(pendingRef.current);
-            }, 10_000);
+  const setEntitiesThrottled = useCallback(
+    (rawEntities: EntityMap) => {
+      pendingRef.current = rawEntities;
+      if (rafRef.current == null) {
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null;
+          if (pendingRef.current) {
+            setEntities(prepareEntities(pendingRef.current));
+            // Debounce sessionStorage writes to once per 10 s
+            if (saveTimerRef.current == null) {
+              saveTimerRef.current = setTimeout(() => {
+                saveTimerRef.current = null;
+                if (pendingRef.current) saveCachedEntities(prepareEntities(pendingRef.current));
+              }, 10_000);
+            }
           }
-        }
-      });
-    }
-  }, []);
+        });
+      }
+    },
+    [prepareEntities]
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -151,7 +157,18 @@ export const HomeAssistantProvider = ({
   children,
   config,
 }: HomeAssistantProviderProps): ReactElement => {
-  const [entities, setEntities] = useThrottledEntities();
+  const entityRegistryByIdRef = useRef(new Map<string, EntityRegistryEntry>());
+  const deviceRegistryByIdRef = useRef(new Map<string, DeviceRegistryEntry>());
+  const applyRegistryMetadata = useCallback(
+    (nextEntities: EntityMap): EntityMap =>
+      enrichEntitiesWithRegistryMetadata(
+        nextEntities,
+        entityRegistryByIdRef.current,
+        deviceRegistryByIdRef.current
+      ),
+    []
+  );
+  const [entities, setEntities] = useThrottledEntities(applyRegistryMetadata);
   const [entitiesLoaded, setEntitiesLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [haUnavailable, setHaUnavailable] = useState(false);
@@ -169,8 +186,6 @@ export const HomeAssistantProvider = ({
   const unsubscribeEntitiesRef = useRef<UnsubscribeFunc | null>(null);
   const connectAttemptRef = useRef(0);
   const rawEntitiesRef = useRef<EntityMap>(entities);
-  const entityRegistryByIdRef = useRef(new Map<string, EntityRegistryEntry>());
-  const deviceRegistryByIdRef = useRef(new Map<string, DeviceRegistryEntry>());
 
   const markConnectionHealthy = useCallback(() => {
     setConnected(true);
@@ -190,22 +205,12 @@ export const HomeAssistantProvider = ({
     onRecovering: markConnectionRecovering,
   });
 
-  const applyRegistryMetadata = useCallback(
-    (nextEntities: EntityMap): EntityMap =>
-      enrichEntitiesWithRegistryMetadata(
-        nextEntities,
-        entityRegistryByIdRef.current,
-        deviceRegistryByIdRef.current
-      ),
-    []
-  );
-
   const pushEntitySnapshot = useCallback(
     (nextEntities: HassEntities) => {
       rawEntitiesRef.current = nextEntities;
-      setEntities(applyRegistryMetadata(nextEntities));
+      setEntities(nextEntities);
     },
-    [applyRegistryMetadata, setEntities]
+    [setEntities]
   );
 
   useEffect(() => {
@@ -376,7 +381,7 @@ export const HomeAssistantProvider = ({
         deviceRegistryByIdRef.current = buildRegistryLookupMap(deviceRegistry, 'id');
 
         if (rawEntitiesRef.current && Object.keys(rawEntitiesRef.current).length > 0) {
-          setEntities(applyRegistryMetadata(rawEntitiesRef.current));
+          setEntities(rawEntitiesRef.current);
         }
       } catch (err) {
         const resultError = (err as HaErrorLike)?.error || (err as HaErrorLike);
@@ -573,7 +578,6 @@ export const HomeAssistantProvider = ({
     config.haSession,
     cleanupConnection,
     setEntities,
-    applyRegistryMetadata,
     pushEntitySnapshot,
   ]);
 
