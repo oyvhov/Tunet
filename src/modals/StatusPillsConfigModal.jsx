@@ -22,6 +22,7 @@ import {
 } from '../icons';
 import StatusPill from '../components/cards/StatusPill';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ModalBody, ModalFooter, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
 import Segmented from '../components/ui/Segmented';
@@ -133,6 +134,10 @@ export default function StatusPillsConfigModal({
   const iconPickerRef = useRef(null);
   const entityPickerRef = useRef(null);
   const statusPillsConfigRef = useRef(statusPillsConfig);
+  const { confirm: confirmDiscard, dialog: discardDialog } = useConfirmDialog({
+    cancel: t('common.cancel'),
+    close: t('common.close'),
+  });
 
   const normalizeEditablePill = (pill, index) => {
     const groupPreset = pill.groupPreset || DEFAULT_STATUS_GROUP_PRESET;
@@ -315,6 +320,20 @@ export default function StatusPillsConfigModal({
       globalThis.window.dispatchEvent(new globalThis.window.CustomEvent('tunet:edit-done'));
     }
     onClose();
+  };
+
+  const canDiscardDraft = async () => {
+    const saved = statusPillsConfigRef.current.map(normalizeEditablePill);
+    const hasUnsavedChanges =
+      (editingPill && stateInputValue.trim() !== '') ||
+      JSON.stringify(pills) !== JSON.stringify(saved);
+    if (!hasUnsavedChanges) return true;
+    return confirmDiscard({
+      title: t('confirm.discardChanges.title'),
+      message: t('confirm.discardChanges'),
+      confirmLabel: t('common.discard'),
+      destructive: true,
+    });
   };
 
   const addPill = (pillType = 'conditional') => {
@@ -675,6 +694,7 @@ export default function StatusPillsConfigModal({
     <AccessibleModalShell
       open={show}
       onClose={onClose}
+      beforeClose={canDiscardDraft}
       titleId="status-pills-config-title"
       size="xl"
     >
@@ -834,7 +854,7 @@ export default function StatusPillsConfigModal({
                           </div>
                         </button>
 
-                        <div className="flex shrink-0 items-center gap-1 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+                        <div className="md:touch:opacity-100 flex shrink-0 items-center gap-1 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
                           <button
                             onClick={() => movePill(pill.id, 'up')}
                             disabled={itemIndex === 0}
@@ -2020,7 +2040,10 @@ export default function StatusPillsConfigModal({
                                         value={pill.condition?.value || ''}
                                         onChange={(e) =>
                                           updatePill(pill.id, {
-                                            condition: { ...pill.condition, value: e.target.value },
+                                            condition: {
+                                              ...pill.condition,
+                                              value: e.target.value,
+                                            },
                                           })
                                         }
                                         className="w-full rounded-lg border-0 bg-[var(--modal-bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none"
@@ -2322,13 +2345,20 @@ export default function StatusPillsConfigModal({
           </ModalBody>
 
           <ModalFooter>
-            <Button variant="secondary" onClick={onClose}>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                if (await canDiscardDraft()) onClose();
+              }}
+            >
               {t('statusPills.cancel')}
             </Button>
             <Button variant="primary" onClick={handleSave} disabled={hasInvalidPills}>
               {t('statusPills.save')}
             </Button>
           </ModalFooter>
+
+          {discardDialog}
         </>
       )}
     </AccessibleModalShell>

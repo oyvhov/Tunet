@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AddCardContent from '../modals/AddCardContent';
 
 function makeProps(overrides = {}) {
@@ -50,6 +50,34 @@ describe('sensor card entity picker', () => {
     render(<AddCardContent {...makeProps({ addCardTargetPage: 'header' })} />);
     expect(screen.getByRole('button', { name: /Owner/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Night lights/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('leaving the add card popup', () => {
+  it('closes at once when nothing is picked', async () => {
+    const props = makeProps();
+    render(<AddCardContent {...props} />);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('confirm.discardPicks.title')).not.toBeInTheDocument();
+  });
+
+  it('asks before a backdrop tap discards picks', async () => {
+    const props = makeProps({ pendingAddCount: 2 });
+    render(<AddCardContent {...props} />);
+
+    const overlay = screen.getByRole('dialog').parentElement;
+    fireEvent.pointerDown(overlay);
+    fireEvent.click(overlay);
+
+    expect(await screen.findByText('confirm.discardPicks.title')).toBeInTheDocument();
+    expect(props.onClose).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'common.discard' }));
+    });
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
   });
 });
 

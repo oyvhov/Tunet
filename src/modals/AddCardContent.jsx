@@ -30,6 +30,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { isSonosMediaEntity, isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
 import Segmented from '../components/ui/Segmented';
@@ -226,6 +227,10 @@ function AddCardContent({
   getAddCardNoneLeftLabel,
   t,
 }) {
+  const { confirm: confirmDiscard, dialog: discardDialog } = useConfirmDialog({
+    cancel: t('common.cancel'),
+    close: t('common.close'),
+  });
   const [selectedRoomAreas, setSelectedRoomAreas] = useState([]);
   const [selectedRoomEntitiesById, setSelectedRoomEntitiesById] = useState({});
   const [localSpacerVariant, setLocalSpacerVariant] = useState(selectedSpacerVariant || 'divider');
@@ -895,10 +900,20 @@ function AddCardContent({
     });
   };
 
+  const canDiscardPicks = () =>
+    addCount === 0 ||
+    confirmDiscard({
+      title: t('confirm.discardPicks.title'),
+      message: t('confirm.discardPicks'),
+      confirmLabel: t('common.discard'),
+      destructive: true,
+    });
+
   return (
     <AccessibleModalShell
       open
       onClose={onClose}
+      beforeClose={canDiscardPicks}
       titleId="add-card-modal-title"
       size="l"
       placement="top"
@@ -1146,6 +1161,8 @@ function AddCardContent({
               {addLabel}
             </Button>
           </ModalFooter>
+
+          {discardDialog}
         </>
       )}
     </AccessibleModalShell>
