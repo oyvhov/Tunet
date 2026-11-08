@@ -924,6 +924,7 @@
   "sensorInfo.lastChanged": "Last changed",
   "sensorInfo.lastUpdated": "Last updated",
   "sensorInfo.noHistory": "No history data available",
+  "sensorInfo.historyFailed": "Could not load history",
   "sensorInfo.showAttributes": "Show attributes",
   "sensorInfo.state": "State",
   "sensorInfo.timeline": "Timeline",

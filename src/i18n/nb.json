@@ -973,6 +973,7 @@
   "sensorInfo.state": "Status",
   "sensorInfo.attributes": "Attributter",
   "sensorInfo.noHistory": "Ingen historikk tilgjengelig",
+  "sensorInfo.historyFailed": "Kunne ikke laste historikken",
   "history.activity": "Aktivitet",
   "history.rangeHours": "Historikk (timer)",
   "sensorInfo.showAttributes": "Vis attributt",

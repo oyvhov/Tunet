@@ -985,6 +985,7 @@
   "sensorInfo.lastChanged": "Sist endra",
   "sensorInfo.lastUpdated": "Sist oppdatert",
   "sensorInfo.noHistory": "Ingen historikk tilgjengeleg",
+  "sensorInfo.historyFailed": "Kunne ikkje laste historikken",
   "sensorInfo.showAttributes": "Vis attributt",
   "sensorInfo.state": "Status",
   "sensorInfo.timeline": "Tidslinje",

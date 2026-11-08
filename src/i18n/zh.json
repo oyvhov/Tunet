@@ -875,6 +875,7 @@
   "sensorInfo.lastChanged": "最后更改",
   "sensorInfo.lastUpdated": "最后更新",
   "sensorInfo.noHistory": "无可用历史数据",
+  "sensorInfo.historyFailed": "无法加载历史记录",
   "sensorInfo.showAttributes": "显示属性",
   "sensorInfo.state": "状态",
   "sensorInfo.timeline": "时间轴",

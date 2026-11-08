@@ -974,6 +974,7 @@
   "sensorInfo.lastChanged": "Zuletzt geändert",
   "sensorInfo.lastUpdated": "Zuletzt aktualisiert",
   "sensorInfo.noHistory": "Keine Verlaufsdaten verfügbar",
+  "sensorInfo.historyFailed": "Verlauf konnte nicht geladen werden",
   "sensorInfo.showAttributes": "Attribute anzeigen",
   "sensorInfo.state": "Status",
   "sensorInfo.timeline": "Zeitachse",

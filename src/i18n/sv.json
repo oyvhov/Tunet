@@ -974,6 +974,7 @@
   "sensorInfo.lastChanged": "Senast ändrad",
   "sensorInfo.lastUpdated": "Senast uppdaterad",
   "sensorInfo.noHistory": "Ingen historik tillgänglig",
+  "sensorInfo.historyFailed": "Det gick inte att läsa in historiken",
   "sensorInfo.showAttributes": "Visa attribut",
   "sensorInfo.state": "Status",
   "sensorInfo.timeline": "Tidslinje",
