@@ -88,6 +88,29 @@ describe('createApp SPA fallback', () => {
     expect(response.status).toBe(404);
     await expect(response.text()).resolves.not.toContain('Tunet Test');
   });
+
+  it.each(['js', 'css'])(
+    'answers a missing hashed %s asset with a plain 404, not the newest build',
+    async (ext) => {
+      const distPath = createDistFixture();
+      writeFileSync(join(distPath, 'assets', `index-NEWHASH.${ext}`), 'new', 'utf8');
+      const harness = await startHarness(
+        createApp({ appVersion: 'test-version', distPath, isProduction: true })
+      );
+
+      const stale = await harness.request(`/assets/index-OLDHASH.${ext}`);
+
+      expect(stale.status).toBe(404);
+      expect(stale.headers.get('x-tunet-asset-fallback')).toBeNull();
+      expect(stale.headers.get('cache-control') ?? '').not.toContain('immutable');
+      await expect(stale.text()).resolves.not.toBe('new');
+
+      const current = await harness.request(`/assets/index-NEWHASH.${ext}`);
+
+      expect(current.status).toBe(200);
+      expect(current.headers.get('cache-control')).toContain('immutable');
+    }
+  );
 });
 
 describe('/api/health', () => {

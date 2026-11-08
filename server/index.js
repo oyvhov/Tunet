@@ -1,7 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { existsSync, readFileSync, readdirSync } from 'fs';
-import { join, dirname, extname, basename } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import profilesRouter from './routes/profiles.js';
 import iconsRouter from './routes/icons.js';
@@ -76,13 +76,6 @@ export const createApp = ({
     legacyHeaders: false,
   });
 
-  const assetFallbackRateLimiter = rateLimit({
-    windowMs: Math.max(Number(process.env.ASSET_FALLBACK_RATE_LIMIT_WINDOW_MS) || 60_000, 1_000),
-    max: Math.max(Number(process.env.ASSET_FALLBACK_RATE_LIMIT_MAX) || 120, 10),
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-
   app.use('/api', apiRateLimiter);
 
   // Ingress support — strip X-Ingress-Path prefix from request URL
@@ -116,21 +109,6 @@ export const createApp = ({
       const assetsPath = join(distPath, 'assets');
       const indexHtmlPath = join(distPath, 'index.html');
       const indexHtml = existsSync(indexHtmlPath) ? readFileSync(indexHtmlPath, 'utf8') : null;
-      const assetFiles = existsSync(assetsPath) ? readdirSync(assetsPath) : [];
-      const hashedAssetFallbackMap = new Map();
-
-      assetFiles.forEach((fileName) => {
-        const fileExt = extname(fileName).toLowerCase();
-        if (fileExt !== '.js' && fileExt !== '.css') return;
-
-        const baseName = basename(fileName, fileExt);
-        const hashSeparatorIndex = baseName.lastIndexOf('-');
-        if (hashSeparatorIndex <= 0) return;
-
-        const stem = baseName.slice(0, hashSeparatorIndex);
-        const key = `${stem}${fileExt}`;
-        hashedAssetFallbackMap.set(key, fileName);
-      });
 
       /** @param {import('express').Response} res */
       const setNoCacheHeaders = (res) => {
@@ -156,27 +134,6 @@ export const createApp = ({
           maxAge: '1y',
         })
       );
-
-      app.get('/assets/{*path}', assetFallbackRateLimiter, (req, res, next) => {
-        const requested = basename(req.path || '');
-        if (!requested) return next();
-
-        const fileExt = extname(requested).toLowerCase();
-        if (fileExt !== '.js' && fileExt !== '.css') return next();
-
-        const requestedBase = basename(requested, fileExt);
-        const hashSeparatorIndex = requestedBase.lastIndexOf('-');
-        if (hashSeparatorIndex <= 0) return next();
-
-        const stem = requestedBase.slice(0, hashSeparatorIndex);
-        const fallbackKey = `${stem}${fileExt}`;
-        const fallbackFileName = hashedAssetFallbackMap.get(fallbackKey);
-        if (!fallbackFileName || fallbackFileName === requested) return next();
-
-        res.setHeader('X-Tunet-Asset-Fallback', fallbackFileName);
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        return res.sendFile(join(assetsPath, fallbackFileName));
-      });
 
       app.use(
         express.static(distPath, {
