@@ -39,7 +39,11 @@ function cardElement(entities: EntityMap, settings: Record<string, unknown>) {
 
 let callService = vi.fn(async () => ({}));
 
-function modalElement(entities: EntityMap, settings: Record<string, unknown>) {
+function modalElement(
+  entities: EntityMap,
+  settings: Record<string, unknown>,
+  extra: Record<string, unknown> = {}
+) {
   const props = {
     show: true,
     onClose: () => {},
@@ -49,6 +53,7 @@ function modalElement(entities: EntityMap, settings: Record<string, unknown>) {
     callService,
     getEntityImageUrl: (url: string) => url,
     t,
+    ...extra,
   } as unknown as ComponentProps<typeof RoomModal>;
   return <RoomModal {...props} />;
 }
@@ -133,6 +138,44 @@ describe('room card and popup', () => {
     render(modalElement(entities, { entityIds: ['lock.door'] }));
     const row = screen.getByRole('button', { name: 'status.unavailable' }) as HTMLButtonElement;
     expect(row.disabled).toBe(true);
+  });
+
+  it.each([
+    ['locked', 'Unlock'],
+    ['unlocked', 'Lock'],
+  ])('sends a %s lock that needs a code to the lock popup', (state, label) => {
+    const onOpenLock = vi.fn();
+    const entities = makeEntities({ 'lock.door': [state, { code_format: '^\\d{4}$' }] });
+    render(modalElement(entities, { entityIds: ['lock.door'] }, { onOpenLock }));
+    fireEvent.click(screen.getByRole('button', { name: label }));
+    expect(onOpenLock).toHaveBeenCalledWith('lock.door');
+    expect(callService).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Confirm unlock' })).toBeNull();
+  });
+
+  it('keeps the in-place flow when code_format is none', () => {
+    const onOpenLock = vi.fn();
+    const entities = makeEntities({ 'lock.door': ['unlocked', { code_format: 'none' }] });
+    render(modalElement(entities, { entityIds: ['lock.door'] }, { onOpenLock }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lock' }));
+    expect(onOpenLock).not.toHaveBeenCalled();
+    expect(callService).toHaveBeenCalledWith('lock', 'lock', { entity_id: 'lock.door' });
+  });
+
+  it.each(['unavailable', 'unknown'])('disables the row of a light that is %s', (state) => {
+    const entities = makeEntities({ 'light.a': [state, { friendly_name: 'Lampe' }] });
+    render(modalElement(entities, { entityIds: ['light.a'] }));
+    const toggle = screen.getByRole('switch', { name: 'Lampe' }) as HTMLButtonElement;
+    expect(toggle.disabled).toBe(true);
+    expect((screen.getAllByRole('slider')[0] as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it('keeps the row of an available light usable', () => {
+    const entities = makeEntities({ 'light.a': ['off', { friendly_name: 'Lampe' }] });
+    render(modalElement(entities, { entityIds: ['light.a'] }));
+    const toggle = screen.getByRole('switch', { name: 'Lampe' }) as HTMLButtonElement;
+    expect(toggle.disabled).toBe(false);
+    expect((screen.getAllByRole('slider')[0] as HTMLInputElement).disabled).toBe(false);
   });
 
   it('gives the light switch a 44 px hit area', () => {

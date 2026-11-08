@@ -66,6 +66,7 @@ export default function RoomModal({
   conn,
   callService,
   getEntityImageUrl,
+  onOpenLock,
   t,
 }) {
   const [selectedClimateId, setSelectedClimateId] = useState(settings?.climateEntityId || null);
@@ -392,6 +393,10 @@ export default function RoomModal({
       const isUnavailable = isUnavailableState(state);
       const isLocked = state === 'locked';
       const isConfirming = confirmUnlockId === entityId;
+      const codeFormat = entity?.attributes?.code_format;
+      // This row has no code field, so a lock that needs one goes to the lock popup.
+      const requiresCode =
+        typeof codeFormat === 'string' && !!codeFormat.trim() && codeFormat !== 'none';
       return [
         {
           key: 'lock-toggle',
@@ -406,6 +411,10 @@ export default function RoomModal({
                 : translateOr(t, 'lock.action.unlock', 'Unlock'),
           onClick: () => {
             if (isUnavailable) return;
+            if (requiresCode) {
+              onOpenLock?.(entityId);
+              return;
+            }
             if (isLocked && !isConfirming) {
               setConfirmUnlockId(entityId);
               return;
@@ -845,6 +854,7 @@ export default function RoomModal({
                             ? 100
                             : 0;
                         const isOn = entity.state === 'on';
+                        const isLightUnavailable = isUnavailableState(entity.state);
                         return (
                           <div key={id} className="px-1 py-2">
                             <div
@@ -861,8 +871,9 @@ export default function RoomModal({
                                 role="switch"
                                 aria-checked={isOn}
                                 aria-label={entity.attributes?.friendly_name || id}
+                                disabled={isLightUnavailable}
                                 onClick={() => handleToggleEntity(id, 'light')}
-                                className="-my-2 flex h-11 w-11 shrink-0 items-center justify-center"
+                                className="-my-2 flex h-11 w-11 shrink-0 items-center justify-center disabled:cursor-not-allowed disabled:opacity-40"
                               >
                                 <span
                                   className={`relative h-5 w-10 rounded-full transition-colors ${isOn ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
@@ -879,6 +890,7 @@ export default function RoomModal({
                               max={100}
                               step={1}
                               value={brightnessPct}
+                              disabled={isLightUnavailable}
                               onChange={(event) =>
                                 handleLightBrightness(id, Number(event.target.value))
                               }
