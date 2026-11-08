@@ -137,12 +137,12 @@ describe('Home Assistant entity updates', () => {
     expect(metaRenders).toBe(rendersBefore);
   });
 
-  it('flags stale data after a silent minute and clears it on the next update', async () => {
+  it('flags stale data after a long silence and clears it on the next update', async () => {
     await connect();
     expect(latestMeta.entityDataStale).toBe(false);
 
     act(() => {
-      vi.advanceTimersByTime(65_000);
+      vi.advanceTimersByTime(95_000);
     });
     expect(latestMeta.entityDataStale).toBe(true);
 

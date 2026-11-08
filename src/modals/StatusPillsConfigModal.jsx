@@ -23,7 +23,7 @@ import {
 import StatusPill from '../components/cards/StatusPill';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';
-import { ModalBody, ModalFooter, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
 import Segmented from '../components/ui/Segmented';
 import { normalizeDecimalPlaces } from '../utils';
