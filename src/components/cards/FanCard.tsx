@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import {
   AlertTriangle,
   Fan as FanIconGlyph,
@@ -8,6 +8,8 @@ import {
 } from '../../icons';
 import { getIconComponent } from '../../icons';
 import M3Slider from '../ui/M3Slider';
+import { useDebouncedCommit } from '../../hooks/useDebouncedCommit';
+import { getUnavailableLabel } from '../../utils/entityState';
 import type { MouseEvent } from 'react';
 import type { CardBaseProps } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
@@ -39,6 +41,8 @@ const FAN_FEATURE = {
   TURN_ON: 32,
 };
 
+const DRAFT_TIMEOUT_MS = 10_000;
+
 const normalizeState = (state: unknown) => {
   if (!state) return 'unknown';
   return String(state).toLowerCase();
@@ -47,6 +51,11 @@ const normalizeState = (state: unknown) => {
 const supportsFeature = (supportedFeatures: unknown, bitMask: number) => {
   if (typeof supportedFeatures !== 'number' || !Number.isFinite(supportedFeatures)) return false;
   return (supportedFeatures & bitMask) !== 0;
+};
+
+const toBoundedPercentage = (value: unknown) => {
+  const percentage = Number(value ?? 0);
+  return Number.isFinite(percentage) ? Math.max(0, Math.min(100, Math.round(percentage))) : 0;
 };
 
 const FanCard = memo(function FanCard({
@@ -69,6 +78,24 @@ const FanCard = memo(function FanCard({
 }: FanCardProps) {
   const entityId = entityIdProp || fanId;
   const entity = entities[entityId];
+
+  const reportedPercentage = toBoundedPercentage(getA(entityId, 'percentage'));
+  const [draftPercentage, setDraftPercentage] = useState<number | null>(null);
+  const commitPercentage = useDebouncedCommit<number>((percentage) => {
+    Promise.resolve(
+      callService('fan', 'set_percentage', { entity_id: entityId, percentage })
+    ).catch(() => setDraftPercentage(null));
+  });
+
+  useEffect(() => {
+    setDraftPercentage(null);
+  }, [reportedPercentage]);
+
+  useEffect(() => {
+    if (draftPercentage === null) return undefined;
+    const timer = setTimeout(() => setDraftPercentage(null), DRAFT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [draftPercentage]);
 
   if (!entity) {
     if (editMode) {
@@ -110,10 +137,7 @@ const FanCard = memo(function FanCard({
   const hasDirectionControl = supportsFeature(supportedFeatures, FAN_FEATURE.DIRECTION);
   const hasPresetControl = supportsFeature(supportedFeatures, FAN_FEATURE.PRESET_MODE);
 
-  const percentageValue = Number(getA(entityId, 'percentage') ?? 0);
-  const boundedPercentage = Number.isFinite(percentageValue)
-    ? Math.max(0, Math.min(100, Math.round(percentageValue)))
-    : 0;
+  const boundedPercentage = draftPercentage ?? reportedPercentage;
   const oscillating =
     entity.attributes?.oscillating === true || entity.attributes?.oscillating === 'on';
   const direction = entity.attributes?.direction || null;
@@ -124,7 +148,7 @@ const FanCard = memo(function FanCard({
   const Icon = fanIconName ? getIconComponent(fanIconName) || FanIconGlyph : FanIconGlyph;
 
   const statusText = (() => {
-    if (isUnavailable) return t('common.unknown');
+    if (isUnavailable) return getUnavailableLabel(state, t);
     if (!isOn) return t('status.off');
     if (hasPresetControl && presetMode) return String(presetMode);
     if (hasSpeedControl) return `${boundedPercentage}%`;
@@ -132,7 +156,7 @@ const FanCard = memo(function FanCard({
   })();
 
   const mobileBadgeText = (() => {
-    if (isUnavailable) return t('common.unknown');
+    if (isUnavailable) return getUnavailableLabel(state, t);
     if (!isOn) return t('status.off');
     if (oscillating) return t('fan.oscillating');
     if (hasPresetControl && presetMode) return String(presetMode);
@@ -150,6 +174,14 @@ const FanCard = memo(function FanCard({
     if (!canTurnOn) return;
     callService('fan', 'turn_on', { entity_id: entityId });
   };
+
+  const statusBadge = (
+    <div
+      className={`flex items-center rounded-full border transition-all ${isUnavailable ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'border-[var(--accent-color)]/20 bg-[var(--accent-color)]/10 text-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'} gap-1 px-2.5 py-1`}
+    >
+      <span className="text-[10px] font-bold tracking-widest uppercase">{mobileBadgeText}</span>
+    </div>
+  );
 
   return (
     <div
@@ -179,7 +211,7 @@ const FanCard = memo(function FanCard({
                   ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]'
                   : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
               } ${canTogglePower ? 'cursor-pointer' : 'cursor-default'}`}
-              disabled={!canTogglePower}
+              disabled={!canTogglePower || isUnavailable}
             >
               <Icon
                 className={`h-6 w-6 stroke-[1.5px] ${isOn && !disableAnimation ? 'animate-spin [animation-duration:2.4s]' : ''}`}
@@ -191,7 +223,7 @@ const FanCard = memo(function FanCard({
               </p>
               <div className="flex items-center gap-2">
                 <span className="text-xl leading-none font-medium text-[var(--text-primary)]">
-                  {hasSpeedControl && isOn ? `${boundedPercentage}%` : statusText}
+                  {hasSpeedControl && isOn && !isUnavailable ? `${boundedPercentage}%` : statusText}
                 </span>
                 {/* Dynamic Indicators for Small Card */}
                 <div className="flex items-center gap-1.5 opacity-60">
@@ -211,7 +243,7 @@ const FanCard = memo(function FanCard({
           >
             <button
               onClick={togglePower}
-              disabled={!canTogglePower}
+              disabled={!canTogglePower || isUnavailable}
               className={`flex-shrink-0 transition-all group-hover:scale-110 group-hover:rotate-3 ${isOn ? 'bg-[var(--accent-color)]/20 text-[var(--accent-color)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'} ${isDenseMobile ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}
             >
               <Icon
@@ -219,17 +251,13 @@ const FanCard = memo(function FanCard({
               />
             </button>
             {isDenseMobile ? (
-              <div
-                className={`flex items-center rounded-full border transition-all ${isUnavailable ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : isOn ? 'border-[var(--accent-color)]/20 bg-[var(--accent-color)]/10 text-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'} gap-1 px-2.5 py-1`}
-              >
-                <span className="text-[10px] font-bold tracking-widest uppercase">
-                  {mobileBadgeText}
-                </span>
-              </div>
+              statusBadge
             ) : (
               <div className="flex items-center gap-2">
+                {isUnavailable && statusBadge}
                 {hasDirectionControl && (
                   <button
+                    disabled={isUnavailable}
                     onClick={(e) => {
                       e.stopPropagation();
                       const newDirection = direction === 'forward' ? 'reverse' : 'forward';
@@ -249,6 +277,7 @@ const FanCard = memo(function FanCard({
                 )}
                 {hasOscillationControl && (
                   <button
+                    disabled={isUnavailable}
                     onClick={(e) => {
                       e.stopPropagation();
                       callService('fan', 'oscillate', {
@@ -269,7 +298,13 @@ const FanCard = memo(function FanCard({
             <span
               className={`${isDenseMobile ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-[var(--text-primary)]`}
             >
-              {hasSpeedControl ? `${boundedPercentage}%` : isOn ? 'ON' : 'OFF'}
+              {isUnavailable
+                ? '--'
+                : hasSpeedControl
+                  ? `${boundedPercentage}%`
+                  : isOn
+                    ? t('common.on')
+                    : t('common.off')}
             </span>
           </div>
 
@@ -309,12 +344,11 @@ const FanCard = memo(function FanCard({
                   max={100}
                   step={1}
                   value={boundedPercentage}
+                  disabled={isUnavailable}
                   onChange={(e) => {
-                    const Val = Number(e.target.value);
-                    callService('fan', 'set_percentage', {
-                      entity_id: entityId,
-                      percentage: Val,
-                    });
+                    const percentage = Number(e.target.value);
+                    setDraftPercentage(percentage);
+                    commitPercentage(percentage);
                   }}
                   colorClass="bg-[var(--accent-color)]"
                 />

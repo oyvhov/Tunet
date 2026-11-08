@@ -16,6 +16,41 @@ import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts'
 import Segmented from '../components/ui/Segmented';
 import { getIconComponent } from '../icons';
 import { HUE_GRADIENT, getLightColor, hsToCss, kelvinToRgb } from '../utils/lightColor';
+import { useDebouncedCommit } from '../hooks/useDebouncedCommit';
+
+const COLOR_MODES = ['hs', 'rgb', 'rgbw', 'rgbww', 'xy'];
+
+/** One light's brightness in a group: its own debounce, so moving the next light loses nothing. */
+function RoomLightBrightnessSlider({
+  entityId,
+  brightness,
+  label,
+  disabled,
+  callService,
+  setOptimisticLightBrightness,
+}) {
+  const commitBrightness = useDebouncedCommit((value) =>
+    callService('light', 'turn_on', { entity_id: entityId, brightness: value })
+  );
+
+  return (
+    <input
+      type="range"
+      min="0"
+      max="255"
+      step="1"
+      value={brightness}
+      aria-label={label}
+      disabled={disabled}
+      onChange={(e) => {
+        const val = parseInt(e.target.value);
+        setOptimisticLightBrightness((prev) => ({ ...prev, [entityId]: val }));
+        commitBrightness(val);
+      }}
+      className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+    />
+  );
+}
 
 export default function LightModal({
   show,
@@ -44,7 +79,7 @@ export default function LightModal({
   const colorModes = entity?.attributes?.supported_color_modes || [];
   const supportsColorTemp =
     colorModes.includes('color_temp') || colorModes.includes('color_temp_kelvin');
-  const supportsColor = colorModes.some((mode) => ['hs', 'rgb', 'xy'].includes(mode));
+  const supportsColor = colorModes.some((mode) => COLOR_MODES.includes(mode));
   const showPills = isDimmable && (supportsColorTemp || supportsColor);
   const groupedEntityIds = activeLightId ? getA(activeLightId, 'entity_id', []) : [];
   const showRightPanel = isDimmable || groupedEntityIds.length > 0;
@@ -76,6 +111,8 @@ export default function LightModal({
       : Math.round((minKelvin + maxKelvin) / 2));
   const remoteHue = entity?.attributes?.hs_color?.[0] ?? 0;
   const remoteSaturation = entity?.attributes?.hs_color?.[1] ?? 100;
+  // A white light (saturation 0) would ignore the hue slider, so it starts from full colour.
+  const hueSaturation = remoteSaturation > 0 ? remoteSaturation : 100;
 
   // --- Local State for Optimistic UI ---
   const [activeTab, setActiveTab] = useState('brightness');
@@ -107,19 +144,26 @@ export default function LightModal({
   }, [remoteSaturation]);
 
   // --- Handlers ---
+  const commitKelvin = useDebouncedCommit((kelvin) =>
+    callService('light', 'turn_on', { entity_id: activeLightId, color_temp_kelvin: kelvin })
+  );
+  const commitHue = useDebouncedCommit((hue) =>
+    callService('light', 'turn_on', { entity_id: activeLightId, hs_color: [hue, hueSaturation] })
+  );
+
   const handleTempChange = (e) => {
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalKelvin(val);
-    callService('light', 'turn_on', { entity_id: activeLightId, color_temp_kelvin: val });
+    commitKelvin(val);
   };
 
   const handleHueChange = (e) => {
     if (!activeLightId) return;
     const val = parseInt(e.target.value, 10);
     setLocalHue(val);
-    setLocalSaturation(100);
-    callService('light', 'turn_on', { entity_id: activeLightId, hs_color: [val, 100] });
+    setLocalSaturation(hueSaturation);
+    commitHue(val);
   };
 
   const kelvinGradient = `linear-gradient(90deg, ${[0, 25, 50, 75, 100]
@@ -404,26 +448,13 @@ export default function LightModal({
                                   </span>
                                 )}
                                 {/* Invisible Slider overlay */}
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="255"
-                                  step="1"
-                                  value={subBrightness}
-                                  aria-label={`${subName} ${t('light.brightness')}`}
+                                <RoomLightBrightnessSlider
+                                  entityId={cid}
+                                  brightness={subBrightness}
+                                  label={`${subName} ${t('light.brightness')}`}
                                   disabled={subUnavail}
-                                  onChange={(e) => {
-                                    const val = parseInt(e.target.value);
-                                    setOptimisticLightBrightness((prev) => ({
-                                      ...prev,
-                                      [cid]: val,
-                                    }));
-                                    callService('light', 'turn_on', {
-                                      entity_id: cid,
-                                      brightness: val,
-                                    });
-                                  }}
-                                  className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                                  callService={callService}
+                                  setOptimisticLightBrightness={setOptimisticLightBrightness}
                                 />
                               </div>
                             </div>

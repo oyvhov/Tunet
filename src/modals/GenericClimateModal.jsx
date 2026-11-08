@@ -15,9 +15,11 @@ import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import { getClimateStatus } from '../utils/climateStatus';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
+import { useClimateTarget } from '../hooks/useClimateTarget';
 import {
   formatKindValueForDisplay,
   getEffectiveUnitMode,
+  isUnavailableState,
   resolveClimateFavoriteModes,
 } from '../utils';
 
@@ -36,12 +38,21 @@ export default function GenericClimateModal({
 }) {
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
+  const {
+    target: targetTemp,
+    step: tempStep,
+    canAdjust,
+    nudge,
+    setTarget,
+  } = useClimateTarget(entity, (temperature) =>
+    callService('climate', 'set_temperature', { entity_id: entityId, temperature })
+  );
 
   if (!entityId || !entity) return null;
 
   const { isCooling, isHeating, translationKey } = getClimateStatus(entity);
+  const isUnavailable = isUnavailableState(entity.state);
   const currentTemp = entity.attributes?.current_temperature;
-  const targetTemp = entity.attributes?.temperature;
   const sourceTempUnit =
     haConfig?.unit_system?.temperature || entity.attributes?.temperature_unit || '°C';
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
@@ -69,11 +80,14 @@ export default function GenericClimateModal({
   const showHvac = Array.isArray(hvacModes) && hvacModes.length > 0;
   const showFan = Array.isArray(fanModes) && fanModes.length > 0;
   const showSwing = Array.isArray(swingModes) && swingModes.length > 0;
-  const showControls = showHvac || showFan || showSwing;
   const favoriteModes = resolveClimateFavoriteModes(settings?.climateFavoriteModes, hvacModes);
+  // ModernDropdown has no disabled state, so only the shortcuts remain while unavailable.
+  const showControls = isUnavailable
+    ? showHvac && favoriteModes.length > 0
+    : showHvac || showFan || showSwing;
   const modalTitleId = `climate-modal-title-${entityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
-  const tempValue = typeof targetTemp === 'number' ? targetTemp : 21;
+  const tempValue = targetTemp ?? minTemp;
   const twoColumns = showTemp && showControls;
 
   return (
@@ -132,13 +146,10 @@ export default function GenericClimateModal({
                   </p>
                   <div className="flex items-center gap-3 sm:gap-6">
                     <button
-                      onClick={() =>
-                        callService('climate', 'set_temperature', {
-                          entity_id: entityId,
-                          temperature: tempValue - 0.5,
-                        })
-                      }
-                      className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90 sm:p-5"
+                      type="button"
+                      disabled={!canAdjust}
+                      onClick={() => nudge(-1)}
+                      className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 sm:p-5"
                     >
                       <Minus className="h-5 w-5 sm:h-7 sm:w-7" style={{ strokeWidth: 3 }} />
                     </button>
@@ -146,14 +157,10 @@ export default function GenericClimateModal({
                       <M3Slider
                         min={minTemp}
                         max={maxTemp}
-                        step={0.5}
+                        step={tempStep}
                         value={tempValue}
-                        onChange={(e) =>
-                          callService('climate', 'set_temperature', {
-                            entity_id: entityId,
-                            temperature: parseFloat(e.target.value),
-                          })
-                        }
+                        disabled={!canAdjust}
+                        onChange={(e) => setTarget(parseFloat(e.target.value))}
                         colorClass={
                           isCooling
                             ? 'bg-[var(--accent-color)]'
@@ -164,13 +171,10 @@ export default function GenericClimateModal({
                       />
                     </div>
                     <button
-                      onClick={() =>
-                        callService('climate', 'set_temperature', {
-                          entity_id: entityId,
-                          temperature: tempValue + 0.5,
-                        })
-                      }
-                      className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90 sm:p-5"
+                      type="button"
+                      disabled={!canAdjust}
+                      onClick={() => nudge(1)}
+                      className="rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 sm:p-5"
                     >
                       <Plus className="h-5 w-5 sm:h-7 sm:w-7" style={{ strokeWidth: 3 }} />
                     </button>
@@ -209,13 +213,14 @@ export default function GenericClimateModal({
                                 type="button"
                                 aria-pressed={active}
                                 aria-label={`${t('climate.shortcuts')}: ${label}`}
+                                disabled={isUnavailable}
                                 onClick={() =>
                                   callService('climate', 'set_hvac_mode', {
                                     entity_id: entityId,
                                     hvac_mode: mode,
                                   })
                                 }
-                                className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold tracking-widest uppercase transition-all active:scale-[0.97] ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]'}`}
+                                className={`flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold tracking-widest uppercase transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)] shadow-sm' : 'border-transparent bg-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg)] hover:text-[var(--text-primary)]'}`}
                               >
                                 <ModeIcon
                                   className={`h-4 w-4 shrink-0 ${active ? 'opacity-90' : 'opacity-55'}`}
@@ -231,23 +236,25 @@ export default function GenericClimateModal({
                         </div>
                       </div>
                     )}
-                    <ModernDropdown
-                      label={favoriteModes.length > 0 ? t('climate.allModes') : t('climate.mode')}
-                      icon={Flame}
-                      options={hvacModes}
-                      current={entity.state}
-                      onChange={(m) =>
-                        callService('climate', 'set_hvac_mode', {
-                          entity_id: entityId,
-                          hvac_mode: m,
-                        })
-                      }
-                      map={hvacMap}
-                      placeholder={t('dropdown.noneSelected')}
-                    />
+                    {!isUnavailable && (
+                      <ModernDropdown
+                        label={favoriteModes.length > 0 ? t('climate.allModes') : t('climate.mode')}
+                        icon={Flame}
+                        options={hvacModes}
+                        current={entity.state}
+                        onChange={(m) =>
+                          callService('climate', 'set_hvac_mode', {
+                            entity_id: entityId,
+                            hvac_mode: m,
+                          })
+                        }
+                        map={hvacMap}
+                        placeholder={t('dropdown.noneSelected')}
+                      />
+                    )}
                   </div>
                 )}
-                {showFan && (
+                {showFan && !isUnavailable && (
                   <ModernDropdown
                     label={t('climate.fanSpeed')}
                     icon={Fan}
@@ -260,7 +267,7 @@ export default function GenericClimateModal({
                     placeholder={t('dropdown.noneSelected')}
                   />
                 )}
-                {showSwing && (
+                {showSwing && !isUnavailable && (
                   <ModernDropdown
                     label={t('climate.swing')}
                     icon={ArrowUpDown}
