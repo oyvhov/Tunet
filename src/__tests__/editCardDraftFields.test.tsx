@@ -52,6 +52,14 @@ describe('DraftNumberInput', () => {
     expect(onCommit).toHaveBeenCalledExactlyOnceWith('');
   });
 
+  it('commits a pending draft when the field goes away without a blur', () => {
+    const onCommit = vi.fn();
+    const { unmount } = render(<DraftNumberInput aria-label="n" value={10} onCommit={onCommit} />);
+    fireEvent.change(screen.getByLabelText('n'), { target: { value: '60' } });
+    unmount();
+    expect(onCommit).toHaveBeenCalledExactlyOnceWith('60');
+  });
+
   it('does not commit when nothing changed', () => {
     const onCommit = vi.fn();
     render(<DraftNumberInput aria-label="n" value={10} onCommit={onCommit} />);

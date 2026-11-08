@@ -1,4 +1,4 @@
-import { useState, type InputHTMLAttributes } from 'react';
+import { useEffect, useRef, useState, type InputHTMLAttributes } from 'react';
 
 type DraftNumberInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -20,11 +20,16 @@ export default function DraftNumberInput({
   const [draft, setDraft] = useState<string | null>(null);
   const savedValue = String(value ?? '');
 
-  const commit = () => {
-    if (draft === null) return;
-    if (draft !== savedValue && (draft !== '' || commitEmpty)) onCommit(draft);
-    setDraft(null);
+  const saveDraft = () => {
+    if (draft !== null && draft !== savedValue && (draft !== '' || commitEmpty)) onCommit(draft);
   };
+
+  // Some touch browsers close a popup without blurring the focused field first.
+  const saveDraftRef = useRef(saveDraft);
+  useEffect(() => {
+    saveDraftRef.current = saveDraft;
+  });
+  useEffect(() => () => saveDraftRef.current(), []);
 
   return (
     <input
@@ -32,7 +37,10 @@ export default function DraftNumberInput({
       type="number"
       value={draft ?? savedValue}
       onChange={(event) => setDraft(event.target.value)}
-      onBlur={commit}
+      onBlur={() => {
+        saveDraft();
+        setDraft(null);
+      }}
     />
   );
 }
