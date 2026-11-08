@@ -21,6 +21,7 @@ import {
 } from '../../icons';
 import PinLockModal from '../ui/PinLockModal';
 import SidebarContainer from './SidebarContainer';
+import CardStyleSection from './CardStyleSection';
 import {
   SidebarAccordion,
   SidebarGroupHeader,
@@ -51,6 +52,20 @@ export default function ThemeSidebar({
   setBgImage,
   inactivityTimeout,
   setInactivityTimeout,
+  cardMaterial,
+  setCardMaterial,
+  density,
+  setDensity,
+  cardScale,
+  setCardScale,
+  cardBorderRadius,
+  setCardBorderRadius,
+  cardTransparency,
+  setCardTransparency,
+  cardBorderOpacity,
+  setCardBorderOpacity,
+  cardBgColor,
+  setCardBgColor,
 }) {
   const {
     unitsMode,
@@ -380,6 +395,24 @@ export default function ThemeSidebar({
               </div>
             )}
           </div>
+
+          <CardStyleSection
+            t={t}
+            cardMaterial={cardMaterial}
+            setCardMaterial={setCardMaterial}
+            density={density}
+            setDensity={setDensity}
+            cardScale={cardScale}
+            setCardScale={setCardScale}
+            cardBorderRadius={cardBorderRadius}
+            setCardBorderRadius={setCardBorderRadius}
+            cardTransparency={cardTransparency}
+            setCardTransparency={setCardTransparency}
+            cardBorderOpacity={cardBorderOpacity}
+            setCardBorderOpacity={setCardBorderOpacity}
+            cardBgColor={cardBgColor}
+            setCardBgColor={setCardBgColor}
+          />
 
           <SidebarAccordion
             id="security"

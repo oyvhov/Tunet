@@ -176,6 +176,20 @@ export function ModalSettingsSlice({
             setBgImage={setBgImage}
             inactivityTimeout={inactivityTimeout}
             setInactivityTimeout={setInactivityTimeout}
+            cardMaterial={cardMaterial}
+            setCardMaterial={setCardMaterial}
+            density={density}
+            setDensity={setDensity}
+            cardScale={cardScale}
+            setCardScale={setCardScale}
+            cardBorderRadius={cardBorderRadius}
+            setCardBorderRadius={setCardBorderRadius}
+            cardTransparency={cardTransparency}
+            setCardTransparency={setCardTransparency}
+            cardBorderOpacity={cardBorderOpacity}
+            setCardBorderOpacity={setCardBorderOpacity}
+            cardBgColor={cardBgColor}
+            setCardBgColor={setCardBgColor}
           />
         </ModalSuspense>
       )}
@@ -202,20 +216,6 @@ export function ModalSettingsSlice({
             setGridColumns={setGridColumns}
             dynamicGridColumns={dynamicGridColumns}
             setDynamicGridColumns={setDynamicGridColumns}
-            cardBorderRadius={cardBorderRadius}
-            setCardBorderRadius={setCardBorderRadius}
-            cardTransparency={cardTransparency}
-            setCardTransparency={setCardTransparency}
-            cardBorderOpacity={cardBorderOpacity}
-            setCardBorderOpacity={setCardBorderOpacity}
-            cardBgColor={cardBgColor}
-            setCardBgColor={setCardBgColor}
-            cardMaterial={cardMaterial}
-            setCardMaterial={setCardMaterial}
-            density={density}
-            setDensity={setDensity}
-            cardScale={cardScale}
-            setCardScale={setCardScale}
             sectionSpacing={sectionSpacing}
             updateSectionSpacing={updateSectionSpacing}
             activePage={core.activePage}
