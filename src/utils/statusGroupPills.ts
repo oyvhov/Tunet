@@ -52,6 +52,18 @@ const VALID_GROUP_SELECTION_MODES = new Set<unknown>([
 
 const OPENING_DEVICE_CLASSES = new Set(['door', 'garage_door', 'opening', 'window']);
 const UNAVAILABLE_STATES = new Set(['unavailable', 'unknown']);
+const BINARY_SENSOR_STATE_KEYS: Record<string, Record<string, string>> = {
+  door: { on: 'binary.door.open', off: 'binary.door.closed' },
+  window: { on: 'binary.window.open', off: 'binary.window.closed' },
+  garage_door: { on: 'binary.garageDoor.open', off: 'binary.garageDoor.closed' },
+  opening: { on: 'state.open', off: 'state.closed' },
+  motion: { on: 'binary.motion.detected', off: 'binary.motion.clear' },
+  moisture: { on: 'binary.moisture.wet', off: 'binary.moisture.dry' },
+  occupancy: { on: 'binary.occupancy.occupied', off: 'binary.occupancy.clear' },
+  presence: { on: 'binary.occupancy.occupied', off: 'binary.occupancy.clear' },
+  smoke: { on: 'binary.smoke.detected', off: 'binary.smoke.clear' },
+  lock: { on: 'binary.lock.unlocked', off: 'binary.lock.locked' },
+};
 
 const toEntityRows = (entities: StatusGroupEntities | null | undefined): StatusGroupEntityRow[] =>
   Object.entries(entities || {})
@@ -211,6 +223,27 @@ export function getStatusGroupPresetText(
   const fallback = mode === 'empty' ? preset.fallbackEmptyLabel : preset.fallbackLabel;
   const translated = typeof t === 'function' ? t(key) : key;
   return translated && translated !== key ? String(translated) : fallback;
+}
+
+export function getStatusGroupStateLabel(
+  id: string,
+  entity: StatusGroupEntity,
+  t: Translate | null | undefined
+): string {
+  const state = String(entity?.state || 'unknown');
+  const domain = id.split('.')[0];
+  const deviceClass = String(entity?.attributes?.device_class || '').toLowerCase();
+  const keys = [
+    domain === 'binary_sensor' ? BINARY_SENSOR_STATE_KEYS[deviceClass]?.[state] : undefined,
+    `${domain}.${state}`,
+    `common.${state}`,
+  ];
+  for (const key of keys) {
+    if (!key) continue;
+    const translated = typeof t === 'function' ? t(key) : key;
+    if (translated && translated !== key) return String(translated);
+  }
+  return state;
 }
 
 export function buildStatusGroupPillVisuals(presetId: string | null | undefined) {

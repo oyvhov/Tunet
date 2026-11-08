@@ -42,6 +42,7 @@ import {
   buildStatusGroupPillVisuals,
   getStatusGroupSelectionMode,
   getStatusGroupPresetText,
+  getStatusGroupStateLabel,
   getStatusGroupThreshold,
   resolveStatusGroupCandidates,
   resolveStatusGroupPill,
@@ -1319,7 +1320,7 @@ export default function StatusPillsConfigModal({
                                             </p>
                                           </div>
                                           <span className="shrink-0 rounded-full bg-[var(--modal-bg)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-secondary)] uppercase">
-                                            {entity.state}
+                                            {getStatusGroupStateLabel(id, entity, t)}
                                           </span>
                                         </div>
                                       ))}
@@ -1784,7 +1785,11 @@ export default function StatusPillsConfigModal({
                                 <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-[var(--text-muted)]">
                                   <span>{pill.entityId}</span>
                                   <span className="rounded bg-[var(--glass-bg)] px-1.5 py-0.5 font-mono text-[var(--text-primary)]">
-                                    {entities[pill.entityId]?.state || t('common.unknown')}
+                                    {getStatusGroupStateLabel(
+                                      pill.entityId,
+                                      entities[pill.entityId],
+                                      t
+                                    )}
                                   </span>
                                 </div>
                               )}
