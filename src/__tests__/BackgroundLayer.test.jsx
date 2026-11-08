@@ -74,6 +74,12 @@ describe('BackgroundLayer', () => {
     expect(screen.getByTestId('background-dither').style.backgroundImage).toContain('feTurbulence');
   });
 
+  it('tiles the grain instead of rasterising it at full screen', () => {
+    render(<BackgroundLayer />);
+
+    expect(screen.getByTestId('background-dither').style.backgroundSize).toBe('400px');
+  });
+
   it('shows a custom image under a dark tone and without glows', () => {
     configState.bgMode = 'custom';
     configState.bgImage = 'https://x/a.jpg';
