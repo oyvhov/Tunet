@@ -155,6 +155,7 @@ export default function GenericClimateModal({
                     </button>
                     <div className="flex-grow">
                       <M3Slider
+                        ariaLabel={t('climate.target')}
                         min={minTemp}
                         max={maxTemp}
                         step={tempStep}

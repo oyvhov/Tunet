@@ -703,6 +703,7 @@ export default function RoomModal({
                           </button>
                           <div className="flex-1">
                             <M3Slider
+                              ariaLabel={t('climate.target')}
                               min={climateMinTemp}
                               max={climateMaxTemp}
                               step={0.5}
@@ -874,6 +875,7 @@ export default function RoomModal({
                               </button>
                             </div>
                             <M3Slider
+                              ariaLabel={t('light.brightness')}
                               variant="thinLg"
                               min={0}
                               max={100}

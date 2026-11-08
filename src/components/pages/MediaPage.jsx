@@ -973,6 +973,7 @@ function MediaPage({
                       <span>{formatDuration(duration)}</span>
                     </div>
                     <M3Slider
+                      ariaLabel={t('media.seekPosition')}
                       variant="thin"
                       min={0}
                       max={duration || 100}
@@ -1146,6 +1147,7 @@ function MediaPage({
                   </button>
                   <div className="flex-1 px-1">
                     <M3Slider
+                      ariaLabel={t('media.volume.level')}
                       variant="volume"
                       min={0}
                       max={100}

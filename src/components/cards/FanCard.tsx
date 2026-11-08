@@ -341,6 +341,7 @@ const FanCard = memo(function FanCard({
                 className={`w-full ${isDenseMobile ? 'mb-0' : 'mb-1'}`}
               >
                 <M3Slider
+                  ariaLabel={t('fan.speed')}
                   variant={isDenseMobile ? 'thinLg' : 'default'}
                   min={0}
                   max={100}

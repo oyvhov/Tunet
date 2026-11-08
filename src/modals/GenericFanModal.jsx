@@ -185,6 +185,7 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                       </span>
                     </div>
                     <M3Slider
+                      ariaLabel={t('fan.speed')}
                       min={0}
                       max={100}
                       step={minimumStep}

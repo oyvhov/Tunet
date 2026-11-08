@@ -415,6 +415,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                       </button>
                       <div className="min-w-0 flex-1">
                         <M3Slider
+                          ariaLabel={t('car.target')}
                           min={16}
                           max={30}
                           step={0.5}
@@ -497,6 +498,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                       </button>
                       <div className="min-w-0 flex-1">
                         <M3Slider
+                          ariaLabel={t('car.target')}
                           min={16}
                           max={30}
                           step={0.5}
@@ -661,6 +663,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                           t('car.chargeLimit')}
                       </div>
                       <M3Slider
+                        ariaLabel={t('car.chargeLimit')}
                         min={entities[chargeLimitNumberId]?.attributes?.min ?? 50}
                         max={entities[chargeLimitNumberId]?.attributes?.max ?? 100}
                         step={entities[chargeLimitNumberId]?.attributes?.step ?? 1}
