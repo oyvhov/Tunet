@@ -258,6 +258,7 @@ export default function AlarmModal({
 
   const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✓'];
   const selectedActionMeta = actionButtons.find((action) => action.key === selectedAction) || null;
+  const needsKeypad = actionButtons.some((action) => requiresCode(action.key, entity));
 
   return (
     <AccessibleModalShell
@@ -290,7 +291,9 @@ export default function AlarmModal({
 
           <ModalBody>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-              <div className="popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 lg:col-span-3">
+              <div
+                className={`popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 ${needsKeypad ? 'lg:col-span-3' : 'lg:col-span-5'}`}
+              >
                 <h3 className="modal-section-label">{translate('alarm.modal.actions')}</h3>
                 <div className="grid grid-cols-1 gap-3">
                   {actionButtons.map((action) => {
@@ -306,6 +309,7 @@ export default function AlarmModal({
                         onClick={() => {
                           setSelectedAction(action.key);
                           setError('');
+                          if (!needsCode) callAlarmService(action.key);
                         }}
                         disabled={disabled}
                         aria-pressed={isSelected}
@@ -353,6 +357,7 @@ export default function AlarmModal({
                 )}
               </div>
 
+              {needsKeypad && (
               <div className="popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 lg:col-span-2">
                 <h3 className="modal-section-label">{translate('alarm.pin.title')}</h3>
                 <input
@@ -413,6 +418,7 @@ export default function AlarmModal({
                   </p>
                 )}
               </div>
+              )}
             </div>
 
             <div className="mt-5 space-y-2 text-sm text-[var(--text-secondary)]">
