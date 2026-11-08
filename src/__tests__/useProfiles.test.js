@@ -107,9 +107,40 @@ describe('useProfiles', () => {
 
     expect(createProfile).not.toHaveBeenCalled();
     await waitFor(() => {
-      expect(result.current.error).toBe('Invalid snapshot data');
+      expect(result.current.error).toBe('profiles.errorInvalidSnapshot');
     });
     expect(result.current.loading).toBe(false);
+  });
+
+  it('stores a translation key when the server rejects a save', async () => {
+    createProfile.mockRejectedValue(new Error('SQLITE_FULL: raw server text'));
+    const { result } = renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {} })
+    );
+    await waitFor(() => expect(fetchProfiles).toHaveBeenCalledWith('user-1'));
+
+    await act(async () => {
+      await result.current.saveProfile('Home').catch(() => {});
+    });
+
+    expect(result.current.error).toBe('profiles.errorSaveFailed');
+  });
+
+  it('reports missing profile data and rebuilt pages as translation keys', () => {
+    const { result } = renderHook(() =>
+      useProfiles({ haUser: { id: 'user-1' }, contextSetters: {}, prefetchProfiles: false })
+    );
+
+    act(() => result.current.loadProfile({ id: 'p1' }));
+    expect(result.current.error).toBe('profiles.errorProfileInvalid');
+
+    act(() =>
+      result.current.loadProfile({
+        id: 'p1',
+        data: { version: 1, layout: { pagesConfig: { header: [], pages: [], home: [] } } },
+      })
+    );
+    expect(result.current.loadSummary).toEqual(['profiles.loadNotePagesRebuilt']);
   });
 
   it('overwriteProfile validates snapshot before API call', async () => {

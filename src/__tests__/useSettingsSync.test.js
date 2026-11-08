@@ -529,6 +529,160 @@ describe('useSettingsSync', () => {
     ).toBe(true);
   });
 
+  describe('restoring an older revision', () => {
+    const latest = { version: 1, layout: { pagesConfig: { home: ['latest'] } }, appearance: {} };
+    const older = { version: 1, layout: { pagesConfig: { home: ['older'] } }, appearance: {} };
+
+    beforeEach(() => {
+      collectSnapshot.mockReturnValue(latest);
+      applySnapshot.mockImplementation((snapshot) => collectSnapshot.mockReturnValue(snapshot));
+      fetchCurrentSettings.mockImplementation(async (_user, _device, revision) =>
+        revision === 40
+          ? { revision: 40, updated_at: '2026-02-22T12:00:00.000Z', data: older }
+          : { revision: 45, updated_at: '2026-02-22T12:05:00.000Z', data: latest }
+      );
+    });
+
+    it('uploads the restored state as a new revision on top of the latest', async () => {
+      saveCurrentSettings.mockResolvedValue({
+        revision: 46,
+        updated_at: '2026-02-22T12:06:00.000Z',
+      });
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await waitFor(() => expect(result.current.currentRevision).toBe(45));
+
+      await act(async () => {
+        await result.current.loadCurrentFromServer(40);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(applySnapshot).toHaveBeenCalledWith(older, expect.anything());
+      expect(saveCurrentSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ data: older, base_revision: 45 }),
+        expect.anything()
+      );
+      expect(result.current.currentRevision).toBe(46);
+      expect(result.current.status).toBe('synced');
+    });
+
+    it('does not let the next check undo a restore whose upload failed', async () => {
+      vi.useFakeTimers();
+      saveCurrentSettings.mockRejectedValue(new Error('offline'));
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await act(async () => {});
+      expect(result.current.currentRevision).toBe(45);
+
+      await act(async () => {
+        await result.current.loadCurrentFromServer(40);
+        await vi.advanceTimersByTimeAsync(31000);
+      });
+
+      expect(result.current.currentRevision).toBe(45);
+      expect(applySnapshot).toHaveBeenCalledTimes(1);
+      expect(collectSnapshot()).toEqual(older);
+    });
+
+    it('loads a revision normally when it is already the latest', async () => {
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await waitFor(() => expect(result.current.currentRevision).toBe(45));
+
+      await act(async () => {
+        await result.current.loadCurrentFromServer(45);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(saveCurrentSettings).not.toHaveBeenCalled();
+      expect(result.current.currentRevision).toBe(45);
+    });
+  });
+
+  describe('loading from another device', () => {
+    const blank = { version: 1, layout: { pagesConfig: { home: ['blank'] } }, appearance: {} };
+    const saved = { version: 1, layout: { pagesConfig: { home: ['saved'] } }, appearance: {} };
+
+    beforeEach(() => {
+      collectSnapshot.mockReturnValue(blank);
+      applySnapshot.mockImplementation((snapshot) => collectSnapshot.mockReturnValue(snapshot));
+      fetchCurrentSettings.mockImplementation(async (_user, device) =>
+        device === 'old-browser'
+          ? { revision: 40, updated_at: '2026-02-22T12:00:00.000Z', data: saved }
+          : { revision: 1, updated_at: '2026-02-22T12:05:00.000Z', data: blank }
+      );
+    });
+
+    it('applies that device copy and uploads it as a new revision of this device', async () => {
+      saveCurrentSettings.mockResolvedValue({
+        revision: 2,
+        updated_at: '2026-02-22T12:06:00.000Z',
+      });
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await waitFor(() => expect(result.current.currentRevision).toBe(1));
+
+      await act(async () => {
+        await result.current.loadFromDevice('old-browser');
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(fetchCurrentSettings).toHaveBeenCalledWith('user-1', 'old-browser');
+      expect(applySnapshot).toHaveBeenCalledWith(saved, expect.anything());
+      expect(saveCurrentSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: saved,
+          base_revision: 1,
+          device_id: result.current.deviceId,
+        }),
+        expect.anything()
+      );
+      expect(result.current.currentRevision).toBe(2);
+    });
+
+    it('reports a translated error when the device copy cannot be read', async () => {
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await waitFor(() => expect(result.current.currentRevision).toBe(1));
+      fetchCurrentSettings.mockRejectedValueOnce(new Error('boom'));
+
+      await act(async () => {
+        await result.current.loadFromDevice('old-browser').catch(() => {});
+      });
+
+      expect(applySnapshot).not.toHaveBeenCalled();
+      expect(result.current.status).toBe('error');
+      expect(result.current.error).toBe('profiles.errorLoadDeviceFailed');
+    });
+  });
+
+  it('stores translation keys for upload and publish failures', async () => {
+    saveCurrentSettings.mockRejectedValue(new Error('SQLITE_FULL: raw server text'));
+    const { result } = renderHook(() =>
+      useSettingsSync({
+        haUserId: 'user-1',
+        contextSettersRef: { current: {} },
+        autoBootstrap: false,
+      })
+    );
+
+    await act(async () => {
+      result.current.syncNow();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(result.current.error).toBe('profiles.errorSyncFailed');
+
+    await act(async () => {
+      await result.current.publishCurrentToDevices(['tablet']).catch(() => {});
+    });
+    expect(result.current.error).toBe('profiles.errorPublishFailed');
+  });
+
   it('applies newer server revision automatically on sync tick', async () => {
     vi.useFakeTimers();
     fetchCurrentSettings

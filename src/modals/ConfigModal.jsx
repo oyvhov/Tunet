@@ -556,9 +556,20 @@ export default function ConfigModal({
         setProfileDeviceLabel('');
       } catch {}
     };
+    const handleLoadFromServer = async (revision) => {
+      const ok = await confirmAction({
+        title: t('profiles.autoSyncLoadServer'),
+        message: t('profiles.autoSyncLoadServerConfirm'),
+        confirmLabel: t('profiles.load'),
+        destructive: true,
+      });
+      if (ok) autoSync.loadCurrentFromServer(revision).catch(() => {});
+    };
     let syncStatusTone = 'text-[var(--status-success-fg)]';
     if (autoSync.status === 'error') {
       syncStatusTone = 'text-[var(--status-error-fg)]';
+    } else if (autoSync.status === 'conflict') {
+      syncStatusTone = 'text-[var(--status-warning-fg)]';
     } else if (autoSync.status === 'syncing') {
       syncStatusTone = 'text-amber-300';
     }
@@ -612,10 +623,14 @@ export default function ConfigModal({
           </div>
 
           {profileError && (
-            <p className="text-xs font-bold text-[var(--status-error-fg)]">{profileError}</p>
+            <p className="text-xs font-bold text-[var(--status-error-fg)]">{t(profileError)}</p>
           )}
 
-          {loadSummary && <p className="text-xs font-bold text-amber-300">{loadSummary}</p>}
+          {loadSummary && (
+            <p className="text-xs font-bold text-amber-300">
+              {loadSummary.map((key) => t(key)).join(' ')}
+            </p>
+          )}
 
           {/* Profile list */}
           {profileList.length === 0 ? (
@@ -693,7 +708,15 @@ export default function ConfigModal({
                       </div>
                       <div className="flex flex-shrink-0 gap-2">
                         <button
-                          onClick={() => loadProfile(profile)}
+                          onClick={async () => {
+                            const ok = await confirmAction({
+                              title: profile.name,
+                              message: t('profiles.confirmLoad'),
+                              confirmLabel: t('profiles.load'),
+                              destructive: true,
+                            });
+                            if (ok) loadProfile(profile);
+                          }}
                           className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-1.5 text-xs font-bold text-[var(--status-success-fg)] transition-all hover:opacity-90"
                         >
                           {t('profiles.load')}
@@ -759,7 +782,13 @@ export default function ConfigModal({
       try {
         const text = await file.text();
         const parsed = JSON.parse(text);
-        importDashboard(parsed);
+        const ok = await confirmAction({
+          title: t('profiles.import'),
+          message: t('profiles.confirmImport'),
+          confirmLabel: t('profiles.import'),
+          destructive: true,
+        });
+        if (ok) importDashboard(parsed);
       } catch {
         globalThis.alert(t('profiles.invalidFile'));
       } finally {
@@ -822,24 +851,43 @@ export default function ConfigModal({
                 </button>
               </div>
 
-              {autoSyncExpanded && (
-                <>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-bold text-[var(--text-secondary)]">
-                      {t('profiles.autoSyncStatusLabel')}:
-                    </span>
-                    <span className={`font-bold ${syncStatusTone}`}>{syncStatusLabel}</span>
-                  </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-bold text-[var(--text-secondary)]">
+                  {t('profiles.autoSyncStatusLabel')}:
+                </span>
+                <span className={`font-bold ${syncStatusTone}`}>{syncStatusLabel}</span>
+              </div>
 
-                  {autoSync.error && (
-                    <p className="text-xs font-bold text-[var(--status-error-fg)]">
-                      {autoSync.error}
-                    </p>
-                  )}
+              {autoSync.backgroundSyncSuspended && (
+                <div className="flex items-start gap-2 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-3 text-xs text-[var(--status-warning-fg)]">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <p>{t('profiles.autoSyncSuspended')}</p>
+                </div>
+              )}
 
-                  {autoSync.status === 'conflict' && (
-                    <div className="popup-surface rounded-xl p-3 text-xs" role="alert">
-                      <p>{t('profiles.autoSyncConflictHint')}</p>
+              {autoSync.error && (
+                <p className="text-xs font-bold text-[var(--status-error-fg)]">
+                  {t(autoSync.error)}
+                </p>
+              )}
+
+              {autoSync.status === 'conflict' && (
+                <div
+                  className="flex items-start gap-2 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-3 text-xs text-[var(--status-warning-fg)]"
+                  role="alert"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p>{t('profiles.autoSyncConflictHint')}</p>
+                    <p className="mt-1 font-bold">{t('profiles.autoSyncConflictPaused')}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleLoadFromServer()}
+                        className="rounded-lg border border-[var(--status-warning-border)] px-3 py-2 font-bold"
+                      >
+                        {t('profiles.autoSyncLoadServer')}
+                      </button>
                       <button
                         type="button"
                         onClick={async () => {
@@ -853,12 +901,17 @@ export default function ConfigModal({
                             autoSync.overwriteServerWithLocal?.().catch(() => {});
                           }
                         }}
-                        className="mt-2 rounded-lg border border-[var(--glass-border)] px-3 py-2 font-bold"
+                        className="rounded-lg border border-[var(--status-warning-border)] px-3 py-2 font-bold"
                       >
                         {t('profiles.autoSyncOverwrite')}
                       </button>
                     </div>
-                  )}
+                  </div>
+                </div>
+              )}
+
+              {autoSyncExpanded && (
+                <>
                   {autoSync.publishConflicts?.length > 0 && (
                     <p className="text-xs text-[var(--status-warning-fg)]" role="alert">
                       {t('profiles.autoSyncPublishConflicts')}{' '}
@@ -875,11 +928,9 @@ export default function ConfigModal({
                     <button
                       type="button"
                       onClick={() =>
-                        autoSync
-                          .loadCurrentFromServer(
-                            selectedServerRevision ? Number(selectedServerRevision) : undefined
-                          )
-                          .catch(() => {})
+                        handleLoadFromServer(
+                          selectedServerRevision ? Number(selectedServerRevision) : undefined
+                        )
                       }
                       className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)]"
                     >
@@ -990,6 +1041,28 @@ export default function ConfigModal({
                                 <span className="text-[var(--text-muted)]">
                                   rev {entry.revision}
                                 </span>
+                                {!isCurrentDevice && (
+                                  <button
+                                    type="button"
+                                    onClick={async (event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      const ok = await confirmAction({
+                                        title: displayName,
+                                        message: t('profiles.autoSyncLoadFromDeviceConfirm'),
+                                        confirmLabel: t('profiles.load'),
+                                        destructive: true,
+                                      });
+                                      if (ok)
+                                        autoSync.loadFromDevice(entry.device_id).catch(() => {});
+                                    }}
+                                    className="rounded p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-secondary)]"
+                                    title={t('profiles.autoSyncLoadFromDevice')}
+                                    aria-label={t('profiles.autoSyncLoadFromDevice')}
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   disabled={isRenaming}
@@ -1075,7 +1148,7 @@ export default function ConfigModal({
         <div className="space-y-3">
           <div className="ml-1 flex items-center justify-between gap-2">
             <h3 className="modal-section-label">{t('profiles.sectionProfiles')}</h3>
-            {haUser && backendAvailable && (
+            {haUser && (
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -2346,8 +2419,10 @@ const autoSyncShape = PropTypes.shape({
   removingDeviceId: PropTypes.string,
   updatingDeviceId: PropTypes.string,
   error: PropTypes.string,
+  backgroundSyncSuspended: PropTypes.bool,
   setEnabled: PropTypes.func,
   loadCurrentFromServer: PropTypes.func,
+  loadFromDevice: PropTypes.func,
   publishCurrentToDevices: PropTypes.func,
   publishConflicts: PropTypes.array,
   overwriteServerWithLocal: PropTypes.func,
@@ -2360,7 +2435,7 @@ const profilesShape = PropTypes.shape({
   profiles: PropTypes.array,
   loading: PropTypes.bool,
   error: PropTypes.string,
-  loadSummary: PropTypes.string,
+  loadSummary: PropTypes.arrayOf(PropTypes.string),
   backendAvailable: PropTypes.bool,
   saveProfile: PropTypes.func,
   editProfile: PropTypes.func,
