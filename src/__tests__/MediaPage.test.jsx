@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MediaPage from '../components/pages/MediaPage';
 
 const makeBaseProps = (overrides = {}) => {
@@ -205,6 +205,87 @@ describe('MediaPage Sonos grouping', () => {
     fireEvent.click(groupBtn);
 
     expect(callService).not.toHaveBeenCalled();
+  });
+});
+
+describe('MediaPage slider commands', () => {
+  // PAUSE | SEEK | VOLUME_SET | VOLUME_MUTE | PREVIOUS | NEXT | PLAY | SHUFFLE | REPEAT
+  const ALL_TRANSPORT = 1 + 2 + 4 + 8 + 16 + 32 + 16384 + 32768 + 262144;
+  const playingEntities = {
+    'media_player.den': {
+      entity_id: 'media_player.den',
+      state: 'playing',
+      attributes: {
+        friendly_name: 'Den',
+        media_title: 'A Song',
+        media_duration: 200,
+        media_position: 10,
+        media_position_updated_at: '2026-11-08T10:00:00+00:00',
+        volume_level: 0.2,
+        supported_features: ALL_TRANSPORT,
+      },
+    },
+  };
+  const setup = () => {
+    const callService = vi.fn();
+    render(
+      <MediaPage
+        {...makeBaseProps({
+          pageId: 'media',
+          mode: 'media',
+          entities: playingEntities,
+          callService,
+        })}
+      />
+    );
+    const [seek, volume] = screen.getAllByRole('slider');
+    return { callService, seek, volume };
+  };
+  const calls = (callService, service) =>
+    callService.mock.calls.filter(
+      ([domain, name]) => domain === 'media_player' && name === service
+    );
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  const drag = (slider, value) => {
+    fireEvent.change(slider, { target: { value: String(value) } });
+    act(() => vi.advanceTimersByTime(20));
+  };
+
+  it('seeks once on release and follows the finger until then', () => {
+    const { callService, seek } = setup();
+    fireEvent.pointerDown(seek);
+    drag(seek, 50);
+    drag(seek, 90);
+    expect(calls(callService, 'media_seek')).toHaveLength(0);
+    expect(screen.getByText('90')).toBeInTheDocument();
+    fireEvent.pointerUp(seek);
+    expect(calls(callService, 'media_seek')).toEqual([
+      ['media_player', 'media_seek', { entity_id: 'media_player.den', seek_position: 90 }],
+    ]);
+  });
+
+  it('keeps the released position on screen until Home Assistant reports it', () => {
+    const { seek } = setup();
+    fireEvent.pointerDown(seek);
+    drag(seek, 90);
+    fireEvent.pointerUp(seek);
+    act(() => vi.advanceTimersByTime(500));
+    expect(seek).toHaveValue('90');
+  });
+
+  it('sends only the last volume after a pause in the drag', () => {
+    const { callService, volume } = setup();
+    fireEvent.pointerDown(volume);
+    drag(volume, 40);
+    drag(volume, 55);
+    expect(calls(callService, 'volume_set')).toHaveLength(0);
+    act(() => vi.advanceTimersByTime(400));
+    expect(calls(callService, 'volume_set')).toEqual([
+      ['media_player', 'volume_set', { entity_id: 'media_player.den', volume_level: 0.55 }],
+    ]);
   });
 });
 

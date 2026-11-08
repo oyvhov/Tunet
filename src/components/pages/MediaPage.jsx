@@ -25,6 +25,7 @@ import {
 import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../../utils';
 import MusicAssistantLink from '../media/MusicAssistantLink';
 import { useMusicAssistantChoices } from '../../hooks/useMusicAssistantChoices';
+import { useDebouncedCommit } from '../../hooks/useDebouncedCommit';
 import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 const BLOCKED_MEDIA_TYPES = new Set([
@@ -62,6 +63,9 @@ const BLOCKED_TITLE_WORDS = [
   'cctv',
 ];
 
+const SLIDER_PREVIEW_HOLD_MS = 4000;
+const VOLUME_DEBOUNCE_MS = 250;
+
 function normalizeBrowseText(value) {
   return String(value || '')
     .normalize('NFD')
@@ -91,6 +95,21 @@ function isFavoriteBrowseNode(node) {
 
 function isPlaylistBrowseNode(node) {
   return browseNodeMatches(node, ['playlist', 'spilleliste', 'speleliste', 'spellista']);
+}
+
+/** A value from a slider, kept on screen until Home Assistant reports a new one for the player. */
+function useSliderPreview(playerId, reported) {
+  const [preview, setPreview] = useState(null);
+
+  useEffect(() => {
+    if (!preview) return undefined;
+    const timer = setTimeout(() => setPreview(null), SLIDER_PREVIEW_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [preview]);
+
+  const isCurrent = preview?.playerId === playerId && preview?.reported === reported;
+  const show = (value) => setPreview({ playerId, reported, value });
+  return [isCurrent ? preview.value : null, show];
 }
 
 function MediaPage({
@@ -215,6 +234,12 @@ function MediaPage({
   const shuffle = mpId ? getA(mpId, 'shuffle', false) : false;
   const repeat = mpId ? getA(mpId, 'repeat', 'off') : 'off';
   const VOLUME_STEP = 0.03;
+  const [seekPreview, showSeekPreview] = useSliderPreview(mpId, positionUpdatedAt);
+  const [volumePreview, showVolumePreview] = useSliderPreview(mpId, volume);
+  const displayVolume = volumePreview ?? volume;
+  const sendVolume = useDebouncedCommit(({ entityId, level }) => {
+    callService('media_player', 'volume_set', { entity_id: entityId, volume_level: level });
+  }, VOLUME_DEBOUNCE_MS);
 
   const changeVolumeByStep = useCallback(
     (delta) => {
@@ -239,6 +264,7 @@ function MediaPage({
   const elapsed =
     isPlaying && Number.isFinite(updatedAtMs) ? Math.max(0, (playheadNow - updatedAtMs) / 1000) : 0;
   const effectivePosition = Math.min(duration || basePosition, basePosition + elapsed);
+  const shownPosition = seekPreview ?? effectivePosition;
 
   const rawMembers = getA(mpId, 'group_members');
   const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
@@ -885,7 +911,7 @@ function MediaPage({
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs font-bold tracking-widest text-[var(--text-secondary)]">
-                      <span>{formatDuration(effectivePosition)}</span>
+                      <span>{formatDuration(shownPosition)}</span>
                       <span>{formatDuration(duration)}</span>
                     </div>
                     <M3Slider
@@ -893,14 +919,16 @@ function MediaPage({
                       min={0}
                       max={duration || 100}
                       step={1}
-                      value={effectivePosition || 0}
+                      value={shownPosition || 0}
                       disabled={!duration}
-                      onChange={(e) =>
+                      onChange={(e) => showSeekPreview(parseFloat(e.target.value))}
+                      onCommit={(seconds) => {
+                        showSeekPreview(seconds);
                         callService('media_player', 'media_seek', {
                           entity_id: mpId,
-                          seek_position: parseFloat(e.target.value),
-                        })
-                      }
+                          seek_position: seconds,
+                        });
+                      }}
                       colorClass="bg-[var(--text-primary)]"
                     />
                   </div>
@@ -1042,7 +1070,7 @@ function MediaPage({
                   >
                     {isMuted ? (
                       <VolumeX className="h-4 w-4" />
-                    ) : volume < 0.5 ? (
+                    ) : displayVolume < 0.5 ? (
                       <Volume1 className="h-4 w-4" />
                     ) : (
                       <Volume2 className="h-4 w-4" />
@@ -1054,13 +1082,12 @@ function MediaPage({
                       min={0}
                       max={100}
                       step={1}
-                      value={volume * 100}
-                      onChange={(e) =>
-                        callService('media_player', 'volume_set', {
-                          entity_id: mpId,
-                          volume_level: parseFloat(e.target.value) / 100,
-                        })
-                      }
+                      value={displayVolume * 100}
+                      onChange={(e) => {
+                        const level = parseFloat(e.target.value) / 100;
+                        showVolumePreview(level);
+                        sendVolume({ entityId: mpId, level });
+                      }}
                       colorClass="bg-[var(--text-primary)]"
                     />
                   </div>
