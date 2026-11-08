@@ -1272,8 +1272,9 @@ export default function VacuumModal({
     Object.keys(attrs).some((key) => key.startsWith('mop_') || key.startsWith('water_'));
   const canSetMopIntensity = hasMopControls;
   const mopDisabled =
-    isUnavailable || (mopControlOptions.length > 0 && isUnavailableState(mopControlCurrent));
-  const roomCleaningDisabled = isUnavailable || isUnavailableState(roomSelectState);
+    isUnavailable || (mopControlOptions.length > 0 && mopControlCurrent === 'unavailable');
+  // A select that has never been set is "unknown", and this popup is the way to set it.
+  const roomCleaningDisabled = isUnavailable || roomSelectState === 'unavailable';
 
   // --- Cleaning statistics ---
   const mappedCleaningTime = getMappedSensorWithUnit('cleaningTimeSensorId');
