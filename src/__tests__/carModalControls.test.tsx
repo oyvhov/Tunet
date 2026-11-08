@@ -129,6 +129,7 @@ describe('car popup', () => {
       { lockId: 'lock.car' }
     );
     expect(control('car.unlock').disabled).toBe(true);
+    expect(screen.getByLabelText('lock.code.prompt').getAttribute('inputmode')).toBe('numeric');
     fireEvent.change(screen.getByLabelText('lock.code.prompt'), { target: { value: '1234' } });
     fireEvent.click(control('car.unlock'));
     fireEvent.click(control('lock.action.confirmUnlock'));

@@ -706,6 +706,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                       <span className="modal-section-label">{t('lock.code.prompt')}</span>
                       <input
                         type="password"
+                        inputMode={/^\^?(\\d|\[0-9\])/.test(lockCodeFormat) ? 'numeric' : 'text'}
                         autoComplete="off"
                         value={lockCode}
                         onChange={(event) => setLockCode(event.target.value)}
