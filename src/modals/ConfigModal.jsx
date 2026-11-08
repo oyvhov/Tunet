@@ -2278,15 +2278,15 @@ export default function ConfigModal({
                       style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
                     >
                       {configTab === 'connection' && renderConnectionTab()}
-                    {configTab === 'general' && (
-                      <GeneralSettingsTab
-                        t={t}
-                        language={language}
-                        setLanguage={setLanguage}
-                        inactivityTimeout={inactivityTimeout}
-                        setInactivityTimeout={setInactivityTimeout}
-                      />
-                    )}
+                      {configTab === 'general' && (
+                        <GeneralSettingsTab
+                          t={t}
+                          language={language}
+                          setLanguage={setLanguage}
+                          inactivityTimeout={inactivityTimeout}
+                          setInactivityTimeout={setInactivityTimeout}
+                        />
+                      )}
                       {configTab === 'profiles' && renderProfilesTab()}
                       {configTab === 'updates' && renderUpdatesTab()}
                     </ModalBody>

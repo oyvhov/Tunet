@@ -35,11 +35,13 @@
 ### Task 1: Live preview geometry, hook and CSS
 
 **Files:**
+
 - Create: `src/utils/studioPreview.ts`, `src/hooks/useStudioPreview.ts`
 - Modify: `src/rendering/modalSlices/ModalSettingsSlice.jsx`, `src/components/sidebars/SidebarContainer.jsx:129-137`, `src/styles/sidebar.css`, `src/components/charts/SensorHistoryGraph.tsx:82`
 - Test: `src/__tests__/studioPreview.test.ts`, `src/__tests__/useStudioPreview.test.ts`
 
 **Interfaces:**
+
 - Produces: `STUDIO_PANEL_WIDTH = 420`, `STUDIO_MIN_SHRINK_WIDTH = 900`, `STUDIO_CONTENT_MAX_WIDTH = 1600`; `getStudioPreviewGeometry(viewportWidth: number): { shrink: boolean; scale: number; shift: number }`; `useStudioPreview(open: boolean): void`.
 - Produces on `<html>` while shrinking: attribute `data-studio-preview="shrink"`, style vars `--studio-scale`, `--studio-shift` (px), `--studio-backdrop-opacity: 0`.
 
@@ -91,10 +93,12 @@ Commit: `feat(appearance): shrink the dashboard beside the settings panel`
 ### Task 2: Peek button on narrow screens
 
 **Files:**
+
 - Modify: `src/components/sidebars/SidebarContainer.jsx`, `ThemeSidebar.jsx`, `LayoutSidebar.jsx`, `HeaderSidebar.jsx`, `src/styles/sidebar.css`, `src/i18n/*.json`
 - Test: `src/__tests__/SidebarContainer.test.jsx`
 
 **Interfaces:**
+
 - Produces: `SidebarContainer` prop `peekLabel?: string`. Button `data-testid="sidebar-peek"` in wrapper `.tunet-sidebar__peek`, last child of the panel column. Panel attribute `data-peeking="true"` while held.
 - i18n `settings.peekDashboard`: en View dashboard, nb Se dashbordet, nn Sjå dashbordet, sv Visa instrumentpanelen, de Dashboard ansehen, fr Voir le tableau de bord, es Ver el panel, zh 查看仪表盘.
 
@@ -119,10 +123,12 @@ Commit: `feat(appearance): hold to view the dashboard on narrow screens`
 ### Task 3: Working custom image background
 
 **Files:**
+
 - Modify: `src/layouts/BackgroundLayer.jsx`, `src/contexts/ConfigContext.tsx:307-342`, `src/styles/index.css:68-76`, `src/components/sidebars/ThemeSidebar.jsx`
 - Test: `src/__tests__/BackgroundLayer.test.jsx`
 
 **Interfaces:**
+
 - Produces: elements `data-testid="custom-background-image"` and `data-testid="custom-background-tone"`.
 - Produces: `backgroundImageUrl(url: string): string` in `src/utils/studioPreview.ts`, returns `url(${JSON.stringify(url)})`.
 
@@ -153,11 +159,13 @@ Commit: `fix(background): show the custom image and offer it in the panel`
 ### Task 4: Move card style into Appearance
 
 **Files:**
+
 - Create: `src/components/sidebars/CardStyleSection.tsx`
 - Modify: `src/components/sidebars/LayoutSidebar.jsx`, `ThemeSidebar.jsx`, `src/rendering/modalSlices/ModalSettingsSlice.jsx`
 - Test: `src/__tests__/CardStyleSection.test.tsx`
 
 **Interfaces:**
+
 - Produces: default export `CardStyleSection(props: CardStyleSectionProps)` with `t: (key: string) => string` and value and setter pairs: `cardMaterial: string`, `density: string`, `cardBgColor: string` (setters take `string`), `cardScale`, `cardBorderRadius`, `cardTransparency`, `cardBorderOpacity` (numbers, setters take `number`). Accordion open state is internal, default open.
 
 - [ ] **Step 1: Write failing tests**
@@ -181,11 +189,13 @@ Commit: `refactor(appearance): move card style into the appearance panel`
 ### Task 5: Theme and font galleries
 
 **Files:**
+
 - Create: `src/components/sidebars/ThemeGallery.tsx`, `src/components/sidebars/FontGallery.tsx`, `src/config/appFonts.ts`
 - Modify: `src/components/sidebars/ThemeSidebar.jsx`, `src/App.jsx:137-150`, `src/styles/sidebar.css`, `src/i18n/*.json`
 - Test: `src/__tests__/ThemeGallery.test.tsx`, `src/__tests__/FontGallery.test.tsx`
 
 **Interfaces:**
+
 - Produces: `ThemeGallery({ themes, currentTheme, onSelect, t })`, `themes: Record<string, { colors: Record<string, string> }>`, `onSelect: (key: string) => void`.
 - Produces: `FontGallery({ current, onSelect })`.
 - Produces: `APP_FONT_OPTIONS: string[]`, `APP_FONT_FAMILIES: Record<string, string>` (moved from `App.jsx`).
@@ -216,11 +226,13 @@ Commit: `feat(appearance): pick themes and fonts from visual tiles`
 ### Task 6: System General tab
 
 **Files:**
+
 - Create: `src/modals/GeneralSettingsTab.tsx`
 - Modify: `src/modals/ConfigModal.jsx:213-227,2307-2309`, `src/components/sidebars/ThemeSidebar.jsx`, `src/rendering/modalSlices/ModalSettingsSlice.jsx`, `src/styles/sidebar.css`, `src/i18n/*.json`
 - Test: `src/__tests__/GeneralSettingsTab.test.tsx`
 
 **Interfaces:**
+
 - Produces: `GeneralSettingsTab({ t, language, setLanguage, inactivityTimeout, setInactivityTimeout })`.
 - Produces: `ThemeSidebar` prop `onOpenGeneralSettings: () => void`; button `data-testid="appearance-general-link"`.
 - i18n `system.tabGeneral`: en General, nb/nn Generelt, sv Allmänt, de Allgemein, fr Général, es General, zh 常规. `settings.moreGeneralSettings`: en Language, units and lock; nb Språk, enheter og lås; nn Språk, eining og lås; sv Språk, enheter och lås; de Sprache, Einheiten und Sperre; fr Langue, unités et verrouillage; es Idioma, unidades y bloqueo; zh 语言、单位和锁定.
@@ -252,6 +264,7 @@ Commit: `feat(system): add a General tab for language, units, lock and behaviour
 ### Task 7: End-to-end tests
 
 **Files:**
+
 - Modify: `e2e/modals.e2e.js:754-766,1012-1040`
 - Local only, excluded through `.git/info/exclude`: `vite.e2e-local.config.js`, `playwright.e2e-local.config.js`
 
