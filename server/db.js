@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { verifyStoredEncryption } from './utils/dataCrypto.js';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 
 const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), 'data');
@@ -77,5 +77,103 @@ ensureColumn('current_settings', 'data_enc', 'TEXT');
 ensureColumn('current_settings_history', 'data_enc', 'TEXT');
 
 verifyStoredEncryption(db);
+
+const BACKUP_KEEP_COUNT = 7;
+const BACKUP_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// Checking hourly keeps backups daily even when restarts would keep resetting a 24 h timer.
+const BACKUP_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+const BACKUP_NAME_PATTERN = /^tunet-(\d{4}-\d{2}-\d{2}T)(\d{2})-(\d{2})-(\d{2})-(\d{3}Z)\.db$/;
+const DEFAULT_BACKUP_DIR = join(DATA_DIR, 'backups');
+
+/**
+ * @typedef {object} BackupOptions
+ * @property {Pick<import('better-sqlite3').Database, 'backup'>} [database]
+ * @property {string} [backupDir]
+ * @property {() => number} [now]
+ */
+
+/**
+ * @param {string} backupDir
+ * @returns {string[]} backup file names, newest first
+ */
+const listBackups = (backupDir) =>
+  existsSync(backupDir)
+    ? readdirSync(backupDir)
+        .filter((name) => BACKUP_NAME_PATTERN.test(name))
+        .sort()
+        .reverse()
+    : [];
+
+/** @param {string} name */
+const getBackupTime = (name) => Date.parse(name.replace(BACKUP_NAME_PATTERN, '$1$2:$3:$4.$5'));
+
+/** @param {string} backupDir */
+const pruneBackups = (backupDir) => {
+  const staleTempFiles = readdirSync(backupDir).filter((name) => name.includes('.db.tmp'));
+  for (const name of [...listBackups(backupDir).slice(BACKUP_KEEP_COUNT), ...staleTempFiles]) {
+    rmSync(join(backupDir, name), { force: true });
+  }
+};
+
+/**
+ * Copies the database with SQLite's online backup, which is safe while the server writes to it.
+ * The copy is renamed into place when complete, so a partial file never replaces a good backup.
+ * Never rejects: a failed backup must not take the dashboard down.
+ * @param {BackupOptions} [options]
+ * @returns {Promise<string | null>} path of the new backup, or null if it failed
+ */
+export const runBackup = async ({
+  database = db,
+  backupDir = DEFAULT_BACKUP_DIR,
+  now = Date.now,
+} = {}) => {
+  const stamp = new Date(now()).toISOString().replace(/[:.]/g, '-');
+  const backupPath = join(backupDir, `tunet-${stamp}.db`);
+  const tempPath = `${backupPath}.tmp`;
+
+  try {
+    mkdirSync(backupDir, { recursive: true });
+    await database.backup(tempPath);
+    renameSync(tempPath, backupPath);
+    pruneBackups(backupDir);
+    return backupPath;
+  } catch (error) {
+    console.error('[backup] Database backup failed:', error);
+    try {
+      rmSync(tempPath, { force: true });
+    } catch {
+      // The next successful backup removes it.
+    }
+    return null;
+  }
+};
+
+/**
+ * @param {BackupOptions} [options]
+ * @returns {Promise<string | null>} path of the new backup, or null if none was written
+ */
+export const runBackupIfDue = async (options = {}) => {
+  const { backupDir = DEFAULT_BACKUP_DIR, now = Date.now } = options;
+  try {
+    const [newest] = listBackups(backupDir);
+    if (newest && now() - getBackupTime(newest) < BACKUP_MAX_AGE_MS) return null;
+  } catch {
+    // An unreadable folder is logged by the backup attempt below.
+  }
+  return runBackup(options);
+};
+
+/**
+ * Backs up at startup if the newest backup is over a day old, then once a day.
+ * @param {BackupOptions} [options]
+ * @returns {() => void} stops the schedule
+ */
+export const startBackupSchedule = (options = {}) => {
+  const check = () => void runBackupIfDue(options);
+  check();
+  const timer = setInterval(check, BACKUP_CHECK_INTERVAL_MS);
+  timer.unref();
+  return () => clearInterval(timer);
+};
 
 export default db;

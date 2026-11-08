@@ -34,4 +34,7 @@ ENV DATA_DIR=/app/data
 EXPOSE 3002
 VOLUME ["/app/data"]
 
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=5s \
+  CMD ["wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3002/api/health"]
+
 CMD ["node", "server/index.js"]

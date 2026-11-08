@@ -157,6 +157,14 @@ const getHomeAssistantUrlCandidates = () => {
   return candidates;
 };
 
+/** Without a URL every profile and settings call returns 503, so say why at startup. */
+export const warnIfHomeAssistantUrlMissing = () => {
+  if (isSupervisorIngressTrustEnabled() || getHomeAssistantUrlCandidates().length > 0) return;
+  console.warn(
+    '[server] No valid Home Assistant URL is configured, so profiles and settings sync are unavailable. Set TUNET_INTERNAL_HA_URL to an http(s) address this server can reach.'
+  );
+};
+
 /** @param {Request} req */
 const getBearerToken = (req) => {
   const authHeader = req.get('authorization');

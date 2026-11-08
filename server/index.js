@@ -1,15 +1,18 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { existsSync, readFileSync, readdirSync } from 'fs';
-import { join, dirname, extname, basename } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import profilesRouter from './routes/profiles.js';
 import iconsRouter from './routes/icons.js';
 import settingsRouter from './routes/settings.js';
-import { createHomeAssistantAuthMiddleware } from './haAuth.js';
+import { createHomeAssistantAuthMiddleware, warnIfHomeAssistantUrlMissing } from './haAuth.js';
+import db, { startBackupSchedule } from './db.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3002', 10);
+// Must stay under the 10 s docker stop waits before it sends SIGKILL.
+const SHUTDOWN_TIMEOUT_MS = 5_000;
 
 const resolveAppVersion = () => {
   const packageJsonPath = join(__dirname, '..', 'package.json');
@@ -26,6 +29,7 @@ export const createApp = ({
   appVersion = resolveAppVersion(),
   distPath = join(__dirname, '..', 'dist'),
   isProduction = process.env.NODE_ENV === 'production',
+  database = db,
 } = {}) => {
   const app = express();
   const homeAssistantAuth = createHomeAssistantAuthMiddleware();
@@ -72,13 +76,6 @@ export const createApp = ({
     legacyHeaders: false,
   });
 
-  const assetFallbackRateLimiter = rateLimit({
-    windowMs: Math.max(Number(process.env.ASSET_FALLBACK_RATE_LIMIT_WINDOW_MS) || 60_000, 1_000),
-    max: Math.max(Number(process.env.ASSET_FALLBACK_RATE_LIMIT_MAX) || 120, 10),
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-
   app.use('/api', apiRateLimiter);
 
   // Ingress support — strip X-Ingress-Path prefix from request URL
@@ -97,7 +94,13 @@ export const createApp = ({
 
   // Health check
   app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', version: appVersion });
+    try {
+      database.prepare('SELECT 1').get();
+      res.json({ status: 'ok', version: appVersion });
+    } catch (error) {
+      console.error('[server] Health check failed:', error);
+      res.status(503).json({ status: 'error', version: appVersion });
+    }
   });
 
   // Serve static frontend files in production
@@ -106,21 +109,6 @@ export const createApp = ({
       const assetsPath = join(distPath, 'assets');
       const indexHtmlPath = join(distPath, 'index.html');
       const indexHtml = existsSync(indexHtmlPath) ? readFileSync(indexHtmlPath, 'utf8') : null;
-      const assetFiles = existsSync(assetsPath) ? readdirSync(assetsPath) : [];
-      const hashedAssetFallbackMap = new Map();
-
-      assetFiles.forEach((fileName) => {
-        const fileExt = extname(fileName).toLowerCase();
-        if (fileExt !== '.js' && fileExt !== '.css') return;
-
-        const baseName = basename(fileName, fileExt);
-        const hashSeparatorIndex = baseName.lastIndexOf('-');
-        if (hashSeparatorIndex <= 0) return;
-
-        const stem = baseName.slice(0, hashSeparatorIndex);
-        const key = `${stem}${fileExt}`;
-        hashedAssetFallbackMap.set(key, fileName);
-      });
 
       /** @param {import('express').Response} res */
       const setNoCacheHeaders = (res) => {
@@ -146,27 +134,6 @@ export const createApp = ({
           maxAge: '1y',
         })
       );
-
-      app.get('/assets/{*path}', assetFallbackRateLimiter, (req, res, next) => {
-        const requested = basename(req.path || '');
-        if (!requested) return next();
-
-        const fileExt = extname(requested).toLowerCase();
-        if (fileExt !== '.js' && fileExt !== '.css') return next();
-
-        const requestedBase = basename(requested, fileExt);
-        const hashSeparatorIndex = requestedBase.lastIndexOf('-');
-        if (hashSeparatorIndex <= 0) return next();
-
-        const stem = requestedBase.slice(0, hashSeparatorIndex);
-        const fallbackKey = `${stem}${fileExt}`;
-        const fallbackFileName = hashedAssetFallbackMap.get(fallbackKey);
-        if (!fallbackFileName || fallbackFileName === requested) return next();
-
-        res.setHeader('X-Tunet-Asset-Fallback', fallbackFileName);
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        return res.sendFile(join(assetsPath, fallbackFileName));
-      });
 
       app.use(
         express.static(distPath, {
@@ -205,15 +172,80 @@ export const createApp = ({
   return app;
 };
 
+/**
+ * Stops the server cleanly on SIGTERM and SIGINT. Node as PID 1 ignores these without a handler,
+ * which is why docker stop otherwise waits and SIGKILLs a database that was never closed.
+ * @param {object} options
+ * @param {import('http').Server} options.server
+ * @param {Pick<import('better-sqlite3').Database, 'close'>} options.database
+ * @param {() => void} options.stopBackups
+ * @param {number} [options.timeoutMs]
+ * @param {(code: number) => void} [options.exit]
+ * @param {Pick<NodeJS.EventEmitter, 'on'>} [options.signalSource]
+ */
+export const installShutdownHandlers = ({
+  server,
+  database,
+  stopBackups,
+  timeoutMs = SHUTDOWN_TIMEOUT_MS,
+  exit = process.exit,
+  signalSource = process,
+}) => {
+  let stopping = false;
+  let finished = false;
+
+  /** @param {number} code */
+  const finish = (code) => {
+    if (finished) return;
+    finished = true;
+    try {
+      database.close();
+      exit(code);
+    } catch (error) {
+      console.error('[server] Closing the database failed:', error);
+      exit(1);
+    }
+  };
+
+  /** @param {string} signal */
+  const shutdown = (signal) => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`[server] ${signal} received, shutting down`);
+    stopBackups();
+
+    const forceTimer = setTimeout(() => {
+      console.warn(`[server] Connections still open after ${timeoutMs} ms, closing them`);
+      server.closeAllConnections();
+      finish(1);
+    }, timeoutMs);
+
+    // server.close() only drops connections idle right now; one finishing a request stays keep-alive.
+    const idleSweep = setInterval(() => server.closeIdleConnections(), 100);
+
+    server.close((error) => {
+      clearInterval(idleSweep);
+      clearTimeout(forceTimer);
+      finish(error ? 1 : 0);
+    });
+  };
+
+  for (const signal of ['SIGTERM', 'SIGINT']) {
+    signalSource.on(signal, () => shutdown(signal));
+  }
+};
+
 const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 const app = createApp();
 
 if (isMainModule) {
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(
       `[server] Tunet backend running on port ${PORT} (${process.env.NODE_ENV === 'production' ? 'production' : 'development'})`
     );
   });
+  warnIfHomeAssistantUrlMissing();
+  installShutdownHandlers({ server, database: db, stopBackups: startBackupSchedule() });
 }
 
 export default app;
