@@ -146,6 +146,7 @@ export default function GenericClimateModal({
                   </p>
                   <div className="flex items-center gap-3 sm:gap-6">
                     <button
+                      aria-label={t('common.decrease')}
                       type="button"
                       disabled={!canAdjust}
                       onClick={() => nudge(-1)}
@@ -172,6 +173,7 @@ export default function GenericClimateModal({
                       />
                     </div>
                     <button
+                      aria-label={t('common.increase')}
                       type="button"
                       disabled={!canAdjust}
                       onClick={() => nudge(1)}

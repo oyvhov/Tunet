@@ -47,6 +47,7 @@ interface ButtonControlProps {
   isUnavailable: boolean;
   supportsStop: boolean;
   horizontal?: boolean;
+  translate: Translate;
 }
 
 interface SmallCoverCardProps extends Pick<
@@ -71,6 +72,7 @@ interface SmallCoverCardProps extends Pick<
   handleCloseCover: () => unknown;
   handleStopCover: () => unknown;
   name: string;
+  translate: Translate;
 }
 
 /* -- Styles ---------------------------------------------------------- */
@@ -250,6 +252,7 @@ const ButtonControl = ({
   isUnavailable,
   supportsStop,
   horizontal = false,
+  translate,
 }: ButtonControlProps) => {
   if (horizontal) {
     return (
@@ -257,6 +260,7 @@ const ButtonControl = ({
         className={`flex h-full w-full items-center justify-between gap-1.5 rounded-2xl p-1.5 ${CONTROL_STYLE}`}
       >
         <button
+          aria-label={translate('cover.open')}
           onClick={(e) => {
             e.stopPropagation();
             onOpen();
@@ -268,6 +272,7 @@ const ButtonControl = ({
         </button>
         {supportsStop && (
           <button
+            aria-label={translate('cover.stop')}
             onClick={(e) => {
               e.stopPropagation();
               onStop();
@@ -279,6 +284,7 @@ const ButtonControl = ({
           </button>
         )}
         <button
+          aria-label={translate('cover.presetClosed')}
           onClick={(e) => {
             e.stopPropagation();
             onClose();
@@ -295,6 +301,7 @@ const ButtonControl = ({
   return (
     <div className={`flex h-full w-full flex-col gap-1.5 rounded-[2rem] p-1.5 ${CONTROL_STYLE}`}>
       <button
+        aria-label={translate('cover.open')}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
@@ -307,6 +314,7 @@ const ButtonControl = ({
 
       {supportsStop && (
         <button
+          aria-label={translate('cover.stop')}
           onClick={(e) => {
             e.stopPropagation();
             onStop();
@@ -319,6 +327,7 @@ const ButtonControl = ({
       )}
 
       <button
+        aria-label={translate('cover.presetClosed')}
         onClick={(e) => {
           e.stopPropagation();
           onClose();
@@ -358,6 +367,7 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
     handleCloseCover,
     handleStopCover,
     name,
+    translate,
   } = props;
 
   return (
@@ -420,6 +430,7 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
             isUnavailable={isUnavailable}
             supportsStop={supportsStop}
             horizontal={true}
+            translate={translate}
           />
         )}
       </div>
@@ -654,6 +665,7 @@ const CoverCard = ({
             onStop={handleStopCover}
             isUnavailable={isUnavailable}
             supportsStop={supportsStop}
+            translate={translate}
           />
         )}
       </div>

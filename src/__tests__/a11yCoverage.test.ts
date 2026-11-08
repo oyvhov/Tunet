@@ -14,6 +14,35 @@ const sourceFiles = (dir: string, out: string[] = []): string[] => {
   return out;
 };
 
+const openingTagEnd = (source: string, start: number) => {
+  let depth = 0;
+  let quote = '';
+  for (let i = start; i < source.length; i += 1) {
+    const char = source[i];
+    if (quote) {
+      if (char === quote && source[i - 1] !== '\\') quote = '';
+    } else if (char === '"' || ((char === "'" || char === '`') && depth > 0)) {
+      quote = char;
+    } else if (char === '{') {
+      depth += 1;
+    } else if (char === '}') {
+      depth -= 1;
+    } else if (char === '>' && depth === 0) {
+      return i;
+    }
+  }
+  return source.length;
+};
+
+const hasVisibleText = (body: string) => {
+  const rest = body
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/<[A-Za-z][^<>]*?\/>/gs, '')
+    .replace(/<\/?[a-z][^<>]*>/gs, ' ');
+  if (/\b(t|translate)\(|\{\s*[a-zA-Z_.]+\s*\}/.test(rest)) return true;
+  return /[\p{L}\p{N}]/u.test(rest.replace(/\{[\s\S]*?\}/g, ''));
+};
+
 describe('accessible names in source', () => {
   it('passes a translated ariaLabel to every M3Slider', () => {
     const missing: string[] = [];
@@ -27,5 +56,27 @@ describe('accessible names in source', () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it('names every icon-only button on cards and in the climate modal', () => {
+    const files = [
+      ...sourceFiles(path.join(SRC, 'components/cards')),
+      path.join(SRC, 'modals/GenericClimateModal.jsx'),
+    ];
+    const unnamed: string[] = [];
+    for (const file of files) {
+      const source = fs.readFileSync(file, 'utf8');
+      for (const match of source.matchAll(/<button\b/g)) {
+        const end = openingTagEnd(source, match.index);
+        const attrs = source.slice(match.index, end);
+        if (/aria-label(ledby)?=|\btitle=|\.\.\.[a-zA-Z]/.test(attrs)) continue;
+        const body = source.slice(end + 1, source.indexOf('</button>', end));
+        if (!hasVisibleText(body)) {
+          const line = source.slice(0, match.index).split('\n').length;
+          unnamed.push(`${path.relative(SRC, file)}:${line}`);
+        }
+      }
+    }
+    expect(unnamed).toEqual([]);
   });
 });

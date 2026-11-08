@@ -278,6 +278,7 @@ export const MediaPlayerCard = memo(
           className={`relative z-10 flex items-center justify-center ${useWideMobileControls ? 'mt-2 gap-5 px-1' : isDenseMobile ? 'mt-3 gap-3 px-0' : 'mt-1 gap-[clamp(0.125rem,1.5vw,1.5rem)] px-0.5 sm:mt-2 sm:px-0'}`}
         >
           <button
+            aria-label={t('media.previous')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_previous_track', { entity_id: mpId });
@@ -295,6 +296,7 @@ export const MediaPlayerCard = memo(
             />
           </button>
           <button
+            aria-label={isPlaying ? t('media.pause') : t('media.play')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_play_pause', { entity_id: mpId });
@@ -324,6 +326,7 @@ export const MediaPlayerCard = memo(
             )}
           </button>
           <button
+            aria-label={t('media.next')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_next_track', { entity_id: mpId });
@@ -635,6 +638,7 @@ export const MediaGroupCard = memo(
           className={`relative z-10 flex items-center justify-center ${useWideMobileControls ? 'mt-2 gap-5 px-1' : isDenseMobile ? 'mt-3 gap-3 px-0' : 'mt-1 gap-[clamp(0.125rem,1.5vw,1.5rem)] px-0.5 sm:mt-2 sm:px-0'}`}
         >
           <button
+            aria-label={t('media.previous')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_previous_track', { entity_id: mpId });
@@ -652,6 +656,7 @@ export const MediaGroupCard = memo(
             />
           </button>
           <button
+            aria-label={isPlaying ? t('media.pause') : t('media.play')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_play_pause', { entity_id: mpId });
@@ -681,6 +686,7 @@ export const MediaGroupCard = memo(
             )}
           </button>
           <button
+            aria-label={t('media.next')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_next_track', { entity_id: mpId });

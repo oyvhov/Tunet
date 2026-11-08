@@ -850,6 +850,7 @@ const SensorCard = memo(
           return (
             <div className="flex flex-col items-center gap-1 rounded-lg bg-[var(--glass-bg)] p-0.5">
               <button
+                aria-label={translate('common.increase')}
                 onClick={(e) => {
                   e.stopPropagation();
                   control('increment');
@@ -860,6 +861,7 @@ const SensorCard = memo(
                 <Plus className="h-3 w-3" />
               </button>
               <button
+                aria-label={translate('common.decrease')}
                 onClick={(e) => {
                   e.stopPropagation();
                   control('decrement');
@@ -876,6 +878,7 @@ const SensorCard = memo(
         return (
           <div className="mt-4 flex items-center justify-between gap-2 rounded-xl bg-[var(--glass-bg)] px-2.5 py-1.5">
             <button
+              aria-label={translate('common.decrease')}
               onClick={(e) => {
                 e.stopPropagation();
                 control('decrement');
@@ -894,6 +897,7 @@ const SensorCard = memo(
               </span>
             </div>
             <button
+              aria-label={translate('common.increase')}
               onClick={(e) => {
                 e.stopPropagation();
                 control('increment');

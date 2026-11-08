@@ -2510,6 +2510,7 @@ export default function EditCardModal({
                               {entities[sensorId]?.attributes?.friendly_name || sensorId}
                             </span>
                             <button
+                              aria-label={t('common.remove')}
                               onClick={() =>
                                 saveCardSetting(
                                   editSettingsKey,
@@ -2549,6 +2550,7 @@ export default function EditCardModal({
                               {entities[id]?.attributes?.friendly_name || id}
                             </span>
                             <button
+                              aria-label={t('common.remove')}
                               onClick={() => {
                                 const current = editSettings.linkedMediaPlayers;
                                 saveCardSetting(

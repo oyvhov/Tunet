@@ -722,6 +722,7 @@ export default function ConfigModal({
                           {t('profiles.load')}
                         </button>
                         <button
+                          aria-label={t('profiles.edit')}
                           onClick={() => {
                             setEditingProfileId(profile.id);
                             setEditName(profile.name);
@@ -732,6 +733,7 @@ export default function ConfigModal({
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
+                          aria-label={t('profiles.delete')}
                           onClick={async () => {
                             const ok = await confirmAction({
                               title: profile.name,

@@ -362,6 +362,7 @@ export function CarMappingsSection({
           <div className="mb-2 flex items-center justify-between">
             <span className="modal-section-label">{t('car.addSensor')}</span>
             <button
+              aria-label={t('common.close')}
               onClick={() => {
                 setShowAddSensor(false);
                 setSensorType('');
