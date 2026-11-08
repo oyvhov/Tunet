@@ -126,6 +126,28 @@ describe('vacuum and mower cards', () => {
     expect([...container.querySelectorAll('button')].some((b) => b.disabled)).toBe(false);
   });
 
+  it.each(['small', 'large'])('docks the remapped vacuum from the %s card', (size) => {
+    const remapped = 'vacuum.remapped';
+    const entities = entity(remapped, 'docked');
+    const callService = vi.fn(async () => ({}));
+    const props = asProps<ComponentProps<typeof VacuumCard>>({
+      vacuumId: VACUUM,
+      entityId: remapped,
+      entities,
+      cardSettings: { 'home::vacuum': { size } },
+      settingsKey: 'home::vacuum',
+      customNames: {},
+      customIcons: {},
+      getA: lookup(entities),
+      callService,
+      onOpen: () => {},
+      t,
+    });
+    const { container } = render(<VacuumCard {...props} />);
+    fireEvent.click(container.querySelector('.lucide-house')!.closest('button')!);
+    expect(callService).toHaveBeenCalledWith('vacuum', 'return_to_base', { entity_id: remapped });
+  });
+
   it('names an unavailable vacuum and mower through the shared label', () => {
     expect(renderVacuumCard(entity(VACUUM, 'unavailable')).container).toHaveTextContent(
       'status.unavailable'
