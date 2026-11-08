@@ -5,6 +5,7 @@ import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState
 import { usePowerToggle } from '../../hooks/usePowerToggle';
 import type { MouseEvent } from 'react';
 import type { MediaCardCommonProps } from './MediaCards';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface GenericAndroidTVCardProps extends MediaCardCommonProps {
   mediaPlayerId: string;
@@ -186,6 +187,7 @@ const GenericAndroidTVCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, deviceName)}
           data-haptic={editMode ? undefined : 'card'}
           data-tv-state={waking ? 'waking' : isUnavailable ? 'unavailable' : 'off'}
           onClick={(e) => {
@@ -260,6 +262,7 @@ const GenericAndroidTVCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, deviceName)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={(e) => {
             e.stopPropagation();
@@ -323,6 +326,7 @@ const GenericAndroidTVCard = memo(
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, deviceName)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();

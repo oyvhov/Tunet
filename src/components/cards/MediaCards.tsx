@@ -17,6 +17,7 @@ import type { MouseEvent } from 'react';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsEntry, CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type MediaEntity = EntityMap[string];
 
@@ -135,6 +136,7 @@ export const MediaPlayerCard = memo(
         <div
           key={mpId}
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={(e) => {
             e.stopPropagation();
@@ -188,6 +190,7 @@ export const MediaPlayerCard = memo(
       <div
         key={mpId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -455,6 +458,7 @@ export const MediaGroupCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={(e) => {
             e.stopPropagation();
@@ -504,6 +508,7 @@ export const MediaGroupCard = memo(
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();

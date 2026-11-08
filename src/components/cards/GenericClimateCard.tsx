@@ -11,6 +11,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { CardCallService } from '../../types/cards';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 // getClimateStatus needs a string state and a non-weak attributes type.
 type ClimateEntity = EntityMap[string] & {
@@ -183,6 +184,7 @@ const GenericClimateCard = memo(
       return (
         <div
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           onClick={(e) => {
             e.stopPropagation();
             if (editMode) return;
@@ -262,6 +264,7 @@ const GenericClimateCard = memo(
       <div
         key="climate"
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();

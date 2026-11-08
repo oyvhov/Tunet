@@ -17,6 +17,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import type { IconComponent } from '../../icons/iconMap';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type AlarmEntity = EntityMap[string];
 
@@ -244,6 +245,7 @@ const AlarmCard = memo(function AlarmCard({
     return (
       <div
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(event) => {
           event.stopPropagation();
@@ -306,6 +308,7 @@ const AlarmCard = memo(function AlarmCard({
   return (
     <div
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(event) => {
         event.stopPropagation();

@@ -11,6 +11,7 @@ import {
 } from '../../services/nordpoolUtils';
 import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface NordpoolSettings {
   currency?: string;
@@ -161,6 +162,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -203,6 +205,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
     <div
       key={cardId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();

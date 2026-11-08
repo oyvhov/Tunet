@@ -14,6 +14,7 @@ import type { MouseEvent } from 'react';
 import type { CardBaseProps } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface FanCardProps extends Pick<
   CardBaseProps,
@@ -187,6 +188,7 @@ const FanCard = memo(function FanCard({
     <div
       key={fanId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(event) => {
         event.stopPropagation();

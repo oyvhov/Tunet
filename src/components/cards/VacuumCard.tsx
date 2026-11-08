@@ -9,6 +9,7 @@ import {
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface VacuumCardProps extends Pick<
   CardBaseProps,
@@ -127,6 +128,7 @@ const VacuumCard = ({
         ref={cardRef}
         key={vacuumId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -234,6 +236,7 @@ const VacuumCard = ({
     <div
       key={vacuumId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();

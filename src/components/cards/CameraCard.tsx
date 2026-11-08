@@ -5,6 +5,7 @@ import CameraFeed from '../camera/CameraFeed';
 import type { Connection } from 'home-assistant-js-websocket';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface CameraCardProps extends Pick<
   CardBaseProps,
@@ -98,6 +99,7 @@ const CameraCard = memo(function CameraCard({
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         className="glass-texture touch-feedback group relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4 pl-5 font-sans backdrop-blur-xl transition-all duration-300"
         style={cardStyle}
@@ -146,6 +148,7 @@ const CameraCard = memo(function CameraCard({
     <div
       key={cardId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       className={`glass-texture touch-feedback group relative h-full overflow-hidden rounded-3xl border bg-[var(--card-bg)] transition-all duration-500 ${editMode ? 'cursor-move' : 'cursor-pointer active:scale-[0.98]'}`}
       style={cardStyle}

@@ -14,6 +14,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { ForecastEntry } from '../../services/haClient';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type ForecastView = 'hourly' | 'daily';
 type CardView = 'current' | 'forecast';
@@ -449,6 +450,7 @@ const WeatherTempCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={handleCardClick}
           onPointerDown={handlePointerDown}
@@ -571,6 +573,7 @@ const WeatherTempCard = memo(
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={handleCardClick}
         onPointerDown={handlePointerDown}

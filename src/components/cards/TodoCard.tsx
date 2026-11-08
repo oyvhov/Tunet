@@ -15,6 +15,7 @@ import type { Connection } from 'home-assistant-js-websocket';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { TodoItem } from '../../services/haClient';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type TodoCardItem = TodoItem & { due?: string };
 
@@ -288,6 +289,7 @@ const TodoCard = memo(function TodoCard({
       <div
         ref={cardRef}
         {...dragProps}
+        {...cardButtonProps(isEditMode, displayName)}
         data-haptic={isEditMode ? undefined : 'card'}
         onClick={onClick}
         className={`glass-texture touch-feedback relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4 pl-5 font-sans backdrop-blur-xl transition-all duration-300 ${className}`}
@@ -343,6 +345,7 @@ const TodoCard = memo(function TodoCard({
     <div
       ref={cardRef}
       {...dragProps}
+      {...cardButtonProps(isEditMode, displayName)}
       data-haptic={isEditMode ? undefined : 'card'}
       onClick={onClick}
       className={`glass-texture touch-feedback relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] font-sans backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}

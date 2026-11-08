@@ -7,6 +7,7 @@ import type { Translate } from '../../types/ha';
 import type { CardCallService } from '../../types/cards';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import type { IconComponent } from '../../icons/iconMap';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type CoverEntity = EntityMap[string];
 type CoverMode = 'slider' | 'buttons';
@@ -363,6 +364,7 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
     <div
       key={cardId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();
@@ -563,6 +565,7 @@ const CoverCard = ({
     <div
       key={cardId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       className={`glass-texture touch-feedback group relative flex h-full items-stretch justify-between overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--glass-bg)] font-sans transition-all duration-500 select-none ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''} `}
       style={cardStyle}
