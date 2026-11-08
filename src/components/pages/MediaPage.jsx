@@ -70,6 +70,7 @@ const BLOCKED_TITLE_WORDS = [
 
 const SLIDER_PREVIEW_HOLD_MS = 4000;
 const VOLUME_DEBOUNCE_MS = 250;
+const CHOICE_PAGE_SIZE = 60;
 
 const PLAYER_STATE_LABEL_KEYS = {
   playing: 'state.playing',
@@ -154,6 +155,7 @@ function MediaPage({
   const [rightPanelView, setRightPanelView] = useState('players');
   const [chooseTab, setChooseTab] = useState('favorites');
   const [chooseQuery, setChooseQuery] = useState('');
+  const [shownChoices, setShownChoices] = useState(null);
   const [browseChoicesByPlayer, setBrowseChoicesByPlayer] = useState({});
   const [browseLoading, setBrowseLoading] = useState(false);
   const [browseError, setBrowseError] = useState('');
@@ -421,6 +423,9 @@ function MediaPage({
   const hasLoadedBrowseChoices = musicAssistantChoices
     ? musicAssistantChoices.loaded
     : browseChoices._version === 3;
+  const choiceScope = `${mpId}|${chooseTab}|${chooseQuery}`;
+  const visibleChoiceCount =
+    shownChoices?.scope === choiceScope ? shownChoices.count : CHOICE_PAGE_SIZE;
 
   const sonosAllIds = useMemo(
     () => allMediaIds.filter((id) => isSonosMediaEntity(entities[id])),
@@ -659,19 +664,30 @@ function MediaPage({
     [mediaEntities, isSonosActive]
   );
 
+  const currentCanGroup = controls.grouping;
+  const groupableOtherIds = useMemo(() => {
+    if (!currentCanGroup) return [];
+    return listPlayers
+      .filter(
+        (player) =>
+          player.entity_id !== mpId &&
+          getMediaPlayerControls(player).grouping &&
+          isMusicAssistantMediaEntity(player) === isMusicAssistantPlayer
+      )
+      .map((player) => player.entity_id);
+  }, [currentCanGroup, listPlayers, mpId, isMusicAssistantPlayer]);
+  const canGroupPlayers = groupableOtherIds.length > 0;
+
   const toggleGroupAll = useCallback(() => {
-    if (!isSonosMode) return;
     if (!conn) return;
-    const allIds = listPlayers.map((player) => player.entity_id);
-    const otherIds = allIds.filter((id) => id !== mpId);
     if (hasGroupedOthers) {
       groupedOthers.forEach((id) => callService('media_player', 'unjoin', { entity_id: id }));
       return;
     }
-    if (otherIds.length > 0) {
-      callService('media_player', 'join', { entity_id: mpId, group_members: otherIds });
+    if (groupableOtherIds.length > 0) {
+      callService('media_player', 'join', { entity_id: mpId, group_members: groupableOtherIds });
     }
-  }, [isSonosMode, conn, listPlayers, mpId, hasGroupedOthers, groupedOthers, callService]);
+  }, [conn, groupableOtherIds, mpId, hasGroupedOthers, groupedOthers, callService]);
 
   const playChoice = (choice, fallbackType = 'music') => {
     if (!choice?.id || !mpId) return;
@@ -688,6 +704,27 @@ function MediaPage({
       media_content_id: choice.id,
       media_content_type: choice.type || fallbackType,
     });
+  };
+
+  const renderShowMore = (choices, serverTab = null) => {
+    const canFetchMore = Boolean(serverTab && musicAssistantChoices?.hasMore[serverTab]);
+    if (choices.length <= visibleChoiceCount && !canFetchMore) return null;
+    return (
+      <button
+        type="button"
+        disabled={isChooseLoading}
+        onClick={() => {
+          const nextCount = visibleChoiceCount + CHOICE_PAGE_SIZE;
+          setShownChoices({ scope: choiceScope, count: nextCount });
+          if (canFetchMore && nextCount >= choices.length) {
+            musicAssistantChoices.loadMore(serverTab);
+          }
+        }}
+        className="mx-auto mt-3 block min-h-11 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
+      >
+        {t('media.choose.showMore')}
+      </button>
+    );
   };
 
   const renderChoiceTile = (choice, fallbackType = 'music') =>
@@ -1198,7 +1235,7 @@ function MediaPage({
                     </button>
                   )}
                 </div>
-                {isSonosMode && rightPanelView === 'players' && listPlayers.length > 1 && (
+                {rightPanelView === 'players' && canGroupPlayers && (
                   <button
                     onClick={toggleGroupAll}
                     className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-colors"
@@ -1280,7 +1317,7 @@ function MediaPage({
                               </p>
                             </div>
                           </button>
-                          {isSonosMode && !isSelf && listPlayers.length > 1 && (
+                          {groupableOtherIds.includes(p.entity_id) && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1314,7 +1351,7 @@ function MediaPage({
                               )}
                             </button>
                           )}
-                          {isSonosMode && isSelf && listPlayers.length > 1 && (
+                          {isSelf && canGroupPlayers && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1419,15 +1456,16 @@ function MediaPage({
                       <>
                         {filteredFavoriteChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
-                            {filteredFavoriteChoices.map((choice) =>
-                              renderChoiceTile(choice, 'music')
-                            )}
+                            {filteredFavoriteChoices
+                              .slice(0, visibleChoiceCount)
+                              .map((choice) => renderChoiceTile(choice, 'music'))}
                           </div>
                         ) : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
                             {t('media.choose.emptyFavorites')}
                           </div>
                         )}
+                        {renderShowMore(filteredFavoriteChoices)}
                       </>
                     )}
 
@@ -1435,15 +1473,16 @@ function MediaPage({
                       <>
                         {filteredPlaylistChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
-                            {filteredPlaylistChoices.map((choice) =>
-                              renderChoiceTile(choice, 'playlist')
-                            )}
+                            {filteredPlaylistChoices
+                              .slice(0, visibleChoiceCount)
+                              .map((choice) => renderChoiceTile(choice, 'playlist'))}
                           </div>
                         ) : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
                             {t('media.choose.emptyPlaylists')}
                           </div>
                         )}
+                        {renderShowMore(filteredPlaylistChoices)}
                       </>
                     )}
 
@@ -1451,15 +1490,16 @@ function MediaPage({
                       <>
                         {filteredLibraryChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
-                            {filteredLibraryChoices.map((choice) =>
-                              renderChoiceTile(choice, 'music')
-                            )}
+                            {filteredLibraryChoices
+                              .slice(0, visibleChoiceCount)
+                              .map((choice) => renderChoiceTile(choice, 'music'))}
                           </div>
                         ) : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
                             {browseError || t('media.choose.emptyResults')}
                           </div>
                         )}
+                        {renderShowMore(filteredLibraryChoices, 'library')}
                       </>
                     )}
 
@@ -1467,17 +1507,18 @@ function MediaPage({
                       <>
                         {filteredSearchChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
-                            {filteredSearchChoices.map((choice) =>
-                              renderChoiceTile(choice, 'music')
-                            )}
+                            {filteredSearchChoices
+                              .slice(0, visibleChoiceCount)
+                              .map((choice) => renderChoiceTile(choice, 'music'))}
                           </div>
-                        ) : (
+                        ) : isChooseLoading ? null : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
                             {musicAssistantChoices && !chooseQuery.trim()
                               ? t('media.choose.searchHint')
                               : t('form.noResults')}
                           </div>
                         )}
+                        {renderShowMore(filteredSearchChoices, 'search')}
                       </>
                     )}
                   </div>

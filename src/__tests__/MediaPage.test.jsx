@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MediaPage from '../components/pages/MediaPage';
 
+vi.mock('../components/media/MusicAssistantLink', () => ({ default: () => null }));
+
 const makeBaseProps = (overrides = {}) => {
   const entities = overrides.entities || {
     'media_player.kitchen': {
@@ -175,6 +177,72 @@ describe('MediaPage empty selection', () => {
   });
 });
 
+const GROUPING = 524288;
+
+describe('MediaPage grouping feature', () => {
+  const player = (id, supported_features, extra = {}) => ({
+    entity_id: `media_player.${id}`,
+    state: 'idle',
+    attributes: { friendly_name: id, group_members: [], supported_features, ...extra },
+  });
+  const pageProps = (entities, mode = 'media') => ({
+    ...makeBaseProps({ pageId: 'media', mode, entities, conn: { sendMessagePromise: vi.fn() } }),
+    activeMediaId: Object.keys(entities)[0],
+  });
+
+  it('offers grouping to non-Sonos players that support it', () => {
+    const callService = vi.fn();
+    render(
+      <MediaPage
+        {...pageProps({
+          'media_player.den': player('den', GROUPING),
+          'media_player.hall': player('hall', GROUPING),
+          'media_player.tv': player('tv', 0),
+        })}
+        callService={callService}
+      />
+    );
+
+    fireEvent.click(screen.getAllByLabelText('sonos.groupAll')[0]);
+
+    expect(callService).toHaveBeenCalledWith('media_player', 'join', {
+      entity_id: 'media_player.den',
+      group_members: ['media_player.hall'],
+    });
+    expect(screen.getAllByTitle('tooltip.addToGroup')).toHaveLength(1);
+  });
+
+  it('hides grouping on a Sonos page whose players do not report the feature', () => {
+    render(
+      <MediaPage
+        {...pageProps(
+          {
+            'media_player.a': player('a', 0, { integration: 'sonos' }),
+            'media_player.b': player('b', 0, { integration: 'sonos' }),
+          },
+          'sonos'
+        )}
+      />
+    );
+
+    expect(screen.queryByLabelText('sonos.groupAll')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('tooltip.addToGroup')).not.toBeInTheDocument();
+  });
+
+  it('does not offer to group Music Assistant players with other integrations', () => {
+    render(
+      <MediaPage
+        {...pageProps({
+          'media_player.ma': player('ma', GROUPING, { mass_player_type: 'player' }),
+          'media_player.cast': player('cast', GROUPING),
+        })}
+      />
+    );
+
+    expect(screen.queryByLabelText('sonos.groupAll')).not.toBeInTheDocument();
+  });
+});
+
 describe('MediaPage Sonos grouping', () => {
   const groupingEntities = {
     'media_player.kitchen': {
@@ -184,7 +252,7 @@ describe('MediaPage Sonos grouping', () => {
         friendly_name: 'Kitchen',
         integration: 'sonos',
         group_members: ['media_player.kitchen'],
-        supported_features: 0,
+        supported_features: GROUPING,
       },
     },
     'media_player.bedroom': {
@@ -194,7 +262,7 @@ describe('MediaPage Sonos grouping', () => {
         friendly_name: 'Bedroom',
         integration: 'sonos',
         group_members: ['media_player.bedroom'],
-        supported_features: 0,
+        supported_features: GROUPING,
       },
     },
   };
@@ -418,6 +486,86 @@ describe('MediaPage slider commands', () => {
     expect(calls(callService, 'volume_set')).toEqual([
       ['media_player', 'volume_set', { entity_id: 'media_player.den', volume_level: 0.55 }],
     ]);
+  });
+});
+
+describe('MediaPage Music Assistant chooser', () => {
+  const entities = {
+    'media_player.den': {
+      entity_id: 'media_player.den',
+      state: 'idle',
+      attributes: { friendly_name: 'Den', mass_player_type: 'player', supported_features: 0 },
+    },
+  };
+  const albums = (count, start = 0) =>
+    Array.from({ length: count }, (_, index) => ({
+      media_type: 'album',
+      uri: `library://album/${start + index}`,
+      name: `Album ${start + index}`,
+    }));
+  const makeConn = (handlers) => ({
+    sendMessagePromise: vi.fn(async (message) => {
+      if (message.type === 'config/entity_registry/get') return { config_entry_id: 'ma' };
+      return { response: (await handlers[message.service]?.(message.service_data)) ?? {} };
+    }),
+  });
+  const openChooser = async (conn, tab) => {
+    render(<MediaPage {...makeBaseProps({ pageId: 'media', mode: 'media', entities, conn })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'media.tab.media' }));
+    await waitFor(() =>
+      expect(screen.queryByTestId('media-page-chooser-loading')).not.toBeInTheDocument()
+    );
+    fireEvent.click(screen.getByRole('button', { name: `media.choose.tab.${tab}` }));
+  };
+  const tiles = () =>
+    screen.getAllByRole('button').filter((button) => /^Album \d+/.test(button.textContent));
+
+  it('hides No results while a search is running', async () => {
+    let finishSearch;
+    const conn = makeConn({
+      get_library: () => ({ items: [] }),
+      search: () =>
+        new Promise((resolve) => {
+          finishSearch = resolve;
+        }),
+    });
+    await openChooser(conn, 'search');
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'nobody' } });
+
+    await waitFor(() => expect(finishSearch).toBeTypeOf('function'));
+    expect(screen.getByText('media.choose.loading')).toBeInTheDocument();
+    expect(screen.queryByText('form.noResults')).not.toBeInTheDocument();
+
+    await act(async () => finishSearch({}));
+    await waitFor(() => expect(screen.getByText('form.noResults')).toBeInTheDocument());
+  });
+
+  it('reveals more tiles and fetches the next page once the loaded ones run out', async () => {
+    const conn = makeConn({
+      get_library: (data) => {
+        if (data.favorite || data.media_type !== 'album') return { items: [] };
+        return { items: data.offset ? albums(5, 100) : albums(100) };
+      },
+    });
+    await openChooser(conn, 'library');
+    expect(tiles()).toHaveLength(60);
+
+    fireEvent.click(screen.getByRole('button', { name: 'media.choose.showMore' }));
+
+    expect(tiles()).toHaveLength(100);
+    await waitFor(() => expect(tiles()).toHaveLength(105));
+    expect(
+      conn.sendMessagePromise.mock.calls.some(([message]) => message.service_data?.offset === 100)
+    ).toBe(true);
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'media.choose.showMore' })).toBeNull()
+    );
+  });
+
+  it('shows no Show more for a short list', async () => {
+    const conn = makeConn({ get_library: () => ({ items: albums(3) }) });
+    await openChooser(conn, 'library');
+    expect(screen.queryByRole('button', { name: 'media.choose.showMore' })).toBeNull();
   });
 });
 
