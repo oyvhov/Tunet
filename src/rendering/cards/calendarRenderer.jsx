@@ -40,7 +40,7 @@ export function renderCalendarCard(cardId, dragProps, getControls, cardStyle, se
           setShowEditCardModal(cardId);
           setEditCardSettingsKey(settingsKey);
         } else {
-          setShowCalendarModal(true);
+          setShowCalendarModal(cardId);
         }
       }}
     />

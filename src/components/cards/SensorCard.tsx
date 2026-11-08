@@ -33,6 +33,7 @@ import {
   getDisplayUnitForKind,
   getEffectiveUnitMode,
   inferUnitKind,
+  isUnavailableState,
   downsampleTimeSeries,
   aggregateTimeSeries,
   getSensorGraphWindow,
@@ -828,6 +829,7 @@ const SensorCard = memo(
         const min = entity.attributes?.min || 0;
         const max = entity.attributes?.max || 100;
         const val = parseFloat(primaryState as string);
+        const inputDisabled = isUnavailableState(primaryState) || Number.isNaN(val);
         const inputUnit = entity.attributes?.unit_of_measurement || '';
         const inputKind = inferUnitKind(entity.attributes?.device_class, inputUnit);
         const inputDisplayValue = inputKind
@@ -849,8 +851,8 @@ const SensorCard = memo(
                   e.stopPropagation();
                   control('increment');
                 }}
-                className="flex h-5 w-6 items-center justify-center rounded-md text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                disabled={val >= max}
+                className="relative flex h-5 w-6 items-center justify-center rounded-md text-[var(--text-secondary)] transition-all before:absolute before:-inset-x-2.5 before:-top-6 before:-bottom-0.5 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-40"
+                disabled={inputDisabled || val >= max}
               >
                 <Plus className="h-3 w-3" />
               </button>
@@ -859,8 +861,8 @@ const SensorCard = memo(
                   e.stopPropagation();
                   control('decrement');
                 }}
-                className="flex h-5 w-6 items-center justify-center rounded-md text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-                disabled={val <= min}
+                className="relative flex h-5 w-6 items-center justify-center rounded-md text-[var(--text-secondary)] transition-all before:absolute before:-inset-x-2.5 before:-top-0.5 before:-bottom-6 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-40"
+                disabled={inputDisabled || val <= min}
               >
                 <Minus className="h-3 w-3" />
               </button>
@@ -875,8 +877,8 @@ const SensorCard = memo(
                 e.stopPropagation();
                 control('decrement');
               }}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-              disabled={val <= min}
+              className="relative flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-all before:absolute before:-inset-2 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-40"
+              disabled={inputDisabled || val <= min}
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
@@ -893,8 +895,8 @@ const SensorCard = memo(
                 e.stopPropagation();
                 control('increment');
               }}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
-              disabled={val >= max}
+              className="relative flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-all before:absolute before:-inset-2 hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-40"
+              disabled={inputDisabled || val >= max}
             >
               <Plus className="h-3.5 w-3.5" />
             </button>

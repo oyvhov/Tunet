@@ -6,6 +6,47 @@ export function getCurrentPriceIndex(priceCount: number, currentHour: number): n
   return priceCount > 48 && indexWithHistory < priceCount ? indexWithHistory : currentHour;
 }
 
+// Norwegian electricity price support 2025/2026, on prices including VAT:
+// 75 øre/kWh excl. VAT is 93.75 incl. VAT; the state pays 90% of what is above it.
+const SUPPORT_THRESHOLD_ORE_INCL_VAT = 93.75;
+const SUPPORT_SHARE = 0.9;
+const SUBUNIT_PATTERN = /^(øre|ore|öre|cent|ct|snt|sent)/i;
+
+/** How many øre one unit of this sensor is. A sensor without a unit is taken to be in øre. */
+export function getNordpoolOrePerUnit(
+  entity: Partial<Pick<HassEntity, 'attributes'>> | null | undefined
+): number {
+  if (entity?.attributes?.price_in_cents === true) return 1;
+  const unit = String(entity?.attributes?.unit_of_measurement ?? '').trim();
+  return !unit || SUBUNIT_PATTERN.test(unit) ? 1 : 100;
+}
+
+/** The hourly price after support, in the unit it came in. */
+export function applyNordpoolSupport(price: number, orePerUnit: number): number {
+  if (!Number.isFinite(price)) return price;
+  const priceInOre = price * orePerUnit;
+  if (priceInOre <= SUPPORT_THRESHOLD_ORE_INCL_VAT) return price;
+  const support = (priceInOre - SUPPORT_THRESHOLD_ORE_INCL_VAT) * SUPPORT_SHARE;
+  return price - support / orePerUnit;
+}
+
+/** Min, max and average of the prices that are numbers; all zero when there are none. */
+export function getNordpoolPriceStats(prices: unknown[]): NordpoolPriceStats {
+  const numbers = prices.filter((p): p is number => typeof p === 'number' && !Number.isNaN(p));
+  if (numbers.length === 0) return { min: 0, max: 0, avg: 0 };
+  return {
+    min: Math.min(...numbers),
+    max: Math.max(...numbers),
+    avg: numbers.reduce((a, b) => a + b, 0) / numbers.length,
+  };
+}
+
+export interface NordpoolPriceStats {
+  min: number;
+  max: number;
+  avg: number;
+}
+
 export interface NordpoolCardSettings {
   nordpoolId?: string;
   [key: string]: unknown;
@@ -29,7 +70,7 @@ export interface NordpoolData {
   settings: NordpoolCardSettings;
   fullPriceData: NordpoolPricePoint[];
   currentPriceIndex: number;
-  priceStats: { min: number; max: number; avg: number };
+  priceStats: NordpoolPriceStats;
   name: string;
 }
 
@@ -82,17 +123,7 @@ export function prepareNordpoolData(
     };
   });
 
-  const numericalPrices = allPrices.filter(
-    (p): p is number => typeof p === 'number' && !Number.isNaN(p)
-  );
-  const priceStats =
-    numericalPrices.length > 0
-      ? {
-          min: Math.min(...numericalPrices),
-          max: Math.max(...numericalPrices),
-          avg: numericalPrices.reduce((a, b) => a + b, 0) / numericalPrices.length,
-        }
-      : { min: 0, max: 0, avg: 0 };
+  const priceStats = getNordpoolPriceStats(allPrices);
 
   const name = customNames?.[cardId] || entity.attributes?.friendly_name || cardId;
 

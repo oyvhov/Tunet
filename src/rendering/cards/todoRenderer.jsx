@@ -21,6 +21,8 @@ export function renderTodoCard(cardId, dragProps, getControls, cardStyle, settin
       cardId={cardId}
       settings={settings}
       conn={conn}
+      entity={ctx.entities?.[settings.todoEntityId]}
+      entitiesReady={ctx.entitiesMissingReady}
       t={t}
       dragProps={dragProps}
       getControls={getControls}

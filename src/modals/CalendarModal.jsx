@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Calendar, Check, ChevronDown, ChevronUp } from '../icons';
 import { getCalendarEvents } from '../services';
 import { getLocaleForLanguage } from '../i18n';
+import { useRefreshTick } from '../hooks/useRefreshTick';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
@@ -15,9 +16,18 @@ import Button from '../components/ui/Button';
  * @param {Object} props.conn - Home Assistant connection
  * @param {Object} props.entities - All HA entities
  * @param {string} [props.language] - Language code
+ * @param {string[]} [props.cardCalendars] - Calendars of the card the popup was opened from
  * @param {Function} props.t - Translation function
  */
-export default function CalendarModal({ show, onClose, conn, entities, language, t }) {
+export default function CalendarModal({
+  show,
+  onClose,
+  conn,
+  entities,
+  language,
+  cardCalendars,
+  t,
+}) {
   const translate = t || ((key) => key);
   const locale = getLocaleForLanguage(language);
   const modalTitleId = 'calendar-modal-title';
@@ -31,7 +41,10 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
       color: getCalendarColor(id),
     }));
 
+  const fromCard = Array.isArray(cardCalendars) && cardCalendars.length > 0;
+
   const [selectedCalendars, setSelectedCalendars] = useState(() => {
+    if (fromCard) return cardCalendars;
     const stored = localStorage.getItem('tunet_calendar_modal_selection');
     if (stored) {
       try {
@@ -45,7 +58,9 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
 
   const [events, setEvents] = useState({});
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const refreshTick = useRefreshTick(conn, { enabled: Boolean(show) });
 
   useEffect(() => {
     if (show) setShowCalendarPicker(false);
@@ -53,10 +68,13 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
 
   // Fetch events for selected calendars
   useEffect(() => {
+    if (selectedCalendars.length === 0) setLoadFailed(false);
     if (!show || !conn || selectedCalendars.length === 0) return;
 
+    let cancelled = false;
     const fetchEvents = async () => {
       setLoading(true);
+      setLoadFailed(false);
       try {
         const now = new Date();
         const start = new Date(now);
@@ -70,26 +88,30 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
           entityIds: selectedCalendars,
         });
 
-        setEvents(result || {});
+        if (!cancelled) setEvents(result || {});
       } catch (error) {
         console.error('Failed to fetch calendar events:', error);
+        if (!cancelled) setLoadFailed(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchEvents();
-  }, [show, conn, selectedCalendars]);
+    return () => {
+      cancelled = true;
+    };
+  }, [show, conn, selectedCalendars, refreshTick]);
 
-  // Save selection to localStorage
+  // Save selection to localStorage; a card keeps its calendars in its own settings
   useEffect(() => {
-    if (!show) return;
+    if (!show || fromCard) return;
     try {
       localStorage.setItem('tunet_calendar_modal_selection', JSON.stringify(selectedCalendars));
     } catch (error) {
       console.error('Failed to save calendar selection:', error);
     }
-  }, [show, selectedCalendars]);
+  }, [show, fromCard, selectedCalendars]);
 
   const toggleCalendar = (calendarId) => {
     setSelectedCalendars((prev) =>
@@ -184,6 +206,11 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
           >
             {/* Calendar Events */}
             <div className="min-w-0">
+              {loadFailed && !loading && (
+                <p role="alert" className="mb-4 text-center text-sm text-[var(--status-error-fg)]">
+                  {translate('calendar.loadFailed')}
+                </p>
+              )}
               {loading ? (
                 <div className="flex items-center justify-center py-20">
                   <p className="text-sm tracking-widest text-[var(--text-secondary)] uppercase">
@@ -191,12 +218,14 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
                   </p>
                 </div>
               ) : sortedDates.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <Calendar className="mb-4 h-16 w-16 text-[var(--text-muted)] opacity-30" />
-                  <p className="text-sm tracking-widest text-[var(--text-secondary)] uppercase">
-                    {translate('calendar.noEvents')}
-                  </p>
-                </div>
+                !loadFailed && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <Calendar className="mb-4 h-16 w-16 text-[var(--text-muted)] opacity-30" />
+                    <p className="text-sm tracking-widest text-[var(--text-secondary)] uppercase">
+                      {translate('calendar.noEvents')}
+                    </p>
+                  </div>
+                )
               ) : (
                 <div className="space-y-6">
                   {sortedDates.map((dateKey) => (
