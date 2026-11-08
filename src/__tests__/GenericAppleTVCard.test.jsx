@@ -201,6 +201,36 @@ describe('GenericAppleTVCard', () => {
     });
   });
 
+  it.each([
+    ['small', 'unavailable', 'status.unavailable'],
+    ['large', 'unavailable', 'status.unavailable'],
+    ['small', 'unknown', 'common.unknown'],
+  ])('names the %s card %s instead of off', (size, state, label) => {
+    const entities = {
+      'media_player.apple_tv': {
+        entity_id: 'media_player.apple_tv',
+        state,
+        attributes: { friendly_name: 'Living Room Apple TV' },
+      },
+    };
+    render(<GenericAppleTVCard {...baseProps({ size, entities, getA: () => null })} />);
+
+    expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    expect(screen.queryByText('status.off')).not.toBeInTheDocument();
+    expect(screen.queryByText('common.off')).not.toBeInTheDocument();
+  });
+
+  it('plays and pauses from the small card', () => {
+    const callService = vi.fn();
+    render(<GenericAppleTVCard {...baseProps({ size: 'small', callService })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'shield.playPause' }));
+
+    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', {
+      entity_id: 'media_player.apple_tv',
+    });
+  });
+
   it('keeps details reachable by keyboard when tapping the card toggles power', () => {
     const onOpen = vi.fn();
     const callService = vi.fn();

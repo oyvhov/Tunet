@@ -12,6 +12,7 @@ import {
   Tv,
 } from '../../icons';
 import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
+import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type { MouseEvent } from 'react';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
@@ -159,7 +160,7 @@ export const MediaPlayerCard = memo(
           </div>
           <div className="w-full px-4 text-center">
             <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-              {t('media.noneMusic')}
+              {isUnavailableState(mpState) ? getUnavailableLabel(mpState, t) : t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
               <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
@@ -473,7 +474,9 @@ export const MediaGroupCard = memo(
           </div>
           <div className="w-full px-4 text-center">
             <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-              {t('media.noneMusic')}
+              {mediaEntities.every((player) => isUnavailableState(player.state))
+                ? getUnavailableLabel(mpState, t)
+                : t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
               <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
