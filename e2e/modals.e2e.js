@@ -753,16 +753,117 @@ test.describe('Modal Interactions', () => {
 
   test('should change theme in settings modal', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
+    const light = sidebar.getByRole('button', { name: 'Light', exact: true });
 
-    // Ensure appearance panel exposes theme controls.
-    await expect(sidebar.locator('text=Theme').first()).toBeVisible();
+    await expect(light).toBeVisible();
+    await light.click();
+
+    await expect(light).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('tunet_theme'))).toBe('light');
   });
 
   test('should change language in settings modal', async ({ page }) => {
+    const modal = await openSystemModal(page);
+
+    await modal.getByRole('button', { name: 'General', exact: true }).click();
+
+    await expect(modal.locator('text=Language').first()).toBeVisible();
+  });
+
+  test('shrinks the dashboard beside the appearance panel', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openThemeSidebar(page);
+    const transform = () =>
+      page.evaluate(() => getComputedStyle(document.getElementById('main-content')).transform);
+    const rightEdge = async () => {
+      const bounds = await page.locator('#main-content').boundingBox();
+      return bounds.x + bounds.width;
+    };
+
+    await expect.poll(transform).not.toBe('none');
+    await expect.poll(rightEdge).toBeLessThanOrEqual(861);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => getComputedStyle(document.querySelector('.tunet-sidebar-backdrop')).opacity
+        )
+      )
+      .toBe('0');
+
+    await page.keyboard.press('Escape');
+
+    await expect.poll(transform).toBe('none');
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.hasAttribute('data-studio-preview')))
+      .toBe(false);
+  });
+
+  test('peeks at the dashboard on a narrow screen', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(300);
+    const sidebar = await openThemeSidebar(page);
+    const bounds = await sidebar.boundingBox();
+    expect(bounds.width).toBe(390);
+
+    await sidebar.getByTestId('sidebar-peek').hover();
+    await page.mouse.down();
+    await expect(sidebar).toHaveAttribute('data-peeking', 'true');
+
+    await page.mouse.up();
+    await expect(sidebar).not.toHaveAttribute('data-peeking', 'true');
+  });
+
+  test('keeps card style in appearance only', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
 
-    // Ensure appearance panel exposes language controls.
-    await expect(sidebar.locator('text=Language').first()).toBeVisible();
+    await expect(sidebar.getByText('Card Style')).toBeVisible();
+
+    await sidebar.getByTestId('sidebar-nav-layout').click();
+    const layoutSidebar = page.getByTestId('layout-sidebar');
+    await expect(layoutSidebar).toBeVisible();
+    await expect(layoutSidebar.getByText('Card Style')).toHaveCount(0);
+  });
+
+  test('shows the custom background image', async ({ page }) => {
+    const sidebar = await openThemeSidebar(page);
+
+    await sidebar.getByRole('button', { name: 'Custom image' }).click();
+    await sidebar
+      .getByPlaceholder('Image URL')
+      .fill('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+
+    await expect(page.getByTestId('custom-background-image')).toBeVisible();
+    await expect(page.getByTestId('custom-background-tone')).toBeVisible();
+  });
+
+  test('opens General from appearance', async ({ page }) => {
+    const sidebar = await openThemeSidebar(page);
+
+    await sidebar.getByTestId('appearance-general-link').click();
+
+    await expect(sidebar).not.toBeVisible();
+    await expect(
+      page.locator('[role="dialog"]').first().locator('text=Language').first()
+    ).toBeVisible();
+  });
+
+  test('escape in the disable-lock dialog keeps System open', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    await modal.getByRole('button', { name: 'General', exact: true }).click();
+    await modal.getByRole('button', { name: 'Settings Lock' }).click();
+    await modal.getByPlaceholder('4-digit PIN').fill('1234');
+    await modal.getByPlaceholder('Confirm PIN').fill('1234');
+    await modal.getByRole('button', { name: 'Enable lock' }).click();
+
+    await modal.getByRole('button', { name: 'Disable lock' }).click();
+    const pinDialog = page.getByText('Enter PIN to disable lock');
+    await expect(pinDialog).toBeVisible();
+
+    await page.keyboard.press('Escape');
+
+    await expect(pinDialog).not.toBeVisible();
+    await expect(modal.locator('text=Language').first()).toBeVisible();
   });
 
   test('should navigate the responsive settings sidebars on mobile', async ({ page }) => {
@@ -1019,16 +1120,10 @@ test.describe('Modal Interactions', () => {
       .toBe(true);
     await page.keyboard.press('Tab');
     await expect(done).toBeFocused();
-    const theme = sidebar.getByRole('button', { name: /^Theme:/ });
-    await theme.focus();
-    await page.keyboard.press('ArrowDown');
-    const light = sidebar.getByRole('option', { name: 'Light', exact: true });
-    await expect(sidebar.getByRole('listbox')).toBeVisible();
-    await page.keyboard.press('Home');
-    // Select Light through the same focused-option keyboard path used by users.
+    const light = sidebar.getByRole('button', { name: 'Light', exact: true });
     await light.focus();
     await page.keyboard.press('Enter');
-    await expect(theme).toBeFocused();
+    await expect(light).toBeFocused();
     await expect.poll(() => page.evaluate(() => localStorage.getItem('tunet_theme'))).toBe('light');
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))
