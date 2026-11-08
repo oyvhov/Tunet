@@ -451,6 +451,7 @@
   "ha.unavailable": "Home Assistant er for tida utilgjengeleg. Data kan vera utdatert, men kort blir framleis vist.",
   "header.addHeader": "Legg til topptekst",
   "header.batteryVariant": "Variant",
+  "header.cardsOnlyExitHint": "Hald inne på eit tomt område i 1 sekund for å få menyane tilbake.",
   "header.cardsOnlyMode": "Vis berre kort",
   "header.clockFormat": "Klokkeformat",
   "header.clockFormat.12h": "12-timars (AM/PM)",

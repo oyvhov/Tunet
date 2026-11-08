@@ -6,6 +6,9 @@ import {
 } from '../config/constants';
 import type { UseDashboardEffectsDeps, UseDashboardEffectsResult } from '../types/dashboard';
 
+// Timers can fire a hair early; aiming just past the boundary avoids a second tick right after it.
+const CLOCK_BOUNDARY_MARGIN_MS = 50;
+
 /**
  * Miscellaneous App-level side-effects that don't belong in a specific domain:
  *   – `now` clock tick
@@ -34,9 +37,22 @@ export function useDashboardEffects({
   });
 
   // ── Clock tick ─────────────────────────────────────────────────────────
+  // The interval divides a minute, so re-arming from the wall clock lands every
+  // full minute exactly and drift cannot build up on a page that is never reloaded.
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), ENTITY_UPDATE_INTERVAL);
-    return () => clearInterval(id);
+    let timer: number | undefined;
+    const schedule = () => {
+      const sinceBoundary = Date.now() % ENTITY_UPDATE_INTERVAL;
+      timer = setTimeout(
+        () => {
+          setNow(new Date());
+          schedule();
+        },
+        ENTITY_UPDATE_INTERVAL - sinceBoundary + CLOCK_BOUNDARY_MARGIN_MS
+      );
+    };
+    schedule();
+    return () => clearTimeout(timer);
   }, []);
 
   // ── Media tick (only while a media modal is open) ──────────────────────

@@ -52,6 +52,18 @@ const VALID_GROUP_SELECTION_MODES = new Set<unknown>([
 
 const OPENING_DEVICE_CLASSES = new Set(['door', 'garage_door', 'opening', 'window']);
 const UNAVAILABLE_STATES = new Set(['unavailable', 'unknown']);
+const BINARY_SENSOR_STATE_KEYS: Record<string, Record<string, string>> = {
+  door: { on: 'binary.door.open', off: 'binary.door.closed' },
+  window: { on: 'binary.window.open', off: 'binary.window.closed' },
+  garage_door: { on: 'binary.garageDoor.open', off: 'binary.garageDoor.closed' },
+  opening: { on: 'state.open', off: 'state.closed' },
+  motion: { on: 'binary.motion.detected', off: 'binary.motion.clear' },
+  moisture: { on: 'binary.moisture.wet', off: 'binary.moisture.dry' },
+  occupancy: { on: 'binary.occupancy.occupied', off: 'binary.occupancy.clear' },
+  presence: { on: 'binary.occupancy.occupied', off: 'binary.occupancy.clear' },
+  smoke: { on: 'binary.smoke.detected', off: 'binary.smoke.clear' },
+  lock: { on: 'binary.lock.unlocked', off: 'binary.lock.locked' },
+};
 
 const toEntityRows = (entities: StatusGroupEntities | null | undefined): StatusGroupEntityRow[] =>
   Object.entries(entities || {})
@@ -93,13 +105,14 @@ const getGroupEntityIdSet = (pill: StatusGroupPill | null | undefined) =>
       : []
   );
 
-const isAllowedBySelection = (pill: StatusGroupPill | null | undefined, id: string) => {
+const createSelectionFilter = (pill: StatusGroupPill | null | undefined) => {
   const mode = normalizeGroupSelectionMode(pill?.groupSelectionMode);
-  if (mode === STATUS_GROUP_SELECTION_ALL) return true;
+  if (mode === STATUS_GROUP_SELECTION_ALL) return () => true;
 
   const selectedIds = getGroupEntityIdSet(pill);
-  if (mode === STATUS_GROUP_SELECTION_INCLUDE) return selectedIds.has(id);
-  return !selectedIds.has(id);
+  return mode === STATUS_GROUP_SELECTION_INCLUDE
+    ? (id: string) => selectedIds.has(id)
+    : (id: string) => !selectedIds.has(id);
 };
 
 export const STATUS_GROUP_PRESETS: StatusGroupPreset[] = [
@@ -212,6 +225,27 @@ export function getStatusGroupPresetText(
   return translated && translated !== key ? String(translated) : fallback;
 }
 
+export function getStatusGroupStateLabel(
+  id: string,
+  entity: StatusGroupEntity,
+  t: Translate | null | undefined
+): string {
+  const state = String(entity?.state || 'unknown');
+  const domain = id.split('.')[0];
+  const deviceClass = String(entity?.attributes?.device_class || '').toLowerCase();
+  const keys = [
+    domain === 'binary_sensor' ? BINARY_SENSOR_STATE_KEYS[deviceClass]?.[state] : undefined,
+    `${domain}.${state}`,
+    `common.${state}`,
+  ];
+  for (const key of keys) {
+    if (!key) continue;
+    const translated = typeof t === 'function' ? t(key) : key;
+    if (translated && translated !== key) return String(translated);
+  }
+  return state;
+}
+
 export function buildStatusGroupPillVisuals(presetId: string | null | undefined) {
   const preset = getStatusGroupPreset(presetId);
   return {
@@ -239,16 +273,36 @@ export function resolveStatusGroupCandidates(
   return candidates;
 }
 
+export function buildStatusGroupEntity(
+  presetId: string,
+  count: number,
+  label: string,
+  sublabel: string
+) {
+  return {
+    entity_id: `status_group.${presetId}`,
+    state: String(count),
+    attributes: {
+      friendly_name: label,
+      statusPillSublabel: sublabel,
+      statusPillCount: count,
+      statusPillPreset: presetId,
+    },
+  };
+}
+
 export function resolveStatusGroupPill(
   pill: StatusGroupPill | null | undefined,
   entities: StatusGroupEntities | null | undefined,
-  t: Translate | null | undefined
+  t: Translate | null | undefined,
+  { sortMatches = true }: { sortMatches?: boolean } = {}
 ) {
   const preset = getStatusGroupPreset(pill?.groupPreset);
+  const isSelected = createSelectionFilter(pill);
   const matchedEntities = toEntityRows(entities).filter(
-    ({ id, entity }) => preset.matches(id, entity, pill) && isAllowedBySelection(pill, id)
+    ({ id, entity }) => preset.matches(id, entity, pill) && isSelected(id)
   );
-  matchedEntities.sort(sortByFriendlyName);
+  if (sortMatches) matchedEntities.sort(sortByFriendlyName);
 
   const count = matchedEntities.length;
   const customLabel = typeof pill?.label === 'string' ? pill.label.trim() : '';
@@ -262,15 +316,11 @@ export function resolveStatusGroupPill(
     count,
     matchedEntities,
     shouldRender: pill?.hideWhenEmpty === false || count > 0,
-    syntheticEntity: {
-      entity_id: `status_group.${preset.id}`,
-      state: String(count),
-      attributes: {
-        friendly_name: label,
-        statusPillSublabel: customSublabel || (count > 0 ? String(count) : emptyLabel),
-        statusPillCount: count,
-        statusPillPreset: preset.id,
-      },
-    },
+    syntheticEntity: buildStatusGroupEntity(
+      preset.id,
+      count,
+      label,
+      customSublabel || (count > 0 ? String(count) : emptyLabel)
+    ),
   };
 }

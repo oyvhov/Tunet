@@ -440,6 +440,7 @@
   "ha.unavailable": "Home Assistant är för tillfället ej tillgänglig. Data kan vara inaktuell, men kort visas fortfarande.",
   "header.addHeader": "Lägg till rubrik",
   "header.batteryVariant": "Variant",
+  "header.cardsOnlyExitHint": "Håll in på en tom yta i 1 sekund för att få tillbaka menyerna.",
   "header.cardsOnlyMode": "Visa bara kort",
   "header.clockFormat": "Klockformat",
   "header.clockFormat.12h": "12-timmars (AM/PM)",

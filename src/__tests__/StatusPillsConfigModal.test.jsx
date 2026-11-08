@@ -1071,4 +1071,57 @@ describe('StatusPillsConfigModal', () => {
       conditionEnabled: false,
     });
   });
+
+  describe('door sensor state wording', () => {
+    const doorEntities = {
+      'binary_sensor.front_door': {
+        state: 'on',
+        attributes: { friendly_name: 'Front door', device_class: 'door' },
+      },
+    };
+    const doorT = (key) => (key === 'binary.door.open' ? 'Door is open' : t(key));
+
+    const openEditorFor = async (pill) => {
+      await act(async () => {
+        render(
+          <StatusPillsConfigModal
+            show
+            onClose={() => {}}
+            onSave={() => {}}
+            entities={doorEntities}
+            statusPillsConfig={[pill]}
+            t={doorT}
+          />
+        );
+        await Promise.resolve();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getAllByText(pill.label)[0]);
+      });
+    };
+
+    it('shows the translated state in the smart group preview', async () => {
+      await openEditorFor({
+        id: 'doors',
+        type: 'group_status',
+        label: 'Doors',
+        groupPreset: 'openings_open',
+        groupSelectionMode: 'all',
+        groupEntityIds: [],
+      });
+
+      expect(screen.getByText('Door is open')).toBeInTheDocument();
+    });
+
+    it('shows the translated state under the entity picker', async () => {
+      await openEditorFor({
+        id: 'door',
+        type: 'conditional',
+        label: 'Door',
+        entityId: 'binary_sensor.front_door',
+      });
+
+      expect(screen.getByText('Door is open')).toBeInTheDocument();
+    });
+  });
 });
