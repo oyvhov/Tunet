@@ -118,7 +118,6 @@ function useThrottledEntities(
   const [entities, setEntities] = useState<EntityMap>(loadCachedEntities);
   const pendingRef = useRef<EntityMap | null>(null);
   const rafRef = useRef<number | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setEntitiesThrottled = useCallback(
     (rawEntities: EntityMap) => {
@@ -128,13 +127,6 @@ function useThrottledEntities(
           rafRef.current = null;
           if (pendingRef.current) {
             setEntities(prepareEntities(pendingRef.current));
-            // Debounce sessionStorage writes to once per 10 s
-            if (saveTimerRef.current == null) {
-              saveTimerRef.current = setTimeout(() => {
-                saveTimerRef.current = null;
-                if (pendingRef.current) saveCachedEntities(prepareEntities(pendingRef.current));
-              }, 10_000);
-            }
           }
         });
       }
@@ -142,11 +134,26 @@ function useThrottledEntities(
     [prepareEntities]
   );
 
+  // The snapshot only serves a quick reload, so write it when the page may be going away.
+  useEffect(() => {
+    const saveSnapshot = () => {
+      if (pendingRef.current) saveCachedEntities(prepareEntities(pendingRef.current));
+    };
+    const handleVisibilityChange = () => {
+      if (globalThis.document?.visibilityState === 'hidden') saveSnapshot();
+    };
+    globalThis.document?.addEventListener('visibilitychange', handleVisibilityChange);
+    globalThis.window?.addEventListener('pagehide', saveSnapshot);
+    return () => {
+      globalThis.document?.removeEventListener('visibilitychange', handleVisibilityChange);
+      globalThis.window?.removeEventListener('pagehide', saveSnapshot);
+    };
+  }, [prepareEntities]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-      if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
     };
   }, []);
 

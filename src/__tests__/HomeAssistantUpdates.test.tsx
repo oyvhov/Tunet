@@ -59,6 +59,7 @@ vi.mock('../hooks/useMobileConnectionRecovery', () => ({
 }));
 
 const config = { url: 'http://ha.local:8123', token: 'test-token', authMethod: 'token' };
+const SNAPSHOT_KEY = 'tunet_entity_snapshot';
 
 const light = (state: string) => ({
   'light.a': { entity_id: 'light.a', state, attributes: { friendly_name: 'A' } },
@@ -194,5 +195,72 @@ describe('Home Assistant entity updates', () => {
     flushFrames();
 
     expect(latestEntities['light.a'].attributes.device_name).toBe('Lamp');
+  });
+
+  describe('session snapshot', () => {
+    const savedSnapshot = () => JSON.parse(sessionStorage.getItem(SNAPSHOT_KEY) as string);
+    const setVisibility = (state: DocumentVisibilityState) =>
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(state);
+
+    it('is not written on a timer', async () => {
+      await connect();
+
+      act(() => {
+        vi.advanceTimersByTime(30_000);
+      });
+
+      expect(sessionStorage.getItem(SNAPSHOT_KEY)).toBeNull();
+    });
+
+    it('saves the newest enriched data when the page is hidden', async () => {
+      await connect();
+      act(() => haws.emit(light('off')));
+
+      setVisibility('hidden');
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+
+      const { data } = savedSnapshot();
+      expect(data['light.a'].state).toBe('off');
+      expect(data['light.a'].attributes.device_name).toBe('Lamp');
+    });
+
+    it('saves on pagehide', async () => {
+      await connect();
+
+      window.dispatchEvent(new Event('pagehide'));
+
+      expect(savedSnapshot().data['light.a'].state).toBe('on');
+    });
+
+    it('does not save when the page becomes visible', async () => {
+      await connect();
+
+      setVisibility('visible');
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+
+      expect(sessionStorage.getItem(SNAPSHOT_KEY)).toBeNull();
+    });
+
+    it('leaves an existing snapshot alone before any update has arrived', () => {
+      sessionStorage.setItem(SNAPSHOT_KEY, 'earlier');
+      render(
+        <HomeAssistantProvider config={{ ...config, url: '' }}>
+          <MetaProbe />
+        </HomeAssistantProvider>
+      );
+
+      window.dispatchEvent(new Event('pagehide'));
+
+      expect(sessionStorage.getItem(SNAPSHOT_KEY)).toBe('earlier');
+    });
+
+    it('stops saving after unmount', async () => {
+      await connect();
+      cleanup();
+
+      window.dispatchEvent(new Event('pagehide'));
+
+      expect(sessionStorage.getItem(SNAPSHOT_KEY)).toBeNull();
+    });
   });
 });
