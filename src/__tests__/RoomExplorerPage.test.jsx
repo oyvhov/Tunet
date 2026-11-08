@@ -260,6 +260,31 @@ describe('RoomExplorerPage loading', () => {
     expect(getAreaEntityMap).toHaveBeenCalledTimes(1);
   });
 
+  it('shows cached rooms when the connection only arrives after mounting', async () => {
+    mockRoom(entities);
+    const conn = {};
+    const first = renderPage(entities, { conn });
+    await screen.findByText('Kitchen');
+    first.unmount();
+
+    const pageId = 'late-connection';
+    const page = (currentConn) => (
+      <RoomExplorerPage
+        entities={entities}
+        callService={vi.fn()}
+        conn={currentConn}
+        pageSettings={{}}
+        pageId={pageId}
+        t={t}
+      />
+    );
+    const { rerender } = render(page(null));
+    rerender(page(conn));
+
+    expect(screen.getByText('Kitchen')).toBeInTheDocument();
+    expect(getAreas).toHaveBeenCalledTimes(1);
+  });
+
   it('shows an error with a retry that works', async () => {
     getAreas.mockRejectedValueOnce(new Error('nope'));
     getAreaEntityMap.mockResolvedValue({ kitchen: ['light.a'] });

@@ -900,7 +900,7 @@ function RoomExplorerPage({
   savePageSetting,
   t,
 }) {
-  const [roomData, setRoomData] = useState(() => (conn && roomDataCache.get(conn)?.data) || null);
+  const [lastFetchedData, setLastFetchedData] = useState(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [openAreaId, setOpenAreaId] = useState(() => lastSelectedArea.get(pageId) ?? null);
@@ -909,6 +909,7 @@ function RoomExplorerPage({
   const [domainFilter, setDomainFilter] = useState('all');
   const searchRef = useRef(null);
 
+  const roomData = (conn && roomDataCache.get(conn)?.data) || lastFetchedData;
   const areas = roomData?.areas ?? EMPTY_AREAS;
   const areaEntityIds = roomData?.areaEntityIds ?? EMPTY_AREA_ENTITIES;
   const isLoading = !roomData && !loadFailed;
@@ -925,7 +926,7 @@ function RoomExplorerPage({
       .then(([areaList, entityMap]) => {
         const data = { areas: areaList, areaEntityIds: entityMap };
         roomDataCache.set(conn, { data, fetchedAt: Date.now() });
-        if (!cancelled) setRoomData(data);
+        if (!cancelled) setLastFetchedData(data);
       })
       .catch(() => {
         if (!cancelled) setLoadFailed(true);
