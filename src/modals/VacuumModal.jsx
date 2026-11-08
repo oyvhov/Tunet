@@ -1533,7 +1533,7 @@ export default function VacuumModal({
   };
 
   const startRoomCleaning = async (scriptEntityId) => {
-    if (!conn || isUnavailable) return;
+    if (isUnavailable) return;
     try {
       await callService('script', 'turn_on', { entity_id: scriptEntityId });
     } catch {
@@ -1612,7 +1612,7 @@ export default function VacuumModal({
 
   // Consumable reset trigger
   const handleReset = async (buttonId) => {
-    if (!buttonId || !conn) return;
+    if (!buttonId) return;
     try {
       await callService('button', 'press', { entity_id: buttonId });
       setResetConfirmKey(null);
@@ -1630,7 +1630,7 @@ export default function VacuumModal({
 
   // Trigger Native Mapped Area Cleaning service
   const handleCleanSelectedAreas = async () => {
-    if (selectedAreaIds.length === 0 || !conn || isUnavailable) return;
+    if (selectedAreaIds.length === 0 || isUnavailable) return;
     try {
       await callService('vacuum', 'clean_area', {
         target: {
@@ -1647,7 +1647,7 @@ export default function VacuumModal({
 
   // Trigger Room Cleaning service
   const handleCleanRoom = async () => {
-    if (!selectedRoom || !roomSelectEntityId || !conn || roomCleaningDisabled) return;
+    if (!selectedRoom || !roomSelectEntityId || roomCleaningDisabled) return;
     const domain = roomSelectEntityId.split('.')[0] === 'input_select' ? 'input_select' : 'select';
 
     try {
