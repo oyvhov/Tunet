@@ -86,6 +86,9 @@ const edgeAutoScroll = {
   recheck: (_x: number, _y: number): void => {},
 };
 
+// Outlives handler rebuilds too, or a swap previewed on an earlier instance is lost on release.
+const pendingTouchConfigRef: MutableRef<PagesConfig | null> = { current: null };
+
 const stopEdgeAutoScroll = () => {
   if (edgeAutoScroll.frame !== null) cancelAnimationFrame(edgeAutoScroll.frame);
   edgeAutoScroll.frame = null;
@@ -149,7 +152,6 @@ export const createDragAndDropHandlers = ({
   setDraggingId,
   ignoreTouchRef,
 }: DragAndDropOptions) => {
-  const pendingTouchConfigRef: MutableRef<PagesConfig | null> = { current: null };
   const touchWorkingConfigRef: MutableRef<PagesConfig | null> = { current: null };
 
   const saveConfig = (newConfig: PagesConfig) => {
