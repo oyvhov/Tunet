@@ -42,7 +42,9 @@ import type {
   HomeAssistantProviderProps,
 } from '../types/dashboard';
 
-export type HomeAssistantMetaValue = Omit<HomeAssistantContextValue, 'entities'>;
+// The last-update time lives in a ref, so ordinary updates leave meta consumers alone.
+type HomeAssistantValue = Omit<HomeAssistantContextValue, 'lastEntityUpdateAt'>;
+export type HomeAssistantMetaValue = Omit<HomeAssistantValue, 'entities'>;
 
 // Shape of a rejected HA command: a {code, message} result, possibly wrapped in `error`.
 // Optional chaining keeps non-object throwables (e.g. ERR_* numbers) yielding undefined fields.
@@ -98,7 +100,7 @@ export const useHomeAssistantMeta = (): HomeAssistantMetaValue => {
   return context;
 };
 
-export const useHomeAssistant = (): HomeAssistantContextValue => {
+export const useHomeAssistant = (): HomeAssistantValue => {
   const entities = useHomeAssistantEntities();
   const meta = useHomeAssistantMeta();
   return useMemo(() => ({ entities, ...meta }), [entities, meta]);
@@ -160,7 +162,7 @@ export const HomeAssistantProvider = ({
   const [haUser, setHaUser] = useState<HomeAssistantMetaValue['haUser']>(null);
   const [haConfig, setHaConfig] = useState<HomeAssistantMetaValue['haConfig']>(null);
   const [entityDataStale, setEntityDataStale] = useState(false);
-  const [lastEntityUpdateAt, setLastEntityUpdateAt] = useState(0);
+  const lastEntityUpdateAtRef = useRef(0);
   const [disconnectedSince, setDisconnectedSince] = useState<number | null>(null);
   const authRef = useRef<Auth | null>(null);
   const connectionRef = useRef<Connection | null>(null);
@@ -256,7 +258,7 @@ export const HomeAssistantProvider = ({
       setConnected(false);
       setEntityDataStale(false);
       setDisconnectedSince(null);
-      setLastEntityUpdateAt(0);
+      lastEntityUpdateAtRef.current = 0;
       return;
     }
 
@@ -266,7 +268,7 @@ export const HomeAssistantProvider = ({
       setConnected(false);
       setEntityDataStale(false);
       setDisconnectedSince(null);
-      setLastEntityUpdateAt(0);
+      lastEntityUpdateAtRef.current = 0;
       return;
     }
     // For oauth mode, require stored tokens OR an active callback in the URL
@@ -275,7 +277,7 @@ export const HomeAssistantProvider = ({
       setConnected(false);
       setEntityDataStale(false);
       setDisconnectedSince(null);
-      setLastEntityUpdateAt(0);
+      lastEntityUpdateAtRef.current = 0;
       return;
     }
 
@@ -294,7 +296,7 @@ export const HomeAssistantProvider = ({
     setOauthExpired(false);
     setEntityDataStale(false);
     setDisconnectedSince(null);
-    setLastEntityUpdateAt(0);
+    lastEntityUpdateAtRef.current = 0;
 
     /** Fetch the authenticated HA user after connecting */
     async function fetchCurrentUser(connInstance: Connection) {
@@ -441,7 +443,7 @@ export const HomeAssistantProvider = ({
         if (isCurrentAttempt()) {
           pushEntitySnapshot(updatedEntities);
           setEntitiesLoaded(true);
-          setLastEntityUpdateAt(Date.now());
+          lastEntityUpdateAtRef.current = Date.now();
           setEntityDataStale(false);
         }
       });
@@ -485,7 +487,7 @@ export const HomeAssistantProvider = ({
         if (isCurrentAttempt()) {
           pushEntitySnapshot(updatedEntities);
           setEntitiesLoaded(true);
-          setLastEntityUpdateAt(Date.now());
+          lastEntityUpdateAtRef.current = Date.now();
           setEntityDataStale(false);
         }
       });
@@ -611,7 +613,7 @@ export const HomeAssistantProvider = ({
           entitiesLoaded,
           connected,
           disconnectedSince,
-          lastEntityUpdateAt,
+          lastEntityUpdateAt: lastEntityUpdateAtRef.current,
         })
       );
     };
@@ -619,7 +621,7 @@ export const HomeAssistantProvider = ({
     updateStaleState();
     const timer = setInterval(updateStaleState, 5_000);
     return () => clearInterval(timer);
-  }, [entitiesLoaded, connected, disconnectedSince, lastEntityUpdateAt]);
+  }, [entitiesLoaded, connected, disconnectedSince]);
 
   // Delay connection warnings, and restart the grace period when a mobile app resumes.
   useEffect(() => {
@@ -699,7 +701,6 @@ export const HomeAssistantProvider = ({
       activeUrl,
       haConfig,
       entityDataStale,
-      lastEntityUpdateAt,
       disconnectedSince,
       authRef,
       haUser,
@@ -714,7 +715,6 @@ export const HomeAssistantProvider = ({
       activeUrl,
       haConfig,
       entityDataStale,
-      lastEntityUpdateAt,
       disconnectedSince,
       haUser,
     ]
