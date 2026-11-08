@@ -14,11 +14,13 @@ import {
   Tv,
   Power,
   Volume2,
+  VolumeX,
 } from '../icons';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
 import { getMediaPlayerStateLabel, getMediaPlayerStateTone } from '../utils/mediaPlayerState';
+import { getUnavailableLabel, isUnavailableState } from '../utils/entityState';
 
 export default function GenericAndroidTVModal({
   show,
@@ -55,7 +57,10 @@ export default function GenericAndroidTVModal({
   const displayEntity = entities[displayEntityId];
 
   const state = entity?.state;
-  const isOn = state !== 'off' && state !== 'unavailable' && state !== 'unknown';
+  const isUnavailable = isUnavailableState(state);
+  const isOn = state !== 'off' && state !== 'standby' && !isUnavailable;
+  // Playback goes to the linked player while one is active, so it still works without the TV.
+  const playbackDisabled = isUnavailable && !linkedActive;
 
   const displayState = displayEntity?.state;
   const isPlaying = displayState === 'playing';
@@ -120,6 +125,24 @@ export default function GenericAndroidTVModal({
     callService('media_player', action, { entity_id: targetId });
   };
 
+  // Same wake route as the card: the remote when there is one, as it can reach a sleeping TV.
+  const togglePower = () => {
+    if (isOn) controlMedia('turn_off');
+    else if (remoteId) callService('remote', 'turn_on', { entity_id: remoteId });
+    else controlMedia('turn_on');
+  };
+
+  const isMuted = entity.attributes?.is_volume_muted === true;
+  const toggleMute = () =>
+    callService('media_player', 'volume_mute', {
+      entity_id: mediaPlayerId,
+      is_volume_muted: !isMuted,
+    });
+
+  const sourceList = Array.isArray(entity.attributes?.source_list)
+    ? entity.attributes.source_list
+    : [];
+
   return (
     <AccessibleModalShell open={show && !!entity} onClose={onClose} titleId={modalTitleId} size="l">
       {() => (
@@ -177,15 +200,17 @@ export default function GenericAndroidTVModal({
                 {/* Playback Controls */}
                 <div className="flex items-center justify-center gap-3 sm:gap-4">
                   <button
+                    disabled={playbackDisabled}
                     onClick={() => controlMedia('media_previous_track')}
-                    className="rounded-full bg-[var(--glass-bg)] p-2.5 text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 sm:p-3"
+                    className="rounded-full bg-[var(--glass-bg)] p-2.5 text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-50 sm:p-3"
                     aria-label={t('media.previousTrack')}
                   >
                     <SkipBack className="h-5 w-5" />
                   </button>
                   <button
+                    disabled={playbackDisabled}
                     onClick={() => controlMedia('media_play_pause')}
-                    className="rounded-full bg-[var(--accent-color)] p-3.5 font-bold text-[var(--accent-contrast)] shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-95 sm:p-5"
+                    className="rounded-full bg-[var(--accent-color)] p-3.5 font-bold text-[var(--accent-contrast)] shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-95 disabled:opacity-50 sm:p-5"
                     aria-label={isPlaying ? t('media.pause') : t('media.play')}
                   >
                     {isPlaying ? (
@@ -195,125 +220,185 @@ export default function GenericAndroidTVModal({
                     )}
                   </button>
                   <button
+                    disabled={playbackDisabled}
                     onClick={() => controlMedia('media_next_track')}
-                    className="rounded-full bg-[var(--glass-bg)] p-2.5 text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 sm:p-3"
+                    className="rounded-full bg-[var(--glass-bg)] p-2.5 text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-50 sm:p-3"
                     aria-label={t('media.nextTrack')}
                   >
                     <SkipForward className="h-5 w-5" />
                   </button>
                 </div>
               </div>
+
+              {/* Quick Launch Sources / Apps */}
+              {sourceList.length > 0 && (
+                <div className="popup-surface rounded-2xl p-3 sm:p-4">
+                  <span className="modal-section-label mb-3 block">{t('appletv.apps')}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {sourceList.map((source) => {
+                      const isActiveApp = appName?.toLowerCase() === source.toLowerCase();
+                      return (
+                        <button
+                          key={source}
+                          disabled={isUnavailable}
+                          onClick={() =>
+                            callService('media_player', 'select_source', {
+                              entity_id: mediaPlayerId,
+                              source,
+                            })
+                          }
+                          className={`min-h-11 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 ${
+                            isActiveApp
+                              ? 'border-[var(--accent-color)] bg-[var(--accent-bg)] text-[var(--accent-color)]'
+                              : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {source}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right Column (Span 2) - Remote + Volume & Power */}
-            {remoteId && (
-              <div className="popup-surface flex flex-col items-center gap-3 rounded-2xl p-3 sm:gap-6 sm:p-4 lg:col-span-2">
-                {/* D-Pad */}
-                <div className="relative h-32 w-32 sm:h-44 sm:w-44">
-                  {/* Up */}
-                  <button
-                    onClick={() => sendCommand('DPAD_UP')}
-                    className="absolute top-0 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 sm:h-14 sm:w-14"
-                    aria-label={t('remote.up')}
-                  >
-                    <ChevronUp className="h-5 w-5" />
-                  </button>
-                  {/* Left */}
-                  <button
-                    onClick={() => sendCommand('DPAD_LEFT')}
-                    className="absolute top-1/2 left-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 sm:h-14 sm:w-14"
-                    aria-label={t('remote.left')}
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  {/* Right */}
-                  <button
-                    onClick={() => sendCommand('DPAD_RIGHT')}
-                    className="absolute top-1/2 right-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 sm:h-14 sm:w-14"
-                    aria-label={t('remote.right')}
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                  {/* Down */}
-                  <button
-                    onClick={() => sendCommand('DPAD_DOWN')}
-                    className="absolute bottom-0 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 sm:h-14 sm:w-14"
-                    aria-label={t('remote.down')}
-                  >
-                    <ChevronDown className="h-5 w-5" />
-                  </button>
-                  {/* Center */}
-                  <button
-                    onClick={() => sendCommand('DPAD_CENTER')}
-                    className="absolute top-1/2 left-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent-color)] text-[11px] font-bold text-[var(--accent-contrast)] shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-90 sm:h-12 sm:w-12"
-                    aria-label={t('remote.select')}
-                  >
-                    {t('common.ok')}
-                  </button>
-                </div>
-
-                {/* Nav Buttons */}
-                <div className="grid w-full grid-cols-3 gap-2 sm:gap-4">
-                  <button
-                    onClick={() => sendCommand('BACK')}
-                    className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 sm:gap-2 sm:p-3"
-                  >
-                    <ChevronLeft className="h-5 w-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />
-                    <span className="text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase group-hover:text-[var(--text-secondary)]">
-                      {t('shield.back')}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => sendCommand('HOME')}
-                    className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 sm:gap-2 sm:p-3"
-                  >
-                    <Home className="h-5 w-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />
-                    <span className="text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase group-hover:text-[var(--text-secondary)]">
-                      {t('shield.home')}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => sendCommand('MENU')}
-                    className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 sm:gap-2 sm:p-3"
-                  >
-                    <Settings className="h-5 w-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />
-                    <span className="text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase group-hover:text-[var(--text-secondary)]">
-                      {t('shield.menu')}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Volume & Power Controls */}
-                <div className="flex w-full flex-col gap-3">
-                  <div className="flex gap-3">
+            <div className="popup-surface flex flex-col items-center gap-3 rounded-2xl p-3 sm:gap-6 sm:p-4 lg:col-span-2">
+              {remoteId && (
+                <>
+                  {/* D-Pad */}
+                  <div className="relative h-32 w-32 sm:h-44 sm:w-44">
+                    {/* Up */}
                     <button
-                      onClick={() => controlMedia('volume_down')}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--glass-bg)] py-2.5 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 sm:py-3"
-                      aria-label={t('media.volume.down')}
+                      disabled={isUnavailable}
+                      onClick={() => sendCommand('DPAD_UP')}
+                      className="absolute top-0 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50 sm:h-14 sm:w-14"
+                      aria-label={t('remote.up')}
                     >
-                      <Volume2 className="h-4 w-4 opacity-50" />
-                      <span className="text-lg font-bold">−</span>
+                      <ChevronUp className="h-5 w-5" />
                     </button>
+                    {/* Left */}
                     <button
-                      onClick={() => controlMedia('volume_up')}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--glass-bg)] py-2.5 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 sm:py-3"
-                      aria-label={t('media.volume.up')}
+                      disabled={isUnavailable}
+                      onClick={() => sendCommand('DPAD_LEFT')}
+                      className="absolute top-1/2 left-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50 sm:h-14 sm:w-14"
+                      aria-label={t('remote.left')}
                     >
-                      <span className="text-lg font-bold">+</span>
-                      <Volume2 className="h-4 w-4 opacity-50" />
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    {/* Right */}
+                    <button
+                      disabled={isUnavailable}
+                      onClick={() => sendCommand('DPAD_RIGHT')}
+                      className="absolute top-1/2 right-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50 sm:h-14 sm:w-14"
+                      aria-label={t('remote.right')}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                    {/* Down */}
+                    <button
+                      disabled={isUnavailable}
+                      onClick={() => sendCommand('DPAD_DOWN')}
+                      className="absolute bottom-0 left-1/2 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50 sm:h-14 sm:w-14"
+                      aria-label={t('remote.down')}
+                    >
+                      <ChevronDown className="h-5 w-5" />
+                    </button>
+                    {/* Center */}
+                    <button
+                      disabled={isUnavailable}
+                      onClick={() => sendCommand('DPAD_CENTER')}
+                      className="absolute top-1/2 left-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent-color)] text-[11px] font-bold text-[var(--accent-contrast)] shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-90 disabled:opacity-50 sm:h-12 sm:w-12"
+                      aria-label={t('remote.select')}
+                    >
+                      {t('common.ok')}
                     </button>
                   </div>
-                  <Button
-                    block
-                    variant={isOn ? 'destructive' : 'primary'}
-                    onClick={() => (isOn ? controlMedia('turn_off') : controlMedia('turn_on'))}
-                    icon={<Power className="h-5 w-5" />}
+
+                  {/* Nav Buttons */}
+                  <div className="grid w-full grid-cols-3 gap-2 sm:gap-4">
+                    <button
+                      disabled={isUnavailable}
+                      onClick={() => sendCommand('BACK')}
+                      className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-50 sm:gap-2 sm:p-3"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />
+                      <span className="text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase group-hover:text-[var(--text-secondary)]">
+                        {t('shield.back')}
+                      </span>
+                    </button>
+                    <button
+                      disabled={isUnavailable}
+                      onClick={() => sendCommand('HOME')}
+                      className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-50 sm:gap-2 sm:p-3"
+                    >
+                      <Home className="h-5 w-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />
+                      <span className="text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase group-hover:text-[var(--text-secondary)]">
+                        {t('shield.home')}
+                      </span>
+                    </button>
+                    <button
+                      disabled={isUnavailable}
+                      onClick={() => sendCommand('MENU')}
+                      className="group flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] p-2 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-50 sm:gap-2 sm:p-3"
+                    >
+                      <Settings className="h-5 w-5 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />
+                      <span className="text-[11px] font-bold tracking-[0.08em] text-[var(--text-muted)] uppercase group-hover:text-[var(--text-secondary)]">
+                        {t('shield.menu')}
+                      </span>
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Volume & Power Controls */}
+              <div className="flex w-full flex-col gap-3">
+                <div className="flex gap-3">
+                  <button
+                    disabled={isUnavailable}
+                    onClick={() => controlMedia('volume_down')}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--glass-bg)] py-2.5 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-50 sm:py-3"
+                    aria-label={t('media.volume.down')}
                   >
-                    {isOn ? t('shield.turnOff') : t('shield.turnOn')}
-                  </Button>
+                    <Volume2 className="h-4 w-4 opacity-50" />
+                    <span className="text-lg font-bold">−</span>
+                  </button>
+                  <button
+                    disabled={isUnavailable}
+                    onClick={() => controlMedia('volume_up')}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--glass-bg)] py-2.5 transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-50 sm:py-3"
+                    aria-label={t('media.volume.up')}
+                  >
+                    <span className="text-lg font-bold">+</span>
+                    <Volume2 className="h-4 w-4 opacity-50" />
+                  </button>
                 </div>
+                <button
+                  disabled={isUnavailable}
+                  onClick={toggleMute}
+                  aria-pressed={isMuted}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--glass-bg)] text-xs font-semibold text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-50"
+                >
+                  <VolumeX className="h-4 w-4 opacity-70" />
+                  <span className="text-[11px] font-bold tracking-[0.08em] uppercase">
+                    {isMuted ? t('media.volume.unmute') : t('media.volume.mute')}
+                  </span>
+                </button>
+                <Button
+                  block
+                  variant={isOn ? 'destructive' : isUnavailable ? 'secondary' : 'primary'}
+                  disabled={isUnavailable}
+                  onClick={togglePower}
+                  icon={<Power className="h-5 w-5" />}
+                >
+                  {isUnavailable
+                    ? getUnavailableLabel(state, t)
+                    : isOn
+                      ? t('shield.turnOff')
+                      : t('shield.turnOn')}
+                </Button>
               </div>
-            )}
+            </div>
           </ModalBody>
         </>
       )}

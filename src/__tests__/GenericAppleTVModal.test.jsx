@@ -221,6 +221,20 @@ describe('GenericAppleTVModal', () => {
     });
   });
 
+  it('does not offer to turn on an Apple TV that is unavailable', () => {
+    const entities = {
+      'media_player.apple_tv': {
+        entity_id: 'media_player.apple_tv',
+        state: 'unavailable',
+        attributes: { friendly_name: 'Living Room Apple TV' },
+      },
+    };
+    render(<GenericAppleTVModal {...baseProps({ entities })} />);
+
+    expect(screen.queryByRole('button', { name: 'Turn on' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'status.unavailable' })).toBeDisabled();
+  });
+
   it('allows launching sources from source_list', () => {
     const callService = vi.fn();
     render(<GenericAppleTVModal {...baseProps({ callService })} />);
