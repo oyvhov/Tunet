@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createHomeAssistantAuthMiddleware,
   createValidatedHomeAssistantUserResolver,
+  warnIfHomeAssistantUrlMissing,
 } from '../haAuth.js';
 
 const createRequest = (headers = {}) => ({
@@ -84,6 +85,57 @@ describe('createValidatedHomeAssistantUserResolver', () => {
     ).rejects.toThrow('ECONNREFUSED');
 
     expect(loadCurrentUser).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('warnIfHomeAssistantUrlMissing', () => {
+  let warnSpy;
+
+  beforeEach(() => {
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', '');
+    vi.stubEnv('TUNET_INTERNAL_HA_FALLBACK_URL', '');
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '0');
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    warnSpy.mockRestore();
+  });
+
+  it('warns once and names the setting when no URL is configured', () => {
+    warnIfHomeAssistantUrlMissing();
+
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0][0]).toContain('TUNET_INTERNAL_HA_URL');
+    expect(warnSpy.mock.calls[0][0]).toMatch(/profiles and settings sync/i);
+  });
+
+  it('warns when the configured URL is not usable', () => {
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', 'not a url');
+
+    warnIfHomeAssistantUrlMissing();
+
+    expect(warnSpy).toHaveBeenCalledOnce();
+  });
+
+  it.each(['TUNET_INTERNAL_HA_URL', 'TUNET_INTERNAL_HA_FALLBACK_URL'])(
+    'stays quiet when %s is set',
+    (name) => {
+      vi.stubEnv(name, 'http://homeassistant.local:8123');
+
+      warnIfHomeAssistantUrlMissing();
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    }
+  );
+
+  it('stays quiet in the add-on, where Supervisor ingress authenticates without a URL', () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+
+    warnIfHomeAssistantUrlMissing();
+
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
 

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import profilesRouter from './routes/profiles.js';
 import iconsRouter from './routes/icons.js';
 import settingsRouter from './routes/settings.js';
-import { createHomeAssistantAuthMiddleware } from './haAuth.js';
+import { createHomeAssistantAuthMiddleware, warnIfHomeAssistantUrlMissing } from './haAuth.js';
 import db, { startBackupSchedule } from './db.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -244,6 +244,7 @@ if (isMainModule) {
       `[server] Tunet backend running on port ${PORT} (${process.env.NODE_ENV === 'production' ? 'production' : 'development'})`
     );
   });
+  warnIfHomeAssistantUrlMissing();
   installShutdownHandlers({ server, database: db, stopBackups: startBackupSchedule() });
 }
 
