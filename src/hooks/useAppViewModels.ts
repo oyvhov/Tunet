@@ -97,6 +97,7 @@ export type UseAppViewModelsParams = Pick<
     | 'saveCustomIcon'
     | 'persistCustomIcons'
     | 'toggleCardVisibility'
+    | 'duplicateCard'
     | 'persistHiddenCards'
     | 'statusPillsConfig'
     | 'saveStatusPillsConfig'
@@ -184,6 +185,7 @@ export type UseAppViewModelsParams = Pick<
     | 'isBatteryPage'
     | 'isRoomExplorerPage'
     | 'getCardSettingsKey'
+    | 'isCardRemovable'
     | 'isCardHiddenByLogic'
     | 'pageDefaults'
   > &
@@ -398,6 +400,8 @@ export function useAppViewModels(params: UseAppViewModelsParams) {
     saveCustomIcon,
     persistCustomIcons,
     toggleCardVisibility,
+    duplicateCard,
+    isCardRemovable,
     persistHiddenCards,
     statusPillsConfig,
     saveStatusPillsConfig,
@@ -813,6 +817,8 @@ export function useAppViewModels(params: UseAppViewModelsParams) {
       persistCustomIcons,
       hiddenCards,
       toggleCardVisibility,
+      duplicateCard,
+      isCardRemovable,
       persistHiddenCards,
       getCardSettingsKey,
       statusPillsConfig,
@@ -830,6 +836,8 @@ export function useAppViewModels(params: UseAppViewModelsParams) {
       persistCustomIcons,
       hiddenCards,
       toggleCardVisibility,
+      duplicateCard,
+      isCardRemovable,
       persistHiddenCards,
       getCardSettingsKey,
       statusPillsConfig,

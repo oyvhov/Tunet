@@ -1,6 +1,7 @@
 import { lazyModal as lazy } from '../../components/ui/lazyModal';
 import { ModalSuspense, getServerInfo } from '../../components';
 import { formatDuration } from '../../utils';
+import { moveCardInPage } from '../../utils/cardEditActions';
 import { buildRoomCardsPayload } from './roomCardUtils';
 
 const AddPageModal = lazy(() => import('../../modals/AddPageModal'));
@@ -60,10 +61,12 @@ export function ModalManagementSlice({
     createBatteryPage,
     createRoomExplorerPage,
     deletePage,
+    removeCard,
     pageSettings,
     savePageSetting,
     pagesConfig,
     persistConfig,
+    activePage,
   } = pageManagement;
   const {
     addCardTargetPage,
@@ -112,11 +115,18 @@ export function ModalManagementSlice({
     customIcons,
     hiddenCards,
     toggleCardVisibility,
+    duplicateCard,
+    isCardRemovable,
     getCardSettingsKey,
     statusPillsConfig,
     saveStatusPillsConfig,
   } = cardConfig;
   const { callService, getEntityImageUrl, getA, isSonosActive, isMediaActive } = entityHelpers;
+
+  const closeEditCardModal = () => {
+    setEditCardModalVisibility(null);
+    setEditCardSettingsKey(null);
+  };
 
   return (
     <>
@@ -254,10 +264,7 @@ export function ModalManagementSlice({
         <ModalSuspense>
           <EditCardModal
             isOpen={!!showEditCardModal}
-            onClose={() => {
-              setEditCardModalVisibility(null);
-              setEditCardSettingsKey(null);
-            }}
+            onClose={closeEditCardModal}
             t={t}
             entityId={showEditCardModal}
             entities={entities}
@@ -272,6 +279,32 @@ export function ModalManagementSlice({
             gridColumns={core.gridColumns}
             pagesConfig={pagesConfig}
             pageSettings={pageSettings}
+            cardActions={{
+              isHidden: hiddenCards.includes(showEditCardModal),
+              canRemove: isCardRemovable(showEditCardModal),
+              onMove: (direction) => {
+                const nextConfig = moveCardInPage(
+                  pagesConfig,
+                  activePage,
+                  showEditCardModal,
+                  direction
+                );
+                if (nextConfig) persistConfig(nextConfig);
+              },
+              onToggleVisibility: () => toggleCardVisibility(showEditCardModal),
+              onDuplicate:
+                showEditCardModal !== 'media_player' &&
+                !showEditCardModal.startsWith('spacer_card_')
+                  ? () => {
+                      duplicateCard(showEditCardModal, activePage);
+                      closeEditCardModal();
+                    }
+                  : undefined,
+              onRemove: () => {
+                removeCard(showEditCardModal);
+                closeEditCardModal();
+              },
+            }}
             {...editModalProps}
           />
         </ModalSuspense>

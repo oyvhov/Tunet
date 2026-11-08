@@ -13,6 +13,7 @@ import { RoomSettingsSection } from './editCard/RoomSettingsSection';
 import { ToggleRow } from './editCard/settingsControls';
 import SensorCardSettings from './SensorCardSettings';
 import SensorCardPreview from './editCard/SensorCardPreview';
+import CardActionsRow from './editCard/CardActionsRow';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
   convertValueByKind,
@@ -784,6 +785,7 @@ export default function EditCardModal({
   customIcons,
   saveCustomIcon,
   saveCardSetting,
+  cardActions,
 }) {
   const [mediaSearch, setMediaSearch] = React.useState('');
   const [showVisibilityLogic, setShowVisibilityLogic] = React.useState(false);
@@ -1200,6 +1202,19 @@ export default function EditCardModal({
             <ModalBody
               className={`space-y-6 ${showSensorPreview ? 'lg:col-start-1 lg:row-start-1' : ''}`}
             >
+              {cardActions && (
+                <CardActionsRow
+                  editId={entityId}
+                  settings={editSettings}
+                  actions={cardActions}
+                  onSaveSize={
+                    editSettingsKey
+                      ? (size) => saveCardSetting(editSettingsKey, 'size', size)
+                      : undefined
+                  }
+                  t={t}
+                />
+              )}
               {showSensorPreview && (
                 <SensorCardSettings
                   entityId={nameFallbackEntityId || entityId}

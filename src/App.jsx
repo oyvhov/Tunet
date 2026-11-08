@@ -547,10 +547,6 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     setShowAlarmActionModal,
     setShowEditCardModal: guardedSetShowEditCardModal,
     setEditCardSettingsKey,
-    toggleCardVisibility: guardedToggleCardVisibility,
-    removeCard: guardedRemoveCard,
-    duplicateCard,
-    isCardRemovable,
   });
 
   const {
@@ -693,7 +689,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     createBatteryPage,
     createRoomExplorerPage,
     deletePage,
-    removeCard,
+    removeCard: guardedRemoveCard,
     persistPageSettings,
     persistConfig,
     optimisticLightBrightness,
@@ -745,7 +741,9 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     customIcons,
     saveCustomIcon,
     persistCustomIcons,
-    toggleCardVisibility,
+    toggleCardVisibility: guardedToggleCardVisibility,
+    duplicateCard,
+    isCardRemovable,
     persistHiddenCards,
     statusPillsConfig,
     saveStatusPillsConfig,

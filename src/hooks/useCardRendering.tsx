@@ -13,6 +13,7 @@ import {
   buildGridLayout as _buildGridLayout,
 } from '../utils/gridLayout';
 import { createDragAndDropHandlers } from '../utils/dragAndDrop';
+import { moveCardInPage } from '../utils/cardEditActions';
 import { dispatchCardRender } from '../rendering/registry';
 import EditOverlay from '../components/ui/EditOverlay';
 import type { CardSettingsMap, GetCardSettingsKey } from '../utils/cardSettingsKey';
@@ -26,7 +27,6 @@ import type {
   EntityMap,
   EntityModalActions,
   MediaModalActions,
-  PageContextValue,
   PagesConfig,
   UseDashboardEffectsResult,
 } from '../types/dashboard';
@@ -106,10 +106,6 @@ export interface UseCardRenderingParams
   setShowAlarmActionModal: EntityModalActions['setShowAlarmActionModal'];
   setShowEditCardModal: (value: string | null) => void;
   setEditCardSettingsKey: (key: string | null) => void;
-  toggleCardVisibility: (cardId: string) => void;
-  removeCard: (cardId: string) => void;
-  duplicateCard?: PageContextValue['duplicateCard'] | null;
-  isCardRemovable: (cardId: string) => boolean;
 }
 
 export function useCardRendering({
@@ -174,10 +170,6 @@ export function useCardRendering({
   setActiveMediaGroupKey: legacySetActiveMediaGroupKey,
   setActiveMediaGroupIds: legacySetActiveMediaGroupIds,
   setActiveMediaModal: legacySetActiveMediaModal,
-  toggleCardVisibility,
-  removeCard,
-  duplicateCard,
-  isCardRemovable,
 }: UseCardRenderingParams) {
   // Without the grouped objects, legacy callers must supply every setter listed here.
   const resolvedEntityModalActions =
@@ -281,21 +273,8 @@ export function useCardRendering({
 
   const moveCardInArray = useCallback(
     (cardId: string, direction: 'left' | 'right') => {
-      const newConfig = { ...pagesConfig };
-      // Page entries in PagesConfig are card-id arrays; its index signature is untyped.
-      const pageCards = [...((newConfig[activePage] as string[] | undefined) || [])];
-      const currentIndex = pageCards.indexOf(cardId);
-      if (currentIndex === -1) return;
-
-      const newIndex = direction === 'left' ? currentIndex - 1 : currentIndex + 1;
-      if (newIndex < 0 || newIndex >= pageCards.length) return;
-
-      [pageCards[currentIndex], pageCards[newIndex]] = [
-        pageCards[newIndex],
-        pageCards[currentIndex],
-      ];
-      newConfig[activePage] = pageCards;
-      persistConfig(newConfig);
+      const newConfig = moveCardInPage(pagesConfig, activePage, cardId, direction);
+      if (newConfig) persistConfig(newConfig);
     },
     [pagesConfig, activePage, persistConfig]
   );
@@ -362,32 +341,16 @@ export function useCardRendering({
       const getControls = (targetId?: string) => {
         if (!editMode) return null;
         const editId = targetId || cardId;
-        const controlsHidden = hiddenCards.includes(cardId) || isCardHiddenByLogic(cardId);
         const settings = cardSettings[settingsKey] || cardSettings[editId] || {};
 
         return (
           <EditOverlay
-            cardId={cardId}
             editId={editId}
-            settingsKey={settingsKey}
-            isHidden={controlsHidden}
-            currentSize={cardSettings[settingsKey]?.size || 'large'}
             settings={settings}
-            canRemove={isCardRemovable(cardId)}
-            onMoveLeft={() => moveCardInArray(cardId, 'left')}
-            onMoveRight={() => moveCardInArray(cardId, 'right')}
             onEdit={() => {
               setShowEditCardModal(editId);
               setEditCardSettingsKey(settingsKey);
             }}
-            onToggleVisibility={() => toggleCardVisibility(cardId)}
-            onSaveSize={(size: string) => saveCardSetting(settingsKey, 'size', size)}
-            onRemove={() => removeCard(cardId)}
-            onDuplicate={
-              duplicateCard && editId !== 'media_player' && !editId.startsWith('spacer_card_')
-                ? () => duplicateCard(editId, activePage)
-                : undefined
-            }
             dragHandleProps={{
               onContextMenu: (e: ReactMouseEvent) => e.preventDefault(),
               onKeyDown: (e: ReactKeyboardEvent) => {
@@ -529,14 +492,10 @@ export function useCardRendering({
       dragAndDrop,
       getCardSettingsKey,
       cardSettings,
-      isCardRemovable,
       moveCardInArray,
-      duplicateCard,
       setShowEditCardModal,
       setEditCardSettingsKey,
-      toggleCardVisibility,
       saveCardSetting,
-      removeCard,
       t,
       touchPath,
       entities,

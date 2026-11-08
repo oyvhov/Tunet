@@ -1198,8 +1198,9 @@ test.describe('Modal Interactions', () => {
     await enableEditMode(page);
     await page
       .locator('[data-card-id="light.bedroom"]')
-      .getByRole('button', { name: 'Duplicate card' })
+      .getByRole('button', { name: 'Edit card' })
       .press('Enter');
+    await page.getByRole('dialog').getByRole('button', { name: 'Duplicate card' }).click();
     const copy = page.locator('[data-card-id^="light.bedroom__dup_"]');
     await expect(copy).toHaveCount(1);
     await expect(copy.getByText('Bedroom Light', { exact: true })).toBeVisible();
