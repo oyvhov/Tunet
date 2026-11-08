@@ -58,6 +58,20 @@ describe('useSmartTheme', () => {
 
   const gradientFrom = () => document.documentElement.style.getPropertyValue('--bg-gradient-from');
 
+  it('puts the sky back when the background setup clears it', () => {
+    const { rerender } = renderHook((props) => useSmartTheme(props), {
+      initialProps: makeProps(),
+    });
+    const applied = gradientFrom();
+    expect(applied).not.toBe('');
+
+    // ConfigContext clears these variables on every theme or background change.
+    document.documentElement.style.removeProperty('--bg-gradient-from');
+    rerender(makeProps({ now: new Date('2026-05-07T12:01:00Z') }));
+
+    expect(gradientFrom()).toBe(applied);
+  });
+
   it('follows the clock instead of showing night when the sun entity is unavailable', () => {
     renderHook((props) => useSmartTheme(props), {
       initialProps: makeProps({

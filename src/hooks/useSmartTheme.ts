@@ -109,11 +109,13 @@ export function useSmartTheme({ currentTheme, bgMode, entities, now }: UseSmartT
       bgGradientTo = '#64748b';
     }
 
+    const root = document.documentElement;
     const nextApplied = `${bgGradientFrom}|${bgGradientTo}|${bgPrimary}`;
-    if (lastAppliedRef.current === nextApplied) return;
+    // ConfigContext clears these variables after this effect on a theme or background change.
+    const stillApplied = root.style.getPropertyValue('--bg-gradient-from') === bgGradientFrom;
+    if (lastAppliedRef.current === nextApplied && stillApplied) return;
     lastAppliedRef.current = nextApplied;
 
-    const root = document.documentElement;
     root.style.setProperty('--bg-gradient-from', bgGradientFrom);
     root.style.setProperty('--bg-gradient-to', bgGradientTo);
     root.style.setProperty('--bg-primary', bgPrimary);
