@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { LayoutGrid, Plus, UserCircle2 } from '../icons';
 import CardErrorBoundary from '../components/ui/CardErrorBoundary';
+import { useHomeAssistantOffline } from '../contexts/HomeAssistantContext';
 import { formatDuration } from '../utils';
 
 const MediaPage = lazy(() => import('../components/pages/MediaPage'));
@@ -11,6 +12,7 @@ const RoomExplorerPage = lazy(() => import('../components/pages/RoomExplorerPage
 const pageFallback = <div className="page-transition min-h-[40vh]" aria-hidden="true" />;
 
 export default function DashboardGrid({ page, media, grid, cards, actions, t }) {
+  const offline = useHomeAssistantOffline();
   const {
     activePage,
     pagesConfig,
@@ -276,6 +278,7 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
               <div
                 className="dashboard-card-slot h-full overflow-hidden"
                 data-card-editing={editMode ? '' : undefined}
+                data-card-offline={offline && !editMode ? '' : undefined}
                 style={
                   needsScale
                     ? {

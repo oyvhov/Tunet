@@ -9,7 +9,19 @@ const entity = {
 };
 const setters = () => new Proxy({}, { get: () => vi.fn() });
 
-function setup(editMode) {
+const renderSpy = vi.hoisted(() => vi.fn());
+vi.mock('../rendering/registry', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    dispatchCardRender: (...args) => {
+      renderSpy(...args);
+      return actual.dispatchCardRender(...args);
+    },
+  };
+});
+
+function setup(editMode, connected = true) {
   const callService = vi.fn(async () => ({}));
   const { result } = renderHook(() =>
     useCardRendering({
@@ -30,6 +42,7 @@ function setup(editMode) {
       entities: { 'light.kjokken': entity },
       entitiesLoaded: true,
       conn: {},
+      connected,
       customNames: {},
       customIcons: {},
       getA: (id, attr, fallback = null) => entity.attributes[attr] ?? fallback,
@@ -59,6 +72,15 @@ function setup(editMode) {
   render(result.current.renderCard('light.kjokken', 0));
   return { callService };
 }
+
+describe('useCardRendering card context', () => {
+  it('tells renderers whether the connection is up', () => {
+    setup(false, false);
+    expect(renderSpy.mock.lastCall[5]).toMatchObject({ connected: false });
+    setup(false, true);
+    expect(renderSpy.mock.lastCall[5]).toMatchObject({ connected: true });
+  });
+});
 
 describe('useCardRendering in edit mode', () => {
   it('does not let a card control the house while it is being edited', () => {

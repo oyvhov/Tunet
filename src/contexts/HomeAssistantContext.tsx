@@ -81,6 +81,13 @@ function saveCachedEntities(entities: EntityMap): void {
 
 const HomeAssistantEntitiesContext = createContext<EntityMap | null>(null);
 const HomeAssistantMetaContext = createContext<HomeAssistantMetaValue | null>(null);
+const HomeAssistantOfflineContext = createContext(false);
+
+/**
+ * True while the cards cannot be trusted: old data, or a connection down past the warning delay.
+ * A context of its own, because the meta value changes with every socket message.
+ */
+export const useHomeAssistantOffline = (): boolean => useContext(HomeAssistantOfflineContext);
 
 export const useHomeAssistantEntities = (): EntityMap => {
   const context = useContext(HomeAssistantEntitiesContext);
@@ -174,6 +181,8 @@ export const HomeAssistantProvider = ({
     setConnected(true);
     setHaUnavailable(false);
     setDisconnectedSince(null);
+    // An answered ping proves the data is current, even in a house where nothing has changed.
+    setLastEntityUpdateAt((current) => (current ? Date.now() : current));
   }, []);
 
   const markConnectionRecovering = useCallback(() => {
@@ -722,9 +731,11 @@ export const HomeAssistantProvider = ({
 
   return (
     <HomeAssistantMetaContext.Provider value={metaValue}>
-      <HomeAssistantEntitiesContext.Provider value={entities}>
-        {children}
-      </HomeAssistantEntitiesContext.Provider>
+      <HomeAssistantOfflineContext.Provider value={entityDataStale || haUnavailableVisible}>
+        <HomeAssistantEntitiesContext.Provider value={entities}>
+          {children}
+        </HomeAssistantEntitiesContext.Provider>
+      </HomeAssistantOfflineContext.Provider>
     </HomeAssistantMetaContext.Provider>
   );
 };

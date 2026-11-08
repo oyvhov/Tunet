@@ -1,7 +1,14 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import M3Slider from '../components/ui/M3Slider';
 import DashboardGrid from '../rendering/DashboardGrid';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const offline = vi.hoisted(() => ({ value: false }));
+vi.mock('../contexts/HomeAssistantContext', () => ({
+  useHomeAssistantOffline: () => offline.value,
+}));
 
 const dashboardProps = {
   page: {
@@ -49,6 +56,38 @@ const dashboardProps = {
   },
   t: (key) => key,
 };
+
+describe('card slots without contact with Home Assistant', () => {
+  afterEach(() => {
+    offline.value = false;
+  });
+
+  const slot = () => screen.getByText('Mobile test card').closest('.dashboard-card-slot');
+
+  it('leaves the slot alone while the data can be trusted', () => {
+    render(<DashboardGrid {...dashboardProps} />);
+    expect(slot()).not.toHaveAttribute('data-card-offline');
+  });
+
+  it('marks the slot when offline', () => {
+    offline.value = true;
+    render(<DashboardGrid {...dashboardProps} />);
+    expect(slot()).toHaveAttribute('data-card-offline');
+  });
+
+  it('does not mark the slot during edit mode', () => {
+    offline.value = true;
+    render(<DashboardGrid {...dashboardProps} page={{ ...dashboardProps.page, editMode: true }} />);
+    expect(slot()).not.toHaveAttribute('data-card-offline');
+    expect(slot()).toHaveAttribute('data-card-editing');
+  });
+
+  it('blocks taps on the card itself, not only on the controls inside it', () => {
+    const rule =
+      /\.dashboard-card-slot\[data-card-offline\],\s*\.dashboard-card-slot\[data-card-offline\] \*\s*\{\s*pointer-events: none;/;
+    expect(readFileSync(resolve(process.cwd(), 'src/styles/dashboard.css'), 'utf8')).toMatch(rule);
+  });
+});
 
 describe('mobile grid controls', () => {
   it('applies the configured horizontal and vertical gaps on mobile', () => {

@@ -80,6 +80,16 @@
 .dashboard-card-slot[data-card-editing] [data-edit-control] * {
   pointer-events: auto;
 }
+/* No contact with Home Assistant: the data is old and a tap could not reach the house.
+   The fade-in hides the blink while a waking screen is still checking the connection. */
+.dashboard-card-slot[data-card-offline] {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+.dashboard-card-slot[data-card-offline],
+.dashboard-card-slot[data-card-offline] * {
+  pointer-events: none;
+}
 @keyframes editJiggle {
   0% {
     transform: rotate(-0.15deg) scale(0.99);

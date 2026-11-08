@@ -84,6 +84,7 @@ export interface UseCardRenderingParams
   entities: EntityMap;
   entitiesLoaded: boolean;
   conn: Connection | null;
+  connected: boolean;
   customNames: Record<string, string>;
   customIcons: Record<string, string>;
   getA: EntityHelpers['getA'];
@@ -131,6 +132,7 @@ export function useCardRendering({
   entities,
   entitiesLoaded,
   conn,
+  connected,
   customNames,
   customIcons,
   getA,
@@ -421,6 +423,7 @@ export function useCardRendering({
         entitiesMissingReady,
         editMode,
         conn,
+        connected,
         cardSettings,
         customNames,
         customIcons,
@@ -513,6 +516,7 @@ export function useCardRendering({
       entitiesLoaded,
       entitiesMissingReady,
       conn,
+      connected,
       customNames,
       customIcons,
       getA,
