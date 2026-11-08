@@ -408,6 +408,7 @@
   "ha.unavailable": "家庭助理目前不可用。数据可能已过时，但卡片仍会显示。",
   "header.addHeader": "添加标题",
   "header.batteryVariant": "变体",
+  "header.cardsOnlyExitHint": "长按空白区域 1 秒即可恢复菜单。",
   "header.cardsOnlyMode": "仅显示卡片",
   "header.clockFormat": "时钟格式",
   "header.clockFormat.12h": "12 小时（上午/下午）",

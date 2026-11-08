@@ -432,6 +432,7 @@
   "ha.unavailable": "Home Assistant est actuellement indisponible. Les données peuvent être obsolètes, mais les cartes sont toujours affichées.",
   "header.addHeader": "Ajouter un en-tête",
   "header.batteryVariant": "Variante",
+  "header.cardsOnlyExitHint": "Maintenez une zone vide enfoncée pendant 1 seconde pour réafficher les menus.",
   "header.cardsOnlyMode": "Afficher uniquement les cartes",
   "header.clockFormat": "Format de l'horloge",
   "header.clockFormat.12h": "12 heures (AM/PM)",

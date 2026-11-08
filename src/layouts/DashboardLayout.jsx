@@ -10,6 +10,7 @@ import SettingsMenuControl from './SettingsMenuControl';
 import { PageNavigation } from '../components';
 import DashboardGrid from '../rendering/DashboardGrid';
 import PinLockModal from '../components/ui/PinLockModal';
+import { useOptionalToast } from '../contexts/ToastContext';
 
 const MemoStatusBar = memo(StatusBar);
 const MemoDashboardGrid = memo(DashboardGrid);
@@ -82,8 +83,18 @@ export default function DashboardLayout(props) {
     pinLockError,
   } = props;
 
+  const toast = useOptionalToast();
+  const addToast = toast?.addToast;
   const cardsOnlyExitTimerRef = useRef(null);
+  const wasCardsOnlyRef = useRef(cardsOnlyMode);
   const showDashboardChrome = !cardsOnlyMode;
+
+  useEffect(() => {
+    if (cardsOnlyMode && !wasCardsOnlyRef.current) {
+      addToast?.(t('header.cardsOnlyExitHint'), 'info');
+    }
+    wasCardsOnlyRef.current = cardsOnlyMode;
+  }, [addToast, cardsOnlyMode, t]);
 
   const handleToggleEdit = useCallback(() => {
     const currentSettings = pageSettings[activePage];

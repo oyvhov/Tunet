@@ -468,6 +468,7 @@
   "header.showClockOnMobile": "Mostrar reloj en móvil",
   "header.showDate": "Mostrar fecha",
   "header.showPagePillLabelsOnMobile": "Mostrar etiquetas de página en móvil",
+  "header.cardsOnlyExitHint": "Mantén pulsada una zona vacía durante 1 segundo para recuperar los menús.",
   "header.cardsOnlyMode": "Mostrar solo tarjetas",
   "header.headerLayout": "Disposición",
   "header.mobileAlignment": "Posición en móvil",

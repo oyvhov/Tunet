@@ -468,6 +468,7 @@
   "header.showClockOnMobile": "Show clock on mobile",
   "header.showDate": "Show date",
   "header.showPagePillLabelsOnMobile": "Show page labels on mobile",
+  "header.cardsOnlyExitHint": "Press and hold an empty area for 1 second to bring the menus back.",
   "header.cardsOnlyMode": "Show only cards",
   "header.headerLayout": "Layout",
   "header.mobileAlignment": "Mobile position",

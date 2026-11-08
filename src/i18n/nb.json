@@ -945,6 +945,7 @@
   "header.showClockOnMobile": "Vis klokke på mobil",
   "header.showDate": "Vis dato",
   "header.showPagePillLabelsOnMobile": "Vis sidenavn på mobil",
+  "header.cardsOnlyExitHint": "Hold inne på et tomt område i 1 sekund for å få menyene tilbake.",
   "header.cardsOnlyMode": "Vis bare kort",
   "header.headerLayout": "Oppsett",
   "header.mobileAlignment": "Plassering på mobil",
