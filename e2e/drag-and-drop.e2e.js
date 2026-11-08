@@ -37,6 +37,21 @@ test.describe('Drag and Drop Interactions', () => {
     await page.waitForTimeout(500); // Wait for entities to load
   });
 
+  test('should not operate a card while it is being edited', async ({ page }) => {
+    const card = page.locator('[data-dashboard-card="light.bedroom"]');
+    await expect(card).toBeVisible();
+    const box = await card.boundingBox();
+    const lightIcon = { x: box.x + 40, y: box.y + box.height / 2 };
+
+    await page.mouse.click(lightIcon.x, lightIcon.y);
+    await expect.poll(() => page.evaluate(() => window.__haServiceCalls.length)).toBe(1);
+
+    await enableEditMode(page);
+    await page.mouse.click(lightIcon.x, lightIcon.y);
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.__haServiceCalls.length)).toBe(1);
+  });
+
   test('should enable edit mode with button or long-press', async ({ page }) => {
     await enableEditMode(page);
     const cards = page.locator('[draggable="true"]');
