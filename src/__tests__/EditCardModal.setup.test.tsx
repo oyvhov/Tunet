@@ -156,3 +156,68 @@ describe('ConditionBuilder known states', () => {
     expect(onChange.mock.calls[0][0].rules[1].states).toEqual(['heat']);
   });
 });
+
+describe('changing the entity on an existing card', () => {
+  it('saves a searched entity to the key the renderer reads', () => {
+    renderModal({});
+    fireEvent.click(screen.getByRole('button', { name: 'Garage' }));
+    fireEvent.change(screen.getByPlaceholderText(en['form.search']), {
+      target: { value: 'gate' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Gate/ }));
+    expect(saveCardSetting).toHaveBeenCalledWith('key', 'coverId', 'cover.gate');
+  }, 20_000);
+
+  it('moves rules that point at the old entity', () => {
+    renderModal({
+      editSettings: {
+        coverId: 'cover.garage',
+        visibilityCondition: {
+          enabled: true,
+          rules: [{ type: 'state', entityId: 'cover.garage', states: ['open'] }],
+        },
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Garage' }));
+    fireEvent.click(screen.getByRole('button', { name: /Gate/ }));
+    expect(saveCardSetting).toHaveBeenCalledWith(
+      'key',
+      'visibilityCondition',
+      expect.objectContaining({
+        rules: [{ type: 'state', entityId: 'cover.gate', states: ['open'] }],
+      })
+    );
+  }, 20_000);
+
+  it('does not clear a required entity', () => {
+    renderModal({});
+    fireEvent.click(screen.getByRole('button', { name: 'Garage' }));
+    fireEvent.click(screen.getByRole('button', { name: en['dropdown.noneSelected'] }));
+    expect(saveCardSetting).not.toHaveBeenCalled();
+  }, 20_000);
+
+  it('shows no picker for cards with their own entity settings', () => {
+    renderModal({ entityId: 'todo_card_1', isEditTodo: true, editSettings: {} });
+    expect(screen.queryByText(en['editCard.entityRequired'])).not.toBeInTheDocument();
+  }, 20_000);
+});
+
+describe('required setup', () => {
+  const followsIn = (first: Element, second: Element) =>
+    Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  it('shows the todo list first and marks it required', () => {
+    renderModal({ entityId: 'todo_card_1', isEditTodo: true, editSettings: {}, canEditName: true });
+    const todoLabel = screen.getByText(`${en['todo.selectList']} *`);
+    expect(followsIn(todoLabel, screen.getByText(en['form.name']))).toBe(true);
+    expect(followsIn(todoLabel, screen.getByText(en['visibility.title']))).toBe(true);
+    expect(followsIn(todoLabel, screen.getByText(en['popupTrigger.title']))).toBe(true);
+  }, 20_000);
+
+  it('shows the entity picker before the name', () => {
+    renderModal({ canEditName: true });
+    expect(
+      followsIn(screen.getByText(en['editCard.entityRequired']), screen.getByText(en['form.name']))
+    ).toBe(true);
+  }, 20_000);
+});

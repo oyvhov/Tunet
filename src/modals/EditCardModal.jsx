@@ -10,7 +10,8 @@ import { getRelatedEntityIds } from '../services/haClient';
 import { CarMappingsSection, SearchableSelect } from './editCard/CarMappingsSection';
 import { buildCarAnchorOptions } from './editCard/carAnchorOptions';
 import { RoomSettingsSection } from './editCard/RoomSettingsSection';
-import { ToggleRow } from './editCard/settingsControls';
+import { getCardEntityFields, getCardEntityValue } from './editCard/cardEntityFields';
+import { EntityField, ToggleRow } from './editCard/settingsControls';
 import SensorCardSettings from './SensorCardSettings';
 import SensorCardPreview from './editCard/SensorCardPreview';
 import CardActionsRow from './editCard/CardActionsRow';
@@ -25,7 +26,11 @@ import {
   resolveClimateFavoriteModes,
   toggleClimateFavoriteMode,
 } from '../utils';
-import { createDefaultConditionRule, resolveConditionEntityId } from '../utils/conditionUtils';
+import {
+  createDefaultConditionRule,
+  resolveConditionEntityId,
+  retargetConditionEntity,
+} from '../utils/conditionUtils';
 
 const MIN_POPUP_TRIGGER_COOLDOWN_SECONDS = 10;
 const MAX_POPUP_TRIGGER_COOLDOWN_SECONDS = 3600;
@@ -1175,6 +1180,34 @@ export default function EditCardModal({
   if (!isOpen) return null;
 
   const showSensorPreview = isEditSensor && !!editSettingsKey;
+  const cardEntityFields = getCardEntityFields(entityId, editSettings);
+
+  const changeCardEntity = (field, nextEntityId) => {
+    if (!nextEntityId && field.required) return;
+    const previousEntityId = getCardEntityValue(field, entityId, editSettings);
+    saveCardSetting(editSettingsKey, field.settingKey, nextEntityId);
+    if (!previousEntityId || !nextEntityId || previousEntityId === nextEntityId) return;
+
+    const nextVisibility = retargetConditionEntity(
+      visibilityCondition,
+      previousEntityId,
+      nextEntityId
+    );
+    if (nextVisibility !== visibilityCondition) {
+      saveCardSetting(editSettingsKey, 'visibilityCondition', nextVisibility);
+    }
+    const nextPopupCondition = retargetConditionEntity(
+      popupTriggerCondition,
+      previousEntityId,
+      nextEntityId
+    );
+    if (nextPopupCondition !== popupTriggerCondition) {
+      saveCardSetting(editSettingsKey, 'popupTrigger', {
+        ...popupTrigger,
+        condition: nextPopupCondition,
+      });
+    }
+  };
 
   return (
     <AccessibleModalShell
@@ -1242,6 +1275,379 @@ export default function EditCardModal({
                   t={t}
                 />
               )}
+              {editSettingsKey &&
+                cardEntityFields.map((field) => (
+                  <EntityField
+                    key={field.settingKey}
+                    label={t(field.labelKey)}
+                    value={getCardEntityValue(field, entityId, editSettings)}
+                    options={field.domains.flatMap(byDomain)}
+                    entities={entities}
+                    onChange={(id) => changeCardEntity(field, id)}
+                    t={t}
+                  />
+                ))}
+
+              {isEditCalendar && editSettingsKey && (
+                <div className="space-y-3">
+                  <label className="modal-section-label">
+                    {`${t('calendar.selectCalendars') || 'Select Calendars'} *`}
+                  </label>
+                  <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
+                    {calendarOptions.length === 0 && (
+                      <p className="py-4 text-center text-xs text-[var(--text-muted)]">
+                        {t('calendar.noCalendarsFound') || 'No calendars found'}
+                      </p>
+                    )}
+                    {calendarOptions.map((id) => {
+                      const selected =
+                        Array.isArray(editSettings.calendars) &&
+                        editSettings.calendars.includes(id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => {
+                            const current = Array.isArray(editSettings.calendars)
+                              ? editSettings.calendars
+                              : [];
+                            const next = selected
+                              ? current.filter((x) => x !== id)
+                              : [...current, id];
+                            saveCardSetting(editSettingsKey, 'calendars', next);
+                          }}
+                          className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          <div className="truncate text-sm font-bold">
+                            {entities[id]?.attributes?.friendly_name || id}
+                          </div>
+                          <div className="truncate text-[11px] text-[var(--text-muted)]">{id}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Week View toggle */}
+                  <div className="popup-surface rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm font-bold text-[var(--text-primary)]">
+                          {t('calendar.largeCalendar') || 'Week View'}
+                        </label>
+                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                          {t('calendar.largeCalendarHint') ||
+                            'Show Outlook-style week time-grid view'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'largeCalendar',
+                            !editSettings.largeCalendar
+                          )
+                        }
+                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.largeCalendar ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                      >
+                        <span
+                          className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <label className="modal-section-label">
+                      {t('editCard.columnWidth') || 'Column Width'}
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'colSpan',
+                            Math.max(1, (editSettings.colSpan || 1) - 1)
+                          )
+                        }
+                        className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                      >
+                        −
+                      </button>
+                      <div className="flex-1 text-center">
+                        <span className="text-lg font-bold text-[var(--text-primary)]">
+                          {editSettings.colSpan || 1}
+                        </span>
+                        <span className="ml-1 text-xs text-[var(--text-muted)]">
+                          {(editSettings.colSpan || 1) === 1
+                            ? t('editCard.column') || 'column'
+                            : t('editCard.columns') || 'columns'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'colSpan',
+                            Math.min(maxColSpan, (editSettings.colSpan || 1) + 1)
+                          )
+                        }
+                        className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isEditTodo && editSettingsKey && (
+                <div className="space-y-3">
+                  <label className="modal-section-label">
+                    {`${t('todo.selectList') || 'Select Todo List'} *`}
+                  </label>
+                  <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
+                    {todoOptions.length === 0 && (
+                      <p className="py-4 text-center text-xs text-[var(--text-muted)]">
+                        {t('todo.noListsFound') || 'No todo lists found'}
+                      </p>
+                    )}
+                    {todoOptions.map((id) => {
+                      const selected = editSettings.todoEntityId === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => {
+                            saveCardSetting(editSettingsKey, 'todoEntityId', selected ? null : id);
+                          }}
+                          className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                        >
+                          <div className="truncate text-sm font-bold">
+                            {entities[id]?.attributes?.friendly_name || id}
+                          </div>
+                          <div className="truncate text-[11px] text-[var(--text-muted)]">{id}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {isEditCar && editSettingsKey && (
+                <CarMappingsSection
+                  t={t}
+                  editSettings={editSettings}
+                  editSettingsKey={editSettingsKey}
+                  saveCardSetting={saveCardSetting}
+                  entities={entities}
+                  anchorEntityId={carAnchorEntityId}
+                  anchorOptions={carAnchorOptions}
+                  anchorRelatedEntityIds={carAnchorRelatedEntityIds}
+                  onAutoMapFromAnchor={autoMapCarFromAnchor}
+                  batteryOptions={batteryOptions}
+                  rangeOptions={rangeOptions}
+                  odometerOptions={odometerOptions}
+                  locationOptions={locationOptions}
+                  latitudeOptions={latitudeOptions}
+                  longitudeOptions={longitudeOptions}
+                  chargingOptions={chargingOptions}
+                  pluggedOptions={pluggedOptions}
+                  chargingPowerOptions={chargingPowerOptions}
+                  chargeRateOptions={chargeRateOptions}
+                  timeToFullOptions={timeToFullOptions}
+                  chargeEndTimeOptions={chargeEndTimeOptions}
+                  fuelLevelOptions={fuelLevelOptions}
+                  climateOptions={climateOptions}
+                  lockOptions={lockOptions}
+                  ignitionSwitchOptions={ignitionSwitchOptions}
+                  engineStatusOptions={engineStatusOptions}
+                  lastUpdatedOptions={lastUpdatedOptions}
+                  apiStatusOptions={apiStatusOptions}
+                  chargeControlOptions={chargeControlOptions}
+                  chargeLimitNumberOptions={chargeLimitNumberOptions}
+                  chargeLimitSelectOptions={chargeLimitSelectOptions}
+                  updateButtonOptions={updateButtonOptions}
+                />
+              )}
+
+              {isEditCost && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="modal-section-label">
+                        {t('energyCost.todayLabel') || 'Today label'}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={editSettings.todayLabel || ''}
+                        onBlur={(e) =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'todayLabel',
+                            e.target.value.trim() || null
+                          )
+                        }
+                        placeholder={t('energyCost.today')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="modal-section-label">
+                        {t('energyCost.monthLabel') || 'Month label'}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={editSettings.monthLabel || ''}
+                        onBlur={(e) =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'monthLabel',
+                            e.target.value.trim() || null
+                          )
+                        }
+                        placeholder={t('energyCost.thisMonth')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="modal-section-label">
+                        {t('cost.currency') || 'Currency'}
+                      </label>
+                      <input
+                        type="text"
+                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
+                        defaultValue={editSettings.currency || ''}
+                        onBlur={(e) =>
+                          saveCardSetting(
+                            editSettingsKey,
+                            'currency',
+                            e.target.value.trim() || null
+                          )
+                        }
+                        placeholder={t('cost.currencyPlaceholder') || 'Auto (from HA)'}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="modal-section-label block pb-2">
+                      {t('energyCost.today') || 'Today'}
+                    </label>
+                    <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
+                      {numericEntityOptions.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-[var(--text-muted)]">
+                          {t('addCard.noSensors') || 'No sensors found'}
+                        </p>
+                      ) : (
+                        numericEntityOptions.map((sensorId) => {
+                          const isSelected = editSettings.todayId === sensorId;
+                          return (
+                            <div
+                              key={sensorId}
+                              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
+                              onClick={() => {
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'todayId',
+                                  isSelected ? null : sensorId
+                                );
+                              }}
+                            >
+                              <div
+                                className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
+                              >
+                                {isSelected && (
+                                  <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />
+                                )}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-[var(--text-primary)]">
+                                  {entities[sensorId].attributes?.friendly_name || sensorId}
+                                </span>
+                                <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                                  {sensorId}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="modal-section-label block pb-2">
+                      {t('energyCost.thisMonth') || 'This Month'}
+                    </label>
+                    <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
+                      {numericEntityOptions.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-[var(--text-muted)]">
+                          {t('addCard.noSensors') || 'No sensors found'}
+                        </p>
+                      ) : (
+                        numericEntityOptions.map((sensorId) => {
+                          const isSelected = editSettings.monthId === sensorId;
+                          return (
+                            <div
+                              key={sensorId}
+                              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
+                              onClick={() => {
+                                saveCardSetting(
+                                  editSettingsKey,
+                                  'monthId',
+                                  isSelected ? null : sensorId
+                                );
+                              }}
+                            >
+                              <div
+                                className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
+                              >
+                                {isSelected && (
+                                  <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />
+                                )}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-[var(--text-primary)]">
+                                  {entities[sensorId].attributes?.friendly_name || sensorId}
+                                </span>
+                                <span className="font-mono text-[11px] text-[var(--text-muted)]">
+                                  {sensorId}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="modal-section-label">
+                      {t('cost.decimals') || 'Decimals (Today)'}
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min={0}
+                        max={3}
+                        step={1}
+                        value={editSettings.decimals ?? 0}
+                        onChange={(e) =>
+                          saveCardSetting(editSettingsKey, 'decimals', parseInt(e.target.value, 10))
+                        }
+                        className="flex-1"
+                      />
+                      <div className="popup-surface min-w-[48px] rounded-xl px-3 py-2 text-center text-sm font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+                        {editSettings.decimals ?? 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {(canEditName || editSettingsKey) && (
                 <div
                   className={`grid grid-cols-1 gap-4 ${canEditName && !isEditSensor ? 'sm:grid-cols-2' : ''}`}
@@ -1431,38 +1837,6 @@ export default function EditCardModal({
                 </div>
               )}
 
-              {editSettingsKey && (
-                <VisibilityConditionSection
-                  t={t}
-                  visibilityEnabled={visibilityEnabled}
-                  showVisibilityLogic={showVisibilityLogic}
-                  setShowVisibilityLogic={setShowVisibilityLogic}
-                  toggleVisibilityCondition={toggleVisibilityCondition}
-                  entityId={entityId}
-                  editSettings={editSettings}
-                  visibilityCondition={visibilityCondition}
-                  entities={entities}
-                  editSettingsKey={editSettingsKey}
-                  saveCardSetting={saveCardSetting}
-                />
-              )}
-
-              {editSettingsKey && (
-                <PopupTriggerSection
-                  t={t}
-                  popupTriggerEnabled={popupTriggerEnabled}
-                  showPopupLogic={showPopupLogic}
-                  setShowPopupLogic={setShowPopupLogic}
-                  savePopupTrigger={savePopupTrigger}
-                  popupTriggerCondition={popupTriggerCondition}
-                  popupTriggerCooldownSeconds={popupTriggerCooldownSeconds}
-                  popupTriggerAutoCloseSeconds={popupTriggerAutoCloseSeconds}
-                  entityId={entityId}
-                  editSettings={editSettings}
-                  entities={entities}
-                />
-              )}
-
               {isEditWeatherTemp && editSettingsKey && (
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -1559,121 +1933,6 @@ export default function EditCardModal({
                         <span
                           className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`}
                         />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {isEditCalendar && editSettingsKey && (
-                <div className="space-y-3">
-                  <label className="modal-section-label">
-                    {t('calendar.selectCalendars') || 'Select Calendars'}
-                  </label>
-                  <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
-                    {calendarOptions.length === 0 && (
-                      <p className="py-4 text-center text-xs text-[var(--text-muted)]">
-                        {t('calendar.noCalendarsFound') || 'No calendars found'}
-                      </p>
-                    )}
-                    {calendarOptions.map((id) => {
-                      const selected =
-                        Array.isArray(editSettings.calendars) &&
-                        editSettings.calendars.includes(id);
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => {
-                            const current = Array.isArray(editSettings.calendars)
-                              ? editSettings.calendars
-                              : [];
-                            const next = selected
-                              ? current.filter((x) => x !== id)
-                              : [...current, id];
-                            saveCardSetting(editSettingsKey, 'calendars', next);
-                          }}
-                          className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div className="truncate text-sm font-bold">
-                            {entities[id]?.attributes?.friendly_name || id}
-                          </div>
-                          <div className="truncate text-[11px] text-[var(--text-muted)]">{id}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Week View toggle */}
-                  <div className="popup-surface rounded-2xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="text-sm font-bold text-[var(--text-primary)]">
-                          {t('calendar.largeCalendar') || 'Week View'}
-                        </label>
-                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-                          {t('calendar.largeCalendarHint') ||
-                            'Show Outlook-style week time-grid view'}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          saveCardSetting(
-                            editSettingsKey,
-                            'largeCalendar',
-                            !editSettings.largeCalendar
-                          )
-                        }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.largeCalendar ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
-                      >
-                        <span
-                          className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2">
-                    <label className="modal-section-label">
-                      {t('editCard.columnWidth') || 'Column Width'}
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          saveCardSetting(
-                            editSettingsKey,
-                            'colSpan',
-                            Math.max(1, (editSettings.colSpan || 1) - 1)
-                          )
-                        }
-                        className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                      >
-                        −
-                      </button>
-                      <div className="flex-1 text-center">
-                        <span className="text-lg font-bold text-[var(--text-primary)]">
-                          {editSettings.colSpan || 1}
-                        </span>
-                        <span className="ml-1 text-xs text-[var(--text-muted)]">
-                          {(editSettings.colSpan || 1) === 1
-                            ? t('editCard.column') || 'column'
-                            : t('editCard.columns') || 'columns'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          saveCardSetting(
-                            editSettingsKey,
-                            'colSpan',
-                            Math.min(maxColSpan, (editSettings.colSpan || 1) + 1)
-                          )
-                        }
-                        className="popup-surface popup-surface-hover flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-lg font-bold text-[var(--text-primary)]"
-                      >
-                        +
                       </button>
                     </div>
                   </div>
@@ -2142,39 +2401,6 @@ export default function EditCardModal({
                   );
                 })()}
 
-              {isEditTodo && editSettingsKey && (
-                <div className="space-y-3">
-                  <label className="modal-section-label">
-                    {t('todo.selectList') || 'Select Todo List'}
-                  </label>
-                  <div className="popup-surface custom-scrollbar max-h-56 space-y-2 overflow-y-auto rounded-2xl p-4">
-                    {todoOptions.length === 0 && (
-                      <p className="py-4 text-center text-xs text-[var(--text-muted)]">
-                        {t('todo.noListsFound') || 'No todo lists found'}
-                      </p>
-                    )}
-                    {todoOptions.map((id) => {
-                      const selected = editSettings.todoEntityId === id;
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => {
-                            saveCardSetting(editSettingsKey, 'todoEntityId', selected ? null : id);
-                          }}
-                          className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${selected ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border-transparent text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
-                        >
-                          <div className="truncate text-sm font-bold">
-                            {entities[id]?.attributes?.friendly_name || id}
-                          </div>
-                          <div className="truncate text-[11px] text-[var(--text-muted)]">{id}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {isPerson && (
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -2485,43 +2711,6 @@ export default function EditCardModal({
                       'Place images in HA config/www/ folder, use /local/filename.png'}
                   </p>
                 </div>
-              )}
-
-              {isEditCar && editSettingsKey && (
-                <CarMappingsSection
-                  t={t}
-                  editSettings={editSettings}
-                  editSettingsKey={editSettingsKey}
-                  saveCardSetting={saveCardSetting}
-                  entities={entities}
-                  anchorEntityId={carAnchorEntityId}
-                  anchorOptions={carAnchorOptions}
-                  anchorRelatedEntityIds={carAnchorRelatedEntityIds}
-                  onAutoMapFromAnchor={autoMapCarFromAnchor}
-                  batteryOptions={batteryOptions}
-                  rangeOptions={rangeOptions}
-                  odometerOptions={odometerOptions}
-                  locationOptions={locationOptions}
-                  latitudeOptions={latitudeOptions}
-                  longitudeOptions={longitudeOptions}
-                  chargingOptions={chargingOptions}
-                  pluggedOptions={pluggedOptions}
-                  chargingPowerOptions={chargingPowerOptions}
-                  chargeRateOptions={chargeRateOptions}
-                  timeToFullOptions={timeToFullOptions}
-                  chargeEndTimeOptions={chargeEndTimeOptions}
-                  fuelLevelOptions={fuelLevelOptions}
-                  climateOptions={climateOptions}
-                  lockOptions={lockOptions}
-                  ignitionSwitchOptions={ignitionSwitchOptions}
-                  engineStatusOptions={engineStatusOptions}
-                  lastUpdatedOptions={lastUpdatedOptions}
-                  apiStatusOptions={apiStatusOptions}
-                  chargeControlOptions={chargeControlOptions}
-                  chargeLimitNumberOptions={chargeLimitNumberOptions}
-                  chargeLimitSelectOptions={chargeLimitSelectOptions}
-                  updateButtonOptions={updateButtonOptions}
-                />
               )}
 
               {canEditStatus && !isEditSensor && (
@@ -3043,179 +3232,36 @@ export default function EditCardModal({
                 </div>
               )}
 
-              {isEditCost && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="modal-section-label">
-                        {t('energyCost.todayLabel') || 'Today label'}
-                      </label>
-                      <input
-                        type="text"
-                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                        defaultValue={editSettings.todayLabel || ''}
-                        onBlur={(e) =>
-                          saveCardSetting(
-                            editSettingsKey,
-                            'todayLabel',
-                            e.target.value.trim() || null
-                          )
-                        }
-                        placeholder={t('energyCost.today')}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="modal-section-label">
-                        {t('energyCost.monthLabel') || 'Month label'}
-                      </label>
-                      <input
-                        type="text"
-                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                        defaultValue={editSettings.monthLabel || ''}
-                        onBlur={(e) =>
-                          saveCardSetting(
-                            editSettingsKey,
-                            'monthLabel',
-                            e.target.value.trim() || null
-                          )
-                        }
-                        placeholder={t('energyCost.thisMonth')}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="modal-section-label">
-                        {t('cost.currency') || 'Currency'}
-                      </label>
-                      <input
-                        type="text"
-                        className="popup-surface w-full rounded-2xl px-4 py-3 text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--glass-border)]"
-                        defaultValue={editSettings.currency || ''}
-                        onBlur={(e) =>
-                          saveCardSetting(
-                            editSettingsKey,
-                            'currency',
-                            e.target.value.trim() || null
-                          )
-                        }
-                        placeholder={t('cost.currencyPlaceholder') || 'Auto (from HA)'}
-                      />
-                    </div>
-                  </div>
+              {editSettingsKey && (
+                <VisibilityConditionSection
+                  t={t}
+                  visibilityEnabled={visibilityEnabled}
+                  showVisibilityLogic={showVisibilityLogic}
+                  setShowVisibilityLogic={setShowVisibilityLogic}
+                  toggleVisibilityCondition={toggleVisibilityCondition}
+                  entityId={entityId}
+                  editSettings={editSettings}
+                  visibilityCondition={visibilityCondition}
+                  entities={entities}
+                  editSettingsKey={editSettingsKey}
+                  saveCardSetting={saveCardSetting}
+                />
+              )}
 
-                  <div>
-                    <label className="modal-section-label block pb-2">
-                      {t('energyCost.today') || 'Today'}
-                    </label>
-                    <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
-                      {numericEntityOptions.length === 0 ? (
-                        <p className="py-4 text-center text-sm text-[var(--text-muted)]">
-                          {t('addCard.noSensors') || 'No sensors found'}
-                        </p>
-                      ) : (
-                        numericEntityOptions.map((sensorId) => {
-                          const isSelected = editSettings.todayId === sensorId;
-                          return (
-                            <div
-                              key={sensorId}
-                              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
-                              onClick={() => {
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'todayId',
-                                  isSelected ? null : sensorId
-                                );
-                              }}
-                            >
-                              <div
-                                className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
-                              >
-                                {isSelected && (
-                                  <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />
-                                )}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-[var(--text-primary)]">
-                                  {entities[sensorId].attributes?.friendly_name || sensorId}
-                                </span>
-                                <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                                  {sensorId}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="modal-section-label block pb-2">
-                      {t('energyCost.thisMonth') || 'This Month'}
-                    </label>
-                    <div className="popup-surface custom-scrollbar max-h-40 space-y-2 overflow-y-auto rounded-2xl p-4">
-                      {numericEntityOptions.length === 0 ? (
-                        <p className="py-4 text-center text-sm text-[var(--text-muted)]">
-                          {t('addCard.noSensors') || 'No sensors found'}
-                        </p>
-                      ) : (
-                        numericEntityOptions.map((sensorId) => {
-                          const isSelected = editSettings.monthId === sensorId;
-                          return (
-                            <div
-                              key={sensorId}
-                              className="flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
-                              onClick={() => {
-                                saveCardSetting(
-                                  editSettingsKey,
-                                  'monthId',
-                                  isSelected ? null : sensorId
-                                );
-                              }}
-                            >
-                              <div
-                                className={`flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-200 ${isSelected ? 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'border-gray-500 bg-transparent'}`}
-                              >
-                                {isSelected && (
-                                  <Check className="h-3.5 w-3.5 text-[var(--accent-color)]" />
-                                )}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-[var(--text-primary)]">
-                                  {entities[sensorId].attributes?.friendly_name || sensorId}
-                                </span>
-                                <span className="font-mono text-[11px] text-[var(--text-muted)]">
-                                  {sensorId}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="modal-section-label">
-                      {t('cost.decimals') || 'Decimals (Today)'}
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <input
-                        type="range"
-                        min={0}
-                        max={3}
-                        step={1}
-                        value={editSettings.decimals ?? 0}
-                        onChange={(e) =>
-                          saveCardSetting(editSettingsKey, 'decimals', parseInt(e.target.value, 10))
-                        }
-                        className="flex-1"
-                      />
-                      <div className="popup-surface min-w-[48px] rounded-xl px-3 py-2 text-center text-sm font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                        {editSettings.decimals ?? 0}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {editSettingsKey && (
+                <PopupTriggerSection
+                  t={t}
+                  popupTriggerEnabled={popupTriggerEnabled}
+                  showPopupLogic={showPopupLogic}
+                  setShowPopupLogic={setShowPopupLogic}
+                  savePopupTrigger={savePopupTrigger}
+                  popupTriggerCondition={popupTriggerCondition}
+                  popupTriggerCooldownSeconds={popupTriggerCooldownSeconds}
+                  popupTriggerAutoCloseSeconds={popupTriggerAutoCloseSeconds}
+                  entityId={entityId}
+                  editSettings={editSettings}
+                  entities={entities}
+                />
               )}
             </ModalBody>
           </div>
