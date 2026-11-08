@@ -549,3 +549,24 @@ export async function getEntitiesForArea(
 
   return entityIds;
 }
+
+/**
+ * Entity IDs per area from a single fetch of the registries, for pages that show every room.
+ * Diagnostic, config, hidden and disabled entities are left out.
+ */
+export async function getAreaEntityMap(conn: HaConnection): Promise<Record<string, string[]>> {
+  const [entityReg, deviceReg] = await Promise.all([
+    getEntityRegistry(conn),
+    getDeviceRegistry(conn),
+  ]);
+
+  const deviceAreas = new Map(deviceReg.map((d) => [d.id, d.area_id]));
+  const map: Record<string, string[]> = {};
+  for (const entry of entityReg) {
+    if (entry.entity_category || entry.hidden_by || entry.disabled_by) continue;
+    const areaId = entry.area_id || (entry.device_id ? deviceAreas.get(entry.device_id) : null);
+    if (!areaId) continue;
+    (map[areaId] ??= []).push(entry.entity_id);
+  }
+  return map;
+}

@@ -6,6 +6,8 @@ import {
   ChevronLeft,
   ArrowUpDown,
   Lightbulb,
+  Minus,
+  Plus,
   Thermometer,
   Power,
   WifiOff,
@@ -27,10 +29,22 @@ import {
 } from '../../icons';
 import { getIconComponent } from '../../icons';
 import M3Slider from '../ui/M3Slider';
-import { getAreas, getEntitiesForArea } from '../../services/haClient';
+import { getAreas, getAreaEntityMap } from '../../services/haClient';
 import PageHeader from '../ui/PageHeader';
+import { useDebouncedCommit } from '../../hooks/useDebouncedCommit';
+import { formatRelativeTime, isUnavailableState } from '../../utils';
 
-const SLIDER_DEBOUNCE_MS = 200;
+const OPTIMISTIC_HOLD_MS = 3000;
+const UNLOCK_CONFIRM_MS = 3000;
+const ROOM_DATA_MAX_AGE_MS = 5 * 60 * 1000;
+const EMPTY_AREAS = [];
+const EMPTY_AREA_ENTITIES = {};
+
+/** The registries only change when Home Assistant is reconfigured, so visits share one fetch. */
+const roomDataCache = new WeakMap();
+
+/** The room each Rooms page had open, so leaving the page and coming back returns to it. */
+const lastSelectedArea = new Map();
 
 const SORT_OPTIONS = [
   { key: 'name-az', icon: 'A→Z' },
@@ -57,6 +71,26 @@ const DOMAIN_ORDER = [
   'camera',
   'person',
 ];
+
+/** These only hold the time they were last used, so `unknown` just means never used. */
+const STATELESS_DOMAINS = new Set(['scene', 'button', 'input_button']);
+
+function isRowUnavailable(domain, state) {
+  return STATELESS_DOMAINS.has(domain) ? state === 'unavailable' : isUnavailableState(state);
+}
+
+/** Readable text for a state: translated, a time for timestamps, otherwise the state itself. */
+function getStateLabel(domain, state, t) {
+  if (state === 'unknown' && STATELESS_DOMAINS.has(domain)) {
+    return t('roomExplorer.state.neverUsed');
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(state)) return formatRelativeTime(state, t);
+  const key = `roomExplorer.state.${state}`;
+  const translated = t(key);
+  if (translated !== key) return translated;
+  const words = String(state ?? '').replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 function getDomainPriority(domain) {
   const idx = DOMAIN_ORDER.indexOf(domain);
@@ -199,18 +233,49 @@ const SortDropdown = memo(
 
 // ── Entity Row with inline controls ─────────────────────────────────────
 
+/**
+ * Keeps showing a value the user just set until Home Assistant reports a change,
+ * or for a few seconds if it never does.
+ */
+function useOptimisticValue(liveValue) {
+  const [pending, setPending] = useState(null);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  const hold = useCallback(
+    (value) => {
+      setPending({ value, seenLiveValue: liveValue });
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setPending(null), OPTIMISTIC_HOLD_MS);
+    },
+    [liveValue]
+  );
+
+  return [pending && pending.seenLiveValue === liveValue ? pending.value : null, hold];
+}
+
 const EntityRow = memo(
   /** @param {{ entityId: string, entity: any, callService: (...args: any[]) => any, conn: any, t: (key: string) => string }} props */
   function EntityRow({ entityId, entity, callService, conn, t }) {
-    const [optimisticBrightness, setOptimisticBrightness] = useState(null);
-    const debounceRef = useRef(null);
-
     const attrs = useMemo(() => entity?.attributes || {}, [entity]);
     const domain = entityId.split('.')[0];
     const name = attrs.friendly_name || entityId.split('.')[1]?.replace(/_/g, ' ');
     const state = entity?.state;
     const isOn = state === 'on';
-    const isUnavailable = state === 'unavailable' || state === 'unknown';
+    const isUnavailable = isRowUnavailable(domain, state);
+    const [optimisticBrightness, holdBrightness] = useOptimisticValue(attrs.brightness);
+    const [optimisticTarget, holdTarget] = useOptimisticValue(attrs.temperature);
+    const sendTarget = useDebouncedCommit((temperature) => {
+      callService?.('climate', 'set_temperature', { entity_id: entityId, temperature });
+    });
+    const [confirmUnlock, setConfirmUnlock] = useState(false);
+
+    useEffect(() => {
+      if (!confirmUnlock) return undefined;
+      const timeout = setTimeout(() => setConfirmUnlock(false), UNLOCK_CONFIRM_MS);
+      return () => clearTimeout(timeout);
+    }, [confirmUnlock]);
 
     const handleToggle = useCallback(() => {
       if (!conn || !callService || isUnavailable) return;
@@ -219,21 +284,39 @@ const EntityRow = memo(
     }, [conn, callService, domain, entityId, isOn, isUnavailable]);
 
     const handleBrightness = useCallback(
-      (val) => {
+      (event) => {
+        const value = parseInt(event.target.value, 10);
+        if (Number.isFinite(value)) holdBrightness(value);
+      },
+      [holdBrightness]
+    );
+
+    const commitBrightness = useCallback(
+      (value) => {
         if (!conn || !callService) return;
-        setOptimisticBrightness(val);
-        clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-          if (val <= 0) {
-            callService('light', 'turn_off', { entity_id: entityId });
-          } else {
-            callService('light', 'turn_on', { entity_id: entityId, brightness_pct: val });
-          }
-          setOptimisticBrightness(null);
-        }, SLIDER_DEBOUNCE_MS);
+        if (value <= 0) {
+          callService('light', 'turn_off', { entity_id: entityId });
+        } else {
+          callService('light', 'turn_on', { entity_id: entityId, brightness_pct: value });
+        }
       },
       [conn, callService, entityId]
     );
+
+    const handleLockTap = () => {
+      if (!conn || !callService) return;
+      if (state !== 'locked') {
+        setConfirmUnlock(false);
+        callService('lock', 'lock', { entity_id: entityId });
+        return;
+      }
+      if (!confirmUnlock) {
+        setConfirmUnlock(true);
+        return;
+      }
+      setConfirmUnlock(false);
+      callService('lock', 'unlock', { entity_id: entityId });
+    };
 
     const brightness = attrs.brightness || 0;
     const brightnessPercent = Math.round(
@@ -262,8 +345,21 @@ const EntityRow = memo(
 
     // Climate info
     const currentTemp = attrs.current_temperature;
-    const targetTemp = attrs.temperature;
+    const targetTemp = optimisticTarget ?? attrs.temperature;
+    const tempStep = Number(attrs.target_temp_step) || 0.5;
+    const minTemp = attrs.min_temp ?? -Infinity;
+    const maxTemp = attrs.max_temp ?? Infinity;
+    const canStepDown = !isUnavailable && targetTemp != null && targetTemp > minTemp;
+    const canStepUp = !isUnavailable && targetTemp != null && targetTemp < maxTemp;
     const hvacAction = attrs.hvac_action || state;
+
+    const stepTarget = (direction) => {
+      if (!conn || !callService || targetTemp == null) return;
+      const stepped = Number((Number(targetTemp) + direction * tempStep).toFixed(2));
+      const next = Math.min(maxTemp, Math.max(minTemp, stepped));
+      holdTarget(next);
+      sendTarget(next);
+    };
     const isHeating = hvacAction === 'heating';
     const isCooling = hvacAction === 'cooling';
 
@@ -333,19 +429,21 @@ const EntityRow = memo(
           <p className="truncate text-sm font-medium text-[var(--text-primary)]">{name}</p>
           <p className="truncate text-[11px] text-[var(--text-muted)]">
             {domain === 'sensor' || domain === 'binary_sensor'
-              ? `${state}${attrs.unit_of_measurement ? ` ${attrs.unit_of_measurement}` : ''}`
+              ? attrs.unit_of_measurement
+                ? `${state} ${attrs.unit_of_measurement}`
+                : getStateLabel(domain, state, t)
               : domain === 'climate'
                 ? (() => {
                     const tempUnit = attrs.temperature_unit || '\u00b0';
                     const cur = currentTemp != null ? `${currentTemp}${tempUnit}` : '';
                     const tgt = targetTemp != null ? ` \u2192 ${targetTemp}${tempUnit}` : '';
-                    return `${cur}${tgt} ${hvacAction}`;
+                    return `${cur}${tgt} ${getStateLabel(domain, hvacAction, t)}`;
                   })()
                 : domain === 'media_player' && (mediaTitle || mediaArtist)
                   ? `${mediaArtist ? `${mediaArtist} \u2013 ` : ''}${mediaTitle || ''}`
                   : domain === 'light' && isOn && isDimmable
                     ? `${brightnessPercent}%`
-                    : t(`roomExplorer.state.${state}`) || state}
+                    : getStateLabel(domain, state, t)}
           </p>
         </div>
 
@@ -357,10 +455,12 @@ const EntityRow = memo(
                 <M3Slider
                   value={brightnessPercent}
                   onChange={handleBrightness}
+                  onCommit={commitBrightness}
                   min={0}
                   max={100}
                   step={1}
                   variant="thinLg"
+                  ariaLabel={t('light.brightness')}
                 />
               </div>
             )}
@@ -407,6 +507,25 @@ const EntityRow = memo(
             </button>
           )}
 
+        {domain === 'climate' && (isUnavailable || targetTemp != null) && (
+          <div className="flex items-center gap-1">
+            {[
+              { direction: -1, enabled: canStepDown, Icon: Minus, label: t('common.decrease') },
+              { direction: 1, enabled: canStepUp, Icon: Plus, label: t('common.increase') },
+            ].map(({ direction, enabled, Icon, label }) => (
+              <button
+                key={direction}
+                onClick={() => stepTarget(direction)}
+                disabled={!enabled}
+                aria-label={label}
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        )}
+
         {domain === 'cover' && !isUnavailable && (
           <div className="flex items-center gap-1">
             {[
@@ -417,7 +536,7 @@ const EntityRow = memo(
               <button
                 key={svc}
                 onClick={() => callService('cover', svc, { entity_id: entityId })}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs transition-all active:scale-90 ${
+                className={`flex h-11 w-11 items-center justify-center rounded-lg text-xs transition-all active:scale-90 ${
                   (svc === 'open_cover' && state === 'open') ||
                   (svc === 'close_cover' && state === 'closed')
                     ? 'bg-[var(--accent-color)]/15 text-[var(--accent-color)]'
@@ -432,13 +551,13 @@ const EntityRow = memo(
 
         {domain === 'lock' && !isUnavailable && (
           <button
-            onClick={() =>
-              callService('lock', state === 'locked' ? 'unlock' : 'lock', { entity_id: entityId })
-            }
+            onClick={handleLockTap}
             className={`flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-bold transition-all active:scale-90 ${
-              state === 'locked'
-                ? 'bg-blue-500/20 text-blue-400'
-                : 'bg-orange-500/20 text-orange-400'
+              confirmUnlock && state === 'locked'
+                ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] ring-1 ring-[var(--status-warning-border)]'
+                : state === 'locked'
+                  ? 'bg-blue-500/20 text-blue-400'
+                  : 'bg-orange-500/20 text-orange-400'
             }`}
           >
             {state === 'locked' ? (
@@ -448,7 +567,9 @@ const EntityRow = memo(
             )}
             <span className="text-[10px] tracking-wider uppercase">
               {state === 'locked'
-                ? t('roomExplorer.state.locked') || 'Locked'
+                ? confirmUnlock
+                  ? t('lock.action.confirmUnlock')
+                  : t('roomExplorer.state.locked') || 'Locked'
                 : t('roomExplorer.state.unlocked') || 'Unlocked'}
             </span>
           </button>
@@ -460,7 +581,7 @@ const EntityRow = memo(
               onClick={() =>
                 callService('media_player', 'media_previous_track', { entity_id: entityId })
               }
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--glass-bg)] text-[var(--text-muted)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-secondary)] active:scale-90"
+              className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--glass-bg)] text-[var(--text-muted)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-secondary)] active:scale-90"
             >
               <SkipBack className="h-3.5 w-3.5" />
             </button>
@@ -470,7 +591,7 @@ const EntityRow = memo(
                   entity_id: entityId,
                 })
               }
-              className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all active:scale-90 ${
+              className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all active:scale-90 ${
                 state === 'playing'
                   ? 'bg-purple-500/20 text-purple-400'
                   : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
@@ -482,7 +603,7 @@ const EntityRow = memo(
               onClick={() =>
                 callService('media_player', 'media_next_track', { entity_id: entityId })
               }
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--glass-bg)] text-[var(--text-muted)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-secondary)] active:scale-90"
+              className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--glass-bg)] text-[var(--text-muted)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-secondary)] active:scale-90"
             >
               <SkipForward className="h-3.5 w-3.5" />
             </button>
@@ -541,8 +662,8 @@ const EntityRow = memo(
 // ── Room Card (overview) ────────────────────────────────────────────────
 
 const RoomCard = memo(
-  /** @param {{ area: any, entityStats: any, onSelect: () => void, onToggleLights: () => void, t: (key: string) => string }} props */
-  function RoomCard({ area, entityStats, onSelect, onToggleLights, t }) {
+  /** @param {{ area: any, entityStats: any, onSelect: () => void, t: (key: string) => string }} props */
+  function RoomCard({ area, entityStats, onSelect, t }) {
     const {
       lightsOn,
       lightsTotal,
@@ -605,10 +726,6 @@ const RoomCard = memo(
             <span
               className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
               style={{ background: 'rgba(234, 179, 8, 0.15)', color: '#eab308' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleLights?.();
-              }}
             >
               <Lightbulb className="h-3 w-3" /> {lightsOn}/{lightsTotal}
             </span>
@@ -783,53 +900,46 @@ function RoomExplorerPage({
   savePageSetting,
   t,
 }) {
-  const [areas, setAreas] = useState([]);
-  const [selectedAreaId, setSelectedAreaId] = useState(null);
-  const [areaEntityIds, setAreaEntityIds] = useState({});
+  const [lastFetchedData, setLastFetchedData] = useState(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [openAreaId, setOpenAreaId] = useState(() => lastSelectedArea.get(pageId) ?? null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortMode, setSortMode] = useState(() => pageSettings?.[pageId]?.roomSort || 'name-az');
   const [domainFilter, setDomainFilter] = useState('all');
   const searchRef = useRef(null);
 
-  // Fetch areas on mount
+  const roomData = (conn && roomDataCache.get(conn)?.data) || lastFetchedData;
+  const areas = roomData?.areas ?? EMPTY_AREAS;
+  const areaEntityIds = roomData?.areaEntityIds ?? EMPTY_AREA_ENTITIES;
+  const isLoading = !roomData && !loadFailed;
+  const showLoadError = !roomData && loadFailed;
+  const selectedAreaId = areas.some((a) => a.area_id === openAreaId) ? openAreaId : null;
+
+  // Fetch areas and their entities together, unless a recent visit already did
   useEffect(() => {
     if (!conn) return;
+    const cached = roomDataCache.get(conn);
+    if (cached && Date.now() - cached.fetchedAt < ROOM_DATA_MAX_AGE_MS) return;
     let cancelled = false;
-    (async () => {
-      try {
-        const areaList = await getAreas(conn);
-        if (!cancelled) setAreas(areaList);
-      } catch {
-        /* ignore */
-      }
-    })();
+    Promise.all([getAreas(conn), getAreaEntityMap(conn)])
+      .then(([areaList, entityMap]) => {
+        const data = { areas: areaList, areaEntityIds: entityMap };
+        roomDataCache.set(conn, { data, fetchedAt: Date.now() });
+        if (!cancelled) setLastFetchedData(data);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadFailed(true);
+      });
     return () => {
       cancelled = true;
     };
-  }, [conn]);
+  }, [conn, retryCount]);
 
-  // Fetch entity IDs for each area
-  useEffect(() => {
-    if (!conn || areas.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      const map = {};
-      await Promise.all(
-        areas.map(async (area) => {
-          try {
-            const ids = await getEntitiesForArea(conn, area.area_id);
-            map[area.area_id] = ids;
-          } catch {
-            map[area.area_id] = [];
-          }
-        })
-      );
-      if (!cancelled) setAreaEntityIds(map);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [conn, areas]);
+  const handleRetry = useCallback(() => {
+    setLoadFailed(false);
+    setRetryCount((count) => count + 1);
+  }, []);
 
   // Compute stats for each area
   const areaStats = useMemo(() => {
@@ -846,7 +956,7 @@ function RoomExplorerPage({
         const entity = entities[id];
         if (!entity) continue;
         const domain = id.split('.')[0];
-        if (entity.state === 'unavailable' || entity.state === 'unknown') {
+        if (isRowUnavailable(domain, entity.state)) {
           unavailableCount++;
           continue;
         }
@@ -972,29 +1082,22 @@ function RoomExplorerPage({
     [pageId, savePageSetting]
   );
 
-  const handleSelectArea = useCallback((areaId) => {
-    setSelectedAreaId(areaId);
-    setSearchTerm('');
-    setDomainFilter('all');
-  }, []);
+  const handleSelectArea = useCallback(
+    (areaId) => {
+      lastSelectedArea.set(pageId, areaId);
+      setOpenAreaId(areaId);
+      setSearchTerm('');
+      setDomainFilter('all');
+    },
+    [pageId]
+  );
 
   const handleBack = useCallback(() => {
-    setSelectedAreaId(null);
+    lastSelectedArea.delete(pageId);
+    setOpenAreaId(null);
     setSearchTerm('');
     setDomainFilter('all');
-  }, []);
-
-  const handleToggleRoomLights = useCallback(
-    (areaId) => {
-      if (!callService) return;
-      const ids = areaEntityIds[areaId] || [];
-      const lightIds = ids.filter((id) => id.startsWith('light.'));
-      const anyOn = lightIds.some((id) => entities[id]?.state === 'on');
-      const svc = anyOn ? 'turn_off' : 'turn_on';
-      lightIds.forEach((id) => callService('light', svc, { entity_id: id }));
-    },
-    [areaEntityIds, entities, callService]
-  );
+  }, [pageId]);
 
   // Summary stats
   const totalAreas = areas.length;
@@ -1017,9 +1120,11 @@ function RoomExplorerPage({
         }
         title={selectedArea ? selectedArea.name : t('roomExplorer.title') || 'Rooms'}
         subtitle={
-          selectedArea
-            ? `${detailTotalEntities} ${t('roomExplorer.entities') || 'entities'}`
-            : `${totalAreas} ${t('roomExplorer.rooms') || 'rooms'} · ${totalLightsOn > 0 ? `${totalLightsOn} ${t('roomExplorer.lightsOn') || 'lights on'} · ` : ''}${totalActiveDevices} ${t('roomExplorer.active') || 'active'}`
+          !roomData
+            ? ''
+            : selectedArea
+              ? `${detailTotalEntities} ${t('roomExplorer.entities') || 'entities'}`
+              : `${totalAreas} ${t('roomExplorer.rooms') || 'rooms'} · ${totalLightsOn > 0 ? `${totalLightsOn} ${t('roomExplorer.lightsOn') || 'lights on'} · ` : ''}${totalActiveDevices} ${t('roomExplorer.active') || 'active'}`
         }
       />
 
@@ -1102,7 +1207,25 @@ function RoomExplorerPage({
 
       {/* ── Room Overview Grid ─────────────────────────────────────── */}
       {!selectedAreaId &&
-        (filteredAreas.length > 0 ? (
+        (isLoading ? (
+          <div className="flex min-h-[30vh] flex-col items-center justify-center text-center">
+            <Home className="mb-4 h-10 w-10 text-[var(--text-muted)] opacity-40" />
+            <p className="text-sm text-[var(--text-secondary)]">{t('common.loading')}</p>
+          </div>
+        ) : showLoadError ? (
+          <div className="flex min-h-[30vh] flex-col items-center justify-center text-center">
+            <WifiOff className="mb-4 h-10 w-10 text-[var(--text-muted)] opacity-40" />
+            <p className="mb-4 text-sm text-[var(--text-secondary)]">
+              {t('roomExplorer.loadError')}
+            </p>
+            <button
+              onClick={handleRetry}
+              className="popup-surface popup-surface-hover h-11 rounded-2xl px-4 text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-all active:scale-95"
+            >
+              {t('error.retry')}
+            </button>
+          </div>
+        ) : filteredAreas.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {filteredAreas.map((area) => (
               <RoomCard
@@ -1120,7 +1243,6 @@ function RoomExplorerPage({
                   }
                 }
                 onSelect={() => handleSelectArea(area.area_id)}
-                onToggleLights={() => handleToggleRoomLights(area.area_id)}
                 t={t}
               />
             ))}

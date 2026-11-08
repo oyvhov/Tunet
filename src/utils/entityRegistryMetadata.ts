@@ -4,6 +4,8 @@ export type EntityRegistryEntry = {
   device_id?: string | null;
   platform?: unknown;
   area_id?: unknown;
+  entity_category?: unknown;
+  hidden_by?: unknown;
 };
 
 export type DeviceRegistryEntry = {
@@ -83,6 +85,8 @@ export const enrichEntitiesWithRegistryMetadata = <E extends Record<string, unkn
     assignIfMissing('device_model', deviceRegistryEntry?.model);
     assignIfMissing('device_name', getPreferredDeviceName(deviceRegistryEntry));
     assignIfMissing('area_id', entityRegistryEntry?.area_id || deviceRegistryEntry?.area_id);
+    assignIfMissing('entity_category', entityRegistryEntry?.entity_category);
+    assignIfMissing('hidden_by', entityRegistryEntry?.hidden_by);
 
     const metadataKeys = Object.keys(metadata);
     if (metadataKeys.length === 0) {

@@ -147,4 +147,21 @@ describe('entityRegistryMetadata', () => {
     expect(result['media_player.kjokken1'].attributes.manufacturer).toBe('Custom Vendor');
     expect(result['media_player.kjokken1'].attributes.integration).toBe('sonos');
   });
+
+  it('adds the entity category and who hid the entity', () => {
+    const entities = {
+      'light.led': { entity_id: 'light.led', state: 'on', attributes: {} },
+    };
+
+    const result = enrichEntitiesWithRegistryMetadata(
+      entities,
+      buildRegistryLookupMap(
+        [{ entity_id: 'light.led', entity_category: 'config', hidden_by: 'integration' }],
+        'entity_id'
+      )
+    );
+
+    expect(result['light.led'].attributes.entity_category).toBe('config');
+    expect(result['light.led'].attributes.hidden_by).toBe('integration');
+  });
 });
