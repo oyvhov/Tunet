@@ -325,7 +325,7 @@ export default function ConditionBuilder({
                       </span>
                     </div>
                     <div
-                      className={`flex-shrink-0 rounded-full p-1 transition-colors ${isSelected ? 'bg-[var(--accent-color)] text-white' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] group-hover:bg-[var(--status-success-bg)] group-hover:text-[var(--status-success-fg)]'}`}
+                      className={`flex-shrink-0 rounded-full p-1 transition-colors ${isSelected ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)]' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] group-hover:bg-[var(--status-success-bg)] group-hover:text-[var(--status-success-fg)]'}`}
                     >
                       {isSelected ? (
                         <Check className="h-3.5 w-3.5" />

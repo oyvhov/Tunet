@@ -2555,7 +2555,7 @@ export default function VacuumModal({
                               }}
                               className={`flex h-24 flex-col items-center justify-center gap-2 rounded-2xl border-0 p-4 transition-all duration-300 ${
                                 isSelected
-                                  ? 'scale-[1.02] bg-[var(--accent-color)] text-white shadow-lg shadow-[rgba(var(--accent-color-rgb),0.25)]'
+                                  ? 'scale-[1.02] bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg shadow-[rgba(var(--accent-color-rgb),0.25)]'
                                   : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:scale-[1.01] hover:bg-[var(--glass-bg-hover)]'
                               }`}
                             >
@@ -2574,7 +2574,7 @@ export default function VacuumModal({
                         <button
                           disabled={selectedAreaIds.length === 0}
                           onClick={handleCleanSelectedAreas}
-                          className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-10 py-5 text-sm font-bold tracking-widest text-white uppercase shadow-lg shadow-[rgba(var(--accent-color-rgb),0.2)] transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-30"
+                          className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-10 py-5 text-sm font-bold tracking-widest text-[var(--accent-contrast)] uppercase shadow-lg shadow-[rgba(var(--accent-color-rgb),0.2)] transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-30"
                         >
                           <Play className="h-5 w-5" />
                           {t('vacuum.cleanSelected') || 'Clean Selected'}
@@ -2608,7 +2608,7 @@ export default function VacuumModal({
 
                       <button
                         onClick={handleCleanRoom}
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[var(--accent-color)] py-5 text-sm font-bold tracking-widest text-white uppercase shadow-lg shadow-[rgba(var(--accent-color-rgb),0.2)] transition-all hover:opacity-90 active:scale-[0.98]"
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[var(--accent-color)] py-5 text-sm font-bold tracking-widest text-[var(--accent-contrast)] uppercase shadow-lg shadow-[rgba(var(--accent-color-rgb),0.2)] transition-all hover:opacity-90 active:scale-[0.98]"
                       >
                         <Play className="h-5 w-5" />
                         {t('vacuum.cleanSelected') || 'Clean Selected Room'}

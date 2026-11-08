@@ -282,7 +282,7 @@ export default function ConfigModal({
             setConfig({ ...config, url: oauthUrlDraft.trim(), authMethod: 'token' });
             setConnectionTestResult(null);
           }}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold tracking-wider uppercase transition-all ${isOAuth ? 'border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-white shadow-lg '}`}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold tracking-wider uppercase transition-all ${isOAuth ? 'border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg '}`}
         >
           <Key className="h-3.5 w-3.5" />
           Token
@@ -599,10 +599,10 @@ export default function ConfigModal({
             <button
               onClick={handleSaveProfile}
               disabled={loading || !profileName.trim()}
-              className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white shadow-lg transition-all ${
+              className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold shadow-lg transition-all ${
                 profileName.trim()
-                  ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] '
-                  : 'cursor-not-allowed bg-[var(--accent-bg)] shadow-none'
+                  ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] hover:bg-[var(--accent-color)] '
+                  : 'cursor-not-allowed bg-[var(--accent-bg)] text-[var(--text-muted)] shadow-none'
               }`}
             >
               <Save className="h-4 w-4" />
@@ -655,10 +655,10 @@ export default function ConfigModal({
                             } catch {}
                           }}
                           disabled={loading || !editName.trim()}
-                          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold text-white transition-all ${
+                          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all ${
                             editName.trim()
-                              ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)]'
-                              : 'cursor-not-allowed bg-[var(--accent-bg)]'
+                              ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] hover:bg-[var(--accent-color)]'
+                              : 'cursor-not-allowed bg-[var(--accent-bg)] text-[var(--text-muted)]'
                           }`}
                         >
                           <Check className="h-3.5 w-3.5" />
@@ -1463,7 +1463,7 @@ export default function ConfigModal({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(false)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-white'}`}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-[var(--accent-contrast)]'}`}
                   style={dynamicGridColumns ? {} : { backgroundColor: 'var(--accent-color)' }}
                 >
                   {t('settings.manual')}
@@ -1471,7 +1471,7 @@ export default function ConfigModal({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(true)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--accent-contrast)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   style={dynamicGridColumns ? { backgroundColor: 'var(--accent-color)' } : {}}
                 >
                   {t('common.auto')}
@@ -1962,7 +1962,7 @@ export default function ConfigModal({
                       return (
                         <div
                           key={step.key}
-                          className={`flex flex-1 cursor-default items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all md:flex-none ${isActive ? 'bg-[var(--accent-color)] text-white shadow-lg ' : ''} ${isDone ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
+                          className={`flex flex-1 cursor-default items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all md:flex-none ${isActive ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg ' : ''} ${isDone ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
                         >
                           {isDone ? (
                             <Check className="h-4 w-4" />
@@ -2250,7 +2250,7 @@ export default function ConfigModal({
                             onClick={() => setConfigTab(tab.key)}
                             className={`flex flex-1 items-center justify-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold tracking-wide uppercase transition-all md:flex-none md:justify-start md:px-4 md:py-3 ${
                               active
-                                ? 'bg-[var(--accent-color)] text-white shadow-lg '
+                                ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg '
                                 : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
                             }`}
                           >

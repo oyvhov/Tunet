@@ -412,8 +412,10 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
     }
 
     if (r !== undefined) {
-      // Map 0-100 slider directly to 0.0-1.0 alpha (0 = invisible, 100 = opaque)
-      const alpha = cardBorderOpacity / 100;
+      // Map 0-100 slider directly to 0.0-1.0 alpha (0 = invisible, 100 = opaque).
+      // On a light page a card without any edge disappears, so keep a faint one.
+      const minAlpha = isLightColor(THEMES[themeKey].colors['--bg-primary']) ? 0.7 : 0;
+      const alpha = Math.max(cardBorderOpacity / 100, minAlpha);
       document.documentElement.style.setProperty(
         '--card-border',
         `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`

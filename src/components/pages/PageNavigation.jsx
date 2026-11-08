@@ -143,7 +143,7 @@ function PageManagerPopover({
         }}
         className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-white/10"
       >
-        <div className="rounded-md bg-[var(--accent-bg)] p-1.5 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
+        <div className="rounded-md bg-[var(--accent-bg)] p-1.5 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-[var(--accent-contrast)]">
           <Plus className="h-3.5 w-3.5" />
         </div>
         <p className="text-xs font-semibold text-[var(--text-primary)] group-hover:text-white">

@@ -185,7 +185,7 @@ export default function GenericAndroidTVModal({
                   </button>
                   <button
                     onClick={() => controlMedia('media_play_pause')}
-                    className="rounded-full bg-[var(--accent-color)] p-3.5 font-bold text-white shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-95 sm:p-5"
+                    className="rounded-full bg-[var(--accent-color)] p-3.5 font-bold text-[var(--accent-contrast)] shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-95 sm:p-5"
                     aria-label={isPlaying ? t('media.pause') : t('media.play')}
                   >
                     {isPlaying ? (
@@ -245,7 +245,7 @@ export default function GenericAndroidTVModal({
                   {/* Center */}
                   <button
                     onClick={() => sendCommand('DPAD_CENTER')}
-                    className="absolute top-1/2 left-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent-color)] text-[11px] font-bold text-white shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-90 sm:h-12 sm:w-12"
+                    className="absolute top-1/2 left-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent-color)] text-[11px] font-bold text-[var(--accent-contrast)] shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-90 sm:h-12 sm:w-12"
                     aria-label={t('remote.select')}
                   >
                     {t('common.ok')}

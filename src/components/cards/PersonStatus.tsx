@@ -108,7 +108,7 @@ const PersonStatus = ({
               e.stopPropagation();
               onEditCard(id, headerSettingsKey);
             }}
-            className="rounded-full bg-[var(--accent-color)] p-1 text-white shadow-sm"
+            className="rounded-full bg-[var(--accent-color)] p-1 text-[var(--accent-contrast)] shadow-sm"
           >
             <Edit2 className="h-3 w-3" />
           </button>
@@ -170,7 +170,7 @@ const PersonStatus = ({
           {showState && (
             <span
               className={`max-w-20 truncate text-[10px] leading-tight font-bold tracking-[0.12em] uppercase transition-colors duration-300 sm:max-w-none sm:text-xs sm:tracking-[0.18em] ${showName ? 'mt-1' : ''}`}
-              style={{ color: isHome ? '#4ade80' : 'rgba(156, 163, 175, 0.5)' }}
+              style={{ color: isHome ? 'var(--status-success-fg)' : 'rgba(156, 163, 175, 0.5)' }}
             >
               {String(statusText)}
             </span>
