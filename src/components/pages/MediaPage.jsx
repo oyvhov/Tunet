@@ -22,11 +22,16 @@ import {
   Plus,
   Heart,
 } from '../../icons';
-import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../../utils';
+import {
+  getUnavailableLabel,
+  isMusicAssistantMediaEntity,
+  isSonosMediaEntity,
+  isUnavailableState,
+} from '../../utils';
 import MusicAssistantLink from '../media/MusicAssistantLink';
 import { useMusicAssistantChoices } from '../../hooks/useMusicAssistantChoices';
 import { useDebouncedCommit } from '../../hooks/useDebouncedCommit';
-import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
+import { getMediaPlayerControls, getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 const BLOCKED_MEDIA_TYPES = new Set([
   'camera',
@@ -65,6 +70,22 @@ const BLOCKED_TITLE_WORDS = [
 
 const SLIDER_PREVIEW_HOLD_MS = 4000;
 const VOLUME_DEBOUNCE_MS = 250;
+
+const PLAYER_STATE_LABEL_KEYS = {
+  playing: 'state.playing',
+  paused: 'state.paused',
+  buffering: 'state.buffering',
+  idle: 'state.idle',
+  standby: 'state.standby',
+  off: 'status.off',
+  on: 'status.on',
+};
+
+/** The current media title, or the player's real state when nothing is loaded. */
+function getPlayerHeadline(title, state, t) {
+  if (isUnavailableState(state)) return getUnavailableLabel(state, t);
+  return title || t(PLAYER_STATE_LABEL_KEYS[state] || 'common.unknown');
+}
 
 function normalizeBrowseText(value) {
   return String(value || '')
@@ -224,6 +245,7 @@ function MediaPage({
   );
   const powerAction = currentMp ? getMediaPlayerPowerAction(currentMp) : null;
   const canTogglePower = Boolean(powerAction);
+  const controls = getMediaPlayerControls(currentMp);
   const isPowerOffAction = powerAction === 'turn_off';
 
   const duration = mpId ? getA(mpId, 'media_duration') : null;
@@ -901,7 +923,7 @@ function MediaPage({
                     </p>
                   )}
                   <h2 className="truncate text-lg leading-none font-bold text-[var(--text-primary)] md:text-xl">
-                    {mpTitle || t('common.unknown')}
+                    {getPlayerHeadline(mpTitle, mpState, t)}
                   </h2>
                   <p className="truncate text-base font-medium text-[var(--text-secondary)] lg:text-lg xl:text-xl">
                     {mpSeries || ''}
@@ -920,7 +942,7 @@ function MediaPage({
                       max={duration || 100}
                       step={1}
                       value={shownPosition || 0}
-                      disabled={!duration}
+                      disabled={!duration || !controls.seek}
                       onChange={(e) => showSeekPreview(parseFloat(e.target.value))}
                       onCommit={(seconds) => {
                         showSeekPreview(seconds);
@@ -941,7 +963,8 @@ function MediaPage({
                           shuffle: !shuffle,
                         })
                       }
-                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                      disabled={!controls.shuffle}
+                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-30 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                       style={
                         shuffle
                           ? {
@@ -962,7 +985,9 @@ function MediaPage({
                         onClick={() =>
                           callService('media_player', 'media_previous_track', { entity_id: mpId })
                         }
-                        className="rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                        disabled={!controls.previous}
+                        aria-label={t('media.previous')}
+                        className="rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         <SkipBack className="h-[clamp(1.1rem,2.6vw,1.5rem)] w-[clamp(1.1rem,2.6vw,1.5rem)] text-[var(--text-secondary)]" />
                       </button>
@@ -970,7 +995,9 @@ function MediaPage({
                         onClick={() =>
                           callService('media_player', 'media_play_pause', { entity_id: mpId })
                         }
-                        className="rounded-full bg-[var(--text-primary)] p-[clamp(0.3rem,1.2vw,0.75rem)] shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+                        disabled={!controls.playPause}
+                        aria-label={isPlaying ? t('media.pause') : t('media.play')}
+                        className="rounded-full bg-[var(--text-primary)] p-[clamp(0.3rem,1.2vw,0.75rem)] shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         {isPlaying ? (
                           <Pause
@@ -990,7 +1017,9 @@ function MediaPage({
                         onClick={() =>
                           callService('media_player', 'media_next_track', { entity_id: mpId })
                         }
-                        className="rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                        disabled={!controls.next}
+                        aria-label={t('media.next')}
+                        className="rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         <SkipForward className="h-[clamp(1.1rem,2.6vw,1.5rem)] w-[clamp(1.1rem,2.6vw,1.5rem)] text-[var(--text-secondary)]" />
                       </button>
@@ -1015,7 +1044,8 @@ function MediaPage({
                           repeat: nextMode,
                         });
                       }}
-                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                      disabled={!controls.repeat}
+                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-30 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                       style={
                         repeat !== 'off'
                           ? {
@@ -1041,7 +1071,8 @@ function MediaPage({
                 <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-2">
                   <button
                     onClick={() => changeVolumeByStep(-VOLUME_STEP)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                    disabled={!controls.volumeSet}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     aria-label="Volume down"
                     title="Volume down"
                   >
@@ -1054,7 +1085,8 @@ function MediaPage({
                         is_volume_muted: !isMuted,
                       })
                     }
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                    disabled={!controls.volumeMute}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     type="button"
                     aria-pressed={isMuted}
                     aria-label={
@@ -1083,6 +1115,7 @@ function MediaPage({
                       max={100}
                       step={1}
                       value={displayVolume * 100}
+                      disabled={!controls.volumeSet}
                       onChange={(e) => {
                         const level = parseFloat(e.target.value) / 100;
                         showVolumePreview(level);
@@ -1093,7 +1126,8 @@ function MediaPage({
                   </div>
                   <button
                     onClick={() => changeVolumeByStep(VOLUME_STEP)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                    disabled={!controls.volumeSet}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     aria-label="Volume up"
                     title="Volume up"
                   >
@@ -1194,7 +1228,11 @@ function MediaPage({
                       const isSelf = p.entity_id === mpId;
                       const isSonos = isSonosMediaEntity(p);
                       const isActivePlayer = isSonos ? isSonosActive(p) : p?.state === 'playing';
-                      const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
+                      const pTitle = getPlayerHeadline(
+                        getA(p.entity_id, 'media_title'),
+                        p.state,
+                        t
+                      );
                       const pArtworkUrl = resolveMediaImageUrl(
                         p?.attributes?.entity_picture ||
                           p?.attributes?.media_image_url ||

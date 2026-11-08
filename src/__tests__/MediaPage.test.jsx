@@ -208,9 +208,71 @@ describe('MediaPage Sonos grouping', () => {
   });
 });
 
+// PAUSE | SEEK | VOLUME_SET | VOLUME_MUTE | PREVIOUS | NEXT | PLAY | SHUFFLE | REPEAT
+const ALL_TRANSPORT = 1 + 2 + 4 + 8 + 16 + 32 + 16384 + 32768 + 262144;
+
+describe('MediaPage player state', () => {
+  const renderPlayer = (state, attributes = {}) => {
+    const entities = {
+      'media_player.den': {
+        entity_id: 'media_player.den',
+        state,
+        attributes: { friendly_name: 'Den', supported_features: ALL_TRANSPORT, ...attributes },
+      },
+    };
+    render(<MediaPage {...makeBaseProps({ pageId: 'media', mode: 'media', entities })} />);
+    return {
+      shuffle: screen.getByRole('button', { name: 'media.shuffle' }),
+      repeat: screen.getByRole('button', { name: /^media\.repeat/ }),
+      previous: screen.getByRole('button', { name: 'media.previous' }),
+      next: screen.getByRole('button', { name: 'media.next' }),
+      play: screen.getByRole('button', { name: /^media\.(play|pause)$/ }),
+      mute: screen.getByRole('button', { name: 'media.volume.mute' }),
+    };
+  };
+  const heading = () => screen.getByRole('heading', { level: 2 });
+
+  it('shows Idle instead of Unknown and only offers play on an idle player', () => {
+    const controls = renderPlayer('idle');
+    expect(heading()).toHaveTextContent('state.idle');
+    expect(controls.play).toBeEnabled();
+    expect(controls.mute).toBeEnabled();
+    expect(controls.shuffle).toBeDisabled();
+    expect(controls.previous).toBeDisabled();
+  });
+
+  it('shows Unavailable and disables every control on an offline player', () => {
+    const controls = renderPlayer('unavailable');
+    expect(heading()).toHaveTextContent('status.unavailable');
+    Object.values(controls).forEach((control) => expect(control).toBeDisabled());
+    screen.getAllByRole('slider').forEach((slider) => expect(slider).toBeDisabled());
+  });
+
+  it('labels a player without a title with its state in the player list', () => {
+    renderPlayer('off');
+    expect(screen.getAllByText('status.off').length).toBe(2);
+  });
+
+  it('disables controls the player does not support while it plays', () => {
+    const controls = renderPlayer('playing', {
+      media_title: 'A Song',
+      media_duration: 200,
+      supported_features: 1 + 16384 + 4,
+    });
+    expect(heading()).toHaveTextContent('A Song');
+    expect(controls.play).toBeEnabled();
+    expect(controls.next).toBeDisabled();
+    expect(controls.previous).toBeDisabled();
+    expect(controls.shuffle).toBeDisabled();
+    expect(controls.repeat).toBeDisabled();
+    expect(controls.mute).toBeDisabled();
+    const [seek, volume] = screen.getAllByRole('slider');
+    expect(seek).toBeDisabled();
+    expect(volume).toBeEnabled();
+  });
+});
+
 describe('MediaPage slider commands', () => {
-  // PAUSE | SEEK | VOLUME_SET | VOLUME_MUTE | PREVIOUS | NEXT | PLAY | SHUFFLE | REPEAT
-  const ALL_TRANSPORT = 1 + 2 + 4 + 8 + 16 + 32 + 16384 + 32768 + 262144;
   const playingEntities = {
     'media_player.den': {
       entity_id: 'media_player.den',
