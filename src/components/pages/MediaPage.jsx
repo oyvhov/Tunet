@@ -22,10 +22,16 @@ import {
   Plus,
   Heart,
 } from '../../icons';
-import { isMusicAssistantMediaEntity, isSonosMediaEntity } from '../../utils';
+import {
+  getUnavailableLabel,
+  isMusicAssistantMediaEntity,
+  isSonosMediaEntity,
+  isUnavailableState,
+} from '../../utils';
 import MusicAssistantLink from '../media/MusicAssistantLink';
 import { useMusicAssistantChoices } from '../../hooks/useMusicAssistantChoices';
-import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
+import { useDebouncedCommit } from '../../hooks/useDebouncedCommit';
+import { getMediaPlayerControls, getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
 
 const BLOCKED_MEDIA_TYPES = new Set([
   'camera',
@@ -62,6 +68,26 @@ const BLOCKED_TITLE_WORDS = [
   'cctv',
 ];
 
+const SLIDER_PREVIEW_HOLD_MS = 4000;
+const VOLUME_DEBOUNCE_MS = 250;
+const CHOICE_PAGE_SIZE = 60;
+
+const PLAYER_STATE_LABEL_KEYS = {
+  playing: 'state.playing',
+  paused: 'state.paused',
+  buffering: 'state.buffering',
+  idle: 'state.idle',
+  standby: 'state.standby',
+  off: 'status.off',
+  on: 'status.on',
+};
+
+/** The current media title, or the player's real state when nothing is loaded. */
+function getPlayerHeadline(title, state, t) {
+  if (isUnavailableState(state)) return getUnavailableLabel(state, t);
+  return title || t(PLAYER_STATE_LABEL_KEYS[state] || 'common.unknown');
+}
+
 function normalizeBrowseText(value) {
   return String(value || '')
     .normalize('NFD')
@@ -93,6 +119,21 @@ function isPlaylistBrowseNode(node) {
   return browseNodeMatches(node, ['playlist', 'spilleliste', 'speleliste', 'spellista']);
 }
 
+/** A value from a slider, kept on screen until Home Assistant reports a new one for the player. */
+function useSliderPreview(playerId, reported) {
+  const [preview, setPreview] = useState(null);
+
+  useEffect(() => {
+    if (!preview) return undefined;
+    const timer = setTimeout(() => setPreview(null), SLIDER_PREVIEW_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [preview]);
+
+  const isCurrent = preview?.playerId === playerId && preview?.reported === reported;
+  const show = (value) => setPreview({ playerId, reported, value });
+  return [isCurrent ? preview.value : null, show];
+}
+
 function MediaPage({
   pageId,
   entities,
@@ -114,6 +155,7 @@ function MediaPage({
   const [rightPanelView, setRightPanelView] = useState('players');
   const [chooseTab, setChooseTab] = useState('favorites');
   const [chooseQuery, setChooseQuery] = useState('');
+  const [shownChoices, setShownChoices] = useState(null);
   const [browseChoicesByPlayer, setBrowseChoicesByPlayer] = useState({});
   const [browseLoading, setBrowseLoading] = useState(false);
   const [browseError, setBrowseError] = useState('');
@@ -133,7 +175,10 @@ function MediaPage({
   );
   const showAll = !Array.isArray(pageSetting.mediaIds);
   const selectedIds = showAll ? allMediaIds : pageSetting.mediaIds;
-  const visibleIds = useMemo(() => (selectedIds.length > 0 ? selectedIds : []), [selectedIds]);
+  const visibleIds = useMemo(() => {
+    const existingIds = selectedIds.filter((id) => entities[id]);
+    return existingIds.length > 0 ? existingIds : allMediaIds;
+  }, [selectedIds, entities, allMediaIds]);
   const mediaEntities = useMemo(
     () => visibleIds.map((id) => entities[id]).filter(Boolean),
     [visibleIds, entities]
@@ -205,6 +250,7 @@ function MediaPage({
   );
   const powerAction = currentMp ? getMediaPlayerPowerAction(currentMp) : null;
   const canTogglePower = Boolean(powerAction);
+  const controls = getMediaPlayerControls(currentMp);
   const isPowerOffAction = powerAction === 'turn_off';
 
   const duration = mpId ? getA(mpId, 'media_duration') : null;
@@ -215,6 +261,12 @@ function MediaPage({
   const shuffle = mpId ? getA(mpId, 'shuffle', false) : false;
   const repeat = mpId ? getA(mpId, 'repeat', 'off') : 'off';
   const VOLUME_STEP = 0.03;
+  const [seekPreview, showSeekPreview] = useSliderPreview(mpId, positionUpdatedAt);
+  const [volumePreview, showVolumePreview] = useSliderPreview(mpId, volume);
+  const displayVolume = volumePreview ?? volume;
+  const sendVolume = useDebouncedCommit(({ entityId, level }) => {
+    callService('media_player', 'volume_set', { entity_id: entityId, volume_level: level });
+  }, VOLUME_DEBOUNCE_MS);
 
   const changeVolumeByStep = useCallback(
     (delta) => {
@@ -239,6 +291,7 @@ function MediaPage({
   const elapsed =
     isPlaying && Number.isFinite(updatedAtMs) ? Math.max(0, (playheadNow - updatedAtMs) / 1000) : 0;
   const effectivePosition = Math.min(duration || basePosition, basePosition + elapsed);
+  const shownPosition = seekPreview ?? effectivePosition;
 
   const rawMembers = getA(mpId, 'group_members');
   const groupMembers = Array.isArray(rawMembers) ? rawMembers : [];
@@ -370,6 +423,9 @@ function MediaPage({
   const hasLoadedBrowseChoices = musicAssistantChoices
     ? musicAssistantChoices.loaded
     : browseChoices._version === 3;
+  const choiceScope = `${mpId}|${chooseTab}|${chooseQuery}`;
+  const visibleChoiceCount =
+    shownChoices?.scope === choiceScope ? shownChoices.count : CHOICE_PAGE_SIZE;
 
   const sonosAllIds = useMemo(
     () => allMediaIds.filter((id) => isSonosMediaEntity(entities[id])),
@@ -608,19 +664,31 @@ function MediaPage({
     [mediaEntities, isSonosActive]
   );
 
+  const currentCanGroup = controls.grouping;
+  const currentPlatform = currentMp?.attributes?.platform;
+  const groupableOtherIds = useMemo(() => {
+    if (!currentCanGroup) return [];
+    return listPlayers
+      .filter(
+        (player) =>
+          player.entity_id !== mpId &&
+          getMediaPlayerControls(player).grouping &&
+          player.attributes?.platform === currentPlatform
+      )
+      .map((player) => player.entity_id);
+  }, [currentCanGroup, listPlayers, mpId, currentPlatform]);
+  const canGroupPlayers = groupableOtherIds.length > 0;
+
   const toggleGroupAll = useCallback(() => {
-    if (!isSonosMode) return;
     if (!conn) return;
-    const allIds = listPlayers.map((player) => player.entity_id);
-    const otherIds = allIds.filter((id) => id !== mpId);
     if (hasGroupedOthers) {
       groupedOthers.forEach((id) => callService('media_player', 'unjoin', { entity_id: id }));
       return;
     }
-    if (otherIds.length > 0) {
-      callService('media_player', 'join', { entity_id: mpId, group_members: otherIds });
+    if (groupableOtherIds.length > 0) {
+      callService('media_player', 'join', { entity_id: mpId, group_members: groupableOtherIds });
     }
-  }, [isSonosMode, conn, listPlayers, mpId, hasGroupedOthers, groupedOthers, callService]);
+  }, [conn, groupableOtherIds, mpId, hasGroupedOthers, groupedOthers, callService]);
 
   const playChoice = (choice, fallbackType = 'music') => {
     if (!choice?.id || !mpId) return;
@@ -637,6 +705,27 @@ function MediaPage({
       media_content_id: choice.id,
       media_content_type: choice.type || fallbackType,
     });
+  };
+
+  const renderShowMore = (choices, serverTab = null) => {
+    const canFetchMore = Boolean(serverTab && musicAssistantChoices?.hasMore[serverTab]);
+    if (choices.length <= visibleChoiceCount && !canFetchMore) return null;
+    return (
+      <button
+        type="button"
+        disabled={isChooseLoading}
+        onClick={() => {
+          const nextCount = visibleChoiceCount + CHOICE_PAGE_SIZE;
+          setShownChoices({ scope: choiceScope, count: nextCount });
+          if (canFetchMore && nextCount >= choices.length) {
+            musicAssistantChoices.loadMore(serverTab);
+          }
+        }}
+        className="mx-auto mt-3 block min-h-11 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
+      >
+        {t('media.choose.showMore')}
+      </button>
+    );
   };
 
   const renderChoiceTile = (choice, fallbackType = 'music') =>
@@ -673,11 +762,6 @@ function MediaPage({
 
   return (
     <div key={pageId} className="fade-in-anim flex flex-col items-start gap-8 font-sans">
-      {mediaEntities.length === 0 && (
-        <div className="popup-surface w-full rounded-3xl p-8 text-center text-[var(--text-secondary)]">
-          {t('media.noPlayersFound')}
-        </div>
-      )}
       {editMode && (
         <div
           data-testid="media-page-editor"
@@ -808,7 +892,7 @@ function MediaPage({
       {mediaEntities.length > 0 && (
         <div className="grid w-full grid-cols-1 items-stretch gap-8 lg:grid-cols-[1.35fr_0.85fr]">
           <div
-            className={`popup-surface relative flex min-h-[480px] w-full min-w-0 flex-col overflow-hidden rounded-3xl border p-8 ${
+            className={`popup-surface relative flex min-h-[480px] w-full min-w-0 flex-col overflow-hidden rounded-3xl border p-5 sm:p-8 ${
               isSonosMode
                 ? 'border-[var(--status-info-fg)]/35 shadow-[0_0_0_1px_rgba(125,211,252,0.08),0_20px_60px_rgba(59,130,246,0.15)]'
                 : 'border-[var(--glass-border)]'
@@ -875,7 +959,7 @@ function MediaPage({
                     </p>
                   )}
                   <h2 className="truncate text-lg leading-none font-bold text-[var(--text-primary)] md:text-xl">
-                    {mpTitle || t('common.unknown')}
+                    {getPlayerHeadline(mpTitle, mpState, t)}
                   </h2>
                   <p className="truncate text-base font-medium text-[var(--text-secondary)] lg:text-lg xl:text-xl">
                     {mpSeries || ''}
@@ -885,7 +969,7 @@ function MediaPage({
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs font-bold tracking-widest text-[var(--text-secondary)]">
-                      <span>{formatDuration(effectivePosition)}</span>
+                      <span>{formatDuration(shownPosition)}</span>
                       <span>{formatDuration(duration)}</span>
                     </div>
                     <M3Slider
@@ -893,14 +977,16 @@ function MediaPage({
                       min={0}
                       max={duration || 100}
                       step={1}
-                      value={effectivePosition || 0}
-                      disabled={!duration}
-                      onChange={(e) =>
+                      value={shownPosition || 0}
+                      disabled={!duration || !controls.seek}
+                      onChange={(e) => showSeekPreview(parseFloat(e.target.value))}
+                      onCommit={(seconds) => {
+                        showSeekPreview(seconds);
                         callService('media_player', 'media_seek', {
                           entity_id: mpId,
-                          seek_position: parseFloat(e.target.value),
-                        })
-                      }
+                          seek_position: seconds,
+                        });
+                      }}
                       colorClass="bg-[var(--text-primary)]"
                     />
                   </div>
@@ -913,7 +999,8 @@ function MediaPage({
                           shuffle: !shuffle,
                         })
                       }
-                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                      disabled={!controls.shuffle}
+                      className={`flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-30 ${shuffle ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                       style={
                         shuffle
                           ? {
@@ -934,7 +1021,9 @@ function MediaPage({
                         onClick={() =>
                           callService('media_player', 'media_previous_track', { entity_id: mpId })
                         }
-                        className="rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                        disabled={!controls.previous}
+                        aria-label={t('media.previous')}
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         <SkipBack className="h-[clamp(1.1rem,2.6vw,1.5rem)] w-[clamp(1.1rem,2.6vw,1.5rem)] text-[var(--text-secondary)]" />
                       </button>
@@ -942,7 +1031,9 @@ function MediaPage({
                         onClick={() =>
                           callService('media_player', 'media_play_pause', { entity_id: mpId })
                         }
-                        className="rounded-full bg-[var(--text-primary)] p-[clamp(0.3rem,1.2vw,0.75rem)] shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+                        disabled={!controls.playPause}
+                        aria-label={isPlaying ? t('media.pause') : t('media.play')}
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-[var(--text-primary)] p-[clamp(0.3rem,1.2vw,0.75rem)] shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         {isPlaying ? (
                           <Pause
@@ -962,7 +1053,9 @@ function MediaPage({
                         onClick={() =>
                           callService('media_player', 'media_next_track', { entity_id: mpId })
                         }
-                        className="rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95"
+                        disabled={!controls.next}
+                        aria-label={t('media.next')}
+                        className="flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                       >
                         <SkipForward className="h-[clamp(1.1rem,2.6vw,1.5rem)] w-[clamp(1.1rem,2.6vw,1.5rem)] text-[var(--text-secondary)]" />
                       </button>
@@ -971,7 +1064,7 @@ function MediaPage({
                           onClick={() =>
                             callService('media_player', powerAction, { entity_id: mpId })
                           }
-                          className={`rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all active:scale-95 ${isPowerOffAction ? 'text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)]' : 'text-[var(--status-success-fg)] hover:bg-[var(--status-success-bg)]'}`}
+                          className={`flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.2rem,1vw,0.5rem)] transition-all active:scale-95 ${isPowerOffAction ? 'text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)]' : 'text-[var(--status-success-fg)] hover:bg-[var(--status-success-bg)]'}`}
                           title={isPowerOffAction ? t('status.off') : t('status.on')}
                         >
                           <Power className="h-[clamp(1.1rem,2.6vw,1.5rem)] w-[clamp(1.1rem,2.6vw,1.5rem)]" />
@@ -987,7 +1080,8 @@ function MediaPage({
                           repeat: nextMode,
                         });
                       }}
-                      className={`rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
+                      disabled={!controls.repeat}
+                      className={`flex min-h-11 min-w-11 items-center justify-center rounded-full p-[clamp(0.25rem,1vw,0.5rem)] transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-30 ${repeat !== 'off' ? '' : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'}`}
                       style={
                         repeat !== 'off'
                           ? {
@@ -1013,7 +1107,8 @@ function MediaPage({
                 <div className="flex items-center gap-2 border-t border-[var(--glass-border)] px-1 pt-2">
                   <button
                     onClick={() => changeVolumeByStep(-VOLUME_STEP)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                    disabled={!controls.volumeSet}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     aria-label="Volume down"
                     title="Volume down"
                   >
@@ -1026,7 +1121,8 @@ function MediaPage({
                         is_volume_muted: !isMuted,
                       })
                     }
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                    disabled={!controls.volumeMute}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     type="button"
                     aria-pressed={isMuted}
                     aria-label={
@@ -1042,7 +1138,7 @@ function MediaPage({
                   >
                     {isMuted ? (
                       <VolumeX className="h-4 w-4" />
-                    ) : volume < 0.5 ? (
+                    ) : displayVolume < 0.5 ? (
                       <Volume1 className="h-4 w-4" />
                     ) : (
                       <Volume2 className="h-4 w-4" />
@@ -1054,19 +1150,20 @@ function MediaPage({
                       min={0}
                       max={100}
                       step={1}
-                      value={volume * 100}
-                      onChange={(e) =>
-                        callService('media_player', 'volume_set', {
-                          entity_id: mpId,
-                          volume_level: parseFloat(e.target.value) / 100,
-                        })
-                      }
+                      value={displayVolume * 100}
+                      disabled={!controls.volumeSet}
+                      onChange={(e) => {
+                        const level = parseFloat(e.target.value) / 100;
+                        showVolumePreview(level);
+                        sendVolume({ entityId: mpId, level });
+                      }}
                       colorClass="bg-[var(--text-primary)]"
                     />
                   </div>
                   <button
                     onClick={() => changeVolumeByStep(VOLUME_STEP)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95"
+                    disabled={!controls.volumeSet}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     aria-label="Volume up"
                     title="Volume up"
                   >
@@ -1090,7 +1187,7 @@ function MediaPage({
                   <button
                     type="button"
                     onClick={() => setRightPanelView('players')}
-                    className={`rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'players' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`min-h-11 rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'players' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     style={
                       rightPanelView === 'players'
                         ? {
@@ -1107,7 +1204,7 @@ function MediaPage({
                     type="button"
                     data-testid="media-page-choose-tab"
                     onClick={() => setRightPanelView('choose')}
-                    className={`rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'choose' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`min-h-11 rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'choose' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     style={
                       rightPanelView === 'choose'
                         ? {
@@ -1124,7 +1221,7 @@ function MediaPage({
                     <button
                       type="button"
                       onClick={() => setRightPanelView('manage')}
-                      className={`rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'manage' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`min-h-11 rounded-lg px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${rightPanelView === 'manage' ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                       style={
                         rightPanelView === 'manage'
                           ? {
@@ -1139,7 +1236,7 @@ function MediaPage({
                     </button>
                   )}
                 </div>
-                {isSonosMode && rightPanelView === 'players' && listPlayers.length > 1 && (
+                {rightPanelView === 'players' && canGroupPlayers && (
                   <button
                     onClick={toggleGroupAll}
                     className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-colors"
@@ -1167,7 +1264,11 @@ function MediaPage({
                       const isSelf = p.entity_id === mpId;
                       const isSonos = isSonosMediaEntity(p);
                       const isActivePlayer = isSonos ? isSonosActive(p) : p?.state === 'playing';
-                      const pTitle = getA(p.entity_id, 'media_title', t('common.unknown'));
+                      const pTitle = getPlayerHeadline(
+                        getA(p.entity_id, 'media_title'),
+                        p.state,
+                        t
+                      );
                       const pArtworkUrl = resolveMediaImageUrl(
                         p?.attributes?.entity_picture ||
                           p?.attributes?.media_image_url ||
@@ -1217,7 +1318,7 @@ function MediaPage({
                               </p>
                             </div>
                           </button>
-                          {isSonosMode && !isSelf && listPlayers.length > 1 && (
+                          {groupableOtherIds.includes(p.entity_id) && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1251,7 +1352,7 @@ function MediaPage({
                               )}
                             </button>
                           )}
-                          {isSonosMode && isSelf && listPlayers.length > 1 && (
+                          {isSelf && canGroupPlayers && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1290,7 +1391,7 @@ function MediaPage({
                         key={tab}
                         type="button"
                         onClick={() => setChooseTab(tab)}
-                        className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${chooseTab === tab ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                        className={`min-h-11 rounded-lg px-2.5 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${chooseTab === tab ? 'border' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                         style={
                           chooseTab === tab
                             ? {
@@ -1356,15 +1457,16 @@ function MediaPage({
                       <>
                         {filteredFavoriteChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
-                            {filteredFavoriteChoices.map((choice) =>
-                              renderChoiceTile(choice, 'music')
-                            )}
+                            {filteredFavoriteChoices
+                              .slice(0, visibleChoiceCount)
+                              .map((choice) => renderChoiceTile(choice, 'music'))}
                           </div>
                         ) : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
                             {t('media.choose.emptyFavorites')}
                           </div>
                         )}
+                        {renderShowMore(filteredFavoriteChoices)}
                       </>
                     )}
 
@@ -1372,15 +1474,16 @@ function MediaPage({
                       <>
                         {filteredPlaylistChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
-                            {filteredPlaylistChoices.map((choice) =>
-                              renderChoiceTile(choice, 'playlist')
-                            )}
+                            {filteredPlaylistChoices
+                              .slice(0, visibleChoiceCount)
+                              .map((choice) => renderChoiceTile(choice, 'playlist'))}
                           </div>
                         ) : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
                             {t('media.choose.emptyPlaylists')}
                           </div>
                         )}
+                        {renderShowMore(filteredPlaylistChoices)}
                       </>
                     )}
 
@@ -1388,15 +1491,16 @@ function MediaPage({
                       <>
                         {filteredLibraryChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
-                            {filteredLibraryChoices.map((choice) =>
-                              renderChoiceTile(choice, 'music')
-                            )}
+                            {filteredLibraryChoices
+                              .slice(0, visibleChoiceCount)
+                              .map((choice) => renderChoiceTile(choice, 'music'))}
                           </div>
                         ) : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
                             {browseError || t('media.choose.emptyResults')}
                           </div>
                         )}
+                        {renderShowMore(filteredLibraryChoices, 'library')}
                       </>
                     )}
 
@@ -1404,17 +1508,18 @@ function MediaPage({
                       <>
                         {filteredSearchChoices.length > 0 ? (
                           <div className="grid grid-cols-3 gap-2">
-                            {filteredSearchChoices.map((choice) =>
-                              renderChoiceTile(choice, 'music')
-                            )}
+                            {filteredSearchChoices
+                              .slice(0, visibleChoiceCount)
+                              .map((choice) => renderChoiceTile(choice, 'music'))}
                           </div>
-                        ) : (
+                        ) : isChooseLoading ? null : (
                           <div className="py-2 text-center text-xs text-[var(--text-muted)] italic">
                             {musicAssistantChoices && !chooseQuery.trim()
                               ? t('media.choose.searchHint')
                               : t('form.noResults')}
                           </div>
                         )}
+                        {renderShowMore(filteredSearchChoices, 'search')}
                       </>
                     )}
                   </div>

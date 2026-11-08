@@ -21,6 +21,11 @@ interface M3SliderProps {
   name?: string;
 }
 
+// 44 px finger target around a thin track. Chrome only starts a touch drag inside the input's
+// thumb strip, so the invisible thumb has to be as tall as the target.
+const THIN_TRACK_HIT_AREA =
+  'absolute top-1/2 z-20 h-11 w-full -translate-y-1/2 cursor-pointer appearance-none opacity-0 select-none [&::-webkit-slider-thumb]:h-11 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none';
+
 export default function M3Slider({
   min,
   max,
@@ -142,7 +147,7 @@ export default function M3Slider({
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <input {...commonInputProps} />
+        <input {...commonInputProps} className={THIN_TRACK_HIT_AREA} />
         <div
           className="pointer-events-none absolute z-10 h-3 w-3 rounded-full bg-[var(--text-primary)] opacity-0 shadow-lg transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
           style={{ left: `calc(${percentage}% - 6px)` }}
@@ -164,7 +169,7 @@ export default function M3Slider({
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <input {...commonInputProps} />
+        <input {...commonInputProps} className={THIN_TRACK_HIT_AREA} />
         <div
           className="pointer-events-none absolute z-10 h-4 w-4 rounded-full bg-[var(--text-primary)] opacity-0 shadow-lg transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
           style={{ left: `calc(${percentage}% - 8px)` }}

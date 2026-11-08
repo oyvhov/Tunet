@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   getMusicAssistantConfigEntryId,
@@ -68,7 +68,7 @@ describe('Music Assistant service', () => {
       type: 'call_service',
       domain: 'music_assistant',
       service: 'search',
-      service_data: { config_entry_id: 'ma-entry', name: 'lana', limit: 8 },
+      service_data: { config_entry_id: 'ma-entry', name: 'lana', limit: 25 },
       return_response: true,
     });
 
@@ -76,6 +76,7 @@ describe('Music Assistant service', () => {
       getMusicAssistantLibrary(conn, 'ma-entry', 'album', {
         favorite: true,
         limit: 25,
+        offset: 50,
         orderBy: 'last_played_desc',
       })
     ).resolves.toEqual([album]);
@@ -84,6 +85,7 @@ describe('Music Assistant service', () => {
       media_type: 'album',
       favorite: true,
       limit: 25,
+      offset: 50,
       order_by: 'last_played_desc',
     });
   });
@@ -141,6 +143,74 @@ describe('useMusicAssistantChoices', () => {
       expect(result.current.search.map((choice) => choice.label)).toEqual(['13 Beaches'])
     );
     expect(result.current.loading).toBe(false);
+  });
+
+  const albums = (start, count) =>
+    Array.from({ length: count }, (_, index) => ({
+      media_type: 'album',
+      uri: `library://album/${start + index}`,
+      name: `Album ${start + index}`,
+    }));
+  const libraryCalls = (conn) =>
+    conn.sendMessagePromise.mock.calls
+      .map(([message]) => message.service_data)
+      .filter((data) => data && !data.name);
+
+  it('asks for far more than one screen of each list', async () => {
+    const conn = connFor({ get_library: () => ({ items: [] }) });
+    const { result } = renderHook(() =>
+      useMusicAssistantChoices({ conn, playerId: 'media_player.k', active: true, query: '' })
+    );
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    const calls = libraryCalls(conn);
+    expect(calls.find((data) => data.favorite).limit).toBe(100);
+    expect(calls.find((data) => !data.favorite && data.media_type === 'playlist').limit).toBe(200);
+    expect(calls.find((data) => !data.favorite && data.media_type === 'album').limit).toBe(100);
+  });
+
+  it('pages further into the album library on request', async () => {
+    const conn = connFor({
+      get_library: (data) => {
+        if (data.favorite || data.media_type !== 'album') return { items: [] };
+        return { items: data.offset ? albums(100, 3) : albums(0, 100) };
+      },
+    });
+    const { result } = renderHook(() =>
+      useMusicAssistantChoices({ conn, playerId: 'media_player.k', active: true, query: '' })
+    );
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.library).toHaveLength(100);
+    expect(result.current.hasMore.library).toBe(true);
+
+    act(() => result.current.loadMore('library'));
+    await waitFor(() => expect(result.current.library).toHaveLength(103));
+    expect(libraryCalls(conn).at(-1)).toMatchObject({ media_type: 'album', offset: 100 });
+    expect(result.current.hasMore.library).toBe(false);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('widens a search on request and keeps the results on screen meanwhile', async () => {
+    const page = (limit) =>
+      Array.from({ length: limit === 25 ? 25 : 30 }, (_, index) => ({
+        media_type: 'track',
+        uri: `library://track/${index}`,
+        name: `Track ${index}`,
+      }));
+    const conn = connFor({
+      get_library: () => ({ items: [] }),
+      search: (data) => ({ tracks: page(data.limit) }),
+    });
+    const { result } = renderHook(() =>
+      useMusicAssistantChoices({ conn, playerId: 'media_player.k', active: true, query: 'x' })
+    );
+    await waitFor(() => expect(result.current.search).toHaveLength(25));
+    expect(result.current.hasMore.search).toBe(true);
+
+    act(() => result.current.loadMore('search'));
+    expect(result.current.search).toHaveLength(25);
+    await waitFor(() => expect(result.current.search).toHaveLength(30));
+    expect(conn.sendMessagePromise.mock.lastCall[0].service_data.limit).toBe(50);
+    expect(result.current.hasMore.search).toBe(false);
   });
 
   it('reports an error when the player has no Music Assistant entry', async () => {
