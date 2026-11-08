@@ -151,9 +151,11 @@ export default function SensorServiceSettings({
   conn,
   connected,
   entities,
+  flushRef,
   t,
 }) {
   const [services, setServices] = useState(EMPTY_OBJECT);
+  const [serviceQuery, setServiceQuery] = useState('');
   const [loadState, setLoadState] = useState('loading');
   const [draft, setDraft] = useState(() => action.data || {});
   const [draftService, setDraftService] = useState(action.service || '');
@@ -233,7 +235,7 @@ export default function SensorServiceSettings({
   const applyData = () => {
     if (!metadata || metadata.response?.optional === false) {
       setError(t('sensor.custom.servicesUnavailable'));
-      return;
+      return false;
     }
     let extra;
     try {
@@ -241,7 +243,7 @@ export default function SensorServiceSettings({
       if (!extra || typeof extra !== 'object' || Array.isArray(extra)) throw new Error();
     } catch {
       setError(t('sensor.custom.invalidJson'));
-      return;
+      return false;
     }
     const data = { ...draft, ...extra };
     const targetMode = supportsTarget ? draftTargetMode : 'none';
@@ -249,7 +251,7 @@ export default function SensorServiceSettings({
       setError(
         t('sensor.custom.requiredField').replace('{field}', t('sensor.custom.actionTarget'))
       );
-      return;
+      return false;
     }
     if (targetMode === 'none' && metadata.fields?.entity_id?.required && !data.entity_id) {
       setError(
@@ -258,7 +260,7 @@ export default function SensorServiceSettings({
           metadata.fields.entity_id.name || 'entity_id'
         )
       );
-      return;
+      return false;
     }
     if (
       data.entity_id &&
@@ -268,12 +270,12 @@ export default function SensorServiceSettings({
         .some((id) => typeof id !== 'string' || !targetDomains.includes(id.split('.')[0]))
     ) {
       setError(t('sensor.custom.invalidField').replace('{field}', t('sensor.custom.actionTarget')));
-      return;
+      return false;
     }
     for (const [key, field] of fields) {
       if (field.required && (data[key] == null || data[key] === '')) {
         setError(t('sensor.custom.requiredField').replace('{field}', field.name || key));
-        return;
+        return false;
       }
       if (data[key] === undefined || data[key] === '') {
         delete data[key];
@@ -284,7 +286,7 @@ export default function SensorServiceSettings({
           data[key] = JSON.parse(data[key]);
         } catch {
           setError(t('sensor.custom.invalidJson'));
-          return;
+          return false;
         }
       }
       if (getFieldType(field) === 'number') {
@@ -295,13 +297,13 @@ export default function SensorServiceSettings({
           (field.selector.number?.max != null && value > field.selector.number.max)
         ) {
           setError(t('sensor.custom.invalidField').replace('{field}', field.name || key));
-          return;
+          return false;
         }
         data[key] = value;
       }
       if (getFieldType(field) === 'boolean' && typeof data[key] !== 'boolean') {
         setError(t('sensor.custom.invalidField').replace('{field}', field.name || key));
-        return;
+        return false;
       }
       if (getFieldType(field) === 'select' && !field.selector.select?.custom_value) {
         const options = (field.selector.select?.options || []).map((option) =>
@@ -309,7 +311,7 @@ export default function SensorServiceSettings({
         );
         if (!options.includes(data[key])) {
           setError(t('sensor.custom.invalidField').replace('{field}', field.name || key));
-          return;
+          return false;
         }
       }
     }
@@ -323,7 +325,16 @@ export default function SensorServiceSettings({
     setExtraJson('{}');
     setError('');
     setDirty(false);
+    return true;
   };
+
+  useEffect(() => {
+    if (!flushRef) return undefined;
+    flushRef.current = () => (dirty && metadata ? applyData() : true);
+    return () => {
+      flushRef.current = null;
+    };
+  });
 
   const changeService = (service) => {
     const [domain, name] = service.split('.');
@@ -337,6 +348,15 @@ export default function SensorServiceSettings({
     setError('');
     setDirty(true);
   };
+
+  const normalizedServiceQuery = serviceQuery.trim().toLowerCase();
+  const visibleServices = normalizedServiceQuery
+    ? availableServices.filter(
+        (service) =>
+          service === draftService ||
+          serviceLabels[service].toLowerCase().includes(normalizedServiceQuery)
+      )
+    : availableServices;
 
   const connectionMessage =
     !conn || connected === false
@@ -356,11 +376,19 @@ export default function SensorServiceSettings({
           {t('sensor.custom.servicesError')}
         </p>
       ) : null}
+      <input
+        type="text"
+        aria-label={t('form.search')}
+        value={serviceQuery}
+        onChange={(event) => setServiceQuery(event.target.value)}
+        placeholder={t('form.search')}
+        className="min-h-11 w-full rounded-xl bg-[var(--glass-bg)] px-3 py-2 text-xs text-[var(--text-primary)] outline-none"
+      />
       <DropdownField
         icon={Zap}
         label={t('sensor.custom.service')}
         hint={metadata?.description}
-        options={availableServices}
+        options={visibleServices}
         current={draftService}
         map={serviceLabels}
         onChange={changeService}

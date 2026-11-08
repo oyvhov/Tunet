@@ -89,6 +89,7 @@ export default function SensorCardSettings({
   onNameChange,
   onIconChange,
   numericEntityOptions = [],
+  serviceDraftFlushRef,
   t,
 }) {
   const primaryId = settings.entityId || entityId;
@@ -356,6 +357,7 @@ export default function SensorCardSettings({
                 conn={conn}
                 connected={connected}
                 entities={entities}
+                flushRef={serviceDraftFlushRef}
                 t={t}
               />
             ) : null}

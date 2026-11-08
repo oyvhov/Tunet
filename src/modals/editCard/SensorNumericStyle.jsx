@@ -1,5 +1,6 @@
 import React from 'react';
 import { SearchableSelect } from './CarMappingsSection';
+import DraftNumberInput from './DraftNumberInput';
 import { ChoiceChips, FIELD_CLASS, ToggleRow } from './settingsControls';
 import { canSensorUseNumericVariants, resolveSensorCardConfig } from '../../utils/sensorCardConfig';
 
@@ -264,15 +265,10 @@ export default function SensorNumericStyle({
                   <span className="w-12 shrink-0 text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
                     {`${t('sensor.step') || 'Step'} ${index + 1}`}
                   </span>
-                  <input
-                    type="number"
+                  <DraftNumberInput
                     aria-label={`${t('sensor.step') || 'Step'} ${index + 1}`}
                     value={threshold.limit ?? ''}
-                    onChange={(event) =>
-                      saveThreshold(index, {
-                        limit: event.target.value === '' ? null : parseFloat(event.target.value),
-                      })
-                    }
+                    onCommit={(value) => saveThreshold(index, { limit: parseFloat(value) })}
                     className="w-20 min-w-0 rounded-lg bg-[var(--glass-bg)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none"
                   />
                   <div className="flex flex-wrap gap-1.5">

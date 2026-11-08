@@ -1,17 +1,13 @@
 import { useState } from 'react';
 import {
+  createDefaultConditionRule,
   evaluateVisibilityConditionConfig,
+  getKnownConditionStates,
   normalizeVisibilityConditionConfig,
   resolveConditionEntityId,
 } from '../../utils/conditionUtils';
 import { Check, Plus, Search } from '../../icons';
-
-/** @returns {import('../../utils/conditionUtils').VisibilityConditionRule} */
-const createDefaultRule = () => ({
-  type: 'state',
-  states: ['on'],
-  forSeconds: 0,
-});
+import DraftNumberInput from '../../modals/editCard/DraftNumberInput';
 
 const NUMERIC_OPERATORS = ['>', '<', '>=', '<=', '=='];
 
@@ -29,7 +25,7 @@ function getConditionWithDefaults(condition) {
     entityId: null,
     logic: 'AND',
     enabled: true,
-    rules: [createDefaultRule()],
+    rules: [createDefaultConditionRule()],
   };
 }
 
@@ -202,9 +198,10 @@ export default function ConditionBuilder({
 
   const setType = (index, type) => {
     const nextRules = [...effectiveConfig.rules];
-    const current = nextRules[index] || createDefaultRule();
+    const current = nextRules[index] || createDefaultConditionRule();
     if (type === 'state') {
-      nextRules[index] = { ...current, type, states: ['on'] };
+      const { states } = createDefaultConditionRule(entities?.[getRuleEntityId(index)]);
+      nextRules[index] = { ...current, type, states };
       saveConfig({ ...effectiveConfig, rules: nextRules });
       return;
     }
@@ -229,13 +226,16 @@ export default function ConditionBuilder({
 
   const updateRule = (index, partial) => {
     const nextRules = [...effectiveConfig.rules];
-    nextRules[index] = { ...(nextRules[index] || createDefaultRule()), ...partial };
+    nextRules[index] = { ...(nextRules[index] || createDefaultConditionRule()), ...partial };
     saveConfig({ ...effectiveConfig, rules: nextRules });
   };
 
   const addSecondRule = () => {
     if (effectiveConfig.rules.length >= 2) return;
-    saveConfig({ ...effectiveConfig, rules: [...effectiveConfig.rules, createDefaultRule()] });
+    saveConfig({
+      ...effectiveConfig,
+      rules: [...effectiveConfig.rules, createDefaultConditionRule(selectedEntity)],
+    });
   };
 
   const removeSecondRule = () => {
@@ -272,7 +272,7 @@ export default function ConditionBuilder({
             setActiveEntityPickerRule((prev) => (prev === ruleIndex ? null : ruleIndex));
             setEntitySearch('');
           }}
-          className="group entity-item popup-surface popup-surface-hover flex w-full items-center justify-between rounded-lg border border-transparent px-2.5 py-1.5 text-left transition-colors"
+          className="group entity-item popup-surface popup-surface-hover flex min-h-11 w-full items-center justify-between rounded-lg border border-transparent px-2.5 py-1.5 text-left transition-colors"
         >
           <div className="mr-4 flex flex-col overflow-hidden">
             <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
@@ -302,7 +302,7 @@ export default function ConditionBuilder({
               />
             </div>
 
-            <div className="custom-scrollbar max-h-36 space-y-1 overflow-y-auto pr-1">
+            <div className="custom-scrollbar max-h-64 space-y-1 overflow-y-auto pr-1">
               {filteredEntityIds.map((id) => {
                 const isSelected = selectedRuleEntityId === id;
                 return (
@@ -310,7 +310,7 @@ export default function ConditionBuilder({
                     key={`rule-${ruleIndex}-${id}`}
                     type="button"
                     onClick={() => updateRule(ruleIndex, { entityId: id })}
-                    className={`group entity-item flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-colors ${isSelected ? 'border-[var(--accent-color)] bg-[var(--accent-bg)]' : 'popup-surface popup-surface-hover border-transparent'}`}
+                    className={`group entity-item flex min-h-11 w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-colors ${isSelected ? 'border-[var(--accent-color)] bg-[var(--accent-bg)]' : 'popup-surface popup-surface-hover border-transparent'}`}
                   >
                     <div className="mr-3 flex flex-col overflow-hidden">
                       <span
@@ -362,8 +362,18 @@ export default function ConditionBuilder({
     updateRule(index, { states: existing.filter((state) => state !== stateToRemove) });
   };
 
+  const addKnownState = (index, state) => {
+    const existing = Array.isArray(effectiveConfig.rules[index]?.states)
+      ? effectiveConfig.rules[index].states
+      : [];
+    updateRule(index, { states: [...existing, state] });
+  };
+
   const renderRuleEditor = (rule, index) => {
     const selectedStates = Array.isArray(rule.states) ? rule.states : [];
+    const knownStates = getKnownConditionStates(entities?.[getRuleEntityId(index)]).filter(
+      (state) => !selectedStates.includes(state)
+    );
 
     return (
       <div className="space-y-1.5">
@@ -393,13 +403,11 @@ export default function ConditionBuilder({
             {t('visibility.secondsLabel') || 'I (Sekund)'}
           </div>
 
-          <input
-            type="number"
+          <DraftNumberInput
+            commitEmpty
             min="0"
             value={Number.isFinite(Number(rule.forSeconds)) ? Number(rule.forSeconds) : 0}
-            onChange={(e) =>
-              updateRule(index, { forSeconds: Math.max(0, Number(e.target.value || 0)) })
-            }
+            onCommit={(value) => updateRule(index, { forSeconds: Math.max(0, Number(value || 0)) })}
             className="popup-surface col-span-2 w-full rounded-xl border border-transparent px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] transition-colors outline-none focus:border-[var(--accent-color)]"
             title={t('visibility.forSeconds') || 'for sec'}
           />
@@ -413,10 +421,20 @@ export default function ConditionBuilder({
                   key={`${index}-${state}`}
                   type="button"
                   onClick={() => removeStateValue(index, state)}
-                  className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-bg)] px-2.5 py-1 text-[11px] font-bold text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
+                  className="inline-flex min-h-11 items-center gap-1 rounded-full bg-[var(--accent-bg)] px-3 py-1 text-xs font-bold text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
                 >
                   <span className="text-[var(--accent-color)]">×</span>
                   <span>{state}</span>
+                </button>
+              ))}
+              {knownStates.map((state) => (
+                <button
+                  key={`${index}-known-${state}`}
+                  type="button"
+                  onClick={() => addKnownState(index, state)}
+                  className="inline-flex min-h-11 items-center rounded-full bg-[var(--glass-bg)] px-3 py-1 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
+                >
+                  {state}
                 </button>
               ))}
             </div>
@@ -439,7 +457,7 @@ export default function ConditionBuilder({
               <button
                 type="button"
                 onClick={() => addStateValue(index)}
-                className="rounded bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
+                className="min-h-11 rounded bg-[var(--glass-bg)] px-3 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
               >
                 {t('addCard.add') || 'Add'}
               </button>
@@ -517,7 +535,7 @@ export default function ConditionBuilder({
             <button
               type="button"
               onClick={() => setEnabled(!isEnabled)}
-              className={`relative h-6 w-12 rounded-full transition-colors ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
+              className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
             >
               <span
                 className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`}
@@ -563,7 +581,7 @@ export default function ConditionBuilder({
                 <button
                   type="button"
                   onClick={addSecondRule}
-                  className="ml-auto rounded bg-[var(--accent-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase hover:bg-[var(--accent-bg)]"
+                  className="ml-auto min-h-11 rounded bg-[var(--accent-bg)] px-3 py-1 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase hover:bg-[var(--accent-bg)]"
                 >
                   {t('visibility.addRule') || 'Add rule'}
                 </button>
@@ -573,7 +591,7 @@ export default function ConditionBuilder({
                 <button
                   type="button"
                   onClick={removeSecondRule}
-                  className="ml-auto rounded bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
+                  className="ml-auto min-h-11 rounded bg-[var(--glass-bg)] px-3 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
                 >
                   {t('visibility.removeRule') || 'Remove rule'}
                 </button>
