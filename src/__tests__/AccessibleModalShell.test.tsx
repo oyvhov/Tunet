@@ -260,6 +260,22 @@ describe('AccessibleModalShell scroll lock', () => {
     expect(document.body.style.paddingRight).toBe('');
   });
 
+  it('only releases the page when the last popup is gone', () => {
+    const first = openShellWithScrollbar(15);
+    const second = render(
+      <AccessibleModalShell open onClose={vi.fn()} size="s" nested>
+        {() => <button type="button">Inner</button>}
+      </AccessibleModalShell>
+    );
+
+    first.unmount();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    second.unmount();
+    expect(document.body.style.overflow).toBe('');
+    expect(document.body.style.paddingRight).toBe('');
+  });
+
   it('adds no padding when scrollbars take no room', () => {
     openShellWithScrollbar(0);
 

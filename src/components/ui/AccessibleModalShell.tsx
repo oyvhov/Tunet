@@ -28,6 +28,25 @@ export function useModalShell(): ModalShellContextValue | null {
 // Open modals in opening order; only the top one reacts to Escape.
 const openModalStack: symbol[] = [];
 
+let lockedBodyStyles: { overflow: string; paddingRight: string } | null = null;
+
+function lockPageScroll() {
+  if (lockedBodyStyles) return;
+  const { body, documentElement: root } = document;
+  lockedBodyStyles = { overflow: body.style.overflow, paddingRight: body.style.paddingRight };
+  // Hiding the scrollbar would widen the page; padding keeps the dashboard still.
+  const scrollbarWidth = root.clientWidth > 0 ? window.innerWidth - root.clientWidth : 0;
+  body.style.overflow = 'hidden';
+  if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
+}
+
+function unlockPageScroll() {
+  if (!lockedBodyStyles) return;
+  document.body.style.overflow = lockedBodyStyles.overflow;
+  document.body.style.paddingRight = lockedBodyStyles.paddingRight;
+  lockedBodyStyles = null;
+}
+
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -149,12 +168,7 @@ export default function AccessibleModalShell({
     const stackToken = Symbol('modal');
     openModalStack.push(stackToken);
 
-    const prevOverflow = document.body.style.overflow;
-    const prevPaddingRight = document.body.style.paddingRight;
-    // Hiding the scrollbar would widen the page; padding keeps the dashboard still.
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = 'hidden';
-    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+    lockPageScroll();
 
     const panel = panelRef.current;
     if (openedNow && panel) {
@@ -202,8 +216,7 @@ export default function AccessibleModalShell({
       document.removeEventListener('keydown', handleKeyDown);
       const index = openModalStack.indexOf(stackToken);
       if (index >= 0) openModalStack.splice(index, 1);
-      document.body.style.overflow = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
+      if (openModalStack.length === 0) unlockPageScroll();
       const previous = previousActiveRef.current;
       if (previous instanceof HTMLElement) previous.focus({ preventScroll: true });
     };
