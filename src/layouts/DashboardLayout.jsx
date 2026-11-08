@@ -9,7 +9,7 @@ import EditToolbar from './EditToolbar';
 import SettingsMenuControl from './SettingsMenuControl';
 import { PageNavigation } from '../components';
 import DashboardGrid from '../rendering/DashboardGrid';
-import PinLockModal from '../components/ui/PinLockModal';
+import SettingsPinLockModal from '../components/ui/SettingsPinLockModal';
 import { useOptionalToast } from '../contexts/ToastContext';
 
 const MemoStatusBar = memo(StatusBar);
@@ -345,13 +345,15 @@ export default function DashboardLayout(props) {
           />
         )}
 
-        <PinLockModal
-          open={showPinLockModal}
-          onClose={closePinLockModal}
-          onSubmit={handlePinSubmit}
-          t={t}
-          error={pinLockError}
-        />
+        {showPinLockModal && (
+          <SettingsPinLockModal
+            open
+            onClose={closePinLockModal}
+            onSubmit={handlePinSubmit}
+            t={t}
+            error={pinLockError}
+          />
+        )}
       </div>
 
       {showDashboardChrome && isMobile && (
