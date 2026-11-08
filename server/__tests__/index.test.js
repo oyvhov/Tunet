@@ -40,9 +40,9 @@ const startHarness = async (app) => {
   openServers.push(server);
 
   return {
-    async request(path) {
+    async request(path, init) {
       const address = server.address();
-      return fetch(`http://127.0.0.1:${address.port}${path}`);
+      return fetch(`http://127.0.0.1:${address.port}${path}`, init);
     },
   };
 };
@@ -138,6 +138,29 @@ describe('/api/health', () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({ status: 'error', version: 'test-version' });
     expect(logged).toBe(1);
+  });
+});
+
+describe('API rate limit', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('counts each user behind trusted ingress separately', async () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+    vi.stubEnv('API_RATE_LIMIT_MAX', '10');
+    const database = new Database(':memory:');
+    const harness = await startHarness(createApp({ appVersion: 'test-version', database }));
+    const asUser = (id) =>
+      harness.request('/api/health', {
+        headers: { 'x-ingress-path': '/api/hassio_ingress/abc', 'x-remote-user-id': id },
+      });
+
+    for (let count = 0; count < 10; count += 1) await asUser('user-a');
+    const limited = await asUser('user-a');
+    const otherUser = await asUser('user-b');
+    database.close();
+
+    expect(limited.status).toBe(429);
+    expect(otherUser.status).toBe(200);
   });
 });
 

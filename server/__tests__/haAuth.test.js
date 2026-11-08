@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createHomeAssistantAuthMiddleware,
   createValidatedHomeAssistantUserResolver,
+  getRateLimitKey,
   warnIfHomeAssistantUrlMissing,
 } from '../haAuth.js';
 
@@ -32,7 +33,58 @@ const createResponse = () => {
   return response;
 };
 
+describe('getRateLimitKey', () => {
+  const fromIngress = (userId, ip = '172.30.32.2') =>
+    createRequest({
+      __ip: ip,
+      __remoteAddress: ip,
+      'x-ingress-path': '/api/hassio_ingress/abc123',
+      'x-remote-user-id': userId,
+    });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('gives each user behind trusted ingress a bucket of their own', () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+
+    expect(getRateLimitKey(fromIngress('user-a'))).toBe(getRateLimitKey(fromIngress('user-a')));
+    expect(getRateLimitKey(fromIngress('user-a'))).not.toBe(getRateLimitKey(fromIngress('user-b')));
+  });
+
+  it('ignores the user header when ingress trust is off', () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '0');
+
+    expect(getRateLimitKey(fromIngress('user-a'))).toBe('172.30.32.2');
+  });
+
+  it('ignores the user header from an address that is not the Supervisor', () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+
+    expect(getRateLimitKey(fromIngress('user-a', '203.0.113.5'))).toBe('203.0.113.5');
+  });
+});
+
 describe('createValidatedHomeAssistantUserResolver', () => {
+  it('keeps a validated user for two minutes by default', async () => {
+    vi.useFakeTimers();
+    try {
+      const loadCurrentUser = vi.fn().mockResolvedValue({ id: 'user-1' });
+      const resolveUser = createValidatedHomeAssistantUserResolver({ loadCurrentUser });
+      const session = { haUrl: 'https://ha.example', accessToken: 'token-1' };
+
+      await resolveUser(session);
+      vi.advanceTimersByTime(119_000);
+      await resolveUser(session);
+      expect(loadCurrentUser).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(2_000);
+      await resolveUser(session);
+      expect(loadCurrentUser).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('caches validated users by URL and token', async () => {
     const loadCurrentUser = vi.fn().mockResolvedValue({ id: 'user-1' });
     const resolveUser = createValidatedHomeAssistantUserResolver({
