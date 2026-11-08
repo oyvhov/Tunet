@@ -222,6 +222,45 @@ describe('required setup', () => {
   }, 20_000);
 });
 
+describe('touch targets', () => {
+  it('gives every small toggle a 44px hit area', () => {
+    renderModal({
+      entityId: 'fan.bedroom',
+      canEditStatus: true,
+      isEditFan: true,
+      editSettings: {},
+    });
+    const toggles = screen
+      .getAllByRole('button')
+      .concat(screen.getAllByRole('switch'))
+      .filter((button) => button.className.includes('w-12'));
+    expect(toggles.length).toBeGreaterThan(3);
+    for (const toggle of toggles) {
+      const isRowSwitch = Boolean(toggle.closest('label'));
+      if (!isRowSwitch) expect(toggle.className).toContain('before:-inset-2.5');
+    }
+  }, 20_000);
+
+  it('makes condition actions and state chips 44px tall', () => {
+    render(
+      <ConditionBuilder
+        cardId="light.desk"
+        cardSettings={{}}
+        entities={entities}
+        t={t}
+        showHeader={false}
+        showEnableToggle={false}
+        forceEnabled
+        condition={{ enabled: true, rules: [{ type: 'state', states: ['on'] }] }}
+        onChange={vi.fn()}
+      />
+    );
+    for (const name of [en['addCard.add'], en['visibility.addRule'], 'off']) {
+      expect(screen.getByRole('button', { name }).className).toContain('min-h-11');
+    }
+  });
+});
+
 describe('popup trigger number fields', () => {
   const editSettings = {
     coverId: 'cover.garage',

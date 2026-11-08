@@ -17,7 +17,7 @@ const SwitchRow = ({ label, checked, onToggle }) => (
       aria-checked={!!checked}
       aria-label={label}
       onClick={onToggle}
-      className={`relative h-6 w-12 flex-none rounded-full transition-colors ${checked ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
+      className={`relative h-6 w-12 flex-none rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${checked ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
     >
       <span
         className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${checked ? 'left-7' : 'left-1'}`}

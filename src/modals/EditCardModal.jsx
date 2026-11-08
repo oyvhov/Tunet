@@ -575,7 +575,7 @@ function VisibilityConditionSection({
             aria-checked={visibilityEnabled}
             aria-label={t('visibility.title') || 'Conditional visibility'}
             onClick={toggleVisibilityCondition}
-            className={`relative h-6 w-12 shrink-0 rounded-full border transition-colors ${visibilityEnabled ? 'border-transparent bg-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]'}`}
+            className={`relative h-6 w-12 shrink-0 rounded-full border transition-colors before:absolute before:-inset-2.5 before:content-[''] ${visibilityEnabled ? 'border-transparent bg-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]'}`}
           >
             <span
               aria-hidden="true"
@@ -667,7 +667,7 @@ function PopupTriggerSection({
               );
               setShowPopupLogic(nextEnabled);
             }}
-            className={`relative h-6 w-12 shrink-0 rounded-full border transition-colors ${popupTriggerEnabled ? 'border-transparent bg-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]'}`}
+            className={`relative h-6 w-12 shrink-0 rounded-full border transition-colors before:absolute before:-inset-2.5 before:content-[''] ${popupTriggerEnabled ? 'border-transparent bg-[var(--accent-color)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg-hover)]'}`}
           >
             <span
               aria-hidden="true"
@@ -1348,7 +1348,7 @@ export default function EditCardModal({
                             !editSettings.largeCalendar
                           )
                         }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.largeCalendar ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                        className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.largeCalendar ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
                       >
                         <span
                           className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.largeCalendar ? 'translate-x-6' : 'translate-x-0'}`}
@@ -1928,7 +1928,7 @@ export default function EditCardModal({
                             editSettings.showEffects === false ? true : false
                           )
                         }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showEffects !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                        className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.showEffects !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
                       >
                         <span
                           className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showEffects !== false ? 'translate-x-6' : 'translate-x-0'}`}
@@ -2457,7 +2457,7 @@ export default function EditCardModal({
                             !(editSettings.showName !== false)
                           )
                         }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                        className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.showName !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                       >
                         <div
                           className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showName !== false ? 'left-7' : 'left-1'}`}
@@ -2478,7 +2478,7 @@ export default function EditCardModal({
                             !(editSettings.showState !== false)
                           )
                         }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showState !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                        className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.showState !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                       >
                         <div
                           className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showState !== false ? 'left-7' : 'left-1'}`}
@@ -2499,7 +2499,7 @@ export default function EditCardModal({
                             !(editSettings.showZoneBadgeIcon !== false)
                           )
                         }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showZoneBadgeIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                        className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.showZoneBadgeIcon !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                       >
                         <div
                           className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showZoneBadgeIcon !== false ? 'left-7' : 'left-1'}`}
@@ -2726,7 +2726,7 @@ export default function EditCardModal({
                           !(editSettings.showStatus !== false)
                         )
                       }
-                      className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showStatus !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                      className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.showStatus !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div
                         className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showStatus !== false ? 'left-7' : 'left-1'}`}
@@ -2745,7 +2745,7 @@ export default function EditCardModal({
                           !(editSettings.showLastChanged !== false)
                         )
                       }
-                      className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showLastChanged !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                      className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.showLastChanged !== false ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                     >
                       <div
                         className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-all ${editSettings.showLastChanged !== false ? 'left-7' : 'left-1'}`}
@@ -2776,7 +2776,7 @@ export default function EditCardModal({
                           !editSettings.disable_animation
                         )
                       }
-                      className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.disable_animation ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                      className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.disable_animation ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
                     >
                       <span
                         className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.disable_animation ? 'translate-x-6' : 'translate-x-0'}`}
@@ -3199,7 +3199,7 @@ export default function EditCardModal({
                             !editSettings.showWithSupport
                           )
                         }
-                        className={`relative h-6 w-12 rounded-full transition-colors ${editSettings.showWithSupport ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
+                        className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${editSettings.showWithSupport ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-gray-600'}`}
                       >
                         <span
                           className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-[var(--text-primary)] transition-transform ${editSettings.showWithSupport ? 'translate-x-6' : 'translate-x-0'}`}

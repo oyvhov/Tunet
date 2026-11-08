@@ -272,7 +272,7 @@ export default function ConditionBuilder({
             setActiveEntityPickerRule((prev) => (prev === ruleIndex ? null : ruleIndex));
             setEntitySearch('');
           }}
-          className="group entity-item popup-surface popup-surface-hover flex w-full items-center justify-between rounded-lg border border-transparent px-2.5 py-1.5 text-left transition-colors"
+          className="group entity-item popup-surface popup-surface-hover flex min-h-11 w-full items-center justify-between rounded-lg border border-transparent px-2.5 py-1.5 text-left transition-colors"
         >
           <div className="mr-4 flex flex-col overflow-hidden">
             <span className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
@@ -302,7 +302,7 @@ export default function ConditionBuilder({
               />
             </div>
 
-            <div className="custom-scrollbar max-h-36 space-y-1 overflow-y-auto pr-1">
+            <div className="custom-scrollbar max-h-64 space-y-1 overflow-y-auto pr-1">
               {filteredEntityIds.map((id) => {
                 const isSelected = selectedRuleEntityId === id;
                 return (
@@ -310,7 +310,7 @@ export default function ConditionBuilder({
                     key={`rule-${ruleIndex}-${id}`}
                     type="button"
                     onClick={() => updateRule(ruleIndex, { entityId: id })}
-                    className={`group entity-item flex w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-colors ${isSelected ? 'border-[var(--accent-color)] bg-[var(--accent-bg)]' : 'popup-surface popup-surface-hover border-transparent'}`}
+                    className={`group entity-item flex min-h-11 w-full items-center justify-between rounded-lg border px-2.5 py-1.5 text-left transition-colors ${isSelected ? 'border-[var(--accent-color)] bg-[var(--accent-bg)]' : 'popup-surface popup-surface-hover border-transparent'}`}
                   >
                     <div className="mr-3 flex flex-col overflow-hidden">
                       <span
@@ -457,7 +457,7 @@ export default function ConditionBuilder({
               <button
                 type="button"
                 onClick={() => addStateValue(index)}
-                className="rounded bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
+                className="min-h-11 rounded bg-[var(--glass-bg)] px-3 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
               >
                 {t('addCard.add') || 'Add'}
               </button>
@@ -535,7 +535,7 @@ export default function ConditionBuilder({
             <button
               type="button"
               onClick={() => setEnabled(!isEnabled)}
-              className={`relative h-6 w-12 rounded-full transition-colors ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
+              className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${isEnabled ? 'bg-[var(--accent-color)]' : 'bg-gray-600'}`}
             >
               <span
                 className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-0'}`}
@@ -581,7 +581,7 @@ export default function ConditionBuilder({
                 <button
                   type="button"
                   onClick={addSecondRule}
-                  className="ml-auto rounded bg-[var(--accent-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase hover:bg-[var(--accent-bg)]"
+                  className="ml-auto min-h-11 rounded bg-[var(--accent-bg)] px-3 py-1 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase hover:bg-[var(--accent-bg)]"
                 >
                   {t('visibility.addRule') || 'Add rule'}
                 </button>
@@ -591,7 +591,7 @@ export default function ConditionBuilder({
                 <button
                   type="button"
                   onClick={removeSecondRule}
-                  className="ml-auto rounded bg-[var(--glass-bg)] px-2 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
+                  className="ml-auto min-h-11 rounded bg-[var(--glass-bg)] px-3 py-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase hover:text-[var(--text-primary)]"
                 >
                   {t('visibility.removeRule') || 'Remove rule'}
                 </button>
