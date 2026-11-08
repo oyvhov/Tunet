@@ -146,9 +146,46 @@ describe('useSettingsSync', () => {
     expect(result.current.status).toBe('synced');
     const reads = fetchCurrentSettings.mock.calls.length;
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(4000);
+      await vi.advanceTimersByTimeAsync(30000);
     });
     expect(fetchCurrentSettings.mock.calls.length).toBeGreaterThan(reads);
+  });
+
+  it('checks the server at most every 30 seconds in the background', async () => {
+    vi.useFakeTimers();
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: collectSnapshot() });
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+    await act(async () => {});
+    const reads = fetchCurrentSettings.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(29_000);
+    });
+    expect(fetchCurrentSettings.mock.calls.length).toBe(reads);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_100);
+    });
+    expect(fetchCurrentSettings.mock.calls.length).toBe(reads + 1);
+  });
+
+  it('leaves the server alone while the tab is hidden and checks when it returns', async () => {
+    vi.useFakeTimers();
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: collectSnapshot() });
+    renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
+    await act(async () => {});
+    const reads = fetchCurrentSettings.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61_000);
+    });
+    expect(fetchCurrentSettings.mock.calls.length).toBe(reads);
+
+    visibility.mockReturnValue('visible');
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(fetchCurrentSettings.mock.calls.length).toBe(reads + 1);
+    visibility.mockRestore();
   });
 
   it('does not mark unsaved edits as a conflict when the server revision has not changed', async () => {
@@ -160,7 +197,7 @@ describe('useSettingsSync', () => {
     await act(async () => {});
     collectSnapshot.mockReturnValue({ ...collectSnapshot(), appearance: { theme: 'light' } });
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(4100);
+      await vi.advanceTimersByTimeAsync(30100);
     });
     expect(result.current.status).not.toBe('conflict');
   });
@@ -205,7 +242,7 @@ describe('useSettingsSync', () => {
     const edited = { ...baseline, appearance: { theme: 'light' } };
     collectSnapshot.mockReturnValue(edited);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(20000);
+      await vi.advanceTimersByTimeAsync(45000);
     });
     expect(saveCurrentSettings).toHaveBeenCalledWith(
       expect.objectContaining({ data: edited, base_revision: 4 }),
@@ -222,7 +259,7 @@ describe('useSettingsSync', () => {
     await act(async () => {});
     collectSnapshot.mockReturnValue({ ...baseline, appearance: { theme: 'light' } });
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(20000);
+      await vi.advanceTimersByTimeAsync(45000);
     });
     expect(saveCurrentSettings).not.toHaveBeenCalled();
   });
@@ -238,7 +275,7 @@ describe('useSettingsSync', () => {
     const edited = { ...baseline, appearance: { theme: 'light' } };
     collectSnapshot.mockReturnValue(edited);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(4100);
+      await vi.advanceTimersByTimeAsync(30100);
     });
     act(() => result.current.setEnabled(false));
     await act(async () => {
@@ -248,7 +285,7 @@ describe('useSettingsSync', () => {
 
     act(() => result.current.setEnabled(true));
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(20000);
+      await vi.advanceTimersByTimeAsync(45000);
     });
     expect(saveCurrentSettings).toHaveBeenCalledWith(
       expect.objectContaining({ data: edited, base_revision: 4 }),
@@ -275,7 +312,7 @@ describe('useSettingsSync', () => {
 
     online = true;
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30000);
+      await vi.advanceTimersByTimeAsync(75000);
     });
     expect(saveCurrentSettings).toHaveBeenCalledWith(
       expect.objectContaining({ data: local, base_revision: 4 }),
@@ -347,7 +384,7 @@ describe('useSettingsSync', () => {
     expect(result.current.status).toBe('error');
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(20000);
+      await vi.advanceTimersByTimeAsync(45000);
     });
     expect(saveCurrentSettings).toHaveBeenCalledTimes(2);
     expect(saveCurrentSettings).toHaveBeenLastCalledWith(
@@ -439,7 +476,7 @@ describe('useSettingsSync', () => {
     expect(result.current.status).toBe('conflict');
     rerender({ autoBootstrap: true });
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(4100);
+      await vi.advanceTimersByTimeAsync(30100);
     });
     expect(result.current.status).toBe('conflict');
     expect(result.current.currentRevision).toBe(4);
@@ -517,7 +554,7 @@ describe('useSettingsSync', () => {
     renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(4100);
+      await vi.advanceTimersByTimeAsync(30100);
     });
 
     expect(applySnapshot).toHaveBeenCalledWith(
@@ -546,7 +583,7 @@ describe('useSettingsSync', () => {
     renderHook(() => useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } }));
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(4100);
+      await vi.advanceTimersByTimeAsync(30100);
     });
 
     expect(applySnapshot).toHaveBeenCalledWith(

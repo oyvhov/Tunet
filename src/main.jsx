@@ -9,6 +9,7 @@ import { PageProvider } from './contexts/PageContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { loadTranslations } from './i18n';
 import ToastContainer from './components/ui/ToastContainer';
+import { claimChunkReload } from './utils/chunkReload';
 
 function isChunkLoadError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -21,9 +22,7 @@ function isChunkLoadError(error) {
 
 function reloadForChunkErrorOnce() {
   if (globalThis.window === undefined) return;
-  const key = 'tunet_chunk_reload_once';
-  if (globalThis.sessionStorage.getItem(key) === '1') return;
-  globalThis.sessionStorage.setItem(key, '1');
+  if (!claimChunkReload(globalThis.sessionStorage)) return;
   globalThis.window.history.go(0);
 }
 
