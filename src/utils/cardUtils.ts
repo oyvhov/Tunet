@@ -211,6 +211,15 @@ export function isSonosPage(
   return settings?.type === 'sonos' || pageId.startsWith('sonos');
 }
 
+/** Pages the user creates always get a label, so a labelled page is never special by its id. */
+function isUnlabelledPageWithPrefix(
+  pageId: string,
+  settings: PageSettingsEntry | undefined,
+  prefix: string
+): boolean {
+  return !settings?.label && pageId.startsWith(prefix);
+}
+
 /**
  * Check if a page is a Lights page.
  */
@@ -220,7 +229,7 @@ export function isLightsPage(
 ): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
-  return settings?.type === 'lights' || pageId.startsWith('lights');
+  return settings?.type === 'lights' || isUnlabelledPageWithPrefix(pageId, settings, 'lights');
 }
 
 /**
@@ -232,7 +241,7 @@ export function isBatteryPage(
 ): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
-  return settings?.type === 'battery' || pageId.startsWith('battery');
+  return settings?.type === 'battery' || isUnlabelledPageWithPrefix(pageId, settings, 'battery');
 }
 
 /**
@@ -244,5 +253,8 @@ export function isRoomExplorerPage(
 ): boolean {
   if (!pageId) return false;
   const settings = pageSettings[pageId];
-  return settings?.type === 'room_explorer' || pageId.startsWith('room_explorer');
+  return (
+    settings?.type === 'room_explorer' ||
+    isUnlabelledPageWithPrefix(pageId, settings, 'room_explorer')
+  );
 }

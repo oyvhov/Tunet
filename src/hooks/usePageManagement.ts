@@ -54,8 +54,9 @@ export function usePageManagement({
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, '') || 'side';
 
-    const isReservedMediaLikeSlug = /^(media|sonos)(_|$)/.test(slugBase);
-    if (isReservedMediaLikeSlug) {
+    // Page-type checks match on these id prefixes, so a standard page must not start with one.
+    const isReservedSlug = /^(media|sonos|lights|battery|room_explorer)/.test(slugBase);
+    if (isReservedSlug) {
       slugBase = `page_${slugBase}`;
     }
 

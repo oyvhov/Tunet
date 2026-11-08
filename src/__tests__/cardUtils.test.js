@@ -3,7 +3,10 @@ import {
   canDuplicateCard,
   isCardRemovable,
   isCardHiddenByLogic,
+  isBatteryPage,
+  isLightsPage,
   isMediaPage,
+  isRoomExplorerPage,
   isSonosPage,
 } from '../utils/cardUtils';
 
@@ -566,6 +569,25 @@ describe('isCardHiddenByLogic for duplicated cards', () => {
       expect(isHidden('off')).toBe(true);
     }
   );
+});
+
+describe.each([
+  ['isLightsPage', isLightsPage, 'lights', 'lights'],
+  ['isBatteryPage', isBatteryPage, 'battery', 'battery'],
+  ['isRoomExplorerPage', isRoomExplorerPage, 'room_explorer', 'room_explorer'],
+])('%s', (_name, isSpecialPage, slug, type) => {
+  it('never matches a page the user created with a standard slug', () => {
+    const pageId = `${slug}_upstairs`;
+    expect(isSpecialPage(pageId, { [pageId]: { label: 'Upstairs' } })).toBe(false);
+  });
+
+  it('matches a page of that type whatever its id', () => {
+    expect(isSpecialPage('anything', { anything: { type, label: 'Named' } })).toBe(true);
+  });
+
+  it('still matches an unlabelled page by id', () => {
+    expect(isSpecialPage(slug, {})).toBe(true);
+  });
 });
 
 describe('canDuplicateCard', () => {
