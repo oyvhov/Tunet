@@ -18,7 +18,9 @@ import {
   getDisplayUnitForKind,
   getEffectiveUnitMode,
   getEffectiveRoomEntityIds,
+  getUnavailableLabel,
   inferUnitKind,
+  isUnavailableState,
 } from '../utils';
 import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
@@ -68,6 +70,7 @@ export default function RoomModal({
 }) {
   const [selectedClimateId, setSelectedClimateId] = useState(settings?.climateEntityId || null);
   const [failedImageMap, setFailedImageMap] = useState({});
+  const [confirmUnlockId, setConfirmUnlockId] = useState(null);
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
@@ -304,6 +307,12 @@ export default function RoomModal({
   const moveMediaToRight =
     showPopupMedia && mediaPlayers.length > 0 && leftColumnWeight - rightColumnWeight >= 2;
 
+  useEffect(() => {
+    if (!confirmUnlockId) return undefined;
+    const timeout = setTimeout(() => setConfirmUnlockId(null), 3000);
+    return () => clearTimeout(timeout);
+  }, [confirmUnlockId]);
+
   if (!show) return null;
 
   const handleToggleEntity = (entityId, domain) => {
@@ -380,15 +389,30 @@ export default function RoomModal({
     }
 
     if (domain === 'lock') {
+      const isUnavailable = isUnavailableState(state);
+      const isLocked = state === 'locked';
+      const isConfirming = confirmUnlockId === entityId;
       return [
         {
           key: 'lock-toggle',
-          label:
-            state === 'locked'
-              ? translateOr(t, 'lock.action.unlock', 'Unlock')
-              : translateOr(t, 'lock.action.lock', 'Lock'),
-          onClick: () =>
-            handleEntityAction('lock', state === 'locked' ? 'unlock' : 'lock', entityId),
+          disabled: isUnavailable,
+          variant: isConfirming ? 'destructive' : 'secondary',
+          label: isUnavailable
+            ? getUnavailableLabel(state, t)
+            : !isLocked
+              ? translateOr(t, 'lock.action.lock', 'Lock')
+              : isConfirming
+                ? translateOr(t, 'lock.action.confirmUnlock', 'Confirm unlock')
+                : translateOr(t, 'lock.action.unlock', 'Unlock'),
+          onClick: () => {
+            if (isUnavailable) return;
+            if (isLocked && !isConfirming) {
+              setConfirmUnlockId(entityId);
+              return;
+            }
+            setConfirmUnlockId(null);
+            handleEntityAction('lock', isLocked ? 'unlock' : 'lock', entityId);
+          },
         },
       ];
     }
@@ -838,11 +862,15 @@ export default function RoomModal({
                                 aria-checked={isOn}
                                 aria-label={entity.attributes?.friendly_name || id}
                                 onClick={() => handleToggleEntity(id, 'light')}
-                                className={`relative h-5 w-10 rounded-full transition-colors ${isOn ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                                className="-my-2 flex h-11 w-11 shrink-0 items-center justify-center"
                               >
                                 <span
-                                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${isOn ? 'left-5' : 'left-0.5'}`}
-                                />
+                                  className={`relative h-5 w-10 rounded-full transition-colors ${isOn ? 'bg-[var(--accent-color)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                                >
+                                  <span
+                                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${isOn ? 'left-5' : 'left-0.5'}`}
+                                  />
+                                </span>
                               </button>
                             </div>
                             <M3Slider
@@ -1031,7 +1059,8 @@ export default function RoomModal({
                                     <Button
                                       key={action.key}
                                       size="sm"
-                                      variant="secondary"
+                                      variant={action.variant || 'secondary'}
+                                      disabled={action.disabled}
                                       onClick={action.onClick}
                                     >
                                       {action.label}

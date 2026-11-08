@@ -72,7 +72,7 @@ export default function LockModal({
   onClose,
   t,
 }: LockModalProps) {
-  const [confirmUnlock, setConfirmUnlock] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'unlock' | 'open' | null>(null);
   const [code, setCode] = useState('');
   const [log, setLog] = useState<LogEntry[] | null>(null);
 
@@ -80,10 +80,10 @@ export default function LockModal({
   const lastChanged = entity?.last_changed;
 
   useEffect(() => {
-    if (!confirmUnlock) return undefined;
-    const timeout = setTimeout(() => setConfirmUnlock(false), 3000);
+    if (!confirmAction) return undefined;
+    const timeout = setTimeout(() => setConfirmAction(null), 3000);
     return () => clearTimeout(timeout);
-  }, [confirmUnlock]);
+  }, [confirmAction]);
 
   useEffect(() => {
     if (!conn) {
@@ -157,25 +157,28 @@ export default function LockModal({
   };
 
   const lock = () => {
-    setConfirmUnlock(false);
+    setConfirmAction(null);
     if (actionsDisabled || isLocked) return;
     callService('lock', 'lock', payload());
   };
 
-  const unlock = () => {
-    if (actionsDisabled || isUnlocked || isOpen) return;
-    if (!confirmUnlock) {
-      setConfirmUnlock(true);
+  const confirmThenCall = (action: 'unlock' | 'open') => {
+    if (confirmAction !== action) {
+      setConfirmAction(action);
       return;
     }
-    setConfirmUnlock(false);
-    callService('lock', 'unlock', payload());
+    setConfirmAction(null);
+    callService('lock', action, payload());
+  };
+
+  const unlock = () => {
+    if (actionsDisabled || isUnlocked || isOpen) return;
+    confirmThenCall('unlock');
   };
 
   const open = () => {
-    setConfirmUnlock(false);
     if (actionsDisabled || !supportsOpen || isOpen) return;
-    callService('lock', 'open', payload());
+    confirmThenCall('open');
   };
 
   const codeMissing = requiresCode && !code.trim();
@@ -236,24 +239,28 @@ export default function LockModal({
                 {/* A jam can happen either way, so a jammed lock offers both. */}
                 {!isUnlocked && !isOpen && (
                   <Button
-                    variant={confirmUnlock ? 'destructive' : 'secondary'}
+                    variant={confirmAction === 'unlock' ? 'destructive' : 'secondary'}
                     block
                     icon={<Unlock />}
                     onClick={unlock}
                     disabled={actionsDisabled || codeMissing || isUnlocked || isOpen}
                   >
-                    {confirmUnlock ? t('lock.action.confirmUnlock') : t('lock.action.unlock')}
+                    {confirmAction === 'unlock'
+                      ? t('lock.action.confirmUnlock')
+                      : t('lock.action.unlock')}
                   </Button>
                 )}
                 {supportsOpen && (
                   <Button
-                    variant="secondary"
+                    variant={confirmAction === 'open' ? 'destructive' : 'secondary'}
                     block
                     icon={<Key />}
                     onClick={open}
                     disabled={actionsDisabled || codeMissing || isOpen}
                   >
-                    {t('lock.action.open')}
+                    {confirmAction === 'open'
+                      ? t('lock.action.confirmOpen')
+                      : t('lock.action.open')}
                   </Button>
                 )}
               </div>

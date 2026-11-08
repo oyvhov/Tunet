@@ -1,15 +1,19 @@
+import { useEffect, useState } from 'react';
 import { Car, RefreshCw, Zap, MapPin, Thermometer } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
-import { formatRelativeTime } from '../utils';
+import { formatDateTime, formatRelativeTime } from '../utils';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
   convertValueByKind,
   formatUnitValue,
   getDisplayUnitForKind,
   getEffectiveUnitMode,
+  getUnavailableLabel,
+  inferUnitKind,
+  isUnavailableState,
 } from '../utils';
 
 const formatValue = (val) => {
@@ -36,10 +40,18 @@ const formatValue = (val) => {
  */
 
 export default function LeafModal({ show, onClose, entities, callService, getS, getA, t, car }) {
-  const { unitsMode } = useConfig();
+  const { unitsMode, language } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
   const modalTitleId = `leaf-modal-title-${(car?.name || 'car').replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [lockCode, setLockCode] = useState('');
+
+  useEffect(() => {
+    if (!confirmAction) return undefined;
+    const timeout = setTimeout(() => setConfirmAction(null), 3000);
+    return () => clearTimeout(timeout);
+  }, [confirmAction]);
 
   if (!show) return null;
 
@@ -154,8 +166,54 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
       )
     ),
   ];
+  // A button's state is its last press, so one that was never pressed is "unknown" but usable.
+  const isUsable = (entityId) => {
+    const state = entityId ? entities[entityId]?.state : undefined;
+    if (state === undefined) return false;
+    return /^(input_)?button\./.test(entityId)
+      ? state !== 'unavailable'
+      : !isUnavailableState(state);
+  };
+  const climateDisabled = !isUsable(climateId);
   const lockState = lockId ? entities[lockId]?.state : null;
+  const lockUsable = isUsable(lockId);
+  const isLocked = lockState === 'locked' || lockState === 'locking';
+  const lockCodeFormat = lockId ? entities[lockId]?.attributes?.code_format : null;
+  const lockRequiresCode =
+    typeof lockCodeFormat === 'string' && !!lockCodeFormat.trim() && lockCodeFormat !== 'none';
+  const lockCodeMissing = lockRequiresCode && !lockCode.trim();
+  const lockLabel = !lockUsable
+    ? getUnavailableLabel(lockState, t)
+    : !isLocked
+      ? t('car.lock')
+      : confirmAction === 'unlock'
+        ? t('lock.action.confirmUnlock')
+        : t('car.unlock');
   const ignitionState = ignitionSwitchId ? entities[ignitionSwitchId]?.state : null;
+  const ignitionUsable = isUsable(ignitionSwitchId);
+  const isIgnitionOn = ignitionState === 'on';
+  const pluggedState = pluggedId ? entities[pluggedId]?.state : null;
+  const isPlugged = ['on', 'plugged', 'true'].includes(pluggedState);
+
+  const formatReading = (entityId, rawValue) => {
+    if (rawValue === null || rawValue === undefined || isUnavailableState(rawValue)) return '--';
+    const attributes = entities[entityId]?.attributes || {};
+    const text = String(rawValue);
+    if (attributes.device_class === 'timestamp' || /^\d{4}-\d{2}-\d{2}[T ]\d/.test(text)) {
+      return formatDateTime(text, language);
+    }
+    if (!Number.isFinite(Number(text.replace(',', '.')))) return text;
+    const sourceUnit = attributes.unit_of_measurement;
+    const kind = inferUnitKind(attributes.device_class, sourceUnit);
+    const value = formatUnitValue(text.replace(',', '.'), {
+      kind,
+      fromUnit: sourceUnit,
+      unitMode: effectiveUnitMode,
+    });
+    const unit = kind ? getDisplayUnitForKind(kind, effectiveUnitMode) : sourceUnit;
+    return unit ? `${value} ${unit}` : value;
+  };
+
   const detailMetricCount = [
     tempValue !== null || Boolean(tempId),
     Boolean(odometerId),
@@ -198,19 +256,31 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
   };
 
   const handleLockControl = () => {
-    if (!lockId) return;
-    const isLocked = lockState === 'locked' || lockState === 'locking';
-    callService('lock', isLocked ? 'unlock' : 'lock', { entity_id: lockId });
+    if (!lockUsable || lockCodeMissing) return;
+    if (isLocked && confirmAction !== 'unlock') {
+      setConfirmAction('unlock');
+      return;
+    }
+    setConfirmAction(null);
+    const payload = { entity_id: lockId };
+    if (lockRequiresCode) payload.code = lockCode.trim();
+    callService('lock', isLocked ? 'unlock' : 'lock', payload);
   };
 
   const handleIgnitionControl = () => {
-    if (!ignitionSwitchId) return;
-    const isOn = ignitionState === 'on';
-    callService('switch', isOn ? 'turn_off' : 'turn_on', { entity_id: ignitionSwitchId });
+    if (!ignitionUsable) return;
+    if (!isIgnitionOn && confirmAction !== 'engineStart') {
+      setConfirmAction('engineStart');
+      return;
+    }
+    setConfirmAction(null);
+    callService('switch', isIgnitionOn ? 'turn_off' : 'turn_on', {
+      entity_id: ignitionSwitchId,
+    });
   };
 
   const updateClimateTarget = (nextValue) => {
-    if (!climateId) return;
+    if (!climateId || climateDisabled) return;
     const clamped = Math.min(30, Math.max(16, Number(nextValue)));
     callService('climate', 'set_temperature', {
       entity_id: climateId,
@@ -246,6 +316,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                   variant="secondary"
                   aria-label={t('car.update')}
                   icon={<RefreshCw className="h-3.5 w-3.5" />}
+                  disabled={!isUsable(updateButtonId)}
                   onClick={() => callService('button', 'press', { entity_id: updateButtonId })}
                 >
                   <span className="hidden sm:inline">{t('car.update')}</span>
@@ -313,7 +384,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                       }
                       aria-label={t('car.climate')}
                       aria-pressed={Boolean(isHeating)}
-                      className={`relative h-7 w-12 rounded-full transition-all ${isHeating ? 'bg-orange-500' : 'bg-[var(--glass-border)]'}`}
+                      disabled={climateDisabled}
+                      className={`relative h-7 w-12 rounded-full transition-all disabled:opacity-40 ${isHeating ? 'bg-orange-500' : 'bg-[var(--glass-border)]'}`}
                     >
                       <div
                         className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${isHeating ? 'left-[calc(100%-24px)]' : 'left-1'}`}
@@ -335,7 +407,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateClimateTarget(currentClimateTarget - 0.5)}
-                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none"
+                        disabled={climateDisabled}
+                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none disabled:opacity-40"
                         aria-label={t('common.decrease')}
                       >
                         -
@@ -346,13 +419,15 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                           max={30}
                           step={0.5}
                           value={currentClimateTarget}
+                          disabled={climateDisabled}
                           onChange={(e) => updateClimateTarget(parseFloat(e.target.value))}
                           colorClass={isHeating ? 'bg-orange-500' : 'bg-white/20'}
                         />
                       </div>
                       <button
                         onClick={() => updateClimateTarget(currentClimateTarget + 0.5)}
-                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none"
+                        disabled={climateDisabled}
+                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none disabled:opacity-40"
                         aria-label={t('common.increase')}
                       >
                         +
@@ -391,7 +466,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                       }
                       aria-label={t('car.climate')}
                       aria-pressed={Boolean(isHeating)}
-                      className={`relative h-7 w-12 rounded-full transition-all ${isHeating ? 'bg-orange-500' : 'bg-[var(--glass-border)]'}`}
+                      disabled={climateDisabled}
+                      className={`relative h-7 w-12 rounded-full transition-all disabled:opacity-40 ${isHeating ? 'bg-orange-500' : 'bg-[var(--glass-border)]'}`}
                     >
                       <div
                         className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-all ${isHeating ? 'left-[calc(100%-24px)]' : 'left-1'}`}
@@ -413,7 +489,8 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateClimateTarget(currentClimateTarget - 0.5)}
-                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none"
+                        disabled={climateDisabled}
+                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none disabled:opacity-40"
                         aria-label={t('common.decrease')}
                       >
                         -
@@ -424,13 +501,15 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                           max={30}
                           step={0.5}
                           value={currentClimateTarget}
+                          disabled={climateDisabled}
                           onChange={(e) => updateClimateTarget(parseFloat(e.target.value))}
                           colorClass={isHeating ? 'bg-orange-500' : 'bg-white/20'}
                         />
                       </div>
                       <button
                         onClick={() => updateClimateTarget(currentClimateTarget + 0.5)}
-                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none"
+                        disabled={climateDisabled}
+                        className="popup-surface popup-surface-hover h-9 w-9 shrink-0 rounded-full text-base leading-none disabled:opacity-40"
                         aria-label={t('common.increase')}
                       >
                         +
@@ -460,11 +539,13 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     </div>
                     {pluggedId && (
                       <span
-                        className={`mt-1 text-[11px] font-bold tracking-[0.12em] uppercase ${entities[pluggedId]?.state === 'on' ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-muted)]'}`}
+                        className={`mt-1 text-[11px] font-bold tracking-[0.12em] uppercase ${isPlugged ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-muted)]'}`}
                       >
-                        {entities[pluggedId]?.state === 'on'
-                          ? t('car.pluggedIn')
-                          : t('car.unplugged')}
+                        {!isUsable(pluggedId)
+                          ? getUnavailableLabel(pluggedState, t)
+                          : isPlugged
+                            ? t('car.pluggedIn')
+                            : t('car.unplugged')}
                       </span>
                     )}
                   </div>
@@ -524,7 +605,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     <div className="flex items-center justify-between px-1 py-1.5">
                       <span className="modal-section-label">{t('car.chargingPower')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
-                        {chargingPowerValue ?? '--'}
+                        {formatReading(chargingPowerId, chargingPowerValue)}
                       </span>
                     </div>
                   )}
@@ -532,7 +613,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     <div className="flex items-center justify-between px-1 py-1.5">
                       <span className="modal-section-label">{t('car.chargeRate')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
-                        {chargeRateValue ?? '--'}
+                        {formatReading(chargeRateId, chargeRateValue)}
                       </span>
                     </div>
                   )}
@@ -540,7 +621,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     <div className="flex items-center justify-between px-1 py-1.5">
                       <span className="modal-section-label">{t('car.timeToFull')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
-                        {timeToFullValue ?? '--'}
+                        {formatReading(timeToFullId, timeToFullValue)}
                       </span>
                     </div>
                   )}
@@ -548,7 +629,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                     <div className="flex items-center justify-between px-1 py-1.5">
                       <span className="modal-section-label">{t('car.chargeEndTime')}</span>
                       <span className="text-sm font-semibold text-[var(--text-primary)]">
-                        {chargeEndTimeValue ?? '--'}
+                        {formatReading(chargeEndTimeId, chargeEndTimeValue)}
                       </span>
                     </div>
                   )}
@@ -565,6 +646,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                           key={entityId}
                           size="sm"
                           variant="secondary"
+                          disabled={!isUsable(entityId)}
                           onClick={() => handleChargeControl(entityId)}
                         >
                           {entities[entityId]?.attributes?.friendly_name || entityId}
@@ -583,6 +665,7 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                         max={entities[chargeLimitNumberId]?.attributes?.max ?? 100}
                         step={entities[chargeLimitNumberId]?.attributes?.step ?? 1}
                         value={parseFloat(getS(chargeLimitNumberId)) || 0}
+                        disabled={!isUsable(chargeLimitNumberId)}
                         onChange={(e) =>
                           callService('number', 'set_value', {
                             entity_id: chargeLimitNumberId,
@@ -596,13 +679,14 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
                   {chargeLimitSelectId && (
                     <select
                       value={getS(chargeLimitSelectId) || ''}
+                      disabled={!isUsable(chargeLimitSelectId)}
                       onChange={(e) =>
                         callService('select', 'select_option', {
                           entity_id: chargeLimitSelectId,
                           option: e.target.value,
                         })
                       }
-                      className="popup-surface w-full rounded-xl px-3 py-2 text-sm text-[var(--text-primary)]"
+                      className="popup-surface w-full rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] disabled:opacity-40"
                     >
                       {(entities[chargeLimitSelectId]?.attributes?.options || []).map((option) => (
                         <option key={option} value={option}>
@@ -617,17 +701,42 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
               {(lockId || ignitionSwitchId) && (
                 <div className="popup-surface space-y-3 rounded-2xl p-4">
                   <div className="modal-section-label">{t('car.controls')}</div>
+                  {lockRequiresCode && lockUsable && (
+                    <label className="flex flex-col gap-2">
+                      <span className="modal-section-label">{t('lock.code.prompt')}</span>
+                      <input
+                        type="password"
+                        inputMode={/^\^?(\\d|\[0-9\])/.test(lockCodeFormat) ? 'numeric' : 'text'}
+                        autoComplete="off"
+                        value={lockCode}
+                        onChange={(event) => setLockCode(event.target.value)}
+                        className="h-11 rounded-[var(--modal-control-radius)] border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 text-center text-lg tracking-[0.3em] text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
+                      />
+                    </label>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     {lockId && (
-                      <Button size="sm" variant="secondary" onClick={handleLockControl}>
-                        {lockState === 'locked' || lockState === 'locking'
-                          ? t('car.unlock')
-                          : t('car.lock')}
+                      <Button
+                        size="sm"
+                        variant={confirmAction === 'unlock' ? 'destructive' : 'secondary'}
+                        disabled={!lockUsable || lockCodeMissing}
+                        onClick={handleLockControl}
+                      >
+                        {lockLabel}
                       </Button>
                     )}
                     {ignitionSwitchId && (
-                      <Button size="sm" variant="secondary" onClick={handleIgnitionControl}>
-                        {ignitionState === 'on' ? t('car.engineStop') : t('car.engineStart')}
+                      <Button
+                        size="sm"
+                        variant={confirmAction === 'engineStart' ? 'destructive' : 'secondary'}
+                        disabled={!ignitionUsable}
+                        onClick={handleIgnitionControl}
+                      >
+                        {isIgnitionOn
+                          ? t('car.engineStop')
+                          : confirmAction === 'engineStart'
+                            ? t('car.confirmEngineStart')
+                            : t('car.engineStart')}
                       </Button>
                     )}
                   </div>

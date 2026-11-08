@@ -34,6 +34,12 @@ import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
 import Segmented from '../components/ui/Segmented';
+import { isUnavailableState } from '../utils/entityState';
+import {
+  findVacuumSensorsByName,
+  getVacuumBattery,
+  getVacuumStateLabel,
+} from '../utils/vacuumStatus';
 
 const getRoomIcon = (roomName) => {
   const name = String(roomName || '').toLowerCase();
@@ -80,6 +86,9 @@ const getDisplayName = (entity, fallback) => entity?.attributes?.friendly_name |
 
 const isValidStateValue = (value) =>
   value != null && value !== '' && value !== 'unavailable' && value !== 'unknown';
+
+const VACUUM_FEATURE_FAN_SPEED = 32;
+const VACUUM_FEATURE_LOCATE = 512;
 
 const toFiniteNumber = (value) => {
   const parsed = Number(value);
@@ -189,29 +198,6 @@ function formatRawValueWithUnit(value, unit) {
     : String(value);
   if (unit) return `${displayValue} ${unit}`;
   return displayValue;
-}
-
-function getVacuumStateLabel(state, battery, t) {
-  const normalized = String(state || '').toLowerCase();
-  if (!normalized) return t('vacuum.unknown');
-
-  if (normalized === 'cleaning' || normalized === 'vacuuming') return t('vacuum.cleaning');
-  if (
-    normalized === 'returning' ||
-    normalized === 'going_home' ||
-    normalized === 'return_to_base'
-  ) {
-    return t('vacuum.returning') || t('room.vacuumStatus.goingHome') || normalized;
-  }
-  if ((normalized === 'charging' || normalized === 'docked') && battery === 100) {
-    return t('vacuum.docked');
-  }
-  if (normalized === 'charging' || normalized === 'docked') return t('vacuum.charging');
-  if (normalized === 'idle' || normalized === 'ready') return t('vacuum.idle');
-  if (normalized === 'paused' || normalized === 'pause') return t('vacuum.pause');
-  if (normalized === 'error') return t('room.vacuumStatus.error') || 'Error';
-  if (normalized === 'stopped') return t('room.vacuumStatus.stopped') || 'Stopped';
-  return state;
 }
 
 const TRANSLATED_LEVELS = new Set([
@@ -700,24 +686,24 @@ export default function VacuumModal({
     vacuumNameTokens,
   ]);
 
-  const roomSelectOptions = useMemo(() => {
-    if (!roomSelectEntityId || !entities?.[roomSelectEntityId]) return [];
-    return Array.isArray(entities[roomSelectEntityId]?.attributes?.options)
-      ? entities[roomSelectEntityId].attributes.options
-      : [];
-  }, [roomSelectEntityId, entities]);
+  const roomSelectEntity = roomSelectEntityId ? entities?.[roomSelectEntityId] : null;
+  const roomSelectState = roomSelectEntity?.state;
+  // Keyed on the content so an unrelated Home Assistant update keeps the same array.
+  const roomSelectOptionsKey = JSON.stringify(
+    Array.isArray(roomSelectEntity?.attributes?.options) ? roomSelectEntity.attributes.options : []
+  );
+  const roomSelectOptions = useMemo(() => JSON.parse(roomSelectOptionsKey), [roomSelectOptionsKey]);
 
-  // Sync selectedRoom with entity state when modal opens
+  // Sync selectedRoom with entity state when modal opens or the select itself changes
   useEffect(() => {
-    if (show && roomSelectEntityId && entities?.[roomSelectEntityId]) {
-      const currentState = entities[roomSelectEntityId].state;
-      if (roomSelectOptions.includes(currentState)) {
-        setSelectedRoom(currentState);
+    if (show && roomSelectEntityId && roomSelectState !== undefined) {
+      if (roomSelectOptions.includes(roomSelectState)) {
+        setSelectedRoom(roomSelectState);
       } else {
         setSelectedRoom(roomSelectOptions[0] || null);
       }
     }
-  }, [show, roomSelectEntityId, entities, roomSelectOptions]);
+  }, [show, roomSelectEntityId, roomSelectState, roomSelectOptions]);
 
   const getMappedSensorWithUnit = useCallback(
     (settingKey) => {
@@ -753,21 +739,8 @@ export default function VacuumModal({
       return found;
     }
 
-    for (const [eid, ent] of Object.entries(entities)) {
-      if (!eid.startsWith('sensor.')) continue;
-      const lowerId = eid.toLowerCase();
-      const friendly = (ent?.attributes?.friendly_name || '').toLowerCase();
-      const matchesVacuumName = lowerId.includes(vacuumName.toLowerCase());
-      const matchesFriendlyName = vacuumFriendlyName && friendly.includes(vacuumFriendlyName);
-      const matchesToken = vacuumNameTokens.some(
-        (token) => lowerId.includes(token) || friendly.includes(token)
-      );
-
-      if (!matchesVacuumName && !matchesFriendlyName && !matchesToken) continue;
-      found[eid] = ent;
-    }
-    return found;
-  }, [entities, vacuumName, vacuumFriendlyName, vacuumNameTokens, registryRelatedSensorIds]);
+    return findVacuumSensorsByName(entities, vacuumId);
+  }, [entities, vacuumId, vacuumName, registryRelatedSensorIds]);
 
   const findSensorValue = (keywords) => {
     const loweredKeywords = keywords.map((kw) => String(kw).toLowerCase());
@@ -1247,17 +1220,16 @@ export default function VacuumModal({
   const isCleaning = state === 'cleaning';
   const isReturning = state === 'returning';
   const isError = state === 'error';
+  const isUnavailable = !state || isUnavailableState(state);
   const supportedFeatures = Number(attrs.supported_features);
   const hasSupportedFeatures = Number.isFinite(supportedFeatures) && supportedFeatures > 0;
   const hasAnyFeature = (bits) =>
     hasSupportedFeatures && bits.some((bit) => (supportedFeatures & bit) === bit);
 
-  const battery = toFiniteNumber(
-    getA(vacuumId, 'battery_level') ??
-      getMappedSensorValue('batterySensorId') ??
-      findSensorValue(['battery_level']) ??
-      findSensorValue(['battery']) ??
-      findSensorValue(['soc'])
+  const battery = getVacuumBattery(
+    getA(vacuumId, 'battery_level'),
+    getMappedSensorValue('batterySensorId'),
+    relatedSensors
   );
 
   const fanSpeed = getA(vacuumId, 'fan_speed');
@@ -1286,17 +1258,19 @@ export default function VacuumModal({
   const canPause = hasAnyFeature([2, 4]) || !hasSupportedFeatures;
   const canStop = hasAnyFeature([4, 8]) || !hasSupportedFeatures;
   const canReturnToBase = hasAnyFeature([8, 16]) || !hasSupportedFeatures;
-  const canLocate = hasAnyFeature([64, 256, 1024]) || !hasSupportedFeatures;
-  const hasFanControls =
-    (Array.isArray(attrs.fan_speed_list) && attrs.fan_speed_list.length > 0) ||
-    isValidStateValue(fanSpeed);
-  const canSetFanSpeed = hasFanControls || hasAnyFeature([16, 32]);
+  const canLocate = hasAnyFeature([VACUUM_FEATURE_LOCATE]) || !hasSupportedFeatures;
+  const fanSpeedList = Array.isArray(attrs.fan_speed_list) ? attrs.fan_speed_list : [];
+  const canSetFanSpeed =
+    fanSpeedList.length > 0 && (hasAnyFeature([VACUUM_FEATURE_FAN_SPEED]) || !hasSupportedFeatures);
   const hasMopControls =
     (Array.isArray(attrs.mop_intensity_list) && attrs.mop_intensity_list.length > 0) ||
     isValidStateValue(mopIntensity) ||
     mopControlOptions.length > 0 ||
     Object.keys(attrs).some((key) => key.startsWith('mop_') || key.startsWith('water_'));
   const canSetMopIntensity = hasMopControls;
+  const mopDisabled =
+    isUnavailable || (mopControlOptions.length > 0 && isUnavailableState(mopControlCurrent));
+  const roomCleaningDisabled = isUnavailable || isUnavailableState(roomSelectState);
 
   // --- Cleaning statistics ---
   const mappedCleaningTime = getMappedSensorWithUnit('cleaningTimeSensorId');
@@ -1405,13 +1379,13 @@ export default function VacuumModal({
 
   const avgCleanTime =
     hasCalculatedStats && totalCleanTimeNum
-      ? Math.round(totalCleanTimeNum / totalCleanCountNum)
-      : '--';
+      ? Number((totalCleanTimeNum / totalCleanCountNum).toFixed(1))
+      : null;
 
   const avgCleanArea =
     hasCalculatedStats && totalCleanAreaNum
       ? Number((totalCleanAreaNum / totalCleanCountNum).toFixed(1))
-      : '--';
+      : null;
 
   // --- Advanced Telemetry Discovery ---
   const displayedSensorIds = (() => {
@@ -1559,27 +1533,18 @@ export default function VacuumModal({
   };
 
   const startRoomCleaning = async (scriptEntityId) => {
-    if (!conn && !callService) return;
+    if (isUnavailable) return;
     try {
-      if (conn) {
-        await conn.sendMessagePromise({
-          type: 'call_service',
-          domain: 'script',
-          service: 'turn_on',
-          service_data: { entity_id: scriptEntityId },
-        });
-      } else {
-        callService('script', 'turn_on', { entity_id: scriptEntityId });
-      }
-    } catch (_e) {
-      // silently handle
+      await callService('script', 'turn_on', { entity_id: scriptEntityId });
+    } catch {
+      // callService has already shown the failure toast.
     }
   };
 
-  const fanSpeedList =
-    Array.isArray(attrs.fan_speed_list) && attrs.fan_speed_list.length > 0
-      ? attrs.fan_speed_list
-      : ['Silent', 'Standard', 'Strong', 'Turbo'];
+  const setFanSpeed = (value) => {
+    if (isUnavailable) return;
+    callService('vacuum', 'set_fan_speed', { entity_id: vacuumId, fan_speed: value });
+  };
 
   const mopIntensityList =
     Array.isArray(attrs.mop_intensity_list) && attrs.mop_intensity_list.length > 0
@@ -1590,6 +1555,7 @@ export default function VacuumModal({
   const effectiveMopCurrent = mopControlOptions.length > 0 ? mopControlCurrent : mopIntensity;
 
   const setMopIntensity = (value) => {
+    if (mopDisabled) return;
     if (mopControlEntityId && mopControlOptions.length > 0) {
       const domain = mopControlEntityId.split('.')[0];
       if (domain === 'select' || domain === 'input_select') {
@@ -1646,23 +1612,12 @@ export default function VacuumModal({
 
   // Consumable reset trigger
   const handleReset = async (buttonId) => {
-    if (!buttonId || (!conn && !callService)) return;
+    if (!buttonId) return;
     try {
-      if (conn) {
-        await conn.sendMessagePromise({
-          type: 'call_service',
-          domain: 'button',
-          service: 'press',
-          service_data: {
-            entity_id: buttonId,
-          },
-        });
-      } else {
-        await callService('button', 'press', { entity_id: buttonId });
-      }
+      await callService('button', 'press', { entity_id: buttonId });
       setResetConfirmKey(null);
-    } catch (err) {
-      console.error('Error resetting consumable:', err);
+    } catch {
+      // callService has already shown the failure toast; keep the confirm state for a retry.
     }
   };
 
@@ -1675,60 +1630,35 @@ export default function VacuumModal({
 
   // Trigger Native Mapped Area Cleaning service
   const handleCleanSelectedAreas = async () => {
-    if (selectedAreaIds.length === 0) return;
+    if (selectedAreaIds.length === 0 || isUnavailable) return;
     try {
-      if (conn) {
-        await conn.sendMessagePromise({
-          type: 'call_service',
-          domain: 'vacuum',
-          service: 'clean_area',
-          target: {
-            entity_id: vacuumId,
-          },
-          service_data: {
-            cleaning_area_id: selectedAreaIds,
-          },
-        });
-      } else {
-        callService('vacuum', 'clean_area', {
-          target: {
-            entity_id: vacuumId,
-          },
-          cleaning_area_id: selectedAreaIds,
-        });
-      }
+      await callService('vacuum', 'clean_area', {
+        target: {
+          entity_id: vacuumId,
+        },
+        cleaning_area_id: selectedAreaIds,
+      });
       setSelectedAreaIds([]);
       setActiveTab('controls');
-    } catch (err) {
-      console.error('Error in native area cleaning service call:', err);
+    } catch {
+      // callService has already shown the failure toast; keep the selection for a retry.
     }
   };
 
   // Trigger Room Cleaning service
   const handleCleanRoom = async () => {
-    if (!selectedRoom || !roomSelectEntityId) return;
+    if (!selectedRoom || !roomSelectEntityId || roomCleaningDisabled) return;
     const domain = roomSelectEntityId.split('.')[0] === 'input_select' ? 'input_select' : 'select';
 
     try {
-      if (conn) {
-        await conn.sendMessagePromise({
-          type: 'call_service',
-          domain,
-          service: 'select_option',
-          service_data: {
-            entity_id: roomSelectEntityId,
-            option: selectedRoom,
-          },
-        });
-      } else {
-        callService(domain, 'select_option', {
-          entity_id: roomSelectEntityId,
-          option: selectedRoom,
-        });
-      }
+      await callService(domain, 'select_option', {
+        entity_id: roomSelectEntityId,
+        option: selectedRoom,
+      });
+      await callService('vacuum', 'start', { entity_id: vacuumId });
       setActiveTab('controls');
-    } catch (err) {
-      console.error('Error in room cleaning service call:', err);
+    } catch {
+      // callService has already shown the failure toast; stay here for a retry.
     }
   };
 
@@ -1749,6 +1679,7 @@ export default function VacuumModal({
               <Button
                 variant={isCleaning ? 'secondary' : 'primary'}
                 block
+                disabled={isUnavailable}
                 onClick={handlePrimaryAction}
                 icon={isCleaning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               >
@@ -1758,6 +1689,7 @@ export default function VacuumModal({
                 <Button
                   variant="secondary"
                   block
+                  disabled={isUnavailable}
                   onClick={() => callService('vacuum', 'return_to_base', { entity_id: vacuumId })}
                   icon={<Home className="h-5 w-5" />}
                 >
@@ -1795,6 +1727,7 @@ export default function VacuumModal({
                 <Button
                   size="sm"
                   variant="secondary"
+                  disabled={isUnavailable}
                   onClick={() => callService('vacuum', 'locate', { entity_id: vacuumId })}
                   icon={<Bot className="h-3.5 w-3.5" />}
                 >
@@ -1806,32 +1739,37 @@ export default function VacuumModal({
             {/* Suction & Mop controls rendered on Left Side */}
             <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
               {canSetFanSpeed && (
-                <ModernDropdown
-                  label={t('vacuum.suction')}
-                  icon={Fan}
-                  options={fanSpeedList}
-                  current={fanSpeed}
-                  onChange={(value) =>
-                    callService('vacuum', 'set_fan_speed', {
-                      entity_id: vacuumId,
-                      fan_speed: value,
-                    })
-                  }
-                  placeholder={t('vacuum.suction')}
-                  map={fanSpeedLabelMap}
-                />
+                <fieldset
+                  disabled={isUnavailable}
+                  className={`min-w-0 ${isUnavailable ? 'opacity-30' : ''}`}
+                >
+                  <ModernDropdown
+                    label={t('vacuum.suction')}
+                    icon={Fan}
+                    options={fanSpeedList}
+                    current={fanSpeed}
+                    onChange={setFanSpeed}
+                    placeholder={t('vacuum.suction')}
+                    map={fanSpeedLabelMap}
+                  />
+                </fieldset>
               )}
 
               {canSetMopIntensity && (
-                <ModernDropdown
-                  label={t('vacuum.mopIntensity')}
-                  icon={Droplets}
-                  options={effectiveMopOptions}
-                  current={effectiveMopCurrent}
-                  onChange={setMopIntensity}
-                  placeholder={t('vacuum.mopIntensity')}
-                  map={mopLabelMap}
-                />
+                <fieldset
+                  disabled={mopDisabled}
+                  className={`min-w-0 ${mopDisabled ? 'opacity-30' : ''}`}
+                >
+                  <ModernDropdown
+                    label={t('vacuum.mopIntensity')}
+                    icon={Droplets}
+                    options={effectiveMopOptions}
+                    current={effectiveMopCurrent}
+                    onChange={setMopIntensity}
+                    placeholder={t('vacuum.mopIntensity')}
+                    map={mopLabelMap}
+                  />
+                </fieldset>
               )}
             </div>
 
@@ -1892,8 +1830,9 @@ export default function VacuumModal({
                   {roomScripts.map((script, index) => (
                     <button
                       key={index}
+                      disabled={isUnavailable}
                       onClick={() => startRoomCleaning(script.entityId)}
-                      className="group flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-medium transition-all hover:bg-[var(--glass-bg-hover)] active:scale-[0.98] sm:px-4 sm:py-4 sm:text-sm"
+                      className="group flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-xs font-medium transition-all hover:bg-[var(--glass-bg-hover)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-30 sm:px-4 sm:py-4 sm:text-sm"
                       style={{
                         backgroundColor: 'var(--glass-bg)',
                         color: 'var(--text-primary)',
@@ -2073,14 +2012,14 @@ export default function VacuumModal({
       {
         key: 'avgTime',
         label: t('vacuum.avgTime') || 'Avg Clean Time',
-        value: avgCleanTime != null ? `${avgCleanTime} ${t('vacuum.statsMinutes') || 'min'}` : '--',
+        value: formatRawValueWithUnit(avgCleanTime, totalCleanTimeUnit),
         icon: Clock,
         colorClass: 'text-indigo-400',
       },
       {
         key: 'avgArea',
         label: t('vacuum.avgArea') || 'Avg Clean Area',
-        value: avgCleanArea != null ? `${avgCleanArea} ${totalCleanAreaUnit || 'm²'}` : '--',
+        value: formatRawValueWithUnit(avgCleanArea, totalCleanAreaUnit),
         icon: Maximize2,
         colorClass: 'text-teal-400',
       },
@@ -2546,6 +2485,7 @@ export default function VacuumModal({
                           return (
                             <button
                               key={areaId}
+                              disabled={isUnavailable}
                               onClick={() => {
                                 if (isSelected) {
                                   setSelectedAreaIds((prev) => prev.filter((id) => id !== areaId));
@@ -2553,7 +2493,7 @@ export default function VacuumModal({
                                   setSelectedAreaIds((prev) => [...prev, areaId]);
                                 }
                               }}
-                              className={`flex h-24 flex-col items-center justify-center gap-2 rounded-2xl border-0 p-4 transition-all duration-300 ${
+                              className={`flex h-24 flex-col items-center justify-center gap-2 rounded-2xl border-0 p-4 transition-all duration-300 disabled:pointer-events-none disabled:opacity-30 ${
                                 isSelected
                                   ? 'scale-[1.02] bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg shadow-[rgba(var(--accent-color-rgb),0.25)]'
                                   : 'bg-[var(--glass-bg)] text-[var(--text-primary)] hover:scale-[1.01] hover:bg-[var(--glass-bg-hover)]'
@@ -2572,7 +2512,7 @@ export default function VacuumModal({
 
                       <div className="mt-8 flex justify-center">
                         <button
-                          disabled={selectedAreaIds.length === 0}
+                          disabled={selectedAreaIds.length === 0 || isUnavailable}
                           onClick={handleCleanSelectedAreas}
                           className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-10 py-5 text-sm font-bold tracking-widest text-[var(--accent-contrast)] uppercase shadow-lg shadow-[rgba(var(--accent-color-rgb),0.2)] transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-30"
                         >
@@ -2591,8 +2531,9 @@ export default function VacuumModal({
                         </label>
                         <select
                           value={selectedRoom || ''}
+                          disabled={roomCleaningDisabled}
                           onChange={(e) => setSelectedRoom(e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm font-bold text-[var(--text-primary)] transition-all focus:border-[var(--accent-color)] focus:outline-none"
+                          className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm font-bold text-[var(--text-primary)] transition-all focus:border-[var(--accent-color)] focus:outline-none disabled:opacity-30"
                         >
                           {roomSelectOptions.map((option) => (
                             <option
@@ -2607,8 +2548,9 @@ export default function VacuumModal({
                       </div>
 
                       <button
+                        disabled={roomCleaningDisabled}
                         onClick={handleCleanRoom}
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[var(--accent-color)] py-5 text-sm font-bold tracking-widest text-[var(--accent-contrast)] uppercase shadow-lg shadow-[rgba(var(--accent-color-rgb),0.2)] transition-all hover:opacity-90 active:scale-[0.98]"
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[var(--accent-color)] py-5 text-sm font-bold tracking-widest text-[var(--accent-contrast)] uppercase shadow-lg shadow-[rgba(var(--accent-color-rgb),0.2)] transition-all hover:opacity-90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-30"
                       >
                         <Play className="h-5 w-5" />
                         {t('vacuum.cleanSelected') || 'Clean Selected Room'}
