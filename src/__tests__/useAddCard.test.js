@@ -7,7 +7,12 @@ vi.mock('../services', () => ({
   handleAddSelected: vi.fn(),
 }));
 
+vi.mock('../utils/revealCard', () => ({
+  revealCard: vi.fn(),
+}));
+
 import { handleAddSelected } from '../services';
+import { revealCard } from '../utils/revealCard';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 const t = (key) => {
@@ -244,6 +249,70 @@ describe('useAddCard › setters', () => {
     const { result } = renderHook(() => useAddCard(makeProps()));
     act(() => result.current.setCostSelectionTarget('month'));
     expect(result.current.costSelectionTarget).toBe('month');
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+// Types without picks
+// ═════════════════════════════════════════════════════════════════════════
+describe('useAddCard › types without picks', () => {
+  it.each(['todo', 'car', 'spacer'])('does not count a visit to %s', (type) => {
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
+
+    act(() => result.current.setAddCardType(type));
+
+    expect(result.current.pendingAddCount).toBe(0);
+  });
+
+  it('adds the visited type when nothing else is picked', () => {
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
+
+    act(() => result.current.setAddCardType('todo'));
+    act(() => result.current.onAddSelected());
+
+    expect(handleAddSelected).toHaveBeenCalledTimes(1);
+    expect(handleAddSelected).toHaveBeenCalledWith(
+      expect.objectContaining({ addCardType: 'todo' })
+    );
+  });
+
+  it('leaves the visited type out when real picks exist', () => {
+    const { result } = renderHook(() => useAddCard(makeProps({ showAddCardModal: true })));
+
+    act(() => result.current.setSelectedEntities(['light.hall']));
+    act(() => result.current.setAddCardType('spacer'));
+    act(() => result.current.onAddSelected());
+
+    expect(result.current.pendingAddCount).toBe(1);
+    expect(handleAddSelected).toHaveBeenCalledTimes(1);
+    expect(handleAddSelected).toHaveBeenCalledWith(
+      expect.objectContaining({ addCardType: 'light', selectedEntities: ['light.hall'] })
+    );
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+// Revealing the added card
+// ═════════════════════════════════════════════════════════════════════════
+describe('useAddCard › revealing the added card', () => {
+  const open = (home) =>
+    makeProps({ showAddCardModal: true, pagesConfig: { pages: ['home'], home } });
+
+  it('scrolls to the new card when the popup closes', () => {
+    const { rerender } = renderHook((p) => useAddCard(p), { initialProps: open(['a']) });
+
+    rerender({ ...open(['a', 'b', 'c']), showAddCardModal: false });
+
+    expect(revealCard).toHaveBeenCalledTimes(1);
+    expect(revealCard).toHaveBeenCalledWith('b');
+  });
+
+  it('does nothing when the popup closes without adding', () => {
+    const { rerender } = renderHook((p) => useAddCard(p), { initialProps: open(['a']) });
+
+    rerender({ ...open(['a']), showAddCardModal: false });
+
+    expect(revealCard).not.toHaveBeenCalled();
   });
 });
 

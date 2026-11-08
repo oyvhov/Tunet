@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { handleAddSelected } from '../services';
+import { revealCard } from '../utils/revealCard';
 import type {
   CardSettingsMap,
   PagesConfig,
@@ -12,7 +13,7 @@ const EMPTY_SELECTION: string[] = [];
 // Types whose picks become one grouped card instead of one card per entity.
 const GROUPED_TYPES = new Set(['media', 'sonos', 'calendar']);
 // Types that add a single card without picking anything first.
-const NO_PICK_TYPES = new Set(['todo', 'car', 'spacer']);
+export const NO_PICK_TYPES = new Set(['todo', 'car', 'spacer']);
 // Types that use the entity id itself as the card id.
 const ENTITY_ID_CARD_TYPES = new Set(['light', 'vacuum', 'mower', 'fan', 'toggle', 'entity']);
 
@@ -107,6 +108,21 @@ export function useAddCard({
       setSelectedSpacerVariant('divider');
     }
   }, [showAddCardModal]);
+
+  // ── Show what was added once the popup closes ──────────────────────────
+  const cardsBeforeAddRef = useRef<{ page: string; cards: string[] } | null>(null);
+  useEffect(() => {
+    const cardsOn = (page: string) =>
+      (pagesConfig[page] as string[] | undefined) || EMPTY_SELECTION;
+    if (showAddCardModal) {
+      cardsBeforeAddRef.current = { page: addCardTargetPage, cards: cardsOn(addCardTargetPage) };
+      return;
+    }
+    const before = cardsBeforeAddRef.current;
+    cardsBeforeAddRef.current = null;
+    const added = before && cardsOn(before.page).find((id) => !before.cards.includes(id));
+    if (added) revealCard(added);
+  }, [showAddCardModal, addCardTargetPage, pagesConfig]);
 
   // ── Infer card type from target page ───────────────────────────────────
   useEffect(() => {
@@ -206,7 +222,6 @@ export function useAddCard({
         ...(selectedAppleTVMediaId ? ['appletv'] : []),
         ...(selectedCostTodayId && selectedCostMonthId ? ['cost'] : []),
         ...(selectedNordpoolId ? ['nordpool'] : []),
-        ...(NO_PICK_TYPES.has(addCardType) ? [addCardType] : []),
       ];
   const pendingAddCount = pendingAddTypes.reduce((count, type) => {
     const picks = selectedEntitiesByType[type];

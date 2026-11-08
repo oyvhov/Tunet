@@ -31,6 +31,7 @@ import { isSonosMediaEntity, isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';
+import { NO_PICK_TYPES } from '../hooks/useAddCard';
 import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
 import Segmented from '../components/ui/Segmented';
@@ -105,6 +106,7 @@ function RoomSection({
       setSelectedAreaEntitiesById((prev) => ({ ...prev, [areaId]: result }));
     } catch (err) {
       console.error('Failed to load area entities:', err);
+      setSelectedAreas((prev) => prev.filter((item) => item.area_id !== areaId));
     } finally {
       setLoadingEntitiesByAreaId((prev) => ({ ...prev, [areaId]: false }));
     }
@@ -822,6 +824,7 @@ function AddCardContent({
                   if (addCardType === 'cost') {
                     if (costSelectionTarget === 'today') {
                       setSelectedCostTodayId((prev) => (prev === id ? null : id));
+                      if (selectedCostTodayId !== id) setCostSelectionTarget('month');
                     } else {
                       setSelectedCostMonthId((prev) => (prev === id ? null : id));
                     }
@@ -884,8 +887,17 @@ function AddCardContent({
   };
 
   const addCount = selectedRoomAreas.length + pendingAddCount;
-  const addLabel =
-    addCount > 1 ? `${t('addCard.add')} ${addCount} ${t('addCard.cards')}` : t('addCard.add');
+  // Todo, Car and Spacer have nothing to pick, so the button says what it will add.
+  const noPickTypeName =
+    addCount === 0 && NO_PICK_TYPES.has(addCardType) ? t(`addCard.type.${addCardType}`) : null;
+  const addLabel = noPickTypeName
+    ? `${t('addCard.add')} ${noPickTypeName}`
+    : addCount > 1 || (addCount === 1 && NO_PICK_TYPES.has(addCardType))
+      ? `${t('addCard.add')} ${addCount} ${t('addCard.cards')}`
+      : t('addCard.add');
+  const roomEntitiesLoading = selectedRoomAreas.some(
+    (area) => !Array.isArray(selectedRoomEntitiesById[area.area_id])
+  );
   const handleAdd = () => {
     const hasRooms = selectedRoomAreas.length > 0;
     if (hasRooms && pendingAddCount === 0) {
@@ -1154,7 +1166,7 @@ function AddCardContent({
             <Button
               variant="primary"
               icon={<Plus />}
-              disabled={addCount === 0}
+              disabled={(addCount === 0 && !noPickTypeName) || roomEntitiesLoading}
               onClick={handleAdd}
               data-testid="add-card-submit"
             >
