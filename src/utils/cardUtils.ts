@@ -69,6 +69,13 @@ const SPECIAL_CARD_PREFIXES = [
   'spacer_card_',
 ];
 
+/** Whether the edit popup offers Duplicate; a copy of these would have no renderer or use. */
+export function canDuplicateCard(cardId: string): boolean {
+  return (
+    cardId !== 'media_player' && !cardId.startsWith('spacer_card_') && !cardId.startsWith('person.')
+  );
+}
+
 /**
  * Determine whether a card can be removed from a given page.
  */
@@ -112,8 +119,9 @@ export function isCardHiddenByLogic(
 ): boolean {
   const settingsKey = getCardSettingsKey(cardId);
   const cardConfig: CardSettingsEntry = cardSettings[settingsKey] || cardSettings[cardId] || {};
+  // A direct-id card's copy ("fan.x__dup_...") is not an entity id itself; its settings hold it.
   const entityId =
-    cardId.startsWith('entity_card_') || cardConfig.type === 'sensor'
+    cardId.startsWith('entity_card_') || cardConfig.type === 'sensor' || cardId.includes('.')
       ? cardConfig.entityId || cardId
       : cardId;
   let hiddenByBaseLogic = false;
@@ -145,10 +153,12 @@ export function isCardHiddenByLogic(
   }
 
   if (!isSpecialCard && !entities[entityId]) {
-    if (cardId.startsWith('light_') || cardId.startsWith('light.') || cardId.startsWith('lock.')) {
-      return false;
-    }
-    hiddenByBaseLogic = true;
+    // Lights and locks stay on the grid without an entity; visibility rules still apply below.
+    hiddenByBaseLogic = !(
+      cardId.startsWith('light_') ||
+      cardId.startsWith('light.') ||
+      cardId.startsWith('lock.')
+    );
   }
 
   if (hiddenByBaseLogic) {

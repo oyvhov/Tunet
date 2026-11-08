@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { isCardRemovable, isCardHiddenByLogic, isMediaPage, isSonosPage } from '../utils/cardUtils';
+import {
+  canDuplicateCard,
+  isCardRemovable,
+  isCardHiddenByLogic,
+  isMediaPage,
+  isSonosPage,
+} from '../utils/cardUtils';
 
 // ═════════════════════════════════════════════════════════════════════════
 // isCardRemovable
@@ -509,6 +515,72 @@ describe('isCardHiddenByLogic', () => {
 // ═════════════════════════════════════════════════════════════════════════
 // isMediaPage
 // ═════════════════════════════════════════════════════════════════════════
+describe('isCardHiddenByLogic for duplicated cards', () => {
+  const getCardSettingsKey = (id) => `home::${id}`;
+  const entity = (entity_id, state = 'on') => ({ entity_id, state, attributes: {} });
+  const dup = (id) => `${id}__dup_abc`;
+
+  it.each([
+    ['fan.bedroom'],
+    ['vacuum.roborock'],
+    ['lawn_mower.front'],
+    ['media_player.tv'],
+    ['switch.heater'],
+  ])('keeps a copy of %s visible through its stored entity', (source) => {
+    const cardId = dup(source);
+    expect(
+      isCardHiddenByLogic(cardId, {
+        activePage: 'home',
+        getCardSettingsKey,
+        cardSettings: { [`home::${cardId}`]: { entityId: source } },
+        entities: { [source]: entity(source) },
+      })
+    ).toBe(false);
+  });
+
+  it('hides the copy when its entity is gone', () => {
+    const cardId = dup('fan.bedroom');
+    expect(
+      isCardHiddenByLogic(cardId, {
+        activePage: 'home',
+        getCardSettingsKey,
+        cardSettings: { [`home::${cardId}`]: { entityId: 'fan.bedroom' } },
+        entities: {},
+      })
+    ).toBe(true);
+  });
+
+  it.each([['light.kitchen'], ['lock.front']])(
+    'applies visibility rules to a copy of %s',
+    (source) => {
+      const cardId = dup(source);
+      const visibilityCondition = { type: 'state', states: ['on'] };
+      const isHidden = (state) =>
+        isCardHiddenByLogic(cardId, {
+          activePage: 'home',
+          getCardSettingsKey,
+          cardSettings: { [`home::${cardId}`]: { entityId: source, visibilityCondition } },
+          entities: { [source]: entity(source, state) },
+        });
+      expect(isHidden('on')).toBe(false);
+      expect(isHidden('off')).toBe(true);
+    }
+  );
+});
+
+describe('canDuplicateCard', () => {
+  it('offers no copy for a person, the media_player placeholder or a spacer', () => {
+    expect(canDuplicateCard('person.anna')).toBe(false);
+    expect(canDuplicateCard('media_player')).toBe(false);
+    expect(canDuplicateCard('spacer_card_1')).toBe(false);
+  });
+
+  it('offers a copy for ordinary cards', () => {
+    expect(canDuplicateCard('light.kitchen')).toBe(true);
+    expect(canDuplicateCard('camera_card_1')).toBe(true);
+  });
+});
+
 describe('isMediaPage', () => {
   it('returns false for null pageId', () => {
     expect(isMediaPage(null, {})).toBe(false);
