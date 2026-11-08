@@ -42,6 +42,8 @@ export {
   downsampleTimeSeries,
   aggregateTimeSeries,
   getSensorGraphWindow,
+  historyRowsToPoints,
+  parseHistoryTime,
   resolveSensorGraphRange,
   SENSOR_GRAPH_RANGES,
   SENSOR_GRAPH_STATS,

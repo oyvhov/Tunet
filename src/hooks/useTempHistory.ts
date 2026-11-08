@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { Connection } from 'home-assistant-js-websocket';
 import { getHistory, getStatistics } from '../services';
+import { historyRowsToPoints } from '../utils/sensorHistory';
 import type { HistoryEntry, StatisticsEntry } from '../services/haClient';
 import type { CardSettingsMap } from '../types/dashboard';
 import {
@@ -10,7 +11,7 @@ import {
   HISTORY_REFRESH_INTERVAL,
 } from '../config/constants';
 
-// Statistics rows are mapped to a history-like shape; history rows are stored as-is.
+// Statistics and websocket rows are both mapped to this history-like shape.
 type TempHistoryPoint = HistoryEntry | { state: unknown; last_updated: StatisticsEntry['start'] };
 type TempHistoryById = Record<string, TempHistoryPoint[]>;
 
@@ -63,7 +64,11 @@ export default function useTempHistory(
           no_attributes: true,
         });
         if (!cancelled && historyData) {
-          setTempHistoryById((prev) => ({ ...prev, [tempId]: historyData }));
+          const points = historyRowsToPoints(historyData).map(({ value, time }) => ({
+            state: value,
+            last_updated: time.toISOString(),
+          }));
+          setTempHistoryById((prev) => ({ ...prev, [tempId]: points }));
         }
       } catch (e) {
         if (!cancelled) console.error('Temp history fetch error', e);

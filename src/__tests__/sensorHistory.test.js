@@ -3,6 +3,7 @@ import {
   aggregateTimeSeries,
   downsampleTimeSeries,
   getSensorGraphWindow,
+  historyRowsToPoints,
 } from '../utils/sensorHistory';
 
 // Helper: build a synthetic time-series of `count` points starting at `startMs`
@@ -228,5 +229,40 @@ describe('aggregateTimeSeries', () => {
     const result = aggregateTimeSeries([{ value: 3, time: at(2.5) }], { start, end, buckets: 4 });
     expect(result).toHaveLength(2);
     expect(result[0].time).toEqual(at(2));
+  });
+});
+
+describe('historyRowsToPoints', () => {
+  it('reads the compact rows Home Assistant sends over the websocket', () => {
+    const points = historyRowsToPoints([
+      { s: '20', a: { unit_of_measurement: 'W' }, lu: 1700000000 },
+      { s: '21.5', lu: 1700000300 },
+    ]);
+    expect(points).toEqual([
+      { value: 20, time: new Date(1700000000 * 1000) },
+      { value: 21.5, time: new Date(1700000300 * 1000) },
+    ]);
+  });
+
+  it('reads full rows with ISO timestamps', () => {
+    expect(historyRowsToPoints([{ state: '7', last_changed: '2026-01-02T03:04:05.000Z' }])).toEqual(
+      [{ value: 7, time: new Date('2026-01-02T03:04:05.000Z') }]
+    );
+  });
+
+  it('prefers the time the value changed over the time the row was updated', () => {
+    expect(historyRowsToPoints([{ s: '3', lu: 1700000300, lc: 1700000000 }])).toEqual([
+      { value: 3, time: new Date(1700000000 * 1000) },
+    ]);
+  });
+
+  it('skips rows without a number or a usable time', () => {
+    expect(
+      historyRowsToPoints([{ s: 'unavailable', lu: 1700000000 }, { s: '5' }, null])
+    ).toEqual([]);
+  });
+
+  it('returns nothing for a response that is not a list', () => {
+    expect(historyRowsToPoints(null)).toEqual([]);
   });
 });

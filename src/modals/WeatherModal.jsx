@@ -12,6 +12,7 @@ import {
 } from '../icons';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import { getForecast, getHistory, getStatistics } from '../services/haClient';
+import { historyRowsToPoints } from '../utils/sensorHistory';
 import { getIconComponent } from '../icons';
 import { getLocaleForLanguage } from '../i18n';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
@@ -276,16 +277,9 @@ export default function WeatherModal({
         });
 
         if (!cancelled) {
-          const mappedHistory = (Array.isArray(rawHistory) ? rawHistory : [])
-            .map((entry) => {
-              const value = parseFloat(entry.state);
-              const time = new Date(entry.last_updated || entry.last_changed);
-              if (!Number.isFinite(value) || Number.isNaN(time.getTime())) return null;
-              return { value, time };
-            })
-            .filter(Boolean)
-            .sort((a, b) => a.time.getTime() - b.time.getTime());
-          setHistorySeries(mappedHistory);
+          setHistorySeries(
+            historyRowsToPoints(rawHistory).sort((a, b) => a.time.getTime() - b.time.getTime())
+          );
         }
       } catch {
         if (!cancelled) setHistorySeries([]);
@@ -414,6 +408,17 @@ export default function WeatherModal({
 
   if (!show || !weatherEntity) return null;
 
+  const forecastControl = (
+    <Segmented
+      ariaLabel={translate('weather.view.forecast')}
+      value={forecastType}
+      onChange={setForecastType}
+      options={[
+        { value: 'hourly', label: translate('weather.view.hourly') },
+        { value: 'daily', label: translate('weather.view.daily') },
+      ]}
+    />
+  );
   const rangeControl = hasTempSensor ? (
     <Segmented
       ariaLabel={translate('sensor.graphRange')}
@@ -425,15 +430,7 @@ export default function WeatherModal({
       }))}
     />
   ) : (
-    <Segmented
-      ariaLabel={translate('weather.view.forecast')}
-      value={forecastType}
-      onChange={setForecastType}
-      options={[
-        { value: 'hourly', label: translate('weather.view.hourly') },
-        { value: 'daily', label: translate('weather.view.daily') },
-      ]}
-    />
+    forecastControl
   );
 
   return (
@@ -510,7 +507,8 @@ export default function WeatherModal({
                 </div>
               </div>
 
-              <div className="px-1">
+              <div className="space-y-3 px-1">
+                {hasTempSensor && <div className="flex justify-end">{forecastControl}</div>}
                 <div className="scrollbar-hide mask-linear flex items-start justify-between gap-6 overflow-x-auto pb-2">
                   {forecastList.map((item) => {
                     return (

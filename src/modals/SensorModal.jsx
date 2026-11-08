@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Activity, ChevronDown, List } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { canUseHistoryRest, getHistory, getHistoryRest, getStatistics } from '../services/haClient';
+import { historyRowsToPoints, parseHistoryTime } from '../utils/sensorHistory';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import BinaryTimeline from '../components/charts/BinaryTimeline';
 import { formatDateTime, formatRelativeTime } from '../utils';
@@ -100,27 +101,6 @@ export default function SensorModal({
     end: new Date(),
   });
 
-  const toDateSafe = (value) => {
-    if (!value) return null;
-    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-    if (typeof value === 'number') {
-      const ms = value < 1e12 ? value * 1000 : value;
-      const d = new Date(ms);
-      return Number.isNaN(d.getTime()) ? null : d;
-    }
-    if (typeof value === 'string') {
-      const direct = new Date(value);
-      if (!Number.isNaN(direct.getTime())) return direct;
-      const num = Number(value);
-      if (Number.isFinite(num)) {
-        const ms = num < 1e12 ? num * 1000 : num;
-        const d = new Date(ms);
-        return Number.isNaN(d.getTime()) ? null : d;
-      }
-    }
-    return null;
-  };
-
   const attrs = entity?.attributes || {};
   const state = entity?.state;
   const domain = entityId?.split('.')?.[0];
@@ -179,20 +159,7 @@ export default function SensorModal({
               if (wsData && Array.isArray(wsData)) {
                 const raw = Array.isArray(wsData[0]) ? wsData[0] : wsData;
                 if (!cancelled) setHistoryMeta({ source: 'ws', rawCount: raw.length });
-                points = raw
-                  .filter((d) => !isNaN(parseFloat(d?.state)))
-                  .map((d) => ({
-                    value: parseFloat(d.state),
-                    time: toDateSafe(
-                      d.last_changed ||
-                        d.last_updated ||
-                        d.last_reported ||
-                        d.timestamp ||
-                        d.lu ||
-                        d.lc
-                    ),
-                  }))
-                  .filter((d) => d.time);
+                points = historyRowsToPoints(raw);
                 events = raw
                   .map((d) => {
                     if (!d) return null;
@@ -205,7 +172,7 @@ export default function SensorModal({
                       d.l ||
                       d.lc ||
                       d.lu;
-                    const time = toDateSafe(changed);
+                    const time = parseHistoryTime(changed);
                     if (stateValue === undefined || !time) return null;
                     return {
                       state: stateValue,
@@ -241,20 +208,7 @@ export default function SensorModal({
                 if (data && Array.isArray(data)) {
                   const raw = Array.isArray(data[0]) ? data[0] : data;
                   if (!cancelled) setHistoryMeta({ source: 'rest', rawCount: raw.length });
-                  points = raw
-                    .filter((d) => !isNaN(parseFloat(d?.state)))
-                    .map((d) => ({
-                      value: parseFloat(d.state),
-                      time: toDateSafe(
-                        d.last_changed ||
-                          d.last_updated ||
-                          d.last_reported ||
-                          d.timestamp ||
-                          d.lu ||
-                          d.lc
-                      ),
-                    }))
-                    .filter((d) => d.time);
+                  points = historyRowsToPoints(raw);
                   events = raw
                     .map((d) => {
                       if (!d) return null;
@@ -267,7 +221,7 @@ export default function SensorModal({
                         d.l ||
                         d.lc ||
                         d.lu;
-                      const time = toDateSafe(changed);
+                      const time = parseHistoryTime(changed);
                       if (stateValue === undefined || !time) return null;
                       return {
                         state: stateValue,
@@ -293,7 +247,12 @@ export default function SensorModal({
             return;
           }
 
-          // Fallback to statistics if history is sparse or empty
+          // A sensor that never changed has one row: it held that value until now.
+          if (points.length === 1 && !isNaN(parseFloat(currentState))) {
+            points = [points[0], { value: parseFloat(currentState), time: end }];
+          }
+
+          // Fallback to statistics if history is empty
           if (points.length < 2) {
             try {
               const stats = await getStatistics(conn, {
@@ -319,16 +278,6 @@ export default function SensorModal({
             } catch (statErr) {
               logger.warn('Stats fetch failed', statErr);
             }
-          }
-
-          // Final fallback for current state as line
-          if (points.length < 2 && !isNaN(parseFloat(currentState))) {
-            const now = new Date();
-            const val = parseFloat(currentState);
-            points = [
-              { value: val, time: new Date(now.getTime() - historyHours * 60 * 60 * 1000) },
-              { value: val, time: now },
-            ];
           }
 
           // Fallback for events (Binary Timeline) if no history found

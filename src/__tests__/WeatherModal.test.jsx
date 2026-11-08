@@ -16,7 +16,11 @@ vi.mock('../contexts', () => ({
 }));
 
 vi.mock('../components/charts/SensorHistoryGraph', () => ({
-  default: () => <div data-testid="weather-history-graph" />,
+  default: ({ data }) => (
+    <div data-testid="weather-history-graph">
+      {JSON.stringify((data || []).map((point) => point.value))}
+    </div>
+  ),
 }));
 
 vi.mock('../components/ui/AccessibleModalShell', () => ({
@@ -56,6 +60,7 @@ vi.mock('../services/haClient', () => ({
 }));
 
 import WeatherModal from '../modals/WeatherModal';
+import { getHistory } from '../services/haClient';
 
 const translations = {
   'common.close': 'Lukk',
@@ -109,5 +114,50 @@ describe('WeatherModal', () => {
       expect(screen.getAllByText('12:00').length).toBeGreaterThan(0);
     });
     expect(screen.queryByText(/PM/)).not.toBeInTheDocument();
+  });
+
+  it('draws the compact history rows for the temperature sensor', async () => {
+    getHistory.mockResolvedValueOnce([
+      { s: '6', lu: 1700000000 },
+      { s: '7.5', lu: 1700000300 },
+    ]);
+    render(
+      <WeatherModal
+        show
+        onClose={vi.fn()}
+        conn={{}}
+        weatherEntity={weatherEntity}
+        tempEntity={{
+          entity_id: 'sensor.ute',
+          state: '7.5',
+          attributes: { unit_of_measurement: '°C' },
+        }}
+        language="nn"
+        t={t}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('weather-history-graph')).toHaveTextContent('[6,7.5]');
+    });
+  });
+
+  it('offers both hourly and daily forecasts when a temperature sensor is set', async () => {
+    render(
+      <WeatherModal
+        show
+        onClose={vi.fn()}
+        conn={{}}
+        weatherEntity={weatherEntity}
+        tempEntity={{
+          entity_id: 'sensor.ute',
+          state: '7.5',
+          attributes: { unit_of_measurement: '°C' },
+        }}
+        language="nn"
+        t={t}
+      />
+    );
+    expect(await screen.findByRole('radio', { name: 'weather.view.daily' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'weather.view.hourly' })).toBeInTheDocument();
   });
 });

@@ -25,6 +25,7 @@ import {
   isSensorEntityActive,
   canSensorUseNumericVariants,
 } from '../../utils/sensorCardConfig';
+import { useRefreshTick } from '../../hooks/useRefreshTick';
 import { useSensorCardAction } from '../../hooks/useSensorCardAction';
 import {
   convertValueByKind,
@@ -35,6 +36,7 @@ import {
   downsampleTimeSeries,
   aggregateTimeSeries,
   getSensorGraphWindow,
+  historyRowsToPoints,
   resolveSensorGraphRange,
   SENSOR_GRAPH_RANGES,
   SENSOR_GRAPH_STATS,
@@ -45,7 +47,10 @@ import type { EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { SensorCardSettings } from '../../utils/sensorCardConfig';
 import type { SensorGraphWindow, TimeSeriesPoint } from '../../utils/sensorHistory';
-import type { HistoryEntry, StatisticsEntry } from '../../services/haClient';
+import type { StatisticsEntry } from '../../services/haClient';
+
+const GRAPH_REFRESH_MS = 5 * 60 * 1000;
+const GRAPH_REFRESH_SLOW_MS = 60 * 60 * 1000;
 
 const SENSOR_THRESHOLD_COLOR_MAP: Record<string, string> = {
   red: 'var(--color-red-500)',
@@ -460,12 +465,10 @@ const SensorCard = memo(
       return () => observer.disconnect();
     }, []);
 
-    // Latest state in a ref: the flat-line fallback reads it without
-    // re-fetching 24h of history on every entity update.
-    const stateRef = useRef(state);
-    useEffect(() => {
-      stateRef.current = state;
-    }, [state]);
+    const refreshTick = useRefreshTick(conn, {
+      enabled: showGraph && isVisible,
+      intervalMs: SENSOR_GRAPH_RANGES[graphRange] > 48 ? GRAPH_REFRESH_SLOW_MS : GRAPH_REFRESH_MS,
+    });
 
     useEffect(() => {
       if (!conn || !displayEntity?.entity_id || !showGraph || !isVisible) {
@@ -538,26 +541,7 @@ const SensorCard = memo(
               : [];
           if (cancelled) return;
 
-          const processed = (data && Array.isArray(data) ? data : [])
-            .map((d: HistoryEntry) => {
-              // Handle both standard format (state/last_changed ISO string) and
-              // HA compressed format (s/lc as Unix timestamp in seconds).
-              const rawState = d.state !== undefined ? d.state : d.s;
-              const val = parseFloat(rawState as string);
-              if (isNaN(val)) return null;
-              let time;
-              if (d.last_changed) {
-                const t = new Date(d.last_changed);
-                if (isNaN(t.getTime())) return null;
-                time = t;
-              } else if (typeof d.lc === 'number') {
-                time = new Date(d.lc * 1000);
-              } else {
-                return null;
-              }
-              return { value: val, time };
-            })
-            .filter((point): point is TimeSeriesPoint => Boolean(point));
+          const processed = historyRowsToPoints(data);
 
           if (processed.length === 1) {
             const onlyPoint = processed[0];
@@ -597,21 +581,11 @@ const SensorCard = memo(
             return;
           }
 
-          if (!isNaN(parseFloat(stateRef.current))) {
-            const now = new Date();
-            const currentValue = parseFloat(stateRef.current);
-            setHistory([
-              { value: currentValue, time: new Date(now.getTime() - 60 * 60 * 1000) },
-              { value: currentValue, time: now },
-            ]);
-            return;
-          }
-
           setHistory([]);
         } catch (e) {
           if (cancelled) return;
+          // What is on screen stays until a later fetch succeeds.
           console.error('Failed to fetch history', e);
-          setHistory([]);
         }
       };
 
@@ -629,7 +603,7 @@ const SensorCard = memo(
         if (idleId) window.cancelIdleCallback(idleId);
         if (timerId) clearTimeout(timerId);
       };
-    }, [conn, displayEntity?.entity_id, showGraph, isVisible, graphRange, graphStyle]);
+    }, [conn, displayEntity?.entity_id, showGraph, isVisible, graphRange, graphStyle, refreshTick]);
 
     const graphData = useMemo(() => {
       if (graphStyle !== 'bar' || history.length === 0 || !historyWindowRef.current) return history;
