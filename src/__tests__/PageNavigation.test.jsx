@@ -34,7 +34,7 @@ describe('PageNavigation on touch screens', () => {
   it('shows the edit pencil without hover', () => {
     renderManager();
 
-    expect(screen.getAllByTitle('nav.editPage')[0]).toHaveClass('touch:opacity-100');
+    expect(screen.getAllByTitle('nav.editPage').at(-1)).toHaveClass('touch:opacity-100');
   });
 
   it('moves a page up and down with buttons of at least 44 px', () => {
@@ -51,6 +51,76 @@ describe('PageNavigation on touch screens', () => {
 
     fireEvent.click(down[1]);
     expect(persistConfig).toHaveBeenLastCalledWith({ pages: ['home', 'attic', 'kitchen'] });
+  });
+});
+
+describe('PageNavigation tap handling', () => {
+  const renderNav = (editMode) => {
+    const setActivePage = vi.fn();
+    const setEditingPage = vi.fn();
+    mockUsePages.mockReturnValue({
+      pagesConfig: { pages: ['home', 'lights'] },
+      persistConfig: vi.fn(),
+      pageSettings: {},
+      headerSettings: { navSize: 'sm' },
+    });
+    mockUseModalActions.mockReturnValue({ setShowAddPageModal: vi.fn() });
+    render(
+      <PageNavigation
+        pages={[
+          { id: 'home', label: 'Home', icon: MockIcon },
+          { id: 'lights', label: 'Lights', icon: MockIcon },
+        ]}
+        activePage="home"
+        setActivePage={setActivePage}
+        editMode={editMode}
+        setEditingPage={setEditingPage}
+        t={(k) => k}
+      />
+    );
+    return { setActivePage, setEditingPage };
+  };
+
+  it('keeps a 44 px hit area when the pill is drawn smaller', () => {
+    renderNav(false);
+
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveClass(
+      'after:h-11',
+      'after:min-w-11'
+    );
+  });
+
+  it('leaves room in the scroller so the hit area is not clipped', () => {
+    renderNav(false);
+
+    const scroller = screen.getByRole('button', { name: 'Home' }).closest('.overflow-x-auto');
+    expect(scroller).toHaveClass('-mt-2', 'pt-2');
+  });
+
+  it('goes to the tapped page in edit mode', () => {
+    const { setActivePage, setEditingPage } = renderNav(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lights' }));
+
+    expect(setActivePage).toHaveBeenCalledWith('lights');
+    expect(setEditingPage).not.toHaveBeenCalled();
+  });
+
+  it('offers one edit button for the current page in edit mode', () => {
+    const { setActivePage, setEditingPage } = renderNav(true);
+
+    const edit = screen.getByRole('button', { name: 'nav.editPage' });
+    expect(edit).toHaveClass('after:h-11');
+    fireEvent.click(edit);
+
+    expect(setEditingPage).toHaveBeenCalledWith('home');
+    expect(setActivePage).not.toHaveBeenCalled();
+  });
+
+  it('shows no edit button outside edit mode', () => {
+    renderNav(false);
+
+    expect(screen.queryByRole('button', { name: 'nav.editPage' })).not.toBeInTheDocument();
   });
 });
 

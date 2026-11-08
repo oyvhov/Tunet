@@ -247,6 +247,7 @@
   "settings.behavior": "Oppførsel",
   "settings.grid": "Rutenett",
   "nav.addPage": "Ny side",
+  "nav.editPage": "Rediger side",
   "nav.movePageUp": "Flytt siden opp",
   "nav.movePageDown": "Flytt siden ned",
   "nav.addCard": "Legg til kort",
