@@ -48,6 +48,18 @@ describe('BackgroundLayer', () => {
     expect(screen.getByTestId(testId)).toBeInTheDocument();
   });
 
+  it('draws the glows without blur or blending, which break into blocks on graphics cards', () => {
+    const { container } = render(<BackgroundLayer />);
+
+    const glows = [...container.querySelectorAll('.rounded-full')];
+
+    expect(glows).toHaveLength(3);
+    for (const glow of glows) {
+      expect(glow.style.filter).toBe('');
+      expect(glow.style.mixBlendMode).toBe('');
+    }
+  });
+
   it('dithers the static background so dim glows do not show as rings', () => {
     render(<BackgroundLayer />);
 
