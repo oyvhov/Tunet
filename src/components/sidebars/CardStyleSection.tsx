@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import M3Slider from '../ui/M3Slider';
 import { Eye } from '../../icons';
+import { parseColor } from '../../utils/colorUtils';
 import { SidebarAccordion, SidebarResetButton as ResetButton } from './SidebarControls';
 
 export interface CardStyleSectionProps {
@@ -19,12 +20,17 @@ export interface CardStyleSectionProps {
   setCardBorderOpacity: (value: number) => void;
   cardBgColor: string;
   setCardBgColor: (value: string) => void;
+  themeCardColor: string;
 }
 
 type ColorChannels = { r: number; g: number; b: number };
 
-const parseHexColor = (value: string): ColorChannels => {
-  const fallback = { r: 31, g: 41, b: 55 };
+const themeColorChannels = (color: string): ColorChannels => {
+  const parsed = parseColor(color);
+  return parsed ? { r: parsed.r, g: parsed.g, b: parsed.b } : { r: 31, g: 41, b: 55 };
+};
+
+const parseHexColor = (value: string, fallback: ColorChannels): ColorChannels => {
   if (!value || typeof value !== 'string') return fallback;
 
   const raw = value.trim().replace(/^#/, '');
@@ -67,10 +73,13 @@ export default function CardStyleSection({
   setCardBorderOpacity,
   cardBgColor,
   setCardBgColor,
+  themeCardColor,
 }: CardStyleSectionProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const effectiveCardColor = cardBgColor || '#1f2937';
-  const rgb = parseHexColor(effectiveCardColor);
+  const themeChannels = themeColorChannels(themeCardColor);
+  const themeHex = toHexColor(themeChannels);
+  const effectiveCardColor = cardBgColor || themeHex;
+  const rgb = parseHexColor(effectiveCardColor, themeChannels);
 
   const updateCardColorChannel = (channel: keyof ColorChannels, value: number) => {
     setCardBgColor(toHexColor({ ...rgb, [channel]: value }));
@@ -296,7 +305,7 @@ export default function CardStyleSection({
                   borderColor: 'var(--glass-border)',
                   color: 'var(--text-primary)',
                 }}
-                placeholder="#1f2937"
+                placeholder={themeHex}
                 maxLength={7}
               />
               {!cardBgColor && (

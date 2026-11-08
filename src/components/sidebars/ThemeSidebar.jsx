@@ -252,6 +252,7 @@ export default function ThemeSidebar({
           setCardBorderOpacity={setCardBorderOpacity}
           cardBgColor={cardBgColor}
           setCardBgColor={setCardBgColor}
+          themeCardColor={themes[currentTheme]?.colors['--card-bg'] ?? ''}
         />
 
         <div>
