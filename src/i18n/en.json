@@ -705,6 +705,8 @@
   "modal.editPage.title": "Edit page",
   "nav.addCard": "Add card",
   "nav.addPage": "New page",
+  "nav.movePageUp": "Move page up",
+  "nav.movePageDown": "Move page down",
   "nav.columns": "Columns",
   "nav.done": "Done",
   "nordpool.withSupport": "With support",

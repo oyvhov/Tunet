@@ -644,6 +644,8 @@
   "mower.zone": "Zone",
   "nav.addCard": "Ajouter une carte",
   "nav.addPage": "Nouvelle page",
+  "nav.movePageUp": "Monter la page",
+  "nav.movePageDown": "Descendre la page",
   "nav.columns": "Colonnes",
   "nav.done": "Terminé",
   "nordpool.graphLine": "Ligne",

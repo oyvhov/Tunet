@@ -644,6 +644,8 @@
   "mower.zone": "Zon",
   "nav.addCard": "Lägg till kort",
   "nav.addPage": "Ny sida",
+  "nav.movePageUp": "Flytta sidan uppåt",
+  "nav.movePageDown": "Flytta sidan nedåt",
   "nav.columns": "Kolumner",
   "nav.done": "Klar",
   "nordpool.graphLine": "Linje",

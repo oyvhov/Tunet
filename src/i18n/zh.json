@@ -598,6 +598,8 @@
   "mower.zone": "区域",
   "nav.addCard": "添加卡",
   "nav.addPage": "新页面",
+  "nav.movePageUp": "上移页面",
+  "nav.movePageDown": "下移页面",
   "nav.columns": "专栏",
   "nav.done": "完成",
   "nordpool.graphLine": "折线",

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PageNavigation from '../components/pages/PageNavigation';
 
@@ -11,6 +11,48 @@ vi.mock('../contexts', () => ({
 }));
 
 const MockIcon = (props) => <svg data-testid="mock-icon" {...props} />;
+
+describe('PageNavigation on touch screens', () => {
+  const renderManager = (pagesConfig = { pages: ['home', 'kitchen', 'attic'] }) => {
+    const persistConfig = vi.fn();
+    mockUsePages.mockReturnValue({ pagesConfig, persistConfig, pageSettings: {} });
+    mockUseModalActions.mockReturnValue({ setShowAddPageModal: vi.fn() });
+    render(
+      <PageNavigation
+        pages={pagesConfig.pages.map((id) => ({ id, label: id, icon: MockIcon }))}
+        activePage="home"
+        setActivePage={vi.fn()}
+        editMode
+        setEditingPage={vi.fn()}
+        t={(k) => k}
+      />
+    );
+    fireEvent.click(screen.getAllByText('nav.addPage')[0].closest('button'));
+    return persistConfig;
+  };
+
+  it('shows the edit pencil without hover', () => {
+    renderManager();
+
+    expect(screen.getAllByTitle('nav.editPage')[0]).toHaveClass('touch:opacity-100');
+  });
+
+  it('moves a page up and down with buttons of at least 44 px', () => {
+    const persistConfig = renderManager();
+
+    const up = screen.getAllByRole('button', { name: 'nav.movePageUp' });
+    const down = screen.getAllByRole('button', { name: 'nav.movePageDown' });
+    expect(up[1]).toHaveClass('h-11', 'w-11');
+    expect(up[0]).toBeDisabled();
+    expect(down[2]).toBeDisabled();
+
+    fireEvent.click(up[1]);
+    expect(persistConfig).toHaveBeenLastCalledWith({ pages: ['kitchen', 'home', 'attic'] });
+
+    fireEvent.click(down[1]);
+    expect(persistConfig).toHaveBeenLastCalledWith({ pages: ['home', 'attic', 'kitchen'] });
+  });
+});
 
 describe('PageNavigation', () => {
   it('hides single page pill outside edit mode when hideSinglePagePill is enabled', () => {
