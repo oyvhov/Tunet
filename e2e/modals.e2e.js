@@ -655,6 +655,19 @@ test.describe('Modal Interactions', () => {
     }
   });
 
+  test('lets a popup finish its first paint before the motion starts', async ({ page }) => {
+    await page.locator('[data-card-id="calendar_card_e2e"]').click();
+    const dialog = page.locator('[role="dialog"]').first();
+    await expect(dialog).toBeVisible();
+
+    const opening = await dialog.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { delay: style.animationDelay, fill: style.animationFillMode };
+    });
+
+    expect(opening).toEqual({ delay: '0.04s', fill: 'both' });
+  });
+
   test('should close modal on escape key', async ({ page }) => {
     const modal = await openSystemModal(page);
 

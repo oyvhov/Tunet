@@ -84,7 +84,9 @@
   }
 }
 .popup-anim {
-  animation: popupIn 0.15s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+  /* The short delay lets the heavy first paint finish before the motion starts,
+     so the opening is not already half done when it first appears. */
+  animation: popupIn 0.18s cubic-bezier(0.2, 0.9, 0.25, 1) 40ms both;
 }
 /* Heavy editors: no motion, no blur, solid surface (keeps tablets smooth). */
 .popup-anim.modal-panel--still {
@@ -95,7 +97,11 @@
   backdrop-filter: none;
 }
 [data-modal-state='open'] {
-  animation: modalScrimIn 0.2s ease-out;
+  animation: modalScrimIn 0.2s ease-out 40ms both;
+}
+/* Fast imports finish before this appears, so no dark layer flashes first. */
+.modal-loading-fallback {
+  animation: modalScrimIn 0.2s ease-out 250ms both;
 }
 [data-modal-state='closing'] {
   animation: modalScrimOut 0.16s ease-in forwards;

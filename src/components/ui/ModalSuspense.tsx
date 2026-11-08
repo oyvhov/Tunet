@@ -4,7 +4,7 @@ import { DEFAULT_MODAL_OVERLAY_STYLE } from './modalStyles';
 
 export const modalLoadingFallback = (
   <div
-    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    className="modal-loading-fallback fixed inset-0 z-50 flex items-center justify-center p-4"
     style={DEFAULT_MODAL_OVERLAY_STYLE}
   >
     <div

@@ -228,6 +228,45 @@ describe('useConfirmDialog', () => {
   });
 });
 
+describe('AccessibleModalShell scroll lock', () => {
+  const originalInnerWidth = window.innerWidth;
+
+  const openShellWithScrollbar = (scrollbarWidth: number) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+      configurable: true,
+      value: 1280 - scrollbarWidth,
+    });
+    return render(
+      <AccessibleModalShell open onClose={vi.fn()} size="m">
+        {() => <button type="button">Ok</button>}
+      </AccessibleModalShell>
+    );
+  };
+
+  afterEach(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth });
+    Reflect.deleteProperty(document.documentElement, 'clientWidth');
+  });
+
+  it('keeps the page from widening when the scrollbar disappears', () => {
+    const { unmount } = openShellWithScrollbar(15);
+
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.body.style.paddingRight).toBe('15px');
+
+    unmount();
+
+    expect(document.body.style.paddingRight).toBe('');
+  });
+
+  it('adds no padding when scrollbars take no room', () => {
+    openShellWithScrollbar(0);
+
+    expect(document.body.style.paddingRight).toBe('');
+  });
+});
+
 describe('formatRelativeTime', () => {
   beforeEach(() => {
     vi.useFakeTimers();
