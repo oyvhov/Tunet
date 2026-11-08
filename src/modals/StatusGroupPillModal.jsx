@@ -85,7 +85,12 @@ export default function StatusGroupPillModal({
                         {getStatusGroupStateLabel(id, entity, t)}
                       </span>
                       {hasAction && rowActionLabel && (
-                        <Button variant="secondary" size="sm" onClick={() => runAction([id])}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="min-h-11"
+                          onClick={() => runAction([id])}
+                        >
                           {rowActionLabel}
                         </Button>
                       )}
