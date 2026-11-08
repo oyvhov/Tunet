@@ -124,6 +124,44 @@ describe('FanCard draft speed', () => {
     await tick(1500);
     expect(container).toHaveTextContent('40%');
   });
+
+  it('keeps the draft when HA reports an earlier value of the same drag', async () => {
+    const entity = fan('on');
+    const props = cardProps(entity);
+    const { container, rerender } = render(<FanCard {...props} />);
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '50' } });
+    await tick(350);
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '80' } });
+    await tick(20);
+    const echo = fan('on', { percentage: 50 });
+    rerender(<FanCard {...cardProps(echo, { callService: props.callService })} />);
+    expect(container).toHaveTextContent('80%');
+    await tick(350);
+    expect(props.callService).toHaveBeenLastCalledWith('fan', 'set_percentage', {
+      entity_id: 'fan.stue',
+      percentage: 80,
+    });
+  });
+
+  it('lets go of the draft when HA reports the requested speed', async () => {
+    const props = cardProps(fan('on'));
+    const { container, rerender } = render(<FanCard {...props} />);
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '70' } });
+    await tick(350);
+    rerender(<FanCard {...cardProps(fan('on', { percentage: 70 }))} />);
+    rerender(<FanCard {...cardProps(fan('on', { percentage: 30 }))} />);
+    expect(container).toHaveTextContent('30%');
+  });
+
+  it('lets go of the draft when a stepped fan rounds the speed', async () => {
+    const stepped = { percentage_step: 33.33, percentage: 33 };
+    const props = cardProps(fan('on', stepped));
+    const { container, rerender } = render(<FanCard {...props} />);
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '50' } });
+    await tick(350);
+    rerender(<FanCard {...cardProps(fan('on', { ...stepped, percentage: 67 }))} />);
+    expect(container).toHaveTextContent('67%');
+  });
 });
 
 describe('GenericFanModal', () => {
@@ -155,5 +193,73 @@ describe('GenericFanModal', () => {
     expect(screen.getByRole('button', { name: /fan\.turnOff/ })).toBeEnabled();
     expect(screen.getByRole('slider')).toBeEnabled();
     expect(screen.getByRole('button', { name: /fan\.direction/ })).toBeInTheDocument();
+  });
+
+  const modal = (entity: ReturnType<typeof fan>, callService: () => unknown) => (
+    <GenericFanModal
+      show
+      onClose={vi.fn()}
+      entityId="fan.stue"
+      entity={entity}
+      callService={callService}
+      t={(key: string) => key}
+    />
+  );
+
+  it('still sends the last value when an earlier value is echoed mid-drag', async () => {
+    const callService = vi.fn(async () => ({}));
+    const { rerender } = render(modal(fan('on'), callService));
+    const slider = screen.getByRole('slider');
+    fireEvent.change(slider, { target: { value: '50' } });
+    await tick(200);
+    expect(callService).toHaveBeenCalledTimes(1);
+    fireEvent.change(slider, { target: { value: '80' } });
+    await tick(20);
+    rerender(modal(fan('on', { percentage: 50 }), callService));
+    expect(slider).toHaveValue('80');
+    await tick(200);
+    expect(callService).toHaveBeenCalledTimes(2);
+    expect(callService).toHaveBeenLastCalledWith('fan', 'set_percentage', {
+      entity_id: 'fan.stue',
+      percentage: 80,
+    });
+  });
+
+  it('sends a waiting value when the popup closes straight away', async () => {
+    const callService = vi.fn(async () => ({}));
+    const { unmount } = render(modal(fan('on'), callService));
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '70' } });
+    await tick(50);
+    expect(callService).not.toHaveBeenCalled();
+    unmount();
+    expect(callService).toHaveBeenCalledWith('fan', 'set_percentage', {
+      entity_id: 'fan.stue',
+      percentage: 70,
+    });
+  });
+
+  it('follows HA again once the value has landed', async () => {
+    const callService = vi.fn(async () => ({}));
+    const view = render(modal(fan('on'), callService));
+    const { rerender } = view;
+    const slider = screen.getByRole('slider');
+    fireEvent.change(slider, { target: { value: '70' } });
+    await tick(200);
+    rerender(modal(fan('on', { percentage: 70 }), callService));
+    rerender(modal(fan('on', { percentage: 30 }), callService));
+    expect(view.container.querySelector('.tabular-nums')).toHaveTextContent('30%');
+    expect(callService).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up on a value HA never reports', async () => {
+    const callService = vi.fn(async () => ({}));
+    const { container } = render(modal(fan('on'), callService));
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '70' } });
+    await tick(20);
+    await tick(9000);
+    expect(container.querySelector('.tabular-nums')).toHaveTextContent('70%');
+    await tick(1500);
+    expect(container.querySelector('.tabular-nums')).toHaveTextContent('40%');
+    expect(callService).toHaveBeenCalledTimes(1);
   });
 });
