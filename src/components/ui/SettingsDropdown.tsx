@@ -90,7 +90,7 @@ function SettingsDropdown({
                 }`
               : isMobile
                 ? 'h-11 w-11 rounded-full border-transparent'
-                : 'rounded-full border-transparent p-2'
+                : '-m-[3px] h-11 w-11 rounded-full border-transparent'
           } ${!floating ? (isOpen ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg' : 'text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]') : ''}`}
           aria-label={
             isFloatingDone ? t('nav.done') : floating ? t('menu.edit') : t('menu.settings')
