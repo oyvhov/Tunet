@@ -1,14 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { CSSProperties, MouseEvent, PointerEvent, ReactNode } from 'react';
+import { opensTouchKeyboard } from '../../utils/touchScreen';
 import { normalizeModalOverlayStyle } from './modalStyles';
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const PRIORITY_FOCUS_SELECTOR =
   '[data-autofocus], [autofocus], input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]';
-const TEXT_ENTRY_SELECTOR =
-  'input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]), textarea, [contenteditable="true"]';
 const CLOSE_ANIMATION_MS = 160;
 
 export type ModalSize = 's' | 'm' | 'l' | 'xl';
@@ -52,16 +51,6 @@ function prefersReducedMotion(): boolean {
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
-
-/** True on touch-only devices, where focusing a text field pops up the keyboard. */
-export function hasCoarsePointerOnly(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(pointer: coarse)').matches &&
-    !window.matchMedia('(any-pointer: fine)').matches
   );
 }
 
@@ -172,11 +161,10 @@ export default function AccessibleModalShell({
 
     const panel = panelRef.current;
     if (openedNow && panel) {
-      const avoidKeyboard = hasCoarsePointerOnly();
-      const candidates = Array.from(panel.querySelectorAll(PRIORITY_FOCUS_SELECTOR)).filter(
-        (el) => !(avoidKeyboard && el.matches(TEXT_ENTRY_SELECTOR))
-      );
-      const target = candidates[0] || panel;
+      const target =
+        Array.from(panel.querySelectorAll(PRIORITY_FOCUS_SELECTOR)).find(
+          (el) => !opensTouchKeyboard(el)
+        ) || panel;
       if (target instanceof HTMLElement) target.focus({ preventScroll: true });
     }
 
@@ -218,7 +206,9 @@ export default function AccessibleModalShell({
       if (index >= 0) openModalStack.splice(index, 1);
       if (openModalStack.length === 0) unlockPageScroll();
       const previous = previousActiveRef.current;
-      if (previous instanceof HTMLElement) previous.focus({ preventScroll: true });
+      if (previous instanceof HTMLElement && !opensTouchKeyboard(previous)) {
+        previous.focus({ preventScroll: true });
+      }
     };
   }, [open, requestClose]);
 

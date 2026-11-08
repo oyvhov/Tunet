@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Eye } from '../../icons';
+import { opensTouchKeyboard } from '../../utils/touchScreen';
 
 /**
  * @param {Object} props
@@ -91,7 +92,7 @@ export default function SidebarContainer({
           (el.getClientRects().length > 0 || el === document.activeElement)
       );
 
-    const first = focusables()[0];
+    const first = focusables().find((el) => !opensTouchKeyboard(el));
     first?.focus();
 
     const handleKeyDown = (e) => {
@@ -112,7 +113,9 @@ export default function SidebarContainer({
     panel.addEventListener('keydown', handleKeyDown);
     return () => {
       panel.removeEventListener('keydown', handleKeyDown);
-      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus?.();
+      if (previouslyFocused instanceof HTMLElement && !opensTouchKeyboard(previouslyFocused)) {
+        previouslyFocused.focus?.();
+      }
     };
   }, [open]);
 

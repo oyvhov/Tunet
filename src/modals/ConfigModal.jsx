@@ -8,6 +8,7 @@ import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
 import { hasOAuthTokens } from '../services/oauthStorage';
+import { hasTouchScreen } from '../utils/touchScreen';
 import MusicAssistantUrlField from './MusicAssistantUrlField';
 import GeneralSettingsTab from './GeneralSettingsTab';
 import {
@@ -635,7 +636,7 @@ export default function ConfigModal({
                         onChange={(e) => setEditName(e.target.value)}
                         placeholder={t('profiles.namePlaceholder')}
                         className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-color)] focus:outline-none"
-                        autoFocus
+                        autoFocus={!hasTouchScreen()}
                       />
                       <input
                         type="text"

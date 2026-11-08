@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, LogOut, Moon, Shield, Sun, Unlock } from '../icons';
-import AccessibleModalShell, { hasCoarsePointerOnly } from '../components/ui/AccessibleModalShell';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
+import { hasTouchScreen } from '../utils/touchScreen';
 
 const ACTION_META = {
   arm_home: { labelKey: 'alarm.action.armHome', icon: Home, service: 'alarm_arm_home' },
@@ -103,7 +104,7 @@ export default function AlarmActionPinModal({
 
   useEffect(() => {
     // Touch devices use the on-screen keypad, so skip the system keyboard.
-    if (!show || hasCoarsePointerOnly()) return;
+    if (!show || hasTouchScreen()) return;
     const timer = setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
