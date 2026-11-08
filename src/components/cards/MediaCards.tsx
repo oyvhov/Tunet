@@ -158,11 +158,11 @@ export const MediaPlayerCard = memo(
             )}
           </div>
           <div className="w-full px-4 text-center">
-            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               {t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40">
+              <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
                 {name}
               </p>
             </div>
@@ -192,7 +192,7 @@ export const MediaPlayerCard = memo(
           e.stopPropagation();
           if (!editMode) onOpen(mpId, null, null);
         }}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        className={`${picture ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={{
           ...cardStyle,
           color:
@@ -204,6 +204,10 @@ export const MediaPlayerCard = memo(
         }}
       >
         {controls}
+
+        {picture && !isCoverMode && (
+          <div className="media-art-scrim pointer-events-none absolute inset-0 z-0" />
+        )}
 
         {/* Background artwork */}
         {picture && (
@@ -223,11 +227,11 @@ export const MediaPlayerCard = memo(
         )}
 
         <div
-          className={`relative z-10 ${isCoverMode ? '' : `flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
+          className={`relative z-10 ${isCoverMode ? '' : `@container flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
         >
           {!isCoverMode && (
             <div
-              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20'} flex shrink-0 items-center justify-center overflow-hidden`}
+              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20 @max-[13rem]:h-14 @max-[13rem]:w-14'} flex shrink-0 items-center justify-center overflow-hidden`}
             >
               {picture ? (
                 <img
@@ -253,7 +257,7 @@ export const MediaPlayerCard = memo(
               </p>
             </div>
             <h3
-              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'truncate text-base' : 'truncate text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
+              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'line-clamp-2 text-base' : 'line-clamp-2 text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
             >
               {title || t('common.unknown')}
             </h3>
@@ -468,11 +472,11 @@ export const MediaGroupCard = memo(
             />
           </div>
           <div className="w-full px-4 text-center">
-            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               {t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40">
+              <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
                 {name}
               </p>
             </div>
@@ -502,7 +506,7 @@ export const MediaGroupCard = memo(
           e.stopPropagation();
           if (!editMode) onOpen(mpId, settingsKey, null);
         }}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        className={`${picture ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={{
           ...cardStyle,
           color:
@@ -530,6 +534,10 @@ export const MediaGroupCard = memo(
         )}
         {isPlaying && (
           <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+        )}
+
+        {picture && !isCoverMode && (
+          <div className="media-art-scrim pointer-events-none absolute inset-0 z-0" />
         )}
 
         {/* Background artwork */}
@@ -572,11 +580,11 @@ export const MediaGroupCard = memo(
         )}
 
         <div
-          className={`relative z-10 ${isCoverMode ? '' : `flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
+          className={`relative z-10 ${isCoverMode ? '' : `@container flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
         >
           {!isCoverMode && (
             <div
-              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20'} flex shrink-0 items-center justify-center overflow-hidden`}
+              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20 @max-[13rem]:h-14 @max-[13rem]:w-14'} flex shrink-0 items-center justify-center overflow-hidden`}
             >
               {picture ? (
                 <img
@@ -602,7 +610,7 @@ export const MediaGroupCard = memo(
               </p>
             </div>
             <h3
-              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'truncate text-base' : 'truncate text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
+              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'line-clamp-2 text-base' : 'line-clamp-2 text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
             >
               {title || t('common.unknown')}
             </h3>

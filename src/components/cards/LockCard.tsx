@@ -273,9 +273,7 @@ const LockCard = memo(function LockCard({
         </div>
       </div>
 
-      <div
-        className={`${useDenseMobileLargeLayout ? 'mt-2 flex flex-col gap-3' : 'flex items-end justify-between gap-4'}`}
-      >
+      <div className="mt-2 flex flex-col gap-3">
         <div className="min-w-0">
           <p
             className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} truncate font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
@@ -288,16 +286,14 @@ const LockCard = memo(function LockCard({
             {statusText}
           </h3>
         </div>
-        <div
-          className={`${useDenseMobileLargeLayout ? `grid w-full ${supportsOpen ? 'grid-cols-3' : 'grid-cols-2'} gap-2` : 'flex gap-2'}`}
-        >
+        <div className={`grid w-full ${supportsOpen ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
           <button
             type="button"
             onClick={runLockService}
             disabled={lockButtonDisabled}
             aria-label={t('lock.action.lock')}
             title={t('lock.action.lock')}
-            className={`${lockButtonClass} ${useDenseMobileLargeLayout ? 'h-10' : isMobile ? 'p-2.5' : 'p-3'}`}
+            className={`${lockButtonClass} h-10`}
           >
             <Lock className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
           </button>
@@ -307,7 +303,7 @@ const LockCard = memo(function LockCard({
             disabled={unlockButtonDisabled}
             aria-label={confirmUnlock ? t('lock.action.confirmUnlock') : t('lock.action.unlock')}
             title={confirmUnlock ? t('lock.action.confirmUnlock') : t('lock.action.unlock')}
-            className={`${unlockButtonClass} ${useDenseMobileLargeLayout ? 'h-10' : isMobile ? 'p-2.5' : 'p-3'}`}
+            className={`${unlockButtonClass} h-10`}
           >
             {confirmUnlock ? (
               <Key className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
@@ -322,7 +318,7 @@ const LockCard = memo(function LockCard({
               disabled={openButtonDisabled}
               aria-label={t('lock.action.open')}
               title={t('lock.action.open')}
-              className={`${openButtonClass} ${useDenseMobileLargeLayout ? 'h-10' : isMobile ? 'p-2.5' : 'p-3'}`}
+              className={`${openButtonClass} h-10`}
             >
               <Key className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
             </button>

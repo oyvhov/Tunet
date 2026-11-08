@@ -223,7 +223,7 @@ const GenericAndroidTVCard = memo(
             e.stopPropagation();
             if (!editMode && onOpen) onOpen();
           }}
-          className={`glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+          className={`${picture || appLogo ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
           style={{ ...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)' }}
         >
           {controls}
@@ -283,7 +283,7 @@ const GenericAndroidTVCard = memo(
           e.stopPropagation();
           if (!editMode && onOpen) onOpen();
         }}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+        className={`${picture || appLogo ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
         style={{ ...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)' }}
       >
         {controls}
