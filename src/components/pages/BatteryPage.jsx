@@ -12,6 +12,7 @@ import {
 import { getIconComponent } from '../../icons';
 import { getAreas } from '../../services/haClient';
 import PageHeader from '../ui/PageHeader';
+import { isUnavailableState } from '../../utils';
 
 const LOW_BATTERY_THRESHOLD = 20;
 
@@ -32,6 +33,17 @@ function getBatteryLevel(entity) {
   return Math.max(0, Math.min(100, Math.round(state)));
 }
 
+/**
+ * The level, or where a binary sensor belongs on the scale: it has no percentage,
+ * and Home Assistant reports `on` when the battery is low.
+ */
+function getEffectiveLevel(entity) {
+  const level = getBatteryLevel(entity);
+  if (level !== null || isUnavailableState(entity.state)) return level;
+  if (!entity.entity_id.startsWith('binary_sensor.')) return null;
+  return entity.state === 'on' ? 0 : 100;
+}
+
 /** Color for battery bar based on level. */
 function getBatteryColor(level) {
   if (level === null) return 'var(--text-muted)';
@@ -43,8 +55,8 @@ function getBatteryColor(level) {
 
 /** Status key for sorting / filtering. */
 function getBatteryStatus(entity) {
-  if (entity.state === 'unavailable' || entity.state === 'unknown') return 'unavailable';
-  const level = getBatteryLevel(entity);
+  if (isUnavailableState(entity.state)) return 'unavailable';
+  const level = getEffectiveLevel(entity);
   if (level === null) return 'unavailable';
   if (level <= LOW_BATTERY_THRESHOLD) return 'low';
   return 'ok';
@@ -59,12 +71,13 @@ const BatteryTile = memo(
     const isUnavailable = state === 'unavailable' || state === 'unknown';
     const name = attributes?.friendly_name || entity_id.split('.')[1];
     const level = getBatteryLevel(entity);
-    const color = getBatteryColor(level);
+    const effectiveLevel = getEffectiveLevel(entity);
+    const color = getBatteryColor(effectiveLevel);
     const isCharging =
       attributes?.is_charging === true ||
       (attributes?.charging !== undefined && attributes.charging) ||
       entity_id.includes('charging');
-    const isLow = level !== null && level <= LOW_BATTERY_THRESHOLD;
+    const isLow = effectiveLevel !== null && effectiveLevel <= LOW_BATTERY_THRESHOLD;
 
     const iconName = attributes?.icon;
     const Icon = iconName
@@ -122,17 +135,19 @@ const BatteryTile = memo(
           </div>
 
           {/* Level badge */}
-          <div
-            className="flex h-10 min-w-[2.75rem] flex-shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold"
-            style={{
-              backgroundColor: isUnavailable
-                ? 'var(--glass-bg)'
-                : `color-mix(in srgb, ${color} 15%, transparent)`,
-              color: isUnavailable ? 'var(--text-muted)' : color,
-            }}
-          >
-            {isUnavailable ? <WifiOff className="h-4 w-4" /> : `${level}%`}
-          </div>
+          {(isUnavailable || level !== null) && (
+            <div
+              className="flex h-10 min-w-[2.75rem] flex-shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold"
+              style={{
+                backgroundColor: isUnavailable
+                  ? 'var(--glass-bg)'
+                  : `color-mix(in srgb, ${color} 15%, transparent)`,
+                color: isUnavailable ? 'var(--text-muted)' : color,
+              }}
+            >
+              {isUnavailable ? <WifiOff className="h-4 w-4" /> : `${level}%`}
+            </div>
+          )}
         </div>
 
         {/* Battery bar */}
@@ -286,6 +301,8 @@ function BatteryPage({ entities, conn, pageSettings, pageId, savePageSetting, t 
   // All battery entities — sensors with device_class battery
   const allBatteries = useMemo(() => {
     return Object.values(entities).filter((e) => {
+      // Most battery sensors are categorised as diagnostic, so that category must stay
+      if (e.attributes?.hidden_by || e.attributes?.entity_category === 'config') return false;
       const dc = e.attributes?.device_class;
       if (dc === 'battery') return true;
       // Also match binary sensors with battery class
@@ -330,8 +347,8 @@ function BatteryPage({ entities, conn, pageSettings, pageId, savePageSetting, t 
     const list = [...filteredBatteries];
     const sorters = {
       level: (a, b) => {
-        const aLevel = getBatteryLevel(a) ?? -1;
-        const bLevel = getBatteryLevel(b) ?? -1;
+        const aLevel = getEffectiveLevel(a) ?? -1;
+        const bLevel = getEffectiveLevel(b) ?? -1;
         if (aLevel !== bLevel) return aLevel - bLevel; // lowest first
         const aName = a.attributes?.friendly_name || a.entity_id;
         const bName = b.attributes?.friendly_name || b.entity_id;
@@ -351,8 +368,8 @@ function BatteryPage({ entities, conn, pageSettings, pageId, savePageSetting, t 
         const aArea = getAreaName(a) || '\uffff';
         const bArea = getAreaName(b) || '\uffff';
         if (aArea !== bArea) return aArea.localeCompare(bArea);
-        const aLevel = getBatteryLevel(a) ?? -1;
-        const bLevel = getBatteryLevel(b) ?? -1;
+        const aLevel = getEffectiveLevel(a) ?? -1;
+        const bLevel = getEffectiveLevel(b) ?? -1;
         return aLevel - bLevel;
       },
       unavailable: (a, b) => {
