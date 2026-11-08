@@ -137,6 +137,10 @@ export default function LayoutSidebar({
     if (gridViewportWidth < MOBILE_BREAKPOINT && dynamicGridColumns) {
       setDynamicGridColumns(false);
     }
+    if (hasPageOverride) {
+      savePageSetting(activePage, 'gridColumns', columns);
+      return;
+    }
     setGridColumns(columns);
   };
 
