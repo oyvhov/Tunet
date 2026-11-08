@@ -1235,6 +1235,39 @@ test.describe('Modal Interactions', () => {
     expect(pages.home).not.toContain('light.bedroom');
   });
 
+  test('puts a removed card back in place with Undo', async ({ page }) => {
+    await enableEditMode(page);
+    const homeCards = () =>
+      page.evaluate(() => JSON.parse(localStorage.getItem('tunet_pages_config')).home);
+    const before = await homeCards();
+    const card = page.locator('[data-card-id="light.bedroom"]');
+
+    await card.getByRole('button', { name: 'Remove card' }).click();
+    await expect(card).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+
+    await expect(card).toHaveCount(1);
+    await expect.poll(homeCards).toEqual(before);
+  });
+
+  test('asks before discarding unsaved status pill changes', async ({ page }) => {
+    const modal = await openStatusPillsModal(page);
+    const confirm = page.getByRole('dialog', { name: 'Discard changes?' });
+
+    await modal.getByTitle('Add new pill').click();
+    await modal.getByRole('button', { name: 'Smart group' }).click();
+
+    await page.keyboard.press('Escape');
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(confirm).toBeHidden();
+    await expect(modal.getByRole('heading', { name: 'Status Pills' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await confirm.getByRole('button', { name: 'Discard', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Status Pills' })).toBeHidden();
+  });
+
   test('offers remove but not move in the edit card popup', async ({ page }) => {
     await enableEditMode(page);
     await page

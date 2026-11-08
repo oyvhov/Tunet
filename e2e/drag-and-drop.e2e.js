@@ -37,6 +37,40 @@ test.describe('Drag and Drop Interactions', () => {
     await page.waitForTimeout(500); // Wait for entities to load
   });
 
+  test.describe('on a touch screen', () => {
+    test.skip(
+      ({ browserName }) => browserName === 'firefox',
+      'Firefox does not support the isMobile context option'
+    );
+    test.use({ hasTouch: true, isMobile: true, viewport: { width: 800, height: 1100 } });
+
+    test('reorders pages with 44 px buttons in the page manager', async ({ page }) => {
+      await page.addInitScript(() => {
+        const config = JSON.parse(localStorage.getItem('tunet_pages_config'));
+        localStorage.setItem(
+          'tunet_pages_config',
+          JSON.stringify({ ...config, pages: ['home', 'kitchen'], kitchen: [] })
+        );
+      });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(500);
+
+      await enableEditMode(page);
+      await page.getByRole('button', { name: 'New page' }).click();
+      const moveDown = page.getByRole('button', { name: 'Move page down' }).first();
+      await expect(moveDown).toBeVisible();
+      expect((await moveDown.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+      await moveDown.tap();
+
+      await expect
+        .poll(() =>
+          page.evaluate(() => JSON.parse(localStorage.getItem('tunet_pages_config')).pages)
+        )
+        .toEqual(['kitchen', 'home']);
+    });
+  });
+
   test('should enable edit mode with button or long-press', async ({ page }) => {
     await enableEditMode(page);
     const cards = page.locator('[draggable="true"]');
@@ -87,9 +121,12 @@ test.describe('Drag and Drop Interactions', () => {
 
       // Perform a drag (simplified)
       const cards = page.locator('[draggable="true"]');
-      if (await cards.nth(0).isVisible() && await cards.nth(1).isVisible()) {
+      if ((await cards.nth(0).isVisible()) && (await cards.nth(1).isVisible())) {
         // Try drag-and-drop
-        await cards.nth(0).dragTo(cards.nth(1)).catch(() => {});
+        await cards
+          .nth(0)
+          .dragTo(cards.nth(1))
+          .catch(() => {});
       }
 
       await page.waitForTimeout(300);
@@ -128,13 +165,13 @@ test.describe('Drag and Drop Interactions', () => {
         // Simulate drag start
         await page.mouse.move(x, y);
         await page.mouse.down();
-        
+
         await page.waitForTimeout(100);
 
         // While dragging, should see drop zone indicators
         // Look for visual feedback (highlighted areas, borders, etc.)
         const dropZones = page.locator('.drop-zone, [data-drop-zone], .dragover, [drag-over]');
-        
+
         await page.mouse.move(x + 50, y);
         await page.waitForTimeout(100);
 
@@ -152,10 +189,12 @@ test.describe('Drag and Drop Interactions', () => {
     if (await editButton.isVisible()) {
       // Check if currently in edit mode and disable
       const isEditMode = await page.evaluate(() => {
-        return document.body.classList.contains('edit-mode') || 
-               document.querySelector('[draggable="true"]') !== null;
+        return (
+          document.body.classList.contains('edit-mode') ||
+          document.querySelector('[draggable="true"]') !== null
+        );
       });
-      
+
       if (isEditMode) {
         await editButton.click();
         await page.waitForTimeout(200);
@@ -171,7 +210,10 @@ test.describe('Drag and Drop Interactions', () => {
   });
 
   test('should handle touch drag on mobile', async ({ page, context, browser }, testInfo) => {
-    test.skip(testInfo.project.name === 'firefox', 'Firefox does not support isMobile context option');
+    test.skip(
+      testInfo.project.name === 'firefox',
+      'Firefox does not support isMobile context option'
+    );
 
     // Set mobile viewport
     const mobile = await browser.newContext({
@@ -212,10 +254,10 @@ test.describe('Drag and Drop Interactions', () => {
     // Try long-press to enable edit mode on mobile
     const card = mobilePage.locator('[role="button"], button, [draggable]').first();
     await expect(card).toBeVisible();
-    
+
     if (await card.isVisible()) {
       const box = await card.boundingBox();
-      
+
       if (box) {
         const x = box.x + box.width / 2;
         const y = box.y + box.height / 2;
@@ -227,7 +269,7 @@ test.describe('Drag and Drop Interactions', () => {
         // Touch drag
         await mobilePage.touchscreen.tap(x, y);
         await mobilePage.waitForTimeout(100);
-        
+
         // Simulate touch move (if API available)
         try {
           await mobilePage.touchscreen.swipe(x, y, x + 100, y);
@@ -250,11 +292,11 @@ test.describe('Drag and Drop Interactions', () => {
 
     // Look for delete/trash zone
     const deleteZone = page.locator('[aria-label*="delete"], [aria-label*="trash"], .delete-zone');
-    
+
     const card = page.locator('[draggable="true"]').first();
     if (await card.isVisible()) {
       const box = await card.boundingBox();
-      
+
       if (box) {
         const x = box.x + box.width / 2;
         const y = box.y + box.height / 2;
@@ -285,7 +327,7 @@ test.describe('Drag and Drop Interactions', () => {
     const card = page.locator('[draggable="true"]').first();
     if (await card.isVisible()) {
       const box = await card.boundingBox();
-      
+
       if (box) {
         const x = box.x + box.width / 2;
         const y = box.y + box.height / 2;
@@ -294,7 +336,7 @@ test.describe('Drag and Drop Interactions', () => {
         await page.mouse.move(x, y);
         await page.mouse.down();
         await page.mouse.move(x + 50, y);
-        
+
         // Press escape to cancel
         await page.keyboard.press('Escape');
         await page.mouse.up();
