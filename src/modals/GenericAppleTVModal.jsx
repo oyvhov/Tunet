@@ -199,7 +199,7 @@ export default function GenericAppleTVModal({
                   </button>
                   <button
                     onClick={() => controlMedia('media_play_pause')}
-                    className="rounded-full bg-[var(--accent-color)] p-3.5 font-bold text-white shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-95 sm:p-4"
+                    className="rounded-full bg-[var(--accent-color)] p-3.5 font-bold text-[var(--accent-contrast)] shadow-lg transition-all hover:bg-[var(--accent-color)] active:scale-95 sm:p-4"
                     aria-label={t('shield.playPause')}
                   >
                     {isPlaying ? (
@@ -252,23 +252,6 @@ export default function GenericAppleTVModal({
             {/* Right Column (Span 5) - Siri Remote Body */}
             <div className="flex flex-col items-center justify-center lg:col-span-5">
               <div className="popup-surface flex w-full max-w-[280px] flex-col items-center gap-4 rounded-[2.5rem] p-5 shadow-xl sm:gap-5 sm:p-6">
-                {/* Remote Top: Power */}
-                <div className="flex w-full items-center justify-end px-2">
-                  <Button
-                    size="sm"
-                    variant={isOn ? 'destructive' : 'primary'}
-                    onClick={() =>
-                      isOn
-                        ? callService('media_player', 'turn_off', { entity_id: mediaPlayerId })
-                        : callService('media_player', 'turn_on', { entity_id: mediaPlayerId })
-                    }
-                    title={isOn ? t('shield.turnOff') : t('shield.turnOn')}
-                    icon={<Power className="h-4 w-4" />}
-                  >
-                    {isOn ? t('shield.turnOff') : t('shield.turnOn')}
-                  </Button>
-                </div>
-
                 {remoteId && (
                   <>
                     {/* Circular Clickpad / D-Pad Ring (Apple TV Touch Surface) */}
@@ -395,6 +378,21 @@ export default function GenericAppleTVModal({
                       {isMuted ? t('media.volume.unmute') : t('media.volume.mute')}
                     </span>
                   </button>
+                </div>
+
+                <div className="w-full px-1">
+                  <Button
+                    block
+                    variant={isOn ? 'destructive' : 'primary'}
+                    onClick={() =>
+                      isOn
+                        ? callService('media_player', 'turn_off', { entity_id: mediaPlayerId })
+                        : callService('media_player', 'turn_on', { entity_id: mediaPlayerId })
+                    }
+                    icon={<Power className="h-5 w-5" />}
+                  >
+                    {isOn ? t('shield.turnOff') : t('shield.turnOn')}
+                  </Button>
                 </div>
               </div>
             </div>

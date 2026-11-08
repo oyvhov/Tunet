@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Fan, RefreshCw, MoveHorizontal, RotateCw } from '../icons';
+import { Fan, Power, RefreshCw, MoveHorizontal, RotateCw } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
@@ -148,7 +148,7 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                       <Button
                         variant={isOn ? 'destructive' : 'primary'}
                         onClick={handlePowerToggle}
-                        icon={<Fan className="h-5 w-5" />}
+                        icon={<Power className="h-5 w-5" />}
                         className="flex-1"
                       >
                         {isOn ? t('fan.turnOff') : t('fan.turnOn')}

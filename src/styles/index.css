@@ -49,14 +49,12 @@
 :focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
-  border-radius: inherit;
 }
 
 /* A popup panel takes focus only so screen readers and Tab start inside it.
-   It is not a control, so it gets no ring and keeps its own rounded corners. */
+   It is not a control, so it gets no ring. */
 [role='dialog'][tabindex='-1']:focus-visible {
   outline: none;
-  border-radius: revert-layer;
 }
 
 /* Slider thumbs are drawn by hand, so the native input keeps the ring but

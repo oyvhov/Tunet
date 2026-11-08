@@ -164,16 +164,16 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
         </div>
 
         <h2 className="mb-3 text-3xl font-light tracking-tight text-[var(--text-primary)] uppercase">
-          {t('welcome.title')}
+          {totalCards > 0 ? t('welcome.emptyPageTitle') : t('welcome.title')}
         </h2>
         <p className="mb-8 max-w-md text-lg leading-relaxed text-[var(--text-secondary)]">
-          {t('welcome.subtitle')}
+          {totalCards > 0 ? t('welcome.emptyPageSubtitle') : t('welcome.subtitle')}
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => setShowAddCardModal(true)}
-            className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-8 py-4 text-sm font-bold tracking-widest text-white uppercase shadow-lg transition-all duration-200 hover:bg-[var(--accent-color)] active:scale-95"
+            className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-8 py-4 text-sm font-bold tracking-widest text-[var(--accent-contrast)] uppercase shadow-lg transition-all duration-200 hover:bg-[var(--accent-color)] active:scale-95"
           >
             <Plus className="h-5 w-5" />
             {t('welcome.addCard')}

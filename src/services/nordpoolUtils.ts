@@ -1,5 +1,11 @@
 import type { HassEntities, HassEntity } from '../types/ha';
 
+/** Long price series start 47 hours before today; shorter ones start at today's midnight. */
+export function getCurrentPriceIndex(priceCount: number, currentHour: number): number {
+  const indexWithHistory = currentHour + 47;
+  return priceCount > 48 && indexWithHistory < priceCount ? indexWithHistory : currentHour;
+}
+
 export interface NordpoolCardSettings {
   nordpoolId?: string;
   [key: string]: unknown;
@@ -56,7 +62,7 @@ export function prepareNordpoolData(
 
   const now = new Date();
   const currentHour = now.getHours();
-  const currentPriceIndex = currentHour + 47;
+  const currentPriceIndex = getCurrentPriceIndex(allPrices.length, currentHour);
 
   const fullPriceData = allPrices.map((price, idx): NordpoolPricePoint => {
     const actualHour = (idx - currentPriceIndex + currentHour) % 24;

@@ -3,6 +3,7 @@ import SparkLine from '../charts/SparkLine';
 import { Zap } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useHomeAssistantMeta } from '../../contexts';
+import { getCurrentPriceIndex } from '../../services/nordpoolUtils';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 
 interface NordpoolSettings {
@@ -72,7 +73,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
   // We find offset by assuming array index N represents hour N from some start point
   // The array is ordered sequentially by hour, but may start at any hour
   // We need to find which index corresponds to current hour
-  const currentPriceIndex = currentHour + 47; // Offset discovered from data: 63 (current) - 16 (what showed) = 47
+  const currentPriceIndex = getCurrentPriceIndex(allPrices.length, currentHour);
 
   const fullPriceData = allPrices.map((price, idx) => {
     // Calculate the actual hour this price represents
