@@ -209,6 +209,7 @@ export default function LayoutSidebar({
       title={t('settings.layout')}
       testId="layout-sidebar"
       closeLabel={t('nav.done')}
+      peekLabel={t('settings.peekDashboard')}
       navigation={
         <SidebarNavigation
           active="layout"

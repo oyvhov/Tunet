@@ -1063,6 +1063,7 @@
   "settings.openSystem": "Öppna system",
   "settings.pageOverride": "Denna sida har anpassade inställningar",
   "settings.pageOverrideHint": "Ändringar här gäller endast denna sida. Använd 'Använd global' för att återgå till global layout.",
+  "settings.peekDashboard": "Visa instrumentpanelen",
   "settings.reset": "Återställ",
   "settings.sectionSpacing": "Avstånd",
   "settings.sectionSpacingGrid": "Sidknappar → Rutnät",

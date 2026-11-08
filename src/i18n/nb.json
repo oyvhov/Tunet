@@ -1165,6 +1165,7 @@
   "settings.descAppearance": "Tema og bakgrunn",
   "settings.descLayout": "Rutenett og avstand",
   "settings.descSystem": "System og oppdateringer",
+  "settings.peekDashboard": "Se dashbordet",
   "addCard.type.room": "Rom",
   "addCard.type.spacer": "Mellomrom",
   "addCard.spacerDescription": "Legg til et mellomrom- eller skillekort. Du kan bytte mellom mellomrom og skillelinje i redigeringsinnstillingene.",

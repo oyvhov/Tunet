@@ -964,6 +964,7 @@
   "settings.openSystem": "打开系统",
   "settings.pageOverride": "该页面有自定义设置",
   "settings.pageOverrideHint": "此处的更改仅适用于此页面。使用“使用全局”返回全局布局。",
+  "settings.peekDashboard": "查看仪表盘",
   "settings.reset": "重置",
   "settings.sectionSpacing": "间距",
   "settings.sectionSpacingGrid": "页面按钮 → 网格",

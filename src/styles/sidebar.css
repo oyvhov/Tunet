@@ -22,6 +22,49 @@ html[data-studio-preview] #main-content {
   box-shadow: -24px 0 60px rgba(0, 0, 0, 0.34);
 }
 
+.tunet-sidebar__peek {
+  padding: 12px 24px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid color-mix(in srgb, var(--glass-border) 72%, transparent);
+}
+
+.tunet-sidebar__peek button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.tunet-sidebar[data-peeking='true'] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tunet-sidebar[data-peeking='true'] .tunet-sidebar__peek {
+  border-top-color: transparent;
+}
+
+.tunet-sidebar[data-peeking='true'] > div > :not(.tunet-sidebar__peek) {
+  visibility: hidden;
+}
+
+@media (min-width: 900px) {
+  .tunet-sidebar__peek {
+    display: none;
+  }
+}
+
 .tunet-sidebar__header {
   min-height: 72px;
   border-color: color-mix(in srgb, var(--glass-border) 72%, transparent);

@@ -1063,6 +1063,7 @@
   "settings.openSystem": "System öffnen",
   "settings.pageOverride": "Diese Seite hat benutzerdefinierte Einstellungen",
   "settings.pageOverrideHint": "Änderungen hier gelten nur für diese Seite. Verwenden Sie 'Global verwenden', um zur globalen Layout zurückzukehren.",
+  "settings.peekDashboard": "Dashboard ansehen",
   "settings.reset": "Zurücksetzen",
   "settings.sectionSpacing": "Abstände",
   "settings.sectionSpacingGrid": "Seitenbuttons → Raster",

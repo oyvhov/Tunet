@@ -152,6 +152,7 @@ export default function ThemeSidebar({
         title={t('system.tabAppearance')}
         testId="theme-sidebar"
         closeLabel={t('nav.done')}
+        peekLabel={t('settings.peekDashboard')}
         navigation={
           <SidebarNavigation
             active="appearance"

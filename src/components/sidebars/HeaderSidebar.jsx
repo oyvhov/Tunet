@@ -82,6 +82,7 @@ export default function HeaderSidebar({
       title={t('system.tabHeader')}
       testId="header-sidebar"
       closeLabel={t('nav.done')}
+      peekLabel={t('settings.peekDashboard')}
       navigation={
         <SidebarNavigation
           active="header"

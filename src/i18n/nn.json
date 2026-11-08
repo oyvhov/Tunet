@@ -1074,6 +1074,7 @@
   "settings.openSystem": "Opne system",
   "settings.pageOverride": "Denne sida har eigne innstillingar",
   "settings.pageOverrideHint": "Endringar her gjeld berre denne sida. Bruk 'Bruk global' for å gå tilbake til global oppsett.",
+  "settings.peekDashboard": "Sjå dashbordet",
   "settings.reset": "Tilbakestill",
   "settings.sectionSpacing": "Avstand",
   "settings.sectionSpacingGrid": "Sideknappar → Rutenett",

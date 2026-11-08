@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Eye } from '../../icons';
 
 /**
  * @param {Object} props
@@ -9,6 +10,7 @@ import React, { useEffect, useRef, useState } from 'react';
  * @param {string} [props.testId]
  * @param {React.ReactNode} [props.navigation]
  * @param {string} [props.closeLabel]
+ * @param {string} [props.peekLabel]
  */
 export default function SidebarContainer({
   open,
@@ -18,9 +20,12 @@ export default function SidebarContainer({
   testId,
   navigation,
   closeLabel = 'Done',
+  peekLabel,
 }) {
   const panelRef = useRef(null);
   const [isColorPickerActive, setIsColorPickerActive] = useState(false);
+  const [peeking, setPeeking] = useState(false);
+  const stopPeek = () => setPeeking(false);
 
   // Close on escape key
   useEffect(() => {
@@ -131,7 +136,7 @@ export default function SidebarContainer({
           open ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
         style={{
-          opacity: open ? 'var(--studio-backdrop-opacity, 0.62)' : 0,
+          opacity: open && !peeking ? 'var(--studio-backdrop-opacity, 0.62)' : 0,
         }}
         onClick={handleBackdropClick}
       />
@@ -144,6 +149,7 @@ export default function SidebarContainer({
         aria-modal="true"
         aria-label={title}
         inert={!open}
+        data-peeking={peeking ? 'true' : undefined}
         className={`tunet-sidebar popup-anim fixed inset-y-0 right-0 z-[101] w-full max-w-[420px] border-l ${
           open ? 'visible' : 'invisible'
         }`}
@@ -172,6 +178,35 @@ export default function SidebarContainer({
           <div className="tunet-sidebar__content custom-scrollbar min-h-0 flex-1 overflow-y-auto">
             {children}
           </div>
+
+          {peekLabel ? (
+            <div className="tunet-sidebar__peek flex-none">
+              <button
+                type="button"
+                data-testid="sidebar-peek"
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture?.(e.pointerId);
+                  setPeeking(true);
+                }}
+                onPointerUp={stopPeek}
+                onPointerCancel={stopPeek}
+                onLostPointerCapture={stopPeek}
+                onKeyDown={(e) => {
+                  if (e.key !== ' ') return;
+                  e.preventDefault();
+                  setPeeking(true);
+                }}
+                onKeyUp={(e) => {
+                  if (e.key === ' ') stopPeek();
+                }}
+                onBlur={stopPeek}
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                <Eye aria-hidden="true" className="h-4 w-4" />
+                {peekLabel}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </>

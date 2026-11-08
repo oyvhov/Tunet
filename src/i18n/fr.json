@@ -1063,6 +1063,7 @@
   "settings.openSystem": "Ouvrir le système",
   "settings.pageOverride": "Cette page a des paramètres personnalisés",
   "settings.pageOverrideHint": "Les modifications ici s'appliquent uniquement à cette page. Utilisez 'Utiliser global' pour revenir à la mise en page globale.",
+  "settings.peekDashboard": "Voir le tableau de bord",
   "settings.reset": "Réinitialiser",
   "settings.sectionSpacing": "Espacement",
   "settings.sectionSpacingGrid": "Boutons de page → Grille",
