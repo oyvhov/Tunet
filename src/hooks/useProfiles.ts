@@ -41,7 +41,7 @@ function normalizePagesConfig(candidate: unknown, fallback: unknown) {
   const fallbackConfig = cloneJson(fallback, { header: [], pages: ['home'], home: [] });
 
   if (!candidate || typeof candidate !== 'object') {
-    notes.push('Profile page layout was missing, so current pages were kept.');
+    notes.push('profiles.loadNotePagesMissing');
     return { pagesConfig: fallbackConfig, notes };
   }
 
@@ -61,7 +61,7 @@ function normalizePagesConfig(candidate: unknown, fallback: unknown) {
         ? [...fallbackConfig.pages]
         : ['home'];
     next.pages = detectedPages.length > 0 ? detectedPages : fallbackPages;
-    notes.push('Profile page list was rebuilt.');
+    notes.push('profiles.loadNotePagesRebuilt');
   }
 
   next.pages = next.pages.filter((id) => !['settings', 'automations'].includes(id));
@@ -74,7 +74,7 @@ function normalizePagesConfig(candidate: unknown, fallback: unknown) {
     const extraDetected = detectedPages.filter((id) => id !== 'home');
     if (extraDetected.length > 0) {
       next.pages = ['home', ...extraDetected];
-      notes.push('Recovered additional pages from profile data.');
+      notes.push('profiles.loadNotePagesRecovered');
     }
   }
 
@@ -83,7 +83,7 @@ function normalizePagesConfig(candidate: unknown, fallback: unknown) {
       Array.isArray(fallbackConfig.pages) && fallbackConfig.pages.length > 0
         ? [...fallbackConfig.pages]
         : ['home'];
-    notes.push('No valid pages were found; previous pages were restored.');
+    notes.push('profiles.loadNotePagesRestored');
   }
 
   next.pages.forEach((pageId) => {
@@ -93,6 +93,16 @@ function normalizePagesConfig(candidate: unknown, fallback: unknown) {
   });
 
   return { pagesConfig: next, notes };
+}
+
+const INVALID_SNAPSHOT_MESSAGE = 'Invalid snapshot data';
+
+// `error` holds a translation key; raw server text stays on the thrown error.
+function profileErrorKey(err: unknown, fallbackKey: string) {
+  // Cast: only the message is read, and a non-Error simply has none.
+  return (err as Error | null)?.message === INVALID_SNAPSHOT_MESSAGE
+    ? 'profiles.errorInvalidSnapshot'
+    : fallbackKey;
 }
 
 function normalizeImportedSnapshot(snapshotCandidate: ImportCandidate) {
@@ -122,7 +132,7 @@ export function useProfiles({
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadSummary, setLoadSummary] = useState<string | null>(null);
+  const [loadSummary, setLoadSummary] = useState<string[] | null>(null);
   const [backendAvailable, setBackendAvailable] = useState(true);
   const contextSettersRef = useRef(contextSetters);
   contextSettersRef.current = contextSetters;
@@ -158,7 +168,7 @@ export function useProfiles({
       try {
         const snapshot = collectSnapshot();
         if (!isValidSnapshot(snapshot)) {
-          throw new Error('Invalid snapshot data');
+          throw new Error(INVALID_SNAPSHOT_MESSAGE);
         }
         const profile = await apiCreateProfile({
           ha_user_id: haUser.id,
@@ -169,8 +179,7 @@ export function useProfiles({
         setProfiles((prev) => [profile, ...prev]);
         return profile;
       } catch (err) {
-        // Cast: the profile API rejects with Error instances.
-        setError((err as Error).message);
+        setError(profileErrorKey(err, 'profiles.errorSaveFailed'));
         throw err;
       } finally {
         setLoading(false);
@@ -188,7 +197,7 @@ export function useProfiles({
       try {
         const snapshot = collectSnapshot();
         if (!isValidSnapshot(snapshot)) {
-          throw new Error('Invalid snapshot data');
+          throw new Error(INVALID_SNAPSHOT_MESSAGE);
         }
         const updated = await apiUpdateProfile(profileId, {
           ha_user_id: haUser.id,
@@ -198,8 +207,7 @@ export function useProfiles({
         setProfiles((prev) => prev.map((p) => (p.id === profileId ? updated : p)));
         return updated;
       } catch (err) {
-        // Cast: the profile API rejects with Error instances.
-        setError((err as Error).message);
+        setError(profileErrorKey(err, 'profiles.errorSaveFailed'));
         throw err;
       } finally {
         setLoading(false);
@@ -214,7 +222,7 @@ export function useProfiles({
     setLoadSummary(null);
 
     if (!profile?.data || typeof profile.data !== 'object') {
-      setError('Profile data is missing or invalid.');
+      setError('profiles.errorProfileInvalid');
       return;
     }
 
@@ -239,7 +247,7 @@ export function useProfiles({
     applySnapshot(normalizedSnapshot, contextSettersRef.current);
 
     if (notes.length > 0) {
-      setLoadSummary(notes.join(' '));
+      setLoadSummary(notes);
     }
   }, []);
 
@@ -249,9 +257,8 @@ export function useProfiles({
 
     const payload = normalizeImportedSnapshot(snapshotCandidate);
     if (!payload || !isValidSnapshot(payload)) {
-      const importError = new Error('Invalid snapshot data');
-      setError(importError.message);
-      throw importError;
+      setError('profiles.errorInvalidSnapshot');
+      throw new Error(INVALID_SNAPSHOT_MESSAGE);
     }
 
     const currentSnapshot = collectSnapshot();
@@ -273,7 +280,7 @@ export function useProfiles({
     applySnapshot(normalizedSnapshot, contextSettersRef.current);
 
     if (notes.length > 0) {
-      setLoadSummary(notes.join(' '));
+      setLoadSummary(notes);
     }
   }, []);
 
@@ -281,9 +288,8 @@ export function useProfiles({
     setError(null);
     const snapshot = collectSnapshot();
     if (!isValidSnapshot(snapshot)) {
-      const exportError = new Error('Invalid snapshot data');
-      setError(exportError.message);
-      throw exportError;
+      setError('profiles.errorInvalidSnapshot');
+      throw new Error(INVALID_SNAPSHOT_MESSAGE);
     }
 
     return {
@@ -309,8 +315,7 @@ export function useProfiles({
         setProfiles((prev) => prev.map((p) => (p.id === profileId ? updated : p)));
         return updated;
       } catch (err) {
-        // Cast: the profile API rejects with Error instances.
-        setError((err as Error).message);
+        setError(profileErrorKey(err, 'profiles.errorSaveFailed'));
         throw err;
       } finally {
         setLoading(false);
@@ -329,8 +334,7 @@ export function useProfiles({
         await apiDeleteProfile(profileId, haUser.id);
         setProfiles((prev) => prev.filter((p) => p.id !== profileId));
       } catch (err) {
-        // Cast: the profile API rejects with Error instances.
-        setError((err as Error).message);
+        setError(profileErrorKey(err, 'profiles.errorDeleteFailed'));
         throw err;
       } finally {
         setLoading(false);

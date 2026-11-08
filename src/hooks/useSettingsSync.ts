@@ -331,7 +331,7 @@ export function useSettingsSync({
       } catch (fetchError) {
         updateBackgroundSyncAvailability(false, fetchError);
         setStatus('error');
-        setError((fetchError as SyncError)?.message || 'Failed to fetch current settings');
+        setError('profiles.errorFetchFailed');
         return READ_CURRENT_FAILED;
       }
     })();
@@ -446,7 +446,7 @@ export function useSettingsSync({
       if (!isValidSnapshot(snapshot)) {
         const validationError = new Error('Invalid snapshot data');
         setStatus('error');
-        setError(validationError.message);
+        setError('profiles.errorInvalidSnapshot');
         throw validationError;
       }
 
@@ -522,7 +522,7 @@ export function useSettingsSync({
           throw saveError;
         } else {
           setStatus('error');
-          setError((saveError as SyncError)?.message || 'Failed to sync settings');
+          setError('profiles.errorSyncFailed');
         }
         updateBackgroundSyncAvailability(false, saveError);
         throw saveError;
@@ -770,6 +770,29 @@ export function useSettingsSync({
     ]
   );
 
+  const loadFromDevice = useCallback(
+    async (sourceDeviceId: string) => {
+      if (!haUserId || !sourceDeviceId) return;
+      const reportFailure = () => {
+        setStatus('error');
+        setError('profiles.errorLoadDeviceFailed');
+      };
+      let row: CurrentSettingsRow | null;
+      try {
+        row = await apiFetchCurrentSettings(haUserId, sourceDeviceId);
+      } catch (loadError) {
+        reportFailure();
+        throw loadError;
+      }
+      if (!row || !isValidSnapshot(row.data)) {
+        reportFailure();
+        return;
+      }
+      adoptSnapshotAsLocalChange(row.data);
+    },
+    [haUserId, adoptSnapshotAsLocalChange]
+  );
+
   const publishCurrentToDevices = useCallback(
     async (targetDeviceIds?: string[] | null) => {
       if (!haUserId) return;
@@ -823,7 +846,7 @@ export function useSettingsSync({
       } catch (publishError) {
         if (!conflictRef.current) {
           setStatus('error');
-          setError((publishError as SyncError)?.message || 'Failed to publish settings');
+          setError('profiles.errorPublishFailed');
         }
         throw publishError;
       } finally {
@@ -849,7 +872,7 @@ export function useSettingsSync({
       await refreshHistory();
     } catch (historyError) {
       setStatus('error');
-      setError((historyError as SyncError)?.message || 'Failed to clear revision history');
+      setError('profiles.errorClearHistoryFailed');
       throw historyError;
     } finally {
       setClearingHistory(false);
@@ -862,7 +885,7 @@ export function useSettingsSync({
       if (targetDeviceId === deviceIdRef.current) {
         const removeCurrentError = new Error('Cannot remove current device');
         setStatus('error');
-        setError(removeCurrentError.message);
+        setError('profiles.errorRemoveDeviceFailed');
         throw removeCurrentError;
       }
 
@@ -873,7 +896,7 @@ export function useSettingsSync({
         await refreshKnownDevices();
       } catch (removeError) {
         setStatus('error');
-        setError((removeError as SyncError)?.message || 'Failed to remove device');
+        setError('profiles.errorRemoveDeviceFailed');
         throw removeError;
       } finally {
         setRemovingDeviceId('');
@@ -902,7 +925,7 @@ export function useSettingsSync({
         await refreshKnownDevices();
       } catch (renameError) {
         setStatus('error');
-        setError((renameError as SyncError)?.message || 'Failed to rename device');
+        setError('profiles.errorRenameDeviceFailed');
         throw renameError;
       } finally {
         setUpdatingDeviceId('');
@@ -930,6 +953,7 @@ export function useSettingsSync({
     setHistoryKeepLimit,
     syncNow: () => queueAutoSync(true, { ignoreEnabled: true, ignoreSuspended: true }),
     loadCurrentFromServer,
+    loadFromDevice,
     publishCurrentToDevices,
     publishConflicts,
     overwriteServerWithLocal: () => pushCurrentToServer({ force: true, overwriteConflicts: true }),
