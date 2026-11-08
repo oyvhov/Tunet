@@ -48,6 +48,23 @@ describe('EditOverlay', () => {
     expect(screen.getByRole('button', { name: 'tooltip.editCard' })).toBeInTheDocument();
   });
 
+  it('gives the compact spacer handle a 44 px hit area beside the pencil', () => {
+    renderOverlay({ editId: 'spacer_card_1', settings: { heightPx: 40 } });
+    const handle = screen.getByRole('button', { name: 'tooltip.reorderCard' });
+    expect(handle).toHaveClass('relative', 'before:absolute', 'before:-left-5.5');
+    expect(handle).toHaveClass('before:-inset-y-2.75');
+    expect(screen.getByRole('button', { name: 'tooltip.editCard' })).not.toHaveClass(
+      'before:absolute'
+    );
+  });
+
+  it('leaves the full-size handle without the extra hit area', () => {
+    renderOverlay();
+    expect(screen.getByRole('button', { name: 'tooltip.reorderCard' })).not.toHaveClass(
+      'before:absolute'
+    );
+  });
+
   it('keeps the trash button as small as the others on a compact spacer', () => {
     renderOverlay({ editId: 'spacer_card_1', settings: { heightPx: 40 } });
     expect(screen.getByRole('button', { name: 'tooltip.removeCard' })).toHaveClass('p-1');

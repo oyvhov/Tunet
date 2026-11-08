@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PersonStatus from '../components/cards/PersonStatus';
 
@@ -22,6 +22,23 @@ const baseProps = {
   onRemoveCard: vi.fn(),
   t: (key) => key,
 };
+
+describe('PersonStatus edit controls', () => {
+  it.each([['tooltip.editCard'], ['tooltip.removeCard']])('%s has a 44 px hit area', (name) => {
+    render(<PersonStatus {...baseProps} editMode />);
+
+    expect(screen.getByRole('button', { name })).toHaveClass('h-11', 'w-11');
+  });
+
+  it('removes only through the trash button', () => {
+    const onRemoveCard = vi.fn();
+    render(<PersonStatus {...baseProps} editMode onRemoveCard={onRemoveCard} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'tooltip.removeCard' }));
+
+    expect(onRemoveCard).toHaveBeenCalledWith('person.ola', 'header');
+  });
+});
 
 describe('PersonStatus', () => {
   it('shows the configured person name and state on phones while preserving the desktop layout', () => {
