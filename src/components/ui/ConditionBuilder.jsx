@@ -1,17 +1,12 @@
 import { useState } from 'react';
 import {
+  createDefaultConditionRule,
   evaluateVisibilityConditionConfig,
+  getKnownConditionStates,
   normalizeVisibilityConditionConfig,
   resolveConditionEntityId,
 } from '../../utils/conditionUtils';
 import { Check, Plus, Search } from '../../icons';
-
-/** @returns {import('../../utils/conditionUtils').VisibilityConditionRule} */
-const createDefaultRule = () => ({
-  type: 'state',
-  states: ['on'],
-  forSeconds: 0,
-});
 
 const NUMERIC_OPERATORS = ['>', '<', '>=', '<=', '=='];
 
@@ -29,7 +24,7 @@ function getConditionWithDefaults(condition) {
     entityId: null,
     logic: 'AND',
     enabled: true,
-    rules: [createDefaultRule()],
+    rules: [createDefaultConditionRule()],
   };
 }
 
@@ -202,9 +197,10 @@ export default function ConditionBuilder({
 
   const setType = (index, type) => {
     const nextRules = [...effectiveConfig.rules];
-    const current = nextRules[index] || createDefaultRule();
+    const current = nextRules[index] || createDefaultConditionRule();
     if (type === 'state') {
-      nextRules[index] = { ...current, type, states: ['on'] };
+      const { states } = createDefaultConditionRule(entities?.[getRuleEntityId(index)]);
+      nextRules[index] = { ...current, type, states };
       saveConfig({ ...effectiveConfig, rules: nextRules });
       return;
     }
@@ -229,13 +225,16 @@ export default function ConditionBuilder({
 
   const updateRule = (index, partial) => {
     const nextRules = [...effectiveConfig.rules];
-    nextRules[index] = { ...(nextRules[index] || createDefaultRule()), ...partial };
+    nextRules[index] = { ...(nextRules[index] || createDefaultConditionRule()), ...partial };
     saveConfig({ ...effectiveConfig, rules: nextRules });
   };
 
   const addSecondRule = () => {
     if (effectiveConfig.rules.length >= 2) return;
-    saveConfig({ ...effectiveConfig, rules: [...effectiveConfig.rules, createDefaultRule()] });
+    saveConfig({
+      ...effectiveConfig,
+      rules: [...effectiveConfig.rules, createDefaultConditionRule(selectedEntity)],
+    });
   };
 
   const removeSecondRule = () => {
@@ -362,8 +361,18 @@ export default function ConditionBuilder({
     updateRule(index, { states: existing.filter((state) => state !== stateToRemove) });
   };
 
+  const addKnownState = (index, state) => {
+    const existing = Array.isArray(effectiveConfig.rules[index]?.states)
+      ? effectiveConfig.rules[index].states
+      : [];
+    updateRule(index, { states: [...existing, state] });
+  };
+
   const renderRuleEditor = (rule, index) => {
     const selectedStates = Array.isArray(rule.states) ? rule.states : [];
+    const knownStates = getKnownConditionStates(entities?.[getRuleEntityId(index)]).filter(
+      (state) => !selectedStates.includes(state)
+    );
 
     return (
       <div className="space-y-1.5">
@@ -413,10 +422,20 @@ export default function ConditionBuilder({
                   key={`${index}-${state}`}
                   type="button"
                   onClick={() => removeStateValue(index, state)}
-                  className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-bg)] px-2.5 py-1 text-[11px] font-bold text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
+                  className="inline-flex min-h-11 items-center gap-1 rounded-full bg-[var(--accent-bg)] px-3 py-1 text-xs font-bold text-[var(--accent-color)] hover:bg-[var(--accent-bg)]"
                 >
                   <span className="text-[var(--accent-color)]">×</span>
                   <span>{state}</span>
+                </button>
+              ))}
+              {knownStates.map((state) => (
+                <button
+                  key={`${index}-known-${state}`}
+                  type="button"
+                  onClick={() => addKnownState(index, state)}
+                  className="inline-flex min-h-11 items-center rounded-full bg-[var(--glass-bg)] px-3 py-1 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]"
+                >
+                  {state}
                 </button>
               ))}
             </div>

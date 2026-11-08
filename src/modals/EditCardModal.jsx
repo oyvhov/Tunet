@@ -25,6 +25,7 @@ import {
   resolveClimateFavoriteModes,
   toggleClimateFavoriteMode,
 } from '../utils';
+import { createDefaultConditionRule, resolveConditionEntityId } from '../utils/conditionUtils';
 
 const MIN_POPUP_TRIGGER_COOLDOWN_SECONDS = 10;
 const MAX_POPUP_TRIGGER_COOLDOWN_SECONDS = 3600;
@@ -1055,7 +1056,11 @@ export default function EditCardModal({
     const nextRules =
       normalizedVisibilityCondition.rules.length > 0
         ? normalizedVisibilityCondition.rules
-        : [{ type: 'state', states: ['on'], forSeconds: 0 }];
+        : [
+            createDefaultConditionRule(
+              entities[resolveConditionEntityId(entityId, editSettings, entities)]
+            ),
+          ];
 
     saveCardSetting(editSettingsKey, 'visibilityCondition', {
       ...normalizedVisibilityCondition,
@@ -1087,9 +1092,14 @@ export default function EditCardModal({
   ) => {
     if (!editSettingsKey) return;
 
-    const normalizedCondition = nextCondition || null;
-    const hasCondition = isConditionConfigured(normalizedCondition);
     const normalizedEnabled = nextEnabled === true;
+    const hasRules = normalizeVisibilityConditionConfig(nextCondition).rules.length > 0;
+    // ConditionBuilder shows this same rule when none is saved, and an empty trigger never fires.
+    const normalizedCondition =
+      hasRules || !normalizedEnabled
+        ? nextCondition || null
+        : { entityId: null, logic: 'AND', enabled: true, rules: [createDefaultConditionRule()] };
+    const hasCondition = isConditionConfigured(normalizedCondition);
     const normalizedCooldownSeconds = normalizePopupTriggerCooldownSeconds(nextCooldownSeconds);
     const normalizedAutoCloseSeconds = normalizePopupTriggerAutoCloseSeconds(nextAutoCloseSeconds);
 

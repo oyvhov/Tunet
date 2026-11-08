@@ -109,11 +109,77 @@ const DOMAIN_PREFIXES = [
   'button',
 ];
 
+const BINARY_STATE_DOMAINS = new Set([
+  'light',
+  'switch',
+  'binary_sensor',
+  'input_boolean',
+  'fan',
+  'automation',
+  'script',
+  'remote',
+  'siren',
+  'humidifier',
+]);
+
+function getUsableState(entity: HassEntity | null | undefined): string | null {
+  const state = entity?.state;
+  return state && state !== 'unavailable' && state !== 'unknown' ? state : null;
+}
+
+export function createDefaultConditionRule(entity?: HassEntity | null): VisibilityConditionRule {
+  return { type: 'state', states: [getUsableState(entity) ?? 'on'], forSeconds: 0 };
+}
+
+export function getKnownConditionStates(entity?: HassEntity | null): string[] {
+  if (!entity) return [];
+  const current = getUsableState(entity);
+  const binary = BINARY_STATE_DOMAINS.has(entity.entity_id.split('.')[0]) ? ['on', 'off'] : [];
+  if (!current || binary.includes(current)) return binary;
+  return [current, ...binary];
+}
+
+function isConditionRuleFinished(rule: VisibilityConditionRule): boolean {
+  if (rule.type === 'attribute') {
+    return typeof rule.attribute === 'string' && rule.attribute.trim() !== '';
+  }
+  if (rule.type === 'numeric') {
+    return Number.isFinite(parseFloat(rule.value as string));
+  }
+  if (rule.type === 'state' || rule.type === 'not_state') {
+    return parseStates(rule.states).length > 0;
+  }
+  return true;
+}
+
 export function isConditionConfigured(
   condition: VisibilityConditionInput | null | undefined
 ): boolean {
   const normalized = normalizeVisibilityConditionConfig(condition);
-  return normalized.enabled && normalized.rules.length > 0;
+  return normalized.enabled && normalized.rules.some(isConditionRuleFinished);
+}
+
+export function retargetConditionEntity<T extends VisibilityConditionInput | null | undefined>(
+  condition: T,
+  previousEntityId: string,
+  nextEntityId: string
+): T {
+  if (!condition || typeof condition !== 'object') return condition;
+  const rules = Array.isArray(condition.rules) ? condition.rules : null;
+  const hasRuleMatch = rules?.some((rule) => rule?.entityId === previousEntityId);
+  if (condition.entityId !== previousEntityId && !hasRuleMatch) return condition;
+
+  return {
+    ...condition,
+    ...(condition.entityId === previousEntityId ? { entityId: nextEntityId } : null),
+    ...(rules
+      ? {
+          rules: rules.map((rule) =>
+            rule?.entityId === previousEntityId ? { ...rule, entityId: nextEntityId } : rule
+          ),
+        }
+      : null),
+  };
 }
 
 export function normalizeVisibilityConditionConfig(
@@ -279,7 +345,8 @@ export function evaluateVisibilityConditionConfig({
 }): boolean {
   const normalized = normalizeVisibilityConditionConfig(condition);
   if (!normalized.enabled) return true;
-  if (normalized.rules.length === 0) return true;
+  const finishedRules = normalized.rules.filter(isConditionRuleFinished);
+  if (finishedRules.length === 0) return true;
   const resolvedFallbackEntityId = fallbackEntityId || entity?.entity_id || null;
 
   const resolveRuleEntity = (rule: VisibilityConditionRule): HassEntity | null => {
@@ -303,7 +370,7 @@ export function evaluateVisibilityConditionConfig({
     return null;
   };
 
-  const results = normalized.rules.map((rule) =>
+  const results = finishedRules.map((rule) =>
     evaluateEntityCondition({
       condition: rule,
       entity: resolveRuleEntity(rule),
