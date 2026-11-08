@@ -111,7 +111,8 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
     reverse: t('fan.direction.reverse'),
   };
 
-  const hasSideControls = hasDirectionControl || hasPresetControl;
+  // ModernDropdown has no disabled state, so the dropdowns are left out while unavailable.
+  const hasSideControls = !isUnavailable && (hasDirectionControl || hasPresetControl);
 
   if (!show || !activeEntityId || !entity) return null;
 
@@ -148,6 +149,7 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                       <Button
                         variant={isOn ? 'destructive' : 'primary'}
                         onClick={handlePowerToggle}
+                        disabled={isUnavailable}
                         icon={<Power className="h-5 w-5" />}
                         className="flex-1"
                       >
@@ -158,6 +160,7 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                       <Button
                         variant={oscillating ? 'primary' : 'secondary'}
                         aria-pressed={oscillating}
+                        disabled={isUnavailable}
                         onClick={() =>
                           callService('fan', 'oscillate', {
                             entity_id: activeEntityId,
@@ -186,6 +189,7 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                       max={100}
                       step={minimumStep}
                       value={sliderValue}
+                      disabled={isUnavailable}
                       onChange={(event) => setSliderValue(Number(event.target.value))}
                       colorClass="bg-[var(--accent-color)]"
                     />
