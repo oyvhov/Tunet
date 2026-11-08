@@ -139,6 +139,39 @@ describe('MediaPage Sonos empty state', () => {
     render(<MediaPage {...makeBaseProps({ entities: {} })} />);
     expect(screen.getByText('sonos.empty.title')).toBeInTheDocument();
     expect(screen.getByText('sonos.empty.subtitle')).toBeInTheDocument();
+    expect(screen.queryByText('media.noPlayersFound')).not.toBeInTheDocument();
+  });
+});
+
+describe('MediaPage empty selection', () => {
+  it.each([
+    ['cleared', []],
+    ['pointing only at removed players', ['media_player.gone']],
+  ])('shows every player and keeps Manage when the selection is %s', (_label, mediaIds) => {
+    render(<MediaPage {...makeBaseProps({ pageSettings: { sonos: { mediaIds } } })} />);
+
+    expect(screen.getAllByText('Kitchen').length).toBeGreaterThan(0);
+    expect(screen.queryByText('sonos.empty.title')).not.toBeInTheDocument();
+    expect(screen.queryByText('media.noPlayersFound')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'sonos.managePlayers' })).toBeInTheDocument();
+  });
+
+  it('starts a curated list from the first player picked after Clear', () => {
+    const savePageSetting = vi.fn();
+    render(
+      <MediaPage
+        {...makeBaseProps({
+          editMode: true,
+          savePageSetting,
+          pageSettings: { sonos: { mediaIds: [] } },
+        })}
+      />
+    );
+
+    const kitchenSwitch = screen.getByRole('switch', { name: 'Kitchen' });
+    expect(kitchenSwitch).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(kitchenSwitch);
+    expect(savePageSetting).toHaveBeenCalledWith('sonos', 'mediaIds', ['media_player.kitchen']);
   });
 });
 

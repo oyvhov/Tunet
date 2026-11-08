@@ -173,7 +173,10 @@ function MediaPage({
   );
   const showAll = !Array.isArray(pageSetting.mediaIds);
   const selectedIds = showAll ? allMediaIds : pageSetting.mediaIds;
-  const visibleIds = useMemo(() => (selectedIds.length > 0 ? selectedIds : []), [selectedIds]);
+  const visibleIds = useMemo(() => {
+    const existingIds = selectedIds.filter((id) => entities[id]);
+    return existingIds.length > 0 ? existingIds : allMediaIds;
+  }, [selectedIds, entities, allMediaIds]);
   const mediaEntities = useMemo(
     () => visibleIds.map((id) => entities[id]).filter(Boolean),
     [visibleIds, entities]
@@ -721,11 +724,6 @@ function MediaPage({
 
   return (
     <div key={pageId} className="fade-in-anim flex flex-col items-start gap-8 font-sans">
-      {mediaEntities.length === 0 && (
-        <div className="popup-surface w-full rounded-3xl p-8 text-center text-[var(--text-secondary)]">
-          {t('media.noPlayersFound')}
-        </div>
-      )}
       {editMode && (
         <div
           data-testid="media-page-editor"
