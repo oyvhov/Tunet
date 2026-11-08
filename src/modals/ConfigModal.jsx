@@ -1964,6 +1964,17 @@ export default function ConfigModal({
   // ─── Main Render ───
   if (!open) return null;
 
+  // Without this the test button is simply greyed out and nothing says why.
+  const onboardingUrl = isOAuth ? oauthUrlDraft.trim() : config.url;
+  const onboardingUrlMessage = !isOnboardingActive
+    ? ''
+    : onboardingUrlError ||
+      (onboardingUrl && !validateUrl(onboardingUrl)
+        ? t('onboarding.invalidUrl')
+        : !isOAuth && onboardingUrl?.endsWith('/')
+          ? t('onboarding.urlTrailingSlash')
+          : '');
+
   const activeTabLabel = availableTabs.find((tab) => tab.key === configTab)?.label;
   const shellLayoutProps = isLayoutPreview
     ? {
@@ -2067,8 +2078,8 @@ export default function ConfigModal({
 
                           {config.isIngress && (
                             <div className="rounded-xl border border-[var(--accent-color)] bg-[var(--accent-bg)] p-3 text-xs leading-relaxed text-[var(--accent-color)]">
-                              <strong>Add-on Mode:</strong> URL is auto-detected. Just paste a
-                              Long-Lived Access Token from your HA Profile.
+                              <strong>{t('onboarding.addonModeTitle')}</strong>{' '}
+                              {t('onboarding.addonModeBody')}
                             </div>
                           )}
 
@@ -2081,7 +2092,7 @@ export default function ConfigModal({
                                 </label>
                                 <input
                                   type="text"
-                                  className={`w-full rounded-xl border-2 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] ${onboardingUrlError ? 'border-[var(--status-error-border)]' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
+                                  className={`w-full rounded-xl border-2 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] ${onboardingUrlMessage ? 'border-[var(--status-error-border)]' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
                                   value={isOAuth ? oauthUrlDraft : config.url}
                                   onChange={(e) => {
                                     if (isOAuth) {
@@ -2094,9 +2105,9 @@ export default function ConfigModal({
                                   }}
                                   placeholder={t('onboarding.haUrlPlaceholder')}
                                 />
-                                {onboardingUrlError && (
+                                {onboardingUrlMessage && (
                                   <p className="ml-1 text-xs font-bold text-[var(--status-error-fg)]">
-                                    {onboardingUrlError}
+                                    {onboardingUrlMessage}
                                   </p>
                                 )}
                               </div>

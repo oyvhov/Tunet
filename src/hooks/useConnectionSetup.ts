@@ -114,8 +114,7 @@ export function useConnectionSetup({
         // 5 = ERR_INVALID_HTTPS_TO_HTTP in HAWS
         setConnectionTestResult({
           success: false,
-          message:
-            'Cannot use an HTTP Home Assistant URL when accessing the dashboard via HTTPS. Please use an HTTPS URL for Home Assistant (e.g. Nabu Casa / DuckDNS), or use a Long-Lived Access Token.',
+          message: t('onboarding.oauthHttpsRequired'),
         });
       } else {
         setConnectionTestResult({
