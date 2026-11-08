@@ -9,7 +9,6 @@ export function getCurrentPriceIndex(priceCount: number, currentHour: number): n
 // Norwegian electricity price support 2025/2026, on prices including VAT:
 // 75 øre/kWh excl. VAT is 93.75 incl. VAT; the state pays 90% of what is above it.
 const SUPPORT_THRESHOLD_ORE_INCL_VAT = 93.75;
-const VAT_FACTOR = 1.25;
 const SUPPORT_SHARE = 0.9;
 const SUBUNIT_PATTERN = /^(øre|ore|öre|cent|ct|snt|sent)/i;
 
