@@ -9,6 +9,7 @@ import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
 import { hasOAuthTokens } from '../services/oauthStorage';
 import MusicAssistantUrlField from './MusicAssistantUrlField';
+import GeneralSettingsTab from './GeneralSettingsTab';
 import {
   getEffectiveGridColumnsForWidth,
   getMaxGridColumnsForWidth,
@@ -215,6 +216,7 @@ export default function ConfigModal({
 
   const TABS = [
     { key: 'connection', icon: Wifi, label: t('system.tabConnection') },
+    { key: 'general', icon: Settings, label: t('system.tabGeneral') },
     // Appearance and Layout have been moved to Sidebars
     // { key: 'appearance', icon: Palette, label: t('system.tabAppearance') },
     // { key: 'layout', icon: LayoutGrid, label: t('system.tabLayout') },
@@ -223,7 +225,7 @@ export default function ConfigModal({
   ];
 
   useEffect(() => {
-    const supportedTabs = new Set(['connection', 'profiles', 'updates']);
+    const supportedTabs = new Set(['connection', 'general', 'profiles', 'updates']);
     if (!isLayoutPreview && !supportedTabs.has(configTab)) {
       setConfigTab('connection');
     }
@@ -2276,6 +2278,15 @@ export default function ConfigModal({
                       style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
                     >
                       {configTab === 'connection' && renderConnectionTab()}
+                    {configTab === 'general' && (
+                      <GeneralSettingsTab
+                        t={t}
+                        language={language}
+                        setLanguage={setLanguage}
+                        inactivityTimeout={inactivityTimeout}
+                        setInactivityTimeout={setInactivityTimeout}
+                      />
+                    )}
                       {configTab === 'profiles' && renderProfilesTab()}
                       {configTab === 'updates' && renderUpdatesTab()}
                     </ModalBody>

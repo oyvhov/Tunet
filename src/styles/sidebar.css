@@ -439,6 +439,33 @@ html[data-studio-preview] #main-content {
   background: linear-gradient(145deg, #101827, #26364e 48%, #0b111d);
 }
 
+.popup-surface > .sidebar-accordion {
+  border-bottom: 0;
+}
+
+.sidebar-link-row {
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.sidebar-link-row:hover,
+.sidebar-link-row:focus-visible {
+  color: var(--text-primary);
+}
+
+.sidebar-link-row svg {
+  width: 16px;
+  height: 16px;
+}
+
 .sidebar-theme-preview {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px;

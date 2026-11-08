@@ -162,10 +162,13 @@ export function ModalSettingsSlice({
             }}
             t={t}
             themes={themes}
+            onOpenGeneralSettings={() => {
+              setShowThemeSidebar(false);
+              setConfigTab('general');
+              setShowConfigModal(true);
+            }}
             currentTheme={currentTheme}
             setCurrentTheme={setCurrentTheme}
-            language={language}
-            setLanguage={setLanguage}
             bgMode={bgMode}
             setBgMode={setBgMode}
             bgColor={bgColor}
@@ -174,8 +177,6 @@ export function ModalSettingsSlice({
             setBgGradient={setBgGradient}
             bgImage={bgImage}
             setBgImage={setBgImage}
-            inactivityTimeout={inactivityTimeout}
-            setInactivityTimeout={setInactivityTimeout}
             cardMaterial={cardMaterial}
             setCardMaterial={setCardMaterial}
             density={density}
