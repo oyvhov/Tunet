@@ -828,6 +828,7 @@ export default function ConfigModal({
                 <button
                   role="switch"
                   aria-checked={!!autoSync.enabled}
+                  aria-label={t('profiles.autoSyncTitle')}
                   type="button"
                   onClick={() => autoSync.setEnabled(!autoSync.enabled)}
                   className={`relative h-6 w-10 rounded-full p-1 transition-colors ${autoSync.enabled ? 'bg-[var(--accent-color)]' : 'bg-gray-500/30'}`}

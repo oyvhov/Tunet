@@ -83,12 +83,23 @@ describe('alarm popup', () => {
     expect(callService).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: '1' }));
-    fireEvent.click(screen.getByRole('button', { name: '✓' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'alarm.action.armAway' }).at(-1));
     await waitFor(() =>
       expect(callService).toHaveBeenCalledWith('alarm_control_panel', 'alarm_arm_away', {
         entity_id: 'alarm_control_panel.hus',
         code: '1',
       })
     );
+  });
+
+  it('names the code field and the keypad symbols', () => {
+    renderPopup(alarm('disarmed', { code_format: 'number', code_arm_required: true }));
+    fireEvent.click(screen.getByRole('button', { name: /alarm\.action\.armAway/ }));
+
+    expect(screen.getByLabelText('alarm.pin.placeholder')).toHaveAttribute('type', 'password');
+    expect(screen.getByRole('button', { name: 'settings.lock.backspace' })).toHaveTextContent('⌫');
+    expect(
+      screen.getAllByRole('button', { name: 'alarm.action.armAway' }).at(-1)
+    ).toHaveTextContent('✓');
   });
 });

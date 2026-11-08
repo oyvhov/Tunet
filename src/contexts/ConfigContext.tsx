@@ -500,8 +500,9 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
 
   // Save language to localStorage
   useEffect(() => {
+    const normalizedLanguage = normalizeLanguage(language);
+    document.documentElement.lang = normalizedLanguage;
     try {
-      const normalizedLanguage = normalizeLanguage(language);
       localStorage.setItem('tunet_language', normalizedLanguage);
     } catch (error) {
       console.error('Failed to save language to localStorage:', error);
