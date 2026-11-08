@@ -439,6 +439,57 @@ html[data-studio-preview] #main-content {
   background: linear-gradient(145deg, #101827, #26364e 48%, #0b111d);
 }
 
+.sidebar-theme-preview {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  padding: 9px 8px;
+  place-items: stretch;
+}
+
+.sidebar-theme-preview__card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+
+.sidebar-theme-preview__line {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.sidebar-theme-preview__line--short {
+  width: 60%;
+}
+
+.sidebar-theme-preview__accent {
+  display: block;
+  width: 12px;
+  height: 12px;
+  align-self: center;
+  border-radius: 50%;
+}
+
+.sidebar-background-option__preview svg.sidebar-theme-preview__auto {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 11px;
+  height: 11px;
+  filter: none;
+}
+
+.sidebar-font-preview {
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1;
+}
+
 .sidebar-background-option__label {
   display: block;
   overflow: hidden;

@@ -11,9 +11,7 @@ import {
   Sun,
   Moon,
   RefreshCw,
-  Palette,
   Globe,
-  Type,
   Flame,
   Feather,
   Link,
@@ -22,14 +20,14 @@ import {
 import PinLockModal from '../ui/PinLockModal';
 import SidebarContainer from './SidebarContainer';
 import CardStyleSection from './CardStyleSection';
+import FontGallery from './FontGallery';
+import ThemeGallery from './ThemeGallery';
 import {
   SidebarAccordion,
   SidebarGroupHeader,
   SidebarNavigation,
   SidebarToggle,
 } from './SidebarControls';
-
-const APP_FONT_OPTIONS = ['sans', 'Inter', 'Roboto', 'Lato', 'Montserrat', 'Open Sans', 'Raleway'];
 
 export default function ThemeSidebar({
   open,
@@ -181,20 +179,20 @@ export default function ThemeSidebar({
         }
       >
         <div className="sidebar-stack font-sans">
+          <div>
+            <SidebarGroupHeader title={t('settings.theme')} />
+            <ThemeGallery
+              themes={themes}
+              currentTheme={currentTheme}
+              onSelect={setCurrentTheme}
+              t={t}
+            />
+          </div>
+
           <SidebarGroupHeader title={t('settings.basics')} />
 
-          {/* Theme & Language */}
+          {/* Language & units */}
           <div className="sidebar-inspector-list">
-            <ModernDropdown
-              label={t('settings.theme')}
-              icon={Palette}
-              options={Object.keys(themes)}
-              current={currentTheme}
-              onChange={setCurrentTheme}
-              map={{ dark: t('theme.dark'), light: t('theme.light'), contextual: 'Smart (Auto)' }}
-              placeholder={t('dropdown.noneSelected')}
-              variant="inspector"
-            />
             <ModernDropdown
               label={t('settings.language')}
               icon={Globe}
@@ -226,24 +224,6 @@ export default function ThemeSidebar({
                 follow_ha: t('settings.unitSystem.followHa'),
                 metric: t('settings.unitSystem.metric'),
                 imperial: t('settings.unitSystem.imperial'),
-              }}
-              placeholder={t('dropdown.noneSelected')}
-              variant="inspector"
-            />
-            <ModernDropdown
-              label={t('settings.appFont')}
-              icon={Type}
-              options={APP_FONT_OPTIONS}
-              current={appFont}
-              onChange={setAppFont}
-              map={{
-                sans: 'Sans-serif',
-                Inter: 'Inter',
-                Roboto: 'Roboto',
-                Lato: 'Lato',
-                Montserrat: 'Montserrat',
-                'Open Sans': 'Open Sans',
-                Raleway: 'Raleway',
               }}
               placeholder={t('dropdown.noneSelected')}
               variant="inspector"
@@ -413,6 +393,11 @@ export default function ThemeSidebar({
             cardBgColor={cardBgColor}
             setCardBgColor={setCardBgColor}
           />
+
+          <div>
+            <SidebarGroupHeader title={t('settings.appFont')} />
+            <FontGallery current={appFont} onSelect={setAppFont} />
+          </div>
 
           <SidebarAccordion
             id="security"
