@@ -717,6 +717,18 @@ export function useSettingsSync({
     };
   }, [haUserId, queueAutoSync]);
 
+  // State taken from an older revision counts as a local edit: the latest
+  // revision stays the base, so it uploads as a new revision on top of it.
+  const adoptSnapshotAsLocalChange = useCallback(
+    (data: unknown) => {
+      applySnapshot(data, contextSettersLatestRef.current?.current || {});
+      conflictRef.current = false;
+      setError('');
+      queueAutoSync(true, { ignoreEnabled: true, ignoreSuspended: true });
+    },
+    [queueAutoSync]
+  );
+
   const loadCurrentFromServer = useCallback(
     async (revision?: unknown) => {
       const row = Number.isFinite(Number(revision))
@@ -726,6 +738,12 @@ export function useSettingsSync({
       if (row === READ_CURRENT_FAILED) return;
       // Same check as before; `!row` only makes the null case visible to TS.
       if (!row || !isValidSnapshot(row.data)) return;
+
+      const latestRevision = currentRevisionRef.current;
+      if (latestRevision !== null && Number(row.revision) < latestRevision) {
+        adoptSnapshotAsLocalChange(row.data);
+        return;
+      }
 
       if (Number.isFinite(Number(row.revision))) {
         setCurrentRevision(Number(row.revision));
@@ -742,7 +760,14 @@ export function useSettingsSync({
       setStatus('synced');
       setError('');
     },
-    [haUserId, readCurrentFromServer, contextSettersRef, persistBaseline, setCurrentRevision]
+    [
+      haUserId,
+      readCurrentFromServer,
+      contextSettersRef,
+      persistBaseline,
+      setCurrentRevision,
+      adoptSnapshotAsLocalChange,
+    ]
   );
 
   const publishCurrentToDevices = useCallback(

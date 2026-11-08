@@ -492,6 +492,79 @@ describe('useSettingsSync', () => {
     ).toBe(true);
   });
 
+  describe('restoring an older revision', () => {
+    const latest = { version: 1, layout: { pagesConfig: { home: ['latest'] } }, appearance: {} };
+    const older = { version: 1, layout: { pagesConfig: { home: ['older'] } }, appearance: {} };
+
+    beforeEach(() => {
+      collectSnapshot.mockReturnValue(latest);
+      applySnapshot.mockImplementation((snapshot) => collectSnapshot.mockReturnValue(snapshot));
+      fetchCurrentSettings.mockImplementation(async (_user, _device, revision) =>
+        revision === 40
+          ? { revision: 40, updated_at: '2026-02-22T12:00:00.000Z', data: older }
+          : { revision: 45, updated_at: '2026-02-22T12:05:00.000Z', data: latest }
+      );
+    });
+
+    it('uploads the restored state as a new revision on top of the latest', async () => {
+      saveCurrentSettings.mockResolvedValue({
+        revision: 46,
+        updated_at: '2026-02-22T12:06:00.000Z',
+      });
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await waitFor(() => expect(result.current.currentRevision).toBe(45));
+
+      await act(async () => {
+        await result.current.loadCurrentFromServer(40);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(applySnapshot).toHaveBeenCalledWith(older, expect.anything());
+      expect(saveCurrentSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ data: older, base_revision: 45 }),
+        expect.anything()
+      );
+      expect(result.current.currentRevision).toBe(46);
+      expect(result.current.status).toBe('synced');
+    });
+
+    it('does not let the next check undo a restore whose upload failed', async () => {
+      vi.useFakeTimers();
+      saveCurrentSettings.mockRejectedValue(new Error('offline'));
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await act(async () => {});
+      expect(result.current.currentRevision).toBe(45);
+
+      await act(async () => {
+        await result.current.loadCurrentFromServer(40);
+        await vi.advanceTimersByTimeAsync(31000);
+      });
+
+      expect(result.current.currentRevision).toBe(45);
+      expect(applySnapshot).toHaveBeenCalledTimes(1);
+      expect(collectSnapshot()).toEqual(older);
+    });
+
+    it('loads a revision normally when it is already the latest', async () => {
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await waitFor(() => expect(result.current.currentRevision).toBe(45));
+
+      await act(async () => {
+        await result.current.loadCurrentFromServer(45);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(saveCurrentSettings).not.toHaveBeenCalled();
+      expect(result.current.currentRevision).toBe(45);
+    });
+  });
+
   it('applies newer server revision automatically on sync tick', async () => {
     vi.useFakeTimers();
     fetchCurrentSettings
