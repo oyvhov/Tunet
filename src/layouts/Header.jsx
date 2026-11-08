@@ -79,13 +79,13 @@ export default function Header({
   const resolvedFontFamily = fontFamilyMap[selectedFontFamily] || fontFamilyMap.sans;
   const letterSpacingMap = { tight: '0.05em', normal: '0.2em', wide: '0.5em', extraWide: '0.8em' };
   const letterSpacingMobile = {
-    tight: '0.05em',
-    normal: '0.2em',
-    wide: '0.3em',
-    extraWide: '0.5em',
+    tight: '0.03em',
+    normal: '0.08em',
+    wide: '0.14em',
+    extraWide: '0.2em',
   };
   const lsDesktop = letterSpacingMap[headerSettings?.letterSpacing || 'normal'] || '0.2em';
-  const lsMobile = letterSpacingMobile[headerSettings?.letterSpacing || 'normal'] || '0.2em';
+  const lsMobile = letterSpacingMobile[headerSettings?.letterSpacing || 'normal'] || '0.08em';
   const fontStyleVal = headerSettings?.fontStyle || 'normal';
   const clockFormat = headerSettings?.clockFormat || '24h';
   const showClockOnMobile = headerSettings?.showClockOnMobile ?? true;
@@ -138,6 +138,21 @@ export default function Header({
   };
 
   const showClock = headerSettings.showClock && (!isMobile || showClockOnMobile);
+
+  // On phones the title and clock share a row; the title shrinks to fit what the clock leaves.
+  const titleText = headerTitle || 'Tunet';
+  const mobileTitleAndClockInRow = isMobile && headerSettings.showTitle && showClock;
+  const mobileRowClockFontSize = `calc(clamp(1.75rem, 8.5vw, 2.5rem) * ${headerScale} * ${clockScale})`;
+  const mobileClockReserve = mobileTitleAndClockInRow
+    ? ` - ${mobileRowClockFontSize} * 3.1 - 0.75rem`
+    : '';
+  const mobileTitleCharWidthEm = 0.54 + parseFloat(lsMobile);
+  const mobileTitleFontSize = `min(${headingFontSize}, calc((100vw - 2rem${mobileClockReserve}) / ${
+    Math.max(1, titleText.length) * mobileTitleCharWidthEm
+  }))`;
+  const classicTitleStyle = isMobile
+    ? { ...titleStyle, fontSize: mobileTitleFontSize }
+    : titleStyle;
 
   // ── Battery layout ──
   if (isBattery) {
@@ -236,18 +251,29 @@ export default function Header({
       )}
 
       <div
-        className={`flex items-start justify-between leading-none ${
-          isMobile ? `flex-col gap-4 ${mobileAlignmentClasses.container}` : 'gap-10'
+        className={`flex justify-between leading-none ${
+          mobileTitleAndClockInRow
+            ? 'items-baseline gap-3'
+            : isMobile
+              ? `flex-col gap-4 ${mobileAlignmentClasses.container}`
+              : 'items-start gap-10'
         }`}
       >
         <div
           className={`flex items-center gap-4 ${
-            isMobile ? `w-full ${mobileAlignmentClasses.title}` : ''
+            mobileTitleAndClockInRow
+              ? 'min-w-0 flex-1'
+              : isMobile
+                ? `w-full ${mobileAlignmentClasses.title}`
+                : ''
           }`}
         >
           {headerSettings.showTitle && (
-            <h1 className="leading-none select-none" style={titleStyle}>
-              {headerTitle || 'Tunet'}
+            <h1
+              className={`select-none ${isMobile ? 'min-w-0 truncate leading-[1.15]' : 'leading-none'}`}
+              style={classicTitleStyle}
+            >
+              {titleText}
             </h1>
           )}
         </div>
@@ -259,7 +285,14 @@ export default function Header({
         )}
 
         {headerSettings.showClock && isMobile && showClockOnMobile && (
-          <h2 className="leading-none font-light tracking-[0.08em] select-none" style={clockStyle}>
+          <h2
+            className="shrink-0 leading-none font-light tracking-[0.08em] select-none"
+            style={
+              mobileTitleAndClockInRow
+                ? { ...clockStyle, fontSize: mobileRowClockFontSize }
+                : clockStyle
+            }
+          >
             {timeStr}
           </h2>
         )}

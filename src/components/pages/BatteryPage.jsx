@@ -11,6 +11,7 @@ import {
 } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { getAreas } from '../../services/haClient';
+import PageHeader from '../ui/PageHeader';
 
 const LOW_BATTERY_THRESHOLD = 20;
 
@@ -178,7 +179,7 @@ const SortDropdown = memo(
           className="group popup-surface popup-surface-hover flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-all active:scale-95"
         >
           <ArrowUpDown className="h-3.5 w-3.5 text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent-color)]" />
-          <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase italic">
+          <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
             {t(`${prefix}.${current.key}`) || current.key}
           </span>
           <ChevronDown
@@ -392,14 +393,13 @@ function BatteryPage({ entities, conn, pageSettings, pageId, savePageSetting, t 
   );
 
   return (
-    <div className="animate-in fade-in zoom-in px-4 pb-8 duration-500">
+    <div className="animate-in fade-in zoom-in pb-8 duration-500">
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase">
-            {t('battery.pageTitle') || 'Batteries'}
-          </h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+      <PageHeader
+        className="mb-5"
+        title={t('battery.pageTitle') || 'Batteries'}
+        subtitle={
+          <>
             {lowCount > 0 && (
               <span className="font-semibold text-orange-400">
                 {lowCount} {(t('battery.low') || 'Low').toLowerCase()}
@@ -413,9 +413,9 @@ function BatteryPage({ entities, conn, pageSettings, pageId, savePageSetting, t 
                 · {unavailableCount} {(t('battery.offline') || 'offline').toLowerCase()}
               </span>
             )}
-          </p>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* ── Toolbar: search + sort + filters ────────────────────────── */}
       {allBatteries.length > 0 && (

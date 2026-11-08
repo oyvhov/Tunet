@@ -170,7 +170,7 @@ export default function DashboardLayout(props) {
 
   const personHeader = (
     <div
-      className={`flex min-w-0 flex-wrap items-center gap-2.5 ${isMobile ? 'flex-1 origin-left scale-90 empty:hidden' : ''}`}
+      className={`flex items-center ${isMobile ? 'shrink-0 [zoom:0.9] gap-2 empty:hidden' : 'min-w-0 flex-wrap gap-2.5'}`}
     >
       {(pagesConfig.header || []).map((id) => personStatus(id))}
       {editMode && (
@@ -211,7 +211,7 @@ export default function DashboardLayout(props) {
     >
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:rounded-lg focus:bg-[var(--accent-color)] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:rounded-lg focus:bg-[var(--accent-color)] focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-[var(--accent-contrast)] focus:shadow-lg"
       >
         {t('a11y.skipToContent') || 'Skip to content'}
       </a>
@@ -257,7 +257,7 @@ export default function DashboardLayout(props) {
             sectionSpacing={sectionSpacing}
           >
             <div
-              className={`mt-0 w-full font-sans ${isMobile ? 'flex flex-col items-start gap-2' : 'flex items-center justify-between'}`}
+              className={`mt-0 w-full font-sans ${isMobile ? 'scrollbar-hide flex items-center gap-2.5 overflow-x-auto overflow-y-hidden pt-2 pb-1' : 'flex items-center justify-between'}`}
               style={{
                 marginTop: `${
                   isMobile
@@ -266,12 +266,8 @@ export default function DashboardLayout(props) {
                 }px`,
               }}
             >
-              {isMobile ? (
-                <div className="flex w-full min-w-0 items-center gap-2">{personHeader}</div>
-              ) : (
-                personHeader
-              )}
-              <div className={`min-w-0 ${isMobile ? 'w-full' : 'flex-1'}`}>
+              {personHeader}
+              <div className={isMobile ? 'shrink-0' : 'min-w-0 flex-1'}>
                 {withProfiler(
                   'StatusBar',
                   <MemoStatusBar

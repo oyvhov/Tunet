@@ -27,8 +27,7 @@ describe('Header mobile alignment', () => {
         {...baseProps}
         headerSettings={{
           showTitle: true,
-          showClock: true,
-          showClockOnMobile: true,
+          showClock: false,
           showDate: true,
           mobileAlignment: alignment,
         }}
@@ -39,6 +38,20 @@ describe('Header mobile alignment', () => {
     expect(title.parentElement).toHaveClass(justifyClass);
     expect(title.parentElement.parentElement).toHaveClass(itemsClass, textClass);
     expect(container.querySelector('header')).toBeInTheDocument();
+  });
+
+  it('keeps the title and clock on one row on phones', () => {
+    render(
+      <Header
+        {...baseProps}
+        headerSettings={{ showTitle: true, showClock: true, showClockOnMobile: true }}
+      />
+    );
+
+    const row = screen.getByRole('heading', { name: 'My home' }).parentElement.parentElement;
+    expect(row).toHaveClass('items-baseline');
+    expect(row).not.toHaveClass('flex-col');
+    expect(row).toContainElement(screen.getByRole('heading', { level: 2 }));
   });
 
   it('applies the selected alignment to the battery header and mobile date', () => {

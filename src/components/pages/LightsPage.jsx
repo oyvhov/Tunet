@@ -12,6 +12,7 @@ import {
 import { getIconComponent } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 import { getAreas } from '../../services/haClient';
+import PageHeader from '../ui/PageHeader';
 
 const SLIDER_DEBOUNCE_MS = 200;
 
@@ -257,7 +258,7 @@ const ConfirmButton = memo(
                   setPending(false);
                   onConfirm();
                 }}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent-color)] px-3 py-2 text-[11px] font-bold tracking-wider text-white uppercase transition-all hover:opacity-90 active:scale-95"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent-color)] px-3 py-2 text-[11px] font-bold tracking-wider text-[var(--accent-contrast)] uppercase transition-all hover:opacity-90 active:scale-95"
               >
                 <Check className="h-3.5 w-3.5" />
                 {t('common.confirm') || 'Confirm'}
@@ -296,7 +297,7 @@ const SortDropdown = memo(
           className="group popup-surface popup-surface-hover flex items-center gap-2 rounded-2xl px-4 py-2.5 transition-all active:scale-95"
         >
           <ArrowUpDown className="h-3.5 w-3.5 text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent-color)]" />
-          <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase italic">
+          <span className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
             {t(`lights.sort.${current.key}`) || current.key}
           </span>
           <ChevronDown
@@ -582,35 +583,36 @@ function LightsPage({ entities, callService, conn, pageSettings, pageId, savePag
   );
 
   return (
-    <div className="animate-in fade-in zoom-in px-4 pb-8 duration-500">
+    <div className="animate-in fade-in zoom-in pb-8 duration-500">
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-light tracking-widest text-[var(--text-primary)] uppercase">
-            {t('lights.pageTitle') || t('addCard.type.light') || 'Lights'}
-          </h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+      <PageHeader
+        className="mb-5"
+        title={t('lights.pageTitle') || t('addCard.type.light') || 'Lights'}
+        subtitle={
+          <>
             {onCount} {(t('common.on') || 'On').toLowerCase()} · {totalCount}{' '}
             {t('lights.total') || 'total'}
-          </p>
-        </div>
-        {totalCount > 0 && (
-          <div className="flex gap-2">
-            <ConfirmButton
-              label={t('lights.allOn') || 'All on'}
-              confirmLabel={t('lights.confirmAllOn') || 'Turn on all lights?'}
-              onConfirm={handleAllOn}
-              t={t}
-            />
-            <ConfirmButton
-              label={t('lights.allOff') || 'All off'}
-              confirmLabel={t('lights.confirmAllOff') || 'Turn off all lights?'}
-              onConfirm={handleAllOff}
-              t={t}
-            />
-          </div>
-        )}
-      </div>
+          </>
+        }
+        actions={
+          totalCount > 0 && (
+            <div className="flex gap-2">
+              <ConfirmButton
+                label={t('lights.allOn') || 'All on'}
+                confirmLabel={t('lights.confirmAllOn') || 'Turn on all lights?'}
+                onConfirm={handleAllOn}
+                t={t}
+              />
+              <ConfirmButton
+                label={t('lights.allOff') || 'All off'}
+                confirmLabel={t('lights.confirmAllOff') || 'Turn off all lights?'}
+                onConfirm={handleAllOff}
+                t={t}
+              />
+            </div>
+          )
+        }
+      />
 
       {/* ── Toolbar: search + sort + filters ────────────────────────── */}
       {allLights.length > 0 && (

@@ -28,6 +28,7 @@ import {
 import { getIconComponent } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 import { getAreas, getEntitiesForArea } from '../../services/haClient';
+import PageHeader from '../ui/PageHeader';
 
 const SLIDER_DEBOUNCE_MS = 200;
 
@@ -161,7 +162,7 @@ const SortDropdown = memo(
       <div className="relative" ref={ref}>
         <button
           onClick={() => setOpen(!open)}
-          className="popup-surface popup-surface-hover flex items-center gap-1.5 rounded-2xl px-3 py-2.5 text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase italic transition-all active:scale-95"
+          className="popup-surface popup-surface-hover flex items-center gap-1.5 rounded-2xl px-3 py-2.5 text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase transition-all active:scale-95"
         >
           <ArrowUpDown className="h-3.5 w-3.5" />
           {t(`roomExplorer.sort.${sortMode}`) || sortMode}
@@ -398,7 +399,7 @@ const EntityRow = memo(
               onClick={handleToggle}
               className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all active:scale-90 ${
                 isOn
-                  ? 'bg-[var(--accent-color)] text-white shadow-[var(--accent-color)]/30 shadow-md'
+                  ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-[var(--accent-color)]/30 shadow-md'
                   : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]'
               }`}
             >
@@ -1001,28 +1002,26 @@ function RoomExplorerPage({
   const totalLightsOn = Object.values(areaStats).reduce((s, v) => s + v.lightsOn, 0);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 px-4 pt-4 pb-24 sm:px-6">
+    <div className="space-y-5 pb-24">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4">
-        {selectedAreaId && (
-          <button
-            onClick={handleBack}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-        )}
-        <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
-            {selectedArea ? selectedArea.name : t('roomExplorer.title') || 'Rooms'}
-          </h1>
-          <p className="text-[11px] text-[var(--text-muted)]">
-            {selectedArea
-              ? `${detailTotalEntities} ${t('roomExplorer.entities') || 'entities'}`
-              : `${totalAreas} ${t('roomExplorer.rooms') || 'rooms'} · ${totalLightsOn > 0 ? `${totalLightsOn} ${t('roomExplorer.lightsOn') || 'lights on'} · ` : ''}${totalActiveDevices} ${t('roomExplorer.active') || 'active'}`}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        leading={
+          selectedAreaId && (
+            <button
+              onClick={handleBack}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-90"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+          )
+        }
+        title={selectedArea ? selectedArea.name : t('roomExplorer.title') || 'Rooms'}
+        subtitle={
+          selectedArea
+            ? `${detailTotalEntities} ${t('roomExplorer.entities') || 'entities'}`
+            : `${totalAreas} ${t('roomExplorer.rooms') || 'rooms'} · ${totalLightsOn > 0 ? `${totalLightsOn} ${t('roomExplorer.lightsOn') || 'lights on'} · ` : ''}${totalActiveDevices} ${t('roomExplorer.active') || 'active'}`
+        }
+      />
 
       {/* ── Toolbar ────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
