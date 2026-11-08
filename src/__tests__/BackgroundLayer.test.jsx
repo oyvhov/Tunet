@@ -48,6 +48,12 @@ describe('BackgroundLayer', () => {
     expect(screen.getByTestId(testId)).toBeInTheDocument();
   });
 
+  it('dithers the static background so dim glows do not show as rings', () => {
+    render(<BackgroundLayer />);
+
+    expect(screen.getByTestId('background-dither').style.backgroundImage).toContain('feTurbulence');
+  });
+
   it('shows a custom image under a dark tone and without glows', () => {
     configState.bgMode = 'custom';
     configState.bgImage = 'https://x/a.jpg';
