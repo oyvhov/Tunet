@@ -1,5 +1,8 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { useState } from 'react';
+import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock, MockInstance } from 'vitest';
+import { HashRouter, useLocation, useNavigate } from 'react-router-dom';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ModalHeader, StatusChip } from '../components/ui/ModalParts';
@@ -14,12 +17,20 @@ const t = (key: string) =>
     'time.yesterdayAt': 'yesterday {time}',
   })[key] ?? key;
 
+/** Lets queued history work and its popstate run on real timers. */
+const settleHistory = (ms = 30) =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  });
+
 describe('AccessibleModalShell', () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
-  afterEach(() => {
+  afterEach(async () => {
+    cleanup();
     vi.useRealTimers();
+    await settleHistory();
   });
 
   const renderShell = (onClose = vi.fn(), extra: Record<string, unknown> = {}) => {
@@ -280,6 +291,454 @@ describe('AccessibleModalShell scroll lock', () => {
     openShellWithScrollbar(0);
 
     expect(document.body.style.paddingRight).toBe('');
+  });
+});
+
+describe('AccessibleModalShell Back button', () => {
+  const START_URL = '#/page/kitchen';
+  let pushState: MockInstance<History['pushState']>;
+  let go: MockInstance<History['go']>;
+  let routerSaw: Mock<() => void>;
+  let userBacks = 0;
+
+  /** How far above the starting entry the session history stands. */
+  const depth = () =>
+    pushState.mock.calls.length +
+    go.mock.calls.reduce((sum, [delta]) => sum + (delta ?? 0), 0) -
+    userBacks;
+
+  const pressBack = async () => {
+    userBacks += 1;
+    window.history.back();
+    await settleHistory();
+  };
+
+  const closeOnTop = async () => {
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await settleHistory();
+  };
+
+  type PopupProps = {
+    id?: string;
+    initialOpen?: boolean;
+    onClose?: () => void;
+    still?: boolean;
+    nested?: boolean;
+    dismissible?: boolean;
+  };
+
+  function Popup({ id = 'popup', initialOpen = true, onClose, still = true, ...rest }: PopupProps) {
+    const [open, setOpen] = useState(initialOpen);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>
+          {`open ${id}`}
+        </button>
+        <AccessibleModalShell
+          open={open}
+          still={still}
+          size="m"
+          onClose={() => {
+            onClose?.();
+            setOpen(false);
+          }}
+          {...rest}
+        >
+          {() => <h3>{id}</h3>}
+        </AccessibleModalShell>
+      </>
+    );
+  }
+
+  beforeEach(async () => {
+    await settleHistory();
+    window.history.replaceState({ key: 'router' }, '', START_URL);
+    userBacks = 0;
+    pushState = vi.spyOn(window.history, 'pushState');
+    go = vi.spyOn(window.history, 'go');
+    routerSaw = vi.fn();
+    // Registered like the router's own listener: on window, without capture.
+    window.addEventListener('popstate', routerSaw);
+  });
+
+  afterEach(async () => {
+    cleanup();
+    await settleHistory();
+    window.removeEventListener('popstate', routerSaw);
+    vi.restoreAllMocks();
+  });
+
+  it('adds one entry with the same URL and router state when a popup opens', async () => {
+    render(<Popup />);
+    await settleHistory();
+
+    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(pushState.mock.calls[0][2]).toBeUndefined();
+    expect(window.location.hash).toBe(START_URL);
+    expect(window.history.state).toEqual({ key: 'router' });
+  });
+
+  it('closes the popup on Back and uses up its entry', async () => {
+    const onClose = vi.fn();
+    render(<Popup onClose={onClose} />);
+    await settleHistory();
+
+    await pressBack();
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(go).not.toHaveBeenCalled();
+    expect(depth()).toBe(0);
+    expect(window.location.hash).toBe(START_URL);
+  });
+
+  it('plays the exit animation when closed with Back', async () => {
+    const onClose = vi.fn();
+    render(<Popup onClose={onClose} still={false} />);
+    await settleHistory();
+
+    await pressBack();
+    expect(screen.getByRole('dialog').parentElement).toHaveAttribute('data-modal-state', 'closing');
+    expect(onClose).not.toHaveBeenCalled();
+
+    await settleHistory(250);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(depth()).toBe(0);
+  });
+
+  it('removes the entry when closed another way, without closing again or telling the router', async () => {
+    const onClose = vi.fn();
+    render(<Popup onClose={onClose} />);
+    await settleHistory();
+
+    await closeOnTop();
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(go).toHaveBeenCalledWith(-1);
+    expect(depth()).toBe(0);
+    expect(routerSaw).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe(START_URL);
+  });
+
+  it('removes the entry when the popup is unmounted while open', async () => {
+    const { unmount } = render(<Popup />);
+    await settleHistory();
+
+    unmount();
+    await settleHistory();
+
+    expect(go).toHaveBeenCalledWith(-1);
+    expect(depth()).toBe(0);
+  });
+
+  it('closes only the top popup on each Back', async () => {
+    const outerClose = vi.fn();
+    const innerClose = vi.fn();
+    render(
+      <>
+        <Popup id="outer" onClose={outerClose} />
+        <Popup id="inner" onClose={innerClose} nested />
+      </>
+    );
+    await settleHistory();
+    expect(pushState).toHaveBeenCalledTimes(2);
+
+    await pressBack();
+    expect(innerClose).toHaveBeenCalledTimes(1);
+    expect(outerClose).not.toHaveBeenCalled();
+    expect(depth()).toBe(1);
+
+    await pressBack();
+    expect(outerClose).toHaveBeenCalledTimes(1);
+    expect(depth()).toBe(0);
+  });
+
+  it('keeps the outer popup guarded after the inner one closes another way', async () => {
+    const outerClose = vi.fn();
+    render(
+      <>
+        <Popup id="outer" onClose={outerClose} />
+        <Popup id="inner" nested />
+      </>
+    );
+    await settleHistory();
+
+    await closeOnTop();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(outerClose).not.toHaveBeenCalled();
+    expect(depth()).toBe(1);
+
+    await pressBack();
+    expect(outerClose).toHaveBeenCalledTimes(1);
+    expect(depth()).toBe(0);
+  });
+
+  it('leaves the top popup open when a popup under it closes', async () => {
+    const innerClose = vi.fn();
+    function Pair() {
+      const [outerOpen, setOuterOpen] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setOuterOpen(false)}>
+            drop outer
+          </button>
+          <AccessibleModalShell open={outerOpen} still size="m" onClose={vi.fn()}>
+            {() => <h3>outer</h3>}
+          </AccessibleModalShell>
+          <AccessibleModalShell open still size="s" nested onClose={innerClose}>
+            {() => <h3>inner</h3>}
+          </AccessibleModalShell>
+        </>
+      );
+    }
+    render(<Pair />);
+    await settleHistory();
+
+    fireEvent.click(screen.getByRole('button', { name: 'drop outer' }));
+    await settleHistory();
+
+    expect(innerClose).not.toHaveBeenCalled();
+    expect(depth()).toBe(1);
+    expect(routerSaw).not.toHaveBeenCalled();
+  });
+
+  it('reuses the entry when one popup replaces another in the same update', async () => {
+    function Swap() {
+      const [which, setWhich] = useState('a');
+      return (
+        <>
+          <button type="button" onClick={() => setWhich('b')}>
+            swap
+          </button>
+          <AccessibleModalShell open={which === 'a'} still size="m" onClose={vi.fn()}>
+            {() => <h3>a</h3>}
+          </AccessibleModalShell>
+          <AccessibleModalShell open={which === 'b'} still size="m" onClose={vi.fn()}>
+            {() => <h3>b</h3>}
+          </AccessibleModalShell>
+        </>
+      );
+    }
+    render(<Swap />);
+    await settleHistory();
+
+    fireEvent.click(screen.getByRole('button', { name: 'swap' }));
+    await settleHistory();
+
+    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(go).not.toHaveBeenCalled();
+    expect(depth()).toBe(1);
+  });
+
+  it('waits for the old entry to go before adding one for a popup opened right after', async () => {
+    const secondClose = vi.fn();
+    render(
+      <>
+        <Popup id="first" />
+        <Popup id="second" initialOpen={false} onClose={secondClose} />
+      </>
+    );
+    await settleHistory();
+
+    // Only microtasks pass between these steps, so the traversal cannot have landed yet.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await Promise.resolve();
+    expect(go).toHaveBeenCalledWith(-1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'open second' }));
+    await Promise.resolve();
+    expect(pushState).toHaveBeenCalledTimes(1);
+
+    await settleHistory();
+    expect(pushState).toHaveBeenCalledTimes(2);
+    expect(depth()).toBe(1);
+
+    await pressBack();
+    expect(secondClose).toHaveBeenCalledTimes(1);
+    expect(depth()).toBe(0);
+  });
+
+  it('adds no entry for a popup that cannot be dismissed, and ignores Back', async () => {
+    const onClose = vi.fn();
+    render(<Popup onClose={onClose} dismissible={false} />);
+    await settleHistory();
+    expect(pushState).not.toHaveBeenCalled();
+
+    await pressBack();
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('keeps everything open when Back hits a popup that cannot be dismissed on top', async () => {
+    const outerClose = vi.fn();
+    const onboardingClose = vi.fn();
+    render(
+      <>
+        <Popup id="outer" onClose={outerClose} />
+        <Popup id="onboarding" onClose={onboardingClose} dismissible={false} nested />
+      </>
+    );
+    await settleHistory();
+    expect(pushState).toHaveBeenCalledTimes(1);
+
+    await pressBack();
+
+    expect(outerClose).not.toHaveBeenCalled();
+    expect(onboardingClose).not.toHaveBeenCalled();
+    expect(screen.getAllByRole('dialog')).toHaveLength(2);
+    expect(pushState).toHaveBeenCalledTimes(2);
+    expect(depth()).toBe(1);
+  });
+
+  it('adds the entry when a popup becomes dismissible while open', async () => {
+    const { rerender } = render(<Popup dismissible={false} />);
+    await settleHistory();
+    expect(pushState).not.toHaveBeenCalled();
+
+    rerender(<Popup dismissible />);
+    await settleHistory();
+
+    expect(pushState).toHaveBeenCalledTimes(1);
+  });
+
+  it('removes every entry in one step when all popups close at once', async () => {
+    const outerClose = vi.fn();
+    const innerClose = vi.fn();
+    function All({ open }: { open: boolean }) {
+      return (
+        <>
+          <AccessibleModalShell open={open} still size="m" onClose={outerClose}>
+            {() => <h3>outer</h3>}
+          </AccessibleModalShell>
+          <AccessibleModalShell open={open} still size="s" nested onClose={innerClose}>
+            {() => <h3>inner</h3>}
+          </AccessibleModalShell>
+        </>
+      );
+    }
+    const { rerender } = render(<All open />);
+    await settleHistory();
+
+    rerender(<All open={false} />);
+    await settleHistory();
+
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(go).toHaveBeenCalledWith(-2);
+    expect(depth()).toBe(0);
+    expect(outerClose).not.toHaveBeenCalled();
+    expect(innerClose).not.toHaveBeenCalled();
+    expect(routerSaw).not.toHaveBeenCalled();
+  });
+
+  it('stays on the new page when a reset changes page and closes the popup together', async () => {
+    function Reset({ open }: { open: boolean }) {
+      return (
+        <AccessibleModalShell open={open} still size="m" onClose={vi.fn()}>
+          {() => <h3>popup</h3>}
+        </AccessibleModalShell>
+      );
+    }
+    const { rerender } = render(<Reset open />);
+    await settleHistory();
+
+    // What navigate(..., { replace: true }) does: only the entry on top changes URL.
+    window.history.replaceState({ key: 'home' }, '', '#/page/home');
+    rerender(<Reset open={false} />);
+    await settleHistory();
+
+    expect(window.location.hash).toBe('#/page/home');
+    expect(window.history.state).toEqual({ key: 'home' });
+    expect(routerSaw).not.toHaveBeenCalled();
+    expect(depth()).toBe(0);
+  });
+
+  it('leaves Back alone when no popup is open', async () => {
+    render(<Popup initialOpen={false} />);
+    await settleHistory();
+    window.history.pushState(null, '');
+    pushState.mockClear();
+
+    userBacks = 0;
+    window.history.back();
+    await settleHistory();
+
+    expect(routerSaw).toHaveBeenCalledTimes(1);
+    expect(pushState).not.toHaveBeenCalled();
+    expect(go).not.toHaveBeenCalled();
+  });
+});
+
+describe('AccessibleModalShell inside the HashRouter', () => {
+  function Page({ onClose }: { onClose: () => void }) {
+    const navigate = useNavigate();
+    const { pathname } = useLocation();
+    const [open, setOpen] = useState(true);
+    return (
+      <>
+        <output>{pathname}</output>
+        <button
+          type="button"
+          onClick={() => {
+            navigate('/page/home', { replace: true });
+            setOpen(false);
+          }}
+        >
+          reset
+        </button>
+        <AccessibleModalShell
+          open={open}
+          still
+          size="m"
+          onClose={() => {
+            onClose();
+            setOpen(false);
+          }}
+        >
+          {() => <h3>popup</h3>}
+        </AccessibleModalShell>
+      </>
+    );
+  }
+
+  const renderPage = async (onClose = vi.fn()) => {
+    window.history.replaceState(null, '', '#/page/kitchen');
+    render(
+      <HashRouter>
+        <Page onClose={onClose} />
+      </HashRouter>
+    );
+    await settleHistory();
+    return onClose;
+  };
+
+  afterEach(async () => {
+    cleanup();
+    await settleHistory();
+  });
+
+  it('closes the popup on Back and keeps the page', async () => {
+    const onClose = await renderPage();
+
+    window.history.back();
+    await settleHistory();
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('/page/kitchen');
+    expect(window.location.hash).toBe('#/page/kitchen');
+  });
+
+  it('keeps the new page when a reset navigates and closes the popup together', async () => {
+    await renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'reset', hidden: true }));
+    await settleHistory();
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('/page/home');
+    expect(window.location.hash).toBe('#/page/home');
   });
 });
 

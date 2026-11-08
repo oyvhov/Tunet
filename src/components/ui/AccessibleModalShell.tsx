@@ -24,8 +24,69 @@ export function useModalShell(): ModalShellContextValue | null {
   return useContext(ModalShellContext);
 }
 
-// Open modals in opening order; only the top one reacts to Escape.
-const openModalStack: symbol[] = [];
+interface OpenModal {
+  requestClose: () => void;
+  isDismissible: () => boolean;
+}
+
+// Open modals in opening order; only the top one reacts to Escape and Back.
+const openModalStack: OpenModal[] = [];
+
+// Every open dismissible modal owns one history entry. The entries copy the current URL and
+// router state, so they are interchangeable and only their number matters.
+let modalHistoryEntries = 0;
+let modalHistorySyncQueued = false;
+let listeningForBack = false;
+// Our own history.go() on its way, with the top entry as it was when the call was made.
+let pendingHistoryStep: { href: string; state: unknown } | null = null;
+
+function syncModalHistory() {
+  // Pushing during a traversal races it, so this runs again when its popstate arrives.
+  if (pendingHistoryStep) return;
+  const wanted = openModalStack.filter((modal) => modal.isDismissible()).length;
+  for (let entry = modalHistoryEntries; entry < wanted; entry += 1) {
+    window.history.pushState(window.history.state, '');
+  }
+  if (wanted < modalHistoryEntries) {
+    pendingHistoryStep = { href: window.location.href, state: window.history.state };
+    window.history.go(wanted - modalHistoryEntries);
+  }
+  modalHistoryEntries = wanted;
+}
+
+function handleModalPopState(event: PopStateEvent) {
+  if (pendingHistoryStep) {
+    // Removing our own entries is no navigation, so the router must not see it. If the page
+    // changed while a modal was open, only the top entry got the new URL: carry it over.
+    event.stopImmediatePropagation();
+    const { href, state } = pendingHistoryStep;
+    pendingHistoryStep = null;
+    if (window.location.href !== href) window.history.replaceState(state, '', href);
+    syncModalHistory();
+    return;
+  }
+  if (modalHistoryEntries === 0) return;
+
+  modalHistoryEntries -= 1;
+  const top = openModalStack[openModalStack.length - 1];
+  if (top?.isDismissible()) top.requestClose();
+  else syncModalHistory();
+}
+
+/** Runs after the current commit, so popups swapped in one update can share an entry. */
+function queueModalHistorySync() {
+  if (!listeningForBack) {
+    // Capture: at the window this runs before the router's own listener.
+    window.addEventListener('popstate', handleModalPopState, true);
+    listeningForBack = true;
+  }
+  if (modalHistorySyncQueued) return;
+  modalHistorySyncQueued = true;
+  queueMicrotask(() => {
+    modalHistorySyncQueued = false;
+    syncModalHistory();
+  });
+}
 
 let lockedBodyStyles: { overflow: string; paddingRight: string } | null = null;
 
@@ -114,6 +175,7 @@ export default function AccessibleModalShell({
   const dismissibleRef = useRef(dismissible);
   useEffect(() => {
     dismissibleRef.current = dismissible;
+    queueModalHistorySync();
   }, [dismissible]);
 
   const requestClose = useCallback(() => {
@@ -154,8 +216,12 @@ export default function AccessibleModalShell({
       previousActiveRef.current = document.activeElement;
     }
 
-    const stackToken = Symbol('modal');
-    openModalStack.push(stackToken);
+    const openModal: OpenModal = {
+      requestClose,
+      isDismissible: () => dismissibleRef.current,
+    };
+    openModalStack.push(openModal);
+    queueModalHistorySync();
 
     lockPageScroll();
 
@@ -170,7 +236,7 @@ export default function AccessibleModalShell({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!panelRef.current) return;
-      if (openModalStack[openModalStack.length - 1] !== stackToken) return;
+      if (openModalStack[openModalStack.length - 1] !== openModal) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         requestClose();
@@ -202,8 +268,9 @@ export default function AccessibleModalShell({
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      const index = openModalStack.indexOf(stackToken);
+      const index = openModalStack.indexOf(openModal);
       if (index >= 0) openModalStack.splice(index, 1);
+      queueModalHistorySync();
       if (openModalStack.length === 0) unlockPageScroll();
       const previous = previousActiveRef.current;
       if (previous instanceof HTMLElement && !opensTouchKeyboard(previous)) {
