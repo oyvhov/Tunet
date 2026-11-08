@@ -313,7 +313,7 @@ const TodoCard = memo(function TodoCard({
             </>
           ) : error ? (
             <p className="truncate text-xs text-[var(--status-error-fg)]" title={error}>
-              Error: {error}
+              {t('todo.loadFailed')}
             </p>
           ) : loading && items.length === 0 ? (
             <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
@@ -402,7 +402,9 @@ const TodoCard = memo(function TodoCard({
         ) : error ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--status-error-fg)]">
             <AlertCircle className="mb-2 h-8 w-8" />
-            <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">{error}</p>
+            <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">
+              {t('todo.loadFailed')}
+            </p>
           </div>
         ) : loading && items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)]">

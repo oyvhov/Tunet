@@ -151,6 +151,17 @@ describe('Todo', () => {
       expect(screen.queryByText('status.unavailable')).toBeNull();
     });
 
+    it.each([
+      ['large', {}],
+      ['small', { size: 'small' }],
+    ])('shows a translated message when the %s card cannot load the list', async (_name, props) => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      getTodoItems.mockRejectedValue(new Error('socket closed'));
+      renderCard(props);
+      await screen.findByText('todo.loadFailed');
+      expect(document.body).not.toHaveTextContent('socket closed');
+    });
+
     it('adds with a visible button', async () => {
       renderCard();
       await screen.findByText('Milk');

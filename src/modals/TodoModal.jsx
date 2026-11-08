@@ -18,7 +18,7 @@ import Button from '../components/ui/Button';
  * @param {Object} props.conn - Home Assistant WebSocket connection
  * @param {Object} props.entities - All HA entities
  * @param {Object} props.settings - Card settings (contains todoEntityId)
- * @param {Function} props.t - Translation function
+ * @param {(key: string) => string} props.t - Translation function
  */
 export default function TodoModal({ show, onClose, conn, entities, settings, t }) {
   const translate = t || ((key) => key);

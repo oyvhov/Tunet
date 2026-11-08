@@ -13,7 +13,9 @@ const SUPPORT_SHARE = 0.9;
 const SUBUNIT_PATTERN = /^(øre|ore|öre|cent|ct|snt|sent)/i;
 
 /** How many øre one unit of this sensor is. A sensor without a unit is taken to be in øre. */
-export function getNordpoolOrePerUnit(entity: HassEntity | null | undefined): number {
+export function getNordpoolOrePerUnit(
+  entity: Partial<Pick<HassEntity, 'attributes'>> | null | undefined
+): number {
   if (entity?.attributes?.price_in_cents === true) return 1;
   const unit = String(entity?.attributes?.unit_of_measurement ?? '').trim();
   return !unit || SUBUNIT_PATTERN.test(unit) ? 1 : 100;
