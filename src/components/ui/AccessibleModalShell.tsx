@@ -27,6 +27,7 @@ export function useModalShell(): ModalShellContextValue | null {
 interface OpenModal {
   requestClose: () => void;
   isDismissible: () => boolean;
+  animatesClose: () => boolean;
 }
 
 // Open modals in opening order; only the top one reacts to Escape and Back.
@@ -69,8 +70,13 @@ function handleModalPopState(event: PopStateEvent) {
 
   modalHistoryEntries -= 1;
   const top = openModalStack[openModalStack.length - 1];
-  if (top?.isDismissible()) top.requestClose();
-  else syncModalHistory();
+  if (!top?.isDismissible()) {
+    syncModalHistory();
+    return;
+  }
+  top.requestClose();
+  // During its exit animation the popup keeps an entry, or a second Back would leave the dashboard.
+  if (top.animatesClose()) syncModalHistory();
 }
 
 /** Runs after the current commit, so popups swapped in one update can share an entry. */
@@ -228,6 +234,7 @@ export default function AccessibleModalShell({
     const openModal: OpenModal = {
       requestClose,
       isDismissible: () => dismissibleRef.current,
+      animatesClose: () => !still && !prefersReducedMotion(),
     };
     openModalStack.push(openModal);
     queueModalHistorySync();
@@ -286,7 +293,7 @@ export default function AccessibleModalShell({
         previous.focus({ preventScroll: true });
       }
     };
-  }, [open, requestClose]);
+  }, [open, requestClose, still]);
 
   if (!open) return null;
 

@@ -405,7 +405,7 @@ export interface ModalState {
   showMowerModal: boolean | null;
   showFanModal: string | null;
   showSensorInfoModal: string | { entityId: string; cardId?: string } | null;
-  showCalendarModal: boolean | null;
+  showCalendarModal: string | boolean | null;
   showTodoModal: string | null;
   showRoomModal: string | null;
   showCoverModal: string | null;
@@ -440,7 +440,7 @@ export interface ModalSetters {
   setShowMowerModal: (value: boolean | null) => void;
   setShowFanModal: (value: string | null) => void;
   setShowSensorInfoModal: (value: string | { entityId: string; cardId?: string } | null) => void;
-  setShowCalendarModal: (value: boolean | null) => void;
+  setShowCalendarModal: (value: string | boolean | null) => void;
   setShowTodoModal: (value: string | null) => void;
   setShowRoomModal: (value: string | null) => void;
   setShowCoverModal: (value: string | null) => void;
@@ -475,7 +475,7 @@ export interface EntityModalActions {
   setShowMowerModal: (value: boolean | null) => void;
   setShowFanModal: (value: string | null) => void;
   setShowSensorInfoModal: (value: string | { entityId: string; cardId?: string } | null) => void;
-  setShowCalendarModal: (value: boolean | null) => void;
+  setShowCalendarModal: (value: string | boolean | null) => void;
   setShowTodoModal: (value: string | null) => void;
   setShowRoomModal: (value: string | null) => void;
   setShowCoverModal: (value: string | null) => void;

@@ -6,6 +6,7 @@
 import {
   evaluateVisibilityConditionConfig,
   isConditionConfigured,
+  normalizeVisibilityConditionConfig,
   resolveConditionEntityId,
 } from './conditionUtils';
 import type { HassEntities } from '../types/ha';
@@ -167,9 +168,11 @@ export function isCardHiddenByLogic(
 
   if (isConditionConfigured(cardConfig.visibilityCondition)) {
     const targetEntityId = resolveConditionEntityId(cardId, cardConfig, entities);
-    if (!targetEntityId) return false;
-    const targetEntity = entities[targetEntityId];
-    if (!targetEntity) return false;
+    const targetEntity = targetEntityId ? entities[targetEntityId] : null;
+    const rulesNameEntity = normalizeVisibilityConditionConfig(
+      cardConfig.visibilityCondition
+    ).rules.some((rule) => typeof rule.entityId === 'string' && rule.entityId.trim());
+    if (!targetEntity && !rulesNameEntity) return false;
     const getAttribute = (entityId: string, attribute: string): unknown =>
       entities?.[entityId]?.attributes?.[attribute];
 

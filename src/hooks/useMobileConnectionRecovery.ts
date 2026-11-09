@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { Connection } from 'home-assistant-js-websocket';
-import { CONNECTION_PING_INTERVAL_MS } from '../utils/connectionHealth';
+import {
+  CONNECTION_PING_INTERVAL_MS,
+  CONNECTION_PING_TIMEOUT_MS,
+} from '../utils/connectionHealth';
 
 export const CONNECTION_PROBE_TIMEOUT_MS = 3000;
 
@@ -72,12 +75,13 @@ export function useMobileConnectionRecovery({
       return undefined;
     }
 
-    const recoverIfNeeded = () => {
+    const probe = (timeoutMs?: number) => {
       if (globalThis.document.visibilityState !== 'visible' || recoveryPromiseRef.current) {
         return;
       }
 
       const recoveryPromise = probeAndRecoverConnection(conn, {
+        timeoutMs,
         onHealthy,
         onRecovering,
       });
@@ -89,11 +93,16 @@ export function useMobileConnectionRecovery({
       });
     };
 
+    const recoverIfNeeded = () => probe();
+
     globalThis.document.addEventListener('visibilitychange', recoverIfNeeded);
     globalThis.window.addEventListener('pageshow', recoverIfNeeded);
     globalThis.window.addEventListener('online', recoverIfNeeded);
     // A half-open socket looks connected and fires no event; only a ping can find it.
-    const pingTimer = globalThis.setInterval(recoverIfNeeded, CONNECTION_PING_INTERVAL_MS);
+    const pingTimer = globalThis.setInterval(
+      () => probe(CONNECTION_PING_TIMEOUT_MS),
+      CONNECTION_PING_INTERVAL_MS
+    );
 
     return () => {
       globalThis.clearInterval(pingTimer);

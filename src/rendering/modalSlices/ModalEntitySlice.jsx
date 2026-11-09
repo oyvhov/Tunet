@@ -532,6 +532,11 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 entityId={target.entityId}
                 entity={entities[target.entityId]}
                 customName={customNames[target.cardId || target.entityId]}
+                settings={
+                  target.cardId
+                    ? cardSettings[getCardSettingsKey(target.cardId)] || cardSettings[target.cardId]
+                    : undefined
+                }
                 conn={conn}
                 haUrl={activeUrl}
                 haToken={

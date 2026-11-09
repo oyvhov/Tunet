@@ -208,6 +208,7 @@ export const HomeAssistantProvider = ({
     setDisconnectedSince(null);
     // An answered ping proves the data is current, even in a house where nothing has changed.
     if (lastEntityUpdateAtRef.current) lastEntityUpdateAtRef.current = Date.now();
+    setEntityDataStale(false);
   }, []);
 
   const markConnectionRecovering = useCallback(() => {
@@ -744,7 +745,9 @@ export const HomeAssistantProvider = ({
 
   return (
     <HomeAssistantMetaContext.Provider value={metaValue}>
-      <HomeAssistantOfflineContext.Provider value={entityDataStale || haUnavailableVisible}>
+      <HomeAssistantOfflineContext.Provider
+        value={haUnavailableVisible || (connected && entityDataStale)}
+      >
         <HomeAssistantEntitiesContext.Provider value={entities}>
           {children}
         </HomeAssistantEntitiesContext.Provider>

@@ -5,7 +5,7 @@ import {
   probeAndRecoverConnection,
   useMobileConnectionRecovery,
 } from '../hooks/useMobileConnectionRecovery';
-import { CONNECTION_PING_INTERVAL_MS } from '../utils/connectionHealth';
+import { CONNECTION_PING_INTERVAL_MS, CONNECTION_PING_TIMEOUT_MS } from '../utils/connectionHealth';
 
 describe('useMobileConnectionRecovery', () => {
   beforeEach(() => {
@@ -97,6 +97,20 @@ describe('useMobileConnectionRecovery', () => {
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
     });
 
+    it('gives the periodic ping ten seconds before giving up on the connection', async () => {
+      const conn = {
+        connected: true,
+        ping: vi.fn(() => new Promise(() => {})),
+        reconnect: vi.fn(),
+      };
+      renderWithConn(conn);
+      await vi.advanceTimersByTimeAsync(CONNECTION_PING_INTERVAL_MS);
+      await vi.advanceTimersByTimeAsync(9_000);
+      expect(conn.reconnect).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1_100);
+      expect(conn.reconnect).toHaveBeenCalledTimes(1);
+    });
+
     it('pings once a minute while the screen is on', async () => {
       const conn = {
         connected: true,
@@ -136,7 +150,7 @@ describe('useMobileConnectionRecovery', () => {
       const onRecovering = vi.fn();
       renderWithConn(conn, { onRecovering });
 
-      await vi.advanceTimersByTimeAsync(CONNECTION_PING_INTERVAL_MS + CONNECTION_PROBE_TIMEOUT_MS);
+      await vi.advanceTimersByTimeAsync(CONNECTION_PING_INTERVAL_MS + CONNECTION_PING_TIMEOUT_MS);
 
       expect(onRecovering).toHaveBeenCalledOnce();
       expect(conn.reconnect).toHaveBeenCalledWith(true);

@@ -128,7 +128,12 @@ function getUsableState(entity: HassEntity | null | undefined): string | null {
 }
 
 export function createDefaultConditionRule(entity?: HassEntity | null): VisibilityConditionRule {
-  return { type: 'state', states: [getUsableState(entity) ?? 'on'], forSeconds: 0 };
+  const current = getUsableState(entity);
+  // A reading changes all the time, so requiring today's value would hide the card tomorrow.
+  if (current !== null && !Number.isNaN(Number(current))) {
+    return { type: 'not_state', states: ['unavailable'], forSeconds: 0 };
+  }
+  return { type: 'state', states: [current ?? 'on'], forSeconds: 0 };
 }
 
 export function getKnownConditionStates(entity?: HassEntity | null): string[] {

@@ -134,6 +134,10 @@ function openPopupForCard(
 
   if (typeof cardId !== 'string' || !cardId.trim()) return false;
 
+  // Cards can be pointed at another entity, so the card id may name the old one.
+  const mappedEntityId = [settings?.entityId, settings?.lockId].find(
+    (id): id is string => typeof id === 'string' && id.length > 0
+  );
   const safeClose = typeof closeAllModals === 'function' ? closeAllModals : null;
   const closeAndOpen = (openFn: () => void) => {
     safeClose?.();
@@ -175,14 +179,14 @@ function openPopupForCard(
 
   if (cardId.startsWith('lawn_mower.')) {
     closeAndOpen(() => {
-      setActiveMowerId?.(cardId);
+      setActiveMowerId?.(mappedEntityId || cardId);
       setShowMowerModal?.(true);
     });
     return true;
   }
 
   if (cardId.startsWith('fan.') || cardId.startsWith('fan_card_')) {
-    closeAndOpen(() => setShowFanModal(cardId));
+    closeAndOpen(() => setShowFanModal(mappedEntityId || cardId));
     return true;
   }
 
@@ -216,7 +220,7 @@ function openPopupForCard(
   }
 
   if (cardId.startsWith('calendar_card_')) {
-    closeAndOpen(() => setShowCalendarModal(true));
+    closeAndOpen(() => setShowCalendarModal(cardId));
     return true;
   }
 
@@ -265,7 +269,7 @@ function openPopupForCard(
       setActiveMediaSessionSensorIds(null);
       setActiveMediaGroupKey(null);
       setActiveMediaGroupIds(null);
-      setActiveMediaId(cardId);
+      setActiveMediaId(mappedEntityId || cardId);
       setActiveMediaModal('media');
     });
     return true;
@@ -287,7 +291,7 @@ function openPopupForCard(
   }
 
   if (cardId.includes('.')) {
-    const entityId = settings?.type === 'sensor' ? settings.entityId || cardId : cardId;
+    const entityId = mappedEntityId || cardId;
     closeAndOpen(() => setShowSensorInfoModal(entityId === cardId ? cardId : { entityId, cardId }));
     return true;
   }

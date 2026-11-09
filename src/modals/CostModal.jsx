@@ -6,6 +6,7 @@ import { getIconComponent } from '../icons';
 import { useHomeAssistantMeta } from '../contexts';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import { buildCostIncrementBuckets } from '../utils/costSeries';
 import Segmented from '../components/ui/Segmented';
 
 const parseNumeric = (value) => {
@@ -66,16 +67,6 @@ const buildBuckets = (points, rangeHours) => {
       time: b.time,
       value: b.last,
     }));
-};
-
-const buildDeltaSeries = (series) => {
-  if (series.length < 2) return series;
-  // Skip first point — no previous value to diff against
-  return series.slice(1).map((point, idx) => {
-    const prev = series[idx]; // idx is offset by 1 due to slice
-    // A cost sensor restarts at the day's end; what it shows after that is the new cost.
-    return { ...point, value: point.value < prev.value ? point.value : point.value - prev.value };
-  });
 };
 
 const ensureRangeCoverage = (data, start, end) => {
@@ -328,7 +319,7 @@ export default function CostModal({
           .sort((a, b) => a.time.getTime() - b.time.getTime());
         const lineSeries = ensureRangeCoverage(rawSeries, start, end);
         const bucketed = buildBuckets(rawSeries, rangeHours);
-        const deltaSeries = buildDeltaSeries(bucketed);
+        const deltaSeries = buildCostIncrementBuckets(rawSeries, rangeHours);
 
         let nextSeries;
         if (metric === 'delta') {

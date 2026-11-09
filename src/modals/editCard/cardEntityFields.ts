@@ -35,7 +35,8 @@ export function getCardEntityFields(cardId: string, settings: CardSettings): Car
   if (cardId.startsWith('climate_card_')) return [entityField('climateId', 'climate')];
   if (cardId.startsWith('alarm_card_')) return [entityField('alarmId', 'alarm_control_panel')];
   if (cardId.startsWith('camera_card_')) return [entityField('cameraId', 'camera')];
-  if (cardId.startsWith('lock_card_') || cardId.startsWith('lock.')) {
+  if (cardId.startsWith('lock.')) return [entityField('entityId', 'lock')];
+  if (cardId.startsWith('lock_card_')) {
     return [entityField(settings.entityId ? 'entityId' : 'lockId', 'lock')];
   }
   if (cardId.startsWith('weather_temp_')) {

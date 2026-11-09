@@ -411,6 +411,22 @@ describe('AccessibleModalShell Back button', () => {
     expect(window.location.hash).toBe(START_URL);
   });
 
+  it('stays on the dashboard when Back is pressed twice during the exit animation', async () => {
+    const onClose = vi.fn();
+    render(<Popup onClose={onClose} still={false} />);
+    await settleHistory();
+    const before = window.history.length;
+
+    await pressBack();
+    await settleHistory(40);
+    expect(depth()).toBe(1);
+    expect(window.history.length).toBeGreaterThanOrEqual(before);
+
+    await settleHistory(250);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(depth()).toBe(0);
+  });
+
   it('plays the exit animation when closed with Back', async () => {
     const onClose = vi.fn();
     render(<Popup onClose={onClose} still={false} />);

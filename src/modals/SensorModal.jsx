@@ -74,10 +74,12 @@ export default function SensorModal({
   haUrl,
   haToken,
   callService,
+  settings = undefined,
   t = (key) => key,
 }) {
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
+  const [actionArmed, setActionArmed] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyEvents, setHistoryEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -101,14 +103,20 @@ export default function SensorModal({
   const popupAction = useMemo(
     () =>
       entity && ACTION_DOMAINS.includes(domain)
-        ? resolveSensorCardConfig({ entityId }, entity).action
+        ? resolveSensorCardConfig({ ...settings, entityId }, entity).action
         : null,
-    [entity, domain, entityId]
+    [entity, domain, entityId, settings]
   );
   const actionEntities = useMemo(
     () => (entity ? { [entityId]: entity } : undefined),
     [entity, entityId]
   );
+  useEffect(() => {
+    if (!actionArmed) return undefined;
+    const timer = setTimeout(() => setActionArmed(false), 4000);
+    return () => clearTimeout(timer);
+  }, [actionArmed]);
+
   const actionFeedback = useSensorCardAction({
     conn,
     callService,
@@ -449,6 +457,14 @@ export default function SensorModal({
     <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--text-primary)] opacity-20"></div>
   );
 
+  const runPopupAction = () => {
+    if (popupAction?.confirm && !actionArmed) {
+      setActionArmed(true);
+      return;
+    }
+    setActionArmed(false);
+    actionFeedback.execute();
+  };
   const actionActive = popupAction ? isSensorEntityActive(popupAction.targetEntity) : false;
   const actionLabel = popupAction
     ? {
@@ -493,7 +509,7 @@ export default function SensorModal({
                 <div className="flex flex-col gap-2">
                   <button
                     type="button"
-                    onClick={() => actionFeedback.execute()}
+                    onClick={runPopupAction}
                     disabled={actionDisabled}
                     aria-busy={actionFeedback.pending}
                     className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-60"
@@ -506,7 +522,11 @@ export default function SensorModal({
                     ) : (
                       <ActionIcon className="h-4 w-4 shrink-0" />
                     )}
-                    <span>{actionLabel}</span>
+                    <span>
+                      {actionArmed
+                        ? popupAction.confirmLabel || t('sensor.action.confirmPrompt')
+                        : actionLabel}
+                    </span>
                   </button>
                   {actionFeedback.status !== 'idle' && (
                     <span

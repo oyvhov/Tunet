@@ -9,7 +9,7 @@ import { PageProvider } from './contexts/PageContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { loadTranslations } from './i18n';
 import ToastContainer from './components/ui/ToastContainer';
-import { claimChunkReload } from './utils/chunkReload';
+import { claimChunkReload, getChunkReloadWait } from './utils/chunkReload';
 
 function isChunkLoadError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -20,10 +20,19 @@ function isChunkLoadError(error) {
   );
 }
 
+let chunkReloadTimer = null;
+
 function reloadForChunkErrorOnce() {
   if (globalThis.window === undefined) return;
-  if (!claimChunkReload(globalThis.sessionStorage)) return;
-  globalThis.window.history.go(0);
+  if (claimChunkReload(globalThis.sessionStorage)) {
+    globalThis.window.history.go(0);
+    return;
+  }
+  // A kiosk has nobody to press reload, so try again when the guard allows it.
+  chunkReloadTimer ??= setTimeout(() => {
+    chunkReloadTimer = null;
+    reloadForChunkErrorOnce();
+  }, getChunkReloadWait(globalThis.sessionStorage));
 }
 
 if (globalThis.window !== undefined) {

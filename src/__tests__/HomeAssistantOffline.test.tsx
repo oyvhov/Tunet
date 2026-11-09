@@ -118,6 +118,26 @@ describe('useHomeAssistantOffline', () => {
     expect(result.current.meta.entityDataStale).toBe(false);
   });
 
+  it('unlocks the cards as soon as a ping is answered', async () => {
+    const { result } = await connect();
+    await advance(ENTITY_STALE_NO_UPDATE_MS + 5_000);
+    expect(result.current.offline).toBe(true);
+    act(() => recovery.current?.onHealthy());
+    expect(result.current.offline).toBe(false);
+  });
+
+  it('does not lock the cards during the warning delay after the screen wakes', async () => {
+    const { result } = await connect();
+    act(() => recovery.current?.onRecovering());
+    await advance(20_000);
+    expect(result.current.offline).toBe(true);
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(result.current.meta.haUnavailableVisible).toBe(false);
+    expect(result.current.offline).toBe(false);
+  });
+
   it('allows a slow ping to finish before the data counts as stale', () => {
     expect(ENTITY_STALE_NO_UPDATE_MS).toBeGreaterThan(
       CONNECTION_PING_INTERVAL_MS + CONNECTION_PROBE_TIMEOUT_MS

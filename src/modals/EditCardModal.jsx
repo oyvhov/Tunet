@@ -1186,6 +1186,13 @@ export default function EditCardModal({
     onClose();
   };
 
+  const handleClose = () => {
+    // Text fields save on blur, and Escape or Back close the popup without one.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    serviceDraftFlushRef.current?.();
+    onClose();
+  };
+
   const showSensorPreview = isEditSensor && !!editSettingsKey;
   const cardEntityFields = getCardEntityFields(entityId, editSettings);
 
@@ -1219,7 +1226,7 @@ export default function EditCardModal({
   return (
     <AccessibleModalShell
       open={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       titleId="edit-card-modal-title"
       size={showSensorPreview ? 'l' : 'm'}
       still
@@ -1231,7 +1238,7 @@ export default function EditCardModal({
             title={t('modal.editCard.title')}
             titleId={resolvedTitleId}
             closeLabel={t('common.close') || 'Close'}
-            onClose={onClose}
+            onClose={handleClose}
           />
 
           <div
