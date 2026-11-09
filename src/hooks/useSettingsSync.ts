@@ -715,7 +715,7 @@ export function useSettingsSync({
     if (!haUserId || typeof globalThis.window === 'undefined') return undefined;
 
     const handleEditDone = () => {
-      queueAutoSync(true, { ignoreEnabled: true });
+      queueAutoSync(true);
     };
 
     globalThis.window.addEventListener('tunet:edit-done', handleEditDone);

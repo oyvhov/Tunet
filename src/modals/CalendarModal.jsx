@@ -7,6 +7,9 @@ import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
 
+const DAYS_FETCHED = 30;
+const MAX_LISTED_DAYS = DAYS_FETCHED + 1;
+
 /**
  * CalendarModal - Modal for displaying calendar with selectable calendars
  *
@@ -80,7 +83,7 @@ export default function CalendarModal({
         const start = new Date(now);
         start.setHours(0, 0, 0, 0);
         const end = new Date(now);
-        end.setDate(end.getDate() + 30);
+        end.setDate(end.getDate() + DAYS_FETCHED);
 
         const result = await getCalendarEvents(conn, {
           start,
@@ -119,40 +122,41 @@ export default function CalendarModal({
     );
   };
 
-  // Group events by date
+  // Group events under every day they cover
   const groupedEvents = {};
+  const dayTimes = {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   Object.entries(events).forEach(([calendarId, data]) => {
     if (!selectedCalendars.includes(calendarId)) return;
     const calendarEvents = data?.events || [];
 
     calendarEvents.forEach((event) => {
-      const startDate = new Date(event.start);
-      const dateKey = startDate.toLocaleDateString(locale, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      getEventDays(event, today).forEach((day) => {
+        const dateKey = day.toLocaleDateString(locale, {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
 
-      if (!groupedEvents[dateKey]) {
-        groupedEvents[dateKey] = [];
-      }
+        if (!groupedEvents[dateKey]) {
+          groupedEvents[dateKey] = [];
+          dayTimes[dateKey] = day.getTime();
+        }
 
-      groupedEvents[dateKey].push({
-        ...event,
-        calendarId,
-        calendarName: allCalendars.find((c) => c.id === calendarId)?.name || calendarId,
-        calendarColor: getCalendarColor(calendarId),
+        groupedEvents[dateKey].push({
+          ...event,
+          calendarId,
+          calendarName: allCalendars.find((c) => c.id === calendarId)?.name || calendarId,
+          calendarColor: getCalendarColor(calendarId),
+        });
       });
     });
   });
 
   // Sort dates
-  const sortedDates = Object.keys(groupedEvents).sort((a, b) => {
-    const dateA = groupedEvents[a][0]?.start;
-    const dateB = groupedEvents[b][0]?.start;
-    return new Date(dateA).getTime() - new Date(dateB).getTime();
-  });
+  const sortedDates = Object.keys(groupedEvents).sort((a, b) => dayTimes[a] - dayTimes[b]);
 
   if (!show) return null;
 
@@ -238,7 +242,7 @@ export default function CalendarModal({
                           .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
                           .map((event, idx) => {
                             const startTime = new Date(event.start);
-                            const isAllDay = isAllDayEvent(event);
+                            const isAllDay = isAllDayEvent(event) || spansSeveralDays(event);
                             const isPast = isEventFinishedToday(event);
 
                             return (
@@ -367,6 +371,43 @@ export default function CalendarModal({
 
 function isAllDayEvent(event) {
   return typeof event?.start === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.start);
+}
+
+/** A date-only value is a day in local time, where new Date() would read it as UTC. */
+function parseEventDate(value) {
+  if (!value) return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** The last instant the event covers. An end is exclusive, so midnight belongs to the day before. */
+function getLastMoment(event, start) {
+  const end = parseEventDate(event.end);
+  return end && end > start ? new Date(end.getTime() - 1) : start;
+}
+
+/** Every listed day the event touches; one that is already running starts today. */
+function getEventDays(event, today) {
+  const start = parseEventDate(event.start);
+  if (!start) return [];
+  const last = getLastMoment(event, start);
+  const first = start < today ? today : start;
+  const day = new Date(first.getFullYear(), first.getMonth(), first.getDate());
+  const days = [];
+  while (day <= last && days.length < MAX_LISTED_DAYS) {
+    days.push(new Date(day));
+    day.setDate(day.getDate() + 1);
+  }
+  return days;
+}
+
+function spansSeveralDays(event) {
+  const start = parseEventDate(event.start);
+  return !!start && getLastMoment(event, start).toDateString() !== start.toDateString();
 }
 
 function isEventFinishedToday(event, now = new Date()) {

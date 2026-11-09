@@ -64,6 +64,19 @@ afterEach(() => {
 });
 
 describe('LightModal sliders', () => {
+  it('follows the finger on the main brightness and sends the last value after a pause', async () => {
+    const { callService, setOptimisticLightBrightness } = renderLight({});
+    await drag(screen.getByRole('slider', { name: 'light.brightness' }), ['120', '140', '160']);
+    expect(setOptimisticLightBrightness).toHaveBeenCalledTimes(3);
+    expect(callService).not.toHaveBeenCalled();
+    await tick(350);
+    expect(callService).toHaveBeenCalledTimes(1);
+    expect(callService).toHaveBeenCalledWith('light', 'turn_on', {
+      entity_id: 'light.lamp',
+      brightness: 160,
+    });
+  });
+
   it('shows warmth at once and sends the last value after a pause', async () => {
     const { container, callService } = renderLight({});
     fireEvent.click(screen.getByRole('radio', { name: 'light.warmth' }));

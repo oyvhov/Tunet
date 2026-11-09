@@ -144,6 +144,9 @@ export default function LightModal({
   }, [remoteSaturation]);
 
   // --- Handlers ---
+  const commitBrightness = useDebouncedCommit(({ entityId, brightness }) =>
+    callService('light', 'turn_on', { entity_id: entityId, brightness })
+  );
   const commitKelvin = useDebouncedCommit((kelvin) =>
     callService('light', 'turn_on', { entity_id: activeLightId, color_temp_kelvin: kelvin })
   );
@@ -310,10 +313,7 @@ export default function LightModal({
                                 ...prev,
                                 [activeLightId]: val,
                               }));
-                              callService('light', 'turn_on', {
-                                entity_id: activeLightId,
-                                brightness: val,
-                              });
+                              commitBrightness({ entityId: activeLightId, brightness: val });
                             }}
                             ariaLabel={t('light.brightness')}
                             colorClass="bg-amber-500"

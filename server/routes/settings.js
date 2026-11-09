@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import db from '../db.js';
+import { getRateLimitKey } from '../haAuth.js';
 import {
   assertStoredDataWritable,
   handleDataEncryptionError,
@@ -33,6 +34,7 @@ const settingsRateLimiter = rateLimit({
   max: Math.max(Number(process.env.SETTINGS_RATE_LIMIT_MAX) || 180, 10),
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: getRateLimitKey,
 });
 
 router.use(settingsRateLimiter);

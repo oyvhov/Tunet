@@ -71,6 +71,9 @@ const BLOCKED_TITLE_WORDS = [
 const SLIDER_PREVIEW_HOLD_MS = 4000;
 const VOLUME_DEBOUNCE_MS = 250;
 const CHOICE_PAGE_SIZE = 60;
+// Grows the tap target to 44 px around a smaller button without moving it.
+const HIT_AREA_44 =
+  "relative after:absolute after:top-1/2 after:left-1/2 after:h-11 after:w-full after:min-w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']";
 
 const PLAYER_STATE_LABEL_KEYS = {
   playing: 'state.playing',
@@ -1109,7 +1112,7 @@ function MediaPage({
                   <button
                     onClick={() => changeVolumeByStep(-VOLUME_STEP)}
                     disabled={!controls.volumeSet}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     aria-label="Volume down"
                     title="Volume down"
                   >
@@ -1123,7 +1126,7 @@ function MediaPage({
                       })
                     }
                     disabled={!controls.volumeMute}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     type="button"
                     aria-pressed={isMuted}
                     aria-label={
@@ -1165,7 +1168,7 @@ function MediaPage({
                   <button
                     onClick={() => changeVolumeByStep(VOLUME_STEP)}
                     disabled={!controls.volumeSet}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:pointer-events-none disabled:opacity-30"
                     aria-label="Volume up"
                     title="Volume up"
                   >
@@ -1241,7 +1244,7 @@ function MediaPage({
                 {rightPanelView === 'players' && canGroupPlayers && (
                   <button
                     onClick={toggleGroupAll}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-colors"
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-colors ${HIT_AREA_44}`}
                     style={{
                       backgroundColor: 'var(--glass-bg)',
                       borderColor: 'var(--glass-border)',
@@ -1333,7 +1336,7 @@ function MediaPage({
                                   });
                                 }
                               }}
-                              className={`rounded-full p-2.5 transition-all ${isMember ? '' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
+                              className={`rounded-full p-2.5 transition-all ${HIT_AREA_44} ${isMember ? '' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`}
                               style={
                                 isMember
                                   ? {
@@ -1361,7 +1364,7 @@ function MediaPage({
                                 e.stopPropagation();
                                 toggleGroupAll();
                               }}
-                              className="rounded-full p-2.5 transition-colors"
+                              className={`rounded-full p-2.5 transition-colors ${HIT_AREA_44}`}
                               style={{
                                 backgroundColor: 'var(--glass-bg)',
                                 color: 'var(--text-secondary)',

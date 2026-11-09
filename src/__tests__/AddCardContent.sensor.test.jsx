@@ -87,6 +87,28 @@ describe('leaving the add card popup', () => {
   });
 });
 
+describe('add card footer Cancel', () => {
+  it('asks before discarding picks', async () => {
+    const props = makeProps({ pendingAddCount: 2 });
+    render(<AddCardContent {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }));
+
+    expect(await screen.findByText('confirm.discardPicks.title')).toBeInTheDocument();
+    expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes at once when nothing is picked', async () => {
+    const props = makeProps();
+    render(<AddCardContent {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }));
+
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('confirm.discardPicks.title')).not.toBeInTheDocument();
+  });
+});
+
 describe('add card footer', () => {
   it('has Cancel and a disabled Add when nothing is picked, and no OK button', () => {
     render(<AddCardContent {...makeProps()} />);

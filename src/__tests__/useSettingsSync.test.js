@@ -895,6 +895,26 @@ describe('useSettingsSync', () => {
     });
   });
 
+  it('does not upload on edit done while auto-sync is off', async () => {
+    localStorage.setItem('tunet_auto_sync_enabled', '0');
+    fetchCurrentSettings.mockResolvedValue({ revision: 4, data: collectSnapshot() });
+    try {
+      const { result } = renderHook(() =>
+        useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })
+      );
+      await waitFor(() => expect(result.current.currentRevision).toBe(4));
+
+      await act(async () => {
+        window.dispatchEvent(new CustomEvent('tunet:edit-done'));
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      });
+
+      expect(saveCurrentSettings).not.toHaveBeenCalled();
+    } finally {
+      localStorage.removeItem('tunet_auto_sync_enabled');
+    }
+  });
+
   it('creates checkpoint on edit done event', async () => {
     const { result } = renderHook(() =>
       useSettingsSync({ haUserId: 'user-1', contextSettersRef: { current: {} } })

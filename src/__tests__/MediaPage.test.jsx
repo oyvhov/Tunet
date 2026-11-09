@@ -374,6 +374,38 @@ describe('MediaPage player state', () => {
 });
 
 describe('MediaPage touch targets', () => {
+  it('gives the volume and group buttons a 44 px hit area', () => {
+    const player = (id, name) => ({
+      entity_id: id,
+      state: 'playing',
+      attributes: {
+        friendly_name: name,
+        integration: 'sonos',
+        group_members: [id],
+        supported_features: 4 + 524288,
+      },
+    });
+    render(
+      <MediaPage
+        {...makeBaseProps({
+          conn: {},
+          activeMediaId: 'media_player.kitchen',
+          entities: {
+            'media_player.kitchen': player('media_player.kitchen', 'Kitchen'),
+            'media_player.bedroom': player('media_player.bedroom', 'Bedroom'),
+          },
+        })}
+      />
+    );
+
+    ['Volume down', 'Volume up', 'media.volume.mute'].forEach((name) =>
+      expect(screen.getByRole('button', { name })).toHaveClass('h-11', 'w-11')
+    );
+    [screen.getByTitle('tooltip.addToGroup'), ...screen.getAllByTitle('sonos.groupAll')].forEach(
+      (button) => expect(button).toHaveClass('relative', 'after:h-11', 'after:min-w-11')
+    );
+  });
+
   it('gives every transport button and tab a 44 px hit area', () => {
     render(
       <MediaPage

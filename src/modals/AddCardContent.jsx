@@ -29,7 +29,7 @@ import {
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { isSonosMediaEntity, isToggleEntity } from '../utils';
 import { getAreas, getEntitiesForArea } from '../services/haClient';
-import AccessibleModalShell from '../components/ui/AccessibleModalShell';
+import AccessibleModalShell, { useModalShell } from '../components/ui/AccessibleModalShell';
 import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import { NO_PICK_TYPES } from '../hooks/useAddCard';
 import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
@@ -179,6 +179,16 @@ function RoomSection({
         })}
       </div>
     </div>
+  );
+}
+
+/** Closes through the shell, so it asks before discarding picks just like the backdrop. */
+function FooterCancelButton({ children }) {
+  const shell = useModalShell();
+  return (
+    <Button variant="secondary" onClick={() => shell?.requestClose()}>
+      {children}
+    </Button>
   );
 }
 
@@ -1161,9 +1171,7 @@ function AddCardContent({
           </ModalBody>
 
           <ModalFooter>
-            <Button variant="secondary" onClick={onClose}>
-              {t('common.cancel')}
-            </Button>
+            <FooterCancelButton>{t('common.cancel')}</FooterCancelButton>
             <Button
               variant="primary"
               icon={<Plus />}

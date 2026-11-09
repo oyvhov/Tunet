@@ -6,7 +6,11 @@ import { fileURLToPath } from 'url';
 import profilesRouter from './routes/profiles.js';
 import iconsRouter from './routes/icons.js';
 import settingsRouter from './routes/settings.js';
-import { createHomeAssistantAuthMiddleware, warnIfHomeAssistantUrlMissing } from './haAuth.js';
+import {
+  createHomeAssistantAuthMiddleware,
+  getRateLimitKey,
+  warnIfHomeAssistantUrlMissing,
+} from './haAuth.js';
 import db, { startBackupSchedule } from './db.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -74,6 +78,7 @@ export const createApp = ({
     max: Math.max(Number(process.env.API_RATE_LIMIT_MAX) || 300, 10),
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: getRateLimitKey,
   });
 
   app.use('/api', apiRateLimiter);
