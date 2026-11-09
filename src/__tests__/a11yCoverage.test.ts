@@ -35,10 +35,15 @@ const openingTagEnd = (source: string, start: number) => {
 };
 
 const hasVisibleText = (body: string) => {
-  const rest = body
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
-    .replace(/<[A-Za-z][^<>]*?\/>/gs, '')
-    .replace(/<\/?[a-z][^<>]*>/gs, ' ');
+  let rest = body;
+  let previous: string;
+  do {
+    previous = rest;
+    rest = previous
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/<[A-Za-z][^<>]*?\/>/gs, '')
+      .replace(/<\/?[a-z][^<>]*>/gs, ' ');
+  } while (rest !== previous);
   if (/\b(t|translate)\(|\{\s*[a-zA-Z_.]+\s*\}/.test(rest)) return true;
   return /[\p{L}\p{N}]/u.test(rest.replace(/\{[\s\S]*?\}/g, ''));
 };

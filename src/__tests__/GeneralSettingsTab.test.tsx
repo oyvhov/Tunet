@@ -53,9 +53,7 @@ describe('GeneralSettingsTab', () => {
     (label) => {
       render(<GeneralSettingsTab {...makeProps()} />);
 
-      expect(screen.getAllByText(new RegExp(label.replace(/\./g, '\\.'))).length).toBeGreaterThan(
-        0
-      );
+      expect(screen.getAllByText((content) => content.includes(label)).length).toBeGreaterThan(0);
     }
   );
 
