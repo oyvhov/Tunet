@@ -257,9 +257,9 @@ describe('historyRowsToPoints', () => {
   });
 
   it('skips rows without a number or a usable time', () => {
-    expect(
-      historyRowsToPoints([{ s: 'unavailable', lu: 1700000000 }, { s: '5' }, null])
-    ).toEqual([]);
+    expect(historyRowsToPoints([{ s: 'unavailable', lu: 1700000000 }, { s: '5' }, null])).toEqual(
+      []
+    );
   });
 
   it('returns nothing for a response that is not a list', () => {

@@ -32,7 +32,8 @@ export function buildCostIncrementBuckets(
     buckets.set(bucketStart, (buckets.get(bucketStart) ?? 0) + spent);
   });
 
-  return Array.from(buckets, ([bucketStart, value]) => ({ time: new Date(bucketStart), value })).sort(
-    (a, b) => a.time.getTime() - b.time.getTime()
-  );
+  return Array.from(buckets, ([bucketStart, value]) => ({
+    time: new Date(bucketStart),
+    value,
+  })).sort((a, b) => a.time.getTime() - b.time.getTime());
 }

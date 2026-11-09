@@ -79,7 +79,11 @@ describe('popup triggers follow the entity the card uses', () => {
   });
 
   it('opens the replaced media player', () => {
-    const actions = trigger('media_player.old', { entityId: 'media_player.new' }, 'binary_sensor.x');
+    const actions = trigger(
+      'media_player.old',
+      { entityId: 'media_player.new' },
+      'binary_sensor.x'
+    );
     expect(actions.setActiveMediaId).toHaveBeenCalledWith('media_player.new');
   });
 

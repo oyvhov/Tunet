@@ -1,9 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Connection } from 'home-assistant-js-websocket';
-import {
-  CONNECTION_PING_INTERVAL_MS,
-  CONNECTION_PING_TIMEOUT_MS,
-} from '../utils/connectionHealth';
+import { CONNECTION_PING_INTERVAL_MS, CONNECTION_PING_TIMEOUT_MS } from '../utils/connectionHealth';
 
 export const CONNECTION_PROBE_TIMEOUT_MS = 3000;
 

@@ -174,7 +174,9 @@ function renderCard(cardId, settings, spec) {
   };
   const ctx = new Proxy(base, {
     get: (target, prop) =>
-      prop in target || typeof prop !== 'string' || !/^set[A-Z]/.test(prop) ? target[prop] : () => {},
+      prop in target || typeof prop !== 'string' || !/^set[A-Z]/.test(prop)
+        ? target[prop]
+        : () => {},
   });
   const node = dispatchCardRender(cardId, {}, () => null, {}, `home::${cardId}`, ctx);
   return { ...render(node), callService: helpers.callService };
@@ -287,7 +289,11 @@ describe('entities that are unavailable', () => {
   });
 
   it('nordpool shows no price instead of zero', () => {
-    const { container } = renderCard('nordpool_card_1', { nordpoolId: 'sensor.np' }, { 'sensor.np': {} });
+    const { container } = renderCard(
+      'nordpool_card_1',
+      { nordpoolId: 'sensor.np' },
+      { 'sensor.np': {} }
+    );
     expect(container).not.toHaveTextContent('0kr');
   });
 });
