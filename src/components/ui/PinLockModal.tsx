@@ -12,6 +12,8 @@ interface PinLockModalProps {
   t: Translate;
   error?: string | null;
   title?: string;
+  /** Way out for a forgotten PIN. Offered only after a wrong attempt, and it asks first. */
+  onForgot?: () => void;
 }
 
 export default function PinLockModal({
@@ -21,8 +23,10 @@ export default function PinLockModal({
   t,
   error,
   title,
+  onForgot,
 }: PinLockModalProps) {
   const [pin, setPin] = useState('');
+  const [confirmingReset, setConfirmingReset] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const digits = useMemo(() => ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'], []);
@@ -56,7 +60,13 @@ export default function PinLockModal({
 
   const handleClose = () => {
     setPin('');
+    setConfirmingReset(false);
     onClose();
+  };
+
+  const resetLock = () => {
+    onForgot?.();
+    handleClose();
   };
 
   const keyClassName =
@@ -147,6 +157,32 @@ export default function PinLockModal({
             <Button variant="primary" block onClick={submit} disabled={pin.length !== 4}>
               {t('settings.lock.unlock')}
             </Button>
+
+            {onForgot && error && !confirmingReset && (
+              <button
+                type="button"
+                onClick={() => setConfirmingReset(true)}
+                className="min-h-11 w-full text-sm font-medium text-[var(--text-secondary)]"
+              >
+                {t('settings.lock.forgot')}
+              </button>
+            )}
+
+            {confirmingReset && (
+              <div className="popup-surface space-y-3 rounded-[var(--modal-surface-radius)] p-3">
+                <p className="text-sm text-[var(--text-secondary)]">
+                  {t('settings.lock.forgotConfirm')}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="secondary" onClick={() => setConfirmingReset(false)}>
+                    {t('common.cancel')}
+                  </Button>
+                  <Button variant="destructive" onClick={resetLock}>
+                    {t('settings.lock.resetLock')}
+                  </Button>
+                </div>
+              </div>
+            )}
           </ModalBody>
         </>
       )}

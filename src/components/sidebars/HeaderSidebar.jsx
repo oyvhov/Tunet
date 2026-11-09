@@ -192,7 +192,7 @@ export default function HeaderSidebar({
               value={headerTitle}
               onChange={(e) => updateHeaderTitle(e.target.value)}
               placeholder={t('header.titlePlaceholder')}
-              className="w-full rounded-xl border px-3 py-2 text-sm transition-colors focus:outline-none"
+              className="min-h-11 w-full rounded-xl border px-3 py-2 text-sm transition-colors focus:outline-none"
               style={{
                 backgroundColor: 'var(--glass-bg)',
                 borderColor: 'var(--glass-border)',
@@ -215,7 +215,7 @@ export default function HeaderSidebar({
               name="header_font_family"
               value={setting('fontFamily', 'sans')}
               onChange={(e) => update('fontFamily', e.target.value)}
-              className="w-full appearance-none rounded-xl border px-3 py-2 text-sm focus:outline-none"
+              className="min-h-11 w-full appearance-none rounded-xl border px-3 py-2 text-sm focus:outline-none"
               style={{
                 backgroundColor: 'var(--glass-bg)',
                 borderColor: 'var(--glass-border)',
@@ -265,7 +265,7 @@ export default function HeaderSidebar({
                 <button
                   key={s}
                   onClick={() => update('fontStyle', s)}
-                  className={`flex-1 rounded-lg border px-2 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-all ${
+                  className={`min-h-11 flex-1 rounded-lg border px-2 py-1.5 text-[10px] font-bold tracking-wider uppercase transition-all ${
                     fontStyle === s ? '' : 'hover:border-white/20'
                   }`}
                   style={
@@ -282,7 +282,7 @@ export default function HeaderSidebar({
                         }
                   }
                 >
-                  {s}
+                  {t(`header.fontStyle.${s}`)}
                 </button>
               ))}
             </div>
@@ -422,11 +422,13 @@ export default function HeaderSidebar({
               value={setting('showClock', true)}
               onChange={(v) => update('showClock', v)}
             />
-            <Toggle
-              label={t('header.showClockOnMobile')}
-              value={setting('showClockOnMobile', true)}
-              onChange={(v) => update('showClockOnMobile', v)}
-            />
+            {setting('showClock', true) && (
+              <Toggle
+                label={t('header.showClockOnMobile')}
+                value={setting('showClockOnMobile', true)}
+                onChange={(v) => update('showClockOnMobile', v)}
+              />
+            )}
             <Toggle
               label={t('header.showDate')}
               value={setting('showDate', true)}
@@ -442,6 +444,9 @@ export default function HeaderSidebar({
               value={Boolean(cardsOnlyMode)}
               onChange={updateCardsOnlyMode}
             />
+            <p className="px-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+              {t('header.cardsOnlyExitHint')}
+            </p>
           </div>
 
           <div
@@ -457,7 +462,7 @@ export default function HeaderSidebar({
             <div className="flex gap-2">
               <button
                 onClick={() => update('clockFormat', '24h')}
-                className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${
+                className={`min-h-11 flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${
                   clockFormat === '24h' ? '' : 'hover:text-white'
                 }`}
                 style={
@@ -470,7 +475,7 @@ export default function HeaderSidebar({
               </button>
               <button
                 onClick={() => update('clockFormat', '12h')}
-                className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${
+                className={`min-h-11 flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${
                   clockFormat === '12h' ? '' : 'hover:text-white'
                 }`}
                 style={

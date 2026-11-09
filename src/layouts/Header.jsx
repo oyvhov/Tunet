@@ -165,7 +165,7 @@ export default function Header({
           <div className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
             <button
               onClick={() => setShowHeaderEditModal(true)}
-              className="flex items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
+              className="flex min-h-11 items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
             >
               <Edit2 className="h-4 w-4 animate-pulse" />
               <span className="text-xs font-bold tracking-widest uppercase">
@@ -240,7 +240,7 @@ export default function Header({
         <div className="edit-controls-anim absolute top-0 left-1/2 z-50 -translate-x-1/2">
           <button
             onClick={() => setShowHeaderEditModal(true)}
-            className="flex items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
+            className="flex min-h-11 items-center gap-2 rounded-full border border-[var(--accent-color)] bg-[var(--accent-bg)] px-4 py-2 text-[var(--accent-color)] shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent-bg)]"
           >
             <Edit2 className="h-4 w-4 animate-pulse" />
             <span className="text-xs font-bold tracking-widest uppercase">

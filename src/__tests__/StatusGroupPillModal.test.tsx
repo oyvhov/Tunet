@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import StatusGroupPillModal from '../modals/StatusGroupPillModal';
 
@@ -27,5 +27,23 @@ describe('StatusGroupPillModal rows', () => {
 
     expect(screen.getByText('Open')).toBeInTheDocument();
     expect(screen.queryByText('ON')).not.toBeInTheDocument();
+  });
+
+  it('gives the per-row action a 44 px tap target', () => {
+    render(
+      <StatusGroupPillModal
+        show
+        onClose={vi.fn()}
+        modalState={{ pill: { groupPreset: 'lights_on' }, presetId: 'lights_on' }}
+        entities={{
+          'light.kitchen': { state: 'on', attributes: { friendly_name: 'Kitchen' } },
+        }}
+        callService={vi.fn()}
+        t={t}
+      />
+    );
+
+    const row = screen.getByText('Kitchen').closest('.popup-surface') as HTMLElement;
+    expect(within(row).getByRole('button')).toHaveClass('min-h-11');
   });
 });

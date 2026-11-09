@@ -16,6 +16,23 @@ const baseProps = {
   isMobile: true,
 };
 
+describe('Header edit entry', () => {
+  it.each([['classic'], ['battery']])(
+    'gives the add-header button a 44 px tap target in the %s layout',
+    (headerStyle) => {
+      render(
+        <Header
+          {...baseProps}
+          editMode
+          headerSettings={{ showTitle: false, showClock: true, showDate: true, headerStyle }}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'header.addHeader' })).toHaveClass('min-h-11');
+    }
+  );
+});
+
 describe('Header mobile alignment', () => {
   it.each([
     ['left', 'items-start', 'text-left', 'justify-start'],

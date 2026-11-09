@@ -50,6 +50,15 @@ describe('PersonStatus', () => {
     expect(screen.getByText('Heime')).toHaveClass('text-[10px]', 'sm:text-xs');
   });
 
+  it('falls back to the initial when the photo cannot be loaded', () => {
+    render(<PersonStatus {...baseProps} getEntityImageUrl={() => '/api/image/ola.jpg'} />);
+
+    fireEvent.error(screen.getByRole('img', { name: 'Ola Nordmann' }));
+
+    expect(screen.queryByRole('img', { name: 'Ola Nordmann' })).not.toBeInTheDocument();
+    expect(screen.getByText('O')).toBeInTheDocument();
+  });
+
   it('shows state by itself on mobile when the name is disabled', () => {
     render(
       <PersonStatus
