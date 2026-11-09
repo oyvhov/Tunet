@@ -282,6 +282,7 @@ export default function LayoutSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.gridColumns')}
               min={MIN_GRID_COLUMNS}
               max={selectableMaxGridColumns}
               step={1}
@@ -309,6 +310,7 @@ export default function LayoutSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.gridGapH')}
               min={0}
               max={64}
               step={4}
@@ -336,6 +338,7 @@ export default function LayoutSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.gridGapV')}
               min={0}
               max={64}
               step={4}
@@ -375,6 +378,7 @@ export default function LayoutSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingHeader')}
               min={0}
               max={64}
               step={4}
@@ -406,6 +410,7 @@ export default function LayoutSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingNav')}
               min={0}
               max={64}
               step={4}
@@ -435,6 +440,7 @@ export default function LayoutSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingGrid')}
               min={0}
               max={64}
               step={4}

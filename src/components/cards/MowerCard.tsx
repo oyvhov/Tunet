@@ -6,6 +6,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface MowerCardProps extends Pick<
   CardBaseProps,
@@ -152,6 +153,7 @@ const MowerCard = ({
         ref={cardRef}
         key={mowerId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -254,6 +256,7 @@ const MowerCard = ({
     <div
       key={mowerId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();

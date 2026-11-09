@@ -1086,6 +1086,7 @@ export default function MediaModal({
         <>
           <div className="flex-1 px-1">
             <M3Slider
+              ariaLabel={t('media.volume.level')}
               variant="volume"
               min={0}
               max={100}
@@ -1245,6 +1246,7 @@ export default function MediaModal({
                     <span>{formatDuration(duration)}</span>
                   </div>
                   <M3Slider
+                    ariaLabel={t('media.seekPosition')}
                     variant="thin"
                     min={0}
                     max={duration || 100}
@@ -1619,6 +1621,7 @@ export default function MediaModal({
                     </span>
                     <div className="flex-1">
                       <M3Slider
+                        ariaLabel={t('media.seekPosition')}
                         variant="thin"
                         min={0}
                         max={duration || 100}
@@ -1674,6 +1677,7 @@ export default function MediaModal({
                           <>
                             <div className="min-w-0 flex-1 px-1 lg:w-48 lg:flex-none">
                               <M3Slider
+                                ariaLabel={t('media.volume.level')}
                                 variant="volume"
                                 min={0}
                                 max={100}

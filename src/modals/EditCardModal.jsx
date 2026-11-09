@@ -1348,6 +1348,9 @@ export default function EditCardModal({
                         </p>
                       </div>
                       <button
+                        role="switch"
+                        aria-checked={!!editSettings.largeCalendar}
+                        aria-label={t('calendar.largeCalendar')}
                         type="button"
                         onClick={() =>
                           saveCardSetting(
@@ -1855,6 +1858,9 @@ export default function EditCardModal({
                         {t('weatherTemp.showEffects')}
                       </span>
                       <button
+                        role="switch"
+                        aria-checked={editSettings.showEffects !== false}
+                        aria-label={t('weatherTemp.showEffects')}
                         onClick={() =>
                           saveCardSetting(
                             editSettingsKey,
@@ -2389,6 +2395,9 @@ export default function EditCardModal({
                         {t('form.showName') || 'Show Name'}
                       </span>
                       <button
+                        role="switch"
+                        aria-checked={editSettings.showName !== false}
+                        aria-label={t('form.showName')}
                         onClick={() =>
                           editSettingsKey &&
                           saveCardSetting(
@@ -2410,6 +2419,9 @@ export default function EditCardModal({
                         {t('person.showState') || 'Show State'}
                       </span>
                       <button
+                        role="switch"
+                        aria-checked={editSettings.showState !== false}
+                        aria-label={t('person.showState')}
                         onClick={() =>
                           editSettingsKey &&
                           saveCardSetting(
@@ -2431,6 +2443,9 @@ export default function EditCardModal({
                         {t('person.showZoneBadgeIcon') || 'Show Zone Icon in Badge'}
                       </span>
                       <button
+                        role="switch"
+                        aria-checked={editSettings.showZoneBadgeIcon !== false}
+                        aria-label={t('person.showZoneBadgeIcon')}
                         onClick={() =>
                           editSettingsKey &&
                           saveCardSetting(
@@ -2510,6 +2525,7 @@ export default function EditCardModal({
                               {entities[sensorId]?.attributes?.friendly_name || sensorId}
                             </span>
                             <button
+                              aria-label={t('common.remove')}
                               onClick={() =>
                                 saveCardSetting(
                                   editSettingsKey,
@@ -2549,6 +2565,7 @@ export default function EditCardModal({
                               {entities[id]?.attributes?.friendly_name || id}
                             </span>
                             <button
+                              aria-label={t('common.remove')}
                               onClick={() => {
                                 const current = editSettings.linkedMediaPlayers;
                                 saveCardSetting(
@@ -2658,6 +2675,9 @@ export default function EditCardModal({
                   <div className="flex items-center justify-between">
                     <span className="modal-section-label">{t('form.showStatus')}</span>
                     <button
+                      role="switch"
+                      aria-checked={editSettings.showStatus !== false}
+                      aria-label={t('form.showStatus')}
                       onClick={() =>
                         editSettingsKey &&
                         saveCardSetting(
@@ -2677,6 +2697,9 @@ export default function EditCardModal({
                   <div className="flex items-center justify-between">
                     <span className="modal-section-label">{t('form.showLastChanged')}</span>
                     <button
+                      role="switch"
+                      aria-checked={editSettings.showLastChanged !== false}
+                      aria-label={t('form.showLastChanged')}
                       onClick={() =>
                         editSettingsKey &&
                         saveCardSetting(
@@ -2708,6 +2731,9 @@ export default function EditCardModal({
                       </p>
                     </div>
                     <button
+                      role="switch"
+                      aria-checked={!!editSettings.disable_animation}
+                      aria-label={t('fan.disableAnimation')}
                       type="button"
                       onClick={() =>
                         saveCardSetting(
@@ -3132,6 +3158,9 @@ export default function EditCardModal({
                         {t('nordpool.withSupport') || 'Show electricity support'}
                       </span>
                       <button
+                        role="switch"
+                        aria-checked={!!editSettings.showWithSupport}
+                        aria-label={t('nordpool.withSupport')}
                         onClick={() =>
                           saveCardSetting(
                             editSettingsKey,

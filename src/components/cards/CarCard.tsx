@@ -10,6 +10,7 @@ import {
 } from '../../utils';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface CarCardProps extends Pick<
   CardBaseProps,
@@ -163,6 +164,7 @@ const CarCard = ({
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -213,6 +215,7 @@ const CarCard = ({
       ref={cardRef}
       key={cardId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();

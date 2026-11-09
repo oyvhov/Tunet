@@ -6,6 +6,7 @@ import type { Connection } from 'home-assistant-js-websocket';
 import type { CardBaseProps } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface LockCardProps extends Pick<
   CardBaseProps,
@@ -193,6 +194,7 @@ const LockCard = memo(function LockCard({
       <div
         key={lockId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(event) => {
           event.stopPropagation();
@@ -249,6 +251,7 @@ const LockCard = memo(function LockCard({
     <div
       key={lockId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(event) => {
         event.stopPropagation();

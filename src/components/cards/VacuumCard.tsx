@@ -9,6 +9,7 @@ import {
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface VacuumCardProps extends Pick<
   CardBaseProps,
@@ -127,6 +128,7 @@ const VacuumCard = ({
         ref={cardRef}
         key={vacuumId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -195,6 +197,7 @@ const VacuumCard = ({
           }
         >
           <button
+            aria-label={state === 'cleaning' ? t('vacuum.pause') : t('vacuum.start')}
             disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
@@ -216,6 +219,7 @@ const VacuumCard = ({
             )}
           </button>
           <button
+            aria-label={t('vacuum.home')}
             disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
@@ -234,6 +238,7 @@ const VacuumCard = ({
     <div
       key={vacuumId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();
@@ -326,6 +331,7 @@ const VacuumCard = ({
           className={`${useDenseMobileLargeLayout ? 'grid w-full grid-cols-2 gap-2' : 'flex gap-2'}`}
         >
           <button
+            aria-label={state === 'cleaning' ? t('vacuum.pause') : t('vacuum.start')}
             disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
@@ -347,6 +353,7 @@ const VacuumCard = ({
             )}
           </button>
           <button
+            aria-label={t('vacuum.home')}
             disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();

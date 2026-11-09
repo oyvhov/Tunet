@@ -3,6 +3,7 @@ import { Coins } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useHomeAssistantMeta } from '../../contexts';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type CostEntity = EntityMap[string] | null | undefined;
 
@@ -92,6 +93,7 @@ const GenericEnergyCostCard = memo(function GenericEnergyCostCard({
     return (
       <div
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -142,6 +144,7 @@ const GenericEnergyCostCard = memo(function GenericEnergyCostCard({
     <div
       key="energy_cost"
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();

@@ -6,6 +6,7 @@ import { usePowerToggle } from '../../hooks/usePowerToggle';
 import type { HTMLAttributes, MouseEvent } from 'react';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import type { MediaCardCommonProps } from './MediaCards';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface GenericAppleTVCardProps extends MediaCardCommonProps {
   mediaPlayerId: string;
@@ -160,6 +161,7 @@ const GenericAppleTVCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, deviceName)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={handleCardClick}
           className={`${picture || appLogo ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
@@ -247,6 +249,7 @@ const GenericAppleTVCard = memo(
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, deviceName)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={handleCardClick}
         className={`${picture || appLogo ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}

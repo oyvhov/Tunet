@@ -18,3 +18,17 @@ export function createCardKeyHandler(
     onActivate?.(event);
   };
 }
+
+const clickFocusedCard = createCardKeyHandler((event) => {
+  if (event.currentTarget instanceof HTMLElement) event.currentTarget.click();
+});
+
+/** Button semantics for a card root, with the keyboard reusing the card's own click handler. */
+export function cardButtonProps(editMode: boolean | undefined, label: unknown) {
+  return {
+    role: 'button',
+    tabIndex: editMode ? -1 : 0,
+    'aria-label': String(label),
+    onKeyDown: editMode ? undefined : clickFocusedCard,
+  };
+}

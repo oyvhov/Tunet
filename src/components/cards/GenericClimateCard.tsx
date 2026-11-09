@@ -11,6 +11,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { CardCallService } from '../../types/cards';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 // getClimateStatus needs a string state and a non-weak attributes type.
 type ClimateEntity = EntityMap[string] & {
@@ -183,6 +184,7 @@ const GenericClimateCard = memo(
       return (
         <div
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           onClick={(e) => {
             e.stopPropagation();
             if (editMode) return;
@@ -238,6 +240,7 @@ const GenericClimateCard = memo(
           </div>
           <div className="card-controls card-controls--temp touch:visible invisible shrink-0 group-hover:visible">
             <button
+              aria-label={translate('common.increase')}
               type="button"
               disabled={!canAdjust}
               onClick={(e) => stepTarget(e, 1)}
@@ -246,6 +249,7 @@ const GenericClimateCard = memo(
               <Plus className="h-4 w-4" />
             </button>
             <button
+              aria-label={translate('common.decrease')}
               type="button"
               disabled={!canAdjust}
               onClick={(e) => stepTarget(e, -1)}
@@ -262,6 +266,7 @@ const GenericClimateCard = memo(
       <div
         key="climate"
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -340,6 +345,7 @@ const GenericClimateCard = memo(
               className={`flex flex-1 items-center justify-between bg-[var(--glass-bg)] ${isDenseMobile ? 'rounded-xl p-0.5' : 'rounded-2xl p-1'}`}
             >
               <button
+                aria-label={translate('common.decrease')}
                 type="button"
                 disabled={!canAdjust}
                 onClick={(e) => stepTarget(e, -1)}
@@ -355,6 +361,7 @@ const GenericClimateCard = memo(
                 </span>
               </div>
               <button
+                aria-label={translate('common.increase')}
                 type="button"
                 disabled={!canAdjust}
                 onClick={(e) => stepTarget(e, 1)}

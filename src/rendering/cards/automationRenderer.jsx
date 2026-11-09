@@ -2,6 +2,7 @@ import { Workflow } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { getSettings, renderMissingEntityWhenReady } from '../helpers';
 import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
+import { cardButtonProps } from '../../utils/keyboard';
 
 export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const { entities, editMode, customNames, customIcons, getA, callService, t } = ctx;
@@ -28,6 +29,7 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
     <div
       key={cardId}
       {...dragProps}
+      {...(isUnavailable ? {} : cardButtonProps(editMode, friendlyName))}
       data-haptic={canToggle ? 'card' : undefined}
       aria-disabled={isUnavailable || undefined}
       className={`touch-feedback group relative mb-3 flex w-full break-inside-avoid items-center justify-between overflow-hidden rounded-2xl border p-4 font-sans transition-all duration-500 ${canToggle ? 'cursor-pointer active:scale-98' : editMode ? 'cursor-move' : 'cursor-default'}`}

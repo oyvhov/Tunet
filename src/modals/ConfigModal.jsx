@@ -722,6 +722,7 @@ export default function ConfigModal({
                           {t('profiles.load')}
                         </button>
                         <button
+                          aria-label={t('profiles.edit')}
                           onClick={() => {
                             setEditingProfileId(profile.id);
                             setEditName(profile.name);
@@ -732,6 +733,7 @@ export default function ConfigModal({
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
+                          aria-label={t('profiles.delete')}
                           onClick={async () => {
                             const ok = await confirmAction({
                               title: profile.name,
@@ -824,6 +826,9 @@ export default function ConfigModal({
                   </p>
                 </button>
                 <button
+                  role="switch"
+                  aria-checked={!!autoSync.enabled}
+                  aria-label={t('profiles.autoSyncTitle')}
                   type="button"
                   onClick={() => autoSync.setEnabled(!autoSync.enabled)}
                   className={`relative h-6 w-10 rounded-full p-1 transition-colors ${autoSync.enabled ? 'bg-[var(--accent-color)]' : 'bg-gray-500/30'}`}
@@ -1389,6 +1394,9 @@ export default function ConfigModal({
                 </label>
                 <div className="flex items-center gap-3">
                   <button
+                    role="switch"
+                    aria-checked={inactivityTimeout > 0}
+                    aria-label={t('settings.inactivity')}
                     onClick={() => {
                       const newVal = inactivityTimeout > 0 ? 0 : 60;
                       setInactivityTimeout(newVal);
@@ -1413,6 +1421,7 @@ export default function ConfigModal({
                     </span>
                   </div>
                   <M3Slider
+                    ariaLabel={t('settings.inactivity')}
                     min={10}
                     max={300}
                     step={10}
@@ -1622,6 +1631,7 @@ export default function ConfigModal({
                   </span>
                 </div>
                 <M3Slider
+                  ariaLabel={t('settings.gridGapH')}
                   min={0}
                   max={64}
                   step={4}
@@ -1642,6 +1652,7 @@ export default function ConfigModal({
                   </span>
                 </div>
                 <M3Slider
+                  ariaLabel={t('settings.gridGapV')}
                   min={0}
                   max={64}
                   step={4}
@@ -1669,6 +1680,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingHeader')}
               min={0}
               max={64}
               step={4}
@@ -1692,6 +1704,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingNav')}
               min={0}
               max={64}
               step={4}
@@ -1715,6 +1728,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingGrid')}
               min={0}
               max={64}
               step={4}
@@ -1743,6 +1757,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.cardRadius')}
               min={0}
               max={64}
               step={2}
@@ -1765,6 +1780,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.transparency')}
               min={0}
               max={100}
               step={5}
@@ -1787,6 +1803,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.borderOpacity')}
               min={0}
               max={50}
               step={5}
@@ -2233,6 +2250,7 @@ export default function ConfigModal({
                             </label>
                             <div className="px-1 py-2">
                               <M3Slider
+                                ariaLabel={t('settings.inactivity')}
                                 min={0}
                                 max={300}
                                 step={10}

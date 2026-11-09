@@ -317,6 +317,7 @@ export default function HeaderSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('header.scale')}
               min={0.5}
               max={2.0}
               step={0.1}
@@ -363,6 +364,7 @@ export default function HeaderSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('header.clockScale')}
               min={0.5}
               max={2.0}
               step={0.1}
@@ -391,6 +393,7 @@ export default function HeaderSidebar({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('header.dateScale')}
               min={0.5}
               max={2.0}
               step={0.1}

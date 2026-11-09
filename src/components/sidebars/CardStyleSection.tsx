@@ -180,6 +180,7 @@ export default function CardStyleSection({
           </div>
         </div>
         <M3Slider
+          ariaLabel={t('settings.cardScale')}
           min={60}
           max={120}
           step={5}
@@ -208,6 +209,7 @@ export default function CardStyleSection({
           </div>
         </div>
         <M3Slider
+          ariaLabel={t('settings.cardRadius')}
           min={0}
           max={64}
           step={2}
@@ -235,6 +237,7 @@ export default function CardStyleSection({
           </div>
         </div>
         <M3Slider
+          ariaLabel={t('settings.transparency')}
           min={0}
           max={100}
           step={5}
@@ -262,6 +265,7 @@ export default function CardStyleSection({
           </div>
         </div>
         <M3Slider
+          ariaLabel={t('settings.borderOpacity')}
           min={0}
           max={50}
           step={5}
@@ -333,6 +337,7 @@ export default function CardStyleSection({
                 </span>
               </div>
               <M3Slider
+                ariaLabel={t('settings.colorRed')}
                 min={0}
                 max={255}
                 step={1}
@@ -356,6 +361,7 @@ export default function CardStyleSection({
                 </span>
               </div>
               <M3Slider
+                ariaLabel={t('settings.colorGreen')}
                 min={0}
                 max={255}
                 step={1}
@@ -379,6 +385,7 @@ export default function CardStyleSection({
                 </span>
               </div>
               <M3Slider
+                ariaLabel={t('settings.colorBlue')}
                 min={0}
                 max={255}
                 step={1}
