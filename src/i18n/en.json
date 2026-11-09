@@ -1778,5 +1778,21 @@
   "addCard.available.mowers": "Available mowers",
   "addCard.item.mowers": "mowers",
   "page.type": "Page type",
-  "page.typeStandard": "Standard"
+  "page.typeStandard": "Standard",
+  "moment.media.title": "Show full screen when something plays",
+  "moment.media.hint": "Shows the cover and controls. Stays open through pauses.",
+  "moment.camera.title": "Show full screen when something happens",
+  "moment.camera.hint": "For example when the doorbell rings. Set the rule below.",
+  "moment.notice.title": "Announce full screen",
+  "moment.notice.hint": "For example when the washing machine is done. Set the rule below.",
+  "moment.closeAfterPause": "Close after pause",
+  "moment.closeAfterQuiet": "Close once it is quiet",
+  "moment.showFor": "Show for",
+  "moment.message": "Message",
+  "moment.messagePlaceholder": "The washing machine is done",
+  "moment.volume": "Volume",
+  "moment.seconds30": "30 s",
+  "moment.minute1": "1 min",
+  "moment.minutes2": "2 min",
+  "moment.minutes5": "5 min"
 }

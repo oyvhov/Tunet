@@ -1778,5 +1778,21 @@
   "addCard.available.mowers": "Tondeuses disponibles",
   "addCard.item.mowers": "tondeuses",
   "page.type": "Type de page",
-  "page.typeStandard": "Standard"
+  "page.typeStandard": "Standard",
+  "moment.media.title": "Afficher en plein écran à la lecture",
+  "moment.media.hint": "Affiche la pochette et les commandes. Reste ouvert pendant les pauses.",
+  "moment.camera.title": "Afficher en plein écran quand il se passe quelque chose",
+  "moment.camera.hint": "Par exemple quand on sonne à la porte. Choisissez la règle ci-dessous.",
+  "moment.notice.title": "Prévenir en plein écran",
+  "moment.notice.hint": "Par exemple quand le lave-linge a terminé. Choisissez la règle ci-dessous.",
+  "moment.closeAfterPause": "Fermer après la pause",
+  "moment.closeAfterQuiet": "Fermer une fois au calme",
+  "moment.showFor": "Afficher pendant",
+  "moment.message": "Message",
+  "moment.messagePlaceholder": "Le lave-linge a terminé",
+  "moment.volume": "Volume",
+  "moment.seconds30": "30 s",
+  "moment.minute1": "1 min",
+  "moment.minutes2": "2 min",
+  "moment.minutes5": "5 min"
 }

@@ -1778,5 +1778,21 @@
   "addCard.available.mowers": "Tillgängliga gräsklippare",
   "addCard.item.mowers": "gräsklippare",
   "page.type": "Sidtyp",
-  "page.typeStandard": "Standard"
+  "page.typeStandard": "Standard",
+  "moment.media.title": "Visa i helskärm när något spelas",
+  "moment.media.hint": "Visar omslag och kontroller. Håller sig öppen genom pauser.",
+  "moment.camera.title": "Visa i helskärm när något händer",
+  "moment.camera.hint": "Till exempel när det ringer på dörren. Välj regeln nedan.",
+  "moment.notice.title": "Meddela i helskärm",
+  "moment.notice.hint": "Till exempel när tvättmaskinen är klar. Välj regeln nedan.",
+  "moment.closeAfterPause": "Stäng efter paus",
+  "moment.closeAfterQuiet": "Stäng när det är lugnt",
+  "moment.showFor": "Visa i",
+  "moment.message": "Meddelande",
+  "moment.messagePlaceholder": "Tvättmaskinen är klar",
+  "moment.volume": "Volym",
+  "moment.seconds30": "30 s",
+  "moment.minute1": "1 min",
+  "moment.minutes2": "2 min",
+  "moment.minutes5": "5 min"
 }

@@ -1778,5 +1778,21 @@
   "addCard.available.mowers": "可用的割草机",
   "addCard.item.mowers": "割草机",
   "page.type": "页面类型",
-  "page.typeStandard": "标准"
+  "page.typeStandard": "标准",
+  "moment.media.title": "播放时全屏显示",
+  "moment.media.hint": "显示封面和控制按钮，暂停时保持打开。",
+  "moment.camera.title": "发生事件时全屏显示",
+  "moment.camera.hint": "例如门铃响起时。请在下方设置规则。",
+  "moment.notice.title": "全屏提醒",
+  "moment.notice.hint": "例如洗衣机完成时。请在下方设置规则。",
+  "moment.closeAfterPause": "暂停后关闭",
+  "moment.closeAfterQuiet": "恢复平静后关闭",
+  "moment.showFor": "显示时长",
+  "moment.message": "消息",
+  "moment.messagePlaceholder": "洗衣机已完成",
+  "moment.volume": "音量",
+  "moment.seconds30": "30 秒",
+  "moment.minute1": "1 分钟",
+  "moment.minutes2": "2 分钟",
+  "moment.minutes5": "5 分钟"
 }

@@ -420,23 +420,40 @@ html[data-studio-preview] #main-content {
 }
 
 .sidebar-background-option__preview--theme {
-  background: var(--bg-primary);
+  background: var(--background-preview-base);
+}
+
+.sidebar-background-option__preview[data-tone='dark'] svg {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.sidebar-background-option__preview[data-tone='light'] svg {
+  color: rgba(15, 23, 42, 0.74);
+  filter: none;
 }
 
 .sidebar-background-option__preview--animated {
   background:
-    radial-gradient(circle at 30% 80%, rgba(72, 187, 220, 0.72), transparent 48%),
-    radial-gradient(circle at 70% 20%, rgba(55, 94, 194, 0.58), transparent 54%), #07101c;
+    radial-gradient(circle at 22% 82%, rgba(20, 184, 166, 0.5), transparent 52%),
+    radial-gradient(circle at 78% 28%, rgba(14, 165, 233, 0.55), transparent 58%),
+    radial-gradient(circle at 20% 18%, rgba(79, 70, 229, 0.5), transparent 52%),
+    var(--background-preview-base);
 }
 
 .sidebar-background-option__preview--lavaLamp {
   background:
-    radial-gradient(circle at 28% 35%, rgba(219, 92, 55, 0.78), transparent 38%),
-    radial-gradient(circle at 75% 68%, rgba(123, 58, 177, 0.7), transparent 42%), #160c18;
+    radial-gradient(circle at 28% 35%, rgba(220, 60, 60, 0.62), transparent 44%),
+    radial-gradient(circle at 76% 70%, rgba(140, 50, 180, 0.56), transparent 46%),
+    radial-gradient(circle at 78% 16%, rgba(200, 100, 30, 0.42), transparent 42%),
+    var(--background-preview-base);
 }
 
 .sidebar-background-option__preview--silk {
-  background: linear-gradient(145deg, #101827, #26364e 48%, #0b111d);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(147, 197, 253, 0.6), transparent 56%),
+    radial-gradient(circle at 80% 28%, rgba(196, 181, 253, 0.55), transparent 54%),
+    radial-gradient(circle at 50% 96%, rgba(167, 243, 208, 0.5), transparent 52%),
+    var(--background-preview-base);
 }
 
 .popup-surface > .sidebar-accordion {

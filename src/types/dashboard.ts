@@ -4,6 +4,7 @@ import type { HassConfig, HassEntity, Translate } from './ha';
 import type { UnitsMode } from '../utils/units';
 import type { PageSettingsEntry } from '../utils/cardUtils';
 import type { IconComponent } from '../icons/iconMap';
+import type { ActiveMoment } from '../utils/moments';
 
 export interface HomeAssistantConfig {
   url: string;
@@ -418,6 +419,7 @@ export interface ModalState {
   activeMediaGroupIds: string[] | null;
   activeMediaSessionSensorIds: string[] | null;
   activeMediaId: string | null;
+  activeMoment: ActiveMoment | null;
   showStatusGroupModal: { pill: StatusPillConfig; presetId: string } | null;
   showAddCardModal: boolean;
   showConfigModal: boolean;
@@ -453,6 +455,7 @@ export interface ModalSetters {
   setActiveMediaGroupIds: (value: string[] | null) => void;
   setActiveMediaSessionSensorIds: (value: string[] | null) => void;
   setActiveMediaId: (value: string | null) => void;
+  setActiveMoment: (value: ActiveMoment | null) => void;
   setShowStatusGroupModal: (value: { pill: StatusPillConfig; presetId: string } | null) => void;
   setShowAddCardModal: (value: boolean) => void;
   setShowConfigModal: (value: boolean) => void;
@@ -483,6 +486,7 @@ export interface EntityModalActions {
   setShowWeatherModal: (value: string | null) => void;
   setShowAlarmModal: (value: string | null) => void;
   setShowAlarmActionModal: (value: { cardId: string; actionKey: string } | null) => void;
+  setActiveMoment: (value: ActiveMoment | null) => void;
 }
 
 export interface MediaModalActions {

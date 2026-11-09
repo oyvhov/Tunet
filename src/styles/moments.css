@@ -1,0 +1,314 @@
+.moment-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-modal-nested, 210) + 10);
+}
+
+.moment {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  /* The root variable is only set for some background modes. */
+  --moment-bg: var(--bg-primary, var(--moment-base));
+  background: var(--moment-bg);
+  color: var(--text-primary);
+}
+
+.moment__backdrop,
+.moment__camera {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.moment__backdrop img {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  filter: blur(48px) saturate(1.2);
+  animation: moment-fade 0.8s ease both;
+}
+
+.moment__tone {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--moment-bg) 62%, transparent);
+}
+
+.moment__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.moment__bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(1rem, 3vmin, 2rem) clamp(1.25rem, 4vmin, 2.75rem);
+}
+
+.moment__label {
+  font-size: clamp(0.72rem, 1.5vmin, 0.9rem);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.moment__close {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  transition: background-color 160ms ease;
+}
+
+.moment__close:hover {
+  background: var(--glass-bg-hover);
+}
+
+.moment__close svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.moment--camera .moment__bar {
+  background: linear-gradient(rgb(0 0 0 / 55%), transparent);
+}
+
+.moment--camera .moment__label {
+  color: rgb(255 255 255 / 90%);
+}
+
+.moment__stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2rem, 7vmin, 6rem);
+  padding: 0 clamp(1.5rem, 7vmin, 6rem) clamp(1.5rem, 6vmin, 4rem);
+}
+
+.moment__cover {
+  display: grid;
+  width: min(66dvh, 42vw);
+  flex: none;
+  aspect-ratio: 1;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: calc(var(--card-border-radius, 16px) * 1.5);
+  background: var(--glass-bg);
+  color: var(--text-muted);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 28%);
+  transition:
+    transform 400ms ease,
+    opacity 400ms ease;
+}
+
+.moment__stage[data-paused] .moment__cover {
+  transform: scale(0.97);
+  opacity: 0.78;
+}
+
+.moment__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: moment-fade 0.5s ease both;
+}
+
+.moment__cover > svg {
+  width: 30%;
+  height: 30%;
+}
+
+.moment__details {
+  display: flex;
+  min-width: 0;
+  max-width: 36rem;
+  flex: 1;
+  flex-direction: column;
+}
+
+.moment__title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: clamp(2rem, 6vmin, 3.75rem);
+  font-weight: 300;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.moment__artist {
+  margin-top: 0.7rem;
+  font-size: clamp(1.1rem, 3vmin, 1.75rem);
+  color: var(--text-secondary);
+}
+
+.moment__album {
+  margin-top: 0.25rem;
+  font-size: clamp(0.9rem, 2vmin, 1.15rem);
+  color: var(--text-muted);
+}
+
+.moment__progress {
+  margin-top: clamp(1.25rem, 4vmin, 2.5rem);
+}
+
+.moment__progress-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+.moment__progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-primary);
+  transition: width 1s linear;
+}
+
+.moment__progress-times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.45rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.moment__controls {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 3vmin, 1.75rem);
+  margin-top: clamp(1rem, 3vmin, 2rem);
+}
+
+.moment__controls button {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--text-primary);
+  transition: background-color 160ms ease;
+}
+
+.moment__controls button:hover {
+  background: var(--glass-bg-hover);
+}
+
+.moment__controls svg {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.moment__controls .moment__play {
+  width: 4.75rem;
+  height: 4.75rem;
+  background: var(--text-primary);
+  color: var(--moment-bg);
+}
+
+.moment__controls .moment__play:hover {
+  background: var(--text-primary);
+  opacity: 0.88;
+}
+
+.moment__controls .moment__play svg {
+  width: 2rem;
+  height: 2rem;
+  fill: currentColor;
+}
+
+.moment__volume {
+  margin-top: clamp(1rem, 3vmin, 2rem);
+}
+
+.moment__notice {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 0 clamp(1.5rem, 8vmin, 7rem) clamp(4rem, 12vmin, 8rem);
+  text-align: center;
+}
+
+.moment__notice-icon {
+  display: grid;
+  width: clamp(5rem, 16vmin, 9rem);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent-color);
+}
+
+.moment__notice-icon svg {
+  width: 44%;
+  height: 44%;
+}
+
+.moment__notice .moment__title {
+  font-size: clamp(2.5rem, 9vmin, 5.5rem);
+}
+
+@media (orientation: portrait) {
+  .moment__stage {
+    flex-direction: column;
+    gap: clamp(1.5rem, 4vmin, 3rem);
+  }
+
+  .moment__cover {
+    width: min(70vw, 46dvh);
+  }
+
+  .moment__details {
+    width: 100%;
+    max-width: min(70vw, 40rem);
+    flex: none;
+  }
+}
+
+@keyframes moment-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moment__backdrop img,
+  .moment__cover img {
+    animation: none;
+  }
+
+  .moment__cover {
+    transition: none;
+  }
+}

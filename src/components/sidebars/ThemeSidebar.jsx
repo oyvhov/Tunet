@@ -3,6 +3,7 @@ import React from 'react';
 import { GRADIENT_PRESETS } from '../../contexts/ConfigContext';
 import { useConfig } from '../../contexts';
 import { backgroundImageUrl } from '../../utils/studioPreview';
+import { isLightColor } from '../../utils/colorUtils';
 import { Sparkles, Sun, Moon, Flame, Feather, Link, ChevronRight } from '../../icons';
 import SidebarContainer from './SidebarContainer';
 import CardStyleSection from './CardStyleSection';
@@ -98,16 +99,27 @@ export default function ThemeSidebar({
             onAction={resetBackground}
           />
 
-          <div className="sidebar-background-grid">
+          <div
+            className="sidebar-background-grid"
+            style={
+              /** @type {import('react').CSSProperties} */ ({
+                '--background-preview-base':
+                  themes[currentTheme]?.colors?.['--bg-primary'] || '#0f172a',
+              })
+            }
+          >
             {bgModes.map((mode) => {
               const active = bgMode === mode.key;
               const ModeIcon = mode.icon;
+              const gradientTo = GRADIENT_PRESETS[bgGradient]?.to || '#020617';
+              const fixedColor =
+                mode.key === 'solid' ? bgColor : mode.key === 'gradient' ? gradientTo : null;
               const previewStyle =
                 mode.key === 'solid'
                   ? { background: bgColor }
                   : mode.key === 'gradient'
                     ? {
-                        background: `linear-gradient(135deg, ${GRADIENT_PRESETS[bgGradient]?.from || '#0f172a'}, ${GRADIENT_PRESETS[bgGradient]?.to || '#020617'})`,
+                        background: `linear-gradient(135deg, ${GRADIENT_PRESETS[bgGradient]?.from || '#0f172a'}, ${gradientTo})`,
                       }
                     : mode.key === 'custom' && bgImage
                       ? {
@@ -127,6 +139,9 @@ export default function ThemeSidebar({
                   <span
                     className={`sidebar-background-option__preview sidebar-background-option__preview--${mode.key}`}
                     style={previewStyle}
+                    data-tone={
+                      fixedColor ? (isLightColor(fixedColor) ? 'light' : 'dark') : undefined
+                    }
                   >
                     <ModeIcon aria-hidden="true" />
                   </span>

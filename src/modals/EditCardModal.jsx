@@ -16,6 +16,7 @@ import { EntityField, ToggleRow } from './editCard/settingsControls';
 import SensorCardSettings from './SensorCardSettings';
 import SensorCardPreview from './editCard/SensorCardPreview';
 import CardActionsRow from './editCard/CardActionsRow';
+import MomentSection from './editCard/MomentSection';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
   convertValueByKind,
@@ -3224,7 +3225,18 @@ export default function EditCardModal({
                 />
               )}
 
-              {editSettingsKey && (
+              {editSettingsKey && !entityId?.startsWith('spacer_card_') && (
+                <MomentSection
+                  t={t}
+                  cardId={entityId}
+                  moment={editSettings?.moment}
+                  onChange={(next) => saveCardSetting(editSettingsKey, 'moment', next)}
+                  editSettings={editSettings}
+                  entities={entities}
+                />
+              )}
+
+              {editSettingsKey && (!isEditMedia || popupTriggerEnabled) && (
                 <PopupTriggerSection
                   t={t}
                   popupTriggerEnabled={popupTriggerEnabled}

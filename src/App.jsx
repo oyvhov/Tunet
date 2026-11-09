@@ -37,11 +37,13 @@ import {
   useCardRendering,
   useSettingsAccessControl,
   usePopupTriggers,
+  useMoments,
   useDashboardStateCoordinator,
   useGuardedUiActions,
   useAppViewModels,
 } from './hooks';
 
+import { isAnyModalOpen } from './hooks/useModals';
 import './styles/dashboard.css';
 import {
   hasOAuthTokens,
@@ -163,6 +165,10 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     closeAllModals,
   } = modalActions;
   const activeMediaModal = useModalSelector((state) => state.activeMediaModal);
+  const activeMoment = useModalSelector((state) => state.activeMoment);
+  const anyPopupOpen = useModalSelector(
+    (state) => isAnyModalOpen(state) || state.showHeaderEditModal
+  );
   const activeMediaId = useModalSelector((state) => state.activeMediaId);
   const showAddCardModal = useModalSelector((state) => state.showAddCardModal);
   const showConfigModal = useModalSelector((state) => state.showConfigModal);
@@ -421,6 +427,18 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     editMode: visibleEditMode,
     modalActions: popupModalActions,
     enabled: hasEnabledPopupTriggers,
+  });
+
+  useMoments({
+    entities,
+    entitiesLoaded,
+    pagesConfig,
+    cardSettings,
+    getCardSettingsKey,
+    editMode: visibleEditMode,
+    popupOpen: anyPopupOpen || showThemeSidebar || showLayoutSidebar,
+    activeMoment,
+    setActiveMoment: entityModalActions.setActiveMoment,
   });
 
   // ── Add-card dialog hook ───────────────────────────────────────────────

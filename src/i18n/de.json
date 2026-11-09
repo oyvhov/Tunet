@@ -1778,5 +1778,21 @@
   "addCard.available.mowers": "Verfügbare Mähroboter",
   "addCard.item.mowers": "Mähroboter",
   "page.type": "Seitentyp",
-  "page.typeStandard": "Standard"
+  "page.typeStandard": "Standard",
+  "moment.media.title": "Im Vollbild zeigen, wenn etwas läuft",
+  "moment.media.hint": "Zeigt Cover und Steuerung. Bleibt auch in Pausen offen.",
+  "moment.camera.title": "Im Vollbild zeigen, wenn etwas passiert",
+  "moment.camera.hint": "Zum Beispiel, wenn es klingelt. Wähle unten die Regel.",
+  "moment.notice.title": "Im Vollbild melden",
+  "moment.notice.hint": "Zum Beispiel, wenn die Waschmaschine fertig ist. Wähle unten die Regel.",
+  "moment.closeAfterPause": "Nach Pause schließen",
+  "moment.closeAfterQuiet": "Schließen, wenn es ruhig ist",
+  "moment.showFor": "Anzeigen für",
+  "moment.message": "Nachricht",
+  "moment.messagePlaceholder": "Die Waschmaschine ist fertig",
+  "moment.volume": "Lautstärke",
+  "moment.seconds30": "30 s",
+  "moment.minute1": "1 Min.",
+  "moment.minutes2": "2 Min.",
+  "moment.minutes5": "5 Min."
 }

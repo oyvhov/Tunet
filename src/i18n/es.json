@@ -1778,5 +1778,21 @@
   "addCard.available.mowers": "Cortacéspedes disponibles",
   "addCard.item.mowers": "cortacéspedes",
   "page.type": "Tipo de página",
-  "page.typeStandard": "Estándar"
+  "page.typeStandard": "Estándar",
+  "moment.media.title": "Mostrar a pantalla completa cuando algo suene",
+  "moment.media.hint": "Muestra la carátula y los controles. Sigue abierta durante las pausas.",
+  "moment.camera.title": "Mostrar a pantalla completa cuando pase algo",
+  "moment.camera.hint": "Por ejemplo, cuando suene el timbre. Elige la regla abajo.",
+  "moment.notice.title": "Avisar a pantalla completa",
+  "moment.notice.hint": "Por ejemplo, cuando la lavadora termine. Elige la regla abajo.",
+  "moment.closeAfterPause": "Cerrar tras la pausa",
+  "moment.closeAfterQuiet": "Cerrar cuando todo esté tranquilo",
+  "moment.showFor": "Mostrar durante",
+  "moment.message": "Mensaje",
+  "moment.messagePlaceholder": "La lavadora ha terminado",
+  "moment.volume": "Volumen",
+  "moment.seconds30": "30 s",
+  "moment.minute1": "1 min",
+  "moment.minutes2": "2 min",
+  "moment.minutes5": "5 min"
 }

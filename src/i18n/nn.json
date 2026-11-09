@@ -1778,5 +1778,21 @@
   "addCard.available.mowers": "Tilgjengelege grasklipparar",
   "addCard.item.mowers": "grasklipparar",
   "page.type": "Sidetype",
-  "page.typeStandard": "Standard"
+  "page.typeStandard": "Standard",
+  "moment.media.title": "Vis i fullskjerm når noko spelar",
+  "moment.media.hint": "Viser omslag og kontrollar. Held seg open gjennom pausar.",
+  "moment.camera.title": "Vis i fullskjerm når noko skjer",
+  "moment.camera.hint": "Til dømes når det ringjer på. Vel regelen under.",
+  "moment.notice.title": "Sei frå i fullskjerm",
+  "moment.notice.hint": "Til dømes når vaskemaskina er ferdig. Vel regelen under.",
+  "moment.closeAfterPause": "Lukk etter pause",
+  "moment.closeAfterQuiet": "Lukk etter at det er roleg",
+  "moment.showFor": "Vis i",
+  "moment.message": "Melding",
+  "moment.messagePlaceholder": "Vaskemaskina er ferdig",
+  "moment.volume": "Volum",
+  "moment.seconds30": "30 s",
+  "moment.minute1": "1 min",
+  "moment.minutes2": "2 min",
+  "moment.minutes5": "5 min"
 }
