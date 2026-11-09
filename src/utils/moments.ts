@@ -1,5 +1,6 @@
 import {
   evaluateVisibilityConditionConfig,
+  getNextConditionDeadline,
   isConditionConfigured,
   resolveConditionEntityId,
   type VisibilityConditionInput,
@@ -208,6 +209,26 @@ export function buildMomentActivities(
       maxVisibleMs: isNotice ? source.closeAfterMs : null,
     };
   });
+}
+
+/** A rule that must hold for a while comes due on its own, with no update from HA to wake the check. */
+export function getNextMomentConditionCheck(
+  sources: MomentSource[],
+  entities: EntityMap,
+  now: number
+): number | null {
+  const haEntities = entities as HassEntities;
+  const deadlines = sources.flatMap((source) => {
+    if (source.kind === 'media') return [];
+    const deadline = getNextConditionDeadline({
+      condition: source.settings.moment?.condition,
+      entities: haEntities,
+      fallbackEntityId: resolveConditionEntityId(source.cardId, source.settings, haEntities),
+      now,
+    });
+    return deadline === null ? [] : [deadline];
+  });
+  return deadlines.length > 0 ? Math.min(...deadlines) : null;
 }
 
 function updateSessions(

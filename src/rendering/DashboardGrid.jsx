@@ -279,6 +279,7 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
                 className="dashboard-card-slot h-full overflow-hidden"
                 data-card-editing={editMode ? '' : undefined}
                 data-card-offline={offline && !editMode ? '' : undefined}
+                inert={offline && !editMode ? true : undefined}
                 style={
                   needsScale
                     ? {

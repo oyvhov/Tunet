@@ -71,6 +71,19 @@ describe('MomentModal', () => {
     expect(screen.getByText('Kitchen')).toBeInTheDocument();
   });
 
+  it('sends nothing to a player that has gone unavailable', () => {
+    const { callService } = renderMoment(musicMoment, song('unavailable'));
+
+    for (const name of ['media.previous', 'media.play', 'media.next']) {
+      const button = screen.getByRole('button', { name });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+    }
+
+    expect(screen.getByRole('slider')).toBeDisabled();
+    expect(callService).not.toHaveBeenCalled();
+  });
+
   it('gives the view the base colour of the theme', () => {
     renderMoment();
 

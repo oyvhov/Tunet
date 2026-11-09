@@ -66,6 +66,16 @@ describe('useClimateTarget', () => {
     expect(send).toHaveBeenCalledWith(21.5);
   });
 
+  it('drops a queued value when the thermostat goes unavailable during the pause', async () => {
+    const { result, rerender, send } = setup(heat());
+    act(() => result.current.nudge(1));
+    rerender({ current: heat({}, 'unavailable') });
+    await tick(350);
+    expect(send).not.toHaveBeenCalled();
+    rerender({ current: heat() });
+    expect(result.current.target).toBe(20);
+  });
+
   it('stays inside min_temp and max_temp', async () => {
     const { result, send } = setup(heat({ temperature: 29.5 }));
     act(() => result.current.nudge(1));

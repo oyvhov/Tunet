@@ -191,9 +191,8 @@ function openPopupForCard(
   }
 
   if (cardId.startsWith('lock_card_')) {
-    const lockId = typeof settings?.lockId === 'string' ? settings.lockId : null;
-    if (!lockId) return false;
-    closeAndOpen(() => setShowSensorInfoModal(lockId));
+    if (!mappedEntityId) return false;
+    closeAndOpen(() => setShowSensorInfoModal(mappedEntityId));
     return true;
   }
 

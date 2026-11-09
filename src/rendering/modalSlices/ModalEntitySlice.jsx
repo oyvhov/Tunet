@@ -160,6 +160,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
           return (
             <ModalSuspense>
               <GenericClimateModal
+                key={target.entityId}
                 entityId={target.entityId}
                 entity={climateEntity}
                 onClose={() => setActiveClimateEntityModal(null)}

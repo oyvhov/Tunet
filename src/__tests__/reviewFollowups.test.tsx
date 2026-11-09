@@ -95,6 +95,20 @@ describe('popup triggers follow the entity the card uses', () => {
     });
   });
 
+  it('opens the entity a lock card shows, as the card itself does', () => {
+    const actions = trigger(
+      'lock_card_1',
+      { entityId: 'lock.new', lockId: 'lock.old' },
+      'binary_sensor.x'
+    );
+    expect(actions.setShowSensorInfoModal).toHaveBeenCalledWith('lock.new');
+  });
+
+  it('opens a lock card that only has the replaced entity', () => {
+    const actions = trigger('lock_card_1', { entityId: 'lock.new' }, 'binary_sensor.x');
+    expect(actions.setShowSensorInfoModal).toHaveBeenCalledWith('lock.new');
+  });
+
   it('opens the calendar popup for that card', () => {
     const actions = trigger('calendar_card_1', {}, 'binary_sensor.x');
     expect(actions.setShowCalendarModal).toHaveBeenCalledWith('calendar_card_1');

@@ -70,6 +70,61 @@ describe('useMoments', () => {
     });
   });
 
+  it('opens when a rule that must hold for a while comes due, with no further updates', () => {
+    const washerPages = { header: [], pages: ['home'], home: ['sensor.washer'] } as PagesConfig;
+    const washerSettings = {
+      'sensor.washer': {
+        moment: {
+          enabled: true,
+          closeAfterSeconds: 30,
+          condition: {
+            enabled: true,
+            rules: [{ type: 'state', states: ['done'], forSeconds: 30 }],
+          },
+        },
+      },
+    };
+    const washer = (state: string) =>
+      ({
+        'sensor.washer': {
+          entity_id: 'sensor.washer',
+          state,
+          attributes: {},
+          last_changed: new Date().toISOString(),
+          last_updated: new Date().toISOString(),
+        },
+      }) as unknown as EntityMap;
+
+    const { result, rerender } = renderHook(
+      ({ entities }: { entities: EntityMap }) => {
+        const [activeMoment, setActiveMoment] = useState<ActiveMoment | null>(null);
+        useMoments({
+          entities,
+          entitiesLoaded: true,
+          pagesConfig: washerPages,
+          cardSettings: washerSettings as never,
+          getCardSettingsKey,
+          editMode: false,
+          popupOpen: false,
+          activeMoment,
+          setActiveMoment,
+        });
+        return { activeMoment };
+      },
+      { initialProps: { entities: washer('running') } }
+    );
+    passStartup();
+
+    rerender({ entities: washer('done') });
+    expect(result.current.activeMoment).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+
+    expect(result.current.activeMoment).toMatchObject({ cardId: 'sensor.washer', kind: 'notice' });
+  });
+
   it('hands the view the settings of the card', () => {
     const { result, rerender } = setup(speaker('idle'));
     passStartup();

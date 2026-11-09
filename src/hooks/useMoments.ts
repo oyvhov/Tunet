@@ -3,6 +3,7 @@ import {
   INITIAL_MOMENTS_STATE,
   buildMomentActivities,
   collectMomentSources,
+  getNextMomentConditionCheck,
   momentFitsScreen,
   stepMoments,
   type ActiveMoment,
@@ -73,8 +74,14 @@ export function useMoments({
       setActiveMoment({ ...activeMoment, closing: true });
     }
 
-    if (wakeAt === null) return undefined;
-    const timer = setTimeout(() => setWakeCount((count) => count + 1), Math.max(0, wakeAt - now));
+    const wakeTimes = [wakeAt, getNextMomentConditionCheck(sources, entities, now)].filter(
+      (time): time is number => time !== null
+    );
+    if (wakeTimes.length === 0) return undefined;
+    const timer = setTimeout(
+      () => setWakeCount((count) => count + 1),
+      Math.max(0, Math.min(...wakeTimes) - now)
+    );
     return () => clearTimeout(timer);
   }, [
     entities,

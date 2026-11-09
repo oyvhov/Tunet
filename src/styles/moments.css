@@ -215,8 +215,13 @@
   transition: background-color 160ms ease;
 }
 
-.moment__controls button:hover {
+.moment__controls button:hover:not(:disabled) {
   background: var(--glass-bg-hover);
+}
+
+.moment__controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
 }
 
 .moment__controls svg {

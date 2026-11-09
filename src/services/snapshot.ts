@@ -266,6 +266,9 @@ export function applySnapshot(
   else if (layout.musicAssistantUrl !== undefined)
     localStorage.removeItem('tunet_music_assistant_url');
 
+  // A snapshot on the retired Flat theme predates card material, so the flat look is carried over.
+  const cardMaterial = appearance.theme === 'flat' ? 'flat' : appearance.cardMaterial;
+
   // ── Appearance → localStorage ──
   if (appearance.theme) localStorage.setItem('tunet_theme', replaceRetiredTheme(appearance.theme));
   if (appearance.language)
@@ -287,8 +290,7 @@ export function applySnapshot(
     localStorage.setItem('tunet_card_transparency', String(appearance.cardTransparency));
   if (appearance.cardBorderOpacity !== undefined)
     localStorage.setItem('tunet_card_border_opacity', String(appearance.cardBorderOpacity));
-  if (appearance.cardMaterial !== undefined)
-    localStorage.setItem('tunet_card_material', appearance.cardMaterial);
+  if (cardMaterial !== undefined) localStorage.setItem('tunet_card_material', cardMaterial);
   if (appearance.density !== undefined) localStorage.setItem('tunet_density', appearance.density);
   if (appearance.cardScale !== undefined)
     localStorage.setItem('tunet_card_scale', String(appearance.cardScale));
@@ -343,8 +345,7 @@ export function applySnapshot(
     s.setCardTransparency(appearance.cardTransparency);
   if (s.setCardBorderOpacity && appearance.cardBorderOpacity !== undefined)
     s.setCardBorderOpacity(appearance.cardBorderOpacity);
-  if (s.setCardMaterial && appearance.cardMaterial !== undefined)
-    s.setCardMaterial(appearance.cardMaterial);
+  if (s.setCardMaterial && cardMaterial !== undefined) s.setCardMaterial(cardMaterial);
   if (s.setDensity && appearance.density !== undefined) s.setDensity(appearance.density);
   if (s.setCardScale && appearance.cardScale !== undefined) s.setCardScale(appearance.cardScale);
   if (s.setInactivityTimeout && appearance.inactivityTimeout !== undefined)

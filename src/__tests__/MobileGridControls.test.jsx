@@ -75,6 +75,22 @@ describe('card slots without contact with Home Assistant', () => {
     expect(slot()).toHaveAttribute('data-card-offline');
   });
 
+  it('keeps a locked card out of reach of the keyboard', () => {
+    offline.value = true;
+    render(<DashboardGrid {...dashboardProps} />);
+    expect(slot()).toHaveAttribute('inert');
+  });
+
+  it('leaves the keyboard alone while the data can be trusted and during edit mode', () => {
+    const { unmount } = render(<DashboardGrid {...dashboardProps} />);
+    expect(slot()).not.toHaveAttribute('inert');
+    unmount();
+
+    offline.value = true;
+    render(<DashboardGrid {...dashboardProps} page={{ ...dashboardProps.page, editMode: true }} />);
+    expect(slot()).not.toHaveAttribute('inert');
+  });
+
   it('does not mark the slot during edit mode', () => {
     offline.value = true;
     render(<DashboardGrid {...dashboardProps} page={{ ...dashboardProps.page, editMode: true }} />);

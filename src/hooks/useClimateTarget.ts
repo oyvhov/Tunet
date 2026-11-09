@@ -49,6 +49,10 @@ export function useClimateTarget(
   }, []);
 
   const commit = useDebouncedCommit<number>((temperature) => {
+    if (isUnavailable) {
+      clearPending();
+      return;
+    }
     Promise.resolve(onSetTemperature(temperature)).then(
       () => setSent(temperature),
       () => {

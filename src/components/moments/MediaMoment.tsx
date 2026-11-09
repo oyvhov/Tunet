@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Music, Pause, Play, SkipBack, SkipForward } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 import MomentBar, { type MomentViewProps } from './MomentBar';
+import { isUnavailableState } from '../../utils/entityState';
 
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 
@@ -18,6 +19,7 @@ export default function MediaMoment({
 }: MomentViewProps) {
   const attrs = entity?.attributes ?? {};
   const isPlaying = entity?.state === 'playing';
+  const isUnavailable = !entity || isUnavailableState(entity.state);
   const duration = Number(attrs.media_duration) || 0;
   const artwork = getEntityImageUrl(attrs.entity_picture) || null;
   const [failedArtwork, setFailedArtwork] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function MediaMoment({
   }, [isPlaying, duration]);
 
   const send = (service: string, data: Record<string, unknown> = {}) => {
-    if (!conn) return;
+    if (!conn || isUnavailable) return;
     callService('media_player', service, { entity_id: entityId, ...data });
   };
 
@@ -89,6 +91,7 @@ export default function MediaMoment({
           <div className="moment__controls">
             <button
               type="button"
+              disabled={isUnavailable}
               onClick={() => send('media_previous_track')}
               aria-label={t('media.previous')}
             >
@@ -97,6 +100,7 @@ export default function MediaMoment({
             <button
               type="button"
               className="moment__play"
+              disabled={isUnavailable}
               onClick={() => send('media_play_pause')}
               aria-label={playPauseLabel}
             >
@@ -104,6 +108,7 @@ export default function MediaMoment({
             </button>
             <button
               type="button"
+              disabled={isUnavailable}
               onClick={() => send('media_next_track')}
               aria-label={t('media.next')}
             >
@@ -117,6 +122,7 @@ export default function MediaMoment({
               max={100}
               step={1}
               variant="thinLg"
+              disabled={isUnavailable}
               value={Math.round((Number(attrs.volume_level) || 0) * 100)}
               onChange={(event) =>
                 send('volume_set', { volume_level: Number(event.target.value) / 100 })

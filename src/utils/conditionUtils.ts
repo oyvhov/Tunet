@@ -315,16 +315,74 @@ export function evaluateEntityCondition({
   const durationSeconds = Number(forSeconds);
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return true;
 
-  const referenceTimestampRaw =
-    type === 'attribute' || (type === 'numeric' && attribute)
-      ? entity.last_updated || entity.last_changed
-      : entity.last_changed;
-  if (!referenceTimestampRaw) return false;
-
-  const referenceTimestamp = Date.parse(referenceTimestampRaw);
-  if (!Number.isFinite(referenceTimestamp)) return false;
+  const referenceTimestamp = getRuleReferenceTime(activeRule, entity);
+  if (referenceTimestamp === null) return false;
 
   return Date.now() - referenceTimestamp >= durationSeconds * 1000;
+}
+
+function getRuleReferenceTime(rule: VisibilityConditionRule, entity: HassEntity): number | null {
+  const raw =
+    rule.type === 'attribute' || (rule.type === 'numeric' && rule.attribute)
+      ? entity.last_updated || entity.last_changed
+      : entity.last_changed;
+  if (!raw) return null;
+  const time = Date.parse(raw);
+  return Number.isFinite(time) ? time : null;
+}
+
+function resolveRuleEntity(
+  rule: VisibilityConditionRule,
+  normalized: NormalizedVisibilityCondition,
+  entity: HassEntity | null | undefined,
+  entities: HassEntities | null | undefined,
+  fallbackEntityId: string | null
+): HassEntity | null {
+  const explicitRuleEntityId =
+    typeof rule?.entityId === 'string' && rule.entityId.trim() ? rule.entityId.trim() : null;
+  const explicitConfigEntityId =
+    typeof normalized.entityId === 'string' && normalized.entityId.trim()
+      ? normalized.entityId.trim()
+      : null;
+  const targetEntityId = explicitRuleEntityId || explicitConfigEntityId || fallbackEntityId;
+
+  if (targetEntityId && entities && entities[targetEntityId]) {
+    return entities[targetEntityId];
+  }
+
+  if (entity && (!targetEntityId || entity.entity_id === targetEntityId)) {
+    return entity;
+  }
+
+  return null;
+}
+
+/** When the next rule that must hold "for N seconds" comes due, or null if none is waiting. */
+export function getNextConditionDeadline({
+  condition,
+  entities,
+  fallbackEntityId,
+  now,
+}: {
+  condition: VisibilityConditionInput | null | undefined;
+  entities: HassEntities | null | undefined;
+  fallbackEntityId?: string | null;
+  now: number;
+}): number | null {
+  const normalized = normalizeVisibilityConditionConfig(condition);
+  if (!normalized.enabled) return null;
+
+  const deadlines = normalized.rules.filter(isConditionRuleFinished).flatMap((rule) => {
+    const seconds = Number(rule.forSeconds);
+    if (!Number.isFinite(seconds) || seconds <= 0) return [];
+    const entity = resolveRuleEntity(rule, normalized, null, entities, fallbackEntityId ?? null);
+    const reference = entity ? getRuleReferenceTime(rule, entity) : null;
+    if (reference === null) return [];
+    const deadline = reference + seconds * 1000;
+    return deadline > now ? [deadline] : [];
+  });
+
+  return deadlines.length > 0 ? Math.min(...deadlines) : null;
 }
 
 /**
@@ -354,31 +412,10 @@ export function evaluateVisibilityConditionConfig({
   if (finishedRules.length === 0) return true;
   const resolvedFallbackEntityId = fallbackEntityId || entity?.entity_id || null;
 
-  const resolveRuleEntity = (rule: VisibilityConditionRule): HassEntity | null => {
-    const explicitRuleEntityId =
-      typeof rule?.entityId === 'string' && rule.entityId.trim() ? rule.entityId.trim() : null;
-    const explicitConfigEntityId =
-      typeof normalized.entityId === 'string' && normalized.entityId.trim()
-        ? normalized.entityId.trim()
-        : null;
-    const targetEntityId =
-      explicitRuleEntityId || explicitConfigEntityId || resolvedFallbackEntityId;
-
-    if (targetEntityId && entities && entities[targetEntityId]) {
-      return entities[targetEntityId];
-    }
-
-    if (entity && (!targetEntityId || entity.entity_id === targetEntityId)) {
-      return entity;
-    }
-
-    return null;
-  };
-
   const results = finishedRules.map((rule) =>
     evaluateEntityCondition({
       condition: rule,
-      entity: resolveRuleEntity(rule),
+      entity: resolveRuleEntity(rule, normalized, entity, entities, resolvedFallbackEntityId),
       getAttribute,
     })
   );
