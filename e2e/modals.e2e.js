@@ -695,8 +695,13 @@ test.describe('Modal Interactions', () => {
   });
 
   test('closes the popup with the Back button and stays on the dashboard', async ({ page }) => {
+    const entriesBefore = await page.evaluate(() => window.history.length);
     const modal = await openSystemModal(page);
     const dashboardUrl = page.url();
+    // The entry is added just after the popup is first painted.
+    await expect
+      .poll(() => page.evaluate(() => window.history.length))
+      .toBeGreaterThan(entriesBefore);
 
     await page.goBack();
 
