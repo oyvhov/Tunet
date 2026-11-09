@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] — 2026-11-09
+
+### Added
+
+- **Appearance studio.** Themes, fonts, card style and background now live in one panel with visual tiles, and the dashboard shrinks beside it so you see each change as you make it. On narrow screens, hold to peek at the dashboard.
+- **Aluminium**, a new theme, replaces Flat. A saved Flat theme moves to Dark with the flat card material.
+- **Full-screen moments.** Media cards can take over the tablet while something plays. Camera cards and other cards can do the same when a rule matches, such as the doorbell ringing or the washing machine finishing. Turn it on at the end of Edit card.
+- Every card can change entity from a searchable list, and rules that point at the old entity follow along.
+- Removing a card can be undone. Cards scroll the page when dragged to the edge, and pages can be reordered by touch.
+- A **General** tab in System gathers language, units, lock and behaviour.
+- The server backs up its database every day and keeps seven copies.
+- Sync can load the layout from another device, and conflicts or a paused sync are shown without opening the panel.
+
+### Changed
+
+- Cards being edited no longer operate the house. Only the drag handle, pencil and trash button respond.
+- Edit card puts what a card needs to work first. Visibility, moments and Popup trigger come last.
+- The Back button closes the top popup instead of leaving the dashboard.
+- The Android TV popup now matches Apple TV, and standby counts as off.
+- Sync checks every 30 seconds while the page is visible, so a change can take up to half a minute to reach another device.
+- Popups open without page jumps or flashes, and the background glow no longer shows rings on tablets.
+- On phones the title and clock share one row. Battery, lights and rooms share one header.
+- Docker Compose points at Home Assistant on the host by default.
+- The add-on stops briefly during Home Assistant backups, so its database is always copied safely.
+
+### Fixed
+
+- Sensor and weather graphs read Home Assistant's real history and keep refreshing while on screen.
+- Unavailable devices get no commands from any card or popup, and say Unavailable instead of Off or 0.
+- Cards dim and lock when Home Assistant cannot be reached, and the connection is now checked on wall tablets too.
+- Controls that only appeared with a mouse now show on touch screens, and small controls have 44 px touch areas.
+- Alarm keeps Disarm during the countdown, and actions without a code run at once.
+- Open on locks, unlocking from room and car popups, and starting a car engine now need a confirming tap.
+- Climate + and − add up quick taps and respect the thermostat's limits. Sliders send when you stop moving them.
+- Nordpool shows negative prices and applies support hour by hour. The cost popup no longer flashes or draws a red bar at midnight.
+- Calendar popups follow their card, keep events after a failed update and list multi-day events on every day.
+- The vacuum, room, lights, battery and media pages and popups got a long list of fixes, including room lights that could not be switched.
+- Duplicated cards no longer vanish, popup triggers save the rule you see, and number fields no longer rewrite themselves while you type.
+- Cards and popups work with a keyboard and name their controls for screen readers.
+
 ## [1.26.0] — 2026-11-07
 
 ### Added
