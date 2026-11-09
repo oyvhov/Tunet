@@ -235,6 +235,37 @@ describe('GenericAppleTVModal', () => {
     expect(screen.getByRole('button', { name: 'status.unavailable' })).toBeDisabled();
   });
 
+  it('keeps the remote working while only the media player is unavailable', () => {
+    const callService = vi.fn();
+    const entities = {
+      'media_player.apple_tv': {
+        entity_id: 'media_player.apple_tv',
+        state: 'unavailable',
+        attributes: { friendly_name: 'Living Room Apple TV' },
+      },
+      'remote.apple_tv': { entity_id: 'remote.apple_tv', state: 'on', attributes: {} },
+    };
+    render(<GenericAppleTVModal {...baseProps({ callService, entities })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Up' }));
+    expect(callService).toHaveBeenCalledWith('remote', 'send_command', {
+      entity_id: 'remote.apple_tv',
+      command: 'up',
+    });
+    expect(screen.getByRole('button', { name: 'Volume up' })).toBeDisabled();
+  });
+
+  it('disables the remote when the remote entity is unavailable', () => {
+    const entities = {
+      ...baseEntities,
+      'remote.apple_tv': { entity_id: 'remote.apple_tv', state: 'unavailable', attributes: {} },
+    };
+    render(<GenericAppleTVModal {...baseProps({ entities })} />);
+
+    expect(screen.getByRole('button', { name: 'Up' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
+  });
+
   it('allows launching sources from source_list', () => {
     const callService = vi.fn();
     render(<GenericAppleTVModal {...baseProps({ callService })} />);

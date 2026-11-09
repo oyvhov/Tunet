@@ -166,11 +166,11 @@ export default function LeafModal({ show, onClose, entities, callService, getS, 
       )
     ),
   ];
-  // A button's state is its last press, so one that was never pressed is "unknown" but usable.
+  // Buttons, selects and numbers take a command whatever they last reported, so "unknown" is usable.
   const isUsable = (entityId) => {
     const state = entityId ? entities[entityId]?.state : undefined;
     if (state === undefined) return false;
-    return /^(input_)?button\./.test(entityId)
+    return /^(input_)?(button|select|number)\./.test(entityId)
       ? state !== 'unavailable'
       : !isUnavailableState(state);
   };

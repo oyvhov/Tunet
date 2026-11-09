@@ -40,6 +40,7 @@ export default function GenericClimateModal({
   const { haConfig } = useHomeAssistantMeta();
   const {
     target: targetTemp,
+    targetRange,
     step: tempStep,
     canAdjust,
     nudge,
@@ -62,12 +63,17 @@ export default function GenericClimateModal({
     unitMode: effectiveUnitMode,
     includeUnit: false,
   });
-  const displayTargetTemp = formatKindValueForDisplay(targetTemp, {
-    kind: 'temperature',
-    fromUnit: sourceTempUnit,
-    unitMode: effectiveUnitMode,
-    includeUnit: false,
-  });
+  const formatTarget = (value) =>
+    formatKindValueForDisplay(value, {
+      kind: 'temperature',
+      fromUnit: sourceTempUnit,
+      unitMode: effectiveUnitMode,
+      includeUnit: false,
+    });
+  const displayTargetTemp = formatTarget(targetTemp);
+  const displayTargetValue = targetRange
+    ? `${formatTarget(targetRange.low).value}–${formatTarget(targetRange.high).value}`
+    : displayTargetTemp.value;
   const displayTempUnit = displayTargetTemp.unit || displayCurrentTemp.unit;
   const minTemp = entity.attributes?.min_temp ?? 16;
   const maxTemp = entity.attributes?.max_temp ?? 30;
@@ -76,7 +82,8 @@ export default function GenericClimateModal({
   const fanModes = entity.attributes?.fan_modes || [];
   const swingModes = entity.attributes?.swing_modes || [];
 
-  const showTemp = typeof targetTemp === 'number' || typeof currentTemp === 'number';
+  const showTemp =
+    typeof targetTemp === 'number' || typeof currentTemp === 'number' || targetRange !== null;
   const showHvac = Array.isArray(hvacModes) && hvacModes.length > 0;
   const showFan = Array.isArray(fanModes) && fanModes.length > 0;
   const showSwing = Array.isArray(swingModes) && swingModes.length > 0;
@@ -129,8 +136,10 @@ export default function GenericClimateModal({
                     {t('climate.target')}
                   </p>
                   <div className="flex items-center justify-center gap-2 sm:gap-4">
-                    <span className="text-5xl leading-none font-light tracking-tighter text-[var(--text-primary)] tabular-nums select-none sm:text-6xl md:text-8xl">
-                      {displayTargetTemp.value}
+                    <span
+                      className={`leading-none font-light tracking-tighter text-[var(--text-primary)] tabular-nums select-none ${targetRange ? 'text-4xl sm:text-5xl md:text-6xl' : 'text-5xl sm:text-6xl md:text-8xl'}`}
+                    >
+                      {displayTargetValue}
                     </span>
                     <span className="mt-6 text-3xl leading-none font-medium text-[var(--text-muted)] sm:mt-10 sm:text-4xl">
                       {displayTempUnit}

@@ -223,7 +223,7 @@ const VacuumCard = ({
             disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
-              if (!isUnavailable) callService('vacuum', 'return_to_base', { entity_id: vacuumId });
+              if (!isUnavailable) callService('vacuum', 'return_to_base', { entity_id: entityId });
             }}
             className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
           >
@@ -357,7 +357,7 @@ const VacuumCard = ({
             disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
-              if (!isUnavailable) callService('vacuum', 'return_to_base', { entity_id: vacuumId });
+              if (!isUnavailable) callService('vacuum', 'return_to_base', { entity_id: entityId });
             }}
             className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40`}
           >

@@ -36,6 +36,7 @@ interface BlindSliderProps {
   position: number;
   onChange: (value: number) => void;
   onCommit: (value: number) => void;
+  onCancel: () => void;
   accent: CoverAccent;
   isUnavailable: boolean;
 }
@@ -67,6 +68,7 @@ interface SmallCoverCardProps extends Pick<
   supportsPosition: boolean;
   supportsStop: boolean;
   handlePositionCommit: (value: number) => void;
+  resetLocalPos: () => void;
   setLocalPos: Dispatch<SetStateAction<number>>;
   handleOpenCover: () => unknown;
   handleCloseCover: () => unknown;
@@ -76,6 +78,8 @@ interface SmallCoverCardProps extends Pick<
 }
 
 /* -- Styles ---------------------------------------------------------- */
+const DRAFT_TIMEOUT_MS = 10_000;
+
 const CONTROL_STYLE =
   'bg-black/5 border border-[var(--glass-border)] ring-1 ring-white/5 shadow-inner';
 // Small card Open and Close sit in a 40 px bar. These stretch the tap target to 44x44 over the
@@ -86,7 +90,14 @@ const CLOSE_HIT_AREA =
   'relative after:absolute after:-inset-y-2 after:-right-[22px] after:-left-1.5';
 
 /* -- Vertical Blind Slider ------------------------------------------- */
-const BlindSlider = ({ position, onChange, onCommit, accent, isUnavailable }: BlindSliderProps) => {
+const BlindSlider = ({
+  position,
+  onChange,
+  onCommit,
+  onCancel,
+  accent,
+  isUnavailable,
+}: BlindSliderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
@@ -121,6 +132,11 @@ const BlindSlider = ({ position, onChange, onCommit, accent, isUnavailable }: Bl
     }
   };
 
+  const handlePointerCancel = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    onCancel();
+  };
   const closedPct = 100 - (position ?? 0);
   const slatCount = 10;
   const visibleSlats = Math.round((closedPct / 100) * slatCount);
@@ -131,7 +147,7 @@ const BlindSlider = ({ position, onChange, onCommit, accent, isUnavailable }: Bl
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       className={`relative h-full w-full overflow-hidden rounded-2xl ${isUnavailable ? 'cursor-not-allowed opacity-50' : 'cursor-ns-resize touch-none'} ${CONTROL_STYLE}`}
     >
       {/* The Blind (Fills from top) */}
@@ -167,6 +183,7 @@ const HorizontalBlindSlider = ({
   position,
   onChange,
   onCommit,
+  onCancel,
   accent,
   isUnavailable,
 }: BlindSliderProps) => {
@@ -205,6 +222,11 @@ const HorizontalBlindSlider = ({
     }
   };
 
+  const handlePointerCancel = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    onCancel();
+  };
   // Logic: "Curtain" style.
   // Position 0 (Closed) -> Full Width Fill (100%).
   // Position 100 (Open) -> 0 Width Fill (0%).
@@ -216,7 +238,7 @@ const HorizontalBlindSlider = ({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       className={`relative h-full w-full overflow-hidden rounded-xl ${isUnavailable ? 'cursor-not-allowed opacity-50' : 'cursor-ew-resize touch-none'} ${CONTROL_STYLE}`}
     >
       {/* Fill from left */}
@@ -362,6 +384,7 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
     supportsPosition,
     supportsStop,
     handlePositionCommit,
+    resetLocalPos,
     setLocalPos,
     handleOpenCover,
     handleCloseCover,
@@ -419,6 +442,7 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
             position={localPos}
             onChange={setLocalPos}
             onCommit={handlePositionCommit}
+            onCancel={resetLocalPos}
             accent={accent}
             isUnavailable={isUnavailable}
           />
@@ -490,6 +514,16 @@ const CoverCard = ({
     }
   }, [position]);
 
+  // A motor that does not move would otherwise leave the requested percent showing for good.
+  useEffect(() => {
+    if (typeof position !== 'number' || localPos === position) return undefined;
+    const timer = setTimeout(() => setLocalPos(position), DRAFT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [localPos, position]);
+
+  const resetLocalPos = () => {
+    if (typeof position === 'number') setLocalPos(position);
+  };
   // Colors
   const getAccent = (): CoverAccent => {
     const defaultColor = 'var(--text-primary)';
@@ -559,6 +593,7 @@ const CoverCard = ({
     supportsPosition,
     supportsStop,
     handlePositionCommit,
+    resetLocalPos,
     setLocalPos,
     handleOpenCover,
     handleCloseCover,
@@ -655,6 +690,7 @@ const CoverCard = ({
             position={localPos}
             onChange={setLocalPos}
             onCommit={handlePositionCommit}
+            onCancel={resetLocalPos}
             accent={accent}
             isUnavailable={isUnavailable}
           />

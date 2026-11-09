@@ -39,6 +39,10 @@ const GenericAndroidTVCard = memo(
     const state = entities[mediaPlayerId]?.state; // Keep main TV state for ON/OFF status
     const isUnavailable = isUnavailableState(state) || !state;
     const isOn = state !== 'off' && state !== 'standby' && !isUnavailable;
+    // The remote entity can be fine while the media player is not, and can still wake the TV.
+    const canWakeViaRemote =
+      Boolean(remoteId) && !isUnavailableState(entities[remoteId ?? '']?.state ?? state);
+    const canTogglePower = !isUnavailable || canWakeViaRemote;
     const { isPending, togglePower } = usePowerToggle({
       entityId: mediaPlayerId,
       isOn,
@@ -46,7 +50,7 @@ const GenericAndroidTVCard = memo(
       callService,
       // Same wake route as the popup: the remote when there is one.
       buildCall: () =>
-        !isOn && remoteId
+        !isOn && canWakeViaRemote && remoteId
           ? { domain: 'remote', service: 'turn_on', data: { entity_id: remoteId } }
           : null,
     });
@@ -142,7 +146,7 @@ const GenericAndroidTVCard = memo(
 
     const appLogo = getAppLogo(appName);
 
-    const powerButton = !isUnavailable && (
+    const powerButton = canTogglePower && (
       <button
         type="button"
         onClick={(e) => {
@@ -172,12 +176,12 @@ const GenericAndroidTVCard = memo(
     );
 
     if (!isOn && !linkedActive && !isSmall) {
-      const canTurnOn = !isUnavailable && typeof callService === 'function';
+      const canTurnOn = canTogglePower && typeof callService === 'function';
       const turnOn = (e: MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         if (editMode || !canTurnOn || waking) return;
         setWaking(true);
-        const request = remoteId
+        const request = canWakeViaRemote
           ? callService('remote', 'turn_on', { entity_id: remoteId })
           : callService('media_player', 'turn_on', { entity_id: mediaPlayerId });
         Promise.resolve(request).catch(() => setWaking(false));

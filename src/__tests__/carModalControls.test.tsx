@@ -118,6 +118,32 @@ describe('car popup', () => {
     expect(control('car.update').disabled).toBe(false);
   });
 
+  it('keeps a select and a number at unknown usable', () => {
+    renderCar(
+      {
+        'number.limit': ['unknown', { min: 50, max: 100 }],
+        'select.limit': ['unknown', { options: ['80'] }],
+      },
+      { chargeLimitNumberId: 'number.limit', chargeLimitSelectId: 'select.limit' }
+    );
+    expect((document.querySelector('select') as HTMLSelectElement).disabled).toBe(false);
+    for (const slider of document.querySelectorAll<HTMLInputElement>('input[type="range"]')) {
+      expect(slider.disabled).toBe(false);
+    }
+  });
+
+  it('still disables stateful controls at unknown', () => {
+    renderCar(
+      { 'lock.car': ['unknown'], 'switch.ign': ['unknown'] },
+      {
+        lockId: 'lock.car',
+        ignitionSwitchId: 'switch.ign',
+      }
+    );
+    expect(control('common.unknown').disabled).toBe(true);
+    expect(control('car.engineStart').disabled).toBe(true);
+  });
+
   it('disables a button entity that is unavailable', () => {
     renderCar({ 'button.update': ['unavailable'] }, { updateButtonId: 'button.update' });
     expect(control('car.update').disabled).toBe(true);

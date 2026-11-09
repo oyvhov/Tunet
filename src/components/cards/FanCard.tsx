@@ -88,9 +88,13 @@ const FanCard = memo(function FanCard({
     ).catch(() => setDraftPercentage(null));
   });
 
+  const percentageStep = Number(getA(entityId, 'percentage_step')) || 1;
+
   useEffect(() => {
-    setDraftPercentage(null);
-  }, [reportedPercentage]);
+    setDraftPercentage((draft) =>
+      draft !== null && Math.abs(draft - reportedPercentage) < percentageStep ? null : draft
+    );
+  }, [reportedPercentage, percentageStep]);
 
   useEffect(() => {
     if (draftPercentage === null) return undefined;

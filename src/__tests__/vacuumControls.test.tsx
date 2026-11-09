@@ -126,6 +126,28 @@ describe('vacuum and mower cards', () => {
     expect([...container.querySelectorAll('button')].some((b) => b.disabled)).toBe(false);
   });
 
+  it.each(['small', 'large'])('docks the remapped vacuum from the %s card', (size) => {
+    const remapped = 'vacuum.remapped';
+    const entities = entity(remapped, 'docked');
+    const callService = vi.fn(async () => ({}));
+    const props = asProps<ComponentProps<typeof VacuumCard>>({
+      vacuumId: VACUUM,
+      entityId: remapped,
+      entities,
+      cardSettings: { 'home::vacuum': { size } },
+      settingsKey: 'home::vacuum',
+      customNames: {},
+      customIcons: {},
+      getA: lookup(entities),
+      callService,
+      onOpen: () => {},
+      t,
+    });
+    const { container } = render(<VacuumCard {...props} />);
+    fireEvent.click(container.querySelector('.lucide-house')!.closest('button')!);
+    expect(callService).toHaveBeenCalledWith('vacuum', 'return_to_base', { entity_id: remapped });
+  });
+
   it('names an unavailable vacuum and mower through the shared label', () => {
     expect(renderVacuumCard(entity(VACUUM, 'unavailable')).container).toHaveTextContent(
       'status.unavailable'
@@ -229,6 +251,32 @@ describe('vacuum popup', () => {
       { entity_id: 'select.rocky_room', option: 'Kitchen' },
     ]);
     expect(callService.mock.calls[1]).toEqual(['vacuum', 'start', { entity_id: VACUUM }]);
+  });
+
+  it('lets the room be chosen and cleaned while the room select is unknown', async () => {
+    const unknownRoom = entity('select.rocky_room', 'unknown', { options: ['Kitchen', 'Bath'] });
+    const { callService } = await renderPopup({ ...docked(), ...unknownRoom });
+    openRooms();
+    const select = document.querySelector('select') as HTMLSelectElement;
+    expect(select.disabled).toBe(false);
+    fireEvent.change(select, { target: { value: 'Bath' } });
+    fireEvent.click(screen.getByText('vacuum.cleanSelected'));
+    await waitFor(() => expect(callService).toHaveBeenCalledTimes(2));
+    expect(callService.mock.calls[0]).toEqual([
+      'select',
+      'select_option',
+      { entity_id: 'select.rocky_room', option: 'Bath' },
+    ]);
+  });
+
+  it('blocks room cleaning while the room select is unavailable', async () => {
+    const goneRoom = entity('select.rocky_room', 'unavailable', { options: ['Kitchen', 'Bath'] });
+    await renderPopup({ ...docked(), ...goneRoom });
+    openRooms();
+    expect((document.querySelector('select') as HTMLSelectElement).disabled).toBe(true);
+    expect(
+      (screen.getByText('vacuum.cleanSelected').closest('button') as HTMLButtonElement).disabled
+    ).toBe(true);
   });
 
   it('does not start the vacuum when selecting the room fails', async () => {

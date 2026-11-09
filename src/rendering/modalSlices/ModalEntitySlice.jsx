@@ -391,6 +391,10 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 conn={conn}
                 callService={(domain, service, data) => callService(domain, service, data)}
                 getEntityImageUrl={getEntityImageUrl}
+                onOpenLock={(entityId) => {
+                  setShowRoomModal(null);
+                  setShowSensorInfoModal(entityId);
+                }}
                 t={t}
               />
             </ModalSuspense>

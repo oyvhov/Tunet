@@ -64,6 +64,8 @@ export default function GenericAppleTVModal({
 
   const state = entity?.state;
   const isUnavailable = isUnavailableState(state);
+  // Commands go to the remote entity, which can be fine while the media player is not.
+  const remoteDisabled = isUnavailableState(entities[remoteId]?.state ?? state);
   const isOn = state !== 'off' && state !== 'standby' && !isUnavailable;
   // Playback goes to the linked player while one is active, so it still works without the TV.
   const playbackDisabled = isUnavailable && !linkedActive;
@@ -269,7 +271,7 @@ export default function GenericAppleTVModal({
                     <div className="relative flex h-44 w-44 items-center justify-center rounded-full bg-[var(--glass-bg)] shadow-inner">
                       {/* Up */}
                       <button
-                        disabled={isUnavailable}
+                        disabled={remoteDisabled}
                         onClick={() => sendRemoteCommand('up')}
                         className="absolute top-0.5 flex h-11 w-14 items-center justify-center text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50"
                         aria-label={t('remote.up')}
@@ -279,7 +281,7 @@ export default function GenericAppleTVModal({
 
                       {/* Down */}
                       <button
-                        disabled={isUnavailable}
+                        disabled={remoteDisabled}
                         onClick={() => sendRemoteCommand('down')}
                         className="absolute bottom-0.5 flex h-11 w-14 items-center justify-center text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50"
                         aria-label={t('remote.down')}
@@ -289,7 +291,7 @@ export default function GenericAppleTVModal({
 
                       {/* Left */}
                       <button
-                        disabled={isUnavailable}
+                        disabled={remoteDisabled}
                         onClick={() => sendRemoteCommand('left')}
                         className="absolute left-0.5 flex h-14 w-11 items-center justify-center text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50"
                         aria-label={t('remote.left')}
@@ -299,7 +301,7 @@ export default function GenericAppleTVModal({
 
                       {/* Right */}
                       <button
-                        disabled={isUnavailable}
+                        disabled={remoteDisabled}
                         onClick={() => sendRemoteCommand('right')}
                         className="absolute right-0.5 flex h-14 w-11 items-center justify-center text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-90 disabled:opacity-50"
                         aria-label={t('remote.right')}
@@ -309,7 +311,7 @@ export default function GenericAppleTVModal({
 
                       {/* Center Select */}
                       <button
-                        disabled={isUnavailable}
+                        disabled={remoteDisabled}
                         onClick={() => sendRemoteCommand('select')}
                         className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--glass-bg-hover)] text-xs font-bold tracking-wider text-[var(--text-primary)] uppercase shadow-md transition-all hover:bg-[var(--glass-border)] active:scale-95 disabled:opacity-50"
                         aria-label={t('remote.select')}
@@ -321,7 +323,7 @@ export default function GenericAppleTVModal({
                     {/* Row 1: Back (< / Menu) & TV/Home */}
                     <div className="grid w-full grid-cols-2 gap-3 px-1">
                       <button
-                        disabled={isUnavailable}
+                        disabled={remoteDisabled}
                         onClick={() => sendRemoteCommand('menu')}
                         className="flex h-12 flex-col items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-50"
                         aria-label={t('appletv.menu') || 'Menu'}
@@ -333,7 +335,7 @@ export default function GenericAppleTVModal({
                       </button>
 
                       <button
-                        disabled={isUnavailable}
+                        disabled={remoteDisabled}
                         onClick={() => sendRemoteCommand('home')}
                         className="flex h-12 flex-col items-center justify-center rounded-2xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:opacity-50"
                         aria-label={t('appletv.tvHome') || 'TV / Home'}

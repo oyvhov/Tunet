@@ -4,6 +4,8 @@ import { isUnavailableState } from '../utils/entityState';
 
 const COMMIT_DELAY_MS = 350;
 const PENDING_TIMEOUT_MS = 10_000;
+// A device that rounds or ignores the value leaves HA as it was, so do not wait the full timeout.
+const UNCONFIRMED_TIMEOUT_MS = 2_000;
 const DEFAULT_STEP = 0.5;
 
 interface ClimateTargetEntity {
@@ -30,19 +32,29 @@ export function useClimateTarget(
   const step = stepAttribute && stepAttribute > 0 ? stepAttribute : DEFAULT_STEP;
   const isUnavailable = !entity || isUnavailableState(entity.state);
   const canAdjust = !isUnavailable && reported !== null;
+  const low = finiteNumber(attributes?.target_temp_low);
+  const high = finiteNumber(attributes?.target_temp_high);
+  // heat_cool thermostats have two targets and no single one, so this is shown read-only.
+  const targetRange =
+    !isUnavailable && reported === null && low !== null && high !== null ? { low, high } : null;
 
   const [pending, setPending] = useState<number | null>(null);
+  const [sent, setSent] = useState<number | null>(null);
   const pendingRef = useRef<number | null>(null);
 
   const clearPending = useCallback(() => {
     pendingRef.current = null;
     setPending(null);
+    setSent(null);
   }, []);
 
   const commit = useDebouncedCommit<number>((temperature) => {
-    Promise.resolve(onSetTemperature(temperature)).catch(() => {
-      if (pendingRef.current === temperature) clearPending();
-    });
+    Promise.resolve(onSetTemperature(temperature)).then(
+      () => setSent(temperature),
+      () => {
+        if (pendingRef.current === temperature) clearPending();
+      }
+    );
   }, COMMIT_DELAY_MS);
 
   useEffect(() => {
@@ -51,9 +63,10 @@ export function useClimateTarget(
       clearPending();
       return undefined;
     }
-    const timer = setTimeout(clearPending, PENDING_TIMEOUT_MS);
+    const timeout = pending === sent ? UNCONFIRMED_TIMEOUT_MS : PENDING_TIMEOUT_MS;
+    const timer = setTimeout(clearPending, timeout);
     return () => clearTimeout(timer);
-  }, [pending, reported, clearPending]);
+  }, [pending, reported, sent, clearPending]);
 
   const setTarget = (temperature: number) => {
     if (!canAdjust) return;
@@ -61,6 +74,7 @@ export function useClimateTarget(
     if (next === (pendingRef.current ?? reported)) return;
     pendingRef.current = next;
     setPending(next);
+    setSent(null);
     commit(next);
   };
 
@@ -71,6 +85,7 @@ export function useClimateTarget(
 
   return {
     target: isUnavailable ? null : (pending ?? reported),
+    targetRange,
     step,
     canAdjust,
     nudge,
