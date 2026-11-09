@@ -1,6 +1,7 @@
 import { lazyModal as lazy } from '../../components/ui/lazyModal';
 import { ModalSuspense, getServerInfo } from '../../components';
 import { formatDuration } from '../../utils';
+import { canDuplicateCard } from '../../utils/cardUtils';
 import { buildRoomCardsPayload } from './roomCardUtils';
 
 const AddPageModal = lazy(() => import('../../modals/AddPageModal'));
@@ -8,6 +9,7 @@ const AddCardContent = lazy(() => import('../../modals/AddCardContent'));
 const EditCardModal = lazy(() => import('../../modals/EditCardModal'));
 const EditPageModal = lazy(() => import('../../modals/EditPageModal'));
 const MediaModal = lazy(() => import('../../modals/MediaModal'));
+const MomentModal = lazy(() => import('../../modals/MomentModal'));
 const StatusGroupPillModal = lazy(() => import('../../modals/StatusGroupPillModal'));
 const StatusPillsConfigModal = lazy(() => import('../../modals/StatusPillsConfigModal'));
 
@@ -33,6 +35,8 @@ export function ModalManagementSlice({
     setActiveMediaSessionSensorIds,
     activeMediaId,
     setActiveMediaId,
+    activeMoment,
+    setActiveMoment,
     showStatusGroupModal,
     setShowStatusGroupModal,
     showAddCardModal,
@@ -60,10 +64,12 @@ export function ModalManagementSlice({
     createBatteryPage,
     createRoomExplorerPage,
     deletePage,
+    removeCard,
     pageSettings,
     savePageSetting,
     pagesConfig,
     persistConfig,
+    activePage,
   } = pageManagement;
   const {
     addCardTargetPage,
@@ -112,11 +118,18 @@ export function ModalManagementSlice({
     customIcons,
     hiddenCards,
     toggleCardVisibility,
+    duplicateCard,
+    isCardRemovable,
     getCardSettingsKey,
     statusPillsConfig,
     saveStatusPillsConfig,
   } = cardConfig;
   const { callService, getEntityImageUrl, getA, isSonosActive, isMediaActive } = entityHelpers;
+
+  const closeEditCardModal = () => {
+    setEditCardModalVisibility(null);
+    setEditCardSettingsKey(null);
+  };
 
   return (
     <>
@@ -254,10 +267,7 @@ export function ModalManagementSlice({
         <ModalSuspense>
           <EditCardModal
             isOpen={!!showEditCardModal}
-            onClose={() => {
-              setEditCardModalVisibility(null);
-              setEditCardSettingsKey(null);
-            }}
+            onClose={closeEditCardModal}
             t={t}
             entityId={showEditCardModal}
             entities={entities}
@@ -272,6 +282,21 @@ export function ModalManagementSlice({
             gridColumns={core.gridColumns}
             pagesConfig={pagesConfig}
             pageSettings={pageSettings}
+            cardActions={{
+              isHidden: hiddenCards.includes(showEditCardModal),
+              canRemove: isCardRemovable(showEditCardModal),
+              onToggleVisibility: () => toggleCardVisibility(showEditCardModal),
+              onDuplicate: canDuplicateCard(showEditCardModal)
+                ? () => {
+                    duplicateCard(showEditCardModal, activePage);
+                    closeEditCardModal();
+                  }
+                : undefined,
+              onRemove: () => {
+                removeCard(showEditCardModal);
+                closeEditCardModal();
+              },
+            }}
             {...editModalProps}
           />
         </ModalSuspense>
@@ -306,6 +331,23 @@ export function ModalManagementSlice({
             t={t}
             formatDuration={formatDuration}
             getServerInfo={getServerInfo}
+          />
+        </ModalSuspense>
+      )}
+
+      {activeMoment && (
+        <ModalSuspense>
+          <MomentModal
+            moment={activeMoment}
+            onClose={() => setActiveMoment(null)}
+            entities={entities}
+            customNames={customNames}
+            customIcons={customIcons}
+            conn={conn}
+            callService={callService}
+            getEntityImageUrl={getEntityImageUrl}
+            formatDuration={formatDuration}
+            t={t}
           />
         </ModalSuspense>
       )}

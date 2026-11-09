@@ -151,7 +151,7 @@ export default function InteractivePowerGraph({
             style={{ left: `${(currentPointData.x / width) * 100}%` }}
           >
             <span className="absolute -top-6 -left-8 rounded bg-[var(--card-bg)] px-2 py-0.5 text-[10px] font-bold tracking-widest text-[var(--accent-color)] uppercase">
-              Now
+              {t?.('power.now') || 'Now'}
             </span>
           </div>
         </div>

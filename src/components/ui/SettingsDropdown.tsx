@@ -83,15 +83,15 @@ function SettingsDropdown({
           onClick={handleTrigger}
           className={`group relative z-50 flex flex-shrink-0 items-center justify-center border transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-primary)] focus-visible:outline-none ${
             floating
-              ? `h-14 w-14 rounded-2xl border-transparent text-white shadow-[0_16px_48px_rgba(0,0,0,0.35)] ${
+              ? `h-14 w-14 rounded-2xl border-transparent shadow-[0_16px_48px_rgba(0,0,0,0.35)] ${
                   isFloatingDone
                     ? 'bg-[var(--status-success-fg)] text-[var(--bg-primary)]'
-                    : 'bg-[var(--accent-color)]'
+                    : 'bg-[var(--accent-color)] text-[var(--accent-contrast)]'
                 }`
               : isMobile
                 ? 'h-11 w-11 rounded-full border-transparent'
-                : 'rounded-full border-transparent p-2'
-          } ${!floating ? (isOpen ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]') : ''}`}
+                : '-m-[3px] h-11 w-11 rounded-full border-transparent'
+          } ${!floating ? (isOpen ? 'border-[var(--accent-color)] bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg' : 'text-[var(--text-secondary)] hover:border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]') : ''}`}
           aria-label={
             isFloatingDone ? t('nav.done') : floating ? t('menu.edit') : t('menu.settings')
           }
@@ -128,7 +128,7 @@ function SettingsDropdown({
                 role="menuitem"
                 data-testid="settings-menu-add-card"
               >
-                <div className="rounded-xl bg-[var(--accent-color)] p-2 text-white shadow-sm transition-transform group-hover:scale-105">
+                <div className="rounded-xl bg-[var(--accent-color)] p-2 text-[var(--accent-contrast)] shadow-sm transition-transform group-hover:scale-105">
                   <Plus className="h-4 w-4" />
                 </div>
                 <p className="text-sm font-bold text-[var(--text-primary)]">{t('nav.addCard')}</p>
@@ -175,7 +175,7 @@ function SettingsDropdown({
               role="menuitem"
               data-testid="settings-menu-layout"
             >
-              <div className="rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
+              <div className="rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-[var(--accent-contrast)]">
                 <LayoutGrid className="h-4 w-4" />
               </div>
               <p className="text-sm font-bold text-[var(--text-primary)]">

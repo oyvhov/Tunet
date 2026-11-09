@@ -7,6 +7,7 @@ const MODAL_IMPORTERS: Record<string, () => Promise<unknown>> = {
   layoutSidebar: () => import('../components/sidebars/LayoutSidebar'),
   light: () => import('../modals/LightModal'),
   media: () => import('../modals/MediaModal'),
+  moment: () => import('../modals/MomentModal'),
   room: () => import('../modals/RoomModal'),
   sensor: () => import('../modals/SensorModal'),
   statusPills: () => import('../modals/StatusPillsConfigModal'),
@@ -22,6 +23,7 @@ const LIKELY_MODAL_PREFETCH_ORDER = [
   'config',
   'room',
   'weather',
+  'moment',
 ];
 
 const prefetchedKeys = new Set<string>();

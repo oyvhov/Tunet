@@ -6,6 +6,7 @@ export { useAddCard } from './useAddCard';
 export { useConnectionSetup } from './useConnectionSetup';
 export { useProfiles } from './useProfiles';
 export { useResponsiveGrid } from './useResponsiveGrid';
+export { useMoments } from './useMoments';
 export { useEntityHelpers } from './useEntityHelpers';
 export { usePageManagement } from './usePageManagement';
 export { useDashboardEffects } from './useDashboardEffects';

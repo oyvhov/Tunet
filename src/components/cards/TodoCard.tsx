@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from '
 import { Circle, CheckCircle2, Plus, AlertCircle, ListChecks, Trash2 } from 'lucide-react';
 import { getIconComponent } from '../../icons';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../../services/haClient';
+import { useRefreshTick } from '../../hooks/useRefreshTick';
+import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type {
   CSSProperties,
   ErrorInfo,
@@ -10,9 +12,10 @@ import type {
   ReactNode,
 } from 'react';
 import type { Connection } from 'home-assistant-js-websocket';
-import type { CardBaseProps } from '../../types/dashboard';
+import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { TodoItem } from '../../services/haClient';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type TodoCardItem = TodoItem & { due?: string };
 
@@ -25,6 +28,8 @@ interface TodoCardSettings {
 interface TodoCardProps extends Pick<CardBaseProps, 'cardId' | 't'> {
   settings?: TodoCardSettings;
   conn?: Connection | null;
+  entity?: EntityMap[string] | null;
+  entitiesReady?: boolean;
   className?: string;
   style?: CSSProperties;
   dragProps?: Record<string, unknown>;
@@ -77,10 +82,62 @@ class TodoErrorBoundary extends React.Component<TodoErrorBoundaryProps, TodoErro
   }
 }
 
+const DELETE_ARM_MS = 3000;
+
+interface TodoDeleteButtonProps {
+  label: string;
+  confirmLabel: string;
+  iconClassName?: string;
+  onConfirm: (event: ReactMouseEvent) => void;
+}
+
+/** Trash button that is visible on touch and only deletes on a second tap. */
+export function TodoDeleteButton({
+  label,
+  confirmLabel,
+  iconClassName = 'h-3.5 w-3.5',
+  onConfirm,
+}: TodoDeleteButtonProps) {
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    if (!armed) return undefined;
+    const timer = setTimeout(() => setArmed(false), DELETE_ARM_MS);
+    return () => clearTimeout(timer);
+  }, [armed]);
+
+  return (
+    <button
+      type="button"
+      aria-label={armed ? confirmLabel : label}
+      title={armed ? confirmLabel : label}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (armed) {
+          setArmed(false);
+          onConfirm(event);
+        } else {
+          setArmed(true);
+        }
+      }}
+      className={`relative -m-1 mt-0.5 flex flex-shrink-0 items-center gap-1 rounded-lg p-1 transition-colors before:absolute before:-inset-3 ${
+        armed
+          ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'
+          : 'touch:text-[var(--status-error-fg)]/60 text-transparent group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)] focus-visible:text-[var(--status-error-fg)]'
+      }`}
+    >
+      <Trash2 className={iconClassName} aria-hidden="true" />
+      {armed && <span className="text-[10px] font-bold whitespace-nowrap">{confirmLabel}</span>}
+    </button>
+  );
+}
+
 const TodoCard = memo(function TodoCard({
   cardId,
   settings,
   conn,
+  entity,
+  entitiesReady,
   t,
   className,
   style,
@@ -101,8 +158,12 @@ const TodoCard = memo(function TodoCard({
   // Large card interactive state
   const [newItemText, setNewItemText] = useState('');
   const [adding, setAdding] = useState(false);
+  const [actionFailed, setActionFailed] = useState(false);
 
   const todoEntityId = settings?.todoEntityId;
+  const listUnavailable =
+    !!todoEntityId && (entity ? isUnavailableState(entity.state) : !!entitiesReady);
+  const refreshTick = useRefreshTick(conn, { enabled: !!todoEntityId });
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -141,8 +202,9 @@ const TodoCard = memo(function TodoCard({
       setItems([]);
       return;
     }
+    if (listUnavailable) return;
     fetchItems();
-  }, [conn, todoEntityId, fetchItems]);
+  }, [conn, todoEntityId, listUnavailable, fetchItems, refreshTick]);
 
   // Set up refresh interval only when visible
   useEffect(() => {
@@ -158,6 +220,7 @@ const TodoCard = memo(function TodoCard({
     e.stopPropagation();
     if (!conn || !todoEntityId) return;
     const newStatus = item.status === 'completed' ? 'needs_action' : 'completed';
+    setActionFailed(false);
     try {
       // Optimistic update
       setItems((prev) => prev.map((i) => (i.uid === item.uid ? { ...i, status: newStatus } : i)));
@@ -165,6 +228,7 @@ const TodoCard = memo(function TodoCard({
       setTimeout(fetchItems, 500);
     } catch (err) {
       console.error('TodoCard: Failed to toggle item', err);
+      setActionFailed(true);
       // Revert on error
       fetchItems();
     }
@@ -173,32 +237,40 @@ const TodoCard = memo(function TodoCard({
   const handleDelete = async (e: ReactMouseEvent, item: TodoCardItem) => {
     e.stopPropagation();
     if (!conn || !todoEntityId) return;
+    setActionFailed(false);
     try {
       setItems((prev) => prev.filter((i) => i.uid !== item.uid));
       await removeTodoItem(conn, todoEntityId, item.uid);
       setTimeout(fetchItems, 500);
     } catch (err) {
       console.error('TodoCard: Failed to remove item', err);
+      setActionFailed(true);
       fetchItems();
     }
   };
 
-  const handleAdd = async (e: ReactKeyboardEvent<HTMLInputElement>) => {
+  const submitAdd = async () => {
+    const text = newItemText.trim();
+    if (!text || !conn || !todoEntityId || adding) return;
+    setAdding(true);
+    setActionFailed(false);
+    try {
+      await addTodoItem(conn, todoEntityId, text);
+      setNewItemText('');
+      await fetchItems();
+    } catch (err) {
+      console.error('TodoCard: Failed to add item', err);
+      setActionFailed(true);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleAddKey = (e: ReactKeyboardEvent<HTMLInputElement>) => {
     e.stopPropagation();
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      const text = newItemText.trim();
-      if (!text || !conn || !todoEntityId) return;
-      setAdding(true);
-      try {
-        await addTodoItem(conn, todoEntityId, text);
-        setNewItemText('');
-        await fetchItems();
-      } catch (err) {
-        console.error('TodoCard: Failed to add item', err);
-      } finally {
-        setAdding(false);
-      }
+      submitAdd();
     }
   };
 
@@ -217,6 +289,7 @@ const TodoCard = memo(function TodoCard({
       <div
         ref={cardRef}
         {...dragProps}
+        {...cardButtonProps(isEditMode, displayName)}
         data-haptic={isEditMode ? undefined : 'card'}
         onClick={onClick}
         className={`glass-texture touch-feedback relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] p-4 pl-5 font-sans backdrop-blur-xl transition-all duration-300 ${className}`}
@@ -231,9 +304,18 @@ const TodoCard = memo(function TodoCard({
             <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
               {t('todo.selectList') || 'Select Todo List'}
             </p>
+          ) : listUnavailable ? (
+            <>
+              <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                {displayName}
+              </p>
+              <p className="truncate text-sm leading-none font-bold text-[var(--text-secondary)]">
+                {getUnavailableLabel(entity?.state, t)}
+              </p>
+            </>
           ) : error ? (
             <p className="truncate text-xs text-[var(--status-error-fg)]" title={error}>
-              Error: {error}
+              {t('todo.loadFailed')}
             </p>
           ) : loading && items.length === 0 ? (
             <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
@@ -248,7 +330,7 @@ const TodoCard = memo(function TodoCard({
                 {pendingCount > 0
                   ? `${pendingCount} ${t('todo.pending') || 'pending'}`
                   : items.length === 0
-                    ? `Empty (${todoEntityId})`
+                    ? t('todo.empty') || 'No items'
                     : t('todo.allDone') || 'All done!'}
               </p>
             </>
@@ -263,6 +345,7 @@ const TodoCard = memo(function TodoCard({
     <div
       ref={cardRef}
       {...dragProps}
+      {...cardButtonProps(isEditMode, displayName)}
       data-haptic={isEditMode ? undefined : 'card'}
       onClick={onClick}
       className={`glass-texture touch-feedback relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--card-border)] bg-[var(--card-bg)] font-sans backdrop-blur-xl transition-all duration-300 ${isEditMode ? 'cursor-move' : 'cursor-pointer'} ${className}`}
@@ -312,10 +395,19 @@ const TodoCard = memo(function TodoCard({
               {t('todo.selectList') || 'Select Todo List'}
             </p>
           </div>
+        ) : listUnavailable ? (
+          <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
+            <AlertCircle className="mb-2 h-8 w-8" />
+            <p className="text-xs font-bold tracking-widest uppercase">
+              {getUnavailableLabel(entity?.state, t)}
+            </p>
+          </div>
         ) : error ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--status-error-fg)]">
             <AlertCircle className="mb-2 h-8 w-8" />
-            <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">{error}</p>
+            <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">
+              {t('todo.loadFailed')}
+            </p>
           </div>
         ) : loading && items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)]">
@@ -355,12 +447,11 @@ const TodoCard = memo(function TodoCard({
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={(e) => handleDelete(e, item)}
-                  className="-m-1 mt-0.5 flex-shrink-0 p-1 text-transparent transition-colors group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)]"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <TodoDeleteButton
+                  label={t('todo.delete')}
+                  confirmLabel={t('todo.deleteConfirm')}
+                  onConfirm={(e) => handleDelete(e, item)}
+                />
               </div>
             ))}
 
@@ -386,12 +477,11 @@ const TodoCard = memo(function TodoCard({
                         {item.summary}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => handleDelete(e, item)}
-                      className="-m-1 mt-0.5 flex-shrink-0 p-1 text-transparent transition-colors group-hover:text-[var(--status-error-fg)]/60 hover:!text-[var(--status-error-fg)]"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <TodoDeleteButton
+                      label={t('todo.delete')}
+                      confirmLabel={t('todo.deleteConfirm')}
+                      onConfirm={(e) => handleDelete(e, item)}
+                    />
                   </div>
                 ))}
               </div>
@@ -401,25 +491,42 @@ const TodoCard = memo(function TodoCard({
       </div>
 
       {/* Quick Add */}
-      <div className="px-5 pt-2 pb-5">
-        <div className="group relative">
-          <input
-            type="text"
-            value={newItemText}
-            onChange={(e) => setNewItemText(e.target.value)}
-            onKeyDown={handleAdd}
-            placeholder={t('todo.addPlaceholder') || 'Add item...'}
-            className="w-full rounded-xl border border-transparent bg-[var(--glass-bg)] px-3 py-2 pl-9 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--glass-border)]"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <Plus className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)] transition-colors group-focus-within:text-[var(--status-success-fg)]" />
-          {adding && (
-            <div className="absolute top-1/2 right-3 -translate-y-1/2">
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--status-success-fg)] border-t-transparent"></div>
-            </div>
+      {!listUnavailable && (
+        <div className="px-5 pt-2 pb-5">
+          {actionFailed && (
+            <p role="alert" className="mb-2 text-xs text-[var(--status-error-fg)]">
+              {t('todo.saveFailed')}
+            </p>
           )}
+          <div className="group relative">
+            <input
+              type="text"
+              value={newItemText}
+              onChange={(e) => setNewItemText(e.target.value)}
+              onKeyDown={handleAddKey}
+              placeholder={t('todo.addPlaceholder') || 'Add item...'}
+              className="w-full rounded-xl border border-transparent bg-[var(--glass-bg)] px-3 py-2 pr-11 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--glass-border)]"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              type="button"
+              aria-label={t('common.add')}
+              disabled={!newItemText.trim() || adding || isEditMode}
+              onClick={(e) => {
+                e.stopPropagation();
+                submitAdd();
+              }}
+              className="absolute top-1/2 right-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-[var(--status-success-fg)] transition-opacity disabled:opacity-40"
+            >
+              {adding ? (
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--status-success-fg)] border-t-transparent" />
+              ) : (
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 });

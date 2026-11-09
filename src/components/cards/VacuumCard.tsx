@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState, memo } from 'react';
+import { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { AlertTriangle, Battery, Bot, Home, MapPin, Pause, Play } from '../../icons';
+import {
+  findVacuumSensorsByName,
+  getVacuumBattery,
+  getVacuumStateLabel,
+} from '../../utils/vacuumStatus';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
-import type { Translate } from '../../types/ha';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface VacuumCardProps extends Pick<
   CardBaseProps,
@@ -21,30 +26,6 @@ interface VacuumCardProps extends Pick<
   getA: GetEntityAttribute;
   callService: CardCallService;
   onOpen: () => void;
-}
-
-function getVacuumStateLabel(state: string | undefined, battery: unknown, t: Translate) {
-  const normalized = String(state || '').toLowerCase();
-  if (!normalized) return t('vacuum.unknown');
-
-  if (normalized === 'cleaning' || normalized === 'vacuuming') return t('vacuum.cleaning');
-  if (
-    normalized === 'returning' ||
-    normalized === 'going_home' ||
-    normalized === 'return_to_base'
-  ) {
-    return t('vacuum.returning') || t('room.vacuumStatus.goingHome') || normalized;
-  }
-  if ((normalized === 'charging' || normalized === 'docked') && battery === 100)
-    return t('vacuum.docked');
-  if (normalized === 'docked') return t('vacuum.charging');
-  if (normalized === 'idle' || normalized === 'ready') return t('vacuum.idle');
-  if (normalized === 'paused' || normalized === 'pause') return t('vacuum.pause');
-  if (['error', 'fault', 'problem', 'stuck'].includes(normalized)) {
-    return t('room.vacuumStatus.error') || 'Error';
-  }
-  if (normalized === 'stopped') return t('room.vacuumStatus.stopped') || 'Stopped';
-  return state;
 }
 
 const VacuumCard = ({
@@ -90,6 +71,11 @@ const VacuumCard = ({
 
   const entityId = entityIdProp || vacuumId;
   const entity = entities[entityId];
+  const batteryAttribute = entity?.attributes?.battery_level;
+  const relatedSensors = useMemo(
+    () => (batteryAttribute == null ? findVacuumSensorsByName(entities, entityId) : {}),
+    [batteryAttribute, entities, entityId]
+  );
   if (!entity) {
     if (editMode) {
       return (
@@ -119,7 +105,12 @@ const VacuumCard = ({
   const normalizedState = String(state || '').toLowerCase();
   const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
   const isErrorState = ['error', 'fault', 'problem', 'stuck'].includes(normalizedState);
-  const battery = getA(entityId, 'battery_level');
+  const mappedBatterySensorId = settings.batterySensorId;
+  const battery = getVacuumBattery(
+    batteryAttribute,
+    typeof mappedBatterySensorId === 'string' ? entities[mappedBatterySensorId]?.state : null,
+    relatedSensors
+  );
   const room = getA(entityId, 'current_room') || getA(entityId, 'room');
   const name = customNames[vacuumId] || getA(entityId, 'friendly_name', t('vacuum.name'));
   const vacuumIconName = customIcons[vacuumId] || entity?.attributes?.icon;
@@ -129,7 +120,7 @@ const VacuumCard = ({
   const useDenseMobileLargeLayout = isMobile && !isSmall;
 
   const showRoom = !!room;
-  const showBattery = typeof battery === 'number';
+  const showBattery = battery !== null;
 
   if (isSmall) {
     return (
@@ -137,6 +128,7 @@ const VacuumCard = ({
         ref={cardRef}
         key={vacuumId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -205,6 +197,8 @@ const VacuumCard = ({
           }
         >
           <button
+            aria-label={state === 'cleaning' ? t('vacuum.pause') : t('vacuum.start')}
+            disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
               if (!isUnavailable)
@@ -212,7 +206,7 @@ const VacuumCard = ({
                   entity_id: entityId,
                 });
             }}
-            className={`flex items-center justify-center text-[var(--text-primary)] transition-colors active:scale-95 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
+            className={`flex items-center justify-center text-[var(--text-primary)] transition-colors active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
           >
             {state === 'cleaning' ? (
               <Pause
@@ -225,11 +219,13 @@ const VacuumCard = ({
             )}
           </button>
           <button
+            aria-label={t('vacuum.home')}
+            disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
-              if (!isUnavailable) callService('vacuum', 'return_to_base', { entity_id: vacuumId });
+              if (!isUnavailable) callService('vacuum', 'return_to_base', { entity_id: entityId });
             }}
-            className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] active:scale-95 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
+            className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
           >
             <Home className={useStackedSmallControls ? 'h-4 w-4' : 'h-4 w-4'} />
           </button>
@@ -242,6 +238,7 @@ const VacuumCard = ({
     <div
       key={vacuumId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();
@@ -334,6 +331,8 @@ const VacuumCard = ({
           className={`${useDenseMobileLargeLayout ? 'grid w-full grid-cols-2 gap-2' : 'flex gap-2'}`}
         >
           <button
+            aria-label={state === 'cleaning' ? t('vacuum.pause') : t('vacuum.start')}
+            disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
               if (!isUnavailable)
@@ -341,7 +340,7 @@ const VacuumCard = ({
                   entity_id: entityId,
                 });
             }}
-            className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95`}
+            className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40`}
           >
             {state === 'cleaning' ? (
               <Pause
@@ -354,11 +353,13 @@ const VacuumCard = ({
             )}
           </button>
           <button
+            aria-label={t('vacuum.home')}
+            disabled={isUnavailable}
             onClick={(e) => {
               e.stopPropagation();
-              if (!isUnavailable) callService('vacuum', 'return_to_base', { entity_id: vacuumId });
+              if (!isUnavailable) callService('vacuum', 'return_to_base', { entity_id: entityId });
             }}
-            className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95`}
+            className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40`}
           >
             <Home className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
           </button>

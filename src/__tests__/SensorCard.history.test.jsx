@@ -69,22 +69,70 @@ describe('sensor history responses', () => {
     }
   );
 
-  it('uses the latest state for the fallback without fetching history again', async () => {
-    let finishHistory;
-    getHistory.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          finishHistory = resolve;
-        })
-    );
-    getStatistics.mockResolvedValue([]);
-    const { rerender } = render(<SensorCard {...props} />);
+  it('draws the compact rows Home Assistant sends over the websocket', async () => {
+    getHistory.mockResolvedValue([
+      { s: '20', a: {}, lu: 1700000000 },
+      { s: '21', lu: 1700000300 },
+      { s: '25', lu: 1700000600 },
+    ]);
+    render(<SensorCard {...props} />);
     await tick();
-    rerender(<SensorCard {...props} entity={entity('sensor.power', '105')} />);
-    await act(async () => finishHistory([]));
+    expect(screen.getByRole('status')).toHaveTextContent('[20,21,25]');
+    expect(getStatistics).not.toHaveBeenCalled();
+  });
+
+  it('draws no graph when Home Assistant has no history for the sensor', async () => {
+    getHistory.mockResolvedValue([]);
+    getStatistics.mockResolvedValue([]);
+    render(<SensorCard {...props} />);
+    await tick();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('fetches the graph again every five minutes while the card is on screen', async () => {
+    getHistory.mockResolvedValue([{ s: '20', lu: 1700000000 }]);
+    render(<SensorCard {...props} />);
     await tick();
     expect(getHistory).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('status')).toHaveTextContent('[105,105]');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+    });
+    await tick();
+    expect(getHistory).toHaveBeenCalledTimes(2);
+  });
+
+  it('fetches the graph again when Home Assistant reconnects', async () => {
+    const listeners = {};
+    const conn = {
+      addEventListener: (type, callback) => {
+        listeners[type] = callback;
+      },
+      removeEventListener: vi.fn(),
+    };
+    getHistory.mockResolvedValue([{ s: '20', lu: 1700000000 }]);
+    render(<SensorCard {...props} conn={conn} />);
+    await tick();
+    expect(getHistory).toHaveBeenCalledTimes(1);
+    act(() => listeners.ready());
+    await tick();
+    expect(getHistory).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the graph when a later fetch fails', async () => {
+    getHistory.mockResolvedValueOnce([
+      { s: '20', lu: 1700000000 },
+      { s: '21', lu: 1700000300 },
+    ]);
+    getHistory.mockRejectedValueOnce(new Error('Connection lost'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<SensorCard {...props} />);
+    await tick();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+    });
+    await tick();
+    expect(screen.getByRole('status')).toHaveTextContent('[20,21]');
+    consoleError.mockRestore();
   });
 
   it('reads long ranges from statistics and aggregates daily change bars', async () => {

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useOptionalToast } from '../contexts/ToastContext';
 import type { UsePageManagementDeps, UsePageManagementResult } from '../types/dashboard';
 
 interface TypedPageOptions {
@@ -29,6 +30,13 @@ export function usePageManagement({
   const [newPageLabel, setNewPageLabel] = useState('');
   const [newPageIcon, setNewPageIcon] = useState<string | null>(null);
   const [editingPage, setEditingPage] = useState<string | null>(null);
+  const addToast = useOptionalToast()?.addToast;
+
+  // An Undo tapped later must not write back the config from before the removal.
+  const pagesConfigRef = useRef(pagesConfig);
+  useEffect(() => {
+    pagesConfigRef.current = pagesConfig;
+  }, [pagesConfig]);
 
   // Reset form when the "add page" modal opens
   useEffect(() => {
@@ -46,8 +54,9 @@ export function usePageManagement({
         .replace(/[^a-z0-9]+/g, '_')
         .replace(/^_+|_+$/g, '') || 'side';
 
-    const isReservedMediaLikeSlug = /^(media|sonos)(_|$)/.test(slugBase);
-    if (isReservedMediaLikeSlug) {
+    // Page-type checks match on these id prefixes, so a standard page must not start with one.
+    const isReservedSlug = /^(media|sonos|lights|battery|room_explorer)/.test(slugBase);
+    if (isReservedSlug) {
       slugBase = `page_${slugBase}`;
     }
 
@@ -183,18 +192,35 @@ export function usePageManagement({
     setEditingPage(null);
   };
 
+  // Settings stay stored when a card is removed, so restoring only re-inserts its id.
+  const restoreCard = useCallback(
+    (cardId: string, listName: string, index: number) => {
+      const latest = pagesConfigRef.current;
+      const list = latest[listName];
+      if (!Array.isArray(list) || list.includes(cardId)) return;
+      const next = [...list];
+      next.splice(Math.min(index, next.length), 0, cardId);
+      persistConfig({ ...latest, [listName]: next });
+    },
+    [persistConfig]
+  );
+
   const removeCard = useCallback(
     (cardId: string, listName: string = activePage) => {
       const newConfig = { ...pagesConfig };
-      if (listName === 'header') {
-        newConfig.header = (newConfig.header || []).filter((id) => id !== cardId);
-        persistConfig(newConfig);
-      } else if (Array.isArray(newConfig[listName])) {
-        newConfig[listName] = newConfig[listName].filter((id) => id !== cardId);
-        persistConfig(newConfig);
-      }
+      const list = listName === 'header' ? newConfig.header || [] : newConfig[listName];
+      if (!Array.isArray(list)) return;
+      newConfig[listName] = list.filter((id) => id !== cardId);
+      persistConfig(newConfig);
+
+      const index = list.indexOf(cardId);
+      if (index === -1) return;
+      addToast?.(t('toast.cardRemoved'), 'info', {
+        label: t('common.undo'),
+        onClick: () => restoreCard(cardId, listName, index),
+      });
     },
-    [pagesConfig, activePage, persistConfig]
+    [pagesConfig, activePage, persistConfig, addToast, restoreCard, t]
   );
 
   return {

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { getIconComponent } from '../../icons';
 import { Edit2, Trash2, User } from '../../icons';
 import { createCardKeyHandler } from '../../utils/keyboard';
@@ -18,7 +18,7 @@ interface PersonStatusProps {
   onOpenPerson: (id: string) => void;
   onEditCard: (id: string, settingsKey: string) => void;
   onRemoveCard: (id: string, pageId?: string) => void;
-  t?: unknown;
+  t: (key: string) => string;
 }
 
 const PersonStatus = ({
@@ -34,15 +34,17 @@ const PersonStatus = ({
   onOpenPerson,
   onEditCard,
   onRemoveCard,
-  t: _t,
+  t,
 }: PersonStatusProps) => {
+  const [failedPicture, setFailedPicture] = useState<string | null>(null);
   const entity = entities[id];
   if (!entity && !editMode) return null;
 
   const isHome = entity?.state === 'home';
   const statusText = getS(id);
   const name = customNames[id] || entity?.attributes?.friendly_name || id;
-  const picture = getEntityImageUrl(entity?.attributes?.entity_picture);
+  const imageUrl = getEntityImageUrl(entity?.attributes?.entity_picture);
+  const picture = imageUrl !== failedPicture ? imageUrl : null;
   const headerSettingsKey = getCardSettingsKey(id, 'header');
   const headerSettings = cardSettings[headerSettingsKey] || {};
   const personDisplay = headerSettings.personDisplay || 'photo';
@@ -102,24 +104,31 @@ const PersonStatus = ({
       }}
     >
       {editMode && (
-        <div className="absolute -top-2 -right-2 z-50 flex gap-1">
+        // The badges stay small; each button around one is a full 44 px tap target.
+        <div className="absolute -top-5 -right-5 z-50 flex">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onEditCard(id, headerSettingsKey);
             }}
-            className="rounded-full bg-[var(--accent-color)] p-1 text-white shadow-sm"
+            className="flex h-11 w-11 items-center justify-center"
+            aria-label={t('tooltip.editCard')}
           >
-            <Edit2 className="h-3 w-3" />
+            <span className="rounded-full bg-[var(--accent-color)] p-1 text-[var(--accent-contrast)] shadow-sm">
+              <Edit2 className="h-3 w-3" />
+            </span>
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onRemoveCard(id, 'header');
             }}
-            className="rounded-full bg-red-500/60 p-1 text-white shadow-sm"
+            className="flex h-11 w-11 items-center justify-center"
+            aria-label={t('tooltip.removeCard')}
           >
-            <Trash2 className="h-3 w-3" />
+            <span className="rounded-full bg-red-500/60 p-1 text-white shadow-sm">
+              <Trash2 className="h-3 w-3" />
+            </span>
           </button>
         </div>
       )}
@@ -134,7 +143,12 @@ const PersonStatus = ({
               <PersonIcon className="h-5 w-5" />
             </div>
           ) : picture ? (
-            <img src={picture} alt={name} className="h-full w-full object-cover" />
+            <img
+              src={picture}
+              alt={name}
+              className="h-full w-full object-cover"
+              onError={() => setFailedPicture(picture)}
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[var(--text-muted)]">
               {name.substring(0, 1)}
@@ -170,7 +184,7 @@ const PersonStatus = ({
           {showState && (
             <span
               className={`max-w-20 truncate text-[10px] leading-tight font-bold tracking-[0.12em] uppercase transition-colors duration-300 sm:max-w-none sm:text-xs sm:tracking-[0.18em] ${showName ? 'mt-1' : ''}`}
-              style={{ color: isHome ? '#4ade80' : 'rgba(156, 163, 175, 0.5)' }}
+              style={{ color: isHome ? 'var(--status-success-fg)' : 'rgba(156, 163, 175, 0.5)' }}
             >
               {String(statusText)}
             </span>

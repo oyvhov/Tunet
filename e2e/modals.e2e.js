@@ -423,6 +423,7 @@ test.describe('Modal Interactions', () => {
     const results = modal.getByTestId('media-chooser-results');
     await expect(chooser).toBeVisible();
     await expect(modal.getByTestId('media-chooser-loading')).toBeVisible();
+    await modal.evaluate((el) => Promise.all(el.getAnimations().map((run) => run.finished)));
 
     const chooserBefore = await chooser.boundingBox();
     const resultsBefore = await results.boundingBox();
@@ -655,6 +656,33 @@ test.describe('Modal Interactions', () => {
     }
   });
 
+  test('adds fine grain over the blurred page behind a popup', async ({ page }) => {
+    await page.locator('[data-card-id="calendar_card_e2e"]').click();
+    const dialog = page.locator('[role="dialog"]').first();
+    await expect(dialog).toBeVisible();
+
+    const grain = await dialog.evaluate((el) => {
+      const overlay = el.closest('[data-modal-state]');
+      const style = getComputedStyle(overlay, '::before');
+      return { image: style.backgroundImage.includes('feTurbulence'), opacity: style.opacity };
+    });
+
+    expect(grain).toEqual({ image: true, opacity: '0.03' });
+  });
+
+  test('lets a popup finish its first paint before the motion starts', async ({ page }) => {
+    await page.locator('[data-card-id="calendar_card_e2e"]').click();
+    const dialog = page.locator('[role="dialog"]').first();
+    await expect(dialog).toBeVisible();
+
+    const opening = await dialog.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { delay: style.animationDelay, fill: style.animationFillMode };
+    });
+
+    expect(opening).toEqual({ delay: '0.04s', fill: 'both' });
+  });
+
   test('should close modal on escape key', async ({ page }) => {
     const modal = await openSystemModal(page);
 
@@ -664,6 +692,22 @@ test.describe('Modal Interactions', () => {
 
     // Modal should be closed
     await expect(modal).toBeHidden();
+  });
+
+  test('closes the popup with the Back button and stays on the dashboard', async ({ page }) => {
+    const entriesBefore = await page.evaluate(() => window.history.length);
+    const modal = await openSystemModal(page);
+    const dashboardUrl = page.url();
+    // The entry is added just after the popup is first painted.
+    await expect
+      .poll(() => page.evaluate(() => window.history.length))
+      .toBeGreaterThan(entriesBefore);
+
+    await page.goBack();
+
+    await expect(modal).toBeHidden();
+    expect(page.url()).toBe(dashboardUrl);
+    await expect(page.getByTestId('settings-dropdown-trigger')).toBeVisible();
   });
 
   test('draws no focus ring around the popup panel itself', async ({ page }) => {
@@ -753,16 +797,202 @@ test.describe('Modal Interactions', () => {
 
   test('should change theme in settings modal', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
+    const light = sidebar.getByRole('button', { name: 'Light', exact: true });
 
-    // Ensure appearance panel exposes theme controls.
-    await expect(sidebar.locator('text=Theme').first()).toBeVisible();
+    await expect(light).toBeVisible();
+    await light.click();
+
+    await expect(light).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('tunet_theme'))).toBe('light');
   });
 
   test('should change language in settings modal', async ({ page }) => {
+    const modal = await openSystemModal(page);
+
+    await modal.getByRole('button', { name: 'General', exact: true }).click();
+
+    await expect(modal.locator('text=Language').first()).toBeVisible();
+  });
+
+  test('shrinks the dashboard beside the appearance panel', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openThemeSidebar(page);
+    const transform = () =>
+      page.evaluate(() => getComputedStyle(document.getElementById('main-content')).transform);
+    const rightEdge = async () => {
+      const bounds = await page.locator('#main-content').boundingBox();
+      return bounds.x + bounds.width;
+    };
+
+    await expect.poll(transform).not.toBe('none');
+    await expect.poll(rightEdge).toBeLessThanOrEqual(861);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => getComputedStyle(document.querySelector('.tunet-sidebar-backdrop')).opacity
+        )
+      )
+      .toBe('0');
+
+    await page.keyboard.press('Escape');
+
+    await expect.poll(transform).toBe('none');
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.hasAttribute('data-studio-preview')))
+      .toBe(false);
+  });
+
+  test('peeks at the dashboard on a narrow screen', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(300);
+    const sidebar = await openThemeSidebar(page);
+    const bounds = await sidebar.boundingBox();
+    expect(bounds.width).toBe(390);
+
+    await sidebar.getByTestId('sidebar-peek').hover();
+    await page.mouse.down();
+    await expect(sidebar).toHaveAttribute('data-peeking', 'true');
+    await expect(sidebar.getByTestId('sidebar-done')).toBeHidden();
+
+    await page.mouse.up();
+    await expect(sidebar).not.toHaveAttribute('data-peeking', 'true');
+    await expect(sidebar.getByTestId('sidebar-done')).toBeVisible();
+  });
+
+  test('swaps shrink and peek when the window crosses the limit', async ({ page }) => {
+    await page.setViewportSize({ width: 1138, height: 712 });
+    const sidebar = await openThemeSidebar(page);
+    const peek = sidebar.getByTestId('sidebar-peek');
+    const transform = () =>
+      page.evaluate(() => getComputedStyle(document.getElementById('main-content')).transform);
+    const backdropOpacity = () =>
+      page.evaluate(
+        () => getComputedStyle(document.querySelector('.tunet-sidebar-backdrop')).opacity
+      );
+    await expect.poll(transform).not.toBe('none');
+    await expect(peek).toBeHidden();
+
+    await page.setViewportSize({ width: 712, height: 1138 });
+
+    await expect.poll(transform).toBe('none');
+    await expect.poll(backdropOpacity).toBe('0.62');
+    await expect(peek).toBeVisible();
+
+    await page.setViewportSize({ width: 1138, height: 712 });
+
+    await expect.poll(transform).not.toBe('none');
+    await expect.poll(backdropOpacity).toBe('0');
+    await expect(peek).toBeHidden();
+  });
+
+  test('keeps the dashboard shrunk between panel tabs', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const sidebar = await openThemeSidebar(page);
+    await page.evaluate(() => {
+      window.__studioPreviewDrops = 0;
+      new MutationObserver(() => {
+        if (!document.documentElement.hasAttribute('data-studio-preview')) {
+          window.__studioPreviewDrops += 1;
+        }
+      }).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-studio-preview'],
+      });
+    });
+
+    await sidebar.getByTestId('sidebar-nav-layout').click();
+    const layoutSidebar = page.getByTestId('layout-sidebar');
+    await expect(layoutSidebar).toBeVisible();
+    await layoutSidebar.getByTestId('sidebar-nav-header').click();
+    await expect(page.getByTestId('header-sidebar')).toBeVisible();
+
+    expect(await page.evaluate(() => window.__studioPreviewDrops)).toBe(0);
+  });
+
+  test('moves a saved Flat theme to Dark with flat cards', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('tunet_theme', 'flat'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('tunet_theme'))).toBe('dark');
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('tunet_card_material')))
+      .toBe('flat');
+
+    const sidebar = await openThemeSidebar(page);
+    await expect(sidebar.getByRole('button', { name: 'Dark', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
+  for (const [material, overflow] of [
+    ['elevated', 'visible'],
+    ['neumorphic', 'visible'],
+    ['glass', 'hidden'],
+  ]) {
+    test(`card slot overflow is ${overflow} for ${material} cards`, async ({ page }) => {
+      await page.addInitScript(
+        (value) => localStorage.setItem('tunet_card_material', value),
+        material
+      );
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      const slot = page.locator('[data-card-id]').first().locator('xpath=..');
+
+      await expect.poll(() => slot.evaluate((el) => getComputedStyle(el).overflow)).toBe(overflow);
+    });
+  }
+
+  test('keeps card style in appearance only', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
 
-    // Ensure appearance panel exposes language controls.
-    await expect(sidebar.locator('text=Language').first()).toBeVisible();
+    await expect(sidebar.getByText('Card Style')).toBeVisible();
+
+    await sidebar.getByTestId('sidebar-nav-layout').click();
+    const layoutSidebar = page.getByTestId('layout-sidebar');
+    await expect(layoutSidebar).toBeVisible();
+    await expect(layoutSidebar.getByText('Card Style')).toHaveCount(0);
+  });
+
+  test('shows the custom background image', async ({ page }) => {
+    const sidebar = await openThemeSidebar(page);
+
+    await sidebar.getByRole('button', { name: 'Custom image' }).click();
+    await sidebar
+      .getByPlaceholder('Image URL')
+      .fill('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+
+    await expect(page.getByTestId('custom-background-image')).toBeVisible();
+    await expect(page.getByTestId('custom-background-tone')).toBeVisible();
+  });
+
+  test('opens General from appearance', async ({ page }) => {
+    const sidebar = await openThemeSidebar(page);
+
+    await sidebar.getByTestId('appearance-general-link').click();
+
+    await expect(sidebar).not.toBeVisible();
+    await expect(
+      page.locator('[role="dialog"]').first().locator('text=Language').first()
+    ).toBeVisible();
+  });
+
+  test('escape in the disable-lock dialog keeps System open', async ({ page }) => {
+    const modal = await openSystemModal(page);
+    await modal.getByRole('button', { name: 'General', exact: true }).click();
+    await modal.getByRole('button', { name: 'Settings Lock' }).click();
+    await modal.getByPlaceholder('4-digit PIN').fill('1234');
+    await modal.getByPlaceholder('Confirm PIN').fill('1234');
+    await modal.getByRole('button', { name: 'Enable lock' }).click();
+
+    await modal.getByRole('button', { name: 'Disable lock' }).click();
+    const pinDialog = page.getByText('Enter PIN to disable lock');
+    await expect(pinDialog).toBeVisible();
+
+    await page.keyboard.press('Escape');
+
+    await expect(pinDialog).not.toBeVisible();
+    await expect(modal.locator('text=Language').first()).toBeVisible();
   });
 
   test('should navigate the responsive settings sidebars on mobile', async ({ page }) => {
@@ -984,8 +1214,9 @@ test.describe('Modal Interactions', () => {
     await enableEditMode(page);
     await page
       .locator('[data-card-id="light.bedroom"]')
-      .getByRole('button', { name: 'Duplicate card' })
+      .getByRole('button', { name: 'Edit card' })
       .press('Enter');
+    await page.getByRole('dialog').getByRole('button', { name: 'Duplicate card' }).click();
     const copy = page.locator('[data-card-id^="light.bedroom__dup_"]');
     await expect(copy).toHaveCount(1);
     await expect(copy.getByText('Bedroom Light', { exact: true })).toBeVisible();
@@ -1009,6 +1240,61 @@ test.describe('Modal Interactions', () => {
     await expect(page.locator('[role="dialog"]:visible').first()).toContainText('Bedroom Light');
   });
 
+  test('removes a card with the trash button on the card', async ({ page }) => {
+    await enableEditMode(page);
+    await page
+      .locator('[data-card-id="light.bedroom"]')
+      .getByRole('button', { name: 'Remove card' })
+      .click();
+    await expect(page.locator('[data-card-id="light.bedroom"]')).toHaveCount(0);
+    const pages = await page.evaluate(() => JSON.parse(localStorage.getItem('tunet_pages_config')));
+    expect(pages.home).not.toContain('light.bedroom');
+  });
+
+  test('puts a removed card back in place with Undo', async ({ page }) => {
+    await enableEditMode(page);
+    const homeCards = () =>
+      page.evaluate(() => JSON.parse(localStorage.getItem('tunet_pages_config')).home);
+    const before = await homeCards();
+    const card = page.locator('[data-card-id="light.bedroom"]');
+
+    await card.getByRole('button', { name: 'Remove card' }).click();
+    await expect(card).toHaveCount(0);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+
+    await expect(card).toHaveCount(1);
+    await expect.poll(homeCards).toEqual(before);
+  });
+
+  test('asks before discarding unsaved status pill changes', async ({ page }) => {
+    const modal = await openStatusPillsModal(page);
+    const confirm = page.getByRole('dialog', { name: 'Discard changes?' });
+
+    await modal.getByTitle('Add new pill').click();
+    await modal.getByRole('button', { name: 'Smart group' }).click();
+
+    await page.keyboard.press('Escape');
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(confirm).toBeHidden();
+    await expect(modal.getByRole('heading', { name: 'Status Pills' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await confirm.getByRole('button', { name: 'Discard', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Status Pills' })).toBeHidden();
+  });
+
+  test('offers remove but not move in the edit card popup', async ({ page }) => {
+    await enableEditMode(page);
+    await page
+      .locator('[data-card-id="light.bedroom"]')
+      .getByRole('button', { name: 'Edit card' })
+      .press('Enter');
+    const actions = page.getByRole('dialog').getByTestId('card-actions');
+    await expect(actions.getByRole('button', { name: 'Remove card' })).toBeVisible();
+    await expect(actions.getByRole('button', { name: /^Move/ })).toHaveCount(0);
+  });
+
   test('supports keyboard theme selection and keeps focus inside the sidebar', async ({ page }) => {
     const sidebar = await openThemeSidebar(page);
     const done = sidebar.getByTestId('sidebar-done');
@@ -1019,16 +1305,10 @@ test.describe('Modal Interactions', () => {
       .toBe(true);
     await page.keyboard.press('Tab');
     await expect(done).toBeFocused();
-    const theme = sidebar.getByRole('button', { name: /^Theme:/ });
-    await theme.focus();
-    await page.keyboard.press('ArrowDown');
-    const light = sidebar.getByRole('option', { name: 'Light', exact: true });
-    await expect(sidebar.getByRole('listbox')).toBeVisible();
-    await page.keyboard.press('Home');
-    // Select Light through the same focused-option keyboard path used by users.
+    const light = sidebar.getByRole('button', { name: 'Light', exact: true });
     await light.focus();
     await page.keyboard.press('Enter');
-    await expect(theme).toBeFocused();
+    await expect(light).toBeFocused();
     await expect.poll(() => page.evaluate(() => localStorage.getItem('tunet_theme'))).toBe('light');
     await expect
       .poll(() => page.evaluate(() => document.documentElement.style.colorScheme))

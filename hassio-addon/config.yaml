@@ -1,6 +1,6 @@
 name: 'Tunet'
 description: 'A modern, responsive dashboard for Home Assistant'
-version: '1.26.0'
+version: '2.0.0'
 # Keep this boundary for the first release using persistent database storage.
 breaking_versions:
   - '1.25.2'
@@ -8,13 +8,14 @@ slug: 'tunet'
 url: 'https://github.com/oyvhov/Tunet'
 init: false
 startup: application
+# Stop the add-on during Home Assistant backups so they never copy a live SQLite WAL database.
+backup: cold
 arch:
   - aarch64
   - amd64
-homeassistant_api: true
-auth_api: true
 ingress: true
 ingress_port: 3002
+watchdog: 'http://[HOST]:[PORT:3002]/api/health'
 panel_icon: 'mdi:view-dashboard-variant'
 panel_title: 'Tunet'
 ports:

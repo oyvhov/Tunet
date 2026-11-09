@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  getStatusGroupStateLabel,
   getStatusGroupThreshold,
   resolveStatusGroupCandidates,
   resolveStatusGroupPill,
@@ -62,6 +63,88 @@ describe('statusGroupPills', () => {
       attributes: { friendly_name: 'Smoke alarm battery', device_class: 'battery' },
     },
   };
+
+  describe('getStatusGroupStateLabel', () => {
+    const labels = {
+      'binary.door.open': 'Door open',
+      'binary.door.closed': 'Door closed',
+      'binary.window.open': 'Window open',
+      'binary.garageDoor.open': 'Garage open',
+      'binary.motion.detected': 'Motion seen',
+      'state.open': 'Open',
+      'state.closed': 'Closed',
+      'cover.open': 'Cover open',
+      'common.on': 'ON',
+    };
+    const translate = (key) => labels[key] || key;
+    const label = (id, state, deviceClass) =>
+      getStatusGroupStateLabel(id, { state, attributes: { device_class: deviceClass } }, translate);
+
+    it('names a door sensor state after its device class', () => {
+      expect(label('binary_sensor.front', 'on', 'door')).toBe('Door open');
+      expect(label('binary_sensor.front', 'off', 'door')).toBe('Door closed');
+    });
+
+    it('covers every opening device class the group preset accepts', () => {
+      expect(label('binary_sensor.a', 'on', 'window')).toBe('Window open');
+      expect(label('binary_sensor.a', 'on', 'garage_door')).toBe('Garage open');
+      expect(label('binary_sensor.a', 'on', 'opening')).toBe('Open');
+      expect(label('binary_sensor.a', 'off', 'opening')).toBe('Closed');
+    });
+
+    it('uses the wording of other binary sensor classes too', () => {
+      expect(label('binary_sensor.hall', 'on', 'motion')).toBe('Motion seen');
+    });
+
+    it('ignores device_class outside binary sensors', () => {
+      expect(label('cover.blind', 'open', 'door')).toBe('Cover open');
+    });
+
+    it('falls back to the common state, then the raw state', () => {
+      expect(label('binary_sensor.battery', 'on', 'battery')).toBe('ON');
+      expect(label('sensor.battery', '15', 'battery')).toBe('15');
+    });
+  });
+
+  describe('resolving cost', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('skips sorting for callers that only need the count', () => {
+      const compare = vi.spyOn(String.prototype, 'localeCompare');
+
+      const result = resolveStatusGroupPill({ groupPreset: 'lights_on' }, entities, t, {
+        sortMatches: false,
+      });
+
+      expect(result.count).toBe(2);
+      expect(compare).not.toHaveBeenCalled();
+    });
+
+    it('sorts the list by friendly name by default', () => {
+      const unsorted = {
+        'light.b': { state: 'on', attributes: { friendly_name: 'Zebra' } },
+        'light.a': { state: 'on', attributes: { friendly_name: 'Alpha' } },
+      };
+
+      const result = resolveStatusGroupPill({ groupPreset: 'lights_on' }, unsorted, t);
+
+      expect(result.matchedEntities.map(({ id }) => id)).toEqual(['light.a', 'light.b']);
+    });
+
+    it('reads the selected ids once per pill, not once per match', () => {
+      const groupEntityIds = ['light.kitchen', 'light.porch'];
+      const readIds = vi.spyOn(groupEntityIds, 'filter');
+
+      const result = resolveStatusGroupPill(
+        { groupPreset: 'lights_on', groupSelectionMode: 'include', groupEntityIds },
+        entities,
+        t
+      );
+
+      expect(result.count).toBe(2);
+      expect(readIds).toHaveBeenCalledTimes(1);
+    });
+  });
 
   it('matches only lights that are currently on', () => {
     const result = resolveStatusGroupPill({ groupPreset: 'lights_on' }, entities, t);

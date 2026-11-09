@@ -8,7 +8,9 @@ import { useConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ModalBody, ModalFooter, ModalHeader } from '../components/ui/ModalParts';
 import { GRADIENT_PRESETS } from '../contexts/ConfigContext';
 import { hasOAuthTokens } from '../services/oauthStorage';
+import { hasTouchScreen } from '../utils/touchScreen';
 import MusicAssistantUrlField from './MusicAssistantUrlField';
+import GeneralSettingsTab from './GeneralSettingsTab';
 import {
   getEffectiveGridColumnsForWidth,
   getMaxGridColumnsForWidth,
@@ -215,6 +217,7 @@ export default function ConfigModal({
 
   const TABS = [
     { key: 'connection', icon: Wifi, label: t('system.tabConnection') },
+    { key: 'general', icon: Settings, label: t('system.tabGeneral') },
     // Appearance and Layout have been moved to Sidebars
     // { key: 'appearance', icon: Palette, label: t('system.tabAppearance') },
     // { key: 'layout', icon: LayoutGrid, label: t('system.tabLayout') },
@@ -223,7 +226,7 @@ export default function ConfigModal({
   ];
 
   useEffect(() => {
-    const supportedTabs = new Set(['connection', 'profiles', 'updates']);
+    const supportedTabs = new Set(['connection', 'general', 'profiles', 'updates']);
     if (!isLayoutPreview && !supportedTabs.has(configTab)) {
       setConfigTab('connection');
     }
@@ -280,7 +283,7 @@ export default function ConfigModal({
             setConfig({ ...config, url: oauthUrlDraft.trim(), authMethod: 'token' });
             setConnectionTestResult(null);
           }}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold tracking-wider uppercase transition-all ${isOAuth ? 'border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-white shadow-lg '}`}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold tracking-wider uppercase transition-all ${isOAuth ? 'border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)]' : 'bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg '}`}
         >
           <Key className="h-3.5 w-3.5" />
           Token
@@ -553,9 +556,20 @@ export default function ConfigModal({
         setProfileDeviceLabel('');
       } catch {}
     };
+    const handleLoadFromServer = async (revision) => {
+      const ok = await confirmAction({
+        title: t('profiles.autoSyncLoadServer'),
+        message: t('profiles.autoSyncLoadServerConfirm'),
+        confirmLabel: t('profiles.load'),
+        destructive: true,
+      });
+      if (ok) autoSync.loadCurrentFromServer(revision).catch(() => {});
+    };
     let syncStatusTone = 'text-[var(--status-success-fg)]';
     if (autoSync.status === 'error') {
       syncStatusTone = 'text-[var(--status-error-fg)]';
+    } else if (autoSync.status === 'conflict') {
+      syncStatusTone = 'text-[var(--status-warning-fg)]';
     } else if (autoSync.status === 'syncing') {
       syncStatusTone = 'text-amber-300';
     }
@@ -597,10 +611,10 @@ export default function ConfigModal({
             <button
               onClick={handleSaveProfile}
               disabled={loading || !profileName.trim()}
-              className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white shadow-lg transition-all ${
+              className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold shadow-lg transition-all ${
                 profileName.trim()
-                  ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)] '
-                  : 'cursor-not-allowed bg-[var(--accent-bg)] shadow-none'
+                  ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] hover:bg-[var(--accent-color)] '
+                  : 'cursor-not-allowed bg-[var(--accent-bg)] text-[var(--text-muted)] shadow-none'
               }`}
             >
               <Save className="h-4 w-4" />
@@ -609,10 +623,14 @@ export default function ConfigModal({
           </div>
 
           {profileError && (
-            <p className="text-xs font-bold text-[var(--status-error-fg)]">{profileError}</p>
+            <p className="text-xs font-bold text-[var(--status-error-fg)]">{t(profileError)}</p>
           )}
 
-          {loadSummary && <p className="text-xs font-bold text-amber-300">{loadSummary}</p>}
+          {loadSummary && (
+            <p className="text-xs font-bold text-amber-300">
+              {loadSummary.map((key) => t(key)).join(' ')}
+            </p>
+          )}
 
           {/* Profile list */}
           {profileList.length === 0 ? (
@@ -633,7 +651,7 @@ export default function ConfigModal({
                         onChange={(e) => setEditName(e.target.value)}
                         placeholder={t('profiles.namePlaceholder')}
                         className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-color)] focus:outline-none"
-                        autoFocus
+                        autoFocus={!hasTouchScreen()}
                       />
                       <input
                         type="text"
@@ -653,10 +671,10 @@ export default function ConfigModal({
                             } catch {}
                           }}
                           disabled={loading || !editName.trim()}
-                          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold text-white transition-all ${
+                          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all ${
                             editName.trim()
-                              ? 'bg-[var(--accent-color)] hover:bg-[var(--accent-color)]'
-                              : 'cursor-not-allowed bg-[var(--accent-bg)]'
+                              ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] hover:bg-[var(--accent-color)]'
+                              : 'cursor-not-allowed bg-[var(--accent-bg)] text-[var(--text-muted)]'
                           }`}
                         >
                           <Check className="h-3.5 w-3.5" />
@@ -690,12 +708,21 @@ export default function ConfigModal({
                       </div>
                       <div className="flex flex-shrink-0 gap-2">
                         <button
-                          onClick={() => loadProfile(profile)}
+                          onClick={async () => {
+                            const ok = await confirmAction({
+                              title: profile.name,
+                              message: t('profiles.confirmLoad'),
+                              confirmLabel: t('profiles.load'),
+                              destructive: true,
+                            });
+                            if (ok) loadProfile(profile);
+                          }}
                           className="rounded-lg border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-1.5 text-xs font-bold text-[var(--status-success-fg)] transition-all hover:opacity-90"
                         >
                           {t('profiles.load')}
                         </button>
                         <button
+                          aria-label={t('profiles.edit')}
                           onClick={() => {
                             setEditingProfileId(profile.id);
                             setEditName(profile.name);
@@ -706,6 +733,7 @@ export default function ConfigModal({
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
+                          aria-label={t('profiles.delete')}
                           onClick={async () => {
                             const ok = await confirmAction({
                               title: profile.name,
@@ -756,7 +784,13 @@ export default function ConfigModal({
       try {
         const text = await file.text();
         const parsed = JSON.parse(text);
-        importDashboard(parsed);
+        const ok = await confirmAction({
+          title: t('profiles.import'),
+          message: t('profiles.confirmImport'),
+          confirmLabel: t('profiles.import'),
+          destructive: true,
+        });
+        if (ok) importDashboard(parsed);
       } catch {
         globalThis.alert(t('profiles.invalidFile'));
       } finally {
@@ -792,6 +826,9 @@ export default function ConfigModal({
                   </p>
                 </button>
                 <button
+                  role="switch"
+                  aria-checked={!!autoSync.enabled}
+                  aria-label={t('profiles.autoSyncTitle')}
                   type="button"
                   onClick={() => autoSync.setEnabled(!autoSync.enabled)}
                   className={`relative h-6 w-10 rounded-full p-1 transition-colors ${autoSync.enabled ? 'bg-[var(--accent-color)]' : 'bg-gray-500/30'}`}
@@ -819,24 +856,43 @@ export default function ConfigModal({
                 </button>
               </div>
 
-              {autoSyncExpanded && (
-                <>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-bold text-[var(--text-secondary)]">
-                      {t('profiles.autoSyncStatusLabel')}:
-                    </span>
-                    <span className={`font-bold ${syncStatusTone}`}>{syncStatusLabel}</span>
-                  </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-bold text-[var(--text-secondary)]">
+                  {t('profiles.autoSyncStatusLabel')}:
+                </span>
+                <span className={`font-bold ${syncStatusTone}`}>{syncStatusLabel}</span>
+              </div>
 
-                  {autoSync.error && (
-                    <p className="text-xs font-bold text-[var(--status-error-fg)]">
-                      {autoSync.error}
-                    </p>
-                  )}
+              {autoSync.backgroundSyncSuspended && (
+                <div className="flex items-start gap-2 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-3 text-xs text-[var(--status-warning-fg)]">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <p>{t('profiles.autoSyncSuspended')}</p>
+                </div>
+              )}
 
-                  {autoSync.status === 'conflict' && (
-                    <div className="popup-surface rounded-xl p-3 text-xs" role="alert">
-                      <p>{t('profiles.autoSyncConflictHint')}</p>
+              {autoSync.error && (
+                <p className="text-xs font-bold text-[var(--status-error-fg)]">
+                  {t(autoSync.error)}
+                </p>
+              )}
+
+              {autoSync.status === 'conflict' && (
+                <div
+                  className="flex items-start gap-2 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-3 text-xs text-[var(--status-warning-fg)]"
+                  role="alert"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p>{t('profiles.autoSyncConflictHint')}</p>
+                    <p className="mt-1 font-bold">{t('profiles.autoSyncConflictPaused')}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleLoadFromServer()}
+                        className="rounded-lg border border-[var(--status-warning-border)] px-3 py-2 font-bold"
+                      >
+                        {t('profiles.autoSyncLoadServer')}
+                      </button>
                       <button
                         type="button"
                         onClick={async () => {
@@ -850,12 +906,17 @@ export default function ConfigModal({
                             autoSync.overwriteServerWithLocal?.().catch(() => {});
                           }
                         }}
-                        className="mt-2 rounded-lg border border-[var(--glass-border)] px-3 py-2 font-bold"
+                        className="rounded-lg border border-[var(--status-warning-border)] px-3 py-2 font-bold"
                       >
                         {t('profiles.autoSyncOverwrite')}
                       </button>
                     </div>
-                  )}
+                  </div>
+                </div>
+              )}
+
+              {autoSyncExpanded && (
+                <>
                   {autoSync.publishConflicts?.length > 0 && (
                     <p className="text-xs text-[var(--status-warning-fg)]" role="alert">
                       {t('profiles.autoSyncPublishConflicts')}{' '}
@@ -872,11 +933,9 @@ export default function ConfigModal({
                     <button
                       type="button"
                       onClick={() =>
-                        autoSync
-                          .loadCurrentFromServer(
-                            selectedServerRevision ? Number(selectedServerRevision) : undefined
-                          )
-                          .catch(() => {})
+                        handleLoadFromServer(
+                          selectedServerRevision ? Number(selectedServerRevision) : undefined
+                        )
                       }
                       className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)] transition-all hover:bg-[var(--glass-bg-hover)]"
                     >
@@ -987,6 +1046,28 @@ export default function ConfigModal({
                                 <span className="text-[var(--text-muted)]">
                                   rev {entry.revision}
                                 </span>
+                                {!isCurrentDevice && (
+                                  <button
+                                    type="button"
+                                    onClick={async (event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      const ok = await confirmAction({
+                                        title: displayName,
+                                        message: t('profiles.autoSyncLoadFromDeviceConfirm'),
+                                        confirmLabel: t('profiles.load'),
+                                        destructive: true,
+                                      });
+                                      if (ok)
+                                        autoSync.loadFromDevice(entry.device_id).catch(() => {});
+                                    }}
+                                    className="rounded p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-secondary)]"
+                                    title={t('profiles.autoSyncLoadFromDevice')}
+                                    aria-label={t('profiles.autoSyncLoadFromDevice')}
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   disabled={isRenaming}
@@ -1072,7 +1153,7 @@ export default function ConfigModal({
         <div className="space-y-3">
           <div className="ml-1 flex items-center justify-between gap-2">
             <h3 className="modal-section-label">{t('profiles.sectionProfiles')}</h3>
-            {haUser && backendAvailable && (
+            {haUser && (
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -1313,6 +1394,9 @@ export default function ConfigModal({
                 </label>
                 <div className="flex items-center gap-3">
                   <button
+                    role="switch"
+                    aria-checked={inactivityTimeout > 0}
+                    aria-label={t('settings.inactivity')}
                     onClick={() => {
                       const newVal = inactivityTimeout > 0 ? 0 : 60;
                       setInactivityTimeout(newVal);
@@ -1337,6 +1421,7 @@ export default function ConfigModal({
                     </span>
                   </div>
                   <M3Slider
+                    ariaLabel={t('settings.inactivity')}
                     min={10}
                     max={300}
                     step={10}
@@ -1461,7 +1546,7 @@ export default function ConfigModal({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(false)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-white'}`}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]' : 'text-[var(--accent-contrast)]'}`}
                   style={dynamicGridColumns ? {} : { backgroundColor: 'var(--accent-color)' }}
                 >
                   {t('settings.manual')}
@@ -1469,7 +1554,7 @@ export default function ConfigModal({
                 <button
                   type="button"
                   onClick={() => setDynamicGridColumns(true)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase transition-all ${dynamicGridColumns ? 'text-[var(--accent-contrast)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   style={dynamicGridColumns ? { backgroundColor: 'var(--accent-color)' } : {}}
                 >
                   {t('common.auto')}
@@ -1546,6 +1631,7 @@ export default function ConfigModal({
                   </span>
                 </div>
                 <M3Slider
+                  ariaLabel={t('settings.gridGapH')}
                   min={0}
                   max={64}
                   step={4}
@@ -1566,6 +1652,7 @@ export default function ConfigModal({
                   </span>
                 </div>
                 <M3Slider
+                  ariaLabel={t('settings.gridGapV')}
                   min={0}
                   max={64}
                   step={4}
@@ -1593,6 +1680,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingHeader')}
               min={0}
               max={64}
               step={4}
@@ -1616,6 +1704,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingNav')}
               min={0}
               max={64}
               step={4}
@@ -1639,6 +1728,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.sectionSpacingGrid')}
               min={0}
               max={64}
               step={4}
@@ -1667,6 +1757,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.cardRadius')}
               min={0}
               max={64}
               step={2}
@@ -1689,6 +1780,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.transparency')}
               min={0}
               max={100}
               step={5}
@@ -1711,6 +1803,7 @@ export default function ConfigModal({
               </div>
             </div>
             <M3Slider
+              ariaLabel={t('settings.borderOpacity')}
               min={0}
               max={50}
               step={5}
@@ -1888,6 +1981,17 @@ export default function ConfigModal({
   // ─── Main Render ───
   if (!open) return null;
 
+  // Without this the test button is simply greyed out and nothing says why.
+  const onboardingUrl = isOAuth ? oauthUrlDraft.trim() : config.url;
+  const onboardingUrlMessage = !isOnboardingActive
+    ? ''
+    : onboardingUrlError ||
+      (onboardingUrl && !validateUrl(onboardingUrl)
+        ? t('onboarding.invalidUrl')
+        : !isOAuth && onboardingUrl?.endsWith('/')
+          ? t('onboarding.urlTrailingSlash')
+          : '');
+
   const activeTabLabel = availableTabs.find((tab) => tab.key === configTab)?.label;
   const shellLayoutProps = isLayoutPreview
     ? {
@@ -1960,7 +2064,7 @@ export default function ConfigModal({
                       return (
                         <div
                           key={step.key}
-                          className={`flex flex-1 cursor-default items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all md:flex-none ${isActive ? 'bg-[var(--accent-color)] text-white shadow-lg ' : ''} ${isDone ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
+                          className={`flex flex-1 cursor-default items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all md:flex-none ${isActive ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg ' : ''} ${isDone ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : ''} ${!isActive && !isDone ? 'text-[var(--text-secondary)] opacity-50' : ''}`}
                         >
                           {isDone ? (
                             <Check className="h-4 w-4" />
@@ -1991,8 +2095,8 @@ export default function ConfigModal({
 
                           {config.isIngress && (
                             <div className="rounded-xl border border-[var(--accent-color)] bg-[var(--accent-bg)] p-3 text-xs leading-relaxed text-[var(--accent-color)]">
-                              <strong>Add-on Mode:</strong> URL is auto-detected. Just paste a
-                              Long-Lived Access Token from your HA Profile.
+                              <strong>{t('onboarding.addonModeTitle')}</strong>{' '}
+                              {t('onboarding.addonModeBody')}
                             </div>
                           )}
 
@@ -2005,7 +2109,7 @@ export default function ConfigModal({
                                 </label>
                                 <input
                                   type="text"
-                                  className={`w-full rounded-xl border-2 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] ${onboardingUrlError ? 'border-[var(--status-error-border)]' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
+                                  className={`w-full rounded-xl border-2 bg-[var(--glass-bg)] px-3 py-2 text-sm text-[var(--text-primary)] transition-all outline-none placeholder:text-[var(--text-muted)] ${onboardingUrlMessage ? 'border-[var(--status-error-border)]' : 'border-[var(--glass-border)] focus:border-[var(--accent-color)]'}`}
                                   value={isOAuth ? oauthUrlDraft : config.url}
                                   onChange={(e) => {
                                     if (isOAuth) {
@@ -2018,9 +2122,9 @@ export default function ConfigModal({
                                   }}
                                   placeholder={t('onboarding.haUrlPlaceholder')}
                                 />
-                                {onboardingUrlError && (
+                                {onboardingUrlMessage && (
                                   <p className="ml-1 text-xs font-bold text-[var(--status-error-fg)]">
-                                    {onboardingUrlError}
+                                    {onboardingUrlMessage}
                                   </p>
                                 )}
                               </div>
@@ -2104,6 +2208,16 @@ export default function ConfigModal({
                                   : t('onboarding.testConnection')}
                               </Button>
 
+                              {!connectionTestResult &&
+                                !testingConnection &&
+                                config.url &&
+                                config.token &&
+                                validateUrl(config.url) && (
+                                  <p className="ml-1 text-xs text-[var(--text-muted)]">
+                                    {t('onboarding.testRequired')}
+                                  </p>
+                                )}
+
                               {connectionTestResult && (
                                 <div
                                   className={`animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 rounded-xl p-3 ${connectionTestResult.success ? 'border border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]'}`}
@@ -2157,6 +2271,7 @@ export default function ConfigModal({
                             </label>
                             <div className="px-1 py-2">
                               <M3Slider
+                                ariaLabel={t('settings.inactivity')}
                                 min={0}
                                 max={300}
                                 step={10}
@@ -2248,7 +2363,7 @@ export default function ConfigModal({
                             onClick={() => setConfigTab(tab.key)}
                             className={`flex flex-1 items-center justify-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold tracking-wide uppercase transition-all md:flex-none md:justify-start md:px-4 md:py-3 ${
                               active
-                                ? 'bg-[var(--accent-color)] text-white shadow-lg '
+                                ? 'bg-[var(--accent-color)] text-[var(--accent-contrast)] shadow-lg '
                                 : 'text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'
                             }`}
                           >
@@ -2276,6 +2391,15 @@ export default function ConfigModal({
                       style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
                     >
                       {configTab === 'connection' && renderConnectionTab()}
+                      {configTab === 'general' && (
+                        <GeneralSettingsTab
+                          t={t}
+                          language={language}
+                          setLanguage={setLanguage}
+                          inactivityTimeout={inactivityTimeout}
+                          setInactivityTimeout={setInactivityTimeout}
+                        />
+                      )}
                       {configTab === 'profiles' && renderProfilesTab()}
                       {configTab === 'updates' && renderUpdatesTab()}
                     </ModalBody>
@@ -2334,8 +2458,10 @@ const autoSyncShape = PropTypes.shape({
   removingDeviceId: PropTypes.string,
   updatingDeviceId: PropTypes.string,
   error: PropTypes.string,
+  backgroundSyncSuspended: PropTypes.bool,
   setEnabled: PropTypes.func,
   loadCurrentFromServer: PropTypes.func,
+  loadFromDevice: PropTypes.func,
   publishCurrentToDevices: PropTypes.func,
   publishConflicts: PropTypes.array,
   overwriteServerWithLocal: PropTypes.func,
@@ -2348,7 +2474,7 @@ const profilesShape = PropTypes.shape({
   profiles: PropTypes.array,
   loading: PropTypes.bool,
   error: PropTypes.string,
-  loadSummary: PropTypes.string,
+  loadSummary: PropTypes.arrayOf(PropTypes.string),
   backendAvailable: PropTypes.bool,
   saveProfile: PropTypes.func,
   editProfile: PropTypes.func,

@@ -5,3 +5,12 @@ configuration:
   internal_ha_fallback_url:
     name: Fallback Home Assistant URL
     description: Optional alternative address for the same Home Assistant instance, used when the primary address cannot be reached.
+  data_encryption_mode:
+    name: Data encryption mode
+    description: How profiles and settings are stored in the database. 'off' stores them as plain text, 'dual' stores both plain and encrypted copies, and 'enc_only' stores only encrypted data.
+  data_encryption_key:
+    name: Data encryption key
+    description: Required for 'dual' and 'enc_only'. Use a 32-byte base64 or hex key, or a long passphrase. Keep it safe and unchanged, because encrypted data cannot be read without it.
+  data_encryption_salt:
+    name: Data encryption salt
+    description: Required only when the encryption key is a passphrase. Keep it safe and unchanged.

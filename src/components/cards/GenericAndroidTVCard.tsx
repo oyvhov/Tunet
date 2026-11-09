@@ -1,8 +1,11 @@
 import { memo, useEffect, useState } from 'react';
 import { Tv, Play, Pause, Power, RefreshCw } from '../../icons';
 import { getMediaLogoUrl } from '../../utils/mediaLogos';
+import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
+import { usePowerToggle } from '../../hooks/usePowerToggle';
 import type { MouseEvent } from 'react';
 import type { MediaCardCommonProps } from './MediaCards';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface GenericAndroidTVCardProps extends MediaCardCommonProps {
   mediaPlayerId: string;
@@ -33,16 +36,33 @@ const GenericAndroidTVCard = memo(
     callService,
   }: GenericAndroidTVCardProps) {
     const [waking, setWaking] = useState(false);
-    const powerState = entities[mediaPlayerId]?.state;
+    const state = entities[mediaPlayerId]?.state; // Keep main TV state for ON/OFF status
+    const isUnavailable = isUnavailableState(state) || !state;
+    const isOn = state !== 'off' && state !== 'standby' && !isUnavailable;
+    // The remote entity can be fine while the media player is not, and can still wake the TV.
+    const canWakeViaRemote =
+      Boolean(remoteId) && !isUnavailableState(entities[remoteId ?? '']?.state ?? state);
+    const canTogglePower = !isUnavailable || canWakeViaRemote;
+    const { isPending, togglePower } = usePowerToggle({
+      entityId: mediaPlayerId,
+      isOn,
+      domain: 'media_player',
+      callService,
+      // Same wake route as the popup: the remote when there is one.
+      buildCall: () =>
+        !isOn && canWakeViaRemote && remoteId
+          ? { domain: 'remote', service: 'turn_on', data: { entity_id: remoteId } }
+          : null,
+    });
     useEffect(() => {
       if (!waking) return undefined;
-      if (powerState && !['off', 'unavailable', 'unknown'].includes(powerState)) {
+      if (isOn) {
         setWaking(false);
         return undefined;
       }
       const timer = setTimeout(() => setWaking(false), 20000);
       return () => clearTimeout(timer);
-    }, [waking, powerState]);
+    }, [waking, isOn]);
 
     const entity = entities[mediaPlayerId];
     if (!entity) return null;
@@ -69,11 +89,9 @@ const GenericAndroidTVCard = memo(
     // Usually this implies overriding the metadata (title, image, app name) but the "ON/OFF" state might still be relevant to the TV.
     // However, simple approach: Use displayEntity for metadata.
 
-    const state = entity?.state; // Keep main TV state for ON/OFF status
     const displayState = displayEntity?.state;
-
-    const isUnavailable = state === 'unavailable' || state === 'unknown' || !state;
-    const isOn = state !== 'off' && !isUnavailable;
+    const offLabel = isUnavailable ? getUnavailableLabel(state, t) : t('status.off');
+    const offPillLabel = isUnavailable ? getUnavailableLabel(state, t) : t('common.off');
 
     // Is the device actually playing something?
     const isPlaying = displayState === 'playing';
@@ -128,13 +146,42 @@ const GenericAndroidTVCard = memo(
 
     const appLogo = getAppLogo(appName);
 
+    const powerButton = canTogglePower && (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!editMode) togglePower();
+        }}
+        disabled={editMode || isPending}
+        aria-busy={isPending}
+        className={`relative flex items-center justify-center rounded-full transition-all before:absolute before:-inset-1.5 active:scale-90 ${
+          isDenseMobile ? 'h-8 w-8' : 'h-9 w-9'
+        } ${isSmall ? '' : 'shadow-md'} ${
+          isOn
+            ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90'
+            : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'
+        }`}
+        title={isOn ? t('shield.turnOff') : t('shield.turnOn')}
+        aria-label={isOn ? t('shield.turnOff') : t('shield.turnOn')}
+      >
+        {isPending ? (
+          <RefreshCw
+            className={`${isDenseMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} animate-spin motion-reduce:animate-none`}
+          />
+        ) : (
+          <Power className={isDenseMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+        )}
+      </button>
+    );
+
     if (!isOn && !linkedActive && !isSmall) {
-      const canTurnOn = !isUnavailable && typeof callService === 'function';
+      const canTurnOn = canTogglePower && typeof callService === 'function';
       const turnOn = (e: MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         if (editMode || !canTurnOn || waking) return;
         setWaking(true);
-        const request = remoteId
+        const request = canWakeViaRemote
           ? callService('remote', 'turn_on', { entity_id: remoteId })
           : callService('media_player', 'turn_on', { entity_id: mediaPlayerId });
         Promise.resolve(request).catch(() => setWaking(false));
@@ -144,6 +191,7 @@ const GenericAndroidTVCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, deviceName)}
           data-haptic={editMode ? undefined : 'card'}
           data-tv-state={waking ? 'waking' : isUnavailable ? 'unavailable' : 'off'}
           onClick={(e) => {
@@ -186,7 +234,7 @@ const GenericAndroidTVCard = memo(
               <h3
                 className={`${isDenseMobile ? 'text-[1.45rem]' : 'text-3xl'} line-clamp-2 pb-0.5 leading-tight font-thin text-[var(--text-primary)]`}
               >
-                {isUnavailable ? t('status.unavailable') : t('status.off')}
+                {offLabel}
               </h3>
             </div>
             {canTurnOn && (
@@ -218,12 +266,13 @@ const GenericAndroidTVCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, deviceName)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={(e) => {
             e.stopPropagation();
             if (!editMode && onOpen) onOpen();
           }}
-          className={`glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+          className={`${picture || appLogo ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
           style={{ ...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)' }}
         >
           {controls}
@@ -251,7 +300,7 @@ const GenericAndroidTVCard = memo(
                 {deviceName}
               </p>
               <p className="truncate text-lg leading-tight font-medium text-[var(--text-primary)]">
-                {appName || (isOn ? t('media.homeScreen') : t('status.off'))}
+                {appName || (isOn ? t('media.homeScreen') : offLabel)}
               </p>
               {title && (
                 <p
@@ -263,12 +312,15 @@ const GenericAndroidTVCard = memo(
             </div>
           </div>
 
-          <div
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 transition-all ${isOn ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
-          >
-            <span className="text-[10px] font-bold tracking-widest uppercase">
-              {isOn ? (isPlaying ? t('status.playing') : t('common.on')) : t('common.off')}
-            </span>
+          <div className="flex items-center gap-2">
+            <div
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 transition-all ${isOn ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'}`}
+            >
+              <span className="text-[10px] font-bold tracking-widest uppercase">
+                {isOn ? (isPlaying ? t('status.playing') : t('common.on')) : offPillLabel}
+              </span>
+            </div>
+            {powerButton}
           </div>
         </div>
       );
@@ -278,12 +330,13 @@ const GenericAndroidTVCard = memo(
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, deviceName)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
           if (!editMode && onOpen) onOpen();
         }}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+        className={`${picture || appLogo ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
         style={{ ...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)' }}
       >
         {controls}
@@ -294,17 +347,20 @@ const GenericAndroidTVCard = memo(
           >
             <Tv className={isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} />
           </div>
-          {!linkedActive && (
-            <div
-              className={`flex items-center rounded-full border transition-all ${isOn ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1.5'}`}
-            >
-              <span
-                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
+          <div className="flex items-center gap-2">
+            {!linkedActive && (
+              <div
+                className={`flex items-center rounded-full border transition-all ${isOn ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${isDenseMobile ? 'gap-1 px-2.5 py-1' : 'gap-1.5 px-3 py-1.5'}`}
               >
-                {isOn ? (isPlaying ? t('status.playing') : t('common.on')) : t('common.off')}
-              </span>
-            </div>
-          )}
+                <span
+                  className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
+                >
+                  {isOn ? (isPlaying ? t('status.playing') : t('common.on')) : offPillLabel}
+                </span>
+              </div>
+            )}
+            {powerButton}
+          </div>
         </div>
 
         <div
@@ -319,7 +375,7 @@ const GenericAndroidTVCard = memo(
             <h3
               className={`${isDenseMobile ? 'mb-0.5 text-[1.45rem]' : 'mb-1 text-3xl'} line-clamp-2 leading-none font-thin`}
             >
-              {appName || (isOn ? t('media.homeScreen') : t('status.off'))}
+              {appName || (isOn ? t('media.homeScreen') : offLabel)}
             </h3>
             {title && (
               <p
@@ -333,11 +389,12 @@ const GenericAndroidTVCard = memo(
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                // Control the DISPLAY entity if it's playing, otherwise fall back to media player
-                const targetId = isPlaying ? displayEntityId : mediaPlayerId;
+                const targetId = linkedActive ? displayEntityId : mediaPlayerId;
                 callService('media_player', 'media_play_pause', { entity_id: targetId });
               }}
               className={`relative z-20 flex-shrink-0 rounded-full bg-white shadow-lg transition-all active:scale-95 ${isDenseMobile ? 'p-2.5' : 'p-3'}`}
+              title={t('shield.playPause')}
+              aria-label={t('shield.playPause')}
             >
               {isPlaying ? (
                 <Pause

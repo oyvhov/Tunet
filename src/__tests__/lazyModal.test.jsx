@@ -5,6 +5,14 @@ import { lazyModal } from '../components/ui/lazyModal';
 afterEach(cleanup);
 
 describe('on-demand modal loading', () => {
+  it('holds back the loading layer so a fast import never flashes it', () => {
+    const Modal = lazyModal(() => new Promise(() => {}));
+
+    const { container } = render(<Modal />);
+
+    expect(container.firstChild).toHaveClass('modal-loading-fallback');
+  });
+
   it('renders as soon as the module resolves and reuses it on subsequent openings', async () => {
     let resolve;
     const load = vi.fn(

@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
-import { Plus, Edit2, ChevronDown } from '../../icons';
+import { Fragment, useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import { Plus, Edit2, ChevronDown, ChevronUp } from '../../icons';
 import { getIconComponent } from '../../icons';
 import { useModalActions, usePages } from '../../contexts';
 
@@ -48,7 +48,7 @@ function PageManagerPopover({
   return (
     <div
       ref={ref}
-      className={`absolute top-full left-0 z-50 mt-2 w-52 origin-top-left translate-y-0 scale-100 transform rounded-2xl border border-white/10 p-1.5 opacity-100 shadow-2xl transition-all duration-200`}
+      className={`touch:right-0 touch:left-auto touch:w-72 absolute top-full left-0 z-50 mt-2 w-52 origin-top-left translate-y-0 scale-100 transform rounded-2xl border border-white/10 p-1.5 opacity-100 shadow-2xl transition-all duration-200`}
       style={{ backgroundColor: 'var(--card-bg)', backdropFilter: 'blur(20px)' }}
     >
       <div className="max-h-72 space-y-0.5 overflow-y-auto">
@@ -123,11 +123,34 @@ function PageManagerPopover({
                   setEditingPage(page.id);
                   onClose();
                 }}
-                className="shrink-0 rounded-md p-1 text-[var(--accent-color)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
+                className="touch:opacity-100 shrink-0 rounded-md p-1 text-[var(--accent-color)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
                 title={t('nav.editPage') || 'Edit page'}
               >
                 <Edit2 className="h-3 w-3" />
               </button>
+              {/* Dragging a row is HTML5 only and never fires on a touch screen. */}
+              <div className="touch:flex hidden shrink-0 items-center">
+                <button
+                  type="button"
+                  disabled={idx === 0}
+                  onClick={() => movePage(idx, idx - 1)}
+                  className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--text-secondary)] disabled:opacity-20"
+                  title={t('nav.movePageUp')}
+                  aria-label={t('nav.movePageUp')}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  disabled={idx === pages.length - 1}
+                  onClick={() => movePage(idx, idx + 1)}
+                  className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--text-secondary)] disabled:opacity-20"
+                  title={t('nav.movePageDown')}
+                  aria-label={t('nav.movePageDown')}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           );
         })}
@@ -143,7 +166,7 @@ function PageManagerPopover({
         }}
         className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-white/10"
       >
-        <div className="rounded-md bg-[var(--accent-bg)] p-1.5 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-white">
+        <div className="rounded-md bg-[var(--accent-bg)] p-1.5 text-[var(--accent-color)] transition-colors group-hover:bg-[var(--accent-color)] group-hover:text-[var(--accent-contrast)]">
           <Plus className="h-3.5 w-3.5" />
         </div>
         <p className="text-xs font-semibold text-[var(--text-primary)] group-hover:text-white">
@@ -173,6 +196,10 @@ const NAV_SIZE_VARS = {
 };
 
 const SLIDING_NAV_STYLES = ['segmented', 'underline'];
+
+// Grows the tap target to 44 px around whatever size the pill is drawn at, without moving it.
+const NAV_HIT_AREA =
+  "after:absolute after:top-1/2 after:left-1/2 after:h-11 after:w-full after:min-w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']";
 
 const getNavItemClass = (navStyle, isActive, accent, sliding) => {
   const activeText = accent ? 'text-[var(--accent-color)]' : 'text-[var(--text-primary)]';
@@ -305,7 +332,7 @@ export default function PageNavigation({
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       {/* Scrollable page pills */}
-      <div className="scrollbar-hide min-w-0 flex-1 overflow-x-auto pb-2">
+      <div className="scrollbar-hide -mt-2 min-w-0 flex-1 overflow-x-auto pt-2 pb-2">
         <div
           ref={trackRef}
           className={`relative flex min-w-0 items-center ${NAV_TRACK_CLASS[navStyle]}`}
@@ -343,54 +370,66 @@ export default function PageNavigation({
             if (!editMode && isSinglePage && hideSinglePagePill) return null;
 
             return (
-              <button
-                key={page.id}
-                aria-label={label}
-                draggable={editMode}
-                onClick={() => (editMode ? setEditingPage(page.id) : setActivePage(page.id))}
-                onDragStart={(event) => {
-                  if (!editMode) return;
-                  event.dataTransfer.effectAllowed = 'move';
-                  event.dataTransfer.setData('text/plain', page.id);
-                }}
-                onDragOver={(event) => {
-                  if (!editMode) return;
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = 'move';
-                  setDragOverId(page.id);
-                }}
-                onDragLeave={() => {
-                  if (!editMode) return;
-                  setDragOverId(null);
-                }}
-                onDrop={(event) => {
-                  if (!editMode) return;
-                  event.preventDefault();
-                  const sourceId = event.dataTransfer.getData('text/plain');
-                  setDragOverId(null);
-                  movePage(sourceId, page.id);
-                }}
-                onDragEnd={() => setDragOverId(null)}
-                aria-current={activePage === page.id ? 'page' : undefined}
-                className={`relative z-10 flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-[calc(var(--nav-icon)*0.5)] text-[length:var(--nav-font)] font-bold whitespace-nowrap transition-all duration-300 sm:min-h-0 sm:min-w-0 ${navUppercase ? 'tracking-widest uppercase' : 'tracking-wide'} ${getNavItemClass(navStyle, activePage === page.id, navAccent, sliding && indicator !== null)} ${editMode && isHidden ? 'scale-95 border-gray-500 opacity-50' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-[var(--accent-color)]' : ''}`}
-              >
-                {(navShowIcons || navStyle === 'expand') && (
-                  <Icon
-                    className={`h-5 w-5 shrink-0 sm:h-[var(--nav-icon)] sm:w-[var(--nav-icon)] ${editMode && isHidden ? 'animate-pulse' : ''}`}
-                  />
-                )}
-                <span
-                  className={
-                    navStyle === 'expand' && activePage !== page.id
-                      ? 'sr-only'
-                      : showLabelsOnMobile || !navShowIcons
-                        ? undefined
-                        : 'hidden sm:inline'
-                  }
+              <Fragment key={page.id}>
+                <button
+                  aria-label={label}
+                  draggable={editMode}
+                  onClick={() => setActivePage(page.id)}
+                  onDragStart={(event) => {
+                    if (!editMode) return;
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', page.id);
+                  }}
+                  onDragOver={(event) => {
+                    if (!editMode) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                    setDragOverId(page.id);
+                  }}
+                  onDragLeave={() => {
+                    if (!editMode) return;
+                    setDragOverId(null);
+                  }}
+                  onDrop={(event) => {
+                    if (!editMode) return;
+                    event.preventDefault();
+                    const sourceId = event.dataTransfer.getData('text/plain');
+                    setDragOverId(null);
+                    movePage(sourceId, page.id);
+                  }}
+                  onDragEnd={() => setDragOverId(null)}
+                  aria-current={activePage === page.id ? 'page' : undefined}
+                  className={`relative z-10 flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-[calc(var(--nav-icon)*0.5)] text-[length:var(--nav-font)] font-bold whitespace-nowrap transition-all duration-300 sm:min-h-0 sm:min-w-0 ${NAV_HIT_AREA} ${navUppercase ? 'tracking-widest uppercase' : 'tracking-wide'} ${getNavItemClass(navStyle, activePage === page.id, navAccent, sliding && indicator !== null)} ${editMode && isHidden ? 'scale-95 border-gray-500 opacity-50' : ''} ${editMode ? 'cursor-move' : ''} ${isDragOver ? 'border-[var(--accent-color)]' : ''}`}
                 >
-                  {label}
-                </span>
-              </button>
+                  {(navShowIcons || navStyle === 'expand') && (
+                    <Icon
+                      className={`h-5 w-5 shrink-0 sm:h-[var(--nav-icon)] sm:w-[var(--nav-icon)] ${editMode && isHidden ? 'animate-pulse' : ''}`}
+                    />
+                  )}
+                  <span
+                    className={
+                      navStyle === 'expand' && activePage !== page.id
+                        ? 'sr-only'
+                        : showLabelsOnMobile || !navShowIcons
+                          ? undefined
+                          : 'hidden sm:inline'
+                    }
+                  >
+                    {label}
+                  </span>
+                </button>
+                {editMode && activePage === page.id && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingPage(page.id)}
+                    title={t('nav.editPage')}
+                    aria-label={t('nav.editPage')}
+                    className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-dashed border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--accent-color)] transition-colors hover:bg-[var(--glass-bg-hover)] ${NAV_HIT_AREA}`}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </Fragment>
             );
           })}
         </div>
@@ -402,7 +441,7 @@ export default function PageNavigation({
           <button
             type="button"
             onClick={toggleManager}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-bold tracking-widest whitespace-nowrap uppercase transition-all sm:px-4 sm:py-2.5 sm:text-xs ${
+            className={`relative flex items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-bold tracking-widest whitespace-nowrap uppercase transition-all sm:px-4 sm:py-2.5 sm:text-xs ${NAV_HIT_AREA} ${
               showManager
                 ? 'border-[var(--accent-color)] bg-[var(--glass-bg-hover)] text-[var(--accent-color)]'
                 : 'border-dashed border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'

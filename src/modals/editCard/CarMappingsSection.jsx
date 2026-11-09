@@ -268,7 +268,7 @@ export function CarMappingsSection({
       </div>
 
       <div className="popup-surface space-y-2 rounded-2xl p-3">
-        <div className="modal-section-label">{t('car.anchorEntity') || 'Anchor entity'}</div>
+        <div className="modal-section-label">{`${t('car.anchorEntity') || 'Anchor entity'} *`}</div>
         <select
           value={anchorEntityId || ''}
           onChange={(e) =>
@@ -362,6 +362,7 @@ export function CarMappingsSection({
           <div className="mb-2 flex items-center justify-between">
             <span className="modal-section-label">{t('car.addSensor')}</span>
             <button
+              aria-label={t('common.close')}
               onClick={() => {
                 setShowAddSensor(false);
                 setSensorType('');

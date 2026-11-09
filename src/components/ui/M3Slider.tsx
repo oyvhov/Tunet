@@ -7,6 +7,8 @@ interface M3SliderProps {
   step?: number;
   value: number;
   onChange: (event: { target: { value: string } }) => void;
+  /** Called once with the final value when the finger lifts or an arrow key is released. */
+  onCommit?: (value: number) => void;
   colorClass?: string;
   disabled?: boolean;
   variant?: 'default' | 'thin' | 'thinLg' | 'volume' | (string & {});
@@ -19,12 +21,18 @@ interface M3SliderProps {
   name?: string;
 }
 
+// 44 px finger target around a thin track. Chrome only starts a touch drag inside the input's
+// thumb strip, so the invisible thumb has to be as tall as the target.
+const THIN_TRACK_HIT_AREA =
+  'absolute top-1/2 z-20 h-11 w-full -translate-y-1/2 cursor-pointer appearance-none opacity-0 select-none [&::-webkit-slider-thumb]:h-11 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none';
+
 export default function M3Slider({
   min,
   max,
   step,
   value,
   onChange,
+  onCommit = undefined,
   colorClass: propColorClass = 'bg-[var(--accent-color)]',
   disabled = false,
   variant = 'default',
@@ -46,6 +54,7 @@ export default function M3Slider({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frameRef = useRef<number | null>(null);
   const pendingValueRef = useRef(value);
+  const uncommittedRef = useRef(false);
 
   useEffect(() => {
     if (!isInteracting) setInternalValue(value);
@@ -71,7 +80,14 @@ export default function M3Slider({
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   };
 
+  const commitValue = () => {
+    if (!uncommittedRef.current) return;
+    uncommittedRef.current = false;
+    onCommit?.(pendingValueRef.current);
+  };
+
   const endInteraction = () => {
+    commitValue();
     timeoutRef.current = setTimeout(() => setIsInteracting(false), 120);
   };
 
@@ -79,6 +95,7 @@ export default function M3Slider({
     const nextValue = parseFloat((e.target as HTMLInputElement).value);
     setInternalValue(nextValue);
     pendingValueRef.current = nextValue;
+    uncommittedRef.current = true;
 
     if (frameRef.current) return;
 
@@ -110,6 +127,7 @@ export default function M3Slider({
     onMouseUp: endInteraction,
     onTouchStart: beginInteraction,
     onTouchEnd: endInteraction,
+    onKeyUp: commitValue,
     onInput: handleInputChange,
     onChange: handleInputChange,
     className: 'absolute w-full h-full opacity-0 cursor-pointer z-20 select-none',
@@ -129,7 +147,7 @@ export default function M3Slider({
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <input {...commonInputProps} />
+        <input {...commonInputProps} className={THIN_TRACK_HIT_AREA} />
         <div
           className="pointer-events-none absolute z-10 h-3 w-3 rounded-full bg-[var(--text-primary)] opacity-0 shadow-lg transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
           style={{ left: `calc(${percentage}% - 6px)` }}
@@ -151,7 +169,7 @@ export default function M3Slider({
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <input {...commonInputProps} />
+        <input {...commonInputProps} className={THIN_TRACK_HIT_AREA} />
         <div
           className="pointer-events-none absolute z-10 h-4 w-4 rounded-full bg-[var(--text-primary)] opacity-0 shadow-lg transition-opacity duration-200 group-focus-within:opacity-100 group-hover:opacity-100"
           style={{ left: `calc(${percentage}% - 8px)` }}

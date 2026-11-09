@@ -267,6 +267,21 @@ describe('useConnectionSetup › setters', () => {
 });
 
 describe('useConnectionSetup startOAuthLogin', () => {
+  it('explains an HTTP Home Assistant URL on an HTTPS page in the chosen language', async () => {
+    getAuth.mockRejectedValueOnce(5);
+    const { result } = renderHook(() => useConnectionSetup(makeProps()));
+
+    await act(async () => {
+      result.current.startOAuthLogin('http://ha.local:8123');
+      await Promise.resolve();
+    });
+
+    expect(result.current.connectionTestResult).toEqual({
+      success: false,
+      message: 'onboarding.oauthHttpsRequired',
+    });
+  });
+
   it('uses the explicit URL draft and persists it only when login starts', async () => {
     const setItem = vi.fn();
     vi.stubGlobal('localStorage', { setItem });

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { en } from './i18n';
 import { useTranslationTable } from './hooks/useTranslationTable';
 import { LayoutGrid } from './icons';
+import { APP_FONT_FAMILIES } from './config/appFonts';
 
 import { DashboardLayout } from './layouts';
 
@@ -36,11 +37,13 @@ import {
   useCardRendering,
   useSettingsAccessControl,
   usePopupTriggers,
+  useMoments,
   useDashboardStateCoordinator,
   useGuardedUiActions,
   useAppViewModels,
 } from './hooks';
 
+import { isAnyModalOpen } from './hooks/useModals';
 import './styles/dashboard.css';
 import {
   hasOAuthTokens,
@@ -135,19 +138,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
 
   const { entities, entitiesLoaded, connected, conn, activeUrl, authRef } = useHomeAssistant();
   const translations = useTranslationTable(language);
-  const appFontFamilyMap = useMemo(
-    () => ({
-      sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
-      Inter: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
-      Roboto: 'Roboto, "Helvetica Neue", Arial, sans-serif',
-      Lato: 'Lato, "Helvetica Neue", Arial, sans-serif',
-      Montserrat: 'Montserrat, "Helvetica Neue", Arial, sans-serif',
-      'Open Sans': '"Open Sans", "Helvetica Neue", Arial, sans-serif',
-      Raleway: 'Raleway, "Helvetica Neue", Arial, sans-serif',
-    }),
-    []
-  );
-  const resolvedAppFontFamily = appFontFamilyMap[appFont] || appFontFamilyMap.sans;
+  const resolvedAppFontFamily = APP_FONT_FAMILIES[appFont] || APP_FONT_FAMILIES.sans;
   const t = useCallback(
     (key) => {
       const value = translations[key] ?? en[key];
@@ -174,6 +165,10 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     closeAllModals,
   } = modalActions;
   const activeMediaModal = useModalSelector((state) => state.activeMediaModal);
+  const activeMoment = useModalSelector((state) => state.activeMoment);
+  const anyPopupOpen = useModalSelector(
+    (state) => isAnyModalOpen(state) || state.showHeaderEditModal
+  );
   const activeMediaId = useModalSelector((state) => state.activeMediaId);
   const showAddCardModal = useModalSelector((state) => state.showAddCardModal);
   const showConfigModal = useModalSelector((state) => state.showConfigModal);
@@ -434,6 +429,18 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     enabled: hasEnabledPopupTriggers,
   });
 
+  useMoments({
+    entities,
+    entitiesLoaded,
+    pagesConfig,
+    cardSettings,
+    getCardSettingsKey,
+    editMode: visibleEditMode,
+    popupOpen: anyPopupOpen || showThemeSidebar || showLayoutSidebar,
+    activeMoment,
+    setActiveMoment: entityModalActions.setActiveMoment,
+  });
+
   // ── Add-card dialog hook ───────────────────────────────────────────────
   const {
     addCardTargetPage,
@@ -536,6 +543,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     entities,
     entitiesLoaded,
     conn,
+    connected,
     customNames,
     customIcons,
     getA,
@@ -558,9 +566,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     setShowAlarmActionModal,
     setShowEditCardModal: guardedSetShowEditCardModal,
     setEditCardSettingsKey,
-    toggleCardVisibility: guardedToggleCardVisibility,
     removeCard: guardedRemoveCard,
-    duplicateCard,
     isCardRemovable,
   });
 
@@ -704,7 +710,7 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     createBatteryPage,
     createRoomExplorerPage,
     deletePage,
-    removeCard,
+    removeCard: guardedRemoveCard,
     persistPageSettings,
     persistConfig,
     optimisticLightBrightness,
@@ -756,7 +762,9 @@ export function AppContent({ showOnboarding, setShowOnboarding }) {
     customIcons,
     saveCustomIcon,
     persistCustomIcons,
-    toggleCardVisibility,
+    toggleCardVisibility: guardedToggleCardVisibility,
+    duplicateCard,
+    isCardRemovable,
     persistHiddenCards,
     statusPillsConfig,
     saveStatusPillsConfig,

@@ -4,7 +4,7 @@ import { Check, getIconComponent } from '../icons';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalFooter, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
-import { resolveStatusGroupPill } from '../utils/statusGroupPills';
+import { getStatusGroupStateLabel, resolveStatusGroupPill } from '../utils/statusGroupPills';
 
 const translate = (t, key, fallback) => {
   const value = typeof t === 'function' ? t(key) : key;
@@ -12,16 +12,6 @@ const translate = (t, key, fallback) => {
 };
 
 const getEntityName = (id, entity) => entity?.attributes?.friendly_name || id;
-
-const getStateLabel = (entity, t) => {
-  const state = String(entity?.state || 'unknown');
-  const domain = String(entity?.entity_id || '').split('.')[0];
-  const domainKey = domain ? `${domain}.${state}` : '';
-  const translated = domainKey ? translate(t, domainKey, '') : '';
-  if (translated) return translated;
-  const commonKey = `common.${state}`;
-  return translate(t, commonKey, state);
-};
 
 export default function StatusGroupPillModal({
   show,
@@ -92,10 +82,15 @@ export default function StatusGroupPillModal({
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="rounded-full bg-[var(--glass-bg)] px-2 py-1 text-[11px] font-bold text-[var(--text-secondary)] uppercase">
-                        {getStateLabel({ ...entity, entity_id: id }, t)}
+                        {getStatusGroupStateLabel(id, entity, t)}
                       </span>
                       {hasAction && rowActionLabel && (
-                        <Button variant="secondary" size="sm" onClick={() => runAction([id])}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="min-h-11"
+                          onClick={() => runAction([id])}
+                        >
                           {rowActionLabel}
                         </Button>
                       )}

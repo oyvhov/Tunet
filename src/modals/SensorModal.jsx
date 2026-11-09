@@ -1,12 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import { Activity, ChevronDown, List } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Activity, Check, ChevronDown, List, Play, Power, RefreshCw } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { canUseHistoryRest, getHistory, getHistoryRest, getStatistics } from '../services/haClient';
+import { historyRowsToPoints, parseHistoryTime } from '../utils/sensorHistory';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import BinaryTimeline from '../components/charts/BinaryTimeline';
 import { formatDateTime, formatRelativeTime } from '../utils';
 import { getIconComponent } from '../icons';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
+import { useSensorCardAction } from '../hooks/useSensorCardAction';
+import { resolveSensorCardConfig, isSensorEntityActive } from '../utils/sensorCardConfig';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Segmented from '../components/ui/Segmented';
@@ -39,6 +42,13 @@ const TECHNICAL_ATTRIBUTES = new Set([
 
 const HISTORY_HOURS = [6, 12, 24, 48, 72];
 const ACTIVE_STATES = ['on', 'open', 'unlocked', 'playing', 'active', 'home'];
+const ACTION_DOMAINS = ['switch', 'input_boolean', 'button', 'input_button', 'script', 'scene'];
+
+function formatAttributeValue(value) {
+  if (Array.isArray(value)) return value.map(formatAttributeValue).join(', ');
+  if (value && typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
 
 function isEntityNumeric(domain, entityId, state) {
   return (
@@ -49,28 +59,9 @@ function isEntityNumeric(domain, entityId, state) {
   );
 }
 
-function shouldShowEntityActivity(domain, state, numericState) {
-  const activityDomains = [
-    'binary_sensor',
-    'automation',
-    'switch',
-    'input_boolean',
-    'cover',
-    'light',
-    'fan',
-    'lock',
-    'climate',
-    'media_player',
-    'scene',
-    'script',
-    'select',
-    'input_select',
-  ];
-
-  if (!activityDomains.includes(domain)) return false;
-  if (state === 'unavailable' || state === 'unknown') return false;
-  if (numericState && domain !== 'light' && domain !== 'climate') return false;
-  return true;
+/** Anything without a graph shows its state changes, which is also how you see a dropout. */
+function shouldShowEntityActivity(domain, numericState) {
+  return !numericState || domain === 'light' || domain === 'climate';
 }
 
 export default function SensorModal({
@@ -83,14 +74,16 @@ export default function SensorModal({
   haUrl,
   haToken,
   callService,
+  settings = undefined,
   t = (key) => key,
 }) {
   const { unitsMode } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
+  const [actionArmed, setActionArmed] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyEvents, setHistoryEvents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [_historyError, setHistoryError] = useState(null);
+  const [historyError, setHistoryError] = useState(null);
   const [_historyMeta, setHistoryMeta] = useState({ source: null, rawCount: 0 });
   const [historyHours, setHistoryHours] = useState(24);
 
@@ -100,33 +93,36 @@ export default function SensorModal({
     end: new Date(),
   });
 
-  const toDateSafe = (value) => {
-    if (!value) return null;
-    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-    if (typeof value === 'number') {
-      const ms = value < 1e12 ? value * 1000 : value;
-      const d = new Date(ms);
-      return Number.isNaN(d.getTime()) ? null : d;
-    }
-    if (typeof value === 'string') {
-      const direct = new Date(value);
-      if (!Number.isNaN(direct.getTime())) return direct;
-      const num = Number(value);
-      if (Number.isFinite(num)) {
-        const ms = num < 1e12 ? num * 1000 : num;
-        const d = new Date(ms);
-        return Number.isNaN(d.getTime()) ? null : d;
-      }
-    }
-    return null;
-  };
-
   const attrs = entity?.attributes || {};
   const state = entity?.state;
   const domain = entityId?.split('.')?.[0];
   const isNumeric = isEntityNumeric(domain, entityId, state);
   const entityRef = useRef(entity);
   entityRef.current = entity;
+
+  const popupAction = useMemo(
+    () =>
+      entity && ACTION_DOMAINS.includes(domain)
+        ? resolveSensorCardConfig({ ...settings, entityId }, entity).action
+        : null,
+    [entity, domain, entityId, settings]
+  );
+  const actionEntities = useMemo(
+    () => (entity ? { [entityId]: entity } : undefined),
+    [entity, entityId]
+  );
+  useEffect(() => {
+    if (!actionArmed) return undefined;
+    const timer = setTimeout(() => setActionArmed(false), 4000);
+    return () => clearTimeout(timer);
+  }, [actionArmed]);
+
+  const actionFeedback = useSensorCardAction({
+    conn,
+    callService,
+    action: popupAction,
+    entities: actionEntities,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +148,7 @@ export default function SensorModal({
 
           let points = [];
           let events = [];
+          let failed = false;
           const currentDomain = activeEntity.entity_id?.split('.')?.[0];
           const currentState = activeEntity.state;
           const numericHistory = isEntityNumeric(
@@ -160,14 +157,7 @@ export default function SensorModal({
             currentState
           );
 
-          // Determine if we need history data for activity/events display
-          const needsActivityData = shouldShowEntityActivity(
-            currentDomain,
-            currentState,
-            numericHistory
-          );
-          const shouldFetch = needsActivityData || numericHistory;
-          const loadWsHistory = async (errorMessage = null) => {
+          const loadWsHistory = async (errorMessage = 'History websocket failed') => {
             try {
               const wsData = await getHistory(conn, {
                 entityId: activeEntity.entity_id,
@@ -179,20 +169,7 @@ export default function SensorModal({
               if (wsData && Array.isArray(wsData)) {
                 const raw = Array.isArray(wsData[0]) ? wsData[0] : wsData;
                 if (!cancelled) setHistoryMeta({ source: 'ws', rawCount: raw.length });
-                points = raw
-                  .filter((d) => !isNaN(parseFloat(d?.state)))
-                  .map((d) => ({
-                    value: parseFloat(d.state),
-                    time: toDateSafe(
-                      d.last_changed ||
-                        d.last_updated ||
-                        d.last_reported ||
-                        d.timestamp ||
-                        d.lu ||
-                        d.lc
-                    ),
-                  }))
-                  .filter((d) => d.time);
+                points = historyRowsToPoints(raw);
                 events = raw
                   .map((d) => {
                     if (!d) return null;
@@ -205,7 +182,7 @@ export default function SensorModal({
                       d.l ||
                       d.lc ||
                       d.lu;
-                    const time = toDateSafe(changed);
+                    const time = parseHistoryTime(changed);
                     if (stateValue === undefined || !time) return null;
                     return {
                       state: stateValue,
@@ -215,86 +192,68 @@ export default function SensorModal({
                   })
                   .filter(Boolean);
                 if (!cancelled) setHistoryError(null);
-              } else if (errorMessage && !cancelled) {
-                setHistoryError(errorMessage);
+              } else {
+                failed = true;
+                if (!cancelled) setHistoryError(errorMessage);
               }
             } catch (_wsErr) {
-              if (errorMessage && !cancelled) setHistoryError(errorMessage);
+              failed = true;
+              if (!cancelled) setHistoryError(errorMessage);
             }
           };
 
           // Try fetching history via REST first (recommended for full data)
-          if (shouldFetch) {
-            const canUseRest = canUseHistoryRest(haUrl);
+          if (canUseHistoryRest(haUrl)) {
+            try {
+              const data = await getHistoryRest(haUrl, haToken, {
+                entityId: activeEntity.entity_id,
+                start,
+                end,
+                minimal_response: false,
+                no_attributes: false,
+                significant_changes_only: false,
+              });
 
-            if (canUseRest) {
-              try {
-                const data = await getHistoryRest(haUrl, haToken, {
-                  entityId: activeEntity.entity_id,
-                  start,
-                  end,
-                  minimal_response: false,
-                  no_attributes: false,
-                  significant_changes_only: false,
-                });
-
-                if (data && Array.isArray(data)) {
-                  const raw = Array.isArray(data[0]) ? data[0] : data;
-                  if (!cancelled) setHistoryMeta({ source: 'rest', rawCount: raw.length });
-                  points = raw
-                    .filter((d) => !isNaN(parseFloat(d?.state)))
-                    .map((d) => ({
-                      value: parseFloat(d.state),
-                      time: toDateSafe(
-                        d.last_changed ||
-                          d.last_updated ||
-                          d.last_reported ||
-                          d.timestamp ||
-                          d.lu ||
-                          d.lc
-                      ),
-                    }))
-                    .filter((d) => d.time);
-                  events = raw
-                    .map((d) => {
-                      if (!d) return null;
-                      const stateValue = d.state ?? d.s;
-                      const changed =
-                        d.last_changed ||
-                        d.last_updated ||
-                        d.last_reported ||
-                        d.timestamp ||
-                        d.l ||
-                        d.lc ||
-                        d.lu;
-                      const time = toDateSafe(changed);
-                      if (stateValue === undefined || !time) return null;
-                      return {
-                        state: stateValue,
-                        time,
-                        lastChanged: changed,
-                      };
-                    })
-                    .filter(Boolean);
-                }
-              } catch (err) {
-                await loadWsHistory(err?.message || 'History REST failed');
+              if (data && Array.isArray(data)) {
+                const raw = Array.isArray(data[0]) ? data[0] : data;
+                if (!cancelled) setHistoryMeta({ source: 'rest', rawCount: raw.length });
+                points = historyRowsToPoints(raw);
+                events = raw
+                  .map((d) => {
+                    if (!d) return null;
+                    const stateValue = d.state ?? d.s;
+                    const changed =
+                      d.last_changed ||
+                      d.last_updated ||
+                      d.last_reported ||
+                      d.timestamp ||
+                      d.l ||
+                      d.lc ||
+                      d.lu;
+                    const time = parseHistoryTime(changed);
+                    if (stateValue === undefined || !time) return null;
+                    return {
+                      state: stateValue,
+                      time,
+                      lastChanged: changed,
+                    };
+                  })
+                  .filter(Boolean);
               }
-            } else {
-              await loadWsHistory();
+            } catch (err) {
+              await loadWsHistory(err?.message || 'History REST failed');
             }
+          } else {
+            await loadWsHistory();
           }
 
-          if (!shouldFetch) {
-            if (!cancelled) {
-              setHistory([]);
-              setHistoryEvents([]);
-            }
-            return;
+          // A sensor that never changed has one row: it held that value until now.
+          if (points.length === 1 && !isNaN(parseFloat(currentState))) {
+            points = [points[0], { value: parseFloat(currentState), time: end }];
           }
 
-          // Fallback to statistics if history is sparse or empty
-          if (points.length < 2) {
+          // Fallback to statistics if history is empty
+          if (numericHistory && points.length < 2) {
             try {
               const stats = await getStatistics(conn, {
                 statisticId: activeEntity.entity_id,
@@ -321,19 +280,9 @@ export default function SensorModal({
             }
           }
 
-          // Final fallback for current state as line
-          if (points.length < 2 && !isNaN(parseFloat(currentState))) {
-            const now = new Date();
-            const val = parseFloat(currentState);
-            points = [
-              { value: val, time: new Date(now.getTime() - historyHours * 60 * 60 * 1000) },
-              { value: val, time: now },
-            ];
-          }
-
           // Fallback for events (Binary Timeline) if no history found
           // Even if unavailable, we want to show that state
-          if (events.length === 0 && currentState) {
+          if (!failed && events.length === 0 && currentState) {
             events = [
               {
                 state: currentState,
@@ -348,6 +297,7 @@ export default function SensorModal({
           }
         } catch (_e) {
           console.error('Failed to load history', _e);
+          if (!cancelled) setHistoryError(_e?.message || 'History failed');
         } finally {
           if (!cancelled) setLoading(false);
         }
@@ -372,7 +322,7 @@ export default function SensorModal({
   const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
   const inferredUnitKind = inferUnitKind(deviceClass, unit);
   // Determine if entity should show activity timeline and log
-  const hasActivity = shouldShowEntityActivity(domain, state, isNumeric);
+  const hasActivity = shouldShowEntityActivity(domain, isNumeric);
 
   const attributeEntries = Object.entries(attrs).filter(
     ([key]) => !['friendly_name', 'unit_of_measurement', 'entity_picture', 'icon'].includes(key)
@@ -507,6 +457,31 @@ export default function SensorModal({
     <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--text-primary)] opacity-20"></div>
   );
 
+  const runPopupAction = () => {
+    if (popupAction?.confirm && !actionArmed) {
+      setActionArmed(true);
+      return;
+    }
+    setActionArmed(false);
+    actionFeedback.execute();
+  };
+  const actionActive = popupAction ? isSensorEntityActive(popupAction.targetEntity) : false;
+  const actionLabel = popupAction
+    ? {
+        toggle: t(actionActive ? 'sensor.action.turnOff' : 'sensor.action.turnOn'),
+        press: t('sensor.action.press'),
+        script: t('sensor.script.run'),
+        scene: t('sensor.scene.activate'),
+      }[popupAction.type]
+    : null;
+  // A button or scene is "unknown" until first used, so only toggles are blocked by it.
+  const actionDisabled =
+    !conn ||
+    actionFeedback.pending ||
+    state === 'unavailable' ||
+    (state === 'unknown' && popupAction?.type === 'toggle');
+  const ActionIcon = popupAction?.type === 'toggle' ? Power : Play;
+
   return (
     <AccessibleModalShell
       open={isOpen && !!entityId && !!entity}
@@ -530,6 +505,47 @@ export default function SensorModal({
 
           <ModalBody className="grid gap-6 lg:grid-cols-5">
             <div className="flex min-w-0 flex-col gap-6 lg:col-span-3">
+              {actionLabel && (
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={runPopupAction}
+                    disabled={actionDisabled}
+                    aria-busy={actionFeedback.pending}
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:opacity-60"
+                  >
+                    {actionFeedback.pending ? (
+                      <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
+                    ) : actionFeedback.status === 'confirmed' ||
+                      actionFeedback.status === 'sent' ? (
+                      <Check className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <ActionIcon className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>
+                      {actionArmed
+                        ? popupAction.confirmLabel || t('sensor.action.confirmPrompt')
+                        : actionLabel}
+                    </span>
+                  </button>
+                  {actionFeedback.status !== 'idle' && (
+                    <span
+                      role="status"
+                      aria-live="polite"
+                      className={`block text-center text-xs ${['error', 'timeout'].includes(actionFeedback.status) ? 'text-[var(--status-error-fg)]' : 'text-[var(--text-secondary)]'}`}
+                    >
+                      {t(`sensor.action.${actionFeedback.status}`)}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {historyError && !loading && (
+                <p role="alert" className="text-sm text-[var(--status-error-fg)]">
+                  {t('sensorInfo.historyFailed')}
+                </p>
+              )}
+
               {(domain === 'select' || domain === 'input_select') && callService && (
                 <ModernDropdown
                   label={t('sensor.select.label') || 'Select'}
@@ -674,7 +690,7 @@ export default function SensorModal({
                           {key.replace(/_/g, ' ')}
                         </span>
                         <span className="text-sm leading-snug font-medium break-words text-[var(--text-primary)]">
-                          {String(value)}
+                          {formatAttributeValue(value)}
                         </span>
                       </div>
                     ))}
@@ -694,7 +710,7 @@ export default function SensorModal({
                         {key.replace(/_/g, ' ')}
                       </span>
                       <span className="font-mono text-sm leading-snug break-words text-[var(--text-secondary)]">
-                        {String(value)}
+                        {formatAttributeValue(value)}
                       </span>
                     </div>
                   ))}

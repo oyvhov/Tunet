@@ -4,12 +4,14 @@ import { Minus, Plus, AirVent, Fan, RefreshCw, getIconComponent } from '../../ic
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import { formatKindValueForDisplay, getEffectiveUnitMode } from '../../utils';
 import { usePowerToggle } from '../../hooks/usePowerToggle';
+import { useClimateTarget } from '../../hooks/useClimateTarget';
 import { resolveSensorCardActionCall } from '../../utils/sensorCardConfig';
 import { getClimateStatus } from '../../utils/climateStatus';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { CardCallService } from '../../types/cards';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 // getClimateStatus needs a string state and a non-weak attributes type.
 type ClimateEntity = EntityMap[string] & {
@@ -102,12 +104,13 @@ const GenericClimateCard = memo(
         }
       },
     });
+    const { target, targetRange, canAdjust, nudge } = useClimateTarget(entity, onSetTemperature);
 
     if (!entity || !entityId) return null;
 
     const isSmall = settings?.size === 'small';
     const currentTemp = entity.attributes?.current_temperature ?? '--';
-    const targetTemp = entity.attributes?.temperature ?? '--';
+    const targetTemp = target ?? '--';
     const sourceTempUnit =
       haConfig?.unit_system?.temperature || entity.attributes?.temperature_unit || '°C';
     const effectiveUnitMode = getEffectiveUnitMode(unitsMode, haConfig);
@@ -116,11 +119,15 @@ const GenericClimateCard = memo(
       fromUnit: sourceTempUnit,
       unitMode: effectiveUnitMode,
     });
-    const displayTargetTemp = formatKindValueForDisplay(targetTemp, {
-      kind: 'temperature',
-      fromUnit: sourceTempUnit,
-      unitMode: effectiveUnitMode,
-    });
+    const formatTarget = (value: unknown) =>
+      formatKindValueForDisplay(value, {
+        kind: 'temperature',
+        fromUnit: sourceTempUnit,
+        unitMode: effectiveUnitMode,
+      });
+    const displayTargetTemp = targetRange
+      ? `${formatTarget(targetRange.low).value}–${formatTarget(targetRange.high).text}`
+      : formatTarget(targetTemp).text;
     const fanMode = entity.attributes?.fan_mode ?? 'Auto';
     const fanModes = entity.attributes?.fan_modes || [];
     const showFan = Array.isArray(fanModes) && fanModes.length > 0;
@@ -163,6 +170,8 @@ const GenericClimateCard = memo(
           ? activeTheme.iconBg
           : 'bg-[var(--glass-bg)] text-[var(--text-muted)]';
     const isTapToggle = settings?.tapAction === 'toggle';
+    // Negative margins give a 44 px target while the buttons take the old 20x28 / 24x32 in the row.
+    const stepperHitArea = isDenseMobile ? '-mx-3 -my-2 rounded-lg' : '-mx-2.5 -my-1.5 rounded-xl';
 
     const handleTogglePower = (e?: MouseEvent) => {
       if (e) e.stopPropagation();
@@ -170,12 +179,16 @@ const GenericClimateCard = memo(
       togglePower();
     };
 
-    const stepTemp = (delta: number) => onSetTemperature((targetTemp || 21) + delta);
+    const stepTarget = (e: MouseEvent, direction: 1 | -1) => {
+      e.stopPropagation();
+      nudge(direction);
+    };
 
     if (isSmall) {
       return (
         <div
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           onClick={(e) => {
             e.stopPropagation();
             if (editMode) return;
@@ -223,28 +236,26 @@ const GenericClimateCard = memo(
                 <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
                   {displayCurrentTemp.text}
                 </span>
-                <span className="text-xs text-[var(--text-secondary)]">
-                  → {displayTargetTemp.text}
-                </span>
+                <span className="text-xs text-[var(--text-secondary)]">→ {displayTargetTemp}</span>
               </div>
             </div>
           </div>
-          <div className="card-controls card-controls--temp invisible shrink-0 group-hover:visible">
+          <div className="card-controls card-controls--temp touch:visible invisible shrink-0 group-hover:visible">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                stepTemp(0.5);
-              }}
-              className="control-plus flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90"
+              aria-label={translate('common.increase')}
+              type="button"
+              disabled={!canAdjust}
+              onClick={(e) => stepTarget(e, 1)}
+              className="control-plus flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Plus className="h-4 w-4" />
             </button>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                stepTemp(-0.5);
-              }}
-              className="control-minus flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90"
+              aria-label={translate('common.decrease')}
+              type="button"
+              disabled={!canAdjust}
+              onClick={(e) => stepTarget(e, -1)}
+              className="control-minus flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -257,6 +268,7 @@ const GenericClimateCard = memo(
       <div
         key="climate"
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -335,11 +347,11 @@ const GenericClimateCard = memo(
               className={`flex flex-1 items-center justify-between bg-[var(--glass-bg)] ${isDenseMobile ? 'rounded-xl p-0.5' : 'rounded-2xl p-1'}`}
             >
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  stepTemp(-0.5);
-                }}
-                className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 ${isDenseMobile ? 'h-7 w-5 rounded-lg' : 'h-8 w-6 rounded-xl'}`}
+                aria-label={translate('common.decrease')}
+                type="button"
+                disabled={!canAdjust}
+                onClick={(e) => stepTarget(e, -1)}
+                className={`flex h-11 w-11 items-center justify-center text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 ${stepperHitArea}`}
               >
                 <Minus className="h-4 w-4" />
               </button>
@@ -347,15 +359,15 @@ const GenericClimateCard = memo(
                 <span
                   className={`${isDenseMobile ? 'text-lg' : 'text-xl'} leading-none font-medium text-[var(--text-primary)]`}
                 >
-                  {displayTargetTemp.text}
+                  {displayTargetTemp}
                 </span>
               </div>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  stepTemp(0.5);
-                }}
-                className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 ${isDenseMobile ? 'h-7 w-5 rounded-lg' : 'h-8 w-6 rounded-xl'}`}
+                aria-label={translate('common.increase')}
+                type="button"
+                disabled={!canAdjust}
+                onClick={(e) => stepTarget(e, 1)}
+                className={`flex h-11 w-11 items-center justify-center text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 ${stepperHitArea}`}
               >
                 <Plus className="h-4 w-4" />
               </button>

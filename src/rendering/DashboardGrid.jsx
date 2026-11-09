@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { LayoutGrid, Plus, UserCircle2 } from '../icons';
 import CardErrorBoundary from '../components/ui/CardErrorBoundary';
+import { useHomeAssistantOffline } from '../contexts/HomeAssistantContext';
 import { formatDuration } from '../utils';
 
 const MediaPage = lazy(() => import('../components/pages/MediaPage'));
@@ -11,7 +12,18 @@ const RoomExplorerPage = lazy(() => import('../components/pages/RoomExplorerPage
 const pageFallback = <div className="page-transition min-h-[40vh]" aria-hidden="true" />;
 
 export default function DashboardGrid({ page, media, grid, cards, actions, t }) {
-  const { activePage, pagesConfig, pageSettings, editMode, isMediaPage, isSonosPage, isLightsPage, isBatteryPage, isRoomExplorerPage } = page;
+  const offline = useHomeAssistantOffline();
+  const {
+    activePage,
+    pagesConfig,
+    pageSettings,
+    editMode,
+    isMediaPage,
+    isSonosPage,
+    isLightsPage,
+    isBatteryPage,
+    isRoomExplorerPage,
+  } = page;
   const {
     entities,
     conn,
@@ -23,7 +35,8 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
     callService,
     savePageSetting,
   } = media;
-  const { gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards, cardScale } = grid;
+  const { gridLayout, isMobile, gridGapV, gridGapH, gridColCount, isCompactCards, cardScale } =
+    grid;
   const { cardSettings, getCardSettingsKey, hiddenCards, isCardHiddenByLogic, renderCard } = cards;
   const { setShowAddCardModal, setConfigTab, setShowConfigModal } = actions;
 
@@ -153,16 +166,16 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
         </div>
 
         <h2 className="mb-3 text-3xl font-light tracking-tight text-[var(--text-primary)] uppercase">
-          {t('welcome.title')}
+          {totalCards > 0 ? t('welcome.emptyPageTitle') : t('welcome.title')}
         </h2>
         <p className="mb-8 max-w-md text-lg leading-relaxed text-[var(--text-secondary)]">
-          {t('welcome.subtitle')}
+          {totalCards > 0 ? t('welcome.emptyPageSubtitle') : t('welcome.subtitle')}
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => setShowAddCardModal(true)}
-            className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-8 py-4 text-sm font-bold tracking-widest text-white uppercase shadow-lg transition-all duration-200 hover:bg-[var(--accent-color)] active:scale-95"
+            className="flex items-center gap-3 rounded-2xl bg-[var(--accent-color)] px-8 py-4 text-sm font-bold tracking-widest text-[var(--accent-contrast)] uppercase shadow-lg transition-all duration-200 hover:bg-[var(--accent-color)] active:scale-95"
           >
             <Plus className="h-5 w-5" />
             {t('welcome.addCard')}
@@ -263,10 +276,17 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
                 </div>
               )}
               <div
-                className="h-full overflow-hidden"
-                style={needsScale ? {
-                  fontSize: `${scaleFactor}em`,
-                } : undefined}
+                className="dashboard-card-slot h-full overflow-hidden"
+                data-card-editing={editMode ? '' : undefined}
+                data-card-offline={offline && !editMode ? '' : undefined}
+                inert={offline && !editMode ? true : undefined}
+                style={
+                  needsScale
+                    ? {
+                        fontSize: `${scaleFactor}em`,
+                      }
+                    : undefined
+                }
               >
                 <CardErrorBoundary cardId={id} t={t}>
                   {cardContent}

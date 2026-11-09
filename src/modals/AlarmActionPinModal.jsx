@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, LogOut, Moon, Shield, Sun, Unlock } from '../icons';
-import AccessibleModalShell, { hasCoarsePointerOnly } from '../components/ui/AccessibleModalShell';
+import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
+import { hasTouchScreen } from '../utils/touchScreen';
 
 const ACTION_META = {
   arm_home: { labelKey: 'alarm.action.armHome', icon: Home, service: 'alarm_arm_home' },
@@ -103,7 +104,7 @@ export default function AlarmActionPinModal({
 
   useEffect(() => {
     // Touch devices use the on-screen keypad, so skip the system keyboard.
-    if (!show || hasCoarsePointerOnly()) return;
+    if (!show || hasTouchScreen()) return;
     const timer = setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -151,6 +152,7 @@ export default function AlarmActionPinModal({
                   if (error) setError('');
                 }}
                 placeholder={translate('alarm.pin.placeholder')}
+                aria-label={translate('alarm.pin.placeholder')}
                 className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.12em] text-[var(--text-primary)] outline-none"
               />
 
@@ -161,6 +163,7 @@ export default function AlarmActionPinModal({
                       <button
                         key={`undo-${index}`}
                         type="button"
+                        aria-label={translate('settings.lock.backspace')}
                         onClick={() => setPin((value) => value.slice(0, -1))}
                         className="h-14 rounded-2xl bg-[var(--glass-bg)] text-xl font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
                       >
@@ -174,6 +177,7 @@ export default function AlarmActionPinModal({
                       <button
                         key="ok"
                         type="button"
+                        aria-label={translate(actionMeta.labelKey)}
                         onClick={submit}
                         disabled={submitting}
                         className="h-14 rounded-2xl bg-[var(--accent-bg)] text-2xl font-semibold text-[var(--accent-color)] disabled:opacity-50"

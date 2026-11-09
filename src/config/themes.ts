@@ -186,35 +186,49 @@ export const themes = {
       '--modal-surface-shadow-hover': '0 14px 28px rgba(0, 0, 0, 0.4)',
     },
   },
-  flat: {
-    label: 'Flat',
+  aluminium: {
+    label: 'Aluminium',
     icon: Moon,
     colors: {
-      '--bg-primary': '#0b0f14',
-      '--bg-secondary': '#0d1117',
-      '--bg-gradient-from': '#0b0f14',
-      '--bg-gradient-to': '#0b0f14',
-      '--text-primary': '#e6edf3',
-      '--text-secondary': '#8b949e',
-      '--text-muted': 'rgba(139, 148, 158, 0.7)',
+      '--bg-primary': '#000000',
+      '--bg-secondary': '#1c1c1e',
+      '--bg-gradient-from': '#1c1c1e',
+      '--bg-gradient-to': '#000000',
+      '--text-primary': '#ffffff',
+      '--text-secondary': '#98989f',
+      '--text-muted': 'rgba(235, 235, 245, 0.5)',
       ...STATUS_TOKENS_DARK,
-      '--card-bg': '#111820',
-      '--card-border': 'transparent',
-      '--glass-bg': '#141c26',
-      '--glass-bg-hover': '#1a2332',
-      '--glass-border': 'rgba(255, 255, 255, 0.04)',
-      '--modal-bg': '#0d1117',
-      '--modal-backdrop': 'rgba(0,0,0,0.7)',
-      '--accent-color': '#58a6ff',
+      '--card-bg': 'rgba(44, 44, 46, 0.72)',
+      '--card-border': 'rgba(255, 255, 255, 0.06)',
+      '--glass-bg': 'rgba(120, 120, 128, 0.18)',
+      '--glass-bg-hover': 'rgba(120, 120, 128, 0.32)',
+      '--glass-border': 'rgba(84, 84, 88, 0.6)',
+      '--modal-bg': '#1c1c1e',
+      '--modal-backdrop': 'rgba(0,0,0,0.6)',
+      '--accent-color': '#0a84ff',
       '--accent-contrast': '#0b1220',
-      '--accent-bg': 'rgba(88, 166, 255, 0.1)',
-      '--modal-border': 'transparent',
+      '--accent-bg': 'rgba(10, 132, 255, 0.16)',
+      '--modal-border': 'rgba(255, 255, 255, 0.08)',
       '--modal-border-width': '0px',
-      '--modal-shadow': 'none',
-      '--modal-surface': 'rgba(255, 255, 255, 0.04)',
-      '--modal-surface-hover': 'rgba(255, 255, 255, 0.07)',
+      '--modal-shadow': '0 24px 60px rgba(0, 0, 0, 0.6)',
+      '--modal-surface': '#2c2c2e',
+      '--modal-surface-hover': '#3a3a3c',
       '--modal-surface-shadow': 'none',
       '--modal-surface-shadow-hover': 'none',
     },
   },
 };
+
+const RETIRED_THEMES: Record<string, string> = { flat: 'dark' };
+
+export function replaceRetiredTheme(theme: string): string {
+  return RETIRED_THEMES[theme] ?? theme;
+}
+
+export function initialCardMaterial(
+  savedTheme: string | null,
+  savedMaterial: string | null
+): string {
+  if (savedTheme === 'flat') return 'flat';
+  return savedMaterial || 'glass';
+}

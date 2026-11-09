@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Fan, RefreshCw, MoveHorizontal, RotateCw } from '../icons';
+import { Fan, Power, RefreshCw, MoveHorizontal, RotateCw } from '../icons';
 import M3Slider from '../components/ui/M3Slider';
 import ModernDropdown from '../components/ui/ModernDropdown';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
+import { useDebouncedCommit } from '../hooks/useDebouncedCommit';
 
 const FAN_FEATURE = {
   SET_SPEED: 1,
@@ -14,6 +15,8 @@ const FAN_FEATURE = {
   TURN_OFF: 16,
   TURN_ON: 32,
 };
+
+const DRAFT_TIMEOUT_MS = 10_000;
 
 const supportsFeature = (supportedFeatures, bitMask) => {
   if (!Number.isFinite(supportedFeatures)) return false;
@@ -53,25 +56,25 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
   const fanName = activeEntity.attributes?.friendly_name || activeEntityId;
   const modalTitleId = `fan-modal-title-${activeEntityId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
-  const [sliderValue, setSliderValue] = useState(percentage);
+  const [draftPercentage, setDraftPercentage] = useState(null);
+  const sliderValue = draftPercentage ?? percentage;
+  const commitPercentage = useDebouncedCommit((value) => {
+    Promise.resolve(
+      callService('fan', 'set_percentage', { entity_id: activeEntityId, percentage: value })
+    ).catch(() => setDraftPercentage(null));
+  }, 180);
 
   useEffect(() => {
-    if (!show) return;
-    setSliderValue(percentage);
-  }, [percentage, show]);
+    setDraftPercentage((draft) =>
+      draft !== null && Math.abs(draft - percentage) < minimumStep ? null : draft
+    );
+  }, [percentage, minimumStep]);
 
   useEffect(() => {
-    if (!show || !activeEntityId || !entity || !hasPercentageControl) return undefined;
-    const timeoutId = setTimeout(() => {
-      if (sliderValue !== percentage) {
-        callService('fan', 'set_percentage', {
-          entity_id: activeEntityId,
-          percentage: sliderValue,
-        });
-      }
-    }, 180);
-    return () => clearTimeout(timeoutId);
-  }, [sliderValue, percentage, hasPercentageControl, activeEntityId, callService, show, entity]);
+    if (draftPercentage === null) return undefined;
+    const timer = setTimeout(() => setDraftPercentage(null), DRAFT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [draftPercentage]);
 
   const status = useMemo(() => {
     if (state === 'unavailable') return { label: t('status.unavailable'), detail: null };
@@ -111,7 +114,8 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
     reverse: t('fan.direction.reverse'),
   };
 
-  const hasSideControls = hasDirectionControl || hasPresetControl;
+  // ModernDropdown has no disabled state, so the dropdowns are left out while unavailable.
+  const hasSideControls = !isUnavailable && (hasDirectionControl || hasPresetControl);
 
   if (!show || !activeEntityId || !entity) return null;
 
@@ -148,7 +152,8 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                       <Button
                         variant={isOn ? 'destructive' : 'primary'}
                         onClick={handlePowerToggle}
-                        icon={<Fan className="h-5 w-5" />}
+                        disabled={isUnavailable}
+                        icon={<Power className="h-5 w-5" />}
                         className="flex-1"
                       >
                         {isOn ? t('fan.turnOff') : t('fan.turnOn')}
@@ -158,6 +163,7 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                       <Button
                         variant={oscillating ? 'primary' : 'secondary'}
                         aria-pressed={oscillating}
+                        disabled={isUnavailable}
                         onClick={() =>
                           callService('fan', 'oscillate', {
                             entity_id: activeEntityId,
@@ -182,11 +188,17 @@ export default function GenericFanModal({ show, onClose, entityId, entity, callS
                       </span>
                     </div>
                     <M3Slider
+                      ariaLabel={t('fan.speed')}
                       min={0}
                       max={100}
                       step={minimumStep}
                       value={sliderValue}
-                      onChange={(event) => setSliderValue(Number(event.target.value))}
+                      disabled={isUnavailable}
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        setDraftPercentage(value);
+                        commitPercentage(value);
+                      }}
                       colorClass="bg-[var(--accent-color)]"
                     />
                   </div>

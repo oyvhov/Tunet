@@ -3,6 +3,7 @@ import { Calendar as CalendarIcon, Clock, MapPin, AlertCircle } from 'lucide-rea
 import { getIconComponent } from '../../icons';
 import { getCalendarEvents } from '../../services/haClient';
 import { createCardKeyHandler } from '../../utils/keyboard';
+import { useRefreshTick } from '../../hooks/useRefreshTick';
 import type {
   CSSProperties,
   ErrorInfo,
@@ -25,6 +26,71 @@ type CalendarCardEvent = {
   location?: string;
   uid?: string;
   id?: string;
+};
+
+const POLL_MS = 15 * 60 * 1000;
+const DAYS_SHOWN = 7;
+
+const dayKey = (date: Date) => date.toLocaleDateString('sv-SE');
+
+const getEventDateValue = (value: CalendarEventDateValue | undefined) => {
+  if (!value) return null;
+  if (typeof value === 'string' || typeof value === 'number') return value;
+  return value.dateTime || value.date_time || value.date || null;
+};
+
+const isAllDayValue = (value: CalendarEventDateValue | undefined) => {
+  if (!value) return false;
+  if (typeof value === 'string') return value.length === 10;
+  // Numbers have no date fields, so they return false here.
+  const dateObject = value as CalendarEventDateObject;
+  return !!dateObject.date && !dateObject.dateTime && !dateObject.date_time;
+};
+
+/** A date-only value is a day in local time, where new Date() would read it as UTC. */
+const parseEventDate = (value: CalendarEventDateValue | undefined) => {
+  const raw = getEventDateValue(value);
+  if (raw === null) return null;
+  if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+/** The last instant the event covers. An end is exclusive, so midnight belongs to the day before. */
+const getLastMoment = (event: CalendarCardEvent, start: Date) => {
+  const end = parseEventDate(event.end);
+  return end && end > start ? new Date(end.getTime() - 1) : start;
+};
+
+/** Every shown day the event touches; one that is already running starts today. */
+const getEventDayKeys = (event: CalendarCardEvent, today: Date) => {
+  const start = parseEventDate(event.start);
+  if (!start) return [];
+  const last = getLastMoment(event, start);
+  const first = start < today ? today : start;
+  const day = new Date(first.getFullYear(), first.getMonth(), first.getDate());
+  const keys: string[] = [];
+  while (day <= last && keys.length < DAYS_SHOWN) {
+    keys.push(dayKey(day));
+    day.setDate(day.getDate() + 1);
+  }
+  return keys;
+};
+
+const spansSeveralDays = (event: CalendarCardEvent) => {
+  const start = parseEventDate(event.start);
+  return !!start && dayKey(getLastMoment(event, start)) !== dayKey(start);
+};
+
+/** A running appointment still counts as next; a running all-day event does not. */
+const isComingUp = (event: CalendarCardEvent, now: Date) => {
+  const start = parseEventDate(event.start);
+  if (!start) return false;
+  if (isAllDayValue(event.start)) return start > now;
+  return (parseEventDate(event.end) || start) > now;
 };
 
 interface CalendarCardSettings {
@@ -126,6 +192,12 @@ const CalendarCard = memo(
       [settings?.calendars]
     );
     const selectedCalendarsKey = useMemo(() => selectedCalendars.join('|'), [selectedCalendars]);
+    const refreshTick = useRefreshTick(conn, {
+      enabled: isVisible && selectedCalendars.length > 0,
+      intervalMs: POLL_MS,
+    });
+    // Read on every render so a card left open moves to the new day at the next poll.
+    const todayKey = dayKey(new Date());
 
     useEffect(() => {
       const observer = new IntersectionObserver(
@@ -181,19 +253,21 @@ const CalendarCard = memo(
         return;
       }
 
+      let cancelled = false;
       const fetchEvents = async () => {
         setLoading(true);
-        setError(null);
         try {
           const start = new Date();
           const end = new Date();
-          end.setDate(end.getDate() + 7); // Fetch next 7 days
+          end.setDate(end.getDate() + DAYS_SHOWN); // Fetch next 7 days
 
           const result = await getCalendarEvents(conn, {
             start,
             end,
             entityIds: selectedCalendars,
           });
+          if (cancelled) return;
+          setError(null);
 
           if (!result) {
             setEvents([]);
@@ -219,9 +293,9 @@ const CalendarCard = memo(
           setEvents(allEvents);
         } catch (err) {
           console.error('Failed to fetch calendar events', err);
-          setError((err as Error).message || 'Failed to fetch events');
+          if (!cancelled) setError((err as Error).message || 'Failed to fetch events');
         } finally {
-          setLoading(false);
+          if (!cancelled) setLoading(false);
         }
       };
 
@@ -235,28 +309,26 @@ const CalendarCard = memo(
         timerId = setTimeout(() => fetchEvents(), Math.random() * 500);
       }
 
-      // Refresh every 15 minutes
-      const interval = setInterval(() => fetchEvents(), 15 * 60 * 1000);
-
       return () => {
-        clearInterval(interval);
+        cancelled = true;
         if (idleId) window.cancelIdleCallback(idleId);
         if (timerId) clearTimeout(timerId);
       };
-    }, [conn, selectedCalendars, selectedCalendarsKey, isVisible]);
+    }, [conn, selectedCalendars, selectedCalendarsKey, isVisible, refreshTick]);
 
-    // Group events by day
+    // Group events by day; a multi-day event appears on each day it covers
     const groupedEvents = useMemo(() => {
+      const [year, month, day] = todayKey.split('-').map(Number);
+      const today = new Date(year, month - 1, day);
       const groups: Record<string, CalendarCardEvent[]> = {};
       events.forEach((event) => {
-        const date = getEventDate(event.start);
-        // Format: YYYY-MM-DD for grouping
-        const key = date.toLocaleDateString('sv-SE'); // ISO-like date part
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(event);
+        getEventDayKeys(event, today).forEach((key) => {
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(event);
+        });
       });
       return groups;
-    }, [events]);
+    }, [events, todayKey]);
 
     const formatDateHeader = (dateStr: string) => {
       // dateStr is YYYY-MM-DD from sv-SE locale (local time)
@@ -286,20 +358,6 @@ const CalendarCard = memo(
       });
     };
 
-    const getEventDateValue = (value: CalendarEventDateValue | undefined) => {
-      if (!value) return null;
-      if (typeof value === 'string' || typeof value === 'number') return value;
-      return value.dateTime || value.date_time || value.date || null;
-    };
-
-    const isAllDayValue = (value: CalendarEventDateValue | undefined) => {
-      if (!value) return false;
-      if (typeof value === 'string') return value.length === 10;
-      // Numbers have no date fields, so they return false here.
-      const dateObject = value as CalendarEventDateObject;
-      return !!dateObject.date && !dateObject.dateTime && !dateObject.date_time;
-    };
-
     const IconComp = iconName ? getIconComponent(iconName) || CalendarIcon : CalendarIcon;
     const displayName = customName || settings?.name || t('calendar.title');
     const isSmall = size === 'small';
@@ -319,17 +377,16 @@ const CalendarCard = memo(
 
     const weekDays = useMemo(() => {
       const days: string[] = [];
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(today);
-        d.setDate(d.getDate() + i);
-        days.push(d.toLocaleDateString('sv-SE'));
+      const [year, month, day] = todayKey.split('-').map(Number);
+      for (let i = 0; i < DAYS_SHOWN; i++) {
+        days.push(dayKey(new Date(year, month - 1, day + i)));
       }
       return days;
-    }, []);
+    }, [todayKey]);
 
-    const nextEvent = events.length > 0 ? events[0] : null;
+    const now = new Date();
+    const nextEvent = events.find((event) => isComingUp(event, now)) ?? events[0] ?? null;
+    const showError = !!error && events.length === 0;
     const nextEventTitle = nextEvent
       ? nextEvent.summary ||
         nextEvent.title ||
@@ -376,6 +433,10 @@ const CalendarCard = memo(
             {!selectedCalendars.length ? (
               <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
                 {t('calendar.selectCalendars')}
+              </p>
+            ) : showError ? (
+              <p className="truncate text-xs font-bold text-[var(--status-error-fg)]">
+                {t('calendar.loadFailed')}
               </p>
             ) : loading && events.length === 0 ? (
               <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
@@ -451,7 +512,7 @@ const CalendarCard = memo(
         const allDay: CalendarCardEvent[] = [];
         const timed: CalendarCardEvent[] = [];
         dayEvts.forEach((evt) => {
-          if (isAllDayValue(evt.start)) allDay.push(evt);
+          if (isAllDayValue(evt.start) || spansSeveralDays(evt)) allDay.push(evt);
           else timed.push(evt);
         });
         return { dateKey, allDay, timed, ...formatShortDay(dateKey) };
@@ -459,8 +520,7 @@ const CalendarCard = memo(
 
       const hasAnyAllDay = weekData.some((d) => d.allDay.length > 0);
 
-      const now = new Date();
-      const nowDateKey = now.toLocaleDateString('sv-SE');
+      const nowDateKey = todayKey;
       const nowTop = getTimePosition(now);
 
       const hours: number[] = [];
@@ -497,11 +557,11 @@ const CalendarCard = memo(
                 {t('calendar.selectCalendars')}
               </p>
             </div>
-          ) : error ? (
+          ) : showError ? (
             <div className="flex flex-1 flex-col items-center justify-center text-[var(--status-error-fg)]">
               <AlertCircle className="mb-2 h-8 w-8" />
               <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">
-                {error}
+                {t('calendar.loadFailed')}
               </p>
             </div>
           ) : loading && events.length === 0 ? (
@@ -674,11 +734,11 @@ const CalendarCard = memo(
                 {t('calendar.selectCalendars')}
               </p>
             </div>
-          ) : error ? (
+          ) : showError ? (
             <div className="flex h-full flex-col items-center justify-center text-[var(--status-error-fg)]">
               <AlertCircle className="mb-2 h-8 w-8" />
               <p className="px-4 text-center text-xs font-bold tracking-widest uppercase">
-                {error}
+                {t('calendar.loadFailed')}
               </p>
             </div>
           ) : loading && events.length === 0 ? (
@@ -686,7 +746,7 @@ const CalendarCard = memo(
               <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-[var(--accent-color)]"></div>
               <p className="text-xs font-bold tracking-widest uppercase">{t('common.loading')}</p>
             </div>
-          ) : events.length === 0 ? (
+          ) : Object.keys(groupedEvents).length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
               <Clock className="mb-2 h-8 w-8" />
               <p className="px-3 text-center text-xs leading-relaxed font-bold tracking-widest uppercase">

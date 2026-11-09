@@ -364,8 +364,8 @@ export async function getTodoItems(conn: HaConnection, entityId: string): Promis
   });
 
   // HA can wrap the response in several layers
-  const extract = (obj: ResponseTree | null | undefined): TodoItem[] => {
-    if (!obj || typeof obj !== 'object') return [];
+  const extract = (obj: ResponseTree | null | undefined): TodoItem[] | null => {
+    if (!obj || typeof obj !== 'object') return null;
     if (Array.isArray(obj.items)) return obj.items;
     const inner = obj[entityId] || obj.response?.[entityId] || obj.service_response?.[entityId];
     if (inner && Array.isArray(inner.items)) return inner.items;
@@ -373,7 +373,7 @@ export async function getTodoItems(conn: HaConnection, entityId: string): Promis
     for (const val of Object.values(obj)) {
       if (val && Array.isArray(val.items)) return val.items;
     }
-    return [];
+    return null;
   };
 
   return (
@@ -548,4 +548,25 @@ export async function getEntitiesForArea(
     .map((e) => e.entity_id);
 
   return entityIds;
+}
+
+/**
+ * Entity IDs per area from a single fetch of the registries, for pages that show every room.
+ * Diagnostic, config, hidden and disabled entities are left out.
+ */
+export async function getAreaEntityMap(conn: HaConnection): Promise<Record<string, string[]>> {
+  const [entityReg, deviceReg] = await Promise.all([
+    getEntityRegistry(conn),
+    getDeviceRegistry(conn),
+  ]);
+
+  const deviceAreas = new Map(deviceReg.map((d) => [d.id, d.area_id]));
+  const map: Record<string, string[]> = {};
+  for (const entry of entityReg) {
+    if (entry.entity_category || entry.hidden_by || entry.disabled_by) continue;
+    const areaId = entry.area_id || (entry.device_id ? deviceAreas.get(entry.device_id) : null);
+    if (!areaId) continue;
+    (map[areaId] ??= []).push(entry.entity_id);
+  }
+  return map;
 }

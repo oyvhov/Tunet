@@ -14,6 +14,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { ForecastEntry } from '../../services/haClient';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type ForecastView = 'hourly' | 'daily';
 type CardView = 'current' | 'forecast';
@@ -132,7 +133,7 @@ const ForecastTypeToggle = memo(
                 event.stopPropagation();
                 setForecastView(view);
               }}
-              className={`rounded-full leading-none font-bold tracking-[0.1em] uppercase transition-colors ${
+              className={`relative rounded-full leading-none font-bold tracking-[0.1em] uppercase transition-colors before:absolute ${view === 'hourly' ? (compact ? 'before:-inset-x-3.5 before:-top-7.5 before:bottom-0' : 'before:-top-3.5 before:right-0 before:-bottom-3.5 before:-left-3') : compact ? 'before:-inset-x-3.5 before:top-0 before:-bottom-7.5' : 'before:-top-3.5 before:-right-3 before:-bottom-3.5 before:left-0'} ${
                 compact ? 'px-1.5 py-1 text-[7px]' : 'px-2.5 py-1 text-[9px]'
               } ${
                 active
@@ -449,6 +450,7 @@ const WeatherTempCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={handleCardClick}
           onPointerDown={handlePointerDown}
@@ -571,6 +573,7 @@ const WeatherTempCard = memo(
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={handleCardClick}
         onPointerDown={handlePointerDown}

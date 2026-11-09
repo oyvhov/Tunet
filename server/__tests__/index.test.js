@@ -1,10 +1,13 @@
 // @vitest-environment node
 
+import Database from 'better-sqlite3';
+import { EventEmitter } from 'events';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs';
+import { createServer } from 'http';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterEach, describe, expect, it } from 'vitest';
-import { createApp } from '../index.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createApp, installShutdownHandlers } from '../index.js';
 
 const openServers = [];
 const tempDirs = [];
@@ -37,9 +40,9 @@ const startHarness = async (app) => {
   openServers.push(server);
 
   return {
-    async request(path) {
+    async request(path, init) {
       const address = server.address();
-      return fetch(`http://127.0.0.1:${address.port}${path}`);
+      return fetch(`http://127.0.0.1:${address.port}${path}`, init);
     },
   };
 };
@@ -84,5 +87,185 @@ describe('createApp SPA fallback', () => {
 
     expect(response.status).toBe(404);
     await expect(response.text()).resolves.not.toContain('Tunet Test');
+  });
+
+  it.each(['js', 'css'])(
+    'answers a missing hashed %s asset with a plain 404, not the newest build',
+    async (ext) => {
+      const distPath = createDistFixture();
+      writeFileSync(join(distPath, 'assets', `index-NEWHASH.${ext}`), 'new', 'utf8');
+      const harness = await startHarness(
+        createApp({ appVersion: 'test-version', distPath, isProduction: true })
+      );
+
+      const stale = await harness.request(`/assets/index-OLDHASH.${ext}`);
+
+      expect(stale.status).toBe(404);
+      expect(stale.headers.get('x-tunet-asset-fallback')).toBeNull();
+      expect(stale.headers.get('cache-control') ?? '').not.toContain('immutable');
+      await expect(stale.text()).resolves.not.toBe('new');
+
+      const current = await harness.request(`/assets/index-NEWHASH.${ext}`);
+
+      expect(current.status).toBe(200);
+      expect(current.headers.get('cache-control')).toContain('immutable');
+    }
+  );
+});
+
+describe('/api/health', () => {
+  it('reports ok when SQLite answers', async () => {
+    const database = new Database(':memory:');
+    const harness = await startHarness(createApp({ appVersion: 'test-version', database }));
+
+    const response = await harness.request('/api/health');
+    database.close();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ status: 'ok', version: 'test-version' });
+  });
+
+  it('returns 503 when SQLite fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const database = new Database(':memory:');
+    database.close();
+    const harness = await startHarness(createApp({ appVersion: 'test-version', database }));
+
+    const response = await harness.request('/api/health');
+    const logged = errorSpy.mock.calls.length;
+    errorSpy.mockRestore();
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ status: 'error', version: 'test-version' });
+    expect(logged).toBe(1);
+  });
+});
+
+describe('API rate limit', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('counts each user behind trusted ingress separately', async () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+    vi.stubEnv('API_RATE_LIMIT_MAX', '10');
+    const database = new Database(':memory:');
+    const harness = await startHarness(createApp({ appVersion: 'test-version', database }));
+    const asUser = (id) =>
+      harness.request('/api/health', {
+        headers: { 'x-ingress-path': '/api/hassio_ingress/abc', 'x-remote-user-id': id },
+      });
+
+    for (let count = 0; count < 10; count += 1) await asUser('user-a');
+    const limited = await asUser('user-a');
+    const otherUser = await asUser('user-b');
+    database.close();
+
+    expect(limited.status).toBe(429);
+    expect(otherUser.status).toBe(200);
+  });
+});
+
+describe('installShutdownHandlers', () => {
+  const listen = async (handler = (_req, res) => res.end('ok')) => {
+    const server = createServer(handler);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    return server;
+  };
+
+  const install = (server, overrides = {}) => {
+    const signalSource = new EventEmitter();
+    const database = { close: vi.fn() };
+    const stopBackups = vi.fn();
+    const exit = vi.fn();
+    installShutdownHandlers({ server, database, stopBackups, exit, signalSource, ...overrides });
+    return { signalSource, database, stopBackups, exit };
+  };
+
+  it.each(['SIGTERM', 'SIGINT'])(
+    'closes the HTTP server and the database on %s, then exits 0',
+    async (signal) => {
+      const server = await listen();
+      const { signalSource, database, stopBackups, exit } = install(server);
+
+      signalSource.emit(signal);
+      await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(0));
+
+      expect(server.listening).toBe(false);
+      expect(database.close).toHaveBeenCalledOnce();
+      expect(stopBackups).toHaveBeenCalledOnce();
+    }
+  );
+
+  it('closes the database only after in-flight requests finish', async () => {
+    let requestArrived;
+    const received = new Promise((resolve) => {
+      requestArrived = resolve;
+    });
+    let pendingResponse;
+    const server = await listen((_req, res) => {
+      pendingResponse = res;
+      requestArrived();
+    });
+    const { signalSource, database, exit } = install(server);
+    const { port } = server.address();
+    const request = fetch(`http://127.0.0.1:${port}/`);
+    await received;
+
+    signalSource.emit('SIGTERM');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(database.close).not.toHaveBeenCalled();
+
+    pendingResponse.end('done');
+    await request;
+    await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(0));
+    expect(database.close).toHaveBeenCalledOnce();
+  });
+
+  it('forces connections closed and exits 1 when requests outlast the timeout', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let requestArrived;
+    const received = new Promise((resolve) => {
+      requestArrived = resolve;
+    });
+    const server = await listen(() => requestArrived());
+    const { signalSource, database, exit } = install(server, { timeoutMs: 20 });
+    const { port } = server.address();
+    const request = fetch(`http://127.0.0.1:${port}/`).catch(() => null);
+    await received;
+
+    signalSource.emit('SIGTERM');
+    await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(1));
+    await request;
+    warnSpy.mockRestore();
+
+    expect(exit).toHaveBeenCalledOnce();
+    expect(database.close).toHaveBeenCalledOnce();
+  });
+
+  it('shuts down once when a second signal arrives', async () => {
+    const server = await listen();
+    const { signalSource, database, exit } = install(server);
+
+    signalSource.emit('SIGTERM');
+    signalSource.emit('SIGTERM');
+    signalSource.emit('SIGINT');
+    await vi.waitFor(() => expect(exit).toHaveBeenCalled());
+
+    expect(exit).toHaveBeenCalledOnce();
+    expect(database.close).toHaveBeenCalledOnce();
+  });
+
+  it('still exits when closing the database throws', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const server = await listen();
+    const database = {
+      close: vi.fn(() => {
+        throw new Error('busy');
+      }),
+    };
+    const { signalSource, exit } = install(server, { database });
+
+    signalSource.emit('SIGTERM');
+    await vi.waitFor(() => expect(exit).toHaveBeenCalledWith(1));
+    errorSpy.mockRestore();
   });
 });

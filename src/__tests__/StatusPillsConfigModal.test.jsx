@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../components/cards/StatusPill', () => ({
@@ -69,6 +69,72 @@ const t = (key) => {
   };
   return values[key] || key;
 };
+
+describe('StatusPillsConfigModal drafts', () => {
+  const savedPill = {
+    id: 'p1',
+    type: 'conditional',
+    name: 'Saved',
+    entityId: 'sensor.a',
+    visible: true,
+  };
+  const renderModal = async () => {
+    const onClose = vi.fn();
+    await act(async () => {
+      render(
+        <StatusPillsConfigModal
+          show
+          onClose={onClose}
+          onSave={() => {}}
+          entities={{ 'sensor.a': { attributes: { friendly_name: 'A' } } }}
+          statusPillsConfig={[savedPill]}
+          t={t}
+        />
+      );
+      await Promise.resolve();
+    });
+    return onClose;
+  };
+
+  it('closes at once when nothing changed', async () => {
+    const onClose = await renderModal();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('confirm.discardChanges.title')).not.toBeInTheDocument();
+  });
+
+  it('asks before dropping an unsaved change, and stays open when declined', async () => {
+    const onClose = await renderModal();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    expect(await screen.findByText('confirm.discardChanges.title')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    const dialog = screen.getByText('confirm.discardChanges.title').closest('[role="dialog"]');
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole('button', { name: 'common.cancel' }));
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes after the discard is confirmed', async () => {
+    const onClose = await renderModal();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    const confirmButton = await screen.findByRole('button', { name: 'common.discard' });
+    await act(async () => {
+      fireEvent.click(confirmButton);
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('StatusPillsConfigModal', () => {
   it('keeps a new pill draft open across parent rerenders', async () => {
@@ -1003,6 +1069,59 @@ describe('StatusPillsConfigModal', () => {
       entityId: 'sensor.living_room',
       visible: true,
       conditionEnabled: false,
+    });
+  });
+
+  describe('door sensor state wording', () => {
+    const doorEntities = {
+      'binary_sensor.front_door': {
+        state: 'on',
+        attributes: { friendly_name: 'Front door', device_class: 'door' },
+      },
+    };
+    const doorT = (key) => (key === 'binary.door.open' ? 'Door is open' : t(key));
+
+    const openEditorFor = async (pill) => {
+      await act(async () => {
+        render(
+          <StatusPillsConfigModal
+            show
+            onClose={() => {}}
+            onSave={() => {}}
+            entities={doorEntities}
+            statusPillsConfig={[pill]}
+            t={doorT}
+          />
+        );
+        await Promise.resolve();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getAllByText(pill.label)[0]);
+      });
+    };
+
+    it('shows the translated state in the smart group preview', async () => {
+      await openEditorFor({
+        id: 'doors',
+        type: 'group_status',
+        label: 'Doors',
+        groupPreset: 'openings_open',
+        groupSelectionMode: 'all',
+        groupEntityIds: [],
+      });
+
+      expect(screen.getByText('Door is open')).toBeInTheDocument();
+    });
+
+    it('shows the translated state under the entity picker', async () => {
+      await openEditorFor({
+        id: 'door',
+        type: 'conditional',
+        label: 'Door',
+        entityId: 'binary_sensor.front_door',
+      });
+
+      expect(screen.getByText('Door is open')).toBeInTheDocument();
     });
   });
 });

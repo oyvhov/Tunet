@@ -40,6 +40,51 @@ describe('useDashboardEffects › clock tick', () => {
     act(() => vi.advanceTimersByTime(ENTITY_UPDATE_INTERVAL));
     expect(result.current.now.getTime()).toBeGreaterThanOrEqual(first);
   });
+
+  it('shows the new minute as soon as the wall clock reaches it', () => {
+    vi.setSystemTime(new Date(2026, 0, 1, 12, 0, 40));
+    const { result } = renderHook(() => useDashboardEffects(makeProps()));
+    expect(result.current.now.getMinutes()).toBe(0);
+
+    act(() => vi.advanceTimersByTime(19_000));
+    expect(result.current.now.getMinutes()).toBe(0);
+
+    act(() => vi.advanceTimersByTime(1_500));
+    expect(result.current.now.getMinutes()).toBe(1);
+  });
+
+  it('stays on the minute boundary for later minutes', () => {
+    vi.setSystemTime(new Date(2026, 0, 1, 12, 0, 40));
+    const { result } = renderHook(() => useDashboardEffects(makeProps()));
+
+    act(() => vi.advanceTimersByTime(20_500 + 59_000));
+    expect(result.current.now.getMinutes()).toBe(1);
+
+    act(() => vi.advanceTimersByTime(1_500));
+    expect(result.current.now.getMinutes()).toBe(2);
+  });
+
+  it('never ticks more often than ENTITY_UPDATE_INTERVAL', () => {
+    vi.setSystemTime(new Date(2026, 0, 1, 12, 0, 7, 250));
+    const seen = new Set();
+    renderHook(() => {
+      const { now } = useDashboardEffects(makeProps());
+      seen.add(now.getTime());
+    });
+    const initialTicks = seen.size;
+
+    act(() => vi.advanceTimersByTime(5 * 60_000));
+
+    expect(seen.size - initialTicks).toBeLessThanOrEqual((5 * 60_000) / ENTITY_UPDATE_INTERVAL);
+  });
+
+  it('stops ticking after unmount', () => {
+    const { unmount } = renderHook(() => useDashboardEffects(makeProps()));
+
+    unmount();
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });
 
 // ═════════════════════════════════════════════════════════════════════════

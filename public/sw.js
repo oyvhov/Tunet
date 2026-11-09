@@ -6,7 +6,7 @@
 // after an upgrade serves the previous index.html and the app keeps the old bundle.
 const CACHE_VERSION = '__APP_VERSION__';
 const SHELL_CACHE_NAME = `tunet-shell-${CACHE_VERSION}`;
-const ASSET_CACHE_NAME = 'tunet-assets-v2';
+const ASSET_CACHE_NAME = `tunet-assets-${CACHE_VERSION}`;
 const SHELL_ASSETS = ['./', './index.html'];
 
 function isBuildAssetRequest(request) {
@@ -28,8 +28,27 @@ async function cacheFirst(request, cacheName) {
   return response;
 }
 
+// The first page load after a release runs through the previous worker, so the new
+// entry files must be cached here for the page to start with the server down.
+async function cacheEntryAssets() {
+  const response = await fetch('./index.html', { cache: 'no-store' });
+  if (!response.ok) return;
+  const html = await response.text();
+  const urls = Array.from(
+    html.matchAll(/(?:src|href)="(\.?\/?assets\/[^"]+)"/g),
+    (match) => match[1]
+  );
+  const cache = await caches.open(ASSET_CACHE_NAME);
+  await cache.addAll(urls);
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(SHELL_CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));
+  event.waitUntil(
+    Promise.all([
+      caches.open(SHELL_CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)),
+      cacheEntryAssets().catch(() => {}),
+    ])
+  );
   self.skipWaiting();
 });
 

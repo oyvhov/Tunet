@@ -1,4 +1,4 @@
-import { act, render, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../contexts', () => ({
@@ -13,7 +13,9 @@ vi.mock('../contexts', () => ({
 }));
 
 vi.mock('../components/charts/SensorHistoryGraph', () => ({
-  default: () => <div data-testid="sensor-history-graph" />,
+  default: ({ data }) => (
+    <div data-testid="sensor-history-graph">{JSON.stringify(data.map((point) => point.value))}</div>
+  ),
 }));
 
 vi.mock('../components/charts/BinaryTimeline', () => ({
@@ -108,5 +110,33 @@ describe('SensorModal', () => {
 
     expect(getHistory).toHaveBeenCalledTimes(1);
     expect(getHistoryRest).not.toHaveBeenCalled();
+  });
+
+  it('draws the compact rows Home Assistant sends over the websocket', async () => {
+    getHistory.mockResolvedValueOnce([
+      { s: '20', a: {}, lu: 1700000000 },
+      { s: '21', a: {}, lu: 1700000300 },
+      { s: '23', a: {}, lu: 1700000600 },
+    ]);
+    render(<SensorModal {...baseProps()} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('sensor-history-graph')).toHaveTextContent('[20,21,23]');
+    });
+  });
+
+  it('does not invent a line when Home Assistant has no history', async () => {
+    render(<SensorModal {...baseProps()} />);
+    await waitFor(() => expect(getHistory).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      expect(screen.getByTestId('sensor-history-graph')).toHaveTextContent('[]');
+    });
+  });
+
+  it('extends an unchanged sensor to the current value', async () => {
+    getHistory.mockResolvedValueOnce([{ s: '21.5', a: {}, lu: 1700000000 }]);
+    render(<SensorModal {...baseProps()} />);
+    await waitFor(() => {
+      expect(screen.getByTestId('sensor-history-graph')).toHaveTextContent('[21.5,21.5]');
+    });
   });
 });

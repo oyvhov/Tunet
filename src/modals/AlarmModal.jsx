@@ -258,6 +258,7 @@ export default function AlarmModal({
 
   const keypadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', '✓'];
   const selectedActionMeta = actionButtons.find((action) => action.key === selectedAction) || null;
+  const needsKeypad = actionButtons.some((action) => requiresCode(action.key, entity));
 
   return (
     <AccessibleModalShell
@@ -290,7 +291,9 @@ export default function AlarmModal({
 
           <ModalBody>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-              <div className="popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 lg:col-span-3">
+              <div
+                className={`popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 ${needsKeypad ? 'lg:col-span-3' : 'lg:col-span-5'}`}
+              >
                 <h3 className="modal-section-label">{translate('alarm.modal.actions')}</h3>
                 <div className="grid grid-cols-1 gap-3">
                   {actionButtons.map((action) => {
@@ -306,6 +309,7 @@ export default function AlarmModal({
                         onClick={() => {
                           setSelectedAction(action.key);
                           setError('');
+                          if (!needsCode) callAlarmService(action.key);
                         }}
                         disabled={disabled}
                         aria-pressed={isSelected}
@@ -353,66 +357,71 @@ export default function AlarmModal({
                 )}
               </div>
 
-              <div className="popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 lg:col-span-2">
-                <h3 className="modal-section-label">{translate('alarm.pin.title')}</h3>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={pin}
-                  onChange={(event) => {
-                    setPin(event.target.value.replace(/\D/g, '').slice(0, 12));
-                    if (error) setError('');
-                  }}
-                  placeholder={translate('alarm.pin.placeholder')}
-                  className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.12em] text-[var(--text-primary)] outline-none"
-                />
+              {needsKeypad && (
+                <div className="popup-surface space-y-4 rounded-[var(--modal-surface-radius)] p-5 lg:col-span-2">
+                  <h3 className="modal-section-label">{translate('alarm.pin.title')}</h3>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={pin}
+                    onChange={(event) => {
+                      setPin(event.target.value.replace(/\D/g, '').slice(0, 12));
+                      if (error) setError('');
+                    }}
+                    placeholder={translate('alarm.pin.placeholder')}
+                    aria-label={translate('alarm.pin.placeholder')}
+                    className="w-full rounded-2xl bg-[var(--glass-bg)] px-4 py-3 text-center text-lg tracking-[0.12em] text-[var(--text-primary)] outline-none"
+                  />
 
-                <div className="grid grid-cols-3 gap-3">
-                  {keypadDigits.map((digit, index) => {
-                    if (digit === '⌫') {
+                  <div className="grid grid-cols-3 gap-3">
+                    {keypadDigits.map((digit, index) => {
+                      if (digit === '⌫') {
+                        return (
+                          <button
+                            key={`undo-${index}`}
+                            type="button"
+                            aria-label={translate('settings.lock.backspace')}
+                            onClick={() => setPin((value) => value.slice(0, -1))}
+                            className="h-14 rounded-2xl bg-[var(--glass-bg)] text-xl font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
+                          >
+                            {digit}
+                          </button>
+                        );
+                      }
+                      if (digit === '✓') {
+                        return (
+                          <button
+                            key="ok"
+                            type="button"
+                            aria-label={translate(selectedActionMeta?.labelKey || 'common.confirm')}
+                            onClick={runSelectedAction}
+                            className="h-14 rounded-2xl bg-[var(--accent-bg)] text-2xl font-semibold text-[var(--accent-color)]"
+                          >
+                            {digit}
+                          </button>
+                        );
+                      }
                       return (
                         <button
-                          key={`undo-${index}`}
+                          key={digit}
                           type="button"
-                          onClick={() => setPin((value) => value.slice(0, -1))}
-                          className="h-14 rounded-2xl bg-[var(--glass-bg)] text-xl font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
+                          onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
+                          className="h-14 rounded-2xl bg-[var(--glass-bg)] text-2xl font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
                         >
                           {digit}
                         </button>
                       );
-                    }
-                    if (digit === '✓') {
-                      return (
-                        <button
-                          key="ok"
-                          type="button"
-                          onClick={runSelectedAction}
-                          className="h-14 rounded-2xl bg-[var(--accent-bg)] text-2xl font-semibold text-[var(--accent-color)]"
-                        >
-                          {digit}
-                        </button>
-                      );
-                    }
-                    return (
-                      <button
-                        key={digit}
-                        type="button"
-                        onClick={() => setPin((value) => `${value}${digit}`.slice(0, 12))}
-                        className="h-14 rounded-2xl bg-[var(--glass-bg)] text-2xl font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--glass-bg-hover)]"
-                      >
-                        {digit}
-                      </button>
-                    );
-                  })}
+                    })}
+                  </div>
+
+                  {selectedActionMeta && (
+                    <p className="text-center text-[11px] font-bold tracking-[0.12em] text-[var(--text-secondary)] uppercase">
+                      {translate(selectedActionMeta.labelKey)}
+                    </p>
+                  )}
                 </div>
-
-                {selectedActionMeta && (
-                  <p className="text-center text-[11px] font-bold tracking-[0.12em] text-[var(--text-secondary)] uppercase">
-                    {translate(selectedActionMeta.labelKey)}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
 
             <div className="mt-5 space-y-2 text-sm text-[var(--text-secondary)]">

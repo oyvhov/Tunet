@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import GenericAndroidTVModal from '../modals/GenericAndroidTVModal';
 
@@ -66,5 +66,134 @@ describe('GenericAndroidTVModal mobile layout', () => {
       'sm:h-12',
       'sm:w-12'
     );
+  });
+});
+
+const tv = (state, attributes = {}) => ({
+  'media_player.living_room_tv': {
+    entity_id: 'media_player.living_room_tv',
+    state,
+    attributes: { friendly_name: 'Living room TV', ...attributes },
+  },
+});
+
+const renderTv = (overrides = {}) => {
+  const callService = vi.fn();
+  render(<GenericAndroidTVModal {...props} callService={callService} {...overrides} />);
+  return callService;
+};
+
+describe('GenericAndroidTVModal controls', () => {
+  it('keeps volume, mute and power when the card has no remote', () => {
+    const callService = renderTv({ remoteId: null, entities: tv('idle') });
+
+    expect(screen.queryByRole('button', { name: 'Up' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Back')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'media.volume.up' }));
+    expect(callService).toHaveBeenCalledWith('media_player', 'volume_up', {
+      entity_id: 'media_player.living_room_tv',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'media.volume.mute' }));
+    expect(callService).toHaveBeenCalledWith('media_player', 'volume_mute', {
+      entity_id: 'media_player.living_room_tv',
+      is_volume_muted: true,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Turn off' }));
+    expect(callService).toHaveBeenCalledWith('media_player', 'turn_off', {
+      entity_id: 'media_player.living_room_tv',
+    });
+  });
+
+  it('launches an app from the source list', () => {
+    const callService = renderTv({ entities: tv('idle', { source_list: ['Netflix', 'YouTube'] }) });
+
+    fireEvent.click(screen.getByRole('button', { name: 'YouTube' }));
+
+    expect(callService).toHaveBeenCalledWith('media_player', 'select_source', {
+      entity_id: 'media_player.living_room_tv',
+      source: 'YouTube',
+    });
+  });
+
+  it('treats standby as off and wakes through the remote like the card', () => {
+    const callService = renderTv({ entities: tv('standby') });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
+
+    expect(callService).toHaveBeenCalledWith('remote', 'turn_on', {
+      entity_id: 'remote.living_room_tv',
+    });
+  });
+
+  it('wakes the media player when there is no remote', () => {
+    const callService = renderTv({ remoteId: null, entities: tv('off') });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
+
+    expect(callService).toHaveBeenCalledWith('media_player', 'turn_on', {
+      entity_id: 'media_player.living_room_tv',
+    });
+  });
+
+  it('does not offer to turn on a TV that is unavailable', () => {
+    renderTv({ entities: tv('unavailable') });
+
+    expect(screen.queryByRole('button', { name: 'Turn on' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'status.unavailable' })).toBeDisabled();
+  });
+
+  const remote = (state) => ({
+    'remote.living_room_tv': { entity_id: 'remote.living_room_tv', state, attributes: {} },
+  });
+
+  it('keeps the remote and wake working while only the media player is unavailable', () => {
+    const callService = renderTv({ entities: { ...tv('unavailable'), ...remote('on') } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Up' }));
+    expect(callService).toHaveBeenCalledWith('remote', 'send_command', {
+      entity_id: 'remote.living_room_tv',
+      command: 'DPAD_UP',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
+    expect(callService).toHaveBeenCalledWith('remote', 'turn_on', {
+      entity_id: 'remote.living_room_tv',
+    });
+    expect(screen.getByRole('button', { name: 'media.volume.up' })).toBeDisabled();
+  });
+
+  it('disables the remote when the remote entity is unavailable', () => {
+    const callService = renderTv({ entities: { ...tv('off'), ...remote('unavailable') } });
+
+    expect(screen.getByRole('button', { name: 'Up' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
+    expect(callService).toHaveBeenCalledWith('media_player', 'turn_on', {
+      entity_id: 'media_player.living_room_tv',
+    });
+  });
+
+  it('disables everything when both are unavailable', () => {
+    renderTv({ entities: { ...tv('unavailable'), ...remote('unavailable') } });
+
+    expect(screen.getByRole('button', { name: 'Up' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'status.unavailable' })).toBeDisabled();
+  });
+
+  it('keeps playback on a linked player while the TV itself is unavailable', () => {
+    const entities = {
+      ...tv('unavailable'),
+      'media_player.emby': {
+        entity_id: 'media_player.emby',
+        state: 'paused',
+        attributes: { friendly_name: 'Emby' },
+      },
+    };
+    const callService = renderTv({ entities, linkedMediaPlayers: ['media_player.emby'] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'media.play' }));
+
+    expect(callService).toHaveBeenCalledWith('media_player', 'media_play_pause', {
+      entity_id: 'media_player.emby',
+    });
+    expect(screen.getByRole('button', { name: 'media.volume.up' })).toBeDisabled();
   });
 });

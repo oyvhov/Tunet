@@ -1,10 +1,12 @@
 import { memo } from 'react';
 import { Play, Pause, Power, RefreshCw } from '../../icons';
 import { getMediaLogoUrl } from '../../utils/mediaLogos';
+import { getUnavailableLabel } from '../../utils/entityState';
 import { usePowerToggle } from '../../hooks/usePowerToggle';
 import type { HTMLAttributes, MouseEvent } from 'react';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import type { MediaCardCommonProps } from './MediaCards';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface GenericAppleTVCardProps extends MediaCardCommonProps {
   mediaPlayerId: string;
@@ -98,6 +100,8 @@ const GenericAppleTVCard = memo(
     const isSmall = size === 'small';
     const isDenseMobile = isMobile && !isSmall;
     const isTapToggle = settings?.tapAction === 'toggle';
+    const offLabel = isUnavailable ? getUnavailableLabel(entity.state, t) : t('status.off');
+    const offPillLabel = isUnavailable ? getUnavailableLabel(entity.state, t) : t('common.off');
 
     const getAppLogo = (app: string | null | undefined) => {
       if (linkedActive) {
@@ -116,6 +120,12 @@ const GenericAppleTVCard = memo(
       if (e) e.stopPropagation();
       if (editMode || isUnavailable) return;
       togglePower();
+    };
+
+    const handlePlayPause = (e: MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      const targetId = linkedActive ? displayEntityId : mediaPlayerId;
+      callService('media_player', 'media_play_pause', { entity_id: targetId });
     };
 
     const handleCardClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -151,9 +161,10 @@ const GenericAppleTVCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, deviceName)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={handleCardClick}
-          className={`glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+          className={`${picture || appLogo ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full items-center justify-between gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
           style={{ ...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)' }}
         >
           {controls}
@@ -181,7 +192,7 @@ const GenericAppleTVCard = memo(
                 {deviceName}
               </p>
               <p className="truncate text-lg leading-tight font-medium text-[var(--text-primary)]">
-                {appName || (isOn ? t('media.homeScreen') : t('status.off'))}
+                {appName || (isOn ? t('media.homeScreen') : offLabel)}
               </p>
               {title && (
                 <p
@@ -194,6 +205,22 @@ const GenericAppleTVCard = memo(
           </div>
 
           <div className="flex items-center gap-2">
+            {isOn && (
+              <button
+                type="button"
+                onClick={handlePlayPause}
+                disabled={editMode}
+                className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition-all before:absolute before:-inset-1.5 active:scale-90"
+                title={t('shield.playPause')}
+                aria-label={t('shield.playPause')}
+              >
+                {isPlaying ? (
+                  <Pause className="h-4 w-4" color="black" fill="black" />
+                ) : (
+                  <Play className="ml-0.5 h-4 w-4" color="black" fill="black" />
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={handleTogglePower}
@@ -222,9 +249,10 @@ const GenericAppleTVCard = memo(
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, deviceName)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={handleCardClick}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+        className={`${picture || appLogo ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
         style={{ ...cardStyle, color: picture || appLogo ? 'white' : 'var(--text-primary)' }}
       >
         {controls}
@@ -244,7 +272,7 @@ const GenericAppleTVCard = memo(
                 <span
                   className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
                 >
-                  {isOn ? (isPlaying ? t('status.playing') : t('common.on')) : t('common.off')}
+                  {isOn ? (isPlaying ? t('status.playing') : t('common.on')) : offPillLabel}
                 </span>
               </div>
             )}
@@ -288,7 +316,7 @@ const GenericAppleTVCard = memo(
             <h3
               className={`${isDenseMobile ? 'mb-0.5 text-[1.45rem]' : 'mb-1 text-3xl'} line-clamp-2 leading-none font-thin`}
             >
-              {appName || (isOn ? t('media.homeScreen') : t('status.off'))}
+              {appName || (isOn ? t('media.homeScreen') : offLabel)}
             </h3>
             {title && (
               <p
@@ -301,11 +329,7 @@ const GenericAppleTVCard = memo(
 
           {isOn && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const targetId = linkedActive ? displayEntityId : mediaPlayerId;
-                callService('media_player', 'media_play_pause', { entity_id: targetId });
-              }}
+              onClick={handlePlayPause}
               className={`relative z-20 flex-shrink-0 rounded-full bg-white shadow-lg transition-all active:scale-95 ${isDenseMobile ? 'p-2.5' : 'p-3'}`}
               title={t('shield.playPause')}
               aria-label={t('shield.playPause')}

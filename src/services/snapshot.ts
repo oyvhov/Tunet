@@ -6,6 +6,7 @@
  * OAuth tokens) are intentionally excluded for security.
  */
 
+import { replaceRetiredTheme } from '../config/themes';
 import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 
 const SNAPSHOT_VERSION = 1;
@@ -62,6 +63,9 @@ export interface SnapshotAppearance {
   cardBgColor: string;
   cardTransparency: number;
   cardBorderOpacity: number;
+  cardMaterial: string;
+  density: string;
+  cardScale: number;
   inactivityTimeout: number;
 }
 
@@ -107,6 +111,9 @@ export interface SnapshotContextSetters {
   setCardBgColor?: Setter<string>;
   setCardTransparency?: Setter<number>;
   setCardBorderOpacity?: Setter<number>;
+  setCardMaterial?: Setter<string>;
+  setDensity?: Setter<string>;
+  setCardScale?: Setter<number>;
   setInactivityTimeout?: Setter<number>;
 }
 
@@ -192,6 +199,9 @@ export function collectSnapshot(): DashboardSnapshot {
       cardBgColor: localStorage.getItem('tunet_card_bg_color') || '',
       cardTransparency: readNumber('tunet_card_transparency', 40),
       cardBorderOpacity: readNumber('tunet_card_border_opacity', 5),
+      cardMaterial: localStorage.getItem('tunet_card_material') || 'glass',
+      density: localStorage.getItem('tunet_density') || 'comfortable',
+      cardScale: readNumber('tunet_card_scale', 100),
       inactivityTimeout: readNumber('tunet_inactivity_timeout', 60),
     },
   };
@@ -256,8 +266,11 @@ export function applySnapshot(
   else if (layout.musicAssistantUrl !== undefined)
     localStorage.removeItem('tunet_music_assistant_url');
 
+  // A snapshot on the retired Flat theme predates card material, so the flat look is carried over.
+  const cardMaterial = appearance.theme === 'flat' ? 'flat' : appearance.cardMaterial;
+
   // ── Appearance → localStorage ──
-  if (appearance.theme) localStorage.setItem('tunet_theme', appearance.theme);
+  if (appearance.theme) localStorage.setItem('tunet_theme', replaceRetiredTheme(appearance.theme));
   if (appearance.language)
     localStorage.setItem('tunet_language', normalizeSnapshotLanguage(appearance.language));
   if (appearance.appFont) localStorage.setItem('tunet_app_font', appearance.appFont);
@@ -277,6 +290,10 @@ export function applySnapshot(
     localStorage.setItem('tunet_card_transparency', String(appearance.cardTransparency));
   if (appearance.cardBorderOpacity !== undefined)
     localStorage.setItem('tunet_card_border_opacity', String(appearance.cardBorderOpacity));
+  if (cardMaterial !== undefined) localStorage.setItem('tunet_card_material', cardMaterial);
+  if (appearance.density !== undefined) localStorage.setItem('tunet_density', appearance.density);
+  if (appearance.cardScale !== undefined)
+    localStorage.setItem('tunet_card_scale', String(appearance.cardScale));
   if (appearance.inactivityTimeout !== undefined)
     localStorage.setItem('tunet_inactivity_timeout', String(appearance.inactivityTimeout));
 
@@ -311,7 +328,9 @@ export function applySnapshot(
     s.saveStatusPillsConfig(layout.statusPillsConfig);
 
   // ConfigContext setters
-  if (s.setCurrentTheme && appearance.theme) s.setCurrentTheme(appearance.theme);
+  if (s.setCurrentTheme && appearance.theme) {
+    s.setCurrentTheme(replaceRetiredTheme(appearance.theme));
+  }
   if (s.setLanguage && appearance.language)
     s.setLanguage(normalizeSnapshotLanguage(appearance.language));
   if (s.setAppFont && appearance.appFont) s.setAppFont(appearance.appFont);
@@ -326,6 +345,9 @@ export function applySnapshot(
     s.setCardTransparency(appearance.cardTransparency);
   if (s.setCardBorderOpacity && appearance.cardBorderOpacity !== undefined)
     s.setCardBorderOpacity(appearance.cardBorderOpacity);
+  if (s.setCardMaterial && cardMaterial !== undefined) s.setCardMaterial(cardMaterial);
+  if (s.setDensity && appearance.density !== undefined) s.setDensity(appearance.density);
+  if (s.setCardScale && appearance.cardScale !== undefined) s.setCardScale(appearance.cardScale);
   if (s.setInactivityTimeout && appearance.inactivityTimeout !== undefined)
     s.setInactivityTimeout(appearance.inactivityTimeout);
 }

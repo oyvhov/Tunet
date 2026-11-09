@@ -7,12 +7,16 @@ real-time entity updates, and drag-and-drop customisation.
 
 1. Install the add-on from the repository.
 2. Start the add-on.
-3. Open the **Tunet** panel in the sidebar.
-4. On first launch you will see the onboarding screen.
-5. Create a **Long-Lived Access Token** in your HA profile
+3. Open the **Tunet** panel in the sidebar. It signs in with your Home Assistant session, so you do not need to create a token.
+
+### Signing in outside the sidebar
+
+If you open Tunet through the optional direct port, or the panel cannot reach your Home Assistant session, the onboarding screen asks you to sign in. To use a token:
+
+1. Create a **Long-Lived Access Token** in your HA profile
    (click your username → scroll down → _Long-Lived Access Tokens_ → _Create Token_).
-6. Paste the token and click **Test Connection**.
-7. Once the test succeeds, click **Next** and finish the setup.
+2. Paste the token and click **Test Connection**.
+3. Once the test succeeds, click **Next** and finish the setup.
 
 ## Features
 
@@ -52,7 +56,7 @@ For access through the optional direct port, set `internal_ha_url` in the add-on
   3.  Use **Rebuild** once, then start again.
   4.  Hard-refresh browser (`Ctrl+Shift+R`).
 
-Tunet add-on builds are now version-resolved from release tags before falling back to `main`, which prevents this mismatch in normal updates.
+Tunet add-on builds use the release tag matching the add-on version and fail if that tag does not exist, so an update can never install a different app build under the release's version number.
 
 ## Troubleshooting
 

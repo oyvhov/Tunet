@@ -209,6 +209,27 @@ describe('usePageManagement › deletePage', () => {
 // ═════════════════════════════════════════════════════════════════════════
 // removeCard
 // ═════════════════════════════════════════════════════════════════════════
+describe('usePageManagement › reserved slugs', () => {
+  it.each([
+    ['Lights', 'page_lights'],
+    ['Lights upstairs', 'page_lights_upstairs'],
+    ['Lightshow', 'page_lightshow'],
+    ['Battery room', 'page_battery_room'],
+    ['Room explorer', 'page_room_explorer'],
+    ['Mediathek', 'page_mediathek'],
+  ])('gives a standard page named %s the id %s', (label, pageId) => {
+    const props = makeProps({ showAddPageModal: true });
+    const { result } = renderHook(() => usePageManagement(props));
+
+    act(() => result.current.setNewPageLabel(label));
+    act(() => result.current.createPage());
+
+    expect(props.persistConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ pages: ['home', pageId] })
+    );
+  });
+});
+
 describe('usePageManagement › removeCard', () => {
   it('removes a card from the active page', () => {
     const props = makeProps({

@@ -59,6 +59,9 @@ export default function ModalOrchestrator({
     setCardTransparency,
     setCardBorderOpacity,
     setCardBgColor,
+    setCardMaterial,
+    setDensity,
+    setCardScale,
     setInactivityTimeout,
   } = appearance;
 
@@ -142,6 +145,9 @@ export default function ModalOrchestrator({
       setCardTransparency,
       setCardBorderOpacity,
       setCardBgColor,
+      setCardMaterial,
+      setDensity,
+      setCardScale,
       setInactivityTimeout,
     },
     setLanguage,

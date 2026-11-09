@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { ERR_CONNECTION_LOST } from 'home-assistant-js-websocket';
 import { ENTITY_UPDATE_THRESHOLD, MEDIA_TIMEOUT } from '../config/constants';
 import { callService as haCallService } from '../services';
 import { logger } from '../utils/logger';
@@ -18,6 +19,20 @@ export interface UseEntityHelpersDeps {
 }
 
 type ActivityEntity = { state?: string; last_updated?: string } | null | undefined;
+
+/** The socket rejects with the bare code when already down, and a result object mid-call. */
+function isConnectionLost(error: unknown): boolean {
+  if (error === ERR_CONNECTION_LOST) return true;
+  return (error as { error?: { code?: unknown } } | null)?.error?.code === ERR_CONNECTION_LOST;
+}
+
+function soleEntityName(entities: EntityMap, data?: ServiceData | null): string | null {
+  const target = data?.entity_id;
+  const entityId = Array.isArray(target) && target.length === 1 ? target[0] : target;
+  if (typeof entityId !== 'string') return null;
+  const name = entities[entityId]?.attributes?.friendly_name;
+  return typeof name === 'string' && name ? name : null;
+}
 
 /**
  * Shared Home-Assistant entity accessor helpers:  getS, getA, getEntityImageUrl,
@@ -55,15 +70,28 @@ export function useEntityHelpers({ entities, conn, activeUrl, now, t }: UseEntit
   );
 
   // ── Service calls ──────────────────────────────────────────────────────
+  // A ref, so callService keeps its identity when entities update.
+  const entitiesRef = useRef(entities);
+  useEffect(() => {
+    entitiesRef.current = entities;
+  }, [entities]);
+
   const callService = useCallback(
     (domain: string, service: string, data?: ServiceData | null) => {
+      const noContact = () => t?.('toast.noHaConnection') || 'No contact with Home Assistant';
       if (!conn) {
         logger.warn(`Service call attempted while disconnected: ${domain}.${service}`);
+        addToast(noContact(), 'error');
         return Promise.reject(new Error('No connection'));
       }
       return haCallService(conn, domain, service, data).catch((error) => {
-        const msg = t?.('toast.serviceFailed') || 'Action failed';
-        addToast(`${msg}: ${domain}.${service}`, 'error');
+        if (isConnectionLost(error)) {
+          addToast(noContact(), 'error');
+        } else {
+          const msg = t?.('toast.serviceFailed') || 'Action failed';
+          const name = soleEntityName(entitiesRef.current, data);
+          addToast(name ? `${msg}: ${name}` : msg, 'error');
+        }
         throw error;
       });
     },

@@ -283,7 +283,8 @@ export const formatUnitValue = (
   const rendered = converted
     .toFixed(decimals)
     .replace(/\.0+$/, '')
-    .replace(/(\.\d*?)0+$/, '$1');
+    .replace(/(\.\d*?)0+$/, '$1')
+    .replace(/^-0$/, '0');
   return rendered;
 };
 

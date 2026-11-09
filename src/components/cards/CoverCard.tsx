@@ -7,6 +7,7 @@ import type { Translate } from '../../types/ha';
 import type { CardCallService } from '../../types/cards';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import type { IconComponent } from '../../icons/iconMap';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type CoverEntity = EntityMap[string];
 type CoverMode = 'slider' | 'buttons';
@@ -35,6 +36,7 @@ interface BlindSliderProps {
   position: number;
   onChange: (value: number) => void;
   onCommit: (value: number) => void;
+  onCancel: () => void;
   accent: CoverAccent;
   isUnavailable: boolean;
 }
@@ -44,7 +46,9 @@ interface ButtonControlProps {
   onClose: () => unknown;
   onStop: () => unknown;
   isUnavailable: boolean;
+  supportsStop: boolean;
   horizontal?: boolean;
+  translate: Translate;
 }
 
 interface SmallCoverCardProps extends Pick<
@@ -58,26 +62,42 @@ interface SmallCoverCardProps extends Pick<
   getStateLabel: () => string | undefined;
   accent: CoverAccent;
   isUnavailable: boolean;
-  // Method syntax (bivariant) with an optional event: SmallCoverCard calls this without an
-  // event, which throws at `e.stopPropagation()`. Typed to match the current call unchanged.
-  handleToggleMode(e?: MouseEvent<HTMLDivElement>): void;
+  handleToggleMode: (e?: MouseEvent<HTMLDivElement>) => void;
   Icon: IconComponent;
   mode: CoverMode;
   supportsPosition: boolean;
+  supportsStop: boolean;
   handlePositionCommit: (value: number) => void;
+  resetLocalPos: () => void;
   setLocalPos: Dispatch<SetStateAction<number>>;
   handleOpenCover: () => unknown;
   handleCloseCover: () => unknown;
   handleStopCover: () => unknown;
   name: string;
+  translate: Translate;
 }
 
 /* -- Styles ---------------------------------------------------------- */
+const DRAFT_TIMEOUT_MS = 10_000;
+
 const CONTROL_STYLE =
   'bg-black/5 border border-[var(--glass-border)] ring-1 ring-white/5 shadow-inner';
+// Small card Open and Close sit in a 40 px bar. These stretch the tap target to 44x44 over the
+// empty gap and padding around them, so the bar keeps its size and nothing else is covered.
+const OPEN_HIT_AREA =
+  'relative after:absolute after:-inset-y-2 after:-right-1.5 after:-left-[22px]';
+const CLOSE_HIT_AREA =
+  'relative after:absolute after:-inset-y-2 after:-right-[22px] after:-left-1.5';
 
 /* -- Vertical Blind Slider ------------------------------------------- */
-const BlindSlider = ({ position, onChange, onCommit, accent, isUnavailable }: BlindSliderProps) => {
+const BlindSlider = ({
+  position,
+  onChange,
+  onCommit,
+  onCancel,
+  accent,
+  isUnavailable,
+}: BlindSliderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
@@ -112,6 +132,11 @@ const BlindSlider = ({ position, onChange, onCommit, accent, isUnavailable }: Bl
     }
   };
 
+  const handlePointerCancel = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    onCancel();
+  };
   const closedPct = 100 - (position ?? 0);
   const slatCount = 10;
   const visibleSlats = Math.round((closedPct / 100) * slatCount);
@@ -122,7 +147,7 @@ const BlindSlider = ({ position, onChange, onCommit, accent, isUnavailable }: Bl
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       className={`relative h-full w-full overflow-hidden rounded-2xl ${isUnavailable ? 'cursor-not-allowed opacity-50' : 'cursor-ns-resize touch-none'} ${CONTROL_STYLE}`}
     >
       {/* The Blind (Fills from top) */}
@@ -158,6 +183,7 @@ const HorizontalBlindSlider = ({
   position,
   onChange,
   onCommit,
+  onCancel,
   accent,
   isUnavailable,
 }: BlindSliderProps) => {
@@ -196,6 +222,11 @@ const HorizontalBlindSlider = ({
     }
   };
 
+  const handlePointerCancel = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    onCancel();
+  };
   // Logic: "Curtain" style.
   // Position 0 (Closed) -> Full Width Fill (100%).
   // Position 100 (Open) -> 0 Width Fill (0%).
@@ -207,7 +238,7 @@ const HorizontalBlindSlider = ({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       className={`relative h-full w-full overflow-hidden rounded-xl ${isUnavailable ? 'cursor-not-allowed opacity-50' : 'cursor-ew-resize touch-none'} ${CONTROL_STYLE}`}
     >
       {/* Fill from left */}
@@ -241,7 +272,9 @@ const ButtonControl = ({
   onClose,
   onStop,
   isUnavailable,
+  supportsStop,
   horizontal = false,
+  translate,
 }: ButtonControlProps) => {
   if (horizontal) {
     return (
@@ -249,32 +282,37 @@ const ButtonControl = ({
         className={`flex h-full w-full items-center justify-between gap-1.5 rounded-2xl p-1.5 ${CONTROL_STYLE}`}
       >
         <button
+          aria-label={translate('cover.open')}
           onClick={(e) => {
             e.stopPropagation();
             onOpen();
           }}
           disabled={isUnavailable}
-          className="flex h-full flex-1 items-center justify-center rounded-xl bg-white/5 text-[var(--text-secondary)] transition-all hover:bg-white/10 hover:text-[var(--text-primary)] active:scale-95"
+          className={`flex h-full flex-1 items-center justify-center rounded-xl bg-white/5 text-[var(--text-secondary)] transition-all hover:bg-white/10 hover:text-[var(--text-primary)] active:scale-95 ${OPEN_HIT_AREA}`}
         >
           <ChevronUp className="h-5 w-5" />
         </button>
+        {supportsStop && (
+          <button
+            aria-label={translate('cover.stop')}
+            onClick={(e) => {
+              e.stopPropagation();
+              onStop();
+            }}
+            disabled={isUnavailable}
+            className="flex h-full w-10 items-center justify-center rounded-xl bg-white/5 text-[var(--text-secondary)] transition-all hover:bg-white/10 hover:text-[var(--text-primary)] active:scale-95"
+          >
+            <div className="h-2 w-2 rounded-sm bg-current" />
+          </button>
+        )}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onStop();
-          }}
-          disabled={isUnavailable}
-          className="flex h-full w-10 items-center justify-center rounded-xl bg-white/5 text-[var(--text-secondary)] transition-all hover:bg-white/10 hover:text-[var(--text-primary)] active:scale-95"
-        >
-          <div className="h-2 w-2 rounded-sm bg-current" />
-        </button>
-        <button
+          aria-label={translate('cover.presetClosed')}
           onClick={(e) => {
             e.stopPropagation();
             onClose();
           }}
           disabled={isUnavailable}
-          className="flex h-full flex-1 items-center justify-center rounded-xl bg-white/5 text-[var(--text-secondary)] transition-all hover:bg-white/10 hover:text-[var(--text-primary)] active:scale-95"
+          className={`flex h-full flex-1 items-center justify-center rounded-xl bg-white/5 text-[var(--text-secondary)] transition-all hover:bg-white/10 hover:text-[var(--text-primary)] active:scale-95 ${CLOSE_HIT_AREA}`}
         >
           <ChevronDown className="h-5 w-5" />
         </button>
@@ -285,6 +323,7 @@ const ButtonControl = ({
   return (
     <div className={`flex h-full w-full flex-col gap-1.5 rounded-[2rem] p-1.5 ${CONTROL_STYLE}`}>
       <button
+        aria-label={translate('cover.open')}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
@@ -295,18 +334,22 @@ const ButtonControl = ({
         <ChevronUp className="h-8 w-8 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />
       </button>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onStop();
-        }}
-        disabled={isUnavailable}
-        className="group flex h-12 w-full items-center justify-center rounded-xl bg-white/5 transition-all hover:bg-white/10 active:scale-[0.98]"
-      >
-        <div className="h-3 w-3 rounded-sm bg-[var(--text-secondary)] group-hover:bg-[var(--text-primary)]" />
-      </button>
+      {supportsStop && (
+        <button
+          aria-label={translate('cover.stop')}
+          onClick={(e) => {
+            e.stopPropagation();
+            onStop();
+          }}
+          disabled={isUnavailable}
+          className="group flex h-12 w-full items-center justify-center rounded-xl bg-white/5 transition-all hover:bg-white/10 active:scale-[0.98]"
+        >
+          <div className="h-3 w-3 rounded-sm bg-[var(--text-secondary)] group-hover:bg-[var(--text-primary)]" />
+        </button>
+      )}
 
       <button
+        aria-label={translate('cover.presetClosed')}
         onClick={(e) => {
           e.stopPropagation();
           onClose();
@@ -339,18 +382,22 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
     Icon,
     mode,
     supportsPosition,
+    supportsStop,
     handlePositionCommit,
+    resetLocalPos,
     setLocalPos,
     handleOpenCover,
     handleCloseCover,
     handleStopCover,
     name,
+    translate,
   } = props;
 
   return (
     <div
       key={cardId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();
@@ -395,6 +442,7 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
             position={localPos}
             onChange={setLocalPos}
             onCommit={handlePositionCommit}
+            onCancel={resetLocalPos}
             accent={accent}
             isUnavailable={isUnavailable}
           />
@@ -404,7 +452,9 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
             onClose={handleCloseCover}
             onStop={handleStopCover}
             isUnavailable={isUnavailable}
+            supportsStop={supportsStop}
             horizontal={true}
+            translate={translate}
           />
         )}
       </div>
@@ -442,6 +492,7 @@ const CoverCard = ({
   // Features
   const supportedFeatures = activeEntity.attributes?.supported_features ?? 0;
   const supportsPosition = (supportedFeatures & 4) !== 0;
+  const supportsStop = (supportedFeatures & 8) !== 0;
 
   const name = customNames[cardId] || activeEntity.attributes?.friendly_name || activeEntityId;
   const coverIconName = customIcons[cardId] || activeEntity?.attributes?.icon;
@@ -463,6 +514,16 @@ const CoverCard = ({
     }
   }, [position]);
 
+  // A motor that does not move would otherwise leave the requested percent showing for good.
+  useEffect(() => {
+    if (typeof position !== 'number' || localPos === position) return undefined;
+    const timer = setTimeout(() => setLocalPos(position), DRAFT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [localPos, position]);
+
+  const resetLocalPos = () => {
+    if (typeof position === 'number') setLocalPos(position);
+  };
   // Colors
   const getAccent = (): CoverAccent => {
     const defaultColor = 'var(--text-primary)';
@@ -490,11 +551,15 @@ const CoverCard = ({
   const handlePositionCommit = (val: number) => {
     setLocalPos(val);
     if (!activeEntityId) return;
-    callService('cover', 'set_cover_position', { entity_id: activeEntityId, position: val });
+    Promise.resolve(
+      callService('cover', 'set_cover_position', { entity_id: activeEntityId, position: val })
+    ).catch(() => {
+      if (typeof position === 'number') setLocalPos(position);
+    });
   };
 
-  const handleToggleMode = (e: MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
+  const handleToggleMode = (e?: MouseEvent<HTMLDivElement>) => {
+    e?.stopPropagation();
     setMode((prev) => (prev === 'slider' ? 'buttons' : 'slider'));
   };
 
@@ -526,7 +591,9 @@ const CoverCard = ({
     Icon,
     mode,
     supportsPosition,
+    supportsStop,
     handlePositionCommit,
+    resetLocalPos,
     setLocalPos,
     handleOpenCover,
     handleCloseCover,
@@ -544,6 +611,7 @@ const CoverCard = ({
     <div
       key={cardId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       className={`glass-texture touch-feedback group relative flex h-full items-stretch justify-between overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--glass-bg)] font-sans transition-all duration-500 select-none ${isDenseMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''} `}
       style={cardStyle}
@@ -622,6 +690,7 @@ const CoverCard = ({
             position={localPos}
             onChange={setLocalPos}
             onCommit={handlePositionCommit}
+            onCancel={resetLocalPos}
             accent={accent}
             isUnavailable={isUnavailable}
           />
@@ -631,6 +700,8 @@ const CoverCard = ({
             onClose={handleCloseCover}
             onStop={handleStopCover}
             isUnavailable={isUnavailable}
+            supportsStop={supportsStop}
+            translate={translate}
           />
         )}
       </div>

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { themes } from '../config/themes';
+import { initialCardMaterial, themes } from '../config/themes';
 import { isLightColor } from '../utils/colorUtils';
 import { DEFAULT_LANGUAGE, normalizeLanguage } from '../i18n';
 import { hashPin, verifyPin } from '../utils';
@@ -180,7 +180,10 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
 
   const [cardMaterial, setCardMaterial] = useState(() => {
     try {
-      return localStorage.getItem('tunet_card_material') || 'glass';
+      return initialCardMaterial(
+        localStorage.getItem('tunet_theme'),
+        localStorage.getItem('tunet_card_material')
+      );
     } catch {
       return 'glass';
     }
@@ -304,18 +307,10 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
     const themeKey = THEMES[currentTheme] ? currentTheme : 'dark';
     const theme = THEMES[themeKey].colors;
 
-    // Clean up custom image background and inline overrides
-    body.style.backgroundImage = '';
-    body.style.backgroundSize = '';
-    body.style.backgroundPosition = '';
-    body.style.backgroundAttachment = '';
-
     // Clear inline variables that might mask theme variables
     root.style.removeProperty('--bg-primary');
     root.style.removeProperty('--bg-gradient-from');
     root.style.removeProperty('--bg-gradient-to');
-
-    root.classList.remove('custom-bg-active');
 
     if (bgMode === 'solid') {
       root.style.setProperty('--bg-gradient-from', bgColor);
@@ -330,21 +325,12 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
       root.style.setProperty('--bg-primary', preset.to);
       root.style.backgroundColor = preset.to;
       body.style.backgroundColor = preset.to;
-    } else if (bgMode === 'custom' && bgImage) {
-      root.style.backgroundColor = theme['--bg-primary'];
-      body.style.backgroundColor = 'transparent';
-      body.style.backgroundImage = `url("${bgImage}")`;
-      body.style.backgroundSize = 'cover';
-      body.style.backgroundPosition = 'center';
-      body.style.backgroundAttachment = 'fixed';
-      root.classList.add('custom-bg-active');
-      root.style.setProperty('--bg-primary', theme['--bg-primary']);
     } else {
-      // 'theme' mode — let theme colors apply normally
+      // 'theme' and 'custom' modes — let theme colors apply normally
       root.style.backgroundColor = theme['--bg-primary'];
       body.style.backgroundColor = theme['--bg-primary'];
     }
-  }, [bgMode, bgColor, bgGradient, bgImage, currentTheme]);
+  }, [bgMode, bgColor, bgGradient, currentTheme]);
 
   const parseColorToRgb = (color: unknown) => {
     if (!color || typeof color !== 'string') return null;
@@ -426,8 +412,10 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
     }
 
     if (r !== undefined) {
-      // Map 0-100 slider directly to 0.0-1.0 alpha (0 = invisible, 100 = opaque)
-      const alpha = cardBorderOpacity / 100;
+      // Map 0-100 slider directly to 0.0-1.0 alpha (0 = invisible, 100 = opaque).
+      // On a light page a card without any edge disappears, so keep a faint one.
+      const minAlpha = isLightColor(THEMES[themeKey].colors['--bg-primary']) ? 0.7 : 0;
+      const alpha = Math.max(cardBorderOpacity / 100, minAlpha);
       document.documentElement.style.setProperty(
         '--card-border',
         `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`
@@ -512,8 +500,9 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
 
   // Save language to localStorage
   useEffect(() => {
+    const normalizedLanguage = normalizeLanguage(language);
+    document.documentElement.lang = normalizedLanguage;
     try {
-      const normalizedLanguage = normalizeLanguage(language);
       localStorage.setItem('tunet_language', normalizedLanguage);
     } catch (error) {
       console.error('Failed to save language to localStorage:', error);

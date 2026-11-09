@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Coins, TrendingUp, BarChart3 } from '../icons';
 import SensorHistoryGraph from '../components/charts/SensorHistoryGraph';
 import { getHistory, getStatistics } from '../services/haClient';
@@ -6,6 +6,7 @@ import { getIconComponent } from '../icons';
 import { useHomeAssistantMeta } from '../contexts';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader, StatusChip } from '../components/ui/ModalParts';
+import { buildCostIncrementBuckets } from '../utils/costSeries';
 import Segmented from '../components/ui/Segmented';
 
 const parseNumeric = (value) => {
@@ -66,15 +67,6 @@ const buildBuckets = (points, rangeHours) => {
       time: b.time,
       value: b.last,
     }));
-};
-
-const buildDeltaSeries = (series) => {
-  if (series.length < 2) return series;
-  // Skip first point — no previous value to diff against
-  return series.slice(1).map((point, idx) => {
-    const prev = series[idx]; // idx is offset by 1 due to slice
-    return { ...point, value: point.value - prev.value };
-  });
 };
 
 const ensureRangeCoverage = (data, start, end) => {
@@ -245,6 +237,7 @@ export default function CostModal({
   const [metric, setMetric] = useState('value');
   const [loading, setLoading] = useState(false);
   const [series, setSeries] = useState([]);
+  const loadedViewRef = useRef(null);
 
   const todayEntity = todayEntityId ? entities?.[todayEntityId] : null;
   const monthEntity = monthEntityId ? entities?.[monthEntityId] : null;
@@ -258,12 +251,19 @@ export default function CostModal({
   useEffect(() => {
     if (!show) return;
     if (!conn || !activeEntity?.entity_id) {
+      loadedViewRef.current = null;
+      setLoading(false);
       setSeries([]);
       return;
     }
 
+    let cancelled = false;
+    const view = `${activeEntity.entity_id}|${rangeHours}|${metric}|${chartType}`;
+    // A new sensor value refreshes what is on screen; only a different view shows loading.
+    const silent = loadedViewRef.current === view;
+
     const fetchHistory = async () => {
-      setLoading(true);
+      if (!silent) setLoading(true);
       try {
         const end = new Date();
         const start = new Date(end.getTime() - rangeHours * 60 * 60 * 1000);
@@ -319,7 +319,7 @@ export default function CostModal({
           .sort((a, b) => a.time.getTime() - b.time.getTime());
         const lineSeries = ensureRangeCoverage(rawSeries, start, end);
         const bucketed = buildBuckets(rawSeries, rangeHours);
-        const deltaSeries = buildDeltaSeries(bucketed);
+        const deltaSeries = buildCostIncrementBuckets(rawSeries, rangeHours);
 
         let nextSeries;
         if (metric === 'delta') {
@@ -333,16 +333,22 @@ export default function CostModal({
           nextSeries = lineSeries;
         }
 
+        if (cancelled) return;
+        loadedViewRef.current = view;
         setSeries(nextSeries);
       } catch (error) {
+        if (cancelled) return;
         console.error('Cost history fetch failed', error);
-        setSeries([]);
+        if (!silent) setSeries([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchHistory();
+    return () => {
+      cancelled = true;
+    };
   }, [show, conn, activeEntity?.entity_id, activeEntity?.state, rangeHours, metric, chartType]);
 
   const stats = useMemo(() => {

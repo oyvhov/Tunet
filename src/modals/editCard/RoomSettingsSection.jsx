@@ -468,7 +468,7 @@ export function RoomSettingsSection({
                                 isMainLight ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainLight ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`min-h-11 rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainLight ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainLight && <span className="mr-0.5">★</span>}
                             {entityActionLabels.main}
@@ -484,7 +484,7 @@ export function RoomSettingsSection({
                                 isMainClimate ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainClimate ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`min-h-11 rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainClimate ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainClimate && <span className="mr-0.5">★</span>}
                             {entityActionLabels.climate}
@@ -500,7 +500,7 @@ export function RoomSettingsSection({
                                 isMainVacuum ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainVacuum ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`min-h-11 rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainVacuum ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainVacuum && <span className="mr-0.5">★</span>}
                             {entityActionLabels.vacuum}
@@ -516,7 +516,7 @@ export function RoomSettingsSection({
                                 isMainTemp ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainTemp ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`min-h-11 rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainTemp ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainTemp && <span className="mr-0.5">★</span>}
                             {entityActionLabels.temp}
@@ -532,7 +532,7 @@ export function RoomSettingsSection({
                                 isMainMotion ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainMotion ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`min-h-11 rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainMotion ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainMotion && <span className="mr-0.5">★</span>}
                             {entityActionLabels.motion}
@@ -548,7 +548,7 @@ export function RoomSettingsSection({
                                 isMainHumidity ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainHumidity ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`min-h-11 rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainHumidity ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainHumidity && <span className="mr-0.5">★</span>}
                             {entityActionLabels.humidity}
@@ -564,7 +564,7 @@ export function RoomSettingsSection({
                                 isMainDoor ? null : id
                               )
                             }
-                            className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainDoor ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                            className={`min-h-11 rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isMainDoor ? 'border-amber-400/40 bg-amber-500/15 text-amber-300' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                           >
                             {isMainDoor && <span className="mr-0.5">★</span>}
                             {entityActionLabels.door}
@@ -573,7 +573,7 @@ export function RoomSettingsSection({
                         <button
                           type="button"
                           onClick={() => toggleEntityListMembership('excludedEntityIds', id)}
-                          className={`rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isExcluded ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
+                          className={`min-h-11 rounded-lg border px-2 py-1 text-[11px] font-bold tracking-widest uppercase transition-colors ${isExcluded ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : 'popup-surface popup-surface-hover border-transparent text-[var(--text-secondary)]'}`}
                         >
                           {isExcluded
                             ? t('room.excluded') || 'Excluded'
@@ -617,14 +617,14 @@ export function RoomSettingsSection({
               return (
                 <div
                   key={opt.key}
-                  className="flex items-center justify-between gap-2 rounded-xl bg-[var(--glass-bg)]/60 px-2.5 py-2"
+                  className="flex min-h-11 items-center justify-between gap-2 rounded-xl bg-[var(--glass-bg)]/60 px-2.5 py-2"
                 >
                   <span className="truncate pr-2 text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase">
                     {opt.label}
                   </span>
                   <button
                     onClick={() => saveCardSetting(editSettingsKey, opt.key, !value)}
-                    className={`relative h-5 w-10 rounded-full transition-colors ${value ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+                    className={`relative h-5 w-10 rounded-full transition-colors before:absolute before:-inset-3 before:content-[''] ${value ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
                   >
                     <div
                       className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${value ? 'left-5' : 'left-0.5'}`}
@@ -651,7 +651,7 @@ export function RoomSettingsSection({
           <button
             type="button"
             onClick={() => saveCardSetting(editSettingsKey, 'navigateOnTap', !navigateOnTap)}
-            className={`relative h-6 w-12 rounded-full transition-colors ${navigateOnTap ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
+            className={`relative h-6 w-12 rounded-full transition-colors before:absolute before:-inset-2.5 before:content-[''] ${navigateOnTap ? 'border border-[var(--glass-border)] bg-[var(--glass-bg-hover)]' : 'bg-[var(--glass-bg-hover)]'}`}
           >
             <span
               className={`absolute top-1 left-1 h-4 w-4 rounded-full bg-white transition-transform ${navigateOnTap ? 'translate-x-6' : 'translate-x-0'}`}

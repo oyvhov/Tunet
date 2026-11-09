@@ -12,10 +12,12 @@ import {
   Tv,
 } from '../../icons';
 import { getMediaPlayerPowerAction } from '../../utils/mediaPlayerFeatures';
+import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type { MouseEvent } from 'react';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsEntry, CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type MediaEntity = EntityMap[string];
 
@@ -134,6 +136,7 @@ export const MediaPlayerCard = memo(
         <div
           key={mpId}
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={(e) => {
             e.stopPropagation();
@@ -158,11 +161,11 @@ export const MediaPlayerCard = memo(
             )}
           </div>
           <div className="w-full px-4 text-center">
-            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-              {t('media.noneMusic')}
+            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+              {isUnavailableState(mpState) ? getUnavailableLabel(mpState, t) : t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40">
+              <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
                 {name}
               </p>
             </div>
@@ -187,12 +190,13 @@ export const MediaPlayerCard = memo(
       <div
         key={mpId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
           if (!editMode) onOpen(mpId, null, null);
         }}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        className={`${picture ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={{
           ...cardStyle,
           color:
@@ -204,6 +208,10 @@ export const MediaPlayerCard = memo(
         }}
       >
         {controls}
+
+        {picture && !isCoverMode && (
+          <div className="media-art-scrim pointer-events-none absolute inset-0 z-0" />
+        )}
 
         {/* Background artwork */}
         {picture && (
@@ -223,11 +231,11 @@ export const MediaPlayerCard = memo(
         )}
 
         <div
-          className={`relative z-10 ${isCoverMode ? '' : `flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
+          className={`relative z-10 ${isCoverMode ? '' : `@container flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
         >
           {!isCoverMode && (
             <div
-              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20'} flex shrink-0 items-center justify-center overflow-hidden`}
+              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20 @max-[13rem]:h-14 @max-[13rem]:w-14'} flex shrink-0 items-center justify-center overflow-hidden`}
             >
               {picture ? (
                 <img
@@ -253,7 +261,7 @@ export const MediaPlayerCard = memo(
               </p>
             </div>
             <h3
-              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'truncate text-base' : 'truncate text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
+              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'line-clamp-2 text-base' : 'line-clamp-2 text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
             >
               {title || t('common.unknown')}
             </h3>
@@ -270,6 +278,7 @@ export const MediaPlayerCard = memo(
           className={`relative z-10 flex items-center justify-center ${useWideMobileControls ? 'mt-2 gap-5 px-1' : isDenseMobile ? 'mt-3 gap-3 px-0' : 'mt-1 gap-[clamp(0.125rem,1.5vw,1.5rem)] px-0.5 sm:mt-2 sm:px-0'}`}
         >
           <button
+            aria-label={t('media.previous')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_previous_track', { entity_id: mpId });
@@ -287,6 +296,7 @@ export const MediaPlayerCard = memo(
             />
           </button>
           <button
+            aria-label={isPlaying ? t('media.pause') : t('media.play')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_play_pause', { entity_id: mpId });
@@ -316,6 +326,7 @@ export const MediaPlayerCard = memo(
             )}
           </button>
           <button
+            aria-label={t('media.next')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_next_track', { entity_id: mpId });
@@ -450,6 +461,7 @@ export const MediaGroupCard = memo(
         <div
           key={cardId}
           {...dragProps}
+          {...cardButtonProps(editMode, name)}
           data-haptic={editMode ? undefined : 'card'}
           onClick={(e) => {
             e.stopPropagation();
@@ -468,11 +480,13 @@ export const MediaGroupCard = memo(
             />
           </div>
           <div className="w-full px-4 text-center">
-            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-              {t('media.noneMusic')}
+            <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
+              {mediaEntities.every((player) => isUnavailableState(player.state))
+                ? getUnavailableLabel(mpState, t)
+                : t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40">
+              <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
                 {name}
               </p>
             </div>
@@ -497,12 +511,13 @@ export const MediaGroupCard = memo(
       <div
         key={cardId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
           if (!editMode) onOpen(mpId, settingsKey, null);
         }}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        className={`${picture ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={{
           ...cardStyle,
           color:
@@ -530,6 +545,10 @@ export const MediaGroupCard = memo(
         )}
         {isPlaying && (
           <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+        )}
+
+        {picture && !isCoverMode && (
+          <div className="media-art-scrim pointer-events-none absolute inset-0 z-0" />
         )}
 
         {/* Background artwork */}
@@ -572,11 +591,11 @@ export const MediaGroupCard = memo(
         )}
 
         <div
-          className={`relative z-10 ${isCoverMode ? '' : `flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
+          className={`relative z-10 ${isCoverMode ? '' : `@container flex items-start ${isDenseMobile ? 'gap-3' : 'gap-4'}`}`}
         >
           {!isCoverMode && (
             <div
-              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20'} flex shrink-0 items-center justify-center overflow-hidden`}
+              className={`${isDenseMobile ? 'h-16 w-16' : 'h-20 w-20 @max-[13rem]:h-14 @max-[13rem]:w-14'} flex shrink-0 items-center justify-center overflow-hidden`}
             >
               {picture ? (
                 <img
@@ -602,7 +621,7 @@ export const MediaGroupCard = memo(
               </p>
             </div>
             <h3
-              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'truncate text-base' : 'truncate text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
+              className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'line-clamp-2 text-base' : 'line-clamp-2 text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
             >
               {title || t('common.unknown')}
             </h3>
@@ -619,6 +638,7 @@ export const MediaGroupCard = memo(
           className={`relative z-10 flex items-center justify-center ${useWideMobileControls ? 'mt-2 gap-5 px-1' : isDenseMobile ? 'mt-3 gap-3 px-0' : 'mt-1 gap-[clamp(0.125rem,1.5vw,1.5rem)] px-0.5 sm:mt-2 sm:px-0'}`}
         >
           <button
+            aria-label={t('media.previous')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_previous_track', { entity_id: mpId });
@@ -636,6 +656,7 @@ export const MediaGroupCard = memo(
             />
           </button>
           <button
+            aria-label={isPlaying ? t('media.pause') : t('media.play')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_play_pause', { entity_id: mpId });
@@ -665,6 +686,7 @@ export const MediaGroupCard = memo(
             )}
           </button>
           <button
+            aria-label={t('media.next')}
             onClick={(e) => {
               e.stopPropagation();
               callService('media_player', 'media_next_track', { entity_id: mpId });

@@ -45,6 +45,50 @@ export type AggregateTimeSeriesOptions = {
 
 export const SENSOR_GRAPH_STATS = ['mean', 'min', 'max', 'change'];
 
+/** A sensor-history row: full names over REST, the compact keys over the websocket. */
+type RawHistoryRow = {
+  state?: unknown;
+  s?: unknown;
+  last_changed?: unknown;
+  last_updated?: unknown;
+  last_reported?: unknown;
+  timestamp?: unknown;
+  lc?: unknown;
+  lu?: unknown;
+};
+
+/** Reads a Home Assistant timestamp: ISO text, or seconds or milliseconds as a number. */
+export function parseHistoryTime(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const fromEpoch = (epoch: number) => {
+    const date = new Date(epoch < 1e12 ? epoch * 1000 : epoch);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+  if (typeof value === 'number') return fromEpoch(value);
+  if (typeof value !== 'string') return null;
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) return direct;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? fromEpoch(numeric) : null;
+}
+
+/**
+ * Turns history rows into graph points, skipping rows without a number or a time.
+ * The websocket sends `s` and `lu`, plus `lc` only when it differs from `lu`.
+ */
+export function historyRowsToPoints(rows: unknown): TimeSeriesPoint[] {
+  if (!Array.isArray(rows)) return [];
+  return (rows as (RawHistoryRow | null | undefined)[]).flatMap((row) => {
+    if (!row) return [];
+    const value = parseFloat(String(row.state ?? row.s));
+    const time = parseHistoryTime(
+      row.last_changed ?? row.last_updated ?? row.last_reported ?? row.timestamp ?? row.lc ?? row.lu
+    );
+    return Number.isNaN(value) || !time ? [] : [{ value, time }];
+  });
+}
+
 const BUCKET_HOURS: Record<SensorGraphRange, number> = {
   '1h': 1 / 12,
   '6h': 0.25,

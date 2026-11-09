@@ -42,7 +42,9 @@ import type {
   HomeAssistantProviderProps,
 } from '../types/dashboard';
 
-export type HomeAssistantMetaValue = Omit<HomeAssistantContextValue, 'entities'>;
+// The last-update time lives in a ref, so ordinary updates leave meta consumers alone.
+type HomeAssistantValue = Omit<HomeAssistantContextValue, 'lastEntityUpdateAt'>;
+export type HomeAssistantMetaValue = Omit<HomeAssistantValue, 'entities'>;
 
 // Shape of a rejected HA command: a {code, message} result, possibly wrapped in `error`.
 // Optional chaining keeps non-object throwables (e.g. ERR_* numbers) yielding undefined fields.
@@ -81,6 +83,13 @@ function saveCachedEntities(entities: EntityMap): void {
 
 const HomeAssistantEntitiesContext = createContext<EntityMap | null>(null);
 const HomeAssistantMetaContext = createContext<HomeAssistantMetaValue | null>(null);
+const HomeAssistantOfflineContext = createContext(false);
+
+/**
+ * True while the cards cannot be trusted: old data, or a connection down past the warning delay.
+ * A context of its own, because the meta value changes with every socket message.
+ */
+export const useHomeAssistantOffline = (): boolean => useContext(HomeAssistantOfflineContext);
 
 export const useHomeAssistantEntities = (): EntityMap => {
   const context = useContext(HomeAssistantEntitiesContext);
@@ -98,7 +107,7 @@ export const useHomeAssistantMeta = (): HomeAssistantMetaValue => {
   return context;
 };
 
-export const useHomeAssistant = (): HomeAssistantContextValue => {
+export const useHomeAssistant = (): HomeAssistantValue => {
   const entities = useHomeAssistantEntities();
   const meta = useHomeAssistantMeta();
   return useMemo(() => ({ entities, ...meta }), [entities, meta]);
@@ -107,38 +116,51 @@ export const useHomeAssistant = (): HomeAssistantContextValue => {
 /**
  * Throttled state setter — batches rapid HA entity updates into a single
  * React render per animation frame, preventing full-tree re-renders on
- * every WebSocket message.
+ * every WebSocket message. Snapshots are prepared inside the frame, so
+ * messages that are coalesced away (or arrive while hidden) allocate nothing.
  */
-function useThrottledEntities(): [EntityMap, (updatedEntities: EntityMap) => void] {
+function useThrottledEntities(
+  prepareEntities: (rawEntities: EntityMap) => EntityMap
+): [EntityMap, (rawEntities: EntityMap) => void] {
   const [entities, setEntities] = useState<EntityMap>(loadCachedEntities);
   const pendingRef = useRef<EntityMap | null>(null);
   const rafRef = useRef<number | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const setEntitiesThrottled = useCallback((updatedEntities: EntityMap) => {
-    pendingRef.current = updatedEntities;
-    if (rafRef.current == null) {
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        if (pendingRef.current) {
-          setEntities(pendingRef.current);
-          // Debounce sessionStorage writes to once per 10 s
-          if (saveTimerRef.current == null) {
-            saveTimerRef.current = setTimeout(() => {
-              saveTimerRef.current = null;
-              if (pendingRef.current) saveCachedEntities(pendingRef.current);
-            }, 10_000);
+  const setEntitiesThrottled = useCallback(
+    (rawEntities: EntityMap) => {
+      pendingRef.current = rawEntities;
+      if (rafRef.current == null) {
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null;
+          if (pendingRef.current) {
+            setEntities(prepareEntities(pendingRef.current));
           }
-        }
-      });
-    }
-  }, []);
+        });
+      }
+    },
+    [prepareEntities]
+  );
+
+  // The snapshot only serves a quick reload, so write it when the page may be going away.
+  useEffect(() => {
+    const saveSnapshot = () => {
+      if (pendingRef.current) saveCachedEntities(prepareEntities(pendingRef.current));
+    };
+    const handleVisibilityChange = () => {
+      if (globalThis.document?.visibilityState === 'hidden') saveSnapshot();
+    };
+    globalThis.document?.addEventListener('visibilitychange', handleVisibilityChange);
+    globalThis.window?.addEventListener('pagehide', saveSnapshot);
+    return () => {
+      globalThis.document?.removeEventListener('visibilitychange', handleVisibilityChange);
+      globalThis.window?.removeEventListener('pagehide', saveSnapshot);
+    };
+  }, [prepareEntities]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-      if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
     };
   }, []);
 
@@ -149,7 +171,19 @@ export const HomeAssistantProvider = ({
   children,
   config,
 }: HomeAssistantProviderProps): ReactElement => {
-  const [entities, setEntities] = useThrottledEntities();
+  const entityRegistryByIdRef = useRef(new Map<string, EntityRegistryEntry>());
+  const deviceRegistryByIdRef = useRef(new Map<string, DeviceRegistryEntry>());
+  const fetchRegistryMetadataRef = useRef<((connInstance: Connection) => void) | null>(null);
+  const applyRegistryMetadata = useCallback(
+    (nextEntities: EntityMap): EntityMap =>
+      enrichEntitiesWithRegistryMetadata(
+        nextEntities,
+        entityRegistryByIdRef.current,
+        deviceRegistryByIdRef.current
+      ),
+    []
+  );
+  const [entities, setEntities] = useThrottledEntities(applyRegistryMetadata);
   const [entitiesLoaded, setEntitiesLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [haUnavailable, setHaUnavailable] = useState(false);
@@ -160,20 +194,21 @@ export const HomeAssistantProvider = ({
   const [haUser, setHaUser] = useState<HomeAssistantMetaValue['haUser']>(null);
   const [haConfig, setHaConfig] = useState<HomeAssistantMetaValue['haConfig']>(null);
   const [entityDataStale, setEntityDataStale] = useState(false);
-  const [lastEntityUpdateAt, setLastEntityUpdateAt] = useState(0);
+  const lastEntityUpdateAtRef = useRef(0);
   const [disconnectedSince, setDisconnectedSince] = useState<number | null>(null);
   const authRef = useRef<Auth | null>(null);
   const connectionRef = useRef<Connection | null>(null);
   const unsubscribeEntitiesRef = useRef<UnsubscribeFunc | null>(null);
   const connectAttemptRef = useRef(0);
   const rawEntitiesRef = useRef<EntityMap>(entities);
-  const entityRegistryByIdRef = useRef(new Map<string, EntityRegistryEntry>());
-  const deviceRegistryByIdRef = useRef(new Map<string, DeviceRegistryEntry>());
 
   const markConnectionHealthy = useCallback(() => {
     setConnected(true);
     setHaUnavailable(false);
     setDisconnectedSince(null);
+    // An answered ping proves the data is current, even in a house where nothing has changed.
+    if (lastEntityUpdateAtRef.current) lastEntityUpdateAtRef.current = Date.now();
+    setEntityDataStale(false);
   }, []);
 
   const markConnectionRecovering = useCallback(() => {
@@ -188,22 +223,12 @@ export const HomeAssistantProvider = ({
     onRecovering: markConnectionRecovering,
   });
 
-  const applyRegistryMetadata = useCallback(
-    (nextEntities: EntityMap): EntityMap =>
-      enrichEntitiesWithRegistryMetadata(
-        nextEntities,
-        entityRegistryByIdRef.current,
-        deviceRegistryByIdRef.current
-      ),
-    []
-  );
-
   const pushEntitySnapshot = useCallback(
     (nextEntities: HassEntities) => {
       rawEntitiesRef.current = nextEntities;
-      setEntities(applyRegistryMetadata(nextEntities));
+      setEntities(nextEntities);
     },
-    [applyRegistryMetadata, setEntities]
+    [setEntities]
   );
 
   useEffect(() => {
@@ -236,10 +261,6 @@ export const HomeAssistantProvider = ({
     deviceRegistryByIdRef.current = new Map();
   }, []);
 
-  useEffect(() => {
-    rawEntitiesRef.current = entities;
-  }, [entities]);
-
   // Connect to Home Assistant
   useEffect(() => {
     const isOAuth = config.authMethod === 'oauth';
@@ -256,7 +277,7 @@ export const HomeAssistantProvider = ({
       setConnected(false);
       setEntityDataStale(false);
       setDisconnectedSince(null);
-      setLastEntityUpdateAt(0);
+      lastEntityUpdateAtRef.current = 0;
       return;
     }
 
@@ -266,7 +287,7 @@ export const HomeAssistantProvider = ({
       setConnected(false);
       setEntityDataStale(false);
       setDisconnectedSince(null);
-      setLastEntityUpdateAt(0);
+      lastEntityUpdateAtRef.current = 0;
       return;
     }
     // For oauth mode, require stored tokens OR an active callback in the URL
@@ -275,7 +296,7 @@ export const HomeAssistantProvider = ({
       setConnected(false);
       setEntityDataStale(false);
       setDisconnectedSince(null);
-      setLastEntityUpdateAt(0);
+      lastEntityUpdateAtRef.current = 0;
       return;
     }
 
@@ -294,7 +315,7 @@ export const HomeAssistantProvider = ({
     setOauthExpired(false);
     setEntityDataStale(false);
     setDisconnectedSince(null);
-    setLastEntityUpdateAt(0);
+    lastEntityUpdateAtRef.current = 0;
 
     /** Fetch the authenticated HA user after connecting */
     async function fetchCurrentUser(connInstance: Connection) {
@@ -374,7 +395,7 @@ export const HomeAssistantProvider = ({
         deviceRegistryByIdRef.current = buildRegistryLookupMap(deviceRegistry, 'id');
 
         if (rawEntitiesRef.current && Object.keys(rawEntitiesRef.current).length > 0) {
-          setEntities(applyRegistryMetadata(rawEntitiesRef.current));
+          setEntities(rawEntitiesRef.current);
         }
       } catch (err) {
         const resultError = (err as HaErrorLike)?.error || (err as HaErrorLike);
@@ -397,6 +418,8 @@ export const HomeAssistantProvider = ({
         }
       }
     }
+
+    fetchRegistryMetadataRef.current = fetchRegistryMetadata;
 
     const persistConfig = (urlUsed: string) => {
       try {
@@ -441,7 +464,7 @@ export const HomeAssistantProvider = ({
         if (isCurrentAttempt()) {
           pushEntitySnapshot(updatedEntities);
           setEntitiesLoaded(true);
-          setLastEntityUpdateAt(Date.now());
+          lastEntityUpdateAtRef.current = Date.now();
           setEntityDataStale(false);
         }
       });
@@ -485,7 +508,7 @@ export const HomeAssistantProvider = ({
         if (isCurrentAttempt()) {
           pushEntitySnapshot(updatedEntities);
           setEntitiesLoaded(true);
-          setLastEntityUpdateAt(Date.now());
+          lastEntityUpdateAtRef.current = Date.now();
           setEntityDataStale(false);
         }
       });
@@ -571,7 +594,6 @@ export const HomeAssistantProvider = ({
     config.haSession,
     cleanupConnection,
     setEntities,
-    applyRegistryMetadata,
     pushEntitySnapshot,
   ]);
 
@@ -581,7 +603,10 @@ export const HomeAssistantProvider = ({
     let cancelled = false;
 
     const handleReady = () => {
-      if (!cancelled) markConnectionHealthy();
+      if (cancelled) return;
+      markConnectionHealthy();
+      // A wall tablet is never reloaded, so new devices can only arrive here.
+      fetchRegistryMetadataRef.current?.(conn);
     };
     const handleDisconnected = () => {
       if (!cancelled) markConnectionRecovering();
@@ -611,7 +636,7 @@ export const HomeAssistantProvider = ({
           entitiesLoaded,
           connected,
           disconnectedSince,
-          lastEntityUpdateAt,
+          lastEntityUpdateAt: lastEntityUpdateAtRef.current,
         })
       );
     };
@@ -619,7 +644,7 @@ export const HomeAssistantProvider = ({
     updateStaleState();
     const timer = setInterval(updateStaleState, 5_000);
     return () => clearInterval(timer);
-  }, [entitiesLoaded, connected, disconnectedSince, lastEntityUpdateAt]);
+  }, [entitiesLoaded, connected, disconnectedSince]);
 
   // Delay connection warnings, and restart the grace period when a mobile app resumes.
   useEffect(() => {
@@ -699,7 +724,6 @@ export const HomeAssistantProvider = ({
       activeUrl,
       haConfig,
       entityDataStale,
-      lastEntityUpdateAt,
       disconnectedSince,
       authRef,
       haUser,
@@ -714,7 +738,6 @@ export const HomeAssistantProvider = ({
       activeUrl,
       haConfig,
       entityDataStale,
-      lastEntityUpdateAt,
       disconnectedSince,
       haUser,
     ]
@@ -722,9 +745,13 @@ export const HomeAssistantProvider = ({
 
   return (
     <HomeAssistantMetaContext.Provider value={metaValue}>
-      <HomeAssistantEntitiesContext.Provider value={entities}>
-        {children}
-      </HomeAssistantEntitiesContext.Provider>
+      <HomeAssistantOfflineContext.Provider
+        value={haUnavailableVisible || (connected && entityDataStale)}
+      >
+        <HomeAssistantEntitiesContext.Provider value={entities}>
+          {children}
+        </HomeAssistantEntitiesContext.Provider>
+      </HomeAssistantOfflineContext.Provider>
     </HomeAssistantMetaContext.Provider>
   );
 };

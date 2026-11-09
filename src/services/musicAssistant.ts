@@ -91,7 +91,7 @@ export async function searchMusicAssistant(
   conn: HaConnection,
   configEntryId: string,
   query: string,
-  limit = 8
+  limit = 25
 ): Promise<Record<(typeof MUSIC_ASSISTANT_SEARCH_TYPES)[number], MusicAssistantItem[]>> {
   const response = await callForResponse(conn, 'search', {
     config_entry_id: configEntryId,
@@ -107,13 +107,14 @@ export async function getMusicAssistantLibrary(
   conn: HaConnection,
   configEntryId: string,
   mediaType: string,
-  options: { favorite?: boolean; limit?: number; orderBy?: string } = {}
+  options: { favorite?: boolean; limit?: number; offset?: number; orderBy?: string } = {}
 ): Promise<MusicAssistantItem[]> {
   const response = await callForResponse(conn, 'get_library', {
     config_entry_id: configEntryId,
     media_type: mediaType,
     ...(options.favorite ? { favorite: true } : {}),
     ...(options.limit ? { limit: options.limit } : {}),
+    ...(options.offset ? { offset: options.offset } : {}),
     ...(options.orderBy ? { order_by: options.orderBy } : {}),
   });
   return itemList(response.items);

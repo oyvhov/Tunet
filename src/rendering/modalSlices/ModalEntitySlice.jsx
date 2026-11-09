@@ -111,6 +111,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 language={language}
                 saveCardSetting={saveCardSetting}
                 cardId={showNordpoolModal}
+                settingsKey={getCardSettingsKey(showNordpoolModal)}
                 settings={data.settings}
               />
             </ModalSuspense>
@@ -159,6 +160,7 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
           return (
             <ModalSuspense>
               <GenericClimateModal
+                key={target.entityId}
                 entityId={target.entityId}
                 entity={climateEntity}
                 onClose={() => setActiveClimateEntityModal(null)}
@@ -342,10 +344,16 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
       {showCalendarModal && (
         <ModalSuspense>
           <CalendarModal
-            show={showCalendarModal}
+            show={Boolean(showCalendarModal)}
             onClose={() => setShowCalendarModal(false)}
             conn={conn}
             entities={entities}
+            cardCalendars={
+              (
+                cardSettings[getCardSettingsKey(showCalendarModal)] ||
+                cardSettings[showCalendarModal]
+              )?.calendars
+            }
             language={language}
             t={t}
           />
@@ -384,6 +392,10 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 conn={conn}
                 callService={(domain, service, data) => callService(domain, service, data)}
                 getEntityImageUrl={getEntityImageUrl}
+                onOpenLock={(entityId) => {
+                  setShowRoomModal(null);
+                  setShowSensorInfoModal(entityId);
+                }}
                 t={t}
               />
             </ModalSuspense>
@@ -521,6 +533,11 @@ export function ModalEntitySlice({ core, modals, cardConfig, entityHelpers, reso
                 entityId={target.entityId}
                 entity={entities[target.entityId]}
                 customName={customNames[target.cardId || target.entityId]}
+                settings={
+                  target.cardId
+                    ? cardSettings[getCardSettingsKey(target.cardId)] || cardSettings[target.cardId]
+                    : undefined
+                }
                 conn={conn}
                 haUrl={activeUrl}
                 haToken={

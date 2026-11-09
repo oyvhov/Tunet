@@ -1,11 +1,26 @@
 import { Workflow } from '../../icons';
 import { getIconComponent } from '../../icons';
-import { getSettings } from '../helpers';
+import { getSettings, renderMissingEntityWhenReady } from '../helpers';
+import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
+import { cardButtonProps } from '../../utils/keyboard';
 
 export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, settingsKey, ctx) {
   const { entities, editMode, customNames, customIcons, getA, callService, t } = ctx;
   const entityId = getSettings(ctx.cardSettings, settingsKey, cardId).entityId || cardId;
-  const isOn = entities[entityId]?.state === 'on';
+  if (!entities[entityId]) {
+    return renderMissingEntityWhenReady(ctx, {
+      cardId,
+      dragProps,
+      controls: getControls(cardId),
+      cardStyle,
+      missingEntityId: entityId,
+      t,
+    });
+  }
+  const entityState = entities[entityId].state;
+  const isOn = entityState === 'on';
+  const isUnavailable = isUnavailableState(entityState);
+  const canToggle = !editMode && !isUnavailable;
   const friendlyName = customNames[cardId] || getA(entityId, 'friendly_name') || cardId;
   const automationIconName = customIcons[cardId] || entities[entityId]?.attributes?.icon;
   const Icon = automationIconName ? getIconComponent(automationIconName) || Workflow : Workflow;
@@ -14,8 +29,10 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
     <div
       key={cardId}
       {...dragProps}
-      data-haptic={editMode ? undefined : 'card'}
-      className={`touch-feedback group relative mb-3 flex w-full break-inside-avoid items-center justify-between overflow-hidden rounded-2xl border p-4 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-98' : 'cursor-move'}`}
+      {...(isUnavailable ? {} : cardButtonProps(editMode, friendlyName))}
+      data-haptic={canToggle ? 'card' : undefined}
+      aria-disabled={isUnavailable || undefined}
+      className={`touch-feedback group relative mb-3 flex w-full break-inside-avoid items-center justify-between overflow-hidden rounded-2xl border p-4 font-sans transition-all duration-500 ${canToggle ? 'cursor-pointer active:scale-98' : editMode ? 'cursor-move' : 'cursor-default'}`}
       style={{
         ...cardStyle,
         backgroundColor: isOn
@@ -28,7 +45,7 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
             : 'rgba(255, 255, 255, 0.04)',
       }}
       onClick={(_e) => {
-        if (!editMode) callService('automation', 'toggle', { entity_id: entityId });
+        if (canToggle) callService('automation', 'toggle', { entity_id: entityId });
       }}
     >
       {getControls(cardId)}
@@ -53,12 +70,16 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
             </span>
           </div>
           <span className="mt-0.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-            {isOn ? t('status.active') : t('status.off')}
+            {isUnavailable
+              ? getUnavailableLabel(entityState, t)
+              : isOn
+                ? t('status.active')
+                : t('status.off')}
           </span>
         </div>
       </div>
       <div
-        className={`relative h-6 w-10 rounded-full transition-all ${isOn ? '' : 'bg-[var(--glass-bg-hover)]'}`}
+        className={`relative h-6 w-10 rounded-full transition-all ${isOn ? '' : 'bg-[var(--glass-bg-hover)]'} ${isUnavailable ? 'opacity-40' : ''}`}
         style={
           isOn
             ? { backgroundColor: 'color-mix(in srgb, var(--accent-color) 68%, transparent)' }

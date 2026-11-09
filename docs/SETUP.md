@@ -134,19 +134,19 @@ not automatically migrated. See the [browser-only upgrade steps](../hassio-addon
 
 ## Environment Variables
 
-| Variable                         | Default                 | Description                                                                             |
-| -------------------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
-| `PORT`                           | `3002`                  | Backend server port                                                                     |
-| `DATA_DIR`                       | `/app/data`             | SQLite database directory (the Home Assistant add-on uses its persistent `/data`)       |
-| `NODE_ENV`                       | `production`            | Environment mode                                                                        |
-| `VITE_PORT`                      | `5173`                  | Vite dev server port (dev only)                                                         |
-| `VITE_PROXY_TARGET`              | `http://localhost:3002` | API proxy target (dev)                                                                  |
-| `TUNET_INTERNAL_HA_URL`          | _(unset)_               | Required trusted Home Assistant URL for backend auth outside Supervisor ingress         |
-| `TUNET_INTERNAL_HA_FALLBACK_URL` | _(unset)_               | Optional secondary internal HA URL for backend auth validation in Docker/server setups  |
-| `TUNET_TRUST_SUPERVISOR_INGRESS` | `0`                     | Trust Home Assistant Supervisor ingress headers. Intended for the add-on runtime only.  |
-| `TUNET_ENCRYPTION_MODE`          | `off`                   | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only`              |
-| `TUNET_DATA_KEY`                 | _(unset)_               | Secret used for encryption when mode is `dual` or `enc_only`                            |
-| `TUNET_DATA_KEY_SALT`            | _(unset)_               | Required only when `TUNET_DATA_KEY` is a passphrase instead of a 32-byte base64/hex key |
+| Variable                         | Default                                              | Description                                                                             |
+| -------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `PORT`                           | `3002`                                               | Backend server port                                                                     |
+| `DATA_DIR`                       | `/app/data`                                          | SQLite database directory (the Home Assistant add-on uses its persistent `/data`)       |
+| `NODE_ENV`                       | `production`                                         | Environment mode                                                                        |
+| `VITE_PORT`                      | `5173`                                               | Vite dev server port (dev only)                                                         |
+| `VITE_PROXY_TARGET`              | `http://localhost:3002`                              | API proxy target (dev)                                                                  |
+| `TUNET_INTERNAL_HA_URL`          | `http://host.docker.internal:8123` in Docker Compose | Required trusted Home Assistant URL for backend auth outside Supervisor ingress         |
+| `TUNET_INTERNAL_HA_FALLBACK_URL` | _(unset)_                                            | Optional secondary internal HA URL for backend auth validation in Docker/server setups  |
+| `TUNET_TRUST_SUPERVISOR_INGRESS` | `0`                                                  | Trust Home Assistant Supervisor ingress headers. Intended for the add-on runtime only.  |
+| `TUNET_ENCRYPTION_MODE`          | `off`                                                | Data-at-rest mode for server snapshots/profiles: `off`, `dual`, `enc_only`              |
+| `TUNET_DATA_KEY`                 | _(unset)_                                            | Secret used for encryption when mode is `dual` or `enc_only`                            |
+| `TUNET_DATA_KEY_SALT`            | _(unset)_                                            | Required only when `TUNET_DATA_KEY` is a passphrase instead of a 32-byte base64/hex key |
 
 Server-side auth guidance:
 

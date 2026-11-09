@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { AlertTriangle, Battery, Sprout, Home, MapPin, Pause, Play } from '../../icons';
+import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface MowerCardProps extends Pick<
   CardBaseProps,
@@ -24,6 +26,7 @@ interface MowerCardProps extends Pick<
 }
 
 function getMowerStateLabel(state: string | undefined, battery: unknown, t: Translate) {
+  if (isUnavailableState(state)) return getUnavailableLabel(state, t);
   const normalized = String(state || '').toLowerCase();
   if (!normalized) return t('mower.unknown');
 
@@ -150,6 +153,7 @@ const MowerCard = ({
         ref={cardRef}
         key={mowerId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(e) => {
           e.stopPropagation();
@@ -223,7 +227,8 @@ const MowerCard = ({
               callPrimary();
             }}
             aria-label={isActive ? t('mower.pause') : t('mower.start')}
-            className={`flex items-center justify-center text-[var(--text-primary)] transition-colors active:scale-95 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
+            disabled={isUnavailable}
+            className={`flex items-center justify-center text-[var(--text-primary)] transition-colors active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
           >
             {isActive ? (
               <Pause className="h-4 w-4 fill-current" />
@@ -237,7 +242,8 @@ const MowerCard = ({
               callDock();
             }}
             aria-label={t('mower.dock')}
-            className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] active:scale-95 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
+            disabled={isUnavailable}
+            className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
           >
             <Home className="h-4 w-4" />
           </button>
@@ -250,6 +256,7 @@ const MowerCard = ({
     <div
       key={mowerId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(e) => {
         e.stopPropagation();
@@ -347,7 +354,8 @@ const MowerCard = ({
               callPrimary();
             }}
             aria-label={isActive ? t('mower.pause') : t('mower.start')}
-            className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95`}
+            disabled={isUnavailable}
+            className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-primary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40`}
           >
             {isActive ? (
               <Pause
@@ -365,7 +373,8 @@ const MowerCard = ({
               callDock();
             }}
             aria-label={t('mower.dock')}
-            className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95`}
+            disabled={isUnavailable}
+            className={`${useDenseMobileLargeLayout ? 'flex h-10 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]' : `${isMobile ? 'p-2.5' : 'p-3'} rounded-xl bg-[var(--glass-bg)] text-[var(--text-secondary)]`} transition-colors hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40`}
           >
             <Home className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
           </button>

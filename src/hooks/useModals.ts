@@ -38,6 +38,7 @@ const MODAL_DEFAULTS: ModalState = {
   activeMediaGroupIds: null,
   activeMediaSessionSensorIds: null,
   activeMediaId: null,
+  activeMoment: null,
   showStatusGroupModal: null,
   showAddCardModal: false,
   showConfigModal: false,
@@ -77,6 +78,9 @@ const OPEN_CHECK_KEYS: ModalKey[] = [
   'showStatusGroupModal',
 ];
 
+export const isAnyModalOpen = (state: ModalState): boolean =>
+  OPEN_CHECK_KEYS.some((key) => !!state[key]);
+
 function buildModalActions(
   setModalValue: SetModalValue,
   closeAllModals: () => void,
@@ -113,6 +117,7 @@ function buildModalActions(
     setShowWeatherModal: setters.setShowWeatherModal,
     setShowAlarmModal: setters.setShowAlarmModal,
     setShowAlarmActionModal: setters.setShowAlarmActionModal,
+    setActiveMoment: setters.setActiveMoment,
   };
 
   const mediaModalActions = {
@@ -155,7 +160,7 @@ function createModalStore(): ModalStore {
     listeners.add(listener);
     return () => listeners.delete(listener);
   };
-  const hasOpenModal = () => OPEN_CHECK_KEYS.some((key) => !!state[key]);
+  const hasOpenModal = () => isAnyModalOpen(state);
   const setModalValue: SetModalValue = (key, value) => {
     if (Object.is(state[key], value)) return;
     state = { ...state, [key]: value };

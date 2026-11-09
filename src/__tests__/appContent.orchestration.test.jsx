@@ -335,6 +335,7 @@ vi.mock('../hooks', () => ({
     closePinLockModal: vi.fn(),
   }),
   usePopupTriggers: vi.fn(),
+  useMoments: vi.fn(),
   useDashboardStateCoordinator: (deps) => {
     mockFns.coordinatorDeps = deps;
     return {

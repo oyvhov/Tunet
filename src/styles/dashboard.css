@@ -72,6 +72,24 @@
 .edit-mode-card {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+/* While editing, only the overlay and the card itself answer. No control underneath may fire. */
+.dashboard-card-slot[data-card-editing] > * * {
+  pointer-events: none;
+}
+.dashboard-card-slot[data-card-editing] [data-edit-control],
+.dashboard-card-slot[data-card-editing] [data-edit-control] * {
+  pointer-events: auto;
+}
+/* No contact with Home Assistant: the data is old and a tap could not reach the house.
+   The fade-in hides the blink while a waking screen is still checking the connection. */
+.dashboard-card-slot[data-card-offline] {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+.dashboard-card-slot[data-card-offline],
+.dashboard-card-slot[data-card-offline] * {
+  pointer-events: none;
+}
 @keyframes editJiggle {
   0% {
     transform: rotate(-0.15deg) scale(0.99);
@@ -84,7 +102,9 @@
   }
 }
 .popup-anim {
-  animation: popupIn 0.15s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+  /* The short delay lets the heavy first paint finish before the motion starts,
+     so the opening is not already half done when it first appears. */
+  animation: popupIn 0.15s cubic-bezier(0.2, 0.9, 0.25, 1) 40ms both;
 }
 /* Heavy editors: no motion, no blur, solid surface (keeps tablets smooth). */
 .popup-anim.modal-panel--still {
@@ -95,7 +115,23 @@
   backdrop-filter: none;
 }
 [data-modal-state='open'] {
-  animation: modalScrimIn 0.2s ease-out;
+  animation: modalScrimIn 0.2s ease-out 40ms both;
+}
+/* The backdrop blur wipes out the page's fine grain, so the dim background shows
+   as rings behind a popup. This puts the grain back on top of the blur. */
+[data-modal-state]::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-size: 400px;
+  content: '';
+  opacity: 0.03;
+  pointer-events: none;
+}
+/* Fast imports finish before this appears, so no dark layer flashes first. */
+.modal-loading-fallback {
+  animation: modalScrimIn 0.2s ease-out 250ms both;
 }
 [data-modal-state='closing'] {
   animation: modalScrimOut 0.16s ease-in forwards;
@@ -766,16 +802,6 @@
   background: var(--selection-bg, rgba(59, 130, 246, 0.3));
   color: var(--selection-text, #fff);
 }
-html[data-theme='flat'] * {
-  box-shadow: none !important;
-  border-color: transparent !important;
-}
-html[data-theme='flat'] .modal-close,
-html[data-theme='flat'] .modal-close-dark,
-html[data-theme='flat'] .popup-surface,
-html[data-theme='flat'] .popup-surface-hover {
-  box-shadow: none !important;
-}
 
 /* ── Battery Bar (header topbar variant) ── */
 .battery-bar {
@@ -862,19 +888,13 @@ html[data-theme='flat'] .popup-surface-hover {
   display: none;
 }
 
-/* Flat theme override */
-html[data-theme='flat'] .battery-bar {
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid var(--card-border);
-  background: var(--card-bg);
-}
-html[data-theme='flat'] .battery-bar__nub {
-  background: var(--card-border);
-}
-
 /* ── Card Material Variants ── */
+
+/* Materials with an outer shadow must not be clipped by the square grid slot */
+html[data-card-material='elevated'] .dashboard-card-slot,
+html[data-card-material='neumorphic'] .dashboard-card-slot {
+  overflow: visible;
+}
 
 /* Neumorphic: soft 3D embossed look — opaque bg required to avoid corner artifacts */
 html[data-card-material='neumorphic'] .touch-feedback,
@@ -1073,4 +1093,24 @@ html[data-density='spacious'] .touch-feedback h3 {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* Cards with artwork behind the text read as dark in every theme. */
+.media-on-art {
+  --text-primary: #f8fafc;
+  --text-secondary: rgba(248, 250, 252, 0.72);
+  --text-muted: rgba(248, 250, 252, 0.55);
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-bg-hover: rgba(255, 255, 255, 0.16);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --status-success-fg: #4ade80;
+  --status-success-bg: rgba(34, 197, 94, 0.14);
+  --status-success-border: rgba(34, 197, 94, 0.3);
+  --status-error-fg: #f87171;
+  --status-error-bg: rgba(239, 68, 68, 0.14);
+  --status-error-border: rgba(239, 68, 68, 0.3);
+}
+
+html[data-theme='light'] .media-art-scrim {
+  background: #172033;
 }

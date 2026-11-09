@@ -6,6 +6,7 @@ import type { Connection } from 'home-assistant-js-websocket';
 import type { CardBaseProps } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
+import { cardButtonProps } from '../../utils/keyboard';
 
 interface LockCardProps extends Pick<
   CardBaseProps,
@@ -23,6 +24,8 @@ interface LockCardProps extends Pick<
   callService: CardCallService;
   onOpen: () => void;
 }
+
+type ConfirmAction = 'unlock' | 'open';
 
 const FEATURE_OPEN = 1;
 const normalizeState = (state: unknown) => String(state || 'unknown').toLowerCase();
@@ -54,13 +57,13 @@ const LockCard = memo(function LockCard({
   t,
 }: LockCardProps) {
   const entity = entities[lockId];
-  const [confirmUnlock, setConfirmUnlock] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
   useEffect(() => {
-    if (!confirmUnlock) return undefined;
-    const timeout = setTimeout(() => setConfirmUnlock(false), 3000);
+    if (!confirmAction) return undefined;
+    const timeout = setTimeout(() => setConfirmAction(null), 3000);
     return () => clearTimeout(timeout);
-  }, [confirmUnlock]);
+  }, [confirmAction]);
 
   if (!entity) {
     if (editMode) {
@@ -101,6 +104,12 @@ const LockCard = memo(function LockCard({
   const iconName = customIcons[lockId] || entity?.attributes?.icon;
   const Icon = iconName ? getIconComponent(iconName) || Lock : Lock;
   const statusText = getLockStateLabel(entity.state, t);
+  const confirmText =
+    confirmAction === 'open'
+      ? t('lock.action.confirmOpen')
+      : confirmAction === 'unlock'
+        ? t('lock.action.confirmUnlock')
+        : null;
   const useDenseMobileLargeLayout = isMobile && !isSmall;
 
   const iconTone = isJammed
@@ -119,45 +128,46 @@ const LockCard = memo(function LockCard({
         ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'
         : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-secondary)]';
 
-  const buildServicePayload = () => {
-    const payload: { entity_id: string; code?: string } = { entity_id: lockId };
-    if (!requiresCode) return payload;
-    const code = globalThis.window?.prompt?.(t('lock.code.prompt'));
-    if (code === null || code === undefined) return null;
-    const trimmed = code.trim();
-    if (trimmed) payload.code = trimmed;
-    return payload;
+  // The popup has a code field; a browser prompt may be blocked in a kiosk.
+  const openPopupForCode = () => {
+    setConfirmAction(null);
+    onOpen();
   };
 
   const runLockService = (event: MouseEvent) => {
     event.stopPropagation();
-    setConfirmUnlock(false);
+    setConfirmAction(null);
     if (isActionDisabled || isLocked) return;
-    const payload = buildServicePayload();
-    if (!payload) return;
-    callService('lock', 'lock', payload);
+    if (requiresCode) {
+      openPopupForCode();
+      return;
+    }
+    callService('lock', 'lock', { entity_id: lockId });
+  };
+
+  const confirmThenCall = (action: ConfirmAction) => {
+    if (requiresCode) {
+      openPopupForCode();
+      return;
+    }
+    if (confirmAction !== action) {
+      setConfirmAction(action);
+      return;
+    }
+    setConfirmAction(null);
+    callService('lock', action, { entity_id: lockId });
   };
 
   const runUnlockService = (event: MouseEvent) => {
     event.stopPropagation();
     if (isActionDisabled || isUnlocked || isOpen) return;
-    if (!confirmUnlock) {
-      setConfirmUnlock(true);
-      return;
-    }
-    setConfirmUnlock(false);
-    const payload = buildServicePayload();
-    if (!payload) return;
-    callService('lock', 'unlock', payload);
+    confirmThenCall('unlock');
   };
 
   const runOpenService = (event: MouseEvent) => {
     event.stopPropagation();
-    setConfirmUnlock(false);
     if (isActionDisabled || !supportsOpen || isOpen) return;
-    const payload = buildServicePayload();
-    if (!payload) return;
-    callService('lock', 'open', payload);
+    confirmThenCall('open');
   };
 
   const lockButtonDisabled = isActionDisabled || isLocked;
@@ -166,24 +176,25 @@ const LockCard = memo(function LockCard({
   const actionButtonBase =
     'flex items-center justify-center rounded-xl transition-colors active:scale-95 disabled:cursor-not-allowed disabled:opacity-40';
   const lockButtonClass = `${actionButtonBase} bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:bg-[var(--status-success-border)]`;
-  const unlockButtonClass = `${actionButtonBase} ${confirmUnlock ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] ring-1 ring-[var(--status-warning-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`;
-  const openButtonClass = `${actionButtonBase} bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]`;
+  const confirmButtonClass = (action: ConfirmAction) =>
+    `${actionButtonBase} ${confirmAction === action ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] ring-1 ring-[var(--status-warning-border)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg-hover)] hover:text-[var(--text-primary)]'}`;
+  const unlockButtonClass = confirmButtonClass('unlock');
+  const openButtonClass = confirmButtonClass('open');
+  const unlockLabel =
+    confirmAction === 'unlock' ? t('lock.action.confirmUnlock') : t('lock.action.unlock');
+  const openLabel = confirmAction === 'open' ? t('lock.action.confirmOpen') : t('lock.action.open');
 
   if (isSmall) {
     const primaryAction = isUnlocked || isOpen ? runLockService : runUnlockService;
-    const primaryLabel =
-      isUnlocked || isOpen
-        ? t('lock.action.lock')
-        : confirmUnlock
-          ? t('lock.action.confirmUnlock')
-          : t('lock.action.unlock');
-    const PrimaryIcon = isUnlocked || isOpen ? Lock : Key;
+    const primaryLabel = isUnlocked || isOpen ? t('lock.action.lock') : unlockLabel;
+    const PrimaryIcon = isUnlocked || isOpen ? Lock : Unlock;
     const primaryDisabled = isUnlocked || isOpen ? lockButtonDisabled : unlockButtonDisabled;
 
     return (
       <div
         key={lockId}
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(event) => {
           event.stopPropagation();
@@ -204,7 +215,7 @@ const LockCard = memo(function LockCard({
               {name}
             </p>
             <span className="truncate text-xl leading-none font-medium text-[var(--text-primary)]">
-              {statusText}
+              {confirmText ?? statusText}
             </span>
           </div>
         </div>
@@ -214,8 +225,8 @@ const LockCard = memo(function LockCard({
               type="button"
               onClick={runOpenService}
               disabled={openButtonDisabled}
-              aria-label={t('lock.action.open')}
-              title={t('lock.action.open')}
+              aria-label={openLabel}
+              title={openLabel}
               className={`${openButtonClass} h-10 w-10`}
             >
               <Key className="h-4 w-4" />
@@ -240,6 +251,7 @@ const LockCard = memo(function LockCard({
     <div
       key={lockId}
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(event) => {
         event.stopPropagation();
@@ -273,9 +285,7 @@ const LockCard = memo(function LockCard({
         </div>
       </div>
 
-      <div
-        className={`${useDenseMobileLargeLayout ? 'mt-2 flex flex-col gap-3' : 'flex items-end justify-between gap-4'}`}
-      >
+      <div className="mt-2 flex flex-col gap-3">
         <div className="min-w-0">
           <p
             className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} truncate font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
@@ -285,19 +295,17 @@ const LockCard = memo(function LockCard({
           <h3
             className={`${useDenseMobileLargeLayout ? 'text-[1.4rem]' : isMobile ? 'text-[1.65rem]' : 'text-3xl'} truncate leading-none font-thin text-[var(--text-primary)]`}
           >
-            {statusText}
+            {confirmText ?? statusText}
           </h3>
         </div>
-        <div
-          className={`${useDenseMobileLargeLayout ? `grid w-full ${supportsOpen ? 'grid-cols-3' : 'grid-cols-2'} gap-2` : 'flex gap-2'}`}
-        >
+        <div className={`grid w-full ${supportsOpen ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
           <button
             type="button"
             onClick={runLockService}
             disabled={lockButtonDisabled}
             aria-label={t('lock.action.lock')}
             title={t('lock.action.lock')}
-            className={`${lockButtonClass} ${useDenseMobileLargeLayout ? 'h-10' : isMobile ? 'p-2.5' : 'p-3'}`}
+            className={`${lockButtonClass} h-10`}
           >
             <Lock className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
           </button>
@@ -305,24 +313,20 @@ const LockCard = memo(function LockCard({
             type="button"
             onClick={runUnlockService}
             disabled={unlockButtonDisabled}
-            aria-label={confirmUnlock ? t('lock.action.confirmUnlock') : t('lock.action.unlock')}
-            title={confirmUnlock ? t('lock.action.confirmUnlock') : t('lock.action.unlock')}
-            className={`${unlockButtonClass} ${useDenseMobileLargeLayout ? 'h-10' : isMobile ? 'p-2.5' : 'p-3'}`}
+            aria-label={unlockLabel}
+            title={unlockLabel}
+            className={`${unlockButtonClass} h-10`}
           >
-            {confirmUnlock ? (
-              <Key className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
-            ) : (
-              <Unlock className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
-            )}
+            <Unlock className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
           </button>
           {supportsOpen && (
             <button
               type="button"
               onClick={runOpenService}
               disabled={openButtonDisabled}
-              aria-label={t('lock.action.open')}
-              title={t('lock.action.open')}
-              className={`${openButtonClass} ${useDenseMobileLargeLayout ? 'h-10' : isMobile ? 'p-2.5' : 'p-3'}`}
+              aria-label={openLabel}
+              title={openLabel}
+              className={`${openButtonClass} h-10`}
             >
               <Key className={useDenseMobileLargeLayout ? 'h-4 w-4' : 'h-5 w-5'} />
             </button>

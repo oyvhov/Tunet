@@ -2,6 +2,7 @@ import { lazyModal as lazy } from '../../components/ui/lazyModal';
 import { ModalSuspense } from '../../components';
 import { themes } from '../../config/themes';
 import { validateUrl } from '../../config/onboarding';
+import { useStudioPreview } from '../../hooks/useStudioPreview';
 
 const ConfigModal = lazy(() => import('../../modals/ConfigModal'));
 const ThemeSidebar = lazy(() => import('../../components/sidebars/ThemeSidebar'));
@@ -31,6 +32,7 @@ export function ModalSettingsSlice({
     configTab,
     setConfigTab,
   } = modals;
+  useStudioPreview(showThemeSidebar || showLayoutSidebar || showHeaderEditModal);
   const {
     currentTheme,
     setCurrentTheme,
@@ -160,10 +162,13 @@ export function ModalSettingsSlice({
             }}
             t={t}
             themes={themes}
+            onOpenGeneralSettings={() => {
+              setShowThemeSidebar(false);
+              setConfigTab('general');
+              setShowConfigModal(true);
+            }}
             currentTheme={currentTheme}
             setCurrentTheme={setCurrentTheme}
-            language={language}
-            setLanguage={setLanguage}
             bgMode={bgMode}
             setBgMode={setBgMode}
             bgColor={bgColor}
@@ -172,8 +177,20 @@ export function ModalSettingsSlice({
             setBgGradient={setBgGradient}
             bgImage={bgImage}
             setBgImage={setBgImage}
-            inactivityTimeout={inactivityTimeout}
-            setInactivityTimeout={setInactivityTimeout}
+            cardMaterial={cardMaterial}
+            setCardMaterial={setCardMaterial}
+            density={density}
+            setDensity={setDensity}
+            cardScale={cardScale}
+            setCardScale={setCardScale}
+            cardBorderRadius={cardBorderRadius}
+            setCardBorderRadius={setCardBorderRadius}
+            cardTransparency={cardTransparency}
+            setCardTransparency={setCardTransparency}
+            cardBorderOpacity={cardBorderOpacity}
+            setCardBorderOpacity={setCardBorderOpacity}
+            cardBgColor={cardBgColor}
+            setCardBgColor={setCardBgColor}
           />
         </ModalSuspense>
       )}
@@ -200,20 +217,6 @@ export function ModalSettingsSlice({
             setGridColumns={setGridColumns}
             dynamicGridColumns={dynamicGridColumns}
             setDynamicGridColumns={setDynamicGridColumns}
-            cardBorderRadius={cardBorderRadius}
-            setCardBorderRadius={setCardBorderRadius}
-            cardTransparency={cardTransparency}
-            setCardTransparency={setCardTransparency}
-            cardBorderOpacity={cardBorderOpacity}
-            setCardBorderOpacity={setCardBorderOpacity}
-            cardBgColor={cardBgColor}
-            setCardBgColor={setCardBgColor}
-            cardMaterial={cardMaterial}
-            setCardMaterial={setCardMaterial}
-            density={density}
-            setDensity={setDensity}
-            cardScale={cardScale}
-            setCardScale={setCardScale}
             sectionSpacing={sectionSpacing}
             updateSectionSpacing={updateSectionSpacing}
             activePage={core.activePage}

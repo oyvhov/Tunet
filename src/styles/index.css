@@ -2,6 +2,9 @@
 @import './animations.css';
 @import './sidebar.css';
 
+/* Touch screens have no hover, so hover-revealed controls need `touch:` to be visible. */
+@custom-variant touch (@media (hover: none));
+
 @theme {
   --color-primary: var(--bg-primary);
 
@@ -49,14 +52,12 @@
 :focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
-  border-radius: inherit;
 }
 
 /* A popup panel takes focus only so screen readers and Tab start inside it.
-   It is not a control, so it gets no ring and keeps its own rounded corners. */
+   It is not a control, so it gets no ring. */
 [role='dialog'][tabindex='-1']:focus-visible {
   outline: none;
-  border-radius: revert-layer;
 }
 
 /* Slider thumbs are drawn by hand, so the native input keeps the ring but
@@ -65,14 +66,11 @@ input[type='range']:focus-visible {
   outline-offset: 4px;
 }
 
-/* When custom bg image is active, add overlay for readability */
-html.custom-bg-active body::before {
-  content: '';
-  position: fixed;
+/* Dark tone over a custom background image, for readability */
+.background-custom-tone {
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
-  pointer-events: none;
-  z-index: 0;
 }
 
 @layer utilities {

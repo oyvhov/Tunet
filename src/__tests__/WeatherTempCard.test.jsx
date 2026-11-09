@@ -159,6 +159,51 @@ describe('WeatherTempCard', () => {
     expect(screen.getByText('13°C')).toBeInTheDocument();
   });
 
+  describe('forecast toggle hit area', () => {
+    const forecastsById = {
+      'weather.home': {
+        hourly: [
+          { datetime: '2026-08-21T13:00:00+02:00', temperature: 13, condition: 'sunny' },
+          { datetime: '2026-08-21T15:00:00+02:00', temperature: 14, condition: 'rainy' },
+        ],
+        daily: [{ datetime: '2026-08-22T12:00:00+02:00', temperature: 17, condition: 'sunny' }],
+      },
+    };
+
+    it('reaches 44 px on the compact card, outward so the two do not overlap', () => {
+      const { container } = renderCard({
+        cardSettings: { weather_home: { weatherId: 'weather.home', size: 'small' } },
+        forecastsById,
+      });
+      swipeCard(container, 'left');
+      expect(screen.getByRole('button', { name: 'Timar' })).toHaveClass(
+        'before:-top-7.5',
+        'before:bottom-0',
+        'before:-inset-x-3.5'
+      );
+      expect(screen.getByRole('button', { name: 'Dagar' })).toHaveClass(
+        'before:top-0',
+        'before:-bottom-7.5',
+        'before:-inset-x-3.5'
+      );
+    });
+
+    it('reaches 44 px on the large card without covering its neighbour', () => {
+      const { container } = renderCard({ forecastsById });
+      swipeCard(container, 'left');
+      expect(screen.getByRole('button', { name: 'Timar' })).toHaveClass(
+        'before:-top-3.5',
+        'before:-bottom-3.5',
+        'before:right-0'
+      );
+      expect(screen.getByRole('button', { name: 'Dagar' })).toHaveClass(
+        'before:-top-3.5',
+        'before:-bottom-3.5',
+        'before:left-0'
+      );
+    });
+  });
+
   it('adds comfortable horizontal padding to full-width mobile cards', () => {
     const { container } = renderCard({ isMobile: true, isFullWidthMobile: true });
 

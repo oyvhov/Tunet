@@ -17,6 +17,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import type { IconComponent } from '../../icons/iconMap';
+import { cardButtonProps } from '../../utils/keyboard';
 
 type AlarmEntity = EntityMap[string];
 
@@ -213,8 +214,9 @@ const AlarmCard = memo(function AlarmCard({
 
   const name = customNames?.[cardId] || entity.attributes?.friendly_name || entityId;
 
+  // A countdown can still be cancelled; only disarming itself leaves nothing to press.
   const quickActions: AlarmAction[] = [];
-  if (!inTransition && !isUnavailable) {
+  if (state !== 'disarming' && !isUnavailable) {
     if (isDisarmed) {
       quickActions.push(...availableArmActions.slice(0, isSmall ? 1 : 2));
     } else {
@@ -226,7 +228,7 @@ const AlarmCard = memo(function AlarmCard({
 
   const runQuickAction = async (event: MouseEvent, actionKey: string) => {
     event.stopPropagation();
-    if (editMode || isUnavailable || inTransition) return;
+    if (editMode || isUnavailable || state === 'disarming') return;
     const mustOpenModal = unsupportedCode || requiresCode(actionKey, entity);
     if (mustOpenModal && onOpenAction) {
       onOpenAction(actionKey);
@@ -243,6 +245,7 @@ const AlarmCard = memo(function AlarmCard({
     return (
       <div
         {...dragProps}
+        {...cardButtonProps(editMode, name)}
         data-haptic={editMode ? undefined : 'card'}
         onClick={(event) => {
           event.stopPropagation();
@@ -290,7 +293,7 @@ const AlarmCard = memo(function AlarmCard({
             type="button"
             onClick={(event) => runQuickAction(event, primaryAction.key)}
             className="h-11 min-w-[6.5rem] rounded-2xl bg-[var(--glass-bg)] px-3 text-[10px] font-bold tracking-wider text-[var(--text-primary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] disabled:opacity-50"
-            disabled={isUnavailable || inTransition}
+            disabled={isUnavailable}
           >
             <span className="flex items-center justify-center gap-1.5">
               <primaryAction.icon className="h-3.5 w-3.5" />
@@ -305,6 +308,7 @@ const AlarmCard = memo(function AlarmCard({
   return (
     <div
       {...dragProps}
+      {...cardButtonProps(editMode, name)}
       data-haptic={editMode ? undefined : 'card'}
       onClick={(event) => {
         event.stopPropagation();
@@ -391,7 +395,7 @@ const AlarmCard = memo(function AlarmCard({
             type="button"
             onClick={(event) => runQuickAction(event, action.key)}
             className={`flex-1 bg-[var(--glass-bg)] font-bold tracking-wider text-[var(--text-primary)] uppercase transition-colors hover:bg-[var(--glass-bg-hover)] disabled:opacity-50 ${isDenseMobile ? 'h-10 rounded-xl px-2 text-[10px]' : 'h-12 rounded-2xl px-3 text-[11px]'}`}
-            disabled={isUnavailable || inTransition}
+            disabled={isUnavailable}
           >
             <span
               className={`flex items-center justify-center ${isDenseMobile ? 'gap-1' : 'gap-1.5'}`}

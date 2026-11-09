@@ -29,6 +29,34 @@ function getBatteryStateLabel(batteryState, t) {
   if (normalized === 'full') return t('person.batteryFull');
   return batteryState;
 }
+
+// Home Assistant transliterates names in entity ids (Øyvind -> oyvind), so both sides are
+// normalised the same way before comparing.
+const nameTokens = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/ø/g, 'o')
+    .replace(/æ/g, 'ae')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+
+// Matches the first name only, and whole words only: a surname is shared with relatives,
+// and a substring would let "Ola" claim "nikolas_phone".
+function createPersonNameMatcher(friendlyName) {
+  const firstName = nameTokens(
+    String(friendlyName || '')
+      .trim()
+      .split(/\s+/)[0]
+  );
+  if (firstName.length === 0) return () => false;
+  return (entityId, label) => {
+    const tokens = new Set([...nameTokens(entityId), ...nameTokens(label)]);
+    return firstName.every((part) => tokens.has(part) || tokens.has(`${part}s`));
+  };
+}
+
 function BatteryMeter({ info, icon: Icon, compact = false, t }) {
   const level = Math.round(info.level);
   const tone = getBatteryTone(level);
@@ -93,6 +121,13 @@ export default function PersonModal({
   const manualTrackerId = settings?.deviceTracker;
   const manualBatteryId = settings?.batteryEntity;
 
+  const matchesPersonName = createPersonNameMatcher(entity?.attributes?.friendly_name);
+  const trackersOfOtherPeople = new Set(
+    Object.entries(entities || {})
+      .filter(([id]) => id.startsWith('person.') && id !== personId)
+      .flatMap(([, other]) => other?.attributes?.device_trackers || [])
+  );
+
   // Determine best entity for tracking
   let trackedEntityId = personId;
   let currentLat = entity?.attributes?.latitude;
@@ -122,16 +157,11 @@ export default function PersonModal({
   // 3. Fallback: Automatic Discovery (if no location yet)
   if ((!currentLat || !currentLon) && entities && trackedEntityId === personId) {
     // ... same fallback logic, but make sure we update trackedEntityId ...
-    const personName = entity?.attributes?.friendly_name || '';
-    const nameParts = personName.toLowerCase().split(' ');
     const candidate = Object.values(entities).find((e) => {
       if (!e.entity_id.startsWith('device_tracker.')) return false;
       if (!e.attributes.latitude) return false;
-      const tName = (e.attributes.friendly_name || '').toLowerCase();
-      const tId = e.entity_id.toLowerCase();
-      return nameParts.some(
-        (part) => part.length > 2 && (tName.includes(part) || tId.includes(part))
-      );
+      if (trackersOfOtherPeople.has(e.entity_id)) return false;
+      return matchesPersonName(e.entity_id, e.attributes.friendly_name);
     });
     if (candidate) {
       currentLat = candidate.attributes.latitude;
@@ -233,21 +263,13 @@ export default function PersonModal({
     if (source && entities[source]?.attributes?.battery_level !== undefined) {
       batteryLevel = entities[source].attributes.battery_level;
     } else {
-      const personName = entity?.attributes?.friendly_name || '';
-      const nameParts = personName.toLowerCase().split(' ');
       const candidate = Object.values(entities).find((e) => {
-        if (
-          e.entity_id.startsWith('sensor.') &&
-          e.attributes.device_class === 'battery' &&
-          nameParts.some((part) => e.entity_id.includes(part))
-        )
-          return true;
-        if (
-          e.attributes.battery_level !== undefined &&
-          nameParts.some((part) => e.entity_id.includes(part))
-        )
-          return true;
-        return false;
+        if (trackersOfOtherPeople.has(e.entity_id)) return false;
+        if (!matchesPersonName(e.entity_id)) return false;
+        return (
+          (e.entity_id.startsWith('sensor.') && e.attributes.device_class === 'battery') ||
+          e.attributes.battery_level !== undefined
+        );
       });
       if (candidate) {
         if (candidate.entity_id.startsWith('sensor.')) {
@@ -370,10 +392,21 @@ export default function PersonModal({
     entity?.last_updated ||
     entity?.last_changed;
   const lastUpdatedText = formatRelativeTime(lastUpdated, t);
+  // The person entity itself is not a device, so it gets no tracker label.
   const trackerLabel =
-    sourceEntity?.attributes?.friendly_name ||
-    (trackedEntityId && trackedEntityId !== personId ? trackedEntityId : null);
-  const hasSensors = !!phoneBatteryInfo || !!watchBatteryInfo || personExtraSensors.length > 0;
+    trackedEntityId && trackedEntityId !== personId
+      ? sourceEntity?.attributes?.friendly_name || trackedEntityId
+      : null;
+  const discoveredBatteryLevel = parseFloat(batteryLevel);
+  const discoveredBatteryInfo =
+    !phoneBatteryEntityId && Number.isFinite(discoveredBatteryLevel)
+      ? { label: t('person.battery'), sourceName: null, level: discoveredBatteryLevel }
+      : null;
+  const hasSensors =
+    !!phoneBatteryInfo ||
+    !!discoveredBatteryInfo ||
+    !!watchBatteryInfo ||
+    personExtraSensors.length > 0;
   const hasAside = hasSensors || !!trackerLabel;
 
   if (!show) return null;
@@ -462,6 +495,9 @@ export default function PersonModal({
 
                 {phoneBatteryInfo && (
                   <BatteryMeter info={phoneBatteryInfo} icon={Smartphone} t={t} />
+                )}
+                {discoveredBatteryInfo && (
+                  <BatteryMeter info={discoveredBatteryInfo} icon={Smartphone} t={t} />
                 )}
                 {watchBatteryInfo && (
                   <BatteryMeter info={watchBatteryInfo} icon={Watch} compact t={t} />

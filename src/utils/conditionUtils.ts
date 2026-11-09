@@ -109,11 +109,82 @@ const DOMAIN_PREFIXES = [
   'button',
 ];
 
+const BINARY_STATE_DOMAINS = new Set([
+  'light',
+  'switch',
+  'binary_sensor',
+  'input_boolean',
+  'fan',
+  'automation',
+  'script',
+  'remote',
+  'siren',
+  'humidifier',
+]);
+
+function getUsableState(entity: HassEntity | null | undefined): string | null {
+  const state = entity?.state;
+  return state && state !== 'unavailable' && state !== 'unknown' ? state : null;
+}
+
+export function createDefaultConditionRule(entity?: HassEntity | null): VisibilityConditionRule {
+  const current = getUsableState(entity);
+  // A reading changes all the time, so requiring today's value would hide the card tomorrow.
+  if (current !== null && !Number.isNaN(Number(current))) {
+    return { type: 'not_state', states: ['unavailable'], forSeconds: 0 };
+  }
+  return { type: 'state', states: [current ?? 'on'], forSeconds: 0 };
+}
+
+export function getKnownConditionStates(entity?: HassEntity | null): string[] {
+  if (!entity) return [];
+  const current = getUsableState(entity);
+  const binary = BINARY_STATE_DOMAINS.has(entity.entity_id.split('.')[0]) ? ['on', 'off'] : [];
+  if (!current || binary.includes(current)) return binary;
+  return [current, ...binary];
+}
+
+function isConditionRuleFinished(rule: VisibilityConditionRule): boolean {
+  if (rule.type === 'attribute') {
+    return typeof rule.attribute === 'string' && rule.attribute.trim() !== '';
+  }
+  if (rule.type === 'numeric') {
+    return Number.isFinite(parseFloat(rule.value as string));
+  }
+  if (rule.type === 'state' || rule.type === 'not_state') {
+    return parseStates(rule.states).length > 0;
+  }
+  return true;
+}
+
 export function isConditionConfigured(
   condition: VisibilityConditionInput | null | undefined
 ): boolean {
   const normalized = normalizeVisibilityConditionConfig(condition);
-  return normalized.enabled && normalized.rules.length > 0;
+  return normalized.enabled && normalized.rules.some(isConditionRuleFinished);
+}
+
+export function retargetConditionEntity<T extends VisibilityConditionInput | null | undefined>(
+  condition: T,
+  previousEntityId: string,
+  nextEntityId: string
+): T {
+  if (!condition || typeof condition !== 'object') return condition;
+  const rules = Array.isArray(condition.rules) ? condition.rules : null;
+  const hasRuleMatch = rules?.some((rule) => rule?.entityId === previousEntityId);
+  if (condition.entityId !== previousEntityId && !hasRuleMatch) return condition;
+
+  return {
+    ...condition,
+    ...(condition.entityId === previousEntityId ? { entityId: nextEntityId } : null),
+    ...(rules
+      ? {
+          rules: rules.map((rule) =>
+            rule?.entityId === previousEntityId ? { ...rule, entityId: nextEntityId } : rule
+          ),
+        }
+      : null),
+  };
 }
 
 export function normalizeVisibilityConditionConfig(
@@ -244,16 +315,74 @@ export function evaluateEntityCondition({
   const durationSeconds = Number(forSeconds);
   if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return true;
 
-  const referenceTimestampRaw =
-    type === 'attribute' || (type === 'numeric' && attribute)
-      ? entity.last_updated || entity.last_changed
-      : entity.last_changed;
-  if (!referenceTimestampRaw) return false;
-
-  const referenceTimestamp = Date.parse(referenceTimestampRaw);
-  if (!Number.isFinite(referenceTimestamp)) return false;
+  const referenceTimestamp = getRuleReferenceTime(activeRule, entity);
+  if (referenceTimestamp === null) return false;
 
   return Date.now() - referenceTimestamp >= durationSeconds * 1000;
+}
+
+function getRuleReferenceTime(rule: VisibilityConditionRule, entity: HassEntity): number | null {
+  const raw =
+    rule.type === 'attribute' || (rule.type === 'numeric' && rule.attribute)
+      ? entity.last_updated || entity.last_changed
+      : entity.last_changed;
+  if (!raw) return null;
+  const time = Date.parse(raw);
+  return Number.isFinite(time) ? time : null;
+}
+
+function resolveRuleEntity(
+  rule: VisibilityConditionRule,
+  normalized: NormalizedVisibilityCondition,
+  entity: HassEntity | null | undefined,
+  entities: HassEntities | null | undefined,
+  fallbackEntityId: string | null
+): HassEntity | null {
+  const explicitRuleEntityId =
+    typeof rule?.entityId === 'string' && rule.entityId.trim() ? rule.entityId.trim() : null;
+  const explicitConfigEntityId =
+    typeof normalized.entityId === 'string' && normalized.entityId.trim()
+      ? normalized.entityId.trim()
+      : null;
+  const targetEntityId = explicitRuleEntityId || explicitConfigEntityId || fallbackEntityId;
+
+  if (targetEntityId && entities && entities[targetEntityId]) {
+    return entities[targetEntityId];
+  }
+
+  if (entity && (!targetEntityId || entity.entity_id === targetEntityId)) {
+    return entity;
+  }
+
+  return null;
+}
+
+/** When the next rule that must hold "for N seconds" comes due, or null if none is waiting. */
+export function getNextConditionDeadline({
+  condition,
+  entities,
+  fallbackEntityId,
+  now,
+}: {
+  condition: VisibilityConditionInput | null | undefined;
+  entities: HassEntities | null | undefined;
+  fallbackEntityId?: string | null;
+  now: number;
+}): number | null {
+  const normalized = normalizeVisibilityConditionConfig(condition);
+  if (!normalized.enabled) return null;
+
+  const deadlines = normalized.rules.filter(isConditionRuleFinished).flatMap((rule) => {
+    const seconds = Number(rule.forSeconds);
+    if (!Number.isFinite(seconds) || seconds <= 0) return [];
+    const entity = resolveRuleEntity(rule, normalized, null, entities, fallbackEntityId ?? null);
+    const reference = entity ? getRuleReferenceTime(rule, entity) : null;
+    if (reference === null) return [];
+    const deadline = reference + seconds * 1000;
+    return deadline > now ? [deadline] : [];
+  });
+
+  return deadlines.length > 0 ? Math.min(...deadlines) : null;
 }
 
 /**
@@ -279,34 +408,14 @@ export function evaluateVisibilityConditionConfig({
 }): boolean {
   const normalized = normalizeVisibilityConditionConfig(condition);
   if (!normalized.enabled) return true;
-  if (normalized.rules.length === 0) return true;
+  const finishedRules = normalized.rules.filter(isConditionRuleFinished);
+  if (finishedRules.length === 0) return true;
   const resolvedFallbackEntityId = fallbackEntityId || entity?.entity_id || null;
 
-  const resolveRuleEntity = (rule: VisibilityConditionRule): HassEntity | null => {
-    const explicitRuleEntityId =
-      typeof rule?.entityId === 'string' && rule.entityId.trim() ? rule.entityId.trim() : null;
-    const explicitConfigEntityId =
-      typeof normalized.entityId === 'string' && normalized.entityId.trim()
-        ? normalized.entityId.trim()
-        : null;
-    const targetEntityId =
-      explicitRuleEntityId || explicitConfigEntityId || resolvedFallbackEntityId;
-
-    if (targetEntityId && entities && entities[targetEntityId]) {
-      return entities[targetEntityId];
-    }
-
-    if (entity && (!targetEntityId || entity.entity_id === targetEntityId)) {
-      return entity;
-    }
-
-    return null;
-  };
-
-  const results = normalized.rules.map((rule) =>
+  const results = finishedRules.map((rule) =>
     evaluateEntityCondition({
       condition: rule,
-      entity: resolveRuleEntity(rule),
+      entity: resolveRuleEntity(rule, normalized, entity, entities, resolvedFallbackEntityId),
       getAttribute,
     })
   );

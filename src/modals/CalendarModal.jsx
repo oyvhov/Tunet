@@ -2,9 +2,13 @@ import { useState, useEffect } from 'react';
 import { Calendar, Check, ChevronDown, ChevronUp } from '../icons';
 import { getCalendarEvents } from '../services';
 import { getLocaleForLanguage } from '../i18n';
+import { useRefreshTick } from '../hooks/useRefreshTick';
 import AccessibleModalShell from '../components/ui/AccessibleModalShell';
 import { ModalBody, ModalHeader } from '../components/ui/ModalParts';
 import Button from '../components/ui/Button';
+
+const DAYS_FETCHED = 30;
+const MAX_LISTED_DAYS = DAYS_FETCHED + 1;
 
 /**
  * CalendarModal - Modal for displaying calendar with selectable calendars
@@ -15,9 +19,18 @@ import Button from '../components/ui/Button';
  * @param {Object} props.conn - Home Assistant connection
  * @param {Object} props.entities - All HA entities
  * @param {string} [props.language] - Language code
+ * @param {string[]} [props.cardCalendars] - Calendars of the card the popup was opened from
  * @param {Function} props.t - Translation function
  */
-export default function CalendarModal({ show, onClose, conn, entities, language, t }) {
+export default function CalendarModal({
+  show,
+  onClose,
+  conn,
+  entities,
+  language,
+  cardCalendars,
+  t,
+}) {
   const translate = t || ((key) => key);
   const locale = getLocaleForLanguage(language);
   const modalTitleId = 'calendar-modal-title';
@@ -31,7 +44,10 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
       color: getCalendarColor(id),
     }));
 
+  const fromCard = Array.isArray(cardCalendars) && cardCalendars.length > 0;
+
   const [selectedCalendars, setSelectedCalendars] = useState(() => {
+    if (fromCard) return cardCalendars;
     const stored = localStorage.getItem('tunet_calendar_modal_selection');
     if (stored) {
       try {
@@ -45,7 +61,9 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
 
   const [events, setEvents] = useState({});
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const refreshTick = useRefreshTick(conn, { enabled: Boolean(show) });
 
   useEffect(() => {
     if (show) setShowCalendarPicker(false);
@@ -53,16 +71,19 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
 
   // Fetch events for selected calendars
   useEffect(() => {
+    if (selectedCalendars.length === 0) setLoadFailed(false);
     if (!show || !conn || selectedCalendars.length === 0) return;
 
+    let cancelled = false;
     const fetchEvents = async () => {
       setLoading(true);
+      setLoadFailed(false);
       try {
         const now = new Date();
         const start = new Date(now);
         start.setHours(0, 0, 0, 0);
         const end = new Date(now);
-        end.setDate(end.getDate() + 30);
+        end.setDate(end.getDate() + DAYS_FETCHED);
 
         const result = await getCalendarEvents(conn, {
           start,
@@ -70,26 +91,30 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
           entityIds: selectedCalendars,
         });
 
-        setEvents(result || {});
+        if (!cancelled) setEvents(result || {});
       } catch (error) {
         console.error('Failed to fetch calendar events:', error);
+        if (!cancelled) setLoadFailed(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchEvents();
-  }, [show, conn, selectedCalendars]);
+    return () => {
+      cancelled = true;
+    };
+  }, [show, conn, selectedCalendars, refreshTick]);
 
-  // Save selection to localStorage
+  // Save selection to localStorage; a card keeps its calendars in its own settings
   useEffect(() => {
-    if (!show) return;
+    if (!show || fromCard) return;
     try {
       localStorage.setItem('tunet_calendar_modal_selection', JSON.stringify(selectedCalendars));
     } catch (error) {
       console.error('Failed to save calendar selection:', error);
     }
-  }, [show, selectedCalendars]);
+  }, [show, fromCard, selectedCalendars]);
 
   const toggleCalendar = (calendarId) => {
     setSelectedCalendars((prev) =>
@@ -97,40 +122,41 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
     );
   };
 
-  // Group events by date
+  // Group events under every day they cover
   const groupedEvents = {};
+  const dayTimes = {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   Object.entries(events).forEach(([calendarId, data]) => {
     if (!selectedCalendars.includes(calendarId)) return;
     const calendarEvents = data?.events || [];
 
     calendarEvents.forEach((event) => {
-      const startDate = new Date(event.start);
-      const dateKey = startDate.toLocaleDateString(locale, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      getEventDays(event, today).forEach((day) => {
+        const dateKey = day.toLocaleDateString(locale, {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
 
-      if (!groupedEvents[dateKey]) {
-        groupedEvents[dateKey] = [];
-      }
+        if (!groupedEvents[dateKey]) {
+          groupedEvents[dateKey] = [];
+          dayTimes[dateKey] = day.getTime();
+        }
 
-      groupedEvents[dateKey].push({
-        ...event,
-        calendarId,
-        calendarName: allCalendars.find((c) => c.id === calendarId)?.name || calendarId,
-        calendarColor: getCalendarColor(calendarId),
+        groupedEvents[dateKey].push({
+          ...event,
+          calendarId,
+          calendarName: allCalendars.find((c) => c.id === calendarId)?.name || calendarId,
+          calendarColor: getCalendarColor(calendarId),
+        });
       });
     });
   });
 
   // Sort dates
-  const sortedDates = Object.keys(groupedEvents).sort((a, b) => {
-    const dateA = groupedEvents[a][0]?.start;
-    const dateB = groupedEvents[b][0]?.start;
-    return new Date(dateA).getTime() - new Date(dateB).getTime();
-  });
+  const sortedDates = Object.keys(groupedEvents).sort((a, b) => dayTimes[a] - dayTimes[b]);
 
   if (!show) return null;
 
@@ -184,6 +210,11 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
           >
             {/* Calendar Events */}
             <div className="min-w-0">
+              {loadFailed && !loading && (
+                <p role="alert" className="mb-4 text-center text-sm text-[var(--status-error-fg)]">
+                  {translate('calendar.loadFailed')}
+                </p>
+              )}
               {loading ? (
                 <div className="flex items-center justify-center py-20">
                   <p className="text-sm tracking-widest text-[var(--text-secondary)] uppercase">
@@ -191,12 +222,14 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
                   </p>
                 </div>
               ) : sortedDates.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <Calendar className="mb-4 h-16 w-16 text-[var(--text-muted)] opacity-30" />
-                  <p className="text-sm tracking-widest text-[var(--text-secondary)] uppercase">
-                    {translate('calendar.noEvents')}
-                  </p>
-                </div>
+                !loadFailed && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <Calendar className="mb-4 h-16 w-16 text-[var(--text-muted)] opacity-30" />
+                    <p className="text-sm tracking-widest text-[var(--text-secondary)] uppercase">
+                      {translate('calendar.noEvents')}
+                    </p>
+                  </div>
+                )
               ) : (
                 <div className="space-y-6">
                   {sortedDates.map((dateKey) => (
@@ -209,7 +242,7 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
                           .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
                           .map((event, idx) => {
                             const startTime = new Date(event.start);
-                            const isAllDay = isAllDayEvent(event);
+                            const isAllDay = isAllDayEvent(event) || spansSeveralDays(event);
                             const isPast = isEventFinishedToday(event);
 
                             return (
@@ -338,6 +371,43 @@ export default function CalendarModal({ show, onClose, conn, entities, language,
 
 function isAllDayEvent(event) {
   return typeof event?.start === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.start);
+}
+
+/** A date-only value is a day in local time, where new Date() would read it as UTC. */
+function parseEventDate(value) {
+  if (!value) return null;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** The last instant the event covers. An end is exclusive, so midnight belongs to the day before. */
+function getLastMoment(event, start) {
+  const end = parseEventDate(event.end);
+  return end && end > start ? new Date(end.getTime() - 1) : start;
+}
+
+/** Every listed day the event touches; one that is already running starts today. */
+function getEventDays(event, today) {
+  const start = parseEventDate(event.start);
+  if (!start) return [];
+  const last = getLastMoment(event, start);
+  const first = start < today ? today : start;
+  const day = new Date(first.getFullYear(), first.getMonth(), first.getDate());
+  const days = [];
+  while (day <= last && days.length < MAX_LISTED_DAYS) {
+    days.push(new Date(day));
+    day.setDate(day.getDate() + 1);
+  }
+  return days;
+}
+
+function spansSeveralDays(event) {
+  const start = parseEventDate(event.start);
+  return !!start && getLastMoment(event, start).toDateString() !== start.toDateString();
 }
 
 function isEventFinishedToday(event, now = new Date()) {

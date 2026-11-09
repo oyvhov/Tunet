@@ -29,6 +29,12 @@ export interface TouchPath {
 
 type MutableRef<T> = { current: T };
 
+type CardPosition = {
+  cardId: string;
+  index: number;
+  colIndex?: number;
+};
+
 export interface DragAndDropOptions {
   editMode: boolean;
   pagesConfig: PagesConfig;
@@ -62,6 +68,74 @@ export const safeVibrate = (ms: VibratePattern) => {
   }
 };
 
+const EDGE_SCROLL_ZONE_PX = 80;
+const EDGE_SCROLL_MAX_PX_PER_FRAME = 14;
+
+/** Pixels to scroll this frame for a finger at `y`: negative near the top, positive near the bottom. */
+export const getEdgeScrollDelta = (y: number, viewportHeight: number): number => {
+  const depthIntoBottom = EDGE_SCROLL_ZONE_PX - (viewportHeight - y);
+  const depth = y < EDGE_SCROLL_ZONE_PX ? y - EDGE_SCROLL_ZONE_PX : Math.max(depthIntoBottom, 0);
+  return Math.round((depth / EDGE_SCROLL_ZONE_PX) * EDGE_SCROLL_MAX_PX_PER_FRAME);
+};
+
+// Lives outside the factory: the handlers are recreated on every finger move.
+const edgeAutoScroll = {
+  frame: null as number | null,
+  x: 0,
+  y: 0,
+  recheck: (_x: number, _y: number): void => {},
+};
+
+// Outlives handler rebuilds too, or a swap previewed on an earlier instance is lost on release.
+const pendingTouchConfigRef: MutableRef<PagesConfig | null> = { current: null };
+
+const stopEdgeAutoScroll = () => {
+  if (edgeAutoScroll.frame !== null) cancelAnimationFrame(edgeAutoScroll.frame);
+  edgeAutoScroll.frame = null;
+};
+
+const buildCardStyle = ({
+  editMode,
+  isHidden,
+  isDragging,
+  isTouchTarget,
+}: {
+  editMode: boolean;
+  isHidden: boolean;
+  isDragging: boolean;
+  isTouchTarget: boolean;
+}): CSSProperties => ({
+  backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
+  borderColor: isDragging
+    ? 'rgba(96, 165, 250, 1)'
+    : editMode
+      ? 'rgba(59, 130, 246, 0.2)'
+      : 'var(--card-border)',
+  backdropFilter: 'blur(16px)',
+  borderStyle: 'solid',
+  borderWidth: editMode ? '2px' : '1px',
+  borderRadius: 'var(--card-border-radius, 16px)',
+  opacity: isHidden && editMode ? 0.4 : 1,
+  filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
+  transform: isDragging ? 'scale(1.08)' : 'none',
+  animation: 'none',
+  boxShadow: isDragging
+    ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+    : isTouchTarget
+      ? '0 0 0 2px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.35)'
+      : editMode
+        ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        : 'none',
+  zIndex: isDragging ? 50 : 1,
+  pointerEvents: isDragging ? 'none' : 'auto',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+});
+
+// Resting cards in view mode look the same, so one object lets React.memo skip them.
+const VIEW_MODE_CARD_STYLE: CSSProperties = Object.freeze(
+  buildCardStyle({ editMode: false, isHidden: false, isDragging: false, isTouchTarget: false })
+);
+
 export const createDragAndDropHandlers = ({
   editMode,
   pagesConfig,
@@ -78,7 +152,6 @@ export const createDragAndDropHandlers = ({
   setDraggingId,
   ignoreTouchRef,
 }: DragAndDropOptions) => {
-  const pendingTouchConfigRef: MutableRef<PagesConfig | null> = { current: null };
   const touchWorkingConfigRef: MutableRef<PagesConfig | null> = { current: null };
 
   const saveConfig = (newConfig: PagesConfig) => {
@@ -94,7 +167,24 @@ export const createDragAndDropHandlers = ({
     }
   };
 
+  const scheduleEdgeAutoScroll = () => {
+    edgeAutoScroll.frame = requestAnimationFrame(() => {
+      if (!dragSourceRef.current) {
+        edgeAutoScroll.frame = null;
+        return;
+      }
+      const delta = getEdgeScrollDelta(edgeAutoScroll.y, window.innerHeight);
+      if (delta !== 0) {
+        window.scrollBy(0, delta);
+        // Cards moved under a resting finger, so the target may have changed.
+        edgeAutoScroll.recheck(edgeAutoScroll.x, edgeAutoScroll.y);
+      }
+      scheduleEdgeAutoScroll();
+    });
+  };
+
   const resetDragState = () => {
+    stopEdgeAutoScroll();
     setDraggingId(null);
     dragSourceRef.current = null;
     touchTargetRef.current = null;
@@ -123,6 +213,9 @@ export const createDragAndDropHandlers = ({
     setTouchPath({ startX: x, startY: y, x, y });
     setTouchTargetId(null);
     setDraggingId(cardId);
+    stopEdgeAutoScroll();
+    Object.assign(edgeAutoScroll, { x, y, recheck: updateTouchDrag });
+    scheduleEdgeAutoScroll();
   };
 
   const moveCard = ({ source, targetIndex }: { source: DragSource; targetIndex: number }) => {
@@ -140,6 +233,7 @@ export const createDragAndDropHandlers = ({
 
   const updateTouchDrag = (x: number, y: number) => {
     if (!editMode || !dragSourceRef.current) return;
+    Object.assign(edgeAutoScroll, { x, y, recheck: updateTouchDrag });
     setTouchPath((prev) => (prev ? { ...prev, x, y } : { startX: x, startY: y, x, y }));
     const el = document.elementFromPoint(x, y);
     const cardEl = el?.closest?.('[data-card-id]');
@@ -253,15 +347,7 @@ export const createDragAndDropHandlers = ({
     resetDragState();
   };
 
-  const getDragProps = ({
-    cardId,
-    index,
-    colIndex,
-  }: {
-    cardId: string;
-    index: number;
-    colIndex?: number;
-  }) => ({
+  const buildDragProps = ({ cardId, index, colIndex }: CardPosition) => ({
     draggable: editMode,
     onDragStart: (e: ReactDragEvent<HTMLElement>) => {
       e.dataTransfer.setData('dragData', JSON.stringify({ index, cardId, colIndex }));
@@ -313,6 +399,25 @@ export const createDragAndDropHandlers = ({
     'data-col-index': colIndex,
   });
 
+  const viewModeDragProps = new Map<string, ReturnType<typeof buildDragProps>>();
+
+  const getDragProps = (position: CardPosition) => {
+    if (editMode) return buildDragProps(position);
+
+    const cached = viewModeDragProps.get(position.cardId);
+    if (
+      cached &&
+      cached['data-index'] === position.index &&
+      cached['data-col-index'] === position.colIndex
+    ) {
+      return cached;
+    }
+
+    const props = buildDragProps(position);
+    viewModeDragProps.set(position.cardId, props);
+    return props;
+  };
+
   const getCardStyle = ({
     cardId,
     isHidden,
@@ -323,35 +428,9 @@ export const createDragAndDropHandlers = ({
     isDragging: boolean;
   }) => {
     const isTouchTarget = !!touchTargetId && touchTargetId === cardId;
+    if (!editMode && !isDragging && !isTouchTarget) return VIEW_MODE_CARD_STYLE;
 
-    const style: CSSProperties = {
-      backgroundColor: isDragging ? 'rgba(30, 58, 138, 0.6)' : 'var(--card-bg)',
-      borderColor: isDragging
-        ? 'rgba(96, 165, 250, 1)'
-        : editMode
-          ? 'rgba(59, 130, 246, 0.2)'
-          : 'var(--card-border)',
-      backdropFilter: 'blur(16px)',
-      borderStyle: 'solid',
-      borderWidth: editMode ? '2px' : '1px',
-      borderRadius: 'var(--card-border-radius, 16px)',
-      opacity: isHidden && editMode ? 0.4 : 1,
-      filter: isHidden && editMode ? 'grayscale(100%)' : 'none',
-      transform: isDragging ? 'scale(1.08)' : 'none',
-      animation: 'none',
-      boxShadow: isDragging
-        ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-        : isTouchTarget
-          ? '0 0 0 2px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.35)'
-          : editMode
-            ? '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-            : 'none',
-      zIndex: isDragging ? 50 : 1,
-      pointerEvents: isDragging ? 'none' : 'auto',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    };
-
-    return style;
+    return buildCardStyle({ editMode, isHidden, isDragging, isTouchTarget });
   };
 
   return {

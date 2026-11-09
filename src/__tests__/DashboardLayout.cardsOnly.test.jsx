@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DashboardLayout from '../layouts/DashboardLayout';
+import ToastContainer from '../components/ui/ToastContainer';
+import { ToastProvider } from '../contexts/ToastContext';
 
 vi.mock('../layouts/Header', () => ({
   default: ({ children }) => <header data-testid="dashboard-header">{children}</header>,
@@ -191,5 +193,41 @@ describe('DashboardLayout cards-only mode', () => {
     act(() => vi.advanceTimersByTime(1000));
 
     expect(updateCardsOnlyMode).not.toHaveBeenCalled();
+  });
+
+  describe('exit hint', () => {
+    const renderWithToasts = (overrides) => {
+      const tree = (props) => (
+        <ToastProvider>
+          <DashboardLayout {...baseProps} {...props} />
+          <ToastContainer />
+        </ToastProvider>
+      );
+      const view = render(tree(overrides));
+      return { setProps: (props) => view.rerender(tree(props)) };
+    };
+
+    it('tells the user how to get back when the mode is switched on', () => {
+      const { setProps } = renderWithToasts({ cardsOnlyMode: false });
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+      setProps({ cardsOnlyMode: true });
+
+      expect(screen.getByRole('alert')).toHaveTextContent('header.cardsOnlyExitHint');
+    });
+
+    it('stays quiet when the dashboard loads already in the mode', () => {
+      renderWithToasts({ cardsOnlyMode: true });
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('stays quiet when the mode is switched off', () => {
+      const { setProps } = renderWithToasts({ cardsOnlyMode: true });
+
+      setProps({ cardsOnlyMode: false });
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
   });
 });

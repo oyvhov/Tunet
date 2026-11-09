@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createHomeAssistantAuthMiddleware,
   createValidatedHomeAssistantUserResolver,
+  getRateLimitKey,
+  warnIfHomeAssistantUrlMissing,
 } from '../haAuth.js';
 
 const createRequest = (headers = {}) => ({
@@ -31,7 +33,58 @@ const createResponse = () => {
   return response;
 };
 
+describe('getRateLimitKey', () => {
+  const fromIngress = (userId, ip = '172.30.32.2') =>
+    createRequest({
+      __ip: ip,
+      __remoteAddress: ip,
+      'x-ingress-path': '/api/hassio_ingress/abc123',
+      'x-remote-user-id': userId,
+    });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('gives each user behind trusted ingress a bucket of their own', () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+
+    expect(getRateLimitKey(fromIngress('user-a'))).toBe(getRateLimitKey(fromIngress('user-a')));
+    expect(getRateLimitKey(fromIngress('user-a'))).not.toBe(getRateLimitKey(fromIngress('user-b')));
+  });
+
+  it('ignores the user header when ingress trust is off', () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '0');
+
+    expect(getRateLimitKey(fromIngress('user-a'))).toBe('172.30.32.2');
+  });
+
+  it('ignores the user header from an address that is not the Supervisor', () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+
+    expect(getRateLimitKey(fromIngress('user-a', '203.0.113.5'))).toBe('203.0.113.5');
+  });
+});
+
 describe('createValidatedHomeAssistantUserResolver', () => {
+  it('keeps a validated user for two minutes by default', async () => {
+    vi.useFakeTimers();
+    try {
+      const loadCurrentUser = vi.fn().mockResolvedValue({ id: 'user-1' });
+      const resolveUser = createValidatedHomeAssistantUserResolver({ loadCurrentUser });
+      const session = { haUrl: 'https://ha.example', accessToken: 'token-1' };
+
+      await resolveUser(session);
+      vi.advanceTimersByTime(119_000);
+      await resolveUser(session);
+      expect(loadCurrentUser).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(2_000);
+      await resolveUser(session);
+      expect(loadCurrentUser).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('caches validated users by URL and token', async () => {
     const loadCurrentUser = vi.fn().mockResolvedValue({ id: 'user-1' });
     const resolveUser = createValidatedHomeAssistantUserResolver({
@@ -84,6 +137,57 @@ describe('createValidatedHomeAssistantUserResolver', () => {
     ).rejects.toThrow('ECONNREFUSED');
 
     expect(loadCurrentUser).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('warnIfHomeAssistantUrlMissing', () => {
+  let warnSpy;
+
+  beforeEach(() => {
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', '');
+    vi.stubEnv('TUNET_INTERNAL_HA_FALLBACK_URL', '');
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '0');
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    warnSpy.mockRestore();
+  });
+
+  it('warns once and names the setting when no URL is configured', () => {
+    warnIfHomeAssistantUrlMissing();
+
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0][0]).toContain('TUNET_INTERNAL_HA_URL');
+    expect(warnSpy.mock.calls[0][0]).toMatch(/profiles and settings sync/i);
+  });
+
+  it('warns when the configured URL is not usable', () => {
+    vi.stubEnv('TUNET_INTERNAL_HA_URL', 'not a url');
+
+    warnIfHomeAssistantUrlMissing();
+
+    expect(warnSpy).toHaveBeenCalledOnce();
+  });
+
+  it.each(['TUNET_INTERNAL_HA_URL', 'TUNET_INTERNAL_HA_FALLBACK_URL'])(
+    'stays quiet when %s is set',
+    (name) => {
+      vi.stubEnv(name, 'http://homeassistant.local:8123');
+
+      warnIfHomeAssistantUrlMissing();
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    }
+  );
+
+  it('stays quiet in the add-on, where Supervisor ingress authenticates without a URL', () => {
+    vi.stubEnv('TUNET_TRUST_SUPERVISOR_INGRESS', '1');
+
+    warnIfHomeAssistantUrlMissing();
+
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
 

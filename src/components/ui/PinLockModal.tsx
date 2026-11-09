@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import AccessibleModalShell, { hasCoarsePointerOnly } from './AccessibleModalShell';
+import AccessibleModalShell from './AccessibleModalShell';
 import Button from './Button';
 import { ModalBody, ModalHeader } from './ModalParts';
+import { hasTouchScreen } from '../../utils/touchScreen';
 import type { Translate } from '../../types/ha';
 
 interface PinLockModalProps {
@@ -28,7 +29,7 @@ export default function PinLockModal({
 
   useEffect(() => {
     // Touch devices use the on-screen keypad, so skip the system keyboard.
-    if (!open || hasCoarsePointerOnly()) return;
+    if (!open || hasTouchScreen()) return;
     const timer = setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();

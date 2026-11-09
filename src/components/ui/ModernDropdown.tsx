@@ -173,7 +173,7 @@ export default function ModernDropdown({
     ? 'min-w-0 truncate text-sm font-medium'
     : isCompact
       ? 'min-w-0 truncate text-[10px] font-bold tracking-widest uppercase'
-      : 'min-w-0 truncate text-xs font-bold tracking-widest uppercase italic';
+      : 'min-w-0 truncate text-xs font-bold tracking-widest uppercase';
   const labelText = label || resolvedPlaceholder;
 
   const handleTriggerClick = (event: MouseEvent) => {

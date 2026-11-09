@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PersonStatus from '../components/cards/PersonStatus';
 
@@ -23,6 +23,23 @@ const baseProps = {
   t: (key) => key,
 };
 
+describe('PersonStatus edit controls', () => {
+  it.each([['tooltip.editCard'], ['tooltip.removeCard']])('%s has a 44 px hit area', (name) => {
+    render(<PersonStatus {...baseProps} editMode />);
+
+    expect(screen.getByRole('button', { name })).toHaveClass('h-11', 'w-11');
+  });
+
+  it('removes only through the trash button', () => {
+    const onRemoveCard = vi.fn();
+    render(<PersonStatus {...baseProps} editMode onRemoveCard={onRemoveCard} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'tooltip.removeCard' }));
+
+    expect(onRemoveCard).toHaveBeenCalledWith('person.ola', 'header');
+  });
+});
+
 describe('PersonStatus', () => {
   it('shows the configured person name and state on phones while preserving the desktop layout', () => {
     render(<PersonStatus {...baseProps} />);
@@ -31,6 +48,15 @@ describe('PersonStatus', () => {
     expect(name.parentElement?.parentElement).toHaveClass('flex');
     expect(name).toHaveClass('truncate', 'text-xs', 'sm:text-sm');
     expect(screen.getByText('Heime')).toHaveClass('text-[10px]', 'sm:text-xs');
+  });
+
+  it('falls back to the initial when the photo cannot be loaded', () => {
+    render(<PersonStatus {...baseProps} getEntityImageUrl={() => '/api/image/ola.jpg'} />);
+
+    fireEvent.error(screen.getByRole('img', { name: 'Ola Nordmann' }));
+
+    expect(screen.queryByRole('img', { name: 'Ola Nordmann' })).not.toBeInTheDocument();
+    expect(screen.getByText('O')).toBeInTheDocument();
   });
 
   it('shows state by itself on mobile when the name is disabled', () => {
