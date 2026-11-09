@@ -25,25 +25,32 @@ const services = {
 
 const conn = { sendMessagePromise: vi.fn().mockResolvedValue(services) };
 
-function renderSettings(updateAction = vi.fn(), flushRef = { current: null }) {
-  render(
-    <SensorServiceSettings
-      action={{ service: 'light.turn_on', data: {}, targetMode: 'entity', entityId: 'light.desk' }}
-      primaryId="light.desk"
-      updateAction={updateAction}
-      conn={conn}
-      connected
-      entities={entities}
-      t={t}
-      flushRef={flushRef}
-    />
-  );
+async function renderSettings(updateAction = vi.fn(), flushRef = { current: null }) {
+  await act(async () => {
+    render(
+      <SensorServiceSettings
+        action={{
+          service: 'light.turn_on',
+          data: {},
+          targetMode: 'entity',
+          entityId: 'light.desk',
+        }}
+        primaryId="light.desk"
+        updateAction={updateAction}
+        conn={conn}
+        connected
+        entities={entities}
+        t={t}
+        flushRef={flushRef}
+      />
+    );
+  });
   return { updateAction, flushRef };
 }
 
 describe('SensorServiceSettings', () => {
   it('filters the service list with the search field', async () => {
-    renderSettings();
+    await renderSettings();
     await screen.findByLabelText('Brightness');
     fireEvent.change(screen.getByLabelText(en['form.search']), { target: { value: 'hvac' } });
     fireEvent.click(screen.getByRole('button', { name: /^Action to run:/ }));
@@ -55,7 +62,7 @@ describe('SensorServiceSettings', () => {
   });
 
   it('hides services that do not match', async () => {
-    renderSettings();
+    await renderSettings();
     await screen.findByLabelText('Brightness');
     fireEvent.change(screen.getByLabelText(en['form.search']), { target: { value: 'turn' } });
     fireEvent.click(screen.getByRole('button', { name: /^Action to run:/ }));
@@ -66,8 +73,10 @@ describe('SensorServiceSettings', () => {
   });
 
   it('applies an unapplied draft through the flush function', async () => {
-    const { updateAction, flushRef } = renderSettings();
-    fireEvent.change(await screen.findByLabelText('Brightness'), { target: { value: '100' } });
+    const { updateAction, flushRef } = await renderSettings();
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Brightness'), { target: { value: '100' } });
+    });
     let result: unknown;
     act(() => {
       result = (flushRef.current as unknown as () => boolean)();
@@ -79,8 +88,10 @@ describe('SensorServiceSettings', () => {
   });
 
   it('reports an invalid draft instead of dropping it', async () => {
-    const { updateAction, flushRef } = renderSettings();
-    fireEvent.change(await screen.findByLabelText('Brightness'), { target: { value: '999' } });
+    const { updateAction, flushRef } = await renderSettings();
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Brightness'), { target: { value: '999' } });
+    });
     let result: unknown;
     act(() => {
       result = (flushRef.current as unknown as () => boolean)();
@@ -91,7 +102,7 @@ describe('SensorServiceSettings', () => {
   });
 
   it('has nothing to flush without a draft', async () => {
-    const { updateAction, flushRef } = renderSettings();
+    const { updateAction, flushRef } = await renderSettings();
     await screen.findByLabelText('Brightness');
     expect((flushRef.current as unknown as () => boolean)()).toBe(true);
     expect(updateAction).not.toHaveBeenCalled();
