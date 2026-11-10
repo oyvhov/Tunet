@@ -214,6 +214,14 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
     return 'sans';
   });
 
+  const [showNextUp, setShowNextUp] = useState(() => {
+    try {
+      return localStorage.getItem('tunet_show_next_up') === '1';
+    } catch {
+      return false;
+    }
+  });
+
   const [config, setConfig] = useState<HomeAssistantConfig>(() => {
     if (typeof globalThis.window !== 'undefined') {
       // Ingress auto-detection: if served under /api/hassio_ingress/<token>,
@@ -498,6 +506,12 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
     } catch {}
   }, [appFont]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('tunet_show_next_up', showNextUp ? '1' : '0');
+    } catch {}
+  }, [showNextUp]);
+
   // Save language to localStorage
   useEffect(() => {
     const normalizedLanguage = normalizeLanguage(language);
@@ -615,6 +629,8 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
       setCardScale,
       appFont,
       setAppFont,
+      showNextUp,
+      setShowNextUp,
       config,
       setConfig,
     }),
@@ -641,6 +657,7 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
       density,
       cardScale,
       appFont,
+      showNextUp,
       config,
     ]
   );

@@ -2,7 +2,9 @@ import { memo } from 'react';
 import SparkLine from '../charts/SparkLine';
 import { Zap } from '../../icons';
 import { getIconComponent } from '../../icons';
-import { useHomeAssistantMeta } from '../../contexts';
+import { useConfig, useHomeAssistantMeta } from '../../contexts';
+import { getLocaleForLanguage } from '../../i18n';
+import { findCheapestWindow } from '../../utils/nextUp';
 import {
   applyNordpoolSupport,
   getCurrentPriceIndex,
@@ -48,6 +50,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
   settings = {},
 }: GenericNordpoolCardProps) {
   const { haConfig } = useHomeAssistantMeta();
+  const { language, showNextUp } = useConfig();
   const translate = t || ((key: string) => key);
   const currency = settings?.currency || haConfig?.currency || 'kr';
 
@@ -144,6 +147,20 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
   // Format price display
   const priceDisplay = hasPrice ? currentPrice.toFixed(decimals) : '--';
 
+  // Cheapest two hours within the coming day, so a bare clock time cannot mean two days.
+  const cheapestWindow =
+    showNextUp && hasPrice && settings.size !== 'small'
+      ? findCheapestWindow(fullPriceData.slice(0, currentPriceIndex + 24), currentPriceIndex)
+      : null;
+  const locale = getLocaleForLanguage(language);
+  const clock = (date: Date) =>
+    date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  const cheapestText = cheapestWindow
+    ? translate('power.cheapestWindow')
+        .replace('{start}', clock(cheapestWindow.start))
+        .replace('{end}', clock(cheapestWindow.end))
+    : '';
+
   if (settings.size === 'small') {
     let indicatorClass = 'bg-[var(--accent-color)] ring-[var(--accent-color)]';
     if (levelTone === 'high') {
@@ -231,13 +248,20 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
               <span className="text-[11px] font-medium text-[var(--text-muted)]">{currency}</span>
             </div>
           ) : (
-            <div
-              className="flex items-center gap-1.5 rounded-full border px-3 py-1"
-              style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
-            >
-              <span className={`text-xs font-bold tracking-widest uppercase ${levelColor}`}>
-                {levelText}
-              </span>
+            <div className="flex min-w-0 flex-col items-end gap-1 pl-3">
+              <div
+                className="flex items-center gap-1.5 rounded-full border px-3 py-1"
+                style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+              >
+                <span className={`text-xs font-bold tracking-widest uppercase ${levelColor}`}>
+                  {levelText}
+                </span>
+              </div>
+              {cheapestText && (
+                <span className="max-w-full truncate text-[11px] font-medium text-[var(--text-secondary)]">
+                  {cheapestText}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -249,9 +273,16 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
             {name}
           </p>
           {isDenseMobile ? (
-            <span className={`text-[10px] font-bold tracking-widest uppercase ${levelColor}`}>
-              {levelText}
-            </span>
+            <>
+              <span className={`text-[10px] font-bold tracking-widest uppercase ${levelColor}`}>
+                {levelText}
+              </span>
+              {cheapestText && (
+                <p className="mt-1 truncate text-[10px] font-medium text-[var(--text-secondary)]">
+                  {cheapestText}
+                </p>
+              )}
+            </>
           ) : (
             <div className="mt-2 flex items-baseline gap-1 leading-none">
               <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">

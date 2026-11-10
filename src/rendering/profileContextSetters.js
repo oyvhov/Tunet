@@ -29,5 +29,6 @@ export function buildProfilesContextSetters({ page, layout, appearance, setLangu
     setDensity: appearance.setDensity,
     setCardScale: appearance.setCardScale,
     setInactivityTimeout: appearance.setInactivityTimeout,
+    setShowNextUp: appearance.setShowNextUp,
   };
 }

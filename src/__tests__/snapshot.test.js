@@ -200,6 +200,33 @@ describe('snapshot service', () => {
     expect(setUnitsMode).toHaveBeenCalledWith('metric');
   });
 
+  it('collectSnapshot includes the what happens next line, off by default', () => {
+    expect(collectSnapshot().appearance.showNextUp).toBe(false);
+
+    localStorage.setItem('tunet_show_next_up', '1');
+
+    expect(collectSnapshot().appearance.showNextUp).toBe(true);
+  });
+
+  it('applySnapshot persists and applies the what happens next line', () => {
+    const setShowNextUp = vi.fn();
+
+    applySnapshot({ version: 1, layout: {}, appearance: { showNextUp: true } }, { setShowNextUp });
+
+    expect(localStorage.getItem('tunet_show_next_up')).toBe('1');
+    expect(setShowNextUp).toHaveBeenCalledWith(true);
+  });
+
+  it('applySnapshot leaves the what happens next line alone for older snapshots', () => {
+    localStorage.setItem('tunet_show_next_up', '1');
+    const setShowNextUp = vi.fn();
+
+    applySnapshot({ version: 1, layout: {}, appearance: { theme: 'dark' } }, { setShowNextUp });
+
+    expect(localStorage.getItem('tunet_show_next_up')).toBe('1');
+    expect(setShowNextUp).not.toHaveBeenCalled();
+  });
+
   it('collectSnapshot includes spacer/divider card settings from tunet_card_settings', () => {
     const cardSettings = {
       'home::spacer_card_123': {

@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Car, Flame, MapPin, Plug, Zap } from '../../icons';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
+import { getLocaleForLanguage } from '../../i18n';
 import {
   convertValueByKind,
   formatUnitValue,
   getDisplayUnitForKind,
   getEffectiveUnitMode,
 } from '../../utils';
+import { formatFinish, getChargeFinishTime } from '../../utils/nextUp';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
@@ -36,6 +38,8 @@ interface CarSettings {
   pluggedId?: string;
   climateId?: string;
   imageUrl?: string;
+  timeToFullId?: string;
+  chargeEndTimeId?: string;
 }
 
 /* ─── Helpers (pure, no React) ─── */
@@ -82,7 +86,7 @@ const CarCard = ({
 }: CarCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isNarrowLargeCard, setIsNarrowLargeCard] = useState(false);
-  const { unitsMode } = useConfig();
+  const { unitsMode, language } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
 
   useEffect(() => {
@@ -117,6 +121,8 @@ const CarCard = ({
     pluggedId,
     climateId,
     imageUrl,
+    timeToFullId,
+    chargeEndTimeId,
   } = settings;
   const effectiveChargingId = chargingStateId || chargingId;
 
@@ -144,6 +150,27 @@ const CarCard = ({
 
   const isCharging = chargingState === 'on' || chargingState === 'charging';
   const isPlugged = pluggedState === 'on' || pluggedState === 'plugged' || pluggedState === 'true';
+  // A finish time also covers a charge scheduled for later; an unplugged car has none.
+  const mayCharge = isCharging || isPlugged || (!effectiveChargingId && !pluggedId);
+  const now = new Date();
+  const chargeFinishAt = mayCharge
+    ? getChargeFinishTime(
+        {
+          endTime: getSafeState(entities, chargeEndTimeId),
+          timeToFull: getSafeState(entities, timeToFullId),
+          timeToFullUnit: timeToFullId
+            ? entities[timeToFullId]?.attributes?.unit_of_measurement
+            : null,
+        },
+        now
+      )
+    : null;
+  const chargeFinishText = chargeFinishAt
+    ? formatFinish(chargeFinishAt, now, t, getLocaleForLanguage(language), {
+        inKey: 'car.chargedIn',
+        atKey: 'car.chargedAt',
+      })
+    : '';
   const isHtg =
     climateEntity && !['off', 'unavailable', 'unknown'].includes(climateEntity.state ?? '');
   const resolvedImageUrl = imageUrl
@@ -316,6 +343,13 @@ const CarCard = ({
               className={`${useCompactMetrics ? 'mt-1 text-xs' : 'mt-1.5 text-sm'} font-medium text-[var(--text-secondary)]`}
             >
               {formatUnitValue(displayRangeValue, { fallback: '--' })} {rangeUnit}
+            </p>
+          )}
+          {chargeFinishText && (
+            <p
+              className={`${useCompactMetrics ? 'mt-0.5 text-xs' : 'mt-1 text-sm'} truncate leading-tight font-medium text-[var(--text-secondary)]`}
+            >
+              {chargeFinishText}
             </p>
           )}
         </div>

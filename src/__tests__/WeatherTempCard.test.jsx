@@ -2,8 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import WeatherTempCard from '../components/cards/WeatherTempCard';
 
+const config = vi.hoisted(() => ({ unitsMode: 'follow_ha', showNextUp: false }));
 vi.mock('../contexts', () => ({
-  useConfig: () => ({ unitsMode: 'follow_ha' }),
+  useConfig: () => config,
   useHomeAssistantMeta: () => ({
     haConfig: { unit_system: { temperature: '°C' } },
   }),
@@ -58,6 +59,8 @@ describe('WeatherTempCard', () => {
               'Sveip mot venstre eller høgre for å byte mellom vêret no og prognosen',
             'weather.name': 'Vêr',
             'weather.noForecast': 'Ingen vêrvarsel tilgjengeleg',
+            'weather.rainFrom': 'Regn frå kl. {time}',
+            'weather.snowFrom': 'Snø frå kl. {time}',
           })[key] || key
         }
         {...overrides}
@@ -152,11 +155,65 @@ describe('WeatherTempCard', () => {
       },
     });
 
-    expect(screen.getByTestId('weather-graph')).toBeInTheDocument();
+    expect(screen.getByText('12°C')).toBeInTheDocument();
     swipeCard(container, 'left');
-    expect(screen.queryByTestId('weather-graph')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Timar' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('13°C')).toBeInTheDocument();
+  });
+
+  it('keeps the graph off the compact card so the numbers stay readable', () => {
+    renderCard({ cardSettings: { weather_home: { weatherId: 'weather.home', size: 'small' } } });
+
+    expect(screen.getByText('12°C')).toBeInTheDocument();
+    expect(screen.queryByTestId('weather-graph')).not.toBeInTheDocument();
+  });
+
+  describe('next rain or snow', () => {
+    const NOW = new Date(2026, 7, 21, 12, 0, 0);
+    const hourly = (...hours) =>
+      hours.map(([hour, condition]) => ({
+        datetime: new Date(2026, 7, 21, hour, 0, 0).toISOString(),
+        temperature: 14,
+        condition,
+      }));
+    const withForecast = (forecast, overrides = {}) =>
+      renderCard({ forecastsById: { 'weather.home': { hourly: forecast } }, ...overrides });
+
+    beforeEach(() => vi.setSystemTime(NOW));
+    afterEach(() => {
+      config.showNextUp = false;
+    });
+
+    it('stays quiet unless the what happens next line is on', () => {
+      const { container } = withForecast(hourly([14, 'cloudy'], [16, 'rainy']));
+      expect(container).not.toHaveTextContent('Regn frå');
+    });
+
+    it('says when the rain starts', () => {
+      config.showNextUp = true;
+      const { container } = withForecast(hourly([14, 'cloudy'], [16, 'rainy'], [17, 'snowy']));
+      expect(container).toHaveTextContent('Regn frå kl. 16:00');
+    });
+
+    it('says when the snow starts', () => {
+      config.showNextUp = true;
+      const { container } = withForecast(hourly([14, 'cloudy'], [18, 'snowy']));
+      expect(container).toHaveTextContent('Snø frå kl. 18:00');
+    });
+
+    it('says nothing when the day stays dry', () => {
+      config.showNextUp = true;
+      const { container } = withForecast(hourly([14, 'cloudy'], [16, 'sunny']));
+      expect(container).not.toHaveTextContent('frå kl.');
+    });
+
+    it('leaves the compact card alone', () => {
+      config.showNextUp = true;
+      const { container } = withForecast(hourly([16, 'rainy']), {
+        cardSettings: { weather_home: { weatherId: 'weather.home', size: 'small' } },
+      });
+      expect(container).not.toHaveTextContent('Regn frå');
+    });
   });
 
   describe('forecast toggle hit area', () => {

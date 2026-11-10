@@ -2,7 +2,11 @@ import { useState } from 'react';
 import M3Slider from '../ui/M3Slider';
 import { Eye } from '../../icons';
 import { parseColor } from '../../utils/colorUtils';
-import { SidebarAccordion, SidebarResetButton as ResetButton } from './SidebarControls';
+import {
+  SidebarAccordion,
+  SidebarResetButton as ResetButton,
+  SidebarToggle,
+} from './SidebarControls';
 
 export interface CardStyleSectionProps {
   t: (key: string) => string;
@@ -21,6 +25,8 @@ export interface CardStyleSectionProps {
   cardBgColor: string;
   setCardBgColor: (value: string) => void;
   themeCardColor: string;
+  showNextUp: boolean;
+  setShowNextUp: (value: boolean) => void;
 }
 
 type ColorChannels = { r: number; g: number; b: number };
@@ -74,6 +80,8 @@ export default function CardStyleSection({
   cardBgColor,
   setCardBgColor,
   themeCardColor,
+  showNextUp,
+  setShowNextUp,
 }: CardStyleSectionProps) {
   const [isOpen, setIsOpen] = useState(true);
   const themeChannels = themeColorChannels(themeCardColor);
@@ -187,6 +195,18 @@ export default function CardStyleSection({
           value={cardScale}
           onChange={(e) => setCardScale(Number(e.target.value))}
         />
+      </div>
+
+      {/* What happens next */}
+      <div>
+        <SidebarToggle
+          label={t('settings.showNextUp')}
+          value={showNextUp}
+          onChange={setShowNextUp}
+        />
+        <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          {t('settings.showNextUpHint')}
+        </p>
       </div>
 
       {/* Border Radius */}
