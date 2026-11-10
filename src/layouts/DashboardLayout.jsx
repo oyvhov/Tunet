@@ -11,6 +11,7 @@ import { PageNavigation } from '../components';
 import DashboardGrid from '../rendering/DashboardGrid';
 import PinLockModal from '../components/ui/PinLockModal';
 import { useOptionalToast } from '../contexts/ToastContext';
+import { useScrollEdgeFade } from '../hooks/useScrollEdgeFade';
 
 const MemoStatusBar = memo(StatusBar);
 const MemoDashboardGrid = memo(DashboardGrid);
@@ -179,6 +180,9 @@ export default function DashboardLayout(props) {
     [profilingEnabled, onProfileRender]
   );
 
+  // On a phone the status row scrolls sideways; a faded edge shows there is more to see.
+  const { ref: statusRowRef, fade: statusRowFade } = useScrollEdgeFade(isMobile);
+
   const personHeader = (
     <div
       className={`flex items-center ${isMobile ? 'shrink-0 [zoom:0.9] gap-2 empty:hidden' : 'min-w-0 flex-wrap gap-2.5'}`}
@@ -268,7 +272,10 @@ export default function DashboardLayout(props) {
             sectionSpacing={sectionSpacing}
           >
             <div
-              className={`mt-0 w-full font-sans ${isMobile ? 'scrollbar-hide flex items-center gap-2.5 overflow-x-auto overflow-y-hidden pt-2 pb-1' : 'flex items-center justify-between'}`}
+              ref={statusRowRef}
+              data-testid="status-row"
+              data-fade={isMobile ? statusRowFade : undefined}
+              className={`mt-0 w-full font-sans ${isMobile ? 'scroll-edge-fade scrollbar-hide flex items-center gap-2.5 overflow-x-auto overflow-y-hidden pt-2 pb-1' : 'flex items-center justify-between'}`}
               style={{
                 marginTop: `${
                   isMobile
