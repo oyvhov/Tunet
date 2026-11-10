@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+
+- **Scenes on light cards.** A large light card can show up to three Home Assistant scenes as chips. Pick them in Edit card.
+- **Livelier small sensor cards.** Gauges and rings draw in with a tint, ticks and a marker that ripples when the value changes. Bars get segment ticks, and a new Trend style shows a small 24-hour graph beside the value.
+- Temperatures, prices, sensor values and light brightness glide to new values. With reduced motion on, they change at once.
+- Vacuum, car and cover cards use their empty space. The vacuum shows its last run and progress, the car its charging time, and covers get Closed, Half and Open chips.
+- An optional "what happens next" line shows the cheapest power hours, coming rain or snow, and when the vacuum finishes. Turn it on under Appearance → Card style.
+
+### Changed
+
+- Small light cards show the brightness beside the slider.
+- Gauges, rings and bars share one stroke width and number position.
+- Long names follow one rule on every card: they wrap between words, shrink a step if a word is too long, and only then end in "…".
+- In edit mode the move, edit and remove buttons sit together in one pill in the top corner, so they no longer cover values.
+- Phones narrower than 420 px use two columns. Cards with their own buttons and bar or trend sensors take a whole row, and a card left alone widens instead of leaving a gap.
+- A wide card fills the space beside a tall card.
+- A single light opens a narrow popup, and System settings dim and blur the page behind them.
+
+### Fixed
+
+- Calendar and to-do cards show only whole rows, with "+N more" for the rest.
+- Calendar, to-do and sensor cards no longer sometimes stay empty.
+- Moment titles are no longer clipped, and the camera image fills the frame.
+- The "No music" ring stays inside short media cards, and light themes tint the card with the album colour.
+- The small weather card no longer draws text over its graph.
+- The alarm card no longer repeats its name, and mower buttons sit side by side.
+
 ## 2.0.0
 
 ### Added
