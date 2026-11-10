@@ -17,6 +17,7 @@ import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
 import { findNextPrecipitation, formatClockTime } from '../../utils/nextUp';
 import CardName from '../ui/CardName';
+import GlideNumber from '../ui/GlideNumber';
 
 type ForecastView = 'hourly' | 'daily';
 type CardView = 'current' | 'forecast';
@@ -256,6 +257,7 @@ const WeatherTempCard = memo(
       fromUnit: sourceTempUnit,
       unitMode: effectiveUnitMode,
     });
+    const formatTempValue = (value: number) => formatUnitValue(value, { fallback: '--' });
     const graphHistoryHours = Number.isFinite(settings.graphHistoryHours)
       ? settings.graphHistoryHours
       : 12;
@@ -504,7 +506,7 @@ const WeatherTempCard = memo(
                       {String(info.label)}
                     </CardName>
                     <span className="text-2xl leading-none font-light text-[var(--text-primary)]">
-                      {formatUnitValue(displayTempValue, { fallback: '--' })}
+                      <GlideNumber value={displayTempValue} format={formatTempValue} />
                       {displayTempUnit}
                     </span>
                     {subtitle && (
@@ -639,7 +641,7 @@ const WeatherTempCard = memo(
                       </span>
                     </div>
                     <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">
-                      {formatUnitValue(displayTempValue, { fallback: '--' })}
+                      <GlideNumber value={displayTempValue} format={formatTempValue} />
                       {displayTempUnit}
                     </span>
                     {precipitationText && (
@@ -685,7 +687,7 @@ const WeatherTempCard = memo(
                   <span
                     className={`${isMobile ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-[var(--text-primary)]`}
                   >
-                    {formatUnitValue(displayTempValue, { fallback: '--' })}
+                    <GlideNumber value={displayTempValue} format={formatTempValue} />
                     {displayTempUnit}
                   </span>
                 </div>

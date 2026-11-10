@@ -15,6 +15,7 @@ import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import { cardButtonProps } from '../../utils/keyboard';
 import CardName from '../ui/CardName';
+import GlideNumber from '../ui/GlideNumber';
 
 interface NordpoolSettings {
   currency?: string;
@@ -146,7 +147,10 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
   }
 
   // Format price display
-  const priceDisplay = hasPrice ? currentPrice.toFixed(decimals) : '--';
+  const formatPrice = (value: number) => value.toFixed(decimals);
+  const glidingPrice = (
+    <GlideNumber value={hasPrice ? currentPrice : null} format={formatPrice} fallback="--" />
+  );
 
   // Cheapest two hours within the coming day, so a bare clock time cannot mean two days.
   const cheapestWindow =
@@ -211,7 +215,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
               />
             </div>
             <div className="flex items-baseline gap-1 leading-none">
-              <span className="text-xl font-bold text-[var(--text-primary)]">{priceDisplay}</span>
+              <span className="text-xl font-bold text-[var(--text-primary)]">{glidingPrice}</span>
               <span className="text-xs font-medium text-[var(--text-muted)]">
                 {hasPrice ? currency : levelText}
               </span>
@@ -247,7 +251,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
           {isDenseMobile ? (
             <div className="flex items-end gap-1 leading-none">
               <span className="text-2xl leading-none font-light text-[var(--text-primary)]">
-                {String(priceDisplay)}
+                {glidingPrice}
               </span>
               <span className="text-[11px] font-medium text-[var(--text-muted)]">{currency}</span>
             </div>
@@ -290,7 +294,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
           ) : (
             <div className="mt-2 flex items-baseline gap-1 leading-none">
               <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">
-                {String(priceDisplay)}
+                {glidingPrice}
               </span>
               <span className="ml-1 text-base font-medium text-[var(--text-muted)]">
                 {currency}
