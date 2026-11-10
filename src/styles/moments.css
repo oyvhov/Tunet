@@ -94,6 +94,15 @@
   color: rgb(255 255 255 / 90%);
 }
 
+/* Bottom-left, clear of the timestamp most cameras burn into the top of the image. */
+.moment__caption {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  padding: clamp(2.5rem, 8vmin, 5rem) clamp(1.25rem, 4vmin, 2.75rem) clamp(1rem, 3vmin, 2rem);
+  background: linear-gradient(transparent, rgb(0 0 0 / 60%));
+}
+
 .moment__stage {
   position: relative;
   z-index: 1;
@@ -151,6 +160,9 @@
 .moment__title {
   display: -webkit-box;
   overflow: hidden;
+  /* Room for descenders (g, j, y) below the clipped last line, without moving what follows. */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
   font-size: clamp(2rem, 6vmin, 3.75rem);
   font-weight: 300;
   line-height: 1.18;

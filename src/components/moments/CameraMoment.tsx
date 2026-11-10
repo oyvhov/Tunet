@@ -26,17 +26,17 @@ export default function CameraMoment({
           getEntityImageUrl={getEntityImageUrl}
           settings={settings}
           refreshKey={0}
-          fit="contain"
+          fit="cover"
           controls={false}
           muted
           alt={name}
           t={t}
         />
       </div>
-      <h2 id={titleId} className="sr-only">
+      <MomentBar t={t} />
+      <h2 id={titleId} className="moment__label moment__caption">
         {name}
       </h2>
-      <MomentBar label={name} t={t} />
     </>
   );
 }
