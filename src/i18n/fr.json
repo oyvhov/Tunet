@@ -984,6 +984,7 @@
   "sensor.variantDonut": "Donut",
   "sensor.variantGauge": "Jauge",
   "sensor.variantNumber": "Nombre",
+  "sensor.variantTrend": "Tendance",
   "sensor.graphStyle": "Type de graphique",
   "sensor.graphStyleLine": "Ligne",
   "sensor.graphStyleBar": "Barres",

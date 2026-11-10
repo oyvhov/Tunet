@@ -189,4 +189,75 @@ describe('sensor history responses', () => {
     expect(getStatistics).toHaveBeenCalledWith({}, expect.objectContaining({ period: 'day' }));
     expect(screen.getByRole('status')).toHaveTextContent('[7.5]');
   });
+
+  it('loads the graph when any entry the observer reports is on screen', async () => {
+    class TwoEntryObserver {
+      constructor(callback) {
+        this.callback = callback;
+      }
+
+      observe(target) {
+        this.callback([
+          { isIntersecting: false, target },
+          { isIntersecting: true, target },
+        ]);
+      }
+
+      unobserve() {}
+
+      disconnect() {}
+    }
+    vi.stubGlobal('IntersectionObserver', TwoEntryObserver);
+    getHistory.mockResolvedValue([
+      { s: '20', lu: 1700000000 },
+      { s: '21', lu: 1700000300 },
+    ]);
+    render(<SensorCard {...props} />);
+    await tick();
+    expect(getHistory).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('status')).toHaveTextContent('[20,21]');
+    vi.unstubAllGlobals();
+  });
+
+  it('draws a trend on a small card that ends at the live value', async () => {
+    getHistory.mockResolvedValue([
+      { s: '20', lu: 1700000000 },
+      { s: '30', lu: 1700000300 },
+    ]);
+    const { container } = render(
+      <SensorCard
+        {...props}
+        entity={entity('sensor.power', '25')}
+        settings={{ size: 'small', sensorVariant: 'trend', graphRange: '6h' }}
+      />
+    );
+    await tick();
+
+    expect(getHistory).toHaveBeenCalledTimes(1);
+    const [, request] = getHistory.mock.calls[0];
+    expect(request.entityId).toBe('sensor.power');
+    expect(request.end.getTime() - request.start.getTime()).toBe(6 * 60 * 60 * 1000);
+    const trend = container.querySelector('[data-sensor-graph="trend"]');
+    expect(trend).not.toBeNull();
+    expect(trend.querySelector('svg[role="img"]')).not.toBeNull();
+    const dot = trend.querySelector('[data-trend-dot]');
+    expect(dot.style.left).toBe('100%');
+    const top = parseFloat(dot.style.top);
+    expect(top).toBeGreaterThan(20);
+    expect(top).toBeLessThan(80);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('keeps the full-width history graph when a large card has the trend style', async () => {
+    getHistory.mockResolvedValue([
+      { s: '20', lu: 1700000000 },
+      { s: '21', lu: 1700000300 },
+    ]);
+    const { container } = render(
+      <SensorCard {...props} settings={{ size: 'large', sensorVariant: 'trend' }} />
+    );
+    await tick();
+    expect(screen.getByRole('status')).toHaveTextContent('[20,21]');
+    expect(container.querySelector('[data-sensor-graph="trend"]')).toBeNull();
+  });
 });

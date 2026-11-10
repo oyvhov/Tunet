@@ -17,7 +17,9 @@ import {
 } from '../../icons';
 import { getHistory, getStatistics } from '../../services/haClient';
 import SparkLine from '../charts/SparkLine';
+import SensorTrend from '../charts/SensorTrend';
 import { Gauge, Donut, Bar } from '../charts/SensorGauge';
+import GlideNumber from '../ui/GlideNumber';
 import ModernDropdown from '../ui/ModernDropdown';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import {
@@ -283,19 +285,24 @@ const SensorCard = memo(
     const showStatus = config.statusMode !== 'hidden';
     const showIcon = settings?.showIcon !== false;
     const isSmall = settings?.size === 'small';
-    const variant = settings?.sensorVariant || 'default';
+    // The trend is the small-card form of the history graph; large cards draw the full graph.
+    const variant =
+      settings?.sensorVariant === 'trend' && !isSmall
+        ? 'default'
+        : settings?.sensorVariant || 'default';
     const isRangeVariant = ['gauge', 'donut', 'bar'].includes(variant);
+    const canGraphHistory =
+      isNumeric && showStatus && config.statusMode !== 'attribute' && domain !== 'input_number';
     const showGraph =
       !isSmall &&
-      isNumeric &&
-      showStatus &&
-      config.statusMode !== 'attribute' &&
+      canGraphHistory &&
       !preview &&
-      domain !== 'input_number' &&
       settings?.showGraph !== false &&
       variant === 'default';
+    const showTrend = isSmall && canGraphHistory && variant === 'trend';
+    const loadHistory = showGraph || (showTrend && !preview);
     const graphRange = resolveSensorGraphRange(settings?.graphRange);
-    const graphStyle = settings?.graphStyle === 'bar' ? 'bar' : 'line';
+    const graphStyle = settings?.graphStyle === 'bar' && !showTrend ? 'bar' : 'line';
     const graphStat =
       graphStyle === 'bar' && SENSOR_GRAPH_STATS.includes(settings?.graphStat as string)
         ? settings.graphStat
@@ -353,7 +360,7 @@ const SensorCard = memo(
     const normalizedNumericState =
       typeof convertedNumericState === 'number' ? convertedNumericState : numericState;
     const safeChartMax = chartMax <= chartMin ? chartMin + 1 : chartMax;
-    const valueMode = settings?.sensorValueMode || 'actual';
+    const valueMode = showTrend ? 'actual' : settings?.sensorValueMode || 'actual';
     const chartValue =
       variant !== 'default' && isNumeric && numericState !== null
         ? valueMode === 'percent'
@@ -423,21 +430,25 @@ const SensorCard = memo(
       showStatus &&
       (variant === 'number' || (isNumeric && normalizedNumericState !== null));
     const showSmallVariantVisual =
-      showStatus && isSmall && isRangeVariant && isNumeric && normalizedNumericState !== null;
+      showStatus &&
+      isSmall &&
+      (isRangeVariant || showTrend) &&
+      isNumeric &&
+      normalizedNumericState !== null;
     const useDenseMobileSmallLayout = isMobile && isSmall;
     const useDenseMobileLargeLayout = isMobile && !isSmall;
     const smallVariantGaugeSize = 80;
-    const smallVariantGaugeStroke = 8;
+    // On two-column phones the visual gives way so the value is never cut short.
     const smallVariantWideVisualClass = useDenseMobileSmallLayout
-      ? 'h-auto w-[clamp(3.5rem,24cqw,4.5rem)]'
+      ? 'h-auto w-[clamp(2.75rem,24cqw,4.5rem)]'
       : 'h-auto w-[clamp(3.5rem,25cqw,6rem)]';
+    const smallTrendClass = useDenseMobileSmallLayout
+      ? 'h-8 w-[clamp(2.5rem,22cqw,5rem)]'
+      : 'h-10 w-[clamp(4rem,30cqw,7.5rem)]';
     const smallVariantDonutSize = useDenseMobileSmallLayout ? 36 : 42;
-    const smallVariantDonutStroke = useDenseMobileSmallLayout ? 5 : 6;
     const smallVariantBarHeight = useDenseMobileSmallLayout ? 7 : 8;
     const largeVariantGaugeSize = useDenseMobileLargeLayout ? 88 : 124;
-    const largeVariantGaugeStroke = useDenseMobileLargeLayout ? 10 : 14;
     const largeVariantDonutSize = useDenseMobileLargeLayout ? 64 : 96;
-    const largeVariantDonutStroke = useDenseMobileLargeLayout ? 6 : 10;
     const largeVariantBarHeight = useDenseMobileLargeLayout ? 14 : 20;
     const useCompactMobileRangeLayout = useDenseMobileLargeLayout && showVariantPanel;
 
@@ -453,8 +464,8 @@ const SensorCard = memo(
       }
 
       const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
             setIsVisible(true);
             observer.disconnect();
           }
@@ -470,18 +481,18 @@ const SensorCard = memo(
     }, []);
 
     const refreshTick = useRefreshTick(conn, {
-      enabled: showGraph && isVisible,
+      enabled: loadHistory && isVisible,
       intervalMs: SENSOR_GRAPH_RANGES[graphRange] > 48 ? GRAPH_REFRESH_SLOW_MS : GRAPH_REFRESH_MS,
     });
 
     useEffect(() => {
-      if (!conn || !displayEntity?.entity_id || !showGraph || !isVisible) {
-        if (!isVisible && showGraph) {
+      if (!conn || !displayEntity?.entity_id || !loadHistory || !isVisible) {
+        if (!isVisible && loadHistory) {
           // Keep empty while waiting for visibility
           return;
         }
         // If we are visible but no graph needed or no conn, clear
-        if (!showGraph) setHistory([]);
+        if (!loadHistory) setHistory([]);
         return;
       }
 
@@ -607,7 +618,15 @@ const SensorCard = memo(
         if (idleId) window.cancelIdleCallback(idleId);
         if (timerId) clearTimeout(timerId);
       };
-    }, [conn, displayEntity?.entity_id, showGraph, isVisible, graphRange, graphStyle, refreshTick]);
+    }, [
+      conn,
+      displayEntity?.entity_id,
+      loadHistory,
+      isVisible,
+      graphRange,
+      graphStyle,
+      refreshTick,
+    ]);
 
     const graphData = useMemo(() => {
       if (graphStyle !== 'bar' || history.length === 0 || !historyWindowRef.current) return history;
@@ -647,7 +666,7 @@ const SensorCard = memo(
 
     const renderCompactToggleState = (size = 'large') => (
       <span
-        className={`inline-flex w-fit items-center rounded-full border font-bold tracking-widest uppercase ${size === 'small' ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'} ${compactToggleStateTone}`}
+        className={`inline-flex w-fit items-center rounded-full border font-bold tracking-widest uppercase transition-colors duration-200 ${size === 'small' ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'} ${compactToggleStateTone}`}
       >
         {displayState}
       </span>
@@ -890,7 +909,10 @@ const SensorCard = memo(
             </button>
             <div className="flex items-baseline gap-1">
               <span className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
-                {formatUnitValue(inputDisplayValue, { fallback: '--' })}
+                <GlideNumber
+                  value={inputDisplayValue}
+                  format={(value) => formatUnitValue(value, { fallback: '--' })}
+                />
               </span>
               <span className="ml-1 text-[10px] font-medium tracking-wider text-[var(--text-secondary)] uppercase">
                 {inputDisplayUnit}
@@ -917,8 +939,53 @@ const SensorCard = memo(
       return null;
     };
 
+    // Numbers count to new values; percent mode counts the rounded percentage.
+    const showsPercent = valueMode === 'percent' && chartValue !== null;
+    const glideValue = showsPercent ? chartValue : isNumeric ? normalizedNumericState : null;
+    const renderValue = () =>
+      typeof glideValue === 'number' && Number.isFinite(glideValue) ? (
+        <GlideNumber
+          value={glideValue}
+          format={(value) =>
+            showsPercent
+              ? `${Math.round(value)}%`
+              : formatUnitValue(value, { fallback: String(displayState) })
+          }
+        />
+      ) : (
+        (chartDisplayValue ?? displayState)
+      );
+
+    // The trend ends at the live reading (same unit as the history) until the next refresh.
+    const lastHistoryValue = history[history.length - 1]?.value;
+    const trendData =
+      !showTrend || numericState === null
+        ? []
+        : history.length === 0
+          ? preview
+            ? [{ value: numericState }, { value: numericState }]
+            : []
+          : lastHistoryValue === numericState
+            ? history
+            : [...history, { value: numericState }];
+
     const renderSmallVariantVisual = () => {
       if (!showSmallVariantVisual) return null;
+
+      if (showTrend) {
+        return (
+          <div className={smallTrendClass}>
+            {trendData.length > 0 && (
+              <SensorTrend
+                data={trendData}
+                color={variantColor}
+                className="h-full w-full"
+                ariaLabel={chartAriaLabel}
+              />
+            )}
+          </div>
+        );
+      }
 
       if (variant === 'gauge') {
         return (
@@ -927,7 +994,6 @@ const SensorCard = memo(
             min={chartMin}
             max={safeChartMax}
             size={smallVariantGaugeSize}
-            strokeWidth={smallVariantGaugeStroke}
             color={variantColor}
             className={smallVariantWideVisualClass}
             ariaLabel={chartAriaLabel}
@@ -942,7 +1008,6 @@ const SensorCard = memo(
             min={chartMin}
             max={safeChartMax}
             size={smallVariantDonutSize}
-            strokeWidth={smallVariantDonutStroke}
             color={variantColor}
             ariaLabel={chartAriaLabel}
           />
@@ -1059,7 +1124,7 @@ const SensorCard = memo(
                     : undefined
                 }
                 aria-busy={iconIsAction || showToggleControls ? actionFeedback.pending : undefined}
-                className={`flex flex-shrink-0 items-center justify-center ${iconIsAction || showToggleControls ? 'h-11 w-11 rounded-xl' : useDenseMobileSmallLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl'} ${smallToggleIconClass} transition-all duration-300 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
+                className={`flex flex-shrink-0 items-center justify-center ${iconIsAction || showToggleControls ? 'h-11 w-11 rounded-xl' : useDenseMobileSmallLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl'} ${smallToggleIconClass} transition-all duration-200 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
                 onClick={
                   (iconIsAction || showToggleControls) && !editMode && !preview
                     ? (e) => {
@@ -1097,7 +1162,7 @@ const SensorCard = memo(
                 >
                   {showToggleControls ? (
                     <span
-                      className={`text-[10px] font-bold tracking-widest uppercase ${isActiveState ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}`}
+                      className={`text-[10px] font-bold tracking-widest uppercase transition-colors duration-200 ${isActiveState ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}`}
                     >
                       {displayState}
                     </span>
@@ -1105,9 +1170,9 @@ const SensorCard = memo(
                     renderCompactToggleState('small')
                   ) : (
                     <span
-                      className={`${useDenseMobileSmallLayout ? 'truncate text-[13px]' : 'text-sm'} min-w-0 leading-none font-bold text-[var(--text-primary)]`}
+                      className={`${useDenseMobileSmallLayout ? 'truncate text-[13px]' : 'text-sm'} min-w-0 leading-none font-bold text-[var(--text-primary)] tabular-nums`}
                     >
-                      {chartDisplayValue ?? displayState}
+                      {renderValue()}
                     </span>
                   )}
                   {!showToggleControls &&
@@ -1129,7 +1194,7 @@ const SensorCard = memo(
 
             {showSmallVariantVisual && (
               <div
-                className="pointer-events-none ml-auto shrink-0 pr-1"
+                className={`pointer-events-none ml-auto shrink-0 pr-1 ${showTrend ? '@max-[220px]:hidden' : ''}`}
                 data-sensor-graph={variant}
               >
                 {renderSmallVariantVisual()}
@@ -1182,7 +1247,7 @@ const SensorCard = memo(
               onClick={iconIsAction ? executeAction : undefined}
               aria-label={iconIsAction ? (isArmed() ? confirmText : actionLabel) : undefined}
               aria-busy={iconIsAction ? actionFeedback.pending : undefined}
-              className={`relative z-10 flex shrink-0 items-center justify-center rounded-full ${useDenseMobileLargeLayout ? 'mb-3 p-4' : 'mb-4 p-5'} ${iconIsAction && isArmed() ? armedTone : iconIsAction && actionActive ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+              className={`relative z-10 flex shrink-0 items-center justify-center rounded-full ${useDenseMobileLargeLayout ? 'mb-3 p-4' : 'mb-4 p-5'} ${iconIsAction && isArmed() ? armedTone : iconIsAction && actionActive ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : iconToneClass} [transition:transform_500ms,background-color_200ms,color_200ms] group-hover:scale-110 group-hover:rotate-3`}
             >
               {iconIsAction && actionFeedback.pending ? (
                 <RefreshCw
@@ -1291,7 +1356,7 @@ const SensorCard = memo(
                 onClick={iconIsAction ? executeAction : undefined}
                 aria-label={iconIsAction ? (isArmed() ? confirmText : actionLabel) : undefined}
                 aria-busy={iconIsAction ? actionFeedback.pending : undefined}
-                className={`flex items-center justify-center ${iconIsAction ? 'h-11 w-11 rounded-2xl' : useCompactMobileActionLayout ? 'h-8 w-8 rounded-xl' : useDenseMobileLargeLayout ? (useCompactMobileToggleLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl') : useCompactDesktopSelectLayout ? 'h-10 w-10 rounded-xl' : 'h-11 w-11 rounded-2xl'} ${iconIsAction && isArmed() ? armedTone : iconIsAction && actionActive ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : iconToneClass} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+                className={`flex items-center justify-center ${iconIsAction ? 'h-11 w-11 rounded-2xl' : useCompactMobileActionLayout ? 'h-8 w-8 rounded-xl' : useDenseMobileLargeLayout ? (useCompactMobileToggleLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl') : useCompactDesktopSelectLayout ? 'h-10 w-10 rounded-xl' : 'h-11 w-11 rounded-2xl'} ${iconIsAction && isArmed() ? armedTone : iconIsAction && actionActive ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]' : iconToneClass} [transition:transform_500ms,background-color_200ms,color_200ms] group-hover:scale-110 group-hover:rotate-3`}
               >
                 {iconIsAction && actionFeedback.pending ? (
                   <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" />
@@ -1350,7 +1415,7 @@ const SensorCard = memo(
               <span
                 className={`${useCompactMobileRangeLayout ? 'text-[1.3rem]' : useDenseMobileLargeLayout ? 'text-[1.65rem]' : 'text-3xl'} leading-none font-thin whitespace-nowrap text-[var(--text-primary)] tabular-nums`}
               >
-                {chartDisplayValue ?? displayState}
+                {renderValue()}
               </span>
               {displayNumericUnit && valueMode !== 'percent' && (
                 <span
@@ -1448,7 +1513,6 @@ const SensorCard = memo(
                     min={chartMin}
                     max={safeChartMax}
                     size={largeVariantGaugeSize}
-                    strokeWidth={largeVariantGaugeStroke}
                     color={variantColor}
                     ariaLabel={chartAriaLabel}
                   />
@@ -1464,7 +1528,6 @@ const SensorCard = memo(
                     min={chartMin}
                     max={safeChartMax}
                     size={largeVariantDonutSize}
-                    strokeWidth={largeVariantDonutStroke}
                     color={variantColor}
                     ariaLabel={chartAriaLabel}
                   />

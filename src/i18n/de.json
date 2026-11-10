@@ -984,6 +984,7 @@
   "sensor.variantDonut": "Donut",
   "sensor.variantGauge": "Messgerät",
   "sensor.variantNumber": "Zahl",
+  "sensor.variantTrend": "Verlauf",
   "sensor.graphStyle": "Diagrammtyp",
   "sensor.graphStyleLine": "Linie",
   "sensor.graphStyleBar": "Balken",

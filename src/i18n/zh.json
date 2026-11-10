@@ -883,6 +883,7 @@
   "sensor.variantDonut": "环形图",
   "sensor.variantGauge": "仪表",
   "sensor.variantNumber": "数字",
+  "sensor.variantTrend": "趋势",
   "sensor.graphStyle": "图表类型",
   "sensor.graphStyleLine": "折线",
   "sensor.graphStyleBar": "柱状",

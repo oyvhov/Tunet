@@ -234,13 +234,13 @@ describe('SensorCard', () => {
     );
 
     const gauge = Array.from(container.querySelectorAll('svg')).find(
-      (svg) => svg.getAttribute('viewBox') === '0 0 80 44'
+      (svg) => svg.getAttribute('viewBox') === '0 0 80 44.8'
     );
 
     expect(gauge).toBeDefined();
-    expect(gauge.className.baseVal).toContain('w-[clamp(3.5rem,25cqw,6rem)]');
-    expect(gauge.parentElement.className).toContain('ml-auto');
-    expect(gauge.parentElement.className).toContain('pr-1');
+    expect(gauge.parentElement.className).toContain('w-[clamp(3.5rem,25cqw,6rem)]');
+    expect(gauge.closest('[data-sensor-graph]').className).toContain('ml-auto');
+    expect(gauge.closest('[data-sensor-graph]').className).toContain('pr-1');
     expect(screen.getByText('Pollen').parentElement.className).not.toContain('padding-right');
   });
 
@@ -265,8 +265,8 @@ describe('SensorCard', () => {
     const donut = container.querySelector('svg[width="42"][height="42"]');
 
     expect(donut).not.toBeNull();
-    expect(donut.parentElement.className).toContain('ml-auto');
-    expect(donut.parentElement.className).toContain('pr-1');
+    expect(donut.closest('[data-sensor-graph]').className).toContain('ml-auto');
+    expect(donut.closest('[data-sensor-graph]').className).toContain('pr-1');
     expect(screen.getByText('Humidity').parentElement.className).not.toContain('pr-14');
   });
 
@@ -331,6 +331,21 @@ describe('SensorCard', () => {
     expect(
       container.querySelector('[data-sensor-graph="history"] [data-chart-safe-inset="0"]')
     ).not.toBeNull();
+  });
+
+  it('counts the shown value to a new reading instead of jumping', async () => {
+    const sensor = (state) => ({
+      entity_id: 'sensor.power',
+      state,
+      attributes: { friendly_name: 'Power', unit_of_measurement: 'W' },
+    });
+    const props = baseProps({ entity: sensor('20'), name: 'Power' });
+    const { rerender } = render(<SensorCard {...props} />);
+    expect(screen.getByText('20')).toBeInTheDocument();
+
+    rerender(<SensorCard {...props} entity={sensor('30')} />);
+    expect(screen.getByText('20')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('30')).toBeInTheDocument());
   });
 
   it('scales bar visuals down on mobile large cards', () => {
