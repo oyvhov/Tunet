@@ -17,6 +17,7 @@ import SensorCardSettings from './SensorCardSettings';
 import SensorCardPreview from './editCard/SensorCardPreview';
 import CardActionsRow from './editCard/CardActionsRow';
 import MomentSection from './editCard/MomentSection';
+import LightScenesSection from './editCard/LightScenesSection';
 import { useConfig, useHomeAssistantMeta } from '../contexts';
 import {
   convertValueByKind,
@@ -1689,6 +1690,16 @@ export default function EditCardModal({
                     onChange={(value) => saveCardSetting(editSettingsKey, 'useLightColor', value)}
                   />
                 </div>
+              )}
+
+              {isEditLight && editSettingsKey && (
+                <LightScenesSection
+                  value={editSettings.lightScenes}
+                  sceneOptions={byDomain('scene')}
+                  entities={entities}
+                  onChange={(sceneIds) => saveCardSetting(editSettingsKey, 'lightScenes', sceneIds)}
+                  t={t}
+                />
               )}
 
               {(isEditClimate || isEditAppleTV) && editSettingsKey && (
