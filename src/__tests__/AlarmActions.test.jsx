@@ -57,6 +57,15 @@ describe('alarm card', () => {
     renderCard(alarm('disarming'));
     expect(screen.queryByRole('button', { name: /alarm\.action\.disarm/ })).toBeNull();
   });
+
+  it('names the alarm once and shows its state once', () => {
+    const labels = { 'alarm.state.armed_home': 'Home', 'alarm.title': 'Alarm' };
+    renderCard(alarm('armed_home', { friendly_name: 'Alarm' }), {
+      t: (key) => labels[key] ?? key,
+    });
+    expect(screen.getAllByText('Alarm')).toHaveLength(1);
+    expect(screen.getAllByText('Home')).toHaveLength(1);
+  });
 });
 
 describe('alarm popup', () => {

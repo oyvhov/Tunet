@@ -35,14 +35,8 @@ export function renderAutomationCard(cardId, dragProps, getControls, cardStyle, 
       className={`touch-feedback group relative mb-3 flex w-full break-inside-avoid items-center justify-between overflow-hidden rounded-2xl border p-4 font-sans transition-all duration-500 ${canToggle ? 'cursor-pointer active:scale-98' : editMode ? 'cursor-move' : 'cursor-default'}`}
       style={{
         ...cardStyle,
-        backgroundColor: isOn
-          ? 'color-mix(in srgb, var(--accent-color) 8%, transparent)'
-          : 'rgba(15, 23, 42, 0.6)',
-        borderColor: isOn
-          ? 'color-mix(in srgb, var(--accent-color) 24%, transparent)'
-          : editMode
-            ? 'color-mix(in srgb, var(--accent-color) 26%, transparent)'
-            : 'rgba(255, 255, 255, 0.04)',
+        // Border and the off background come from the shared card style, as on every other card.
+        ...(isOn && { backgroundColor: 'color-mix(in srgb, var(--accent-color) 8%, transparent)' }),
       }}
       onClick={(_e) => {
         if (canToggle) callService('automation', 'toggle', { entity_id: entityId });

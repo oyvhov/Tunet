@@ -343,12 +343,6 @@ const AlarmCard = memo(function AlarmCard({
             )}
           </div>
         </div>
-
-        <div
-          className={`rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] font-bold tracking-widest text-[var(--text-secondary)] uppercase ${isDenseMobile ? 'px-2 py-1 text-[9px]' : 'px-2 py-1 text-[10px]'}`}
-        >
-          {translate('alarm.title')}
-        </div>
       </div>
 
       <div className={isDenseMobile ? 'space-y-1.5' : 'space-y-2'}>
