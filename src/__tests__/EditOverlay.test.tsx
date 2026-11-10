@@ -48,6 +48,28 @@ describe('EditOverlay', () => {
     expect(screen.getByRole('button', { name: 'tooltip.editCard' })).toBeInTheDocument();
   });
 
+  it('puts all controls in one row in the top right corner, where the status chip sits', () => {
+    renderOverlay();
+    const buttons = ['tooltip.reorderCard', 'tooltip.editCard', 'tooltip.removeCard'].map((name) =>
+      screen.getByRole('button', { name })
+    );
+    const row = buttons[0].parentElement as HTMLElement;
+    for (const button of buttons) expect(button.parentElement).toBe(row);
+    expect(row).toHaveAttribute('data-edit-control');
+    expect(row).toHaveClass('flex-row', 'top-3', 'right-3');
+    expect(row.className).not.toMatch(/translate-y|top-1\/2|left-/);
+  });
+
+  it('keeps the row small and close to the edge on a one-row card', () => {
+    renderOverlay({ settings: { size: 'small' } });
+    const row = screen.getByRole('button', { name: 'tooltip.editCard' }).parentElement;
+    expect(row).toHaveClass('top-1', 'right-1');
+    for (const name of ['tooltip.reorderCard', 'tooltip.editCard', 'tooltip.removeCard']) {
+      // Smaller to the eye, but the hit area still reaches above and below the row.
+      expect(screen.getByRole('button', { name })).toHaveClass('p-1', 'before:-inset-y-2');
+    }
+  });
+
   it('gives the compact spacer handle a 44 px hit area beside the pencil', () => {
     renderOverlay({ editId: 'spacer_card_1', settings: { heightPx: 40 } });
     const handle = screen.getByRole('button', { name: 'tooltip.reorderCard' });
