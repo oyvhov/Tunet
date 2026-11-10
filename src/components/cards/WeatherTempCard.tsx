@@ -15,6 +15,7 @@ import type { Translate } from '../../types/ha';
 import type { ForecastEntry } from '../../services/haClient';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import { findNextPrecipitation, formatClockTime } from '../../utils/nextUp';
 
 type ForecastView = 'hourly' | 'daily';
 type CardView = 'current' | 'forecast';
@@ -172,7 +173,7 @@ const WeatherTempCard = memo(
     onOpen,
     t,
   }: WeatherTempCardProps) {
-    const { unitsMode } = useConfig();
+    const { unitsMode, showNextUp } = useConfig();
     const { haConfig } = useHomeAssistantMeta();
 
     const settings = (cardSettings[settingsKey] || {}) as WeatherTempSettings;
@@ -352,6 +353,19 @@ const WeatherTempCard = memo(
       .filter((item) => item !== null)
       .slice(0, forecastLimit);
 
+    const now = new Date();
+    const precipitation =
+      showNextUp && !isSmall && t
+        ? findNextPrecipitation(hourlyForecast, now, { currentCondition: state })
+        : null;
+    const precipitationText =
+      precipitation && t
+        ? t(precipitation.kind === 'snow' ? 'weather.snowFrom' : 'weather.rainFrom').replace(
+            '{time}',
+            formatClockTime(precipitation.at, now, locale)
+          )
+        : '';
+
     const handleCardClick = (event: MouseEvent<HTMLDivElement>) => {
       event.stopPropagation();
       if (suppressCardClickRef.current) {
@@ -473,14 +487,7 @@ const WeatherTempCard = memo(
           >
             {cardView === 'current' ? (
               <>
-                <div className="absolute inset-0 z-0 opacity-30">
-                  <WeatherGraph
-                    history={historyForDisplay as WeatherGraphHistory}
-                    currentTemp={displayTempValue}
-                    historyHours={graphHistoryHours}
-                    colorLimits={graphColorLimits}
-                  />
-                </div>
+                {/* No graph here: on a card this low its line ran through the numbers. */}
                 <div className="relative z-10 flex min-w-0 flex-1 items-center gap-4">
                   <div className="-ml-1 flex h-12 w-12 shrink-0 items-center justify-center drop-shadow-md filter transition-transform duration-500 group-hover:scale-110">
                     <img src={iconUrl} alt={info.label} className="h-full w-full object-contain" />
@@ -634,11 +641,16 @@ const WeatherTempCard = memo(
                       {formatUnitValue(displayTempValue, { fallback: '--' })}
                       {displayTempUnit}
                     </span>
+                    {precipitationText && (
+                      <span className="max-w-[12rem] truncate text-xs font-medium text-[var(--text-secondary)]">
+                        {precipitationText}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
               <div
-                className={`relative z-0 mt-auto h-32 overflow-hidden rounded-b-3xl opacity-80 ${graphMargins}`}
+                className={`relative z-0 mt-auto ${precipitationText ? 'h-28' : 'h-32'} overflow-hidden rounded-b-3xl opacity-80 ${graphMargins}`}
               >
                 <WeatherGraph
                   history={historyForDisplay as WeatherGraphHistory}

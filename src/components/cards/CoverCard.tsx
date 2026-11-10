@@ -89,6 +89,13 @@ const OPEN_HIT_AREA =
 const CLOSE_HIT_AREA =
   'relative after:absolute after:-inset-y-2 after:-right-[22px] after:-left-1.5';
 
+// Fixed positions offered as chips on the large card.
+const POSITION_PRESETS = [
+  { position: 0, labelKey: 'cover.closed' },
+  { position: 50, labelKey: 'cover.half' },
+  { position: 100, labelKey: 'cover.open' },
+] as const;
+
 /* -- Vertical Blind Slider ------------------------------------------- */
 const BlindSlider = ({
   position,
@@ -624,7 +631,7 @@ const CoverCard = ({
 
       {/* LEFT COLUMN: Info */}
       <div
-        className={`pointer-events-none z-10 flex min-w-0 flex-1 flex-col justify-between ${isDenseMobile ? 'pr-1.5' : 'pr-2'}`}
+        className={`@container pointer-events-none z-10 flex min-w-0 flex-1 flex-col justify-between ${isDenseMobile ? 'pr-1.5' : 'pr-2'}`}
       >
         {/* Top: Icon (Interactive for mode toggle) */}
         <div className="pointer-events-auto flex items-start">
@@ -675,6 +682,36 @@ const CoverCard = ({
               className={`${isDenseMobile ? 'mt-0.5 text-[9px]' : 'mt-1 text-[10px]'} animate-pulse font-bold tracking-widest text-[var(--text-primary)] uppercase`}
             >
               {isOpening ? `${translate('cover.opening')}...` : `${translate('cover.closing')}...`}
+            </div>
+          )}
+
+          {supportsPosition && (
+            <div
+              role="group"
+              aria-label={translate('cover.presets')}
+              className={`pointer-events-auto flex gap-1 @max-[8rem]:hidden ${isDenseMobile ? 'mt-1.5' : 'mt-2'}`}
+            >
+              {POSITION_PRESETS.map(({ position: preset, labelKey }) => {
+                const label = translate(labelKey);
+                const active = typeof position === 'number' && localPos === preset;
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={active}
+                    title={`${preset}%`}
+                    disabled={isUnavailable}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePositionCommit(preset);
+                    }}
+                    className={`relative min-w-0 flex-auto rounded-full border border-[var(--glass-border)] px-1.5 py-1.5 text-[9px] leading-none font-bold tracking-wider uppercase transition-colors after:absolute after:inset-x-0 after:-inset-y-3 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'bg-[var(--glass-bg-hover)] text-[var(--text-primary)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  >
+                    <span className="block truncate">{label}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

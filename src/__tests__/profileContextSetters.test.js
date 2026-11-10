@@ -33,6 +33,7 @@ describe('buildProfilesContextSetters', () => {
       setDensity: vi.fn(),
       setCardScale: vi.fn(),
       setInactivityTimeout: vi.fn(),
+      setShowNextUp: vi.fn(),
     };
 
     const result = buildProfilesContextSetters({
@@ -69,6 +70,7 @@ describe('buildProfilesContextSetters', () => {
         setDensity: refs.setDensity,
         setCardScale: refs.setCardScale,
         setInactivityTimeout: refs.setInactivityTimeout,
+        setShowNextUp: refs.setShowNextUp,
       },
       setLanguage: refs.setLanguage,
     });
@@ -82,5 +84,6 @@ describe('buildProfilesContextSetters', () => {
     expect(result.setDensity).toBe(refs.setDensity);
     expect(result.setCardScale).toBe(refs.setCardScale);
     expect(result.updateCardsOnlyMode).toBe(refs.updateCardsOnlyMode);
+    expect(result.setShowNextUp).toBe(refs.setShowNextUp);
   });
 });

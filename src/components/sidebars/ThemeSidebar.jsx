@@ -44,7 +44,7 @@ export default function ThemeSidebar({
   cardBgColor,
   setCardBgColor,
 }) {
-  const { appFont, setAppFont } = useConfig();
+  const { appFont, setAppFont, showNextUp, setShowNextUp } = useConfig();
   const bgModes = [
     { key: 'theme', icon: Sparkles, label: t('settings.bgFollowTheme') },
     { key: 'solid', icon: Sun, label: t('settings.bgSolid') },
@@ -268,6 +268,8 @@ export default function ThemeSidebar({
           cardBgColor={cardBgColor}
           setCardBgColor={setCardBgColor}
           themeCardColor={themes[currentTheme]?.colors['--card-bg'] ?? ''}
+          showNextUp={showNextUp}
+          setShowNextUp={setShowNextUp}
         />
 
         <div>

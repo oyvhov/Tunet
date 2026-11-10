@@ -132,6 +132,51 @@ describe('CoverCard', () => {
     expect(container).toHaveTextContent('50%');
   });
 
+  describe('fixed positions on the large card', () => {
+    const presets = (container: HTMLElement) =>
+      [...container.querySelectorAll('[role="group"] button')] as HTMLButtonElement[];
+
+    it('offers closed, half and open when the cover can be positioned', async () => {
+      const props = cardProps(cover(WITH_POSITION, { current_position: 50 }), 'large');
+      const { container } = render(<CoverCard {...props} />);
+
+      expect(presets(container).map((button) => button.getAttribute('aria-label'))).toEqual([
+        'cover.closed',
+        'cover.half',
+        'cover.open',
+      ]);
+      expect(presets(container)[1]).toHaveAttribute('aria-pressed', 'true');
+      expect(presets(container)[2]).toHaveAttribute('aria-pressed', 'false');
+
+      await act(async () => {
+        fireEvent.click(presets(container)[2]);
+      });
+
+      expect(props.callService).toHaveBeenCalledWith('cover', 'set_cover_position', {
+        entity_id: 'cover.stue',
+        position: 100,
+      });
+      expect(props.onOpen).not.toHaveBeenCalled();
+    });
+
+    it('leaves them out when the cover cannot be positioned', () => {
+      const { container } = render(<CoverCard {...cardProps(cover(OPEN_CLOSE_STOP), 'large')} />);
+      expect(presets(container)).toHaveLength(0);
+    });
+
+    it('leaves them off the small card', () => {
+      const props = cardProps(cover(WITH_POSITION, { current_position: 50 }));
+      const { container } = render(<CoverCard {...props} />);
+      expect(presets(container)).toHaveLength(0);
+    });
+
+    it('disables them while the cover is unavailable', () => {
+      const entity = { ...cover(WITH_POSITION, { current_position: 50 }), state: 'unavailable' };
+      const { container } = render(<CoverCard {...cardProps(entity, 'large')} />);
+      expect(presets(container).every((button) => button.disabled)).toBe(true);
+    });
+  });
+
   describe('draft position', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
