@@ -17,6 +17,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { TodoItem } from '../../services/haClient';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 type TodoCardItem = TodoItem & { due?: string };
 
@@ -309,9 +310,12 @@ const TodoCard = memo(function TodoCard({
             </p>
           ) : listUnavailable ? (
             <>
-              <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-                {displayName}
-              </p>
+              <CardName
+                lines={1}
+                className="mb-1.5 text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60"
+              >
+                {String(displayName)}
+              </CardName>
               <p className="truncate text-sm leading-none font-bold text-[var(--text-secondary)]">
                 {getUnavailableLabel(entity?.state, t)}
               </p>
@@ -326,9 +330,12 @@ const TodoCard = memo(function TodoCard({
             </p>
           ) : (
             <>
-              <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-                {displayName}
-              </p>
+              <CardName
+                lines={1}
+                className="mb-1.5 text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60"
+              >
+                {String(displayName)}
+              </CardName>
               <p className="truncate text-sm leading-none font-bold text-[var(--text-primary)]">
                 {pendingCount > 0
                   ? `${pendingCount} ${t('todo.pending') || 'pending'}`
@@ -366,9 +373,12 @@ const TodoCard = memo(function TodoCard({
           <div className="rounded-xl bg-[var(--status-success-bg)] p-2 text-[var(--status-success-fg)] transition-transform duration-300 group-hover:scale-110">
             <IconComp className="h-5 w-5" />
           </div>
-          <h3 className="text-lg font-medium tracking-tight text-[var(--text-primary)]">
-            {displayName}
-          </h3>
+          <CardName
+            as="h3"
+            className="text-lg leading-tight font-medium tracking-tight text-[var(--text-primary)]"
+          >
+            {String(displayName)}
+          </CardName>
         </div>
         {totalCount > 0 ? (
           <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">

@@ -33,6 +33,7 @@ import type { Connection } from 'home-assistant-js-websocket';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService } from '../../types/cards';
 import type { RoomEntitySettings } from '../../utils/roomEntities';
+import CardName from '../ui/CardName';
 
 interface RoomCardSettings extends RoomEntitySettings {
   areaName?: string;
@@ -518,11 +519,13 @@ const RoomCard = memo(
               <div
                 className={`${isSmall ? '' : 'mt-2'} flex w-full min-w-0 flex-col items-start text-left`}
               >
-                <div
-                  className={`${isMobile ? 'text-[11px]' : 'text-xs'} w-full truncate font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+                <CardName
+                  as="div"
+                  lines={1}
+                  className={`${isMobile ? 'text-[11px]' : 'text-xs'} w-full font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
                 >
-                  {areaName}
-                </div>
+                  {String(areaName)}
+                </CardName>
               </div>
             </div>
 

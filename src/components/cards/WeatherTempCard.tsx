@@ -16,6 +16,7 @@ import type { ForecastEntry } from '../../services/haClient';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
 import { findNextPrecipitation, formatClockTime } from '../../utils/nextUp';
+import CardName from '../ui/CardName';
 
 type ForecastView = 'hourly' | 'daily';
 type CardView = 'current' | 'forecast';
@@ -493,15 +494,15 @@ const WeatherTempCard = memo(
                     <img src={iconUrl} alt={info.label} className="h-full w-full object-contain" />
                   </div>
                   <div className="flex min-w-0 flex-col">
-                    <p
-                      className={`mb-1.5 font-bold break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60 ${
+                    <CardName
+                      className={`mb-1.5 font-bold text-[var(--text-secondary)] uppercase opacity-60 ${
                         isMobile
                           ? 'text-[10px] leading-tight tracking-[0.08em]'
-                          : 'text-xs leading-none tracking-widest'
+                          : 'text-xs leading-tight tracking-widest'
                       }`}
                     >
-                      {info.label}
-                    </p>
+                      {String(info.label)}
+                    </CardName>
                     <span className="text-2xl leading-none font-light text-[var(--text-primary)]">
                       {formatUnitValue(displayTempValue, { fallback: '--' })}
                       {displayTempUnit}
@@ -618,9 +619,9 @@ const WeatherTempCard = memo(
                       />
                     </div>
                     {subtitle && (
-                      <p className="mt-0.5 line-clamp-2 text-left text-xs leading-snug font-bold tracking-widest break-words text-[var(--text-secondary)] uppercase opacity-60">
-                        {subtitle}
-                      </p>
+                      <CardName className="mt-0.5 text-left text-xs leading-snug font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                        {String(subtitle)}
+                      </CardName>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
@@ -672,9 +673,9 @@ const WeatherTempCard = memo(
                     <img src={iconUrl} alt={info.label} className="h-full w-full object-contain" />
                   </div>
                   {subtitle && (
-                    <p className="mt-0.5 line-clamp-2 text-left text-xs leading-snug font-bold tracking-widest break-words text-[var(--text-secondary)] uppercase opacity-60">
-                      {subtitle}
-                    </p>
+                    <CardName className="mt-0.5 text-left text-xs leading-snug font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                      {String(subtitle)}
+                    </CardName>
                   )}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">

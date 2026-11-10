@@ -19,6 +19,7 @@ import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsEntry, CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
 import { useIsLightTheme } from '../../hooks/useIsLightTheme';
+import CardName from '../ui/CardName';
 
 type MediaEntity = EntityMap[string];
 
@@ -177,9 +178,12 @@ export const MediaPlayerCard = memo(
               {isUnavailableState(mpState) ? getUnavailableLabel(mpState, t) : t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                {name}
-              </p>
+              <CardName
+                lines={1}
+                className="text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70"
+              >
+                {String(name)}
+              </CardName>
             </div>
           </div>
           {canTogglePower && (
@@ -257,11 +261,12 @@ export const MediaPlayerCard = memo(
           )}
           <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'w-full pt-1' : 'pt-1'}`}>
             <div className="mb-1 flex items-center gap-2">
-              <p
-                className={`truncate ${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
+              <CardName
+                lines={1}
+                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
               >
-                {name}
-              </p>
+                {String(name)}
+              </CardName>
             </div>
             <h3
               className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'line-clamp-2 text-base' : 'line-clamp-2 text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
@@ -494,9 +499,12 @@ export const MediaGroupCard = memo(
                 : t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                {name}
-              </p>
+              <CardName
+                lines={1}
+                className="text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70"
+              >
+                {String(name)}
+              </CardName>
             </div>
           </div>
           {canTogglePower && (
@@ -613,11 +621,12 @@ export const MediaGroupCard = memo(
           )}
           <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'w-full pt-1' : 'pt-1'}`}>
             <div className="mb-1 flex items-center gap-2">
-              <p
-                className={`truncate ${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
+              <CardName
+                lines={1}
+                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
               >
-                {name}
-              </p>
+                {String(name)}
+              </CardName>
             </div>
             <h3
               className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'line-clamp-2 text-base' : 'line-clamp-2 text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}

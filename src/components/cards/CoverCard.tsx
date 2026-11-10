@@ -8,6 +8,7 @@ import type { CardCallService } from '../../types/cards';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import type { IconComponent } from '../../icons/iconMap';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 type CoverEntity = EntityMap[string];
 type CoverMode = 'slider' | 'buttons';
@@ -431,9 +432,9 @@ const SmallCoverCard = (props: SmallCoverCardProps) => {
         </div>
 
         <div className="flex min-w-0 flex-col">
-          <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
-            {name}
-          </p>
+          <CardName className="mb-1.5 text-xs leading-tight font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+            {String(name)}
+          </CardName>
           <div className="flex items-baseline gap-1">
             <span className="text-lg leading-none font-medium text-[var(--text-primary)]">
               {typeof position === 'number' ? `${localPos}%` : getStateLabel()}
@@ -671,11 +672,13 @@ const CoverCard = ({
             )}
           </div>
 
-          <div
-            className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} truncate font-bold tracking-wider text-[var(--text-secondary)] uppercase opacity-80`}
+          <CardName
+            as="div"
+            lines={1}
+            className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-wider text-[var(--text-secondary)] uppercase opacity-80`}
           >
-            {name}
-          </div>
+            {String(name)}
+          </CardName>
 
           {isMoving && (
             <div

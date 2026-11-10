@@ -14,6 +14,7 @@ import {
 import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 interface NordpoolSettings {
   currency?: string;
@@ -197,9 +198,12 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
 
           <div className="flex min-w-0 flex-col">
             <div className="mb-1.5 flex items-center gap-2">
-              <p className="truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                {name}
-              </p>
+              <CardName
+                lines={1}
+                className="text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70"
+              >
+                {String(name)}
+              </CardName>
               <span
                 className={`h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ring-2 ${indicatorClass}`}
                 title={levelText}
@@ -266,12 +270,12 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
           )}
         </div>
         <div className={isDenseMobile ? 'mt-3' : 'mt-2'}>
-          <p
-            className={`${isDenseMobile ? 'mb-1 text-[10px]' : 'mb-0.5 text-xs'} leading-none font-bold text-[var(--text-secondary)] uppercase opacity-60`}
+          <CardName
+            className={`${isDenseMobile ? 'mb-1 text-[10px]' : 'mb-0.5 text-xs'} leading-tight font-bold text-[var(--text-secondary)] uppercase opacity-60`}
             style={{ letterSpacing: '0.05em' }}
           >
-            {name}
-          </p>
+            {String(name)}
+          </CardName>
           {isDenseMobile ? (
             <>
               <span className={`text-[10px] font-bold tracking-widest uppercase ${levelColor}`}>

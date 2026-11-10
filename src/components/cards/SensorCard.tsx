@@ -20,6 +20,7 @@ import SparkLine from '../charts/SparkLine';
 import SensorTrend from '../charts/SensorTrend';
 import { Gauge, Donut, Bar } from '../charts/SensorGauge';
 import GlideNumber from '../ui/GlideNumber';
+import CardName from '../ui/CardName';
 import ModernDropdown from '../ui/ModernDropdown';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
 import {
@@ -1149,12 +1150,12 @@ const SensorCard = memo(
             )}
             <div className="flex min-w-0 flex-1 flex-col">
               {showName && (
-                <p
-                  className={`${useDenseMobileSmallLayout ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} block max-w-full truncate leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
-                  title={String(name)}
+                <CardName
+                  lines={1}
+                  className={`${useDenseMobileSmallLayout ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} max-w-full leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
                 >
                   {String(name)}
-                </p>
+                </CardName>
               )}
               {showStatus && (
                 <div
@@ -1271,12 +1272,12 @@ const SensorCard = memo(
               </p>
             )}
             {showName && (
-              <p
-                className={`${showStatus ? 'mt-1' : ''} truncate text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40`}
-                title={String(name)}
+              <CardName
+                lines={1}
+                className={`${showStatus ? 'mt-1' : ''} text-xs tracking-widest text-[var(--text-muted)] uppercase opacity-40`}
               >
                 {String(name)}
-              </p>
+              </CardName>
             )}
             {renderFeedback(!showStatus)}
             {renderActionCaption('mt-1 justify-center')}
@@ -1393,12 +1394,11 @@ const SensorCard = memo(
             )}
 
             {!useDenseMobileLargeLayout && showName && (
-              <p
-                className={`${useCompactDesktopSelectLayout ? 'mt-1.5 text-[10px] leading-[1.15]' : 'mt-2 text-xs'} line-clamp-2 w-full font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
-                title={String(name)}
+              <CardName
+                className={`${useCompactDesktopSelectLayout ? 'mt-1.5 text-[10px] leading-[1.15]' : 'mt-2 text-xs'} w-full font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
               >
                 {String(name)}
-              </p>
+              </CardName>
             )}
 
             {showCompactMobileToggleState && (
@@ -1429,12 +1429,11 @@ const SensorCard = memo(
         </div>
 
         {useDenseMobileLargeLayout && showName && (
-          <p
-            className={`relative z-10 shrink-0 ${useCompactMobileToggleLayout || useCompactMobileActionLayout ? 'mt-1 text-[9px]' : 'mt-1.5 text-[10px]'} line-clamp-2 w-full font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
-            title={String(name)}
+          <CardName
+            className={`relative z-10 shrink-0 ${useCompactMobileToggleLayout || useCompactMobileActionLayout ? 'mt-1 text-[9px]' : 'mt-1.5 text-[10px]'} w-full font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
           >
             {String(name)}
-          </p>
+          </CardName>
         )}
 
         <div

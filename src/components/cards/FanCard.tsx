@@ -15,6 +15,7 @@ import type { CardBaseProps } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 interface FanCardProps extends Pick<
   CardBaseProps,
@@ -225,9 +226,12 @@ const FanCard = memo(function FanCard({
               />
             </button>
             <div className="flex min-w-0 flex-col gap-0.5">
-              <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                {name}
-              </p>
+              <CardName
+                lines={1}
+                className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70"
+              >
+                {String(name)}
+              </CardName>
               <div className="flex items-center gap-2">
                 <span className="text-xl leading-none font-medium text-[var(--text-primary)]">
                   {hasSpeedControl && isOn && !isUnavailable ? `${boundedPercentage}%` : statusText}
@@ -320,12 +324,12 @@ const FanCard = memo(function FanCard({
 
           <div className={`${isDenseMobile ? 'mt-1 text-xs' : 'mt-2 text-xs'}`}>
             <div className={`flex items-center gap-2 ${isDenseMobile ? 'mb-2' : 'mb-3'}`}>
-              <p
-                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-none font-bold text-[var(--text-secondary)] uppercase opacity-60`}
+              <CardName
+                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-tight font-bold text-[var(--text-secondary)] uppercase opacity-60`}
                 style={{ letterSpacing: '0.05em' }}
               >
-                {name}
-              </p>
+                {String(name)}
+              </CardName>
             </div>
 
             {isDenseMobile && (hasDirectionControl || hasOscillationControl) && (

@@ -14,6 +14,7 @@ import type {
 } from 'react';
 import type { Connection } from 'home-assistant-js-websocket';
 import type { CardBaseProps } from '../../types/dashboard';
+import CardName from '../ui/CardName';
 
 type CalendarEventDateObject = { dateTime?: string; date_time?: string; date?: string };
 type CalendarEventDateValue = string | number | CalendarEventDateObject;
@@ -455,9 +456,12 @@ const CalendarCard = memo(
               </p>
             ) : !nextEvent ? (
               <>
-                <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-                  {displayName}
-                </p>
+                <CardName
+                  lines={1}
+                  className="mb-1.5 text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60"
+                >
+                  {String(displayName)}
+                </CardName>
                 <p className="truncate text-sm leading-none font-bold text-[var(--text-primary)] opacity-80">
                   {t('calendar.noEvents')}
                 </p>
@@ -556,9 +560,12 @@ const CalendarCard = memo(
             <div className="rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)]">
               <IconComp className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
             </div>
-            <h3 className="text-base font-medium tracking-tight text-[var(--text-primary)]">
-              {displayName}
-            </h3>
+            <CardName
+              as="h3"
+              className="text-base leading-tight font-medium tracking-tight text-[var(--text-primary)]"
+            >
+              {String(displayName)}
+            </CardName>
           </div>
 
           {selectedCalendars.length === 0 ? (
@@ -740,9 +747,12 @@ const CalendarCard = memo(
             <div className={`rounded-xl bg-[var(--accent-bg)] p-2 text-[var(--accent-color)]`}>
               <IconComp className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
             </div>
-            <h3 className="text-lg font-medium tracking-tight text-[var(--text-primary)]">
-              {displayName}
-            </h3>
+            <CardName
+              as="h3"
+              className="text-lg leading-tight font-medium tracking-tight text-[var(--text-primary)]"
+            >
+              {String(displayName)}
+            </CardName>
           </div>
         </div>
 

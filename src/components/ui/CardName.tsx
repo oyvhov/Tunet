@@ -64,7 +64,7 @@ function CardName({ children, className = '', lines = 2, as: Tag = 'p', style }:
       }}
       data-fit={fit}
       title={children}
-      className={`${wrapClass} max-w-full min-w-0 ${className}`}
+      className={`${wrapClass} min-w-0 ${className}`}
       style={{ ...style, fontSize: FONT_SCALE[fit] ?? style?.fontSize }}
     >
       {children}

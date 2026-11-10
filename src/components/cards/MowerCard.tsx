@@ -7,6 +7,7 @@ import type { Translate } from '../../types/ha';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 interface MowerCardProps extends Pick<
   CardBaseProps,
@@ -189,11 +190,12 @@ const MowerCard = ({
             />
           </div>
           <div className="flex min-w-0 flex-col">
-            <p
-              className={`${useCompactSmallLayout ? 'mb-0.5 text-[10px]' : isMobile ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} truncate leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+            <CardName
+              lines={1}
+              className={`${useCompactSmallLayout ? 'mb-0.5 text-[10px]' : isMobile ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
             >
-              {name}
-            </p>
+              {String(name)}
+            </CardName>
             <div
               className={`flex min-w-0 items-center ${useCompactSmallLayout ? 'gap-1' : isMobile ? 'gap-1.5' : 'gap-2'}`}
             >
@@ -328,11 +330,11 @@ const MowerCard = ({
         className={`${useDenseMobileLargeLayout ? 'mt-2' : ''} ${useDenseMobileLargeLayout ? 'flex flex-col gap-3' : 'flex items-end justify-between'}`}
       >
         <div>
-          <p
-            className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+          <CardName
+            className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} leading-tight font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
           >
-            {name}
-          </p>
+            {String(name)}
+          </CardName>
           <h3
             className={`${useDenseMobileLargeLayout ? 'text-[1.4rem]' : isMobile ? 'text-[1.65rem]' : 'text-3xl'} leading-none font-thin text-[var(--text-primary)]`}
           >

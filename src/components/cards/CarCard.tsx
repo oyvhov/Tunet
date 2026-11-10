@@ -13,6 +13,7 @@ import { formatFinish, getChargeFinishTime } from '../../utils/nextUp';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 interface CarCardProps extends Pick<
   CardBaseProps,
@@ -216,9 +217,12 @@ const CarCard = ({
             <Icon className="h-6 w-6 stroke-[1.5px]" />
           </div>
           <div className="flex min-w-0 flex-col">
-            <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-              {name}
-            </p>
+            <CardName
+              lines={1}
+              className="mb-1.5 text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60"
+            >
+              {String(name)}
+            </CardName>
             <div className="flex flex-col gap-0.5 leading-tight">
               <span
                 className={`text-sm font-bold ${isCharging ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'}`}
@@ -269,12 +273,12 @@ const CarCard = ({
           >
             <Icon className={`${isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px]`} />
           </div>
-          <p
-            className={`${isDenseMobile ? 'max-w-[10rem] text-[10px]' : 'max-w-[12rem] text-xs'} min-w-0 truncate font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
-            title={String(name)}
+          <CardName
+            lines={1}
+            className={`${isDenseMobile ? 'max-w-[10rem] text-[10px]' : 'max-w-[12rem] text-xs'} font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
           >
-            {name}
-          </p>
+            {String(name)}
+          </CardName>
         </div>
         <div
           className={`flex max-w-[62%] flex-col items-end ${isDenseMobile ? 'gap-1.5' : 'gap-2'}`}
@@ -286,11 +290,12 @@ const CarCard = ({
               <MapPin
                 className={`${isDenseMobile ? 'mt-0 h-2.5 w-2.5' : 'mt-0.5 h-3 w-3'} flex-shrink-0`}
               />
-              <span
-                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-tight font-bold tracking-widest break-words whitespace-normal uppercase`}
+              <CardName
+                as="span"
+                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-tight font-bold tracking-widest uppercase`}
               >
                 {String(locationLabel)}
-              </span>
+              </CardName>
             </div>
           )}
           {(isHtg || isPlugged) && (
