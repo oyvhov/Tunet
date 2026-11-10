@@ -316,6 +316,7 @@
   "common.hide": "Ausblenden",
   "common.light": "Licht",
   "common.loading": "Laden...",
+  "common.moreCount": "+{count} weitere",
   "common.missing": "Fehlt",
   "common.missingEntity": "Fehlende Entität",
   "common.missingEntityId": "Fehlende Entitäts-ID",

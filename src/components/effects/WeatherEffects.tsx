@@ -37,9 +37,11 @@ const WeatherEffects = ({ condition }: { condition?: string | null }) => {
     const target = canvas?.parentElement;
     if (!target || typeof IntersectionObserver === 'undefined') return undefined;
 
-    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), {
-      rootMargin: '80px',
-    });
+    // Entries for the one target arrive oldest first, so the last says where it is now.
+    const observer = new IntersectionObserver(
+      (entries) => setIsVisible(entries[entries.length - 1].isIntersecting),
+      { rootMargin: '80px' }
+    );
 
     observer.observe(target);
     return () => observer.disconnect();

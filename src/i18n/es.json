@@ -347,6 +347,7 @@
   "common.light": "Luz",
   "common.hide": "Ocultar",
   "common.loading": "Cargando...",
+  "common.moreCount": "+{count} más",
   "common.close": "Cerrar",
   "common.missing": "Falta",
   "common.missingEntity": "Entidad no encontrada",

@@ -117,6 +117,20 @@ describe('room card and popup', () => {
     expect(container).toHaveTextContent('19');
   });
 
+  it('lays a small card out in one row with the padding of the other small cards', () => {
+    const entities = makeEntities({ 'sensor.temp': ['21.5', { unit_of_measurement: '°C' }] });
+    const { container } = render(
+      cardElement(entities, { entityIds: [], tempEntityId: 'sensor.temp', size: 'small' })
+    );
+    const card = container.firstElementChild as HTMLElement;
+
+    expect(card).toHaveClass('p-4', 'pl-5');
+    expect(card).not.toHaveClass('p-7');
+    expect(card).toHaveTextContent('A');
+    expect(card).not.toHaveTextContent('21.5');
+    expect(card.querySelector('[aria-hidden="true"] svg')).toHaveAttribute('width', '112');
+  });
+
   it('asks before unlocking from the room popup', () => {
     const entities = makeEntities({ 'lock.door': ['locked'] });
     render(modalElement(entities, { entityIds: ['lock.door'] }));

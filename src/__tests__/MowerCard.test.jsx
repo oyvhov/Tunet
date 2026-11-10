@@ -99,6 +99,17 @@ describe('MowerCard', () => {
     expect(callService).not.toHaveBeenCalled();
   });
 
+  it('puts the two buttons of a small phone card side by side', () => {
+    const { props } = baseProps({
+      isMobile: true,
+      cardSettings: { 'lawn_mower.garden': { size: 'small' } },
+    });
+    render(<MowerCard {...props} />);
+    const buttons = screen.getByLabelText('mower.dock').parentElement;
+    expect(buttons).toContainElement(screen.getByLabelText('mower.start'));
+    expect(buttons).not.toHaveClass('flex-col');
+  });
+
   it('renders missing entity placeholder in edit mode when entity is absent', () => {
     const { props } = baseProps({ entities: {}, editMode: true });
     render(<MowerCard {...props} />);

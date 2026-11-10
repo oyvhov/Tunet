@@ -292,6 +292,7 @@
   "common.hide": "隐藏",
   "common.light": "灯光",
   "common.loading": "加载中...",
+  "common.moreCount": "还有 {count} 项",
   "common.missing": "缺失",
   "common.missingEntity": "缺失实体",
   "common.missingEntityId": "缺少实体 ID",

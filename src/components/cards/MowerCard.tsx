@@ -132,7 +132,7 @@ const MowerCard = ({
   const mowerIconName = customIcons[mowerId] || entity?.attributes?.icon;
   const Icon = mowerIconName ? getIconComponent(mowerIconName) || Sprout : Sprout;
   const statusText = getMowerStateLabel(state, battery, t);
-  const useStackedSmallControls = isMobile || isNarrowSmallCard;
+  const useCompactSmallLayout = isMobile || isNarrowSmallCard;
   const useDenseMobileLargeLayout = isMobile && !isSmall;
 
   const showZone = !!zone;
@@ -159,7 +159,7 @@ const MowerCard = ({
           e.stopPropagation();
           if (!editMode) onOpen?.();
         }}
-        className={`glass-texture touch-feedback group relative flex h-full overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${useStackedSmallControls ? 'items-center justify-between gap-3 p-3' : isMobile ? 'items-center justify-between gap-2 p-3 pl-4' : 'items-center justify-between gap-4 p-4 pl-5'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+        className={`glass-texture touch-feedback group relative flex h-full overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${useCompactSmallLayout ? 'items-center justify-between gap-3 p-3' : isMobile ? 'items-center justify-between gap-2 p-3 pl-4' : 'items-center justify-between gap-4 p-4 pl-5'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
         style={{
           ...cardStyle,
           backgroundColor: isErrorState
@@ -179,26 +179,26 @@ const MowerCard = ({
       >
         {controls}
         <div
-          className={`flex min-w-0 ${useStackedSmallControls ? 'flex-1 items-center gap-3' : isMobile ? 'flex-1 items-center gap-3' : 'flex-1 items-center gap-4'}`}
+          className={`flex min-w-0 ${useCompactSmallLayout ? 'flex-1 items-center gap-3' : isMobile ? 'flex-1 items-center gap-3' : 'flex-1 items-center gap-4'}`}
         >
           <div
-            className={`flex flex-shrink-0 items-center justify-center transition-all group-hover:scale-110 ${isActive ? 'animate-pulse bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${useStackedSmallControls ? 'h-10 w-10 rounded-xl' : isMobile ? 'h-10 w-10 rounded-xl' : 'h-12 w-12 rounded-2xl'}`}
+            className={`flex flex-shrink-0 items-center justify-center transition-all group-hover:scale-110 ${isActive ? 'animate-pulse bg-[var(--status-success-bg)] text-[var(--status-success-fg)]' : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'} ${useCompactSmallLayout ? 'h-10 w-10 rounded-xl' : isMobile ? 'h-10 w-10 rounded-xl' : 'h-12 w-12 rounded-2xl'}`}
           >
             <Icon
-              className={`${useStackedSmallControls ? 'h-[18px] w-[18px]' : isMobile ? 'h-5 w-5' : 'h-6 w-6'} stroke-[1.5px]`}
+              className={`${useCompactSmallLayout ? 'h-[18px] w-[18px]' : isMobile ? 'h-5 w-5' : 'h-6 w-6'} stroke-[1.5px]`}
             />
           </div>
           <div className="flex min-w-0 flex-col">
             <p
-              className={`${useStackedSmallControls ? 'mb-0.5 text-[10px]' : isMobile ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} truncate leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+              className={`${useCompactSmallLayout ? 'mb-0.5 text-[10px]' : isMobile ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} truncate leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
             >
               {name}
             </p>
             <div
-              className={`flex min-w-0 items-center ${useStackedSmallControls ? 'gap-1' : isMobile ? 'gap-1.5' : 'gap-2'}`}
+              className={`flex min-w-0 items-center ${useCompactSmallLayout ? 'gap-1' : isMobile ? 'gap-1.5' : 'gap-2'}`}
             >
               <span
-                className={`${useStackedSmallControls ? 'truncate text-[13px]' : isMobile ? 'text-xs' : 'text-sm'} leading-none font-bold text-[var(--text-primary)]`}
+                className={`${useCompactSmallLayout ? 'truncate text-[13px]' : isMobile ? 'text-xs' : 'text-sm'} leading-none font-bold text-[var(--text-primary)]`}
               >
                 {statusText}
               </span>
@@ -208,7 +208,7 @@ const MowerCard = ({
                   {t('mower.error')}
                 </span>
               )}
-              {showBattery && !useStackedSmallControls && (
+              {showBattery && !useCompactSmallLayout && (
                 <span className="text-xs text-[var(--text-secondary)]">{battery}%</span>
               )}
             </div>
@@ -216,8 +216,8 @@ const MowerCard = ({
         </div>
         <div
           className={
-            useStackedSmallControls
-              ? 'flex shrink-0 flex-col gap-1 rounded-2xl bg-[var(--glass-bg)] p-1'
+            useCompactSmallLayout
+              ? 'flex shrink-0 gap-1 rounded-2xl bg-[var(--glass-bg)] p-1'
               : 'mower-card-controls flex shrink-0 gap-2'
           }
         >
@@ -228,7 +228,7 @@ const MowerCard = ({
             }}
             aria-label={isActive ? t('mower.pause') : t('mower.start')}
             disabled={isUnavailable}
-            className={`flex items-center justify-center text-[var(--text-primary)] transition-colors active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
+            className={`flex items-center justify-center text-[var(--text-primary)] transition-colors active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useCompactSmallLayout ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
           >
             {isActive ? (
               <Pause className="h-4 w-4 fill-current" />
@@ -243,7 +243,7 @@ const MowerCard = ({
             }}
             aria-label={t('mower.dock')}
             disabled={isUnavailable}
-            className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useStackedSmallControls ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
+            className={`flex items-center justify-center text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${useCompactSmallLayout ? 'h-8 w-8 rounded-xl hover:bg-[var(--glass-bg-hover)]' : 'h-8 w-8 rounded-xl bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)]'}`}
           >
             <Home className="h-4 w-4" />
           </button>

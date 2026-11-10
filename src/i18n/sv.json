@@ -316,6 +316,7 @@
   "common.hide": "Dölj",
   "common.light": "Ljus",
   "common.loading": "Laddar...",
+  "common.moreCount": "+{count} till",
   "common.missing": "Saknas",
   "common.missingEntity": "Saknad entitet",
   "common.missingEntityId": "Saknad entitets-ID",
