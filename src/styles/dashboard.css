@@ -1142,7 +1142,3 @@ html[data-density='spacious'] .touch-feedback h3 {
   --status-error-bg: rgba(239, 68, 68, 0.14);
   --status-error-border: rgba(239, 68, 68, 0.3);
 }
-
-html[data-theme='light'] .media-art-scrim {
-  background: #172033;
-}

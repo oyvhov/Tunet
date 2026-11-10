@@ -2,6 +2,8 @@ import { useRef, useEffect, useCallback, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Check, Lightbulb, RefreshCw } from '../../icons';
 import M3Slider from '../ui/M3Slider';
+import CardName from '../ui/CardName';
+import GlideNumber from '../ui/GlideNumber';
 import type { CSSProperties, Dispatch, KeyboardEvent, MouseEvent, SetStateAction } from 'react';
 import { getLightColor } from '../../utils/lightColor';
 import { resolveLightScenes } from '../../utils/lightScenes';
@@ -29,6 +31,7 @@ interface LightCardProps extends Pick<
 
 const SLIDER_DEBOUNCE_MS = 200;
 const SCENE_DONE_MS = 1500;
+const formatPercent = (value: number) => `${value}%`;
 
 type SceneStatus = 'pending' | 'done';
 
@@ -195,13 +198,17 @@ const LightCard = ({
   // With scenes on a phone, the brightness moves next to the slider to make room for the chips.
   const showInlineValue = isDenseMobile && hasScenes;
   const inlineValueIsNumber = !isUnavailable && isOn && isDimmable;
-  const inlineValue = isUnavailable
-    ? '--'
-    : inlineValueIsNumber
-      ? `${brightnessPct}%`
-      : isOn
-        ? t('common.on')
-        : t('common.off');
+  // While the slider is being dragged the number follows the finger; other changes glide.
+  const glideDuration = optimisticLightBrightness[cardId] !== undefined ? 0 : undefined;
+  const inlineValue = isUnavailable ? (
+    '--'
+  ) : inlineValueIsNumber ? (
+    <GlideNumber value={brightnessPct} format={formatPercent} duration={glideDuration} />
+  ) : isOn ? (
+    t('common.on')
+  ) : (
+    t('common.off')
+  );
   const inlineValueClass = `shrink-0 leading-none whitespace-nowrap ${isDimmable ? 'min-w-10 text-right' : 'text-left'} ${inlineValueIsNumber ? 'text-sm font-semibold text-[var(--text-primary)] tabular-nums' : 'text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase'}`;
 
   // Debounced brightness service call
@@ -273,9 +280,12 @@ const LightCard = ({
           <div
             className={`col-start-1 row-start-1 flex min-w-0 items-baseline justify-between pr-1 ${isDimmable ? 'col-span-2 @max-[220px]:col-span-1' : 'col-span-2'}`}
           >
-            <p className="truncate text-xs leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60">
+            <CardName
+              lines={1}
+              className="text-xs leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60"
+            >
               {String(name || t('common.light'))}
-            </p>
+            </CardName>
             {isUnavailable && (
               <span
                 className="text-lg leading-none font-medium text-[var(--status-error-fg)]"
@@ -375,11 +385,12 @@ const LightCard = ({
       </div>
       <div className={`${isDenseMobile ? 'mt-1' : 'mt-2'} font-sans`}>
         {(!isDenseMobile || hasScenes) && (
-          <p
-            className={`mb-0.5 text-[10px] leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60 ${hasScenes ? 'truncate' : ''}`}
+          <CardName
+            lines={hasScenes ? 1 : 2}
+            className={`mb-0.5 text-[10px] font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60 ${hasScenes ? 'leading-none' : 'leading-tight'}`}
           >
             {String(name || t('common.light'))}
-          </p>
+          </CardName>
         )}
         {!showInlineValue && (
           <div
@@ -390,7 +401,11 @@ const LightCard = ({
                 <span
                   className={`${isDenseMobile || hasScenes ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-[var(--text-primary)]`}
                 >
-                  {isUnavailable ? '--' : isOn ? brightnessPct : '0'}
+                  {isUnavailable ? (
+                    '--'
+                  ) : (
+                    <GlideNumber value={isOn ? brightnessPct : 0} duration={glideDuration} />
+                  )}
                 </span>
                 <span
                   className={`${isDenseMobile ? 'text-lg' : hasScenes ? 'ml-1 text-lg' : 'ml-1 text-xl'} font-light text-[var(--text-muted)]`}
@@ -409,9 +424,9 @@ const LightCard = ({
           </div>
         )}
         {isDenseMobile && !hasScenes && (
-          <p className="mt-3 mb-1 text-[10px] leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60">
+          <CardName className="mt-3 mb-1 text-[10px] leading-tight font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60">
             {String(name || t('common.light'))}
-          </p>
+          </CardName>
         )}
         {/* Helper to keep layout consistent. For non-dimmable, we keep the empty space where slider would be. */}
         {(isDimmable || !hasScenes || showInlineValue) && (
