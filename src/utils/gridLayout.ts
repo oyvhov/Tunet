@@ -248,13 +248,16 @@ export const getCardColSpan = (
  * @param {number}    columns   Number of grid columns
  * @param {Function}  spanFn    (cardId) => number  – pre-bound getCardGridSpan (row span)
  * @param {Function}  [colSpanFn] (cardId) => number  – pre-bound getCardColSpan
+ * @param {Function}  [canFillRowFn] (cardId) => boolean – in two columns, whether a card left
+ *                    alone may take the whole row; leave out to keep every card's width
  * @returns {Object}  { [cardId]: { row, col, span, colSpan } }
  */
 export const buildGridLayout = (
   ids: readonly string[],
   columns: number,
   spanFn: (cardId: string) => number,
-  colSpanFn?: ((cardId: string) => number) | null
+  colSpanFn?: ((cardId: string) => number) | null,
+  canFillRowFn?: ((cardId: string) => boolean) | null
 ): Record<string, GridPosition> => {
   if (!columns || columns < 1) return {};
   const occupancy: boolean[][] = [];
@@ -334,10 +337,11 @@ export const buildGridLayout = (
 
   // In two columns (phones), a card left alone with cards below it would leave a hole that no
   // later card fills, so it takes the whole row. A lone card at the end keeps its width.
-  if (columns === 2) {
+  if (columns === 2 && canFillRowFn) {
     const lastRowStart = Math.max(0, ...Object.values(positions).map((pos) => pos.row));
-    for (const pos of Object.values(positions)) {
+    for (const [id, pos] of Object.entries(positions)) {
       if (pos.colSpan !== 1 || pos.row + pos.span - 1 >= lastRowStart) continue;
+      if (!canFillRowFn(id)) continue;
       const other = pos.col === 1 ? 1 : 0;
       const rows = Array.from({ length: pos.span }, (_, offset) => pos.row - 1 + offset);
       if (rows.every((row) => !occupancy[row][other])) {

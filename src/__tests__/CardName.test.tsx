@@ -37,18 +37,28 @@ describe('CardName', () => {
     expect(name.getAttribute('title')).toBe('Stove taklys');
   });
 
-  it('shrinks the text one step when a word is a little too wide', () => {
+  // The name's own size is 12px inside a 16px parent: each step scales the 12px, not the parent.
+  const renderSized = (text: string) =>
+    render(
+      <div style={{ fontSize: '16px' }}>
+        <CardName style={{ fontSize: '12px' }}>{text}</CardName>
+      </div>
+    );
+
+  it('shrinks the text one step from its own size when a word is a little too wide', () => {
     widthsByFit = { '0': 120, '1': 100 };
-    render(<CardName>Garasjeport</CardName>);
+    renderSized('Garasjeport');
     const name = screen.getByText('Garasjeport');
     expect(name.dataset.fit).toBe('1');
-    expect(name.style.fontSize).toBe('0.92em');
+    expect(name.style.fontSize).toBe('11.04px');
   });
 
   it('shrinks two steps before giving up', () => {
     widthsByFit = { '0': 130, '1': 115, '2': 100 };
-    render(<CardName>Garasjeportopnar</CardName>);
-    expect(screen.getByText('Garasjeportopnar').dataset.fit).toBe('2');
+    renderSized('Garasjeportopnar');
+    const name = screen.getByText('Garasjeportopnar');
+    expect(name.dataset.fit).toBe('2');
+    expect(name.style.fontSize).toBe('10.2px');
   });
 
   it('keeps two lines and cuts the long word with an ellipsis when nothing else fits', () => {

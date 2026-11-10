@@ -108,6 +108,8 @@ function LightSceneChips({
             aria-busy={isPending}
             disabled={editMode || isPending || isSceneUnavailable}
             onClick={(event) => activate(event, sceneId)}
+            // Enter and Space belong to the chip; the card would open the light popup instead.
+            onKeyDown={(event) => event.stopPropagation()}
             className={`flex h-7 min-w-0 cursor-pointer items-center gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2.5 text-[11px] leading-none font-semibold text-[var(--text-secondary)] transition-[transform,background-color,color] duration-200 enabled:hover:bg-[var(--glass-bg-hover)] enabled:hover:text-[var(--text-primary)] enabled:active:scale-95 disabled:cursor-default motion-reduce:transition-none motion-reduce:enabled:active:scale-100 ${editMode ? 'pointer-events-none' : ''} ${isSceneUnavailable ? 'opacity-50' : ''}`}
           >
             {isPending ? (

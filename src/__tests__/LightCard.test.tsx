@@ -191,6 +191,19 @@ describe('LightCard scenes', () => {
     expect(sceneButton(/Evening/)).not.toBeDisabled();
   });
 
+  it('leaves Enter and Space on a chip to the chip instead of opening the popup', () => {
+    const { onOpen } = renderCard({
+      entity: light('on', { brightness: 128 }),
+      settings: { lightScenes: ['scene.evening'] },
+    });
+
+    for (const key of ['Enter', ' ']) {
+      // fireEvent returns false when a handler cancelled the key, which stops the chip's click.
+      expect(fireEvent.keyDown(sceneButton(/Evening/), { key })).toBe(true);
+    }
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
   it('frees the chip again when the call fails', async () => {
     const callService = vi.fn(() => Promise.reject(new Error('No connection')));
     renderCard({

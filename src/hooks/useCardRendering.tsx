@@ -307,15 +307,23 @@ export function useCardRendering({
     return visibleIds.join('\n');
   }, [pagesConfig, activePage, hiddenCards, editMode, isCardHiddenByLogic]);
 
+  // On a phone a card left alone in a row may take the whole row, unless it is set to compact.
+  const canFillRow = useCallback(
+    (cardId: string) =>
+      (cardSettings[getCardSettingsKey(cardId)] || cardSettings[cardId])?.mobileWidth !== 'compact',
+    [cardSettings, getCardSettingsKey]
+  );
+
   const gridLayout = useMemo(
     () =>
       _buildGridLayout(
         visibleIdsKey ? visibleIdsKey.split('\n') : [],
         gridColCount,
         getCardGridSpan,
-        getCardColSpan
+        getCardColSpan,
+        isMobile ? canFillRow : null
       ),
-    [visibleIdsKey, gridColCount, getCardGridSpan, getCardColSpan]
+    [visibleIdsKey, gridColCount, getCardGridSpan, getCardColSpan, isMobile, canFillRow]
   );
 
   const dragAndDrop = useMemo(

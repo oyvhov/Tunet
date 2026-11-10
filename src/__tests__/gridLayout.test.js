@@ -145,16 +145,19 @@ describe('buildGridLayout', () => {
   it('widens a card left alone between full-width cards in a 2-col grid', () => {
     const rowSpans = { ute: 2 };
     const colSpans = { straum: 2, ute: 2 };
-    const result = buildGridLayout(
-      ['lamp', 'bedroom', 'straum', 'co2', 'ute'],
-      2,
-      (id) => rowSpans[id] || 1,
-      (id) => colSpans[id] || 1
-    );
+    const ids = ['lamp', 'bedroom', 'straum', 'co2', 'ute'];
+    const rowSpanOf = (id) => rowSpans[id] || 1;
+    const colSpanOf = (id) => colSpans[id] || 1;
+    const result = buildGridLayout(ids, 2, rowSpanOf, colSpanOf, () => true);
     expect(result.co2).toEqual({ row: 3, col: 1, span: 1, colSpan: 2 });
     expect(result.ute).toEqual({ row: 4, col: 1, span: 2, colSpan: 2 });
     expect(result.lamp.colSpan).toBe(1);
     expect(result.bedroom.colSpan).toBe(1);
+
+    // A card set to keep its width, and a layout that does not ask for it, keep the hole.
+    const keepCo2 = buildGridLayout(ids, 2, rowSpanOf, colSpanOf, (id) => id !== 'co2');
+    expect(keepCo2.co2.colSpan).toBe(1);
+    expect(buildGridLayout(ids, 2, rowSpanOf, colSpanOf).co2.colSpan).toBe(1);
   });
 
   it('leaves a lone card in a wider grid as it is', () => {
@@ -163,7 +166,8 @@ describe('buildGridLayout', () => {
       ['lone', 'wide'],
       4,
       () => 1,
-      (id) => colSpans[id] || 1
+      (id) => colSpans[id] || 1,
+      () => true
     );
     expect(result.lone).toEqual({ row: 1, col: 1, span: 1, colSpan: 1 });
   });
