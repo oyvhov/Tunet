@@ -152,6 +152,113 @@ describe('CalendarCard', () => {
     expect(screen.getByText('9')).toBeInTheDocument();
   });
 
+  it('starts loading when any report in a batch says the card is on screen', async () => {
+    const original = globalThis.IntersectionObserver;
+    globalThis.IntersectionObserver = class {
+      constructor(callback) {
+        this.callback = callback;
+      }
+      observe() {
+        this.callback([{ isIntersecting: false }, { isIntersecting: true }]);
+      }
+      unobserve() {}
+      disconnect() {}
+    };
+    try {
+      respond([{ summary: 'Dentist', start: hoursFromNow(1), end: hoursFromNow(2) }]);
+      renderCard();
+      await waitFor(() => expect(screen.getByText('Dentist')).toBeInTheDocument());
+    } finally {
+      globalThis.IntersectionObserver = original;
+    }
+  });
+
+  describe('list that is taller than the card', () => {
+    const events = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'].map((summary) => ({
+      summary,
+      start: localDay(0),
+      end: localDay(1),
+    }));
+    const tMore = (key) => (key === 'common.moreCount' ? '+{count} more' : key);
+    const box = (top, bottom) => ({
+      top,
+      bottom,
+      height: bottom - top,
+      left: 0,
+      right: 300,
+      width: 300,
+      x: 0,
+      y: top,
+      toJSON() {},
+    });
+    // Rows are 40 px with 10 px between them; the "+N more" line is 20 px below the last row.
+    const fakeLayout = (listHeight) =>
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+        const rows = Array.from(document.querySelectorAll('[data-fit-row]'));
+        const index = rows.indexOf(this);
+        if (index >= 0) return box(index * 50, index * 50 + 40);
+        if (this.hasAttribute('data-fit-more')) return box(rows.length * 50, rows.length * 50 + 20);
+        return box(0, listHeight.current);
+      });
+    const renderList = () =>
+      render(
+        <CalendarCard
+          cardId="cal"
+          settings={{ calendars: ['calendar.a'] }}
+          conn={makeConn()}
+          t={tMore}
+          locale="en-GB"
+        />
+      );
+
+    it('shows only the events that fit whole, then how many more there are', async () => {
+      fakeLayout({ current: 200 });
+      respond(events);
+      renderList();
+
+      await waitFor(() => expect(screen.getByText('+3 more')).toBeInTheDocument());
+      expect(screen.getByText('E3')).toBeInTheDocument();
+      expect(screen.queryByText('E4')).toBeNull();
+    });
+
+    it('shows the rest when the card grows', async () => {
+      const original = globalThis.ResizeObserver;
+      const observers = [];
+      globalThis.ResizeObserver = class {
+        constructor(callback) {
+          this.callback = callback;
+          observers.push(this);
+        }
+        observe(target) {
+          this.target = target;
+        }
+        unobserve() {}
+        disconnect() {}
+      };
+      try {
+        const listHeight = { current: 200 };
+        fakeLayout(listHeight);
+        respond(events);
+        renderList();
+        await waitFor(() => expect(screen.getByText('+3 more')).toBeInTheDocument());
+
+        listHeight.current = 400;
+        act(() =>
+          observers.forEach((observer) =>
+            observer.callback([
+              { target: observer.target, contentRect: { width: 300, height: 400 } },
+            ])
+          )
+        );
+
+        expect(screen.getByText('E6')).toBeInTheDocument();
+        expect(screen.queryByText(/more/)).toBeNull();
+      } finally {
+        globalThis.ResizeObserver = original;
+      }
+    });
+  });
+
   it('puts a multi-day timed event in the all-day row of the week', async () => {
     respond([{ summary: 'Night shift', start: hoursFromNow(1), end: hoursFromNow(30) }]);
     renderCard(makeConn(), { largeCalendar: true });

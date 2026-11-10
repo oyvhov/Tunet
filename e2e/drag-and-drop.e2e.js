@@ -86,6 +86,30 @@ test.describe('Drag and Drop Interactions', () => {
     });
   });
 
+  test('keeps the edit controls in one row in the top right corner', async ({ page }) => {
+    await enableEditMode(page);
+    const card = page.locator('[data-dashboard-card="light.bedroom"]');
+    const cardBox = await card.boundingBox();
+    const controls = [
+      card.locator('[data-drag-handle]'),
+      card.getByRole('button', { name: 'Edit card', exact: true }),
+      card.getByRole('button', { name: 'Remove card', exact: true }),
+    ];
+    const boxes = [];
+    for (const control of controls) boxes.push(await control.boundingBox());
+
+    for (const box of boxes) {
+      expect(Math.abs(box.y - boxes[0].y)).toBeLessThanOrEqual(1);
+      expect(box.y - cardBox.y).toBeLessThan(32);
+    }
+    const rightEdge = Math.max(...boxes.map((box) => box.x + box.width));
+    expect(cardBox.x + cardBox.width - rightEdge).toBeLessThan(32);
+    // Clear of the card's middle, where values and sliders sit.
+    expect(Math.max(...boxes.map((box) => box.y + box.height))).toBeLessThan(
+      cardBox.y + cardBox.height / 2
+    );
+  });
+
   test('should enable edit mode with button or long-press', async ({ page }) => {
     await enableEditMode(page);
     const cards = page.locator('[draggable="true"]');

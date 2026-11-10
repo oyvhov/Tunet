@@ -6,6 +6,7 @@ import type { Connection } from 'home-assistant-js-websocket';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 interface CameraCardProps extends Pick<
   CardBaseProps,
@@ -133,9 +134,9 @@ const CameraCard = memo(function CameraCard({
           <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
             {isOffline ? t?.('camera.unavailable') || 'Unavailable' : t?.('camera.live') || 'Live'}
           </p>
-          <p className="truncate text-sm leading-none font-bold text-[var(--text-primary)]">
-            {name}
-          </p>
+          <CardName lines={1} className="text-sm leading-none font-bold text-[var(--text-primary)]">
+            {String(name)}
+          </CardName>
         </div>
         <span
           className={`ml-auto h-2.5 w-2.5 shrink-0 rounded-full ${isOffline ? 'bg-red-400' : 'bg-emerald-400'}`}
@@ -216,9 +217,12 @@ const CameraCard = memo(function CameraCard({
       {/* Name overlay */}
       <div className="absolute right-3 bottom-3 left-3 flex items-end justify-between gap-3">
         <div className="popup-surface max-w-[75%] min-w-0 rounded-xl border border-[var(--glass-border)] px-3 py-2">
-          <p className="truncate text-xs font-bold tracking-wide text-[var(--text-primary)] uppercase">
-            {name}
-          </p>
+          <CardName
+            lines={1}
+            className="text-xs font-bold tracking-wide text-[var(--text-primary)] uppercase"
+          >
+            {String(name)}
+          </CardName>
         </div>
         <div className="popup-surface shrink-0 rounded-xl border border-[var(--glass-border)] p-2 text-[var(--text-primary)]">
           <Icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />

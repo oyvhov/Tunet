@@ -63,6 +63,9 @@ export interface ConfigContextValue {
   setCardScale: Dispatch<SetStateAction<number>>;
   appFont: string;
   setAppFont: Dispatch<SetStateAction<string>>;
+  /** Cards add one line about what happens next. Off unless the user turns it on. */
+  showNextUp: boolean;
+  setShowNextUp: Dispatch<SetStateAction<boolean>>;
   config: HomeAssistantConfig;
   setConfig: Dispatch<SetStateAction<HomeAssistantConfig>>;
 }

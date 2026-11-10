@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const config = vi.hoisted(() => ({ language: 'nb', showNextUp: false }));
 vi.mock('../contexts', () => ({
+  useConfig: () => config,
   useHomeAssistantMeta: () => ({ haConfig: { currency: 'kr' } }),
 }));
 
@@ -112,6 +114,42 @@ describe('GenericNordpoolCard', () => {
   it('shows the raw price when the setting is off', () => {
     const { container } = card(makeEntity(hours(2), { unit_of_measurement: 'NOK/kWh' }));
     expect(container).toHaveTextContent('2.00');
+  });
+
+  describe('cheapest hours ahead', () => {
+    const words = (key) => ({ 'power.cheapestWindow': 'Billigst kl. {start}–{end}' })[key] || key;
+    // Cheapest at night, already gone at 10:00; the cheapest still to come is 14–16.
+    const prices = hours(5).map((price, hour) =>
+      hour === 3 || hour === 4 ? 0 : hour === 14 || hour === 15 ? 1 : price
+    );
+    const renderCard = (settings = {}) =>
+      render(
+        <GenericNordpoolCard
+          cardId="np"
+          entity={makeEntity(prices)}
+          settings={settings}
+          t={words}
+          dragProps={{}}
+        />
+      );
+
+    afterEach(() => {
+      config.showNextUp = false;
+    });
+
+    it('stays quiet unless the what happens next line is on', () => {
+      expect(renderCard().container).not.toHaveTextContent('Billigst');
+    });
+
+    it('names the cheapest two hours still to come', () => {
+      config.showNextUp = true;
+      expect(renderCard().container).toHaveTextContent('Billigst kl. 14:00–16:00');
+    });
+
+    it('leaves the small card alone', () => {
+      config.showNextUp = true;
+      expect(renderCard({ size: 'small' }).container).not.toHaveTextContent('Billigst');
+    });
   });
 });
 

@@ -1,5 +1,5 @@
 import { buildOnboardingSteps } from '../config/onboarding';
-import { useHomeAssistantMeta } from '../contexts';
+import { useConfig, useHomeAssistantMeta } from '../contexts';
 import { useProfiles } from '../hooks/useProfiles';
 import { ModalEntitySlice } from './modalSlices/ModalEntitySlice';
 import { ModalManagementSlice } from './modalSlices/ModalManagementSlice';
@@ -115,6 +115,7 @@ export default function ModalOrchestrator({
   const onboardingSteps = buildOnboardingSteps(t);
 
   const { haUser } = useHomeAssistantMeta();
+  const { setShowNextUp } = useConfig();
   const profileContextSetters = buildProfilesContextSetters({
     page: {
       persistConfig,
@@ -149,6 +150,7 @@ export default function ModalOrchestrator({
       setDensity,
       setCardScale,
       setInactivityTimeout,
+      setShowNextUp,
     },
     setLanguage,
   });

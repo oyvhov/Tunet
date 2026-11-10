@@ -4,6 +4,7 @@ import { getIconComponent } from '../../icons';
 import { useHomeAssistantMeta } from '../../contexts';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 type CostEntity = EntityMap[string] | null | undefined;
 
@@ -114,9 +115,9 @@ const GenericEnergyCostCard = memo(function GenericEnergyCostCard({
             <Icon className="h-6 w-6 stroke-[1.5px]" />
           </div>
           <div className="flex min-w-0 flex-col">
-            <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
-              {name}
-            </p>
+            <CardName className="mb-1.5 text-xs leading-tight font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+              {String(name)}
+            </CardName>
             <div className="flex items-baseline gap-2">
               <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
                 {todayValue} {currency}
@@ -173,11 +174,13 @@ const GenericEnergyCostCard = memo(function GenericEnergyCostCard({
             color: 'var(--text-secondary)',
           }}
         >
-          <span
+          <CardName
+            as="span"
+            lines={1}
             className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase`}
           >
-            {name}
-          </span>
+            {String(name)}
+          </CardName>
         </div>
       </div>
       <div

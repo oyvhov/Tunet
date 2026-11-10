@@ -19,6 +19,8 @@ const makeProps = (overrides = {}) => ({
   cardBgColor: '',
   setCardBgColor: vi.fn(),
   themeCardColor: 'rgba(31, 41, 55, 0.5)',
+  showNextUp: false,
+  setShowNextUp: vi.fn(),
   ...overrides,
 });
 
@@ -99,6 +101,26 @@ describe('CardStyleSection', () => {
     expect(screen.getByText('16')).toBeInTheDocument();
     expect(screen.getByText('32')).toBeInTheDocument();
     expect(screen.getByText('48')).toBeInTheDocument();
+  });
+
+  it('turns the what happens next line on', () => {
+    const props = makeProps();
+    render(<CardStyleSection {...props} />);
+
+    const toggle = screen.getByRole('switch', { name: 'settings.showNextUp' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+
+    expect(props.setShowNextUp).toHaveBeenCalledWith(true);
+  });
+
+  it('shows the what happens next line as on', () => {
+    render(<CardStyleSection {...makeProps({ showNextUp: true })} />);
+
+    expect(screen.getByRole('switch', { name: 'settings.showNextUp' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
   });
 
   it('can be collapsed', () => {

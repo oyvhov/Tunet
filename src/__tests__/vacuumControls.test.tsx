@@ -1,10 +1,16 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
 import VacuumCard from '../components/cards/VacuumCard';
 import MowerCard from '../components/cards/MowerCard';
 import VacuumModal from '../modals/VacuumModal';
 import type { EntityMap } from '../types/dashboard';
+
+const config = vi.hoisted(() => ({ language: 'en', showNextUp: false }));
+vi.mock('../contexts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../contexts')>()),
+  useConfig: () => config,
+}));
 
 const t = (key: string) => key;
 const VACUUM = 'vacuum.rocky';
@@ -20,19 +26,22 @@ const lookup =
 
 const asProps = <T,>(props: unknown) => props as T;
 
-function renderVacuumCard(entities: EntityMap) {
+function renderVacuumCard(
+  entities: EntityMap,
+  { settings = {}, translate = t }: { settings?: Attributes; translate?: typeof t } = {}
+) {
   const callService = vi.fn(async () => ({}));
   const props = asProps<ComponentProps<typeof VacuumCard>>({
     vacuumId: VACUUM,
     entities,
-    cardSettings: {},
+    cardSettings: { 'home::vacuum': settings },
     settingsKey: 'home::vacuum',
     customNames: {},
     customIcons: {},
     getA: lookup(entities),
     callService,
     onOpen: () => {},
-    t,
+    t: translate,
   });
   return { ...render(<VacuumCard {...props} />), callService };
 }
@@ -178,6 +187,72 @@ describe('vacuum and mower cards', () => {
     expect(renderVacuumCard(entity(VACUUM, 'charging')).container).toHaveTextContent(
       'vacuum.charging'
     );
+  });
+
+  describe('cleaning run on the large card', () => {
+    const words = (key: string) =>
+      ({
+        'vacuum.lastRun': 'Last run {time}',
+        'vacuum.doneIn': 'Done in {minutes} min',
+        'vacuum.statsMinutes': 'min',
+        'time.minutesAgo': '{minutes} min ago',
+      })[key] || key;
+    const NOW = new Date(2026, 10, 10, 12, 0, 0);
+    const cleaning = (attributes: Attributes) => entity(VACUUM, 'cleaning', attributes);
+
+    beforeEach(() => vi.useFakeTimers({ now: NOW, toFake: ['Date'] }));
+    afterEach(() => {
+      vi.useRealTimers();
+      config.showNextUp = false;
+    });
+
+    it('shows when the last run was and how much it cleaned', () => {
+      const { container } = renderVacuumCard(
+        docked({
+          last_clean_end: new Date(2026, 10, 10, 11, 40).toISOString(),
+          cleaned_area: 34,
+          cleaned_area_unit: 'm²',
+        }),
+        { translate: words }
+      );
+      expect(container).toHaveTextContent('Last run 20 min ago · 34 m²');
+    });
+
+    it('shows the time and area of the run in progress', () => {
+      const { container } = renderVacuumCard(
+        cleaning({ cleaning_time: 12, cleaned_area: 18, cleaned_area_unit: 'm²' }),
+        { translate: words }
+      );
+      expect(container).toHaveTextContent('12 min · 18 m²');
+      expect(container).not.toHaveTextContent('Last run');
+    });
+
+    it('says when the run ends only when asked to', () => {
+      const vacuum = cleaning({ cleaning_time: 20, cleaning_progress: 40 });
+      expect(renderVacuumCard(vacuum, { translate: words }).container).not.toHaveTextContent(
+        'Done in'
+      );
+      cleanup();
+
+      config.showNextUp = true;
+      expect(renderVacuumCard(vacuum, { translate: words }).container).toHaveTextContent(
+        'Done in 30 min'
+      );
+    });
+
+    it('has nothing to add when the vacuum reports nothing', () => {
+      const { container } = renderVacuumCard(docked(), { translate: words });
+      expect(container.querySelector('p.truncate')).toBeNull();
+    });
+
+    it('leaves the small card as it is', () => {
+      const vacuum = docked({ last_clean_end: new Date(2026, 10, 10, 11, 40).toISOString() });
+      const { container } = renderVacuumCard(vacuum, {
+        settings: { size: 'small' },
+        translate: words,
+      });
+      expect(container).not.toHaveTextContent('Last run');
+    });
   });
 });
 

@@ -2,7 +2,12 @@ import { memo } from 'react';
 import type { MouseEvent } from 'react';
 import { Minus, Plus, AirVent, Fan, RefreshCw, getIconComponent } from '../../icons';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
-import { formatKindValueForDisplay, getEffectiveUnitMode } from '../../utils';
+import {
+  convertValueByKind,
+  formatKindValueForDisplay,
+  getDisplayUnitForKind,
+  getEffectiveUnitMode,
+} from '../../utils';
 import { usePowerToggle } from '../../hooks/usePowerToggle';
 import { useClimateTarget } from '../../hooks/useClimateTarget';
 import { resolveSensorCardActionCall } from '../../utils/sensorCardConfig';
@@ -12,6 +17,8 @@ import type { Translate } from '../../types/ha';
 import type { CardCallService } from '../../types/cards';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
+import GlideNumber from '../ui/GlideNumber';
 
 // getClimateStatus needs a string state and a non-weak attributes type.
 type ClimateEntity = EntityMap[string] & {
@@ -119,6 +126,17 @@ const GenericClimateCard = memo(
       fromUnit: sourceTempUnit,
       unitMode: effectiveUnitMode,
     });
+    const currentTempNumber = convertValueByKind(currentTemp, {
+      kind: 'temperature',
+      fromUnit: sourceTempUnit,
+      unitMode: effectiveUnitMode,
+    });
+    const formatCurrentTemp = (value: number) =>
+      formatKindValueForDisplay(value, {
+        kind: 'temperature',
+        fromUnit: getDisplayUnitForKind('temperature', effectiveUnitMode),
+        unitMode: effectiveUnitMode,
+      }).text;
     const formatTarget = (value: unknown) =>
       formatKindValueForDisplay(value, {
         kind: 'temperature',
@@ -229,12 +247,16 @@ const GenericClimateCard = memo(
                   : undefined
               }
             >
-              <p className="mb-1.5 text-xs leading-none font-bold tracking-widest break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60">
-                {name}
-              </p>
+              <CardName className="mb-1.5 text-xs leading-tight font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                {String(name)}
+              </CardName>
               <div className="flex items-baseline gap-2">
                 <span className="text-sm leading-none font-bold text-[var(--text-primary)]">
-                  {displayCurrentTemp.text}
+                  <GlideNumber
+                    value={currentTempNumber}
+                    format={formatCurrentTemp}
+                    fallback={displayCurrentTemp.text}
+                  />
                 </span>
                 <span className="text-xs text-[var(--text-secondary)]">→ {displayTargetTemp}</span>
               </div>
@@ -330,17 +352,21 @@ const GenericClimateCard = memo(
           <span
             className={`${isDenseMobile ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-[var(--text-primary)]`}
           >
-            {displayCurrentTemp.text}
+            <GlideNumber
+              value={currentTempNumber}
+              format={formatCurrentTemp}
+              fallback={displayCurrentTemp.text}
+            />
           </span>
         </div>
         <div className={isDenseMobile ? 'mt-1.5' : 'mt-2'}>
           <div className={`flex items-center gap-2 ${isDenseMobile ? 'mb-2' : 'mb-3'}`}>
-            <p
-              className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-none font-bold text-[var(--text-secondary)] uppercase opacity-60`}
+            <CardName
+              className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-tight font-bold text-[var(--text-secondary)] uppercase opacity-60`}
               style={{ letterSpacing: '0.05em' }}
             >
-              {name}
-            </p>
+              {String(name)}
+            </CardName>
           </div>
           <div className={`flex items-stretch ${isDenseMobile ? 'gap-2' : 'gap-3'}`}>
             <div

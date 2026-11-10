@@ -3,6 +3,7 @@ import { Circle, CheckCircle2, Plus, AlertCircle, ListChecks, Trash2 } from 'luc
 import { getIconComponent } from '../../icons';
 import { getTodoItems, addTodoItem, updateTodoItem, removeTodoItem } from '../../services/haClient';
 import { useRefreshTick } from '../../hooks/useRefreshTick';
+import { useRowsThatFit } from '../../hooks/useRowsThatFit';
 import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type {
   CSSProperties,
@@ -16,6 +17,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { Translate } from '../../types/ha';
 import type { TodoItem } from '../../services/haClient';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 type TodoCardItem = TodoItem & { due?: string };
 
@@ -167,8 +169,8 @@ const TodoCard = memo(function TodoCard({
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
           setIsVisible(true);
           observer.disconnect();
         }
@@ -279,6 +281,8 @@ const TodoCard = memo(function TodoCard({
   const pendingCount = pendingItems.length;
   const completedCount = completedItems.length;
   const totalCount = items.length;
+  const listRowCount = pendingCount + completedCount;
+  const { listRef, visibleRows, showMore: showMoreLine } = useRowsThatFit(listRowCount, items);
 
   const IconComp = iconName ? getIconComponent(iconName) || ListChecks : ListChecks;
   const displayName = customName || settings?.name || t('todo.title') || 'To-do';
@@ -306,9 +310,12 @@ const TodoCard = memo(function TodoCard({
             </p>
           ) : listUnavailable ? (
             <>
-              <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-                {displayName}
-              </p>
+              <CardName
+                lines={1}
+                className="mb-1.5 text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60"
+              >
+                {String(displayName)}
+              </CardName>
               <p className="truncate text-sm leading-none font-bold text-[var(--text-secondary)]">
                 {getUnavailableLabel(entity?.state, t)}
               </p>
@@ -323,9 +330,12 @@ const TodoCard = memo(function TodoCard({
             </p>
           ) : (
             <>
-              <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-                {displayName}
-              </p>
+              <CardName
+                lines={1}
+                className="mb-1.5 text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60"
+              >
+                {String(displayName)}
+              </CardName>
               <p className="truncate text-sm leading-none font-bold text-[var(--text-primary)]">
                 {pendingCount > 0
                   ? `${pendingCount} ${t('todo.pending') || 'pending'}`
@@ -340,7 +350,11 @@ const TodoCard = memo(function TodoCard({
     );
   }
 
-  // Large card
+  // Large card: pending first, then completed, as many as fit whole.
+  const shownPending = pendingItems.slice(0, visibleRows);
+  const shownCompleted = completedItems.slice(0, Math.max(0, visibleRows - pendingCount));
+  const hiddenRows = Math.max(0, listRowCount - visibleRows);
+
   return (
     <div
       ref={cardRef}
@@ -359,9 +373,12 @@ const TodoCard = memo(function TodoCard({
           <div className="rounded-xl bg-[var(--status-success-bg)] p-2 text-[var(--status-success-fg)] transition-transform duration-300 group-hover:scale-110">
             <IconComp className="h-5 w-5" />
           </div>
-          <h3 className="text-lg font-medium tracking-tight text-[var(--text-primary)]">
-            {displayName}
-          </h3>
+          <CardName
+            as="h3"
+            className="text-lg leading-tight font-medium tracking-tight text-[var(--text-primary)]"
+          >
+            {String(displayName)}
+          </CardName>
         </div>
         {totalCount > 0 ? (
           <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
@@ -387,7 +404,7 @@ const TodoCard = memo(function TodoCard({
       )}
 
       {/* Content */}
-      <div className="hide-scrollbar flex-1 [scrollbar-width:'none'] space-y-1 overflow-y-auto p-5 pt-1 [-ms-overflow-style:'none'] [&::-webkit-scrollbar]:hidden">
+      <div ref={listRef} className="min-h-0 flex-1 space-y-1 overflow-hidden p-5 pt-1">
         {!todoEntityId ? (
           <div className="flex h-full flex-col items-center justify-center text-[var(--text-secondary)] opacity-60">
             <IconComp className="mb-2 h-8 w-8" />
@@ -426,9 +443,10 @@ const TodoCard = memo(function TodoCard({
         ) : (
           <>
             {/* Pending items */}
-            {pendingItems.map((item, idx) => (
+            {shownPending.map((item, idx) => (
               <div
                 key={item.uid || `pending-${idx}`}
+                data-fit-row=""
                 className="group flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--glass-bg)]"
                 onClick={(e) => handleToggle(e, item)}
               >
@@ -456,16 +474,17 @@ const TodoCard = memo(function TodoCard({
             ))}
 
             {/* Completed items */}
-            {completedItems.length > 0 && (
+            {shownCompleted.length > 0 && (
               <div className="pt-2 opacity-50">
                 <div className="pt-2 pb-1">
                   <p className="px-3 text-[10px] font-bold tracking-widest text-[var(--status-success-fg)]/60 uppercase">
                     {t('todo.completed') || 'Completed'} ({completedCount})
                   </p>
                 </div>
-                {completedItems.map((item, idx) => (
+                {shownCompleted.map((item, idx) => (
                   <div
                     key={item.uid || `completed-${idx}`}
+                    data-fit-row=""
                     className="group flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2 transition-colors"
                     onClick={(e) => handleToggle(e, item)}
                   >
@@ -485,6 +504,14 @@ const TodoCard = memo(function TodoCard({
                   </div>
                 ))}
               </div>
+            )}
+            {showMoreLine && (
+              <p
+                data-fit-more=""
+                className="px-3 pt-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"
+              >
+                {t('common.moreCount').replace('{count}', String(hiddenRows))}
+              </p>
             )}
           </>
         )}

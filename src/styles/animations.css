@@ -139,6 +139,119 @@
   opacity: 0.45;
 }
 
+/* Sensor card gauges, bars and trends (SensorGauge, SensorTrend).
+   Charts get `data-seen` once they have been on screen and `data-in-view` while they are. */
+.sensor-viz-stop {
+  stop-color: var(--viz-color);
+  transition: stop-color 0.2s ease;
+}
+
+.sensor-viz-value {
+  stroke-dasharray: var(--viz-len) var(--viz-len);
+  stroke-dashoffset: var(--viz-offset);
+  transition: stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sensor-viz-arm {
+  transform: rotate(var(--viz-angle));
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sensor-viz-marker {
+  position: absolute;
+  left: 50%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+}
+
+.sensor-viz-dot {
+  background-color: #fff;
+  opacity: 0.95;
+  transition: opacity 0.3s ease;
+}
+
+.sensor-viz-ripple {
+  border: 1px solid var(--viz-color);
+  opacity: 0;
+}
+
+.sensor-viz[data-seen][data-in-view] .sensor-viz-dot,
+.sensor-trend[data-seen][data-in-view] .sensor-trend-dot {
+  animation: sensorVizBreathe 6s ease-in-out 1s infinite;
+}
+
+@keyframes sensorVizBreathe {
+  0%,
+  100% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.sensor-viz-bar {
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0 calc(10% - 1px),
+    color-mix(in srgb, var(--text-secondary) 30%, transparent) calc(10% - 1px) 10%
+  );
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 50%;
+}
+
+.sensor-viz-bar-fill {
+  width: calc(var(--viz-pct) * 100%);
+  background-color: var(--viz-color);
+  -webkit-mask-image: linear-gradient(to right, rgb(0 0 0 / 0.5), #000);
+  mask-image: linear-gradient(to right, rgb(0 0 0 / 0.5), #000);
+  transition:
+    width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.2s ease;
+}
+
+.sensor-trend-plot {
+  clip-path: inset(-8px);
+  transition: clip-path 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sensor-trend-shape {
+  transition: d 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sensor-trend-marker {
+  width: 6px;
+  transition: top 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sensor-trend-dot {
+  background-color: var(--viz-color);
+  transition:
+    top 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.2s ease;
+}
+
+/* Until a chart has been on screen it waits empty, then the transitions above draw it in. */
+@media (prefers-reduced-motion: no-preference) {
+  .sensor-viz:not([data-seen]) .sensor-viz-value {
+    stroke-dashoffset: var(--viz-len);
+  }
+  .sensor-viz:not([data-seen]) .sensor-viz-arm {
+    transform: rotate(var(--viz-angle-start));
+  }
+  .sensor-viz:not([data-seen]) .sensor-viz-dot {
+    opacity: 0;
+  }
+  .sensor-viz-bar:not([data-seen]) .sensor-viz-bar-fill {
+    width: 0;
+  }
+  .sensor-trend:not([data-seen]) .sensor-trend-plot {
+    clip-path: inset(-8px calc(100% + 8px) -8px -8px);
+  }
+}
+
 /* Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob-1,
@@ -152,6 +265,18 @@
     animation: none !important;
     will-change: auto !important;
   }
+
+  .sensor-viz-stop,
+  .sensor-viz-value,
+  .sensor-viz-arm,
+  .sensor-viz-dot,
+  .sensor-viz-bar-fill,
+  .sensor-trend-plot,
+  .sensor-trend-shape,
+  .sensor-trend-marker {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 @media (update: slow) {
@@ -164,6 +289,18 @@
   .status-pill-icon-spin {
     animation: none !important;
     will-change: auto !important;
+  }
+
+  .sensor-viz-stop,
+  .sensor-viz-value,
+  .sensor-viz-arm,
+  .sensor-viz-dot,
+  .sensor-viz-bar-fill,
+  .sensor-trend-plot,
+  .sensor-trend-shape,
+  .sensor-trend-marker {
+    animation: none !important;
+    transition: none !important;
   }
 }
 

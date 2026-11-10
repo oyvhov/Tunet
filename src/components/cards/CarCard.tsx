@@ -2,15 +2,18 @@ import { useEffect, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { Car, Flame, MapPin, Plug, Zap } from '../../icons';
 import { useConfig, useHomeAssistantMeta } from '../../contexts';
+import { getLocaleForLanguage } from '../../i18n';
 import {
   convertValueByKind,
   formatUnitValue,
   getDisplayUnitForKind,
   getEffectiveUnitMode,
 } from '../../utils';
+import { formatFinish, getChargeFinishTime } from '../../utils/nextUp';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 interface CarCardProps extends Pick<
   CardBaseProps,
@@ -36,6 +39,8 @@ interface CarSettings {
   pluggedId?: string;
   climateId?: string;
   imageUrl?: string;
+  timeToFullId?: string;
+  chargeEndTimeId?: string;
 }
 
 /* ─── Helpers (pure, no React) ─── */
@@ -82,7 +87,7 @@ const CarCard = ({
 }: CarCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isNarrowLargeCard, setIsNarrowLargeCard] = useState(false);
-  const { unitsMode } = useConfig();
+  const { unitsMode, language } = useConfig();
   const { haConfig } = useHomeAssistantMeta();
 
   useEffect(() => {
@@ -117,6 +122,8 @@ const CarCard = ({
     pluggedId,
     climateId,
     imageUrl,
+    timeToFullId,
+    chargeEndTimeId,
   } = settings;
   const effectiveChargingId = chargingStateId || chargingId;
 
@@ -144,6 +151,27 @@ const CarCard = ({
 
   const isCharging = chargingState === 'on' || chargingState === 'charging';
   const isPlugged = pluggedState === 'on' || pluggedState === 'plugged' || pluggedState === 'true';
+  // A finish time also covers a charge scheduled for later; an unplugged car has none.
+  const mayCharge = isCharging || isPlugged || (!effectiveChargingId && !pluggedId);
+  const now = new Date();
+  const chargeFinishAt = mayCharge
+    ? getChargeFinishTime(
+        {
+          endTime: getSafeState(entities, chargeEndTimeId),
+          timeToFull: getSafeState(entities, timeToFullId),
+          timeToFullUnit: timeToFullId
+            ? entities[timeToFullId]?.attributes?.unit_of_measurement
+            : null,
+        },
+        now
+      )
+    : null;
+  const chargeFinishText = chargeFinishAt
+    ? formatFinish(chargeFinishAt, now, t, getLocaleForLanguage(language), {
+        inKey: 'car.chargedIn',
+        atKey: 'car.chargedAt',
+      })
+    : '';
   const isHtg =
     climateEntity && !['off', 'unavailable', 'unknown'].includes(climateEntity.state ?? '');
   const resolvedImageUrl = imageUrl
@@ -189,9 +217,12 @@ const CarCard = ({
             <Icon className="h-6 w-6 stroke-[1.5px]" />
           </div>
           <div className="flex min-w-0 flex-col">
-            <p className="mb-1.5 truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
-              {name}
-            </p>
+            <CardName
+              lines={1}
+              className="mb-1.5 text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60"
+            >
+              {String(name)}
+            </CardName>
             <div className="flex flex-col gap-0.5 leading-tight">
               <span
                 className={`text-sm font-bold ${isCharging ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'}`}
@@ -242,12 +273,12 @@ const CarCard = ({
           >
             <Icon className={`${isDenseMobile ? 'h-4 w-4' : 'h-5 w-5'} stroke-[1.5px]`} />
           </div>
-          <p
-            className={`${isDenseMobile ? 'max-w-[10rem] text-[10px]' : 'max-w-[12rem] text-xs'} min-w-0 truncate font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
-            title={String(name)}
+          <CardName
+            lines={1}
+            className={`${isDenseMobile ? 'max-w-[10rem] text-[10px]' : 'max-w-[12rem] text-xs'} font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
           >
-            {name}
-          </p>
+            {String(name)}
+          </CardName>
         </div>
         <div
           className={`flex max-w-[62%] flex-col items-end ${isDenseMobile ? 'gap-1.5' : 'gap-2'}`}
@@ -259,11 +290,12 @@ const CarCard = ({
               <MapPin
                 className={`${isDenseMobile ? 'mt-0 h-2.5 w-2.5' : 'mt-0.5 h-3 w-3'} flex-shrink-0`}
               />
-              <span
-                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-tight font-bold tracking-widest break-words whitespace-normal uppercase`}
+              <CardName
+                as="span"
+                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} leading-tight font-bold tracking-widest uppercase`}
               >
                 {String(locationLabel)}
-              </span>
+              </CardName>
             </div>
           )}
           {(isHtg || isPlugged) && (
@@ -316,6 +348,13 @@ const CarCard = ({
               className={`${useCompactMetrics ? 'mt-1 text-xs' : 'mt-1.5 text-sm'} font-medium text-[var(--text-secondary)]`}
             >
               {formatUnitValue(displayRangeValue, { fallback: '--' })} {rangeUnit}
+            </p>
+          )}
+          {chargeFinishText && (
+            <p
+              className={`${useCompactMetrics ? 'mt-0.5 text-xs' : 'mt-1 text-sm'} truncate leading-tight font-medium text-[var(--text-secondary)]`}
+            >
+              {chargeFinishText}
             </p>
           )}
         </div>

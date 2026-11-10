@@ -362,6 +362,29 @@ describe('SensorCardSettings', () => {
     expect(screen.getByRole('spinbutton', { name: 'Min' })).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Color thresholds' })).toBeChecked();
   });
+  it('offers a trend graph with its own time range on small cards only', () => {
+    const save = vi.fn();
+    const { rerender } = render(
+      <Editor onSave={save} initialSettings={{ entityId: 'sensor.temperature', size: 'small' }} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Trend' }));
+    expect(save).toHaveBeenCalledWith('entity_card_example', 'sensorVariant', 'trend');
+    expect(screen.getByRole('button', { name: 'Trend' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '24 h' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: '6 h' }));
+    expect(save).toHaveBeenLastCalledWith('entity_card_example', 'graphRange', '6h');
+    expect(screen.queryByRole('switch', { name: /^Graph/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'Min' })).not.toBeInTheDocument();
+
+    rerender(
+      <Editor
+        key="large"
+        initialSettings={{ entityId: 'sensor.temperature', sensorVariant: 'trend' }}
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Trend' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Default' })).toHaveAttribute('aria-pressed', 'true');
+  });
   it('does not offer a layout choice because the card size is set on the card itself', () => {
     render(<Editor initialSettings={{ entityId: 'sensor.temperature' }} />);
     expect(screen.queryByText(/layout/i)).not.toBeInTheDocument();

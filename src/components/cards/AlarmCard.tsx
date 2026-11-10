@@ -18,6 +18,7 @@ import type { Translate } from '../../types/ha';
 import type { CardSettingsEntry } from '../../utils/cardSettingsKey';
 import type { IconComponent } from '../../icons/iconMap';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 type AlarmEntity = EntityMap[string];
 
@@ -281,9 +282,12 @@ const AlarmCard = memo(function AlarmCard({
 
           <div className="min-w-0 flex-1 pr-1">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="truncate text-[11px] leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase">
-                {name}
-              </p>
+              <CardName
+                lines={1}
+                className="text-[11px] leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase"
+              >
+                {String(name)}
+              </CardName>
             </div>
           </div>
         </div>
@@ -343,12 +347,6 @@ const AlarmCard = memo(function AlarmCard({
             )}
           </div>
         </div>
-
-        <div
-          className={`rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] font-bold tracking-widest text-[var(--text-secondary)] uppercase ${isDenseMobile ? 'px-2 py-1 text-[9px]' : 'px-2 py-1 text-[10px]'}`}
-        >
-          {translate('alarm.title')}
-        </div>
       </div>
 
       <div className={isDenseMobile ? 'space-y-1.5' : 'space-y-2'}>
@@ -359,11 +357,12 @@ const AlarmCard = memo(function AlarmCard({
             {getStateLabel(state, translate)}
           </span>
         </div>
-        <p
-          className={`truncate leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60 ${isDenseMobile ? 'text-[9px]' : 'text-[10px]'}`}
+        <CardName
+          lines={1}
+          className={`leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60 ${isDenseMobile ? 'text-[9px]' : 'text-[10px]'}`}
         >
-          {name}
-        </p>
+          {String(name)}
+        </CardName>
         {entity.attributes?.changed_by && (
           <p
             className={`truncate text-[var(--text-secondary)] ${isDenseMobile ? 'text-[10px]' : 'text-[11px]'}`}

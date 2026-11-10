@@ -4,7 +4,7 @@ import DraftNumberInput from './DraftNumberInput';
 import { ChoiceChips, FIELD_CLASS, ToggleRow } from './settingsControls';
 import { canSensorUseNumericVariants, resolveSensorCardConfig } from '../../utils/sensorCardConfig';
 
-const VARIANTS = ['default', 'number', 'gauge', 'bar', 'donut'];
+const VARIANTS = ['default', 'number', 'gauge', 'bar', 'donut', 'trend'];
 const GRAPH_RANGES = ['1h', '6h', '12h', '24h', '48h', '7d', '30d'];
 const GRAPH_STATS = ['mean', 'min', 'max', 'change'];
 const RANGE_VARIANTS = ['gauge', 'donut', 'bar'];
@@ -137,8 +137,12 @@ export default function SensorNumericStyle({
   if (!available) return null;
   const domain = entity?.entity_id?.split('.')[0];
 
-  const variant = VARIANTS.includes(settings.sensorVariant) ? settings.sensorVariant : 'default';
   const canGraph = domain !== 'input_number' && config.statusMode !== 'attribute';
+  // The trend is a small-card graph; large cards already draw the history graph by default.
+  const variants = VARIANTS.filter(
+    (key) => key !== 'trend' || (settings.size === 'small' && canGraph)
+  );
+  const variant = variants.includes(settings.sensorVariant) ? settings.sensorVariant : 'default';
   const valueMode = settings.sensorValueMode === 'percent' ? 'percent' : 'actual';
   const graphStyle = settings.graphStyle === 'bar' ? 'bar' : 'line';
   const graphRange = GRAPH_RANGES.includes(settings.graphRange) ? settings.graphRange : '24h';
@@ -158,12 +162,23 @@ export default function SensorNumericStyle({
       'sensorColorThresholds',
       thresholds.map((entry, itemIndex) => (itemIndex === index ? { ...entry, ...patch } : entry))
     );
+  const rangeChoice = (
+    <ChoiceChips
+      label={t('sensor.graphRange') || 'Time range'}
+      options={GRAPH_RANGES.map((key) => ({
+        value: key,
+        label: t(`sensor.graphRange${key}`) || key,
+      }))}
+      value={graphRange}
+      onChange={(value) => save('graphRange', value)}
+    />
+  );
 
   return (
     <>
       <ChoiceChips
         label={t('sensor.variant') || 'Card style'}
-        options={VARIANTS.map((key) => ({
+        options={variants.map((key) => ({
           value: key,
           label: t(`sensor.variant${key[0].toUpperCase()}${key.slice(1)}`) || key,
         }))}
@@ -191,15 +206,7 @@ export default function SensorNumericStyle({
             value={graphStyle}
             onChange={(value) => save('graphStyle', value)}
           />
-          <ChoiceChips
-            label={t('sensor.graphRange') || 'Time range'}
-            options={GRAPH_RANGES.map((key) => ({
-              value: key,
-              label: t(`sensor.graphRange${key}`) || key,
-            }))}
-            value={graphRange}
-            onChange={(value) => save('graphRange', value)}
-          />
+          {rangeChoice}
           {graphStyle === 'bar' ? (
             <ChoiceChips
               label={t('sensor.graphStat') || 'Value per bar'}
@@ -213,6 +220,10 @@ export default function SensorNumericStyle({
             />
           ) : null}
         </div>
+      ) : null}
+
+      {variant === 'trend' ? (
+        <div className="space-y-4 rounded-xl bg-[var(--glass-bg)] p-3">{rangeChoice}</div>
       ) : null}
 
       {RANGE_VARIANTS.includes(variant) ? (

@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
 import { AlertTriangle, Battery, Bot, Home, MapPin, Pause, Play } from '../../icons';
+import { useConfig } from '../../contexts';
+import { getLocaleForLanguage } from '../../i18n';
+import { formatRelativeTime } from '../../utils/formatting';
+import { formatFinish, getCleaningFinishTime } from '../../utils/nextUp';
+import { formatUnitValue } from '../../utils/units';
+import { readVacuumSession } from '../../utils/vacuumSession';
 import {
   findVacuumSensorsByName,
   getVacuumBattery,
@@ -10,6 +16,7 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 interface VacuumCardProps extends Pick<
   CardBaseProps,
@@ -48,6 +55,7 @@ const VacuumCard = ({
 }: VacuumCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isNarrowSmallCard, setIsNarrowSmallCard] = useState(false);
+  const { language, showNextUp } = useConfig();
 
   useEffect(() => {
     const element = cardRef.current;
@@ -72,9 +80,12 @@ const VacuumCard = ({
   const entityId = entityIdProp || vacuumId;
   const entity = entities[entityId];
   const batteryAttribute = entity?.attributes?.battery_level;
+  // The large card also reads the cleaning run from these sensors.
+  const isLargeCard = (cardSettings[settingsKey] || cardSettings[vacuumId])?.size !== 'small';
   const relatedSensors = useMemo(
-    () => (batteryAttribute == null ? findVacuumSensorsByName(entities, entityId) : {}),
-    [batteryAttribute, entities, entityId]
+    () =>
+      batteryAttribute == null || isLargeCard ? findVacuumSensorsByName(entities, entityId) : {},
+    [batteryAttribute, isLargeCard, entities, entityId]
   );
   if (!entity) {
     if (editMode) {
@@ -164,11 +175,12 @@ const VacuumCard = ({
             />
           </div>
           <div className="flex min-w-0 flex-col">
-            <p
-              className={`${useStackedSmallControls ? 'mb-0.5 text-[10px]' : isMobile ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} truncate leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+            <CardName
+              lines={1}
+              className={`${useStackedSmallControls ? 'mb-0.5 text-[10px]' : isMobile ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
             >
-              {name}
-            </p>
+              {String(name)}
+            </CardName>
             <div
               className={`flex min-w-0 items-center ${useStackedSmallControls ? 'gap-1' : isMobile ? 'gap-1.5' : 'gap-2'}`}
             >
@@ -233,6 +245,39 @@ const VacuumCard = ({
       </div>
     );
   }
+
+  // One line about the run in progress or the last one, and when asked, when the run ends.
+  const now = new Date();
+  const locale = getLocaleForLanguage(language);
+  const session =
+    isUnavailable || isErrorState
+      ? null
+      : readVacuumSession(entity.attributes, { entities, settings, sensors: relatedSensors }, now);
+  const isCleaning = normalizedState === 'cleaning' || normalizedState === 'vacuuming';
+  const isInRun =
+    isCleaning ||
+    ['paused', 'pause', 'returning', 'going_home', 'return_to_base'].includes(normalizedState);
+  const runParts: string[] = [];
+  if (session && isInRun && session.cleaningMinutes !== null && session.cleaningMinutes >= 1) {
+    runParts.push(`${Math.round(session.cleaningMinutes)} ${t('vacuum.statsMinutes')}`);
+  }
+  if (session && !isInRun && session.lastRunAt) {
+    runParts.push(
+      t('vacuum.lastRun').replace('{time}', formatRelativeTime(session.lastRunAt, t, locale))
+    );
+  }
+  if (session?.area && runParts.length > 0) {
+    runParts.push(`${formatUnitValue(session.area.value)} ${session.area.unit}`);
+  }
+  const runText = runParts.join(' · ');
+  const finishAt =
+    showNextUp && isCleaning && session
+      ? getCleaningFinishTime(session.cleaningMinutes, session.progressPercent, now)
+      : null;
+  const finishText = finishAt
+    ? formatFinish(finishAt, now, t, locale, { inKey: 'vacuum.doneIn', atKey: 'vacuum.doneAt' })
+    : '';
+  const denseInfoText = [runText, finishText].filter(Boolean).join(' · ');
 
   return (
     <div
@@ -309,21 +354,42 @@ const VacuumCard = ({
       <div
         className={`${useDenseMobileLargeLayout ? 'mt-2' : ''} ${useDenseMobileLargeLayout ? 'flex flex-col gap-3' : 'flex items-end justify-between'}`}
       >
-        <div>
-          <p
-            className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+        <div className="min-w-0">
+          <CardName
+            className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} leading-tight font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
           >
-            {name}
-          </p>
+            {String(name)}
+          </CardName>
           <h3
             className={`${useDenseMobileLargeLayout ? 'text-[1.4rem]' : isMobile ? 'text-[1.65rem]' : 'text-3xl'} leading-none font-thin text-[var(--text-primary)]`}
           >
             {statusText}
           </h3>
-          {showBattery && useDenseMobileLargeLayout && (
-            <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2.5 py-1 text-[var(--text-secondary)]">
-              <Battery className="h-2.5 w-2.5" />
-              <span className="text-[10px] font-bold tracking-widest uppercase">{battery}%</span>
+          {!useDenseMobileLargeLayout && runText && (
+            <p className="mt-1.5 truncate text-xs font-medium text-[var(--text-secondary)]">
+              {runText}
+            </p>
+          )}
+          {!useDenseMobileLargeLayout && finishText && (
+            <p className="mt-0.5 truncate text-xs font-medium text-[var(--text-secondary)]">
+              {finishText}
+            </p>
+          )}
+          {useDenseMobileLargeLayout && (showBattery || denseInfoText) && (
+            <div className="mt-2 flex min-w-0 items-center gap-2">
+              {showBattery && (
+                <div className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2.5 py-1 text-[var(--text-secondary)]">
+                  <Battery className="h-2.5 w-2.5" />
+                  <span className="text-[10px] font-bold tracking-widest uppercase">
+                    {battery}%
+                  </span>
+                </div>
+              )}
+              {denseInfoText && (
+                <span className="min-w-0 truncate text-[10px] font-medium text-[var(--text-secondary)]">
+                  {denseInfoText}
+                </span>
+              )}
             </div>
           )}
         </div>

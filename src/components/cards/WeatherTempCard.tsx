@@ -15,6 +15,9 @@ import type { Translate } from '../../types/ha';
 import type { ForecastEntry } from '../../services/haClient';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import { findNextPrecipitation, formatClockTime } from '../../utils/nextUp';
+import CardName from '../ui/CardName';
+import GlideNumber from '../ui/GlideNumber';
 
 type ForecastView = 'hourly' | 'daily';
 type CardView = 'current' | 'forecast';
@@ -172,7 +175,7 @@ const WeatherTempCard = memo(
     onOpen,
     t,
   }: WeatherTempCardProps) {
-    const { unitsMode } = useConfig();
+    const { unitsMode, showNextUp } = useConfig();
     const { haConfig } = useHomeAssistantMeta();
 
     const settings = (cardSettings[settingsKey] || {}) as WeatherTempSettings;
@@ -254,6 +257,7 @@ const WeatherTempCard = memo(
       fromUnit: sourceTempUnit,
       unitMode: effectiveUnitMode,
     });
+    const formatTempValue = (value: number) => formatUnitValue(value, { fallback: '--' });
     const graphHistoryHours = Number.isFinite(settings.graphHistoryHours)
       ? settings.graphHistoryHours
       : 12;
@@ -351,6 +355,19 @@ const WeatherTempCard = memo(
       })
       .filter((item) => item !== null)
       .slice(0, forecastLimit);
+
+    const now = new Date();
+    const precipitation =
+      showNextUp && !isSmall && t
+        ? findNextPrecipitation(hourlyForecast, now, { currentCondition: state })
+        : null;
+    const precipitationText =
+      precipitation && t
+        ? t(precipitation.kind === 'snow' ? 'weather.snowFrom' : 'weather.rainFrom').replace(
+            '{time}',
+            formatClockTime(precipitation.at, now, locale)
+          )
+        : '';
 
     const handleCardClick = (event: MouseEvent<HTMLDivElement>) => {
       event.stopPropagation();
@@ -473,30 +490,23 @@ const WeatherTempCard = memo(
           >
             {cardView === 'current' ? (
               <>
-                <div className="absolute inset-0 z-0 opacity-30">
-                  <WeatherGraph
-                    history={historyForDisplay as WeatherGraphHistory}
-                    currentTemp={displayTempValue}
-                    historyHours={graphHistoryHours}
-                    colorLimits={graphColorLimits}
-                  />
-                </div>
+                {/* No graph here: on a card this low its line ran through the numbers. */}
                 <div className="relative z-10 flex min-w-0 flex-1 items-center gap-4">
                   <div className="-ml-1 flex h-12 w-12 shrink-0 items-center justify-center drop-shadow-md filter transition-transform duration-500 group-hover:scale-110">
                     <img src={iconUrl} alt={info.label} className="h-full w-full object-contain" />
                   </div>
                   <div className="flex min-w-0 flex-col">
-                    <p
-                      className={`mb-1.5 font-bold break-words whitespace-normal text-[var(--text-secondary)] uppercase opacity-60 ${
+                    <CardName
+                      className={`mb-1.5 font-bold text-[var(--text-secondary)] uppercase opacity-60 ${
                         isMobile
                           ? 'text-[10px] leading-tight tracking-[0.08em]'
-                          : 'text-xs leading-none tracking-widest'
+                          : 'text-xs leading-tight tracking-widest'
                       }`}
                     >
-                      {info.label}
-                    </p>
+                      {String(info.label)}
+                    </CardName>
                     <span className="text-2xl leading-none font-light text-[var(--text-primary)]">
-                      {formatUnitValue(displayTempValue, { fallback: '--' })}
+                      <GlideNumber value={displayTempValue} format={formatTempValue} />
                       {displayTempUnit}
                     </span>
                     {subtitle && (
@@ -611,9 +621,9 @@ const WeatherTempCard = memo(
                       />
                     </div>
                     {subtitle && (
-                      <p className="mt-0.5 line-clamp-2 text-left text-xs leading-snug font-bold tracking-widest break-words text-[var(--text-secondary)] uppercase opacity-60">
-                        {subtitle}
-                      </p>
+                      <CardName className="mt-0.5 text-left text-xs leading-snug font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                        {String(subtitle)}
+                      </CardName>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
@@ -631,14 +641,19 @@ const WeatherTempCard = memo(
                       </span>
                     </div>
                     <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">
-                      {formatUnitValue(displayTempValue, { fallback: '--' })}
+                      <GlideNumber value={displayTempValue} format={formatTempValue} />
                       {displayTempUnit}
                     </span>
+                    {precipitationText && (
+                      <span className="max-w-[12rem] truncate text-xs font-medium text-[var(--text-secondary)]">
+                        {precipitationText}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
               <div
-                className={`relative z-0 mt-auto h-32 overflow-hidden rounded-b-3xl opacity-80 ${graphMargins}`}
+                className={`relative z-0 mt-auto ${precipitationText ? 'h-28' : 'h-32'} overflow-hidden rounded-b-3xl opacity-80 ${graphMargins}`}
               >
                 <WeatherGraph
                   history={historyForDisplay as WeatherGraphHistory}
@@ -660,9 +675,9 @@ const WeatherTempCard = memo(
                     <img src={iconUrl} alt={info.label} className="h-full w-full object-contain" />
                   </div>
                   {subtitle && (
-                    <p className="mt-0.5 line-clamp-2 text-left text-xs leading-snug font-bold tracking-widest break-words text-[var(--text-secondary)] uppercase opacity-60">
-                      {subtitle}
-                    </p>
+                    <CardName className="mt-0.5 text-left text-xs leading-snug font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60">
+                      {String(subtitle)}
+                    </CardName>
                   )}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
@@ -672,7 +687,7 @@ const WeatherTempCard = memo(
                   <span
                     className={`${isMobile ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-[var(--text-primary)]`}
                   >
-                    {formatUnitValue(displayTempValue, { fallback: '--' })}
+                    <GlideNumber value={displayTempValue} format={formatTempValue} />
                     {displayTempUnit}
                   </span>
                 </div>

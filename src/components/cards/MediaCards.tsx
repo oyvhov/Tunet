@@ -18,8 +18,16 @@ import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsEntry, CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import { useIsLightTheme } from '../../hooks/useIsLightTheme';
+import CardName from '../ui/CardName';
 
 type MediaEntity = EntityMap[string];
+
+// The idle card is a size container: on a short card (phone rows, a smaller card scale)
+// the ring, icon and gaps shrink so the ring stays inside the card.
+const SHORT_IDLE_RING = '[@container(max-height:13rem)]:mb-2 [@container(max-height:13rem)]:p-3';
+const SHORT_IDLE_ICON = '[@container(max-height:13rem)]:h-6 [@container(max-height:13rem)]:w-6';
+const SHORT_IDLE_POWER = '[@container(max-height:13rem)]:mt-2';
 
 /** Props the media and TV cards share. */
 export interface MediaCardCommonProps extends Pick<
@@ -75,6 +83,7 @@ export const MediaPlayerCard = memo(
     cardSettings,
     settingsKey,
   }: MediaPlayerCardProps) => {
+    const isLightTheme = useIsLightTheme();
     const entity = entities[mpId];
     if (!entity) {
       if (editMode) {
@@ -130,8 +139,14 @@ export const MediaPlayerCard = memo(
     const isCoverMode = artworkMode === 'cover';
     const playingBackgroundMotion = settings.playingBackgroundMotion || 'off';
     const useSubtlePlayingMotion = !editMode && isPlaying && playingBackgroundMotion === 'subtle';
+    // A light theme tints the card with the album colour instead of darkening it.
+    const isLightArt = Boolean(picture) && !isCoverMode && isLightTheme;
+    const isOnArt = Boolean(picture) && !isLightArt;
+    const useWhiteText = (Boolean(picture) || isCoverMode) && !isLightArt;
 
     if (!isActive) {
+      // A small card on a phone is one short row: the ring would not fit, so it shows text only.
+      const showIdleRing = !(isDenseMobile && settings.size === 'small');
       return (
         <div
           key={mpId}
@@ -142,32 +157,31 @@ export const MediaPlayerCard = memo(
             e.stopPropagation();
             if (!editMode) onOpen(mpId, null, null);
           }}
-          className={`glass-texture touch-feedback group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+          className={`glass-texture touch-feedback group @container-size relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
           style={{ ...cardStyle, color: 'var(--text-primary)' }}
         >
           {controls}
-          <div
-            className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
-            style={{ backgroundColor: 'var(--glass-bg)' }}
-          >
-            {isChannel ? (
+          {showIdleRing && (
+            <div
+              className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} ${SHORT_IDLE_RING} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+              style={{ backgroundColor: 'var(--glass-bg)' }}
+            >
               <MediaIcon
-                className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)]`}
+                className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} ${SHORT_IDLE_ICON} text-[var(--text-secondary)]`}
               />
-            ) : (
-              <MediaIcon
-                className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)]`}
-              />
-            )}
-          </div>
+            </div>
+          )}
           <div className="w-full px-4 text-center">
             <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               {isUnavailableState(mpState) ? getUnavailableLabel(mpState, t) : t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                {name}
-              </p>
+              <CardName
+                lines={1}
+                className="text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70"
+              >
+                {String(name)}
+              </CardName>
             </div>
           </div>
           {canTogglePower && (
@@ -176,7 +190,7 @@ export const MediaPlayerCard = memo(
                 e.stopPropagation();
                 callService('media_player', powerAction!, { entity_id: mpId });
               }}
-              className={`mt-4 rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
+              className={`mt-4 ${SHORT_IDLE_POWER} rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
               title={isPowerOffAction ? t('status.off') : t('status.on')}
             >
               <Power className="h-4 w-4" />
@@ -196,22 +210,13 @@ export const MediaPlayerCard = memo(
           e.stopPropagation();
           if (!editMode) onOpen(mpId, null, null);
         }}
-        className={`${picture ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        className={`${isOnArt ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={{
           ...cardStyle,
-          color:
-            picture && isCoverMode
-              ? 'white'
-              : picture && !isCoverMode
-                ? 'white'
-                : 'var(--text-primary)',
+          color: isOnArt ? 'white' : 'var(--text-primary)',
         }}
       >
         {controls}
-
-        {picture && !isCoverMode && (
-          <div className="media-art-scrim pointer-events-none absolute inset-0 z-0" />
-        )}
 
         {/* Background artwork */}
         {picture && (
@@ -254,11 +259,12 @@ export const MediaPlayerCard = memo(
           )}
           <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'w-full pt-1' : 'pt-1'}`}>
             <div className="mb-1 flex items-center gap-2">
-              <p
-                className={`truncate ${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
+              <CardName
+                lines={1}
+                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
               >
-                {name}
-              </p>
+                {String(name)}
+              </CardName>
             </div>
             <h3
               className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'line-clamp-2 text-base' : 'line-clamp-2 text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
@@ -267,7 +273,7 @@ export const MediaPlayerCard = memo(
             </h3>
             {subtitle && (
               <p
-                className={`${picture || isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'} ${isCoverMode ? (isDenseMobile ? 'text-xs' : 'text-sm') : isDenseMobile ? 'truncate text-[11px]' : 'truncate text-xs'} font-medium`}
+                className={`${useWhiteText ? 'text-white/80' : 'text-[var(--text-secondary)]'} ${isCoverMode ? (isDenseMobile ? 'text-xs' : 'text-sm') : isDenseMobile ? 'truncate text-[11px]' : 'truncate text-xs'} font-medium`}
               >
                 {subtitle}
               </p>
@@ -283,7 +289,7 @@ export const MediaPlayerCard = memo(
               e.stopPropagation();
               callService('media_player', 'media_previous_track', { entity_id: mpId });
             }}
-            className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+            className={`${useWhiteText ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
           >
             <SkipBack
               className={
@@ -331,7 +337,7 @@ export const MediaPlayerCard = memo(
               e.stopPropagation();
               callService('media_player', 'media_next_track', { entity_id: mpId });
             }}
-            className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+            className={`${useWhiteText ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
           >
             <SkipForward
               className={
@@ -349,7 +355,7 @@ export const MediaPlayerCard = memo(
                 e.stopPropagation();
                 callService('media_player', powerAction!, { entity_id: mpId });
               }}
-              className={`${picture || isCoverMode ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+              className={`${useWhiteText ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
               title={isPowerOffAction ? t('status.off') : t('status.on')}
             >
               <Power
@@ -393,6 +399,7 @@ export const MediaGroupCard = memo(
     isFullWidthMobile,
     t,
   }: MediaGroupCardProps) => {
+    const isLightTheme = useIsLightTheme();
     const groupSettings: CardSettingsEntry = cardSettings[settingsKey] || {};
     const mediaIds = Array.isArray(groupSettings.mediaIds) ? groupSettings.mediaIds : [];
     const mediaEntities = mediaIds
@@ -447,6 +454,10 @@ export const MediaGroupCard = memo(
     const isPowerOffAction = powerAction === 'turn_off';
     const isDenseMobile = Boolean(isMobile);
     const useWideMobileControls = Boolean(isMobile && isFullWidthMobile);
+    // A light theme tints the card with the album colour instead of darkening it.
+    const isLightArt = Boolean(picture) && !isCoverMode && isLightTheme;
+    const isOnArt = Boolean(picture) && !isLightArt;
+    const useWhiteText = (Boolean(picture) || isCoverMode) && !isLightArt;
 
     const cyclePlayers = (e: MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
@@ -457,6 +468,8 @@ export const MediaGroupCard = memo(
     };
 
     if (!isActive) {
+      // A small card on a phone is one short row: the ring would not fit, so it shows text only.
+      const showIdleRing = !(isDenseMobile && groupSettings.size === 'small');
       return (
         <div
           key={cardId}
@@ -467,18 +480,20 @@ export const MediaGroupCard = memo(
             e.stopPropagation();
             if (!editMode) onOpen(mpId, settingsKey, null);
           }}
-          className={`glass-texture touch-feedback group relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+          className={`glass-texture touch-feedback group @container-size relative flex h-full flex-col items-center justify-center overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
           style={{ ...cardStyle, color: 'var(--text-primary)' }}
         >
           {controls}
-          <div
-            className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'}`}
-            style={{ backgroundColor: 'var(--glass-bg)' }}
-          >
-            <MediaIcon
-              className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
-            />
-          </div>
+          {showIdleRing && (
+            <div
+              className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} ${SHORT_IDLE_RING}`}
+              style={{ backgroundColor: 'var(--glass-bg)' }}
+            >
+              <MediaIcon
+                className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} ${SHORT_IDLE_ICON} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
+              />
+            </div>
+          )}
           <div className="w-full px-4 text-center">
             <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               {mediaEntities.every((player) => isUnavailableState(player.state))
@@ -486,9 +501,12 @@ export const MediaGroupCard = memo(
                 : t('media.noneMusic')}
             </p>
             <div className="mt-1 flex items-center justify-center gap-2">
-              <p className="truncate text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                {name}
-              </p>
+              <CardName
+                lines={1}
+                className="text-xs tracking-widest text-[var(--text-secondary)] uppercase opacity-70"
+              >
+                {String(name)}
+              </CardName>
             </div>
           </div>
           {canTogglePower && (
@@ -497,7 +515,7 @@ export const MediaGroupCard = memo(
                 e.stopPropagation();
                 callService('media_player', powerAction!, { entity_id: mpId });
               }}
-              className={`mt-4 rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
+              className={`mt-4 ${SHORT_IDLE_POWER} rounded-full p-2.5 transition-colors active:scale-95 ${isPowerOffAction ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-90'}`}
               title={isPowerOffAction ? t('status.off') : t('status.on')}
             >
               <Power className="h-4 w-4" />
@@ -517,15 +535,10 @@ export const MediaGroupCard = memo(
           e.stopPropagation();
           if (!editMode) onOpen(mpId, settingsKey, null);
         }}
-        className={`${picture ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
+        className={`${isOnArt ? 'media-on-art' : ''} glass-texture touch-feedback group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border font-sans transition-all duration-500 ${isDenseMobile ? 'p-5' : 'p-4 sm:p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'}`}
         style={{
           ...cardStyle,
-          color:
-            picture && isCoverMode
-              ? 'white'
-              : picture && !isCoverMode
-                ? 'white'
-                : 'var(--text-primary)',
+          color: isOnArt ? 'white' : 'var(--text-primary)',
         }}
       >
         {controls}
@@ -545,10 +558,6 @@ export const MediaGroupCard = memo(
         )}
         {isPlaying && (
           <div className="pointer-events-none absolute inset-0 z-0 animate-pulse bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-        )}
-
-        {picture && !isCoverMode && (
-          <div className="media-art-scrim pointer-events-none absolute inset-0 z-0" />
         )}
 
         {/* Background artwork */}
@@ -614,11 +623,12 @@ export const MediaGroupCard = memo(
           )}
           <div className={`flex flex-col overflow-hidden ${isCoverMode ? 'w-full pt-1' : 'pt-1'}`}>
             <div className="mb-1 flex items-center gap-2">
-              <p
-                className={`truncate ${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
+              <CardName
+                lines={1}
+                className={`${isDenseMobile ? 'text-[10px]' : 'text-xs'} font-bold tracking-widest uppercase ${isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}
               >
-                {name}
-              </p>
+                {String(name)}
+              </CardName>
             </div>
             <h3
               className={`mb-0.5 ${isCoverMode ? (isDenseMobile ? 'text-lg' : 'text-2xl') : isDenseMobile ? 'line-clamp-2 text-base' : 'line-clamp-2 text-lg'} leading-tight font-bold ${isCoverMode ? 'text-white' : ''}`}
@@ -627,7 +637,7 @@ export const MediaGroupCard = memo(
             </h3>
             {subtitle && (
               <p
-                className={`${picture || isCoverMode ? 'text-white/80' : 'text-[var(--text-secondary)]'} ${isCoverMode ? (isDenseMobile ? 'text-xs' : 'text-sm') : isDenseMobile ? 'truncate text-[11px]' : 'truncate text-xs'} font-medium`}
+                className={`${useWhiteText ? 'text-white/80' : 'text-[var(--text-secondary)]'} ${isCoverMode ? (isDenseMobile ? 'text-xs' : 'text-sm') : isDenseMobile ? 'truncate text-[11px]' : 'truncate text-xs'} font-medium`}
               >
                 {subtitle}
               </p>
@@ -643,7 +653,7 @@ export const MediaGroupCard = memo(
               e.stopPropagation();
               callService('media_player', 'media_previous_track', { entity_id: mpId });
             }}
-            className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+            className={`${useWhiteText ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
           >
             <SkipBack
               className={
@@ -691,7 +701,7 @@ export const MediaGroupCard = memo(
               e.stopPropagation();
               callService('media_player', 'media_next_track', { entity_id: mpId });
             }}
-            className={`${picture || isCoverMode ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+            className={`${useWhiteText ? 'text-white/80 hover:text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
           >
             <SkipForward
               className={
@@ -709,7 +719,7 @@ export const MediaGroupCard = memo(
                 e.stopPropagation();
                 callService('media_player', powerAction!, { entity_id: mpId });
               }}
-              className={`${picture || isCoverMode ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
+              className={`${useWhiteText ? (isPowerOffAction ? 'text-[var(--status-error-fg)] hover:text-white' : 'text-[var(--status-success-fg)] hover:text-white') : isPowerOffAction ? 'text-[var(--status-error-fg)] hover:opacity-80' : 'text-[var(--status-success-fg)] hover:opacity-80'} shrink-0 ${useWideMobileControls ? 'flex h-11 w-11 items-center justify-center rounded-full bg-white/10 p-0 backdrop-blur-sm' : isDenseMobile ? 'p-2.5' : 'p-[clamp(0.15rem,0.9vw,0.5rem)]'} transition-colors active:scale-90`}
               title={isPowerOffAction ? t('status.off') : t('status.on')}
             >
               <Power

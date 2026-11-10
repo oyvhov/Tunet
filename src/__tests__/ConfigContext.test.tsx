@@ -217,3 +217,19 @@ describe('units mode', () => {
     expect(mount().current.unitsMode).toBe('imperial');
   });
 });
+
+describe('what happens next line', () => {
+  it('is off by default', () => {
+    expect(mount().current.showNextUp).toBe(false);
+  });
+
+  it('persists a change across a reload', () => {
+    const config = mount();
+
+    act(() => config.current.setShowNextUp(true));
+
+    expect(config.current.showNextUp).toBe(true);
+    expect(localStorage.getItem('tunet_show_next_up')).toBe('1');
+    expect(mount().current.showNextUp).toBe(true);
+  });
+});

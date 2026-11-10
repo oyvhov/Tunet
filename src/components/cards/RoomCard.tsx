@@ -33,6 +33,7 @@ import type { Connection } from 'home-assistant-js-websocket';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import type { CardCallService } from '../../types/cards';
 import type { RoomEntitySettings } from '../../utils/roomEntities';
+import CardName from '../ui/CardName';
 
 interface RoomCardSettings extends RoomEntitySettings {
   areaName?: string;
@@ -49,6 +50,7 @@ interface RoomCardSettings extends RoomEntitySettings {
   showDoorChip?: boolean;
   showOccupiedIndicator?: boolean;
   showIconWatermark?: boolean;
+  size?: string;
   doorEntityId?: string;
   mainLightEntityId?: string;
   climateEntityId?: string;
@@ -104,10 +106,12 @@ const RoomCard = memo(
     const roomIconName = customIcons?.[cardId] || settings?.icon || settings?.areaIcon;
     const RoomIcon = roomIconName ? getIconComponent(roomIconName, Home) || Home : Home;
     const isMdiRoomIcon = typeof roomIconName === 'string' && roomIconName.startsWith('mdi:');
-    const watermarkSize = isMdiRoomIcon ? '200px' : 208;
+    const isSmall = settings?.size === 'small';
+    const watermarkPx = isSmall ? 112 : isMdiRoomIcon ? 200 : 208;
+    const watermarkSize = isMdiRoomIcon ? `${watermarkPx}px` : watermarkPx;
     const watermarkPositionClass = isMdiRoomIcon
       ? 'right-0 top-1/2 -translate-y-1/2 translate-x-1/4'
-      : '-right-14 top-1/2 -translate-y-1/2';
+      : `${isSmall ? '-right-7' : '-right-14'} top-1/2 -translate-y-1/2`;
 
     const showLights = settings?.showLights !== false;
     const showTemp = settings?.showTemp !== false;
@@ -479,7 +483,7 @@ const RoomCard = memo(
           e.stopPropagation();
           if (!editMode) onOpen?.();
         })}
-        className={`glass-texture touch-feedback group relative flex h-full flex-col overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--glass-bg)] font-sans transition-all duration-500 select-none ${isMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} `}
+        className={`glass-texture touch-feedback group relative flex h-full flex-col overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--glass-bg)] font-sans transition-all duration-500 select-none ${isSmall ? (isMobile ? 'p-3 pl-4' : 'p-4 pl-5') : isMobile ? 'p-5' : 'p-7'} ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} `}
         style={cardStyle}
       >
         {controls}
@@ -493,10 +497,12 @@ const RoomCard = memo(
           </div>
         )}
 
-        <div className="z-10 flex min-w-0 flex-1 flex-col justify-between text-[var(--text-primary)]">
-          <div className="flex items-start justify-between gap-2">
+        <div
+          className={`z-10 flex min-w-0 flex-1 flex-col text-[var(--text-primary)] ${isSmall ? 'justify-center' : 'justify-between'}`}
+        >
+          <div className={`flex justify-between gap-2 ${isSmall ? 'items-center' : 'items-start'}`}>
             <div
-              className={`flex min-w-0 flex-1 flex-col items-start ${useCompactPills && !isMobile ? 'max-w-[220px]' : 'w-full max-w-none'}`}
+              className={`flex min-w-0 flex-1 ${isSmall ? `items-center ${isMobile ? 'gap-3' : 'gap-4'}` : 'flex-col items-start'} ${useCompactPills && !isMobile && !isSmall ? 'max-w-[220px]' : 'w-full max-w-none'}`}
             >
               <button
                 type="button"
@@ -510,12 +516,16 @@ const RoomCard = memo(
                 />
               </button>
 
-              <div className="mt-2 flex w-full min-w-0 flex-col items-start text-left">
-                <div
-                  className={`${isMobile ? 'text-[11px]' : 'text-xs'} w-full truncate font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+              <div
+                className={`${isSmall ? '' : 'mt-2'} flex w-full min-w-0 flex-col items-start text-left`}
+              >
+                <CardName
+                  as="div"
+                  lines={1}
+                  className={`${isMobile ? 'text-[11px]' : 'text-xs'} w-full font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
                 >
-                  {areaName}
-                </div>
+                  {String(areaName)}
+                </CardName>
               </div>
             </div>
 
@@ -535,70 +545,75 @@ const RoomCard = memo(
             </div>
           </div>
 
-          <div ref={chipContainerRef} className={chipContainerClass}>
-            {showTemp && (displayTempValue || isTempUnknown) && (
-              <div
-                className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
-              >
-                <Thermometer className={`${chipIconClass} fill-current stroke-[1.75px]`} />
-                {!iconOnlyAllPills && (
-                  <span className={chipTextClass}>
-                    {displayTempValue ? `${displayTempValue}${displayTempUnit}` : '--'}
-                  </span>
-                )}
-              </div>
-            )}
-            {showLightChip && showLights && lightsOnCount > 0 && (
-              <div
-                className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
-              >
-                <Lightbulb
-                  className={`${chipIconClass} fill-current stroke-[1.75px] ${lightsOnCount > 0 ? 'text-amber-400' : ''}`}
-                />
-                {!iconOnlyAllPills && <span className={chipTextClass}>{lightsOnCount}</span>}
-              </div>
-            )}
-            {showMediaChip && mediaPlayingCount > 0 && (
-              <div
-                className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
-              >
-                <Tv
-                  className={`${chipIconClass} ${mediaPlayingCount > 0 ? 'text-[var(--accent-color)]' : ''}`}
-                />
-                {!iconOnlyAllPills && <span className={chipTextClass}>{mediaPlayingCount}</span>}
-              </div>
-            )}
-            {showActiveChip && activeDeviceCount > 0 && (
-              <div
-                className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
-              >
-                <Activity className={chipIconClass} />
-                {!iconOnlyAllPills && <span className={chipTextClass}>{activeDeviceCount}</span>}
-              </div>
-            )}
-            {showVacuumChip && vacuumStatusLabel && (
-              <div className={`${chipClass} ${vacuumPillToneClass}`}>
-                <Bot className={chipIconClass} />
-                {!iconOnlyAllPills && <span className={chipTextClass}>{vacuumStatusLabel}</span>}
-              </div>
-            )}
-            {showCoverChip && coverStatusLabel && (
-              <div
-                className={`${chipClass} ${coverPillToneClass} ${iconOnlyStatusPills && !iconOnlyAllPills ? statusIconOnlyChipClass : ''}`}
-              >
-                <ArrowUpDown className={chipIconClass} />
-                {!iconOnlyStatusPills && <span className={chipTextClass}>{coverStatusLabel}</span>}
-              </div>
-            )}
-            {showDoorChip && doorPillLabel && (
-              <div
-                className={`${chipClass} bg-orange-500/14 text-orange-300 ${iconOnlyStatusPills && !iconOnlyAllPills ? statusIconOnlyChipClass : ''}`}
-              >
-                <DoorOpen className={chipIconClass} />
-                {!iconOnlyStatusPills && <span className={chipTextClass}>{doorPillLabel}</span>}
-              </div>
-            )}
-          </div>
+          {/* A small card is one row high: icon and name only, like the other small cards. */}
+          {!isSmall && (
+            <div ref={chipContainerRef} className={chipContainerClass}>
+              {showTemp && (displayTempValue || isTempUnknown) && (
+                <div
+                  className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
+                >
+                  <Thermometer className={`${chipIconClass} fill-current stroke-[1.75px]`} />
+                  {!iconOnlyAllPills && (
+                    <span className={chipTextClass}>
+                      {displayTempValue ? `${displayTempValue}${displayTempUnit}` : '--'}
+                    </span>
+                  )}
+                </div>
+              )}
+              {showLightChip && showLights && lightsOnCount > 0 && (
+                <div
+                  className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
+                >
+                  <Lightbulb
+                    className={`${chipIconClass} fill-current stroke-[1.75px] ${lightsOnCount > 0 ? 'text-amber-400' : ''}`}
+                  />
+                  {!iconOnlyAllPills && <span className={chipTextClass}>{lightsOnCount}</span>}
+                </div>
+              )}
+              {showMediaChip && mediaPlayingCount > 0 && (
+                <div
+                  className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
+                >
+                  <Tv
+                    className={`${chipIconClass} ${mediaPlayingCount > 0 ? 'text-[var(--accent-color)]' : ''}`}
+                  />
+                  {!iconOnlyAllPills && <span className={chipTextClass}>{mediaPlayingCount}</span>}
+                </div>
+              )}
+              {showActiveChip && activeDeviceCount > 0 && (
+                <div
+                  className={`${chipClass} bg-[var(--glass-bg-hover)] text-[var(--text-secondary)]`}
+                >
+                  <Activity className={chipIconClass} />
+                  {!iconOnlyAllPills && <span className={chipTextClass}>{activeDeviceCount}</span>}
+                </div>
+              )}
+              {showVacuumChip && vacuumStatusLabel && (
+                <div className={`${chipClass} ${vacuumPillToneClass}`}>
+                  <Bot className={chipIconClass} />
+                  {!iconOnlyAllPills && <span className={chipTextClass}>{vacuumStatusLabel}</span>}
+                </div>
+              )}
+              {showCoverChip && coverStatusLabel && (
+                <div
+                  className={`${chipClass} ${coverPillToneClass} ${iconOnlyStatusPills && !iconOnlyAllPills ? statusIconOnlyChipClass : ''}`}
+                >
+                  <ArrowUpDown className={chipIconClass} />
+                  {!iconOnlyStatusPills && (
+                    <span className={chipTextClass}>{coverStatusLabel}</span>
+                  )}
+                </div>
+              )}
+              {showDoorChip && doorPillLabel && (
+                <div
+                  className={`${chipClass} bg-orange-500/14 text-orange-300 ${iconOnlyStatusPills && !iconOnlyAllPills ? statusIconOnlyChipClass : ''}`}
+                >
+                  <DoorOpen className={chipIconClass} />
+                  {!iconOnlyStatusPills && <span className={chipTextClass}>{doorPillLabel}</span>}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );

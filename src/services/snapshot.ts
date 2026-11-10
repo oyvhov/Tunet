@@ -67,6 +67,8 @@ export interface SnapshotAppearance {
   density: string;
   cardScale: number;
   inactivityTimeout: number;
+  /** Missing in snapshots from before the setting existed. */
+  showNextUp?: boolean;
 }
 
 export interface DashboardSnapshot {
@@ -115,6 +117,7 @@ export interface SnapshotContextSetters {
   setDensity?: Setter<string>;
   setCardScale?: Setter<number>;
   setInactivityTimeout?: Setter<number>;
+  setShowNextUp?: Setter<boolean>;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
@@ -203,6 +206,7 @@ export function collectSnapshot(): DashboardSnapshot {
       density: localStorage.getItem('tunet_density') || 'comfortable',
       cardScale: readNumber('tunet_card_scale', 100),
       inactivityTimeout: readNumber('tunet_inactivity_timeout', 60),
+      showNextUp: readBoolean('tunet_show_next_up', false),
     },
   };
 }
@@ -296,6 +300,8 @@ export function applySnapshot(
     localStorage.setItem('tunet_card_scale', String(appearance.cardScale));
   if (appearance.inactivityTimeout !== undefined)
     localStorage.setItem('tunet_inactivity_timeout', String(appearance.inactivityTimeout));
+  if (appearance.showNextUp !== undefined)
+    localStorage.setItem('tunet_show_next_up', appearance.showNextUp ? '1' : '0');
 
   // ── Update React contexts (if setters provided) ──
   const s = contextSetters;
@@ -350,6 +356,8 @@ export function applySnapshot(
   if (s.setCardScale && appearance.cardScale !== undefined) s.setCardScale(appearance.cardScale);
   if (s.setInactivityTimeout && appearance.inactivityTimeout !== undefined)
     s.setInactivityTimeout(appearance.inactivityTimeout);
+  if (s.setShowNextUp && appearance.showNextUp !== undefined)
+    s.setShowNextUp(appearance.showNextUp);
 }
 
 // ── validate ─────────────────────────────────────────────────────────

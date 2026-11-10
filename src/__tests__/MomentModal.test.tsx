@@ -7,7 +7,11 @@ import type { EntityMap } from '../types/dashboard';
 vi.mock('../contexts', () => ({ useConfig: () => ({ currentTheme: 'light' }) }));
 
 vi.mock('../components/camera/CameraFeed', () => ({
-  default: ({ entityId }: { entityId: string }) => <div data-testid="feed">{entityId}</div>,
+  default: ({ entityId, fit }: { entityId: string; fit?: string }) => (
+    <div data-testid="feed" data-fit={fit}>
+      {entityId}
+    </div>
+  ),
 }));
 
 const song = (state = 'playing', attributes: Record<string, unknown> = {}) =>
@@ -206,6 +210,18 @@ describe('MomentModal', () => {
 
     expect(screen.getByTestId('feed')).toHaveTextContent('camera.door');
     expect(screen.getByRole('heading', { name: 'Door' })).toBeInTheDocument();
+  });
+
+  it('fills the screen with the camera and names it below the image text', () => {
+    renderMoment({ cardId: 'camera_card_door', kind: 'camera', entityId: 'camera.door' }, {
+      'camera.door': { state: 'idle', attributes: { friendly_name: 'Door' } },
+    } as EntityMap);
+
+    expect(screen.getByTestId('feed')).toHaveAttribute('data-fit', 'cover');
+    const caption = screen.getByRole('heading', { name: 'Door' });
+    expect(caption).toHaveClass('moment__caption');
+    expect(caption).not.toHaveClass('sr-only');
+    expect(document.querySelector('.moment__bar')).not.toHaveTextContent('Door');
   });
 
   it('shows the message of a notice', () => {

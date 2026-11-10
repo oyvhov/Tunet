@@ -2,7 +2,9 @@ import { memo } from 'react';
 import SparkLine from '../charts/SparkLine';
 import { Zap } from '../../icons';
 import { getIconComponent } from '../../icons';
-import { useHomeAssistantMeta } from '../../contexts';
+import { useConfig, useHomeAssistantMeta } from '../../contexts';
+import { getLocaleForLanguage } from '../../i18n';
+import { findCheapestWindow } from '../../utils/nextUp';
 import {
   applyNordpoolSupport,
   getCurrentPriceIndex,
@@ -12,6 +14,8 @@ import {
 import { getUnavailableLabel, isUnavailableState } from '../../utils/entityState';
 import type { CardBaseProps, EntityMap } from '../../types/dashboard';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
+import GlideNumber from '../ui/GlideNumber';
 
 interface NordpoolSettings {
   currency?: string;
@@ -48,6 +52,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
   settings = {},
 }: GenericNordpoolCardProps) {
   const { haConfig } = useHomeAssistantMeta();
+  const { language, showNextUp } = useConfig();
   const translate = t || ((key: string) => key);
   const currency = settings?.currency || haConfig?.currency || 'kr';
 
@@ -142,7 +147,24 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
   }
 
   // Format price display
-  const priceDisplay = hasPrice ? currentPrice.toFixed(decimals) : '--';
+  const formatPrice = (value: number) => value.toFixed(decimals);
+  const glidingPrice = (
+    <GlideNumber value={hasPrice ? currentPrice : null} format={formatPrice} fallback="--" />
+  );
+
+  // Cheapest two hours within the coming day, so a bare clock time cannot mean two days.
+  const cheapestWindow =
+    showNextUp && hasPrice && settings.size !== 'small'
+      ? findCheapestWindow(fullPriceData.slice(0, currentPriceIndex + 24), currentPriceIndex)
+      : null;
+  const locale = getLocaleForLanguage(language);
+  const clock = (date: Date) =>
+    date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  const cheapestText = cheapestWindow
+    ? translate('power.cheapestWindow')
+        .replace('{start}', clock(cheapestWindow.start))
+        .replace('{end}', clock(cheapestWindow.end))
+    : '';
 
   if (settings.size === 'small') {
     let indicatorClass = 'bg-[var(--accent-color)] ring-[var(--accent-color)]';
@@ -180,9 +202,12 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
 
           <div className="flex min-w-0 flex-col">
             <div className="mb-1.5 flex items-center gap-2">
-              <p className="truncate text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-                {name}
-              </p>
+              <CardName
+                lines={1}
+                className="text-xs leading-none font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70"
+              >
+                {String(name)}
+              </CardName>
               <span
                 className={`h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ring-2 ${indicatorClass}`}
                 title={levelText}
@@ -190,7 +215,7 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
               />
             </div>
             <div className="flex items-baseline gap-1 leading-none">
-              <span className="text-xl font-bold text-[var(--text-primary)]">{priceDisplay}</span>
+              <span className="text-xl font-bold text-[var(--text-primary)]">{glidingPrice}</span>
               <span className="text-xs font-medium text-[var(--text-muted)]">
                 {hasPrice ? currency : levelText}
               </span>
@@ -226,36 +251,50 @@ const GenericNordpoolCard = memo(function GenericNordpoolCard({
           {isDenseMobile ? (
             <div className="flex items-end gap-1 leading-none">
               <span className="text-2xl leading-none font-light text-[var(--text-primary)]">
-                {String(priceDisplay)}
+                {glidingPrice}
               </span>
               <span className="text-[11px] font-medium text-[var(--text-muted)]">{currency}</span>
             </div>
           ) : (
-            <div
-              className="flex items-center gap-1.5 rounded-full border px-3 py-1"
-              style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
-            >
-              <span className={`text-xs font-bold tracking-widest uppercase ${levelColor}`}>
-                {levelText}
-              </span>
+            <div className="flex min-w-0 flex-col items-end gap-1 pl-3">
+              <div
+                className="flex items-center gap-1.5 rounded-full border px-3 py-1"
+                style={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+              >
+                <span className={`text-xs font-bold tracking-widest uppercase ${levelColor}`}>
+                  {levelText}
+                </span>
+              </div>
+              {cheapestText && (
+                <span className="max-w-full truncate text-[11px] font-medium text-[var(--text-secondary)]">
+                  {cheapestText}
+                </span>
+              )}
             </div>
           )}
         </div>
         <div className={isDenseMobile ? 'mt-3' : 'mt-2'}>
-          <p
-            className={`${isDenseMobile ? 'mb-1 text-[10px]' : 'mb-0.5 text-xs'} leading-none font-bold text-[var(--text-secondary)] uppercase opacity-60`}
+          <CardName
+            className={`${isDenseMobile ? 'mb-1 text-[10px]' : 'mb-0.5 text-xs'} leading-tight font-bold text-[var(--text-secondary)] uppercase opacity-60`}
             style={{ letterSpacing: '0.05em' }}
           >
-            {name}
-          </p>
+            {String(name)}
+          </CardName>
           {isDenseMobile ? (
-            <span className={`text-[10px] font-bold tracking-widest uppercase ${levelColor}`}>
-              {levelText}
-            </span>
+            <>
+              <span className={`text-[10px] font-bold tracking-widest uppercase ${levelColor}`}>
+                {levelText}
+              </span>
+              {cheapestText && (
+                <p className="mt-1 truncate text-[10px] font-medium text-[var(--text-secondary)]">
+                  {cheapestText}
+                </p>
+              )}
+            </>
           ) : (
             <div className="mt-2 flex items-baseline gap-1 leading-none">
               <span className="text-4xl leading-none font-thin text-[var(--text-primary)]">
-                {String(priceDisplay)}
+                {glidingPrice}
               </span>
               <span className="ml-1 text-base font-medium text-[var(--text-muted)]">
                 {currency}

@@ -7,6 +7,7 @@ import type { CardBaseProps } from '../../types/dashboard';
 import type { CardCallService, GetEntityAttribute } from '../../types/cards';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
 import { cardButtonProps } from '../../utils/keyboard';
+import CardName from '../ui/CardName';
 
 interface LockCardProps extends Pick<
   CardBaseProps,
@@ -211,9 +212,12 @@ const LockCard = memo(function LockCard({
             <Icon className="h-6 w-6 stroke-[1.5px]" />
           </div>
           <div className="flex min-w-0 flex-col gap-0.5">
-            <p className="truncate text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70">
-              {name}
-            </p>
+            <CardName
+              lines={1}
+              className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-70"
+            >
+              {String(name)}
+            </CardName>
             <span className="truncate text-xl leading-none font-medium text-[var(--text-primary)]">
               {confirmText ?? statusText}
             </span>
@@ -287,11 +291,12 @@ const LockCard = memo(function LockCard({
 
       <div className="mt-2 flex flex-col gap-3">
         <div className="min-w-0">
-          <p
-            className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} truncate font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
+          <CardName
+            lines={1}
+            className={`${useDenseMobileLargeLayout ? 'mb-0.5 text-[10px]' : 'mb-1 text-xs'} font-bold tracking-widest text-[var(--text-secondary)] uppercase opacity-60`}
           >
-            {name}
-          </p>
+            {String(name)}
+          </CardName>
           <h3
             className={`${useDenseMobileLargeLayout ? 'text-[1.4rem]' : isMobile ? 'text-[1.65rem]' : 'text-3xl'} truncate leading-none font-thin text-[var(--text-primary)]`}
           >

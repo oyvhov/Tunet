@@ -52,6 +52,10 @@ import {
 } from '../icons';
 
 const SETTINGS_STATIC_VERSION = __APP_VERSION__;
+const SETTINGS_BACKDROP_STYLE = {
+  backdropFilter: 'blur(var(--modal-blur))',
+  WebkitBackdropFilter: 'blur(var(--modal-blur))',
+};
 
 /** @param {any} props */
 export default function ConfigModal({
@@ -2007,7 +2011,11 @@ export default function ConfigModal({
           color: 'var(--text-primary)',
         },
       }
-    : { panelClassName: 'system-settings-modal h-[min(75vh,700px)]' };
+    : {
+        panelClassName: 'system-settings-modal h-[min(75vh,700px)]',
+        // The same dimmed, blurred page as behind the other popups; the panel itself stays still.
+        overlayStyle: SETTINGS_BACKDROP_STYLE,
+      };
 
   return (
     <>
