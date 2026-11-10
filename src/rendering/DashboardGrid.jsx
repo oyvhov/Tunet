@@ -217,19 +217,8 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
         .map(({ id }) => {
           const index = cardIndexMap.get(id) ?? -1;
           const placement = gridLayout[id];
-          const isCalendarCard = id.startsWith('calendar_card_');
-          const isTodoCard = id.startsWith('todo_card_');
-          const isLargeCard = isCalendarCard || isTodoCard;
-          const sizeSetting = isLargeCard
-            ? cardSettings[getCardSettingsKey(id)]?.size || cardSettings[id]?.size
-            : null;
-          const forcedSpan = isLargeCard
-            ? sizeSetting === 'small'
-              ? 1
-              : sizeSetting === 'medium'
-                ? 2
-                : 4
-            : placement?.span;
+          // The height always follows the rows the layout reserved, so no card leaves a gap below it.
+          const forcedSpan = placement.span;
           const settingsKey = getCardSettingsKey(id);
           const settings = cardSettings[settingsKey] || cardSettings[id] || {};
           const heading = cardSettings[settingsKey]?.heading;
@@ -251,8 +240,6 @@ export default function DashboardGrid({ page, media, grid, cards, actions, t }) 
             Number(settings.heightPx) > 0
           ) {
             cardHeight = Math.max(40, Math.min(420, Number(settings.heightPx) * scaleFactor));
-          } else if (isLargeCard && sizeSetting !== 'small' && sizeSetting !== 'medium') {
-            cardHeight = 4 * rowPx + 3 * gapPx;
           } else {
             cardHeight = forcedSpan * rowPx + Math.max(0, forcedSpan - 1) * gapPx;
           }

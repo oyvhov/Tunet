@@ -275,9 +275,18 @@ export function useCardRendering({
         gridColumns: gridColCount,
         viewportWidth,
         gridGapH,
+        rowSpan: isMobile ? getCardGridSpan(cardId) : 1,
       });
     },
-    [getCardSettingsKey, cardSettings, isMobile, gridColCount, viewportWidth, gridGapH]
+    [
+      getCardSettingsKey,
+      cardSettings,
+      isMobile,
+      gridColCount,
+      viewportWidth,
+      gridGapH,
+      getCardGridSpan,
+    ]
   );
 
   const moveCardInArray = useCallback(

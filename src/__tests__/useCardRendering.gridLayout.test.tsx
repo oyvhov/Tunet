@@ -72,6 +72,25 @@ describe('useCardRendering grid layout', () => {
     expect(Object.keys(result.current.gridLayout)).toEqual(['light.a']);
   });
 
+  it('pairs small cards on a phone while a large card keeps the whole row', () => {
+    const { result, rerender } = setup();
+
+    rerender({
+      ...params,
+      isMobile: true,
+      gridColCount: 2,
+      viewportWidth: 390,
+      gridGapH: 12,
+      pagesConfig: { home: ['light.big', 'light.s1', 'light.s2'] },
+      cardSettings: { 'home::light.s1': { size: 'small' }, 'home::light.s2': { size: 'small' } },
+    });
+
+    const layout = result.current.gridLayout;
+    expect(layout['light.big']).toMatchObject({ row: 1, col: 1, colSpan: 2 });
+    expect(layout['light.s1']).toMatchObject({ row: 3, col: 1, colSpan: 1 });
+    expect(layout['light.s2']).toMatchObject({ row: 3, col: 2, colSpan: 1 });
+  });
+
   it('lays out nothing for an empty page', () => {
     const { result, rerender } = setup();
 
