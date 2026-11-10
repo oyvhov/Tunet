@@ -54,7 +54,7 @@ function EditOverlay({
   return (
     <div
       data-edit-control
-      className={`absolute z-50 flex flex-row items-center rounded-full border border-white/20 bg-black/60 text-white shadow-lg ${groupClass}`}
+      className={`absolute z-50 flex flex-row items-center rounded-full border border-white/20 bg-black/80 text-white shadow-lg backdrop-blur-md ${groupClass}`}
     >
       <button
         type="button"

@@ -266,24 +266,18 @@ const LightCard = ({
         <button
           onClick={handleToggleLight}
           style={lightIconStyle}
-          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`}
+          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-500 @max-[220px]:h-10 @max-[220px]:w-10 @max-[220px]:rounded-xl ${isOn ? 'bg-amber-500/20 text-amber-400' : 'bg-[var(--glass-bg)] text-[var(--text-muted)] hover:bg-[var(--glass-bg-hover)]'}`}
           disabled={isUnavailable}
           aria-label={`${name || t('common.light')}: ${isOn ? t('common.off') : t('common.on')}`}
         >
           <LightIcon
-            className={`h-6 w-6 stroke-[1.5px] ${isOn && !lightColor ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110`}
+            className={`h-6 w-6 stroke-[1.5px] @max-[220px]:h-5 @max-[220px]:w-5 ${isOn && !lightColor ? 'fill-amber-400/20' : ''} transition-transform duration-300 group-hover:scale-110`}
           />
         </button>
 
-        {/* On a narrow card the value moves up beside the name so the slider keeps its length. */}
         <div className="grid h-full min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-3 gap-y-3 pt-1">
-          <div
-            className={`col-start-1 row-start-1 flex min-w-0 items-baseline justify-between pr-1 ${isDimmable ? 'col-span-2 @max-[220px]:col-span-1' : 'col-span-2'}`}
-          >
-            <CardName
-              lines={1}
-              className="text-xs leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60"
-            >
+          <div className="col-span-2 col-start-1 row-start-1 flex min-w-0 items-baseline justify-between gap-2 pr-1">
+            <CardName className="text-xs leading-tight font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60">
               {String(name || t('common.light'))}
             </CardName>
             {isUnavailable && (
@@ -297,7 +291,7 @@ const LightCard = ({
             )}
           </div>
           {isDimmable && (
-            <div className="col-start-1 row-start-2 flex h-6 min-w-0 items-center @max-[220px]:col-span-2">
+            <div className="col-start-1 row-start-2 flex h-6 min-w-0 items-center">
               <M3Slider
                 variant="thinLg"
                 min={0}
@@ -312,7 +306,7 @@ const LightCard = ({
             </div>
           )}
           <span
-            className={`${inlineValueClass} ${isDimmable ? 'col-start-2 row-start-2 @max-[220px]:row-start-1' : 'col-span-2 col-start-1 row-start-2 flex h-6 items-center'}`}
+            className={`${inlineValueClass} ${isDimmable ? 'col-start-2 row-start-2' : 'col-span-2 col-start-1 row-start-2 flex h-6 items-center'}`}
           >
             {inlineValue}
           </span>

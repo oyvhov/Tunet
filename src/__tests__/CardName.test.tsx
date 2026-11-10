@@ -51,9 +51,19 @@ describe('CardName', () => {
     expect(screen.getByText('Garasjeportopnar').dataset.fit).toBe('2');
   });
 
-  it('ends with an ellipsis on one line when nothing else fits', () => {
+  it('keeps two lines and cuts the long word with an ellipsis when nothing else fits', () => {
     widthsByFit = { '0': 200, '1': 190, '2': 180, clip: 100 };
-    render(<CardName>Varmepumpeinnstillingar</CardName>);
+    render(<CardName>Soverom temperaturmålar</CardName>);
+    const name = screen.getByText('Soverom temperaturmålar');
+    expect(name.dataset.fit).toBe('clip');
+    expect(name.className).toContain('line-clamp-2');
+    expect(name.className).toContain('text-ellipsis');
+    expect(name.className).not.toContain('truncate');
+  });
+
+  it('ends with an ellipsis on one line when a one-line name does not fit', () => {
+    widthsByFit = { '0': 200, '1': 190, '2': 180, clip: 100 };
+    render(<CardName lines={1}>Varmepumpeinnstillingar</CardName>);
     const name = screen.getByText('Varmepumpeinnstillingar');
     expect(name.dataset.fit).toBe('clip');
     expect(name.className).toContain('truncate');

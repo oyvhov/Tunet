@@ -142,6 +142,32 @@ describe('buildGridLayout', () => {
     expect(result.c).toEqual({ row: 2, col: 1, span: 1, colSpan: 1 });
   });
 
+  it('widens a card left alone between full-width cards in a 2-col grid', () => {
+    const rowSpans = { ute: 2 };
+    const colSpans = { straum: 2, ute: 2 };
+    const result = buildGridLayout(
+      ['lamp', 'bedroom', 'straum', 'co2', 'ute'],
+      2,
+      (id) => rowSpans[id] || 1,
+      (id) => colSpans[id] || 1
+    );
+    expect(result.co2).toEqual({ row: 3, col: 1, span: 1, colSpan: 2 });
+    expect(result.ute).toEqual({ row: 4, col: 1, span: 2, colSpan: 2 });
+    expect(result.lamp.colSpan).toBe(1);
+    expect(result.bedroom.colSpan).toBe(1);
+  });
+
+  it('leaves a lone card in a wider grid as it is', () => {
+    const colSpans = { wide: 4 };
+    const result = buildGridLayout(
+      ['lone', 'wide'],
+      4,
+      () => 1,
+      (id) => colSpans[id] || 1
+    );
+    expect(result.lone).toEqual({ row: 1, col: 1, span: 1, colSpan: 1 });
+  });
+
   it('places double-span cards correctly', () => {
     const result = buildGridLayout(['a', 'b'], 2, spanOf(2));
     // Each span-2 card fills both columns of one row
@@ -371,6 +397,38 @@ describe('getCardColSpan', () => {
     expect(getCardColSpan('entity_card_3', identity, settings, large)).toBe(1);
     // Wider screens keep the configured width.
     expect(getCardColSpan('light.hall', identity, settings, { ...large, isMobile: false })).toBe(1);
+  });
+
+  it('gives small cards with their own buttons or a wide graphic the whole row on a phone', () => {
+    const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
+    const settings = {
+      'lock.front': { size: 'small' },
+      cover_card_garage: { size: 'small' },
+      'lawn_mower.lawn': { size: 'small' },
+      'vacuum.robot': { size: 'small' },
+      'automation.night': { size: 'small' },
+      climate_card_bath: { size: 'small' },
+      entity_card_bar: { entityId: 'sensor.power', size: 'small', sensorVariant: 'bar' },
+      entity_card_trend: { entityId: 'sensor.power', size: 'small', sensorVariant: 'trend' },
+      entity_card_donut: { entityId: 'sensor.co2', size: 'small', sensorVariant: 'donut' },
+      'fan.bath': { size: 'small' },
+      'lock.back': { size: 'small', mobileWidth: 'compact' },
+    };
+    for (const cardId of [
+      'lock.front',
+      'cover_card_garage',
+      'lawn_mower.lawn',
+      'vacuum.robot',
+      'automation.night',
+      'climate_card_bath',
+      'entity_card_bar',
+      'entity_card_trend',
+    ]) {
+      expect(getCardColSpan(cardId, identity, settings, options), cardId).toBe(2);
+    }
+    expect(getCardColSpan('entity_card_donut', identity, settings, options)).toBe(1);
+    expect(getCardColSpan('fan.bath', identity, settings, options)).toBe(1);
+    expect(getCardColSpan('lock.back', identity, settings, options)).toBe(1);
   });
 
   it('ignores malformed stored entity ids instead of breaking the whole layout', () => {

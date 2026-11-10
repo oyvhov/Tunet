@@ -445,7 +445,7 @@ const SensorCard = memo(
       : 'h-auto w-[clamp(3.5rem,25cqw,6rem)]';
     const smallTrendClass = useDenseMobileSmallLayout
       ? 'h-8 w-[clamp(2.5rem,22cqw,5rem)]'
-      : 'h-10 w-[clamp(4rem,30cqw,7.5rem)]';
+      : 'h-10 w-[clamp(4rem,24cqw,6.5rem)]';
     const smallVariantDonutSize = useDenseMobileSmallLayout ? 36 : 42;
     const smallVariantBarHeight = useDenseMobileSmallLayout ? 7 : 8;
     const largeVariantGaugeSize = useDenseMobileLargeLayout ? 88 : 124;
@@ -1093,6 +1093,9 @@ const SensorCard = memo(
           : iconIsAction && actionActive
             ? 'bg-[var(--accent-bg)] text-[var(--accent-color)]'
             : iconToneClass;
+      // On a narrow card a gauge or ring is the picture, so a plain icon makes room for the name.
+      const hideIconWhenNarrow =
+        showSmallVariantVisual && !showTrend && !iconIsAction && !showToggleControls;
 
       return (
         <div
@@ -1125,7 +1128,7 @@ const SensorCard = memo(
                     : undefined
                 }
                 aria-busy={iconIsAction || showToggleControls ? actionFeedback.pending : undefined}
-                className={`flex flex-shrink-0 items-center justify-center ${iconIsAction || showToggleControls ? 'h-11 w-11 rounded-xl' : useDenseMobileSmallLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl'} ${smallToggleIconClass} transition-all duration-200 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
+                className={`flex flex-shrink-0 items-center justify-center ${iconIsAction || showToggleControls ? 'h-11 w-11 rounded-xl' : useDenseMobileSmallLayout ? 'h-9 w-9 rounded-xl' : 'h-10 w-10 rounded-xl'} ${hideIconWhenNarrow ? '@max-[220px]:hidden' : ''} ${smallToggleIconClass} transition-all duration-200 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
                 onClick={
                   (iconIsAction || showToggleControls) && !editMode && !preview
                     ? (e) => {
@@ -1151,8 +1154,7 @@ const SensorCard = memo(
             <div className="flex min-w-0 flex-1 flex-col">
               {showName && (
                 <CardName
-                  lines={1}
-                  className={`${useDenseMobileSmallLayout ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} max-w-full leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
+                  className={`${useDenseMobileSmallLayout ? 'mb-1 text-[10px]' : 'mb-1.5 text-xs'} max-w-full leading-tight font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60`}
                 >
                   {String(name)}
                 </CardName>

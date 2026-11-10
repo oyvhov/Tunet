@@ -2,7 +2,7 @@ import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties 
 
 /**
  * One rule for card names everywhere: wrap only between words, shrink a little when a
- * single word is too wide, and fall back to one line with an ellipsis.
+ * single word is too wide, and end the word that still does not fit with an ellipsis.
  */
 type Fit = '0' | '1' | '2' | 'clip';
 
@@ -52,10 +52,12 @@ function CardName({ children, className = '', lines = 2, as: Tag = 'p', style }:
     return () => observer.disconnect();
   }, []);
 
+  // A two-line name that still overflows keeps its lines; only the word that is too long ends
+  // in an ellipsis.
   const wrapClass =
-    fit === 'clip' || lines === 1
+    lines === 1
       ? 'block truncate'
-      : '[overflow-wrap:normal] [word-break:normal] line-clamp-2';
+      : `[overflow-wrap:normal] [word-break:normal] line-clamp-2 ${fit === 'clip' ? 'text-ellipsis' : ''}`;
 
   return (
     <Tag

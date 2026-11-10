@@ -393,7 +393,7 @@ const CalendarCard = memo(
     const {
       listRef,
       visibleRows,
-      measuring: measuringList,
+      showMore: showMoreLine,
     } = useRowsThatFit(listRowCount, groupedEvents);
 
     const now = new Date();
@@ -855,7 +855,7 @@ const CalendarCard = memo(
                   </div>
                 </div>
               ))}
-              {(hiddenRows > 0 || measuringList) && (
+              {showMoreLine && (
                 <p
                   data-fit-more=""
                   className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"

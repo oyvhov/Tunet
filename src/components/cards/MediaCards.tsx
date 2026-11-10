@@ -145,6 +145,8 @@ export const MediaPlayerCard = memo(
     const useWhiteText = (Boolean(picture) || isCoverMode) && !isLightArt;
 
     if (!isActive) {
+      // A small card on a phone is one short row: the ring would not fit, so it shows text only.
+      const showIdleRing = !(isDenseMobile && settings.size === 'small');
       return (
         <div
           key={mpId}
@@ -159,20 +161,16 @@ export const MediaPlayerCard = memo(
           style={{ ...cardStyle, color: 'var(--text-primary)' }}
         >
           {controls}
-          <div
-            className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} ${SHORT_IDLE_RING} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
-            style={{ backgroundColor: 'var(--glass-bg)' }}
-          >
-            {isChannel ? (
+          {showIdleRing && (
+            <div
+              className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} ${SHORT_IDLE_RING} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
+              style={{ backgroundColor: 'var(--glass-bg)' }}
+            >
               <MediaIcon
                 className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} ${SHORT_IDLE_ICON} text-[var(--text-secondary)]`}
               />
-            ) : (
-              <MediaIcon
-                className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} ${SHORT_IDLE_ICON} text-[var(--text-secondary)]`}
-              />
-            )}
-          </div>
+            </div>
+          )}
           <div className="w-full px-4 text-center">
             <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               {isUnavailableState(mpState) ? getUnavailableLabel(mpState, t) : t('media.noneMusic')}
@@ -470,6 +468,8 @@ export const MediaGroupCard = memo(
     };
 
     if (!isActive) {
+      // A small card on a phone is one short row: the ring would not fit, so it shows text only.
+      const showIdleRing = !(isDenseMobile && groupSettings.size === 'small');
       return (
         <div
           key={cardId}
@@ -484,14 +484,16 @@ export const MediaGroupCard = memo(
           style={{ ...cardStyle, color: 'var(--text-primary)' }}
         >
           {controls}
-          <div
-            className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} ${SHORT_IDLE_RING}`}
-            style={{ backgroundColor: 'var(--glass-bg)' }}
-          >
-            <MediaIcon
-              className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} ${SHORT_IDLE_ICON} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
-            />
-          </div>
+          {showIdleRing && (
+            <div
+              className={`${isDenseMobile ? 'mb-3 rounded-full p-4' : 'mb-4 rounded-full p-5'} ${SHORT_IDLE_RING}`}
+              style={{ backgroundColor: 'var(--glass-bg)' }}
+            >
+              <MediaIcon
+                className={`${isDenseMobile ? 'h-6 w-6' : 'h-8 w-8'} ${SHORT_IDLE_ICON} text-[var(--text-secondary)] transition-transform duration-300 group-hover:scale-110`}
+              />
+            </div>
+          )}
           <div className="w-full px-4 text-center">
             <p className="text-xs font-bold tracking-widest text-[var(--text-secondary)] uppercase">
               {mediaEntities.every((player) => isUnavailableState(player.state))

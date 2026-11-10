@@ -282,7 +282,7 @@ const TodoCard = memo(function TodoCard({
   const completedCount = completedItems.length;
   const totalCount = items.length;
   const listRowCount = pendingCount + completedCount;
-  const { listRef, visibleRows, measuring: measuringList } = useRowsThatFit(listRowCount, items);
+  const { listRef, visibleRows, showMore: showMoreLine } = useRowsThatFit(listRowCount, items);
 
   const IconComp = iconName ? getIconComponent(iconName) || ListChecks : ListChecks;
   const displayName = customName || settings?.name || t('todo.title') || 'To-do';
@@ -505,7 +505,7 @@ const TodoCard = memo(function TodoCard({
                 ))}
               </div>
             )}
-            {(hiddenRows > 0 || measuringList) && (
+            {showMoreLine && (
               <p
                 data-fit-more=""
                 className="px-3 pt-1 text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase"

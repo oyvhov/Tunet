@@ -104,4 +104,30 @@ describe('mobile media controls', () => {
 
     expectWideControls(container);
   });
+
+  it.each([
+    ['player', MediaPlayerCard],
+    ['group', MediaGroupCard],
+  ])('leaves out the idle ring on a small %s card on a phone', (_name, Card) => {
+    const cardId = Card === MediaPlayerCard ? entityId : 'media_group_kitchen';
+    const settingsKey = `home::${cardId}`;
+    const props = {
+      ...commonProps,
+      cardId,
+      mpId: entityId,
+      settingsKey,
+      isMediaActive: () => false,
+      saveCardSetting: vi.fn(),
+    };
+    const ring = (container) => container.querySelector('.rounded-full.p-4');
+
+    const small = { [settingsKey]: { mediaIds: [entityId], size: 'small' } };
+    const { container, rerender } = render(<Card {...props} cardSettings={small} />);
+    expect(container).toHaveTextContent('media.noneMusic');
+    expect(ring(container)).toBeNull();
+
+    const large = { [settingsKey]: { mediaIds: [entityId] } };
+    rerender(<Card {...props} cardSettings={large} />);
+    expect(ring(container)).not.toBeNull();
+  });
 });

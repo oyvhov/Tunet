@@ -136,12 +136,36 @@ describe('SensorCard', () => {
     expect(screen.getByText('Ready to feed')).toBeInTheDocument();
   });
 
-  it('keeps small mobile titles truncated instead of wrapping vertically', () => {
+  it('drops the plain icon of a narrow small card that shows a gauge or ring', () => {
+    const entity = {
+      entity_id: 'sensor.bedroom_temperature',
+      state: '18.2',
+      attributes: { friendly_name: 'Bedroom temperature', unit_of_measurement: '°C' },
+    };
+    const iconBox = (container) => container.querySelector('svg.lucide-activity').parentElement;
+
+    for (const sensorVariant of ['gauge', 'donut']) {
+      const { container, unmount } = render(
+        <SensorCard {...baseProps({ entity, settings: { size: 'small', sensorVariant } })} />
+      );
+      expect(container.querySelector('[data-sensor-graph]')).not.toBeNull();
+      expect(iconBox(container).className).toContain('@max-[220px]:hidden');
+      unmount();
+    }
+
+    const { container } = render(
+      <SensorCard {...baseProps({ entity, settings: { size: 'small' } })} />
+    );
+    expect(iconBox(container).className).not.toContain('@max-[220px]:hidden');
+  });
+
+  it('wraps small mobile titles between words, at most two lines', () => {
     render(<SensorCard {...baseProps()} isMobile />);
 
     const title = screen.getByText('Jellyfin Downstairs');
 
-    expect(title.className).toContain('truncate');
+    expect(title.className).toContain('line-clamp-2');
+    expect(title.className).toContain('[word-break:normal]');
     expect(title.className).not.toContain('break-words');
   });
 

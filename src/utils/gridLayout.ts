@@ -128,6 +128,17 @@ export const getCardGridSpan = (
  * @returns {number} 1–4
  */
 const MOBILE_GRID_HORIZONTAL_PADDING = 16;
+// Small cards with buttons of their own, or a sensor graphic beside the value, need the whole
+// row on a phone; at half width the controls leave no room for the name and state.
+const CARDS_WITH_OWN_CONTROLS = [
+  'lock.',
+  'cover_card_',
+  'lawn_mower.',
+  'vacuum.',
+  'automation.',
+  'climate_card_',
+];
+const WIDE_SMALL_SENSOR_VARIANTS: readonly unknown[] = ['bar', 'trend'];
 
 const getAutomaticMobileMinWidth = (cardId: string, settings: CardSettingsEntry): number | null => {
   if (cardId.startsWith('entity_card_')) {
@@ -156,9 +167,13 @@ const getAutomaticMobileMinWidth = (cardId: string, settings: CardSettingsEntry)
       targetId !== sourceId ||
       ['scene', 'script', 'button', 'input_button', 'climate'].includes(sourceId.split('.')[0]);
     if (hasButtonAction && settings.size === 'small' && usesPrimaryButton) return 280;
+    if (settings.size === 'small' && WIDE_SMALL_SENSOR_VARIANTS.includes(settings.sensorVariant)) {
+      return 280;
+    }
     if (settings.size === 'small') return 150;
     return sourceId.startsWith('climate.') ? 280 : 160;
   }
+  if (CARDS_WITH_OWN_CONTROLS.some((prefix) => cardId.startsWith(prefix))) return 280;
   if (settings.size === 'small') return 150;
   if (
     cardId.startsWith('media_player.') ||
@@ -315,6 +330,24 @@ export const buildGridLayout = (
     const rowSpan = spanFn(id);
     const colSpan = colSpanFn ? Math.min(colSpanFn(id), columns) : 1;
     placeSingle(id, rowSpan, colSpan);
+  }
+
+  // In two columns (phones), a card left alone with cards below it would leave a hole that no
+  // later card fills, so it takes the whole row. A lone card at the end keeps its width.
+  if (columns === 2) {
+    const lastRowStart = Math.max(0, ...Object.values(positions).map((pos) => pos.row));
+    for (const pos of Object.values(positions)) {
+      if (pos.colSpan !== 1 || pos.row + pos.span - 1 >= lastRowStart) continue;
+      const other = pos.col === 1 ? 1 : 0;
+      const rows = Array.from({ length: pos.span }, (_, offset) => pos.row - 1 + offset);
+      if (rows.every((row) => !occupancy[row][other])) {
+        rows.forEach((row) => {
+          occupancy[row][other] = true;
+        });
+        pos.col = 1;
+        pos.colSpan = 2;
+      }
+    }
   }
 
   return positions;
