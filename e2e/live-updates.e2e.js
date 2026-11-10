@@ -350,7 +350,8 @@ for (const profile of [
           /^rgb\(/
         );
         if (section === 'system') {
-          await expect(panel.locator('..')).toHaveCSS('backdrop-filter', 'none');
+          // The page behind is dimmed and blurred like behind every popup; the panel stays still.
+          await expect(panel.locator('..')).toHaveCSS('backdrop-filter', 'blur(8px)');
         }
         await page.evaluate(async () => {
           for (let tick = 0; tick < 15; tick++) {

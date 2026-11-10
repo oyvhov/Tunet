@@ -231,3 +231,18 @@ describe('DashboardLayout cards-only mode', () => {
     });
   });
 });
+
+describe('DashboardLayout status row', () => {
+  it('fades the phone status row where it scrolls and leaves wider screens alone', () => {
+    const view = renderLayout({ isMobile: true });
+    const row = screen.getByTestId('status-row');
+    expect(row).toHaveClass('scroll-edge-fade', 'overflow-x-auto');
+    // jsdom has no layout, so nothing is hidden yet.
+    expect(row).toHaveAttribute('data-fade', 'none');
+
+    view.rerender(<DashboardLayout {...baseProps} isMobile={false} />);
+
+    expect(row).not.toHaveClass('scroll-edge-fade');
+    expect(row).not.toHaveAttribute('data-fade');
+  });
+});

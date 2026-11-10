@@ -8,6 +8,7 @@ import { Edit2, GripVertical, Trash2 } from '../../icons';
 
 interface EditOverlaySettings {
   heightPx?: unknown;
+  size?: unknown;
 }
 
 interface EditOverlayProps {
@@ -33,58 +34,71 @@ function EditOverlay({
     editId?.startsWith('spacer_card_') &&
     Number(settings?.heightPx || 0) > 0 &&
     Number(settings?.heightPx || 0) <= 56;
+  const isOneRowCard = !isCompactSpacer && settings?.size === 'small';
+  // One row in the status chip's corner, so the controls never cover the value or a slider.
+  // A one-row card keeps them small and close to the edge; the extra height keeps them tappable.
   const groupClass = isCompactSpacer
-    ? 'top-1 right-1 flex-row gap-1'
-    : 'top-1/2 right-2 -translate-y-1/2 flex-col gap-2';
-  const buttonClass = `flex items-center justify-center rounded-full border border-white/20 bg-black/60 text-white shadow-lg transition-colors hover:bg-black/80 ${isCompactSpacer ? 'p-1' : 'p-2.5'}`;
-  const iconClass = isCompactSpacer ? 'h-3 w-3' : 'h-4 w-4';
+    ? 'top-1 right-1'
+    : isOneRowCard
+      ? 'top-1 right-1 sm:top-1.5 sm:right-1.5'
+      : 'top-3 right-3 sm:top-4 sm:right-4';
+  const buttonClass = `flex items-center justify-center rounded-full transition-colors ${
+    isCompactSpacer
+      ? 'p-1'
+      : isOneRowCard
+        ? 'relative p-1 before:absolute before:-inset-y-2 before:inset-x-0 sm:p-1.5'
+        : 'p-2 sm:p-2.5'
+  }`;
+  const iconClass = isCompactSpacer ? 'h-3 w-3' : isOneRowCard ? 'h-3.5 w-3.5' : 'h-4 w-4';
 
   return (
-    <>
+    <div
+      data-edit-control
+      className={`absolute z-50 flex flex-row items-center rounded-full border border-white/20 bg-black/60 text-white shadow-lg ${groupClass}`}
+    >
+      <button
+        type="button"
+        data-drag-handle
+        {...dragHandleProps}
+        style={{ touchAction: 'none' }}
+        // On a compact spacer the extra area grows away from the pencil beside it.
+        className={
+          isCompactSpacer
+            ? `${buttonClass} relative before:absolute before:-inset-y-2.75 before:right-0 before:-left-5.5 hover:bg-white/20`
+            : `${buttonClass} hover:bg-white/20`
+        }
+        aria-label={t('tooltip.reorderCard') || 'Reorder card'}
+        title={t('tooltip.reorderCard') || 'Reorder card'}
+      >
+        <GripVertical className={iconClass} />
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit();
+        }}
+        className={`${buttonClass} hover:bg-white/20`}
+        title={t('tooltip.editCard')}
+        aria-label={t('tooltip.editCard')}
+      >
+        <Edit2 className={iconClass} />
+      </button>
       {canRemove && (
-        // Three buttons do not fit down the side of a one-row card, so this one is a
-        // corner badge, small enough to clear the icons. The pseudo-element keeps it tappable.
         <button
           type="button"
-          data-edit-control
           onClick={(e) => {
             e.stopPropagation();
             onRemove();
           }}
-          className="absolute top-1 left-1 z-50 flex items-center justify-center rounded-full border border-white/20 bg-black/60 p-1 text-white shadow-lg transition-colors before:absolute before:-inset-2 hover:bg-red-500/80"
+          className={`${buttonClass} hover:bg-red-500/80`}
           title={t('tooltip.removeCard')}
           aria-label={t('tooltip.removeCard')}
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className={iconClass} />
         </button>
       )}
-      <div data-edit-control className={`absolute z-50 flex ${groupClass}`}>
-        <button
-          type="button"
-          data-drag-handle
-          {...dragHandleProps}
-          style={{ touchAction: 'none' }}
-          // On a compact spacer the extra area grows away from the pencil beside it.
-          className={`${buttonClass} ${isCompactSpacer ? 'relative before:absolute before:-inset-y-2.75 before:right-0 before:-left-5.5' : ''}`}
-          aria-label={t('tooltip.reorderCard') || 'Reorder card'}
-          title={t('tooltip.reorderCard') || 'Reorder card'}
-        >
-          <GripVertical className={iconClass} />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          className={buttonClass}
-          title={t('tooltip.editCard')}
-          aria-label={t('tooltip.editCard')}
-        >
-          <Edit2 className={iconClass} />
-        </button>
-      </div>
-    </>
+    </div>
   );
 }
 

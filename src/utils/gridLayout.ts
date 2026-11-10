@@ -16,6 +16,8 @@ export interface ColSpanOptions {
   gridColumns?: number;
   viewportWidth?: number;
   gridGapH?: number;
+  /** Rows the card spans; on a phone a card taller than one row takes the full width. */
+  rowSpan?: number;
 }
 
 export interface GridPosition {
@@ -183,17 +185,27 @@ export const getCardColSpan = (
   cardId: string,
   getCardSettingsKey: GetCardSettingsKey,
   cardSettings: CardSettingsMap,
-  { isMobile = false, gridColumns = 1, viewportWidth = 0, gridGapH = 0 }: ColSpanOptions = {}
+  {
+    isMobile = false,
+    gridColumns = 1,
+    viewportWidth = 0,
+    gridGapH = 0,
+    rowSpan = 1,
+  }: ColSpanOptions = {}
 ): number => {
   const settings: CardSettingsEntry =
     cardSettings[getCardSettingsKey(cardId)] || cardSettings[cardId] || {};
   const configuredColSpan =
     settings.colSpan === 'full' ? Number.MAX_SAFE_INTEGER : settings.colSpan || 1;
 
-  if (!isMobile || !supportsMobileCardWidth(cardId)) return configuredColSpan;
-  if (settings.mobileWidth === 'compact') return 1;
-  if (settings.mobileWidth === 'full') return Number.MAX_SAFE_INTEGER;
+  if (!isMobile) return configuredColSpan;
+  const hasMobileWidth = supportsMobileCardWidth(cardId);
+  if (hasMobileWidth && settings.mobileWidth === 'compact') return 1;
+  if (hasMobileWidth && settings.mobileWidth === 'full') return Number.MAX_SAFE_INTEGER;
   if (configuredColSpan === Number.MAX_SAFE_INTEGER) return configuredColSpan;
+  // Phones pair small cards two to a row; large cards keep the whole row.
+  if (rowSpan > 1) return Number.MAX_SAFE_INTEGER;
+  if (!hasMobileWidth) return configuredColSpan;
 
   const minWidth = getAutomaticMobileMinWidth(cardId, settings);
   const columns = Math.max(1, gridColumns);
@@ -211,6 +223,12 @@ export const getCardColSpan = (
 /**
  * Build a position map for a list of card ids.
  *
+ * Cards are placed in order, each in the first free spot from the top, so a later card that
+ * fits fills a gap left earlier. One-column cards therefore never leave a gap above another
+ * card. Wide cards could: one that does not fit beside a taller card from the rows above
+ * would leave that space empty, so it takes the free width there instead (at least two
+ * columns) and keeps its place in the order.
+ *
  * @param {string[]}  ids       Ordered card ids
  * @param {number}    columns   Number of grid columns
  * @param {Function}  spanFn    (cardId) => number  – pre-bound getCardGridSpan (row span)
@@ -226,6 +244,7 @@ export const buildGridLayout = (
   if (!columns || columns < 1) return {};
   const occupancy: boolean[][] = [];
   const positions: Record<string, GridPosition> = {};
+  const rowsWithCardStart = new Set<number>();
 
   const ensureRow = (row: number) => {
     if (!occupancy[row]) occupancy[row] = Array(columns).fill(false);
@@ -251,20 +270,43 @@ export const buildGridLayout = (
     }
   };
 
+  // The widest run of free cells in a row that only cards from the rows above reach into.
+  const findRunBesideTallerCards = (row: number) => {
+    if (rowsWithCardStart.has(row) || !occupancy[row].some(Boolean)) return null;
+    let best: { col: number; width: number } | null = null;
+    let start = -1;
+    for (let col = 0; col <= columns; col += 1) {
+      const free = col < columns && !occupancy[row][col];
+      if (free && start < 0) start = col;
+      if (!free && start >= 0) {
+        if (!best || col - start > best.width) best = { col: start, width: col - start };
+        start = -1;
+      }
+    }
+    return best;
+  };
+
   const placeSingle = (id: string, rowSpan: number, colSpan: number) => {
-    let placed = false;
-    let row = 0;
-    while (!placed) {
+    const commit = (row: number, col: number, width: number) => {
+      place(row, col, rowSpan, width);
+      rowsWithCardStart.add(row);
+      positions[id] = { row: row + 1, col: col + 1, span: rowSpan, colSpan: width };
+    };
+    for (let row = 0; ; row += 1) {
       ensureRow(row);
       for (let col = 0; col < columns; col += 1) {
         if (canPlace(row, col, rowSpan, colSpan)) {
-          place(row, col, rowSpan, colSpan);
-          positions[id] = { row: row + 1, col: col + 1, span: rowSpan, colSpan };
-          placed = true;
-          break;
+          commit(row, col, colSpan);
+          return;
         }
       }
-      if (!placed) row += 1;
+      if (colSpan > 1) {
+        const run = findRunBesideTallerCards(row);
+        if (run && run.width >= 2 && canPlace(row, run.col, rowSpan, run.width)) {
+          commit(row, run.col, run.width);
+          return;
+        }
+      }
     }
   };
 

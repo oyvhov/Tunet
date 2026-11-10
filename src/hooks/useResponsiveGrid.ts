@@ -12,8 +12,9 @@ export function getMaxGridColumnsForWidth(width: number) {
   return MAX_GRID_COLUMNS;
 }
 
+// Phones get two columns too: small cards pair up, while large cards take the full row
+// (see getCardColSpan).
 export function getAutoGridColumnsForWidth(width: number) {
-  if (width < 420) return 1;
   if (width < 640) return 2;
   if (width < 1100) return 3;
   return 4;

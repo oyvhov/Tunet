@@ -208,6 +208,38 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+/* A sideways scroller fades out at the edge that has more content (set by useScrollEdgeFade). */
+.scroll-edge-fade {
+  --scroll-fade-size: 1.75rem;
+}
+.scroll-edge-fade[data-fade='end'] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - var(--scroll-fade-size)),
+    transparent
+  );
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--scroll-fade-size)), transparent);
+}
+.scroll-edge-fade[data-fade='start'] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--scroll-fade-size));
+  mask-image: linear-gradient(to right, transparent, #000 var(--scroll-fade-size));
+}
+.scroll-edge-fade[data-fade='both'] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--scroll-fade-size),
+    #000 calc(100% - var(--scroll-fade-size)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 var(--scroll-fade-size),
+    #000 calc(100% - var(--scroll-fade-size)),
+    transparent
+  );
+}
 .vacuum-card-controls {
   display: flex;
   flex-direction: column;

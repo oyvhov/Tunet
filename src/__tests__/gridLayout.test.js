@@ -160,6 +160,56 @@ describe('buildGridLayout', () => {
   it('returns empty object for empty ids', () => {
     expect(buildGridLayout([], 4, spanOf(1))).toEqual({});
   });
+
+  const spans = (map) => (id) => map[id] ?? 1;
+  const occupied = (layout) => {
+    const cells = new Set();
+    for (const { row, col, span, colSpan } of Object.values(layout)) {
+      for (let r = row; r < row + span; r += 1) {
+        for (let c = col; c < col + colSpan; c += 1) cells.add(`${r}:${c}`);
+      }
+    }
+    return cells;
+  };
+
+  it('lets a later small card fill the gap a wide card leaves', () => {
+    const colSpans = spans({ wide: 2 });
+    const result = buildGridLayout(['a', 'wide', 'b'], 2, spanOf(1), colSpans);
+    expect(result.wide).toEqual({ row: 2, col: 1, span: 1, colSpan: 2 });
+    expect(result.b).toEqual({ row: 1, col: 2, span: 1, colSpan: 1 });
+  });
+
+  it('gives a full-width card the free width beside a taller card instead of a gap', () => {
+    const rowSpans = spans({ tall: 4 });
+    const colSpans = spans({ full: 4 });
+    const result = buildGridLayout(['tall', 'a', 'b', 'c', 'full', 'next'], 4, rowSpans, colSpans);
+    expect(result.full).toEqual({ row: 2, col: 2, span: 1, colSpan: 3 });
+    // The card after it follows it instead of jumping ahead of it.
+    expect(result.next).toEqual({ row: 3, col: 2, span: 1, colSpan: 1 });
+    for (const row of [1, 2]) {
+      for (const col of [1, 2, 3, 4]) expect(occupied(result).has(`${row}:${col}`)).toBe(true);
+    }
+  });
+
+  it('keeps a full-width card whole after a short card in the same row', () => {
+    const colSpans = spans({ full: 4 });
+    const result = buildGridLayout(['a', 'full'], 4, spanOf(1), colSpans);
+    expect(result.full).toEqual({ row: 2, col: 1, span: 1, colSpan: 4 });
+  });
+
+  it('never narrows a wide card to a single column', () => {
+    const rowSpans = spans({ tall1: 3, tall2: 3, tall3: 3 });
+    const colSpans = spans({ full: 4 });
+    const result = buildGridLayout(['tall1', 'tall2', 'tall3', 'a', 'full'], 4, rowSpans, colSpans);
+    expect(result.full).toEqual({ row: 4, col: 1, span: 1, colSpan: 4 });
+  });
+
+  it('never makes a card wider than it asked for', () => {
+    const rowSpans = spans({ tall: 2 });
+    const colSpans = spans({ wide: 2 });
+    const result = buildGridLayout(['tall', 'a', 'b', 'c', 'wide'], 4, rowSpans, colSpans);
+    expect(result.wide).toEqual({ row: 2, col: 2, span: 1, colSpan: 2 });
+  });
 });
 
 describe('getCardColSpan', () => {
@@ -301,6 +351,28 @@ describe('getCardColSpan', () => {
       );
     }
   });
+  it('gives large cards the full row on a phone and leaves small cards two to a row', () => {
+    const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
+    const settings = {
+      'light.hall': {},
+      'light.porch': { size: 'small' },
+      entity_card_1: { entityId: 'sensor.temperature' },
+      entity_card_2: { entityId: 'sensor.temperature', size: 'small' },
+      entity_card_3: { entityId: 'sensor.temperature', mobileWidth: 'compact' },
+    };
+    const large = { ...options, rowSpan: 2 };
+    expect(getCardColSpan('light.hall', identity, settings, large)).toBe(Number.MAX_SAFE_INTEGER);
+    expect(getCardColSpan('light.porch', identity, settings, options)).toBe(1);
+    expect(getCardColSpan('entity_card_1', identity, settings, large)).toBe(
+      Number.MAX_SAFE_INTEGER
+    );
+    expect(getCardColSpan('entity_card_2', identity, settings, options)).toBe(1);
+    // A card set to compact stays compact.
+    expect(getCardColSpan('entity_card_3', identity, settings, large)).toBe(1);
+    // Wider screens keep the configured width.
+    expect(getCardColSpan('light.hall', identity, settings, { ...large, isMobile: false })).toBe(1);
+  });
+
   it('ignores malformed stored entity ids instead of breaking the whole layout', () => {
     const options = { isMobile: true, gridColumns: 2, viewportWidth: 390, gridGapH: 12 };
     for (const settings of [
