@@ -1143,6 +1143,7 @@
   "sensor.variantGauge": "Gauge",
   "sensor.variantBar": "Bar",
   "sensor.variantDonut": "Donut",
+  "sensor.variantTrend": "Trend",
   "sensor.range": "Min / Max range",
   "sensor.minValue": "Min",
   "sensor.maxValue": "Max",

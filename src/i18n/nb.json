@@ -1518,6 +1518,7 @@
   "sensor.variantGauge": "Måler",
   "sensor.variantBar": "Stolpe",
   "sensor.variantDonut": "Smultring",
+  "sensor.variantTrend": "Trend",
   "sensor.range": "Min / Maks område",
   "sensor.minValue": "Min",
   "sensor.maxValue": "Maks",

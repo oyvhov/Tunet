@@ -989,6 +989,7 @@
   "sensor.variantDonut": "Munk",
   "sensor.variantGauge": "Mätare",
   "sensor.variantNumber": "Tal",
+  "sensor.variantTrend": "Trend",
   "sensor.graphStyle": "Diagramtyp",
   "sensor.graphStyleLine": "Linje",
   "sensor.graphStyleBar": "Staplar",

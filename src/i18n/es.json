@@ -1143,6 +1143,7 @@
   "sensor.variantGauge": "Indicador",
   "sensor.variantBar": "Barra",
   "sensor.variantDonut": "Anillo",
+  "sensor.variantTrend": "Tendencia",
   "sensor.range": "Rango mín / máx",
   "sensor.minValue": "Mín",
   "sensor.maxValue": "Máx",

@@ -1000,6 +1000,7 @@
   "sensor.variantDonut": "Smultring",
   "sensor.variantGauge": "Målar",
   "sensor.variantNumber": "Tal",
+  "sensor.variantTrend": "Trend",
   "sensor.graphStyle": "Graftype",
   "sensor.graphStyleLine": "Linje",
   "sensor.graphStyleBar": "Søyler",
