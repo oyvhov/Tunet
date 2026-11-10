@@ -1,9 +1,10 @@
-import { useRef, useEffect, useCallback, memo } from 'react';
+import { useRef, useEffect, useCallback, useState, memo } from 'react';
 import { getIconComponent } from '../../icons';
-import { Lightbulb } from '../../icons';
+import { Check, Lightbulb, RefreshCw } from '../../icons';
 import M3Slider from '../ui/M3Slider';
 import type { CSSProperties, Dispatch, KeyboardEvent, MouseEvent, SetStateAction } from 'react';
 import { getLightColor } from '../../utils/lightColor';
+import { resolveLightScenes } from '../../utils/lightScenes';
 import type { useEntityHelpers } from '../../hooks/useEntityHelpers';
 import type { CardBaseProps } from '../../types/dashboard';
 import type { CardSettingsMap } from '../../utils/cardSettingsKey';
@@ -27,6 +28,100 @@ interface LightCardProps extends Pick<
 }
 
 const SLIDER_DEBOUNCE_MS = 200;
+const SCENE_DONE_MS = 1500;
+
+type SceneStatus = 'pending' | 'done';
+
+interface LightSceneChipsProps {
+  sceneIds: string[];
+  entities: LightCardProps['entities'];
+  editMode?: boolean;
+  callService: LightCardProps['callService'];
+  label: string;
+}
+
+/** Up to three scenes as quick picks under the slider of the large card. */
+function LightSceneChips({
+  sceneIds,
+  entities,
+  editMode,
+  callService,
+  label,
+}: LightSceneChipsProps) {
+  const [status, setStatus] = useState<Record<string, SceneStatus>>({});
+  const mountedRef = useRef(true);
+  const timersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const timers = timersRef.current;
+    return () => {
+      mountedRef.current = false;
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
+
+  const setSceneStatus = (sceneId: string, next: SceneStatus | null) => {
+    if (!mountedRef.current) return;
+    setStatus((prev) => {
+      const updated = { ...prev };
+      if (next) updated[sceneId] = next;
+      else delete updated[sceneId];
+      return updated;
+    });
+  };
+
+  const activate = (event: MouseEvent, sceneId: string) => {
+    event.stopPropagation();
+    if (editMode || status[sceneId] === 'pending') return;
+    clearTimeout(timersRef.current[sceneId]);
+    setSceneStatus(sceneId, 'pending');
+    const done = () => {
+      setSceneStatus(sceneId, 'done');
+      timersRef.current[sceneId] = setTimeout(() => setSceneStatus(sceneId, null), SCENE_DONE_MS);
+    };
+    // The service helper shows the toast when Home Assistant is offline or the call fails.
+    const failed = () => setSceneStatus(sceneId, null);
+    try {
+      Promise.resolve(callService('scene', 'turn_on', { entity_id: sceneId })).then(done, failed);
+    } catch {
+      failed();
+    }
+  };
+
+  return (
+    <div role="group" aria-label={label} className="relative z-30 mt-1.5 flex min-w-0 gap-1.5">
+      {sceneIds.map((sceneId) => {
+        const scene = entities[sceneId];
+        const sceneName = String(scene?.attributes?.friendly_name || sceneId);
+        const isPending = status[sceneId] === 'pending';
+        const isDone = status[sceneId] === 'done';
+        const isSceneUnavailable = scene?.state === 'unavailable';
+        return (
+          <button
+            key={sceneId}
+            type="button"
+            title={sceneName}
+            aria-busy={isPending}
+            disabled={editMode || isPending || isSceneUnavailable}
+            onClick={(event) => activate(event, sceneId)}
+            className={`flex h-7 min-w-0 cursor-pointer items-center gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2.5 text-[11px] leading-none font-semibold text-[var(--text-secondary)] transition-[transform,background-color,color] duration-200 enabled:hover:bg-[var(--glass-bg-hover)] enabled:hover:text-[var(--text-primary)] enabled:active:scale-95 disabled:cursor-default motion-reduce:transition-none motion-reduce:enabled:active:scale-100 ${editMode ? 'pointer-events-none' : ''} ${isSceneUnavailable ? 'opacity-50' : ''}`}
+          >
+            {isPending ? (
+              <RefreshCw
+                aria-hidden="true"
+                className="h-3 w-3 shrink-0 animate-spin motion-reduce:animate-none"
+              />
+            ) : isDone ? (
+              <Check aria-hidden="true" className="h-3 w-3 shrink-0" />
+            ) : null}
+            <span className="truncate">{sceneName}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 const LightCard = ({
   cardId,
@@ -90,6 +185,24 @@ const LightCard = ({
       }
     : undefined;
   const sliderColorClass = lightColor ? 'bg-[var(--light-slider-color)]' : 'bg-amber-500';
+  const brightnessPct = Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100);
+  const sceneIds = isSmall
+    ? []
+    : resolveLightScenes((cardSettings[settingsKey] || cardSettings[cardId])?.lightScenes).filter(
+        (sceneId) => entities[sceneId]
+      );
+  const hasScenes = sceneIds.length > 0;
+  // With scenes on a phone, the brightness moves next to the slider to make room for the chips.
+  const showInlineValue = isDenseMobile && hasScenes;
+  const inlineValueIsNumber = !isUnavailable && isOn && isDimmable;
+  const inlineValue = isUnavailable
+    ? '--'
+    : inlineValueIsNumber
+      ? `${brightnessPct}%`
+      : isOn
+        ? t('common.on')
+        : t('common.off');
+  const inlineValueClass = `shrink-0 leading-none whitespace-nowrap ${isDimmable ? 'min-w-10 text-right' : 'text-left'} ${inlineValueIsNumber ? 'text-sm font-semibold text-[var(--text-primary)] tabular-nums' : 'text-[11px] font-bold tracking-widest text-[var(--text-secondary)] uppercase'}`;
 
   // Debounced brightness service call
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -138,7 +251,7 @@ const LightCard = ({
         }}
         role={editMode ? undefined : 'button'}
         tabIndex={editMode ? -1 : 0}
-        className={`touch-feedback group relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
+        className={`touch-feedback group @container relative flex h-full items-center gap-4 overflow-hidden rounded-3xl border p-4 pl-5 font-sans transition-all duration-500 ${!editMode ? 'cursor-pointer active:scale-[0.98]' : 'cursor-move'} ${isUnavailable ? 'opacity-70' : ''}`}
         style={lightCardStyle}
       >
         {controls}
@@ -155,8 +268,11 @@ const LightCard = ({
           />
         </button>
 
-        <div className="flex h-full min-w-0 flex-1 flex-col justify-center gap-3 pt-1">
-          <div className="flex items-baseline justify-between pr-1">
+        {/* On a narrow card the value moves up beside the name so the slider keeps its length. */}
+        <div className="grid h-full min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-3 gap-y-3 pt-1">
+          <div
+            className={`col-start-1 row-start-1 flex min-w-0 items-baseline justify-between pr-1 ${isDimmable ? 'col-span-2 @max-[220px]:col-span-1' : 'col-span-2'}`}
+          >
             <p className="truncate text-xs leading-none font-bold tracking-wide text-[var(--text-secondary)] uppercase opacity-60">
               {String(name || t('common.light'))}
             </p>
@@ -170,8 +286,8 @@ const LightCard = ({
               </span>
             )}
           </div>
-          <div className={`flex w-full items-center ${isDimmable ? 'h-6' : 'h-6'}`}>
-            {isDimmable && (
+          {isDimmable && (
+            <div className="col-start-1 row-start-2 flex h-6 min-w-0 items-center @max-[220px]:col-span-2">
               <M3Slider
                 variant="thinLg"
                 min={0}
@@ -183,8 +299,13 @@ const LightCard = ({
                 colorClass={sliderColorClass}
                 ariaLabel={t('light.brightness')}
               />
-            )}
-          </div>
+            </div>
+          )}
+          <span
+            className={`${inlineValueClass} ${isDimmable ? 'col-start-2 row-start-2 @max-[220px]:row-start-1' : 'col-span-2 col-start-1 row-start-2 flex h-6 items-center'}`}
+          >
+            {inlineValue}
+          </span>
         </div>
       </div>
     );
@@ -253,63 +374,83 @@ const LightCard = ({
         </div>
       </div>
       <div className={`${isDenseMobile ? 'mt-1' : 'mt-2'} font-sans`}>
-        {!isDenseMobile && (
-          <p className="mb-0.5 text-[10px] leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60">
+        {(!isDenseMobile || hasScenes) && (
+          <p
+            className={`mb-0.5 text-[10px] leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60 ${hasScenes ? 'truncate' : ''}`}
+          >
             {String(name || t('common.light'))}
           </p>
         )}
-        <div
-          className={`flex items-baseline gap-1 leading-none ${isDenseMobile ? 'mt-0.5' : 'mt-1'}`}
-        >
-          {isDimmable ? (
-            <>
+        {!showInlineValue && (
+          <div
+            className={`flex items-baseline gap-1 leading-none ${isDenseMobile ? 'mt-0.5' : 'mt-1'}`}
+          >
+            {isDimmable ? (
+              <>
+                <span
+                  className={`${isDenseMobile || hasScenes ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-[var(--text-primary)]`}
+                >
+                  {isUnavailable ? '--' : isOn ? brightnessPct : '0'}
+                </span>
+                <span
+                  className={`${isDenseMobile ? 'text-lg' : hasScenes ? 'ml-1 text-lg' : 'ml-1 text-xl'} font-light text-[var(--text-muted)]`}
+                >
+                  %
+                </span>
+              </>
+            ) : (
+              /* Layout: maintain 4xl height but show nothing unless UNAVAILABLE */
               <span
-                className={`${isDenseMobile ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-[var(--text-primary)]`}
+                className={`${isDenseMobile || hasScenes ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-transparent select-none`}
               >
-                {isUnavailable
-                  ? '--'
-                  : isOn
-                    ? Math.round(((optimisticLightBrightness[cardId] ?? br) / 255) * 100)
-                    : '0'}
+                {isUnavailable ? <span className="text-[var(--text-primary)]">--</span> : '0'}
               </span>
-              <span
-                className={`${isDenseMobile ? 'text-lg' : 'ml-1 text-xl'} font-light text-[var(--text-muted)]`}
-              >
-                %
-              </span>
-            </>
-          ) : (
-            /* Layout: maintain 4xl height but show nothing unless UNAVAILABLE */
-            <span
-              className={`${isDenseMobile ? 'text-3xl' : 'text-4xl'} leading-none font-thin text-transparent select-none`}
-            >
-              {isUnavailable ? <span className="text-[var(--text-primary)]">--</span> : '0'}
-            </span>
-          )}
-        </div>
-        {isDenseMobile && (
+            )}
+          </div>
+        )}
+        {isDenseMobile && !hasScenes && (
           <p className="mt-3 mb-1 text-[10px] leading-none font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase opacity-60">
             {String(name || t('common.light'))}
           </p>
         )}
         {/* Helper to keep layout consistent. For non-dimmable, we keep the empty space where slider would be. */}
-        <div
-          className={`flex w-full items-center ${isDenseMobile ? 'mt-2' : 'mt-3'} ${isDimmable ? '' : isDenseMobile ? 'h-8' : 'h-12'}`}
-        >
-          {isDimmable && (
-            <M3Slider
-              variant={isDenseMobile ? 'thinLg' : 'default'}
-              min={0}
-              max={255}
-              step={1}
-              value={optimisticLightBrightness[cardId] ?? br}
-              disabled={isUnavailable}
-              onChange={handleBrightnessChange}
-              colorClass={sliderColorClass}
-              ariaLabel={t('light.brightness')}
-            />
-          )}
-        </div>
+        {(isDimmable || !hasScenes || showInlineValue) && (
+          <div
+            className={`flex w-full items-center ${
+              showInlineValue
+                ? 'mt-2 h-6 gap-3'
+                : hasScenes
+                  ? 'mt-1'
+                  : `${isDenseMobile ? 'mt-2' : 'mt-3'} ${isDimmable ? '' : isDenseMobile ? 'h-8' : 'h-12'}`
+            }`}
+          >
+            {isDimmable && (
+              <div className="min-w-0 flex-1">
+                <M3Slider
+                  variant={isDenseMobile || hasScenes ? 'thinLg' : 'default'}
+                  min={0}
+                  max={255}
+                  step={1}
+                  value={optimisticLightBrightness[cardId] ?? br}
+                  disabled={isUnavailable}
+                  onChange={handleBrightnessChange}
+                  colorClass={sliderColorClass}
+                  ariaLabel={t('light.brightness')}
+                />
+              </div>
+            )}
+            {showInlineValue && <span className={inlineValueClass}>{inlineValue}</span>}
+          </div>
+        )}
+        {hasScenes && (
+          <LightSceneChips
+            sceneIds={sceneIds}
+            entities={entities}
+            editMode={editMode}
+            callService={callService}
+            label={t('light.scenes')}
+          />
+        )}
       </div>
     </div>
   );
