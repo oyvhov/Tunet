@@ -997,6 +997,7 @@
   "common.on": "PÅ",
   "common.light": "Lys",
   "common.loading": "Laster...",
+  "common.moreCount": "+{count} til",
   "common.close": "Lukk",
   "common.updated": "Oppdatert",
   "common.unknown": "Ukjent",

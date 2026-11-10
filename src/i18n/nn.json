@@ -323,6 +323,7 @@
   "common.hide": "Skjul",
   "common.light": "Lys",
   "common.loading": "Lastar...",
+  "common.moreCount": "+{count} til",
   "common.missing": "Manglar",
   "common.missingEntity": "Manglande entitet",
   "common.missingEntityId": "Manglande entitet-ID",

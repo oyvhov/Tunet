@@ -183,6 +183,55 @@ describe('Todo', () => {
       await waitFor(() => expect(addTodoItem).toHaveBeenCalled());
     });
 
+    it('keeps refreshing when any report in a batch says the card is on screen', async () => {
+      const original = globalThis.IntersectionObserver;
+      globalThis.IntersectionObserver = class {
+        constructor(callback) {
+          this.callback = callback;
+        }
+        observe() {
+          this.callback([{ isIntersecting: false }, { isIntersecting: true }]);
+        }
+        unobserve() {}
+        disconnect() {}
+      };
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      try {
+        renderCard();
+        await screen.findByText('Milk');
+        const before = getTodoItems.mock.calls.length;
+        await act(async () => vi.advanceTimersByTime(2 * 60 * 1000));
+        expect(getTodoItems.mock.calls.length).toBe(before + 1);
+      } finally {
+        vi.useRealTimers();
+        globalThis.IntersectionObserver = original;
+      }
+    });
+
+    it('shows only the items that fit whole, then how many more there are', async () => {
+      const box = (top, bottom) => ({ top, bottom, height: bottom - top, toJSON() {} });
+      // Rows are 40 px with 10 px between them; the "+N more" line ends 30 px below the last row.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+        const rows = Array.from(document.querySelectorAll('[data-fit-row]'));
+        const index = rows.indexOf(this);
+        if (index >= 0) return box(index * 50, index * 50 + 40);
+        if (this.hasAttribute('data-fit-more')) return box(rows.length * 50, rows.length * 50 + 20);
+        return box(0, 200);
+      });
+      getTodoItems.mockResolvedValue(
+        ['A', 'B', 'C', 'D', 'E'].map((summary, index) => ({
+          uid: String(index),
+          summary,
+          status: 'needs_action',
+        }))
+      );
+      renderCard({ t: (key) => (key === 'common.moreCount' ? '+{count} more' : key) });
+
+      await screen.findByText('+2 more');
+      expect(screen.getByText('C')).toBeInTheDocument();
+      expect(screen.queryByText('D')).toBeNull();
+    });
+
     it.each([
       ['add', addTodoItem],
       ['toggle', updateTodoItem],

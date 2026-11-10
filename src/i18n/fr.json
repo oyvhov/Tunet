@@ -316,6 +316,7 @@
   "common.hide": "Masquer",
   "common.light": "Lumière",
   "common.loading": "Chargement...",
+  "common.moreCount": "+{count} de plus",
   "common.missing": "Manquant",
   "common.missingEntity": "Entité manquante",
   "common.missingEntityId": "ID d'entité manquant",
